@@ -1,0 +1,23 @@
+{
+    "extends": [
+        "@tada5hi/eslint-config-typescript"
+    ],
+    "parserOptions": {
+        "project": "./tsconfig.json"
+    },
+    "ignorePatterns": ["**/dist/*", "**/*.d.ts", "**/test/*"],
+    "globals": {
+        "NodeJS": true
+    },
+    "rules": {
+        "class-methods-use-this": "off",
+        "import/no-cycle": [2, {
+            "maxDepth": 1
+        }],
+        "no-shadow": "off",
+        "no-use-before-define": "off",
+
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-use-before-define": "off"
+    }
+}
