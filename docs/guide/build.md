@@ -77,4 +77,4 @@ export async function getAPIUsers(
 })();
 ```
 
-The next section will describe, on how to parse and interpret the query string on the backend side.
+The next [section](parse) will describe, how to parse the query string on the backend side.
