@@ -1,5 +1,5 @@
 {
-    "name": "hapiq",
+    "name": "rapiq",
     "version": "0.0.0",
     "description": "A tiny library which provides utility types/functions for request and response query handling.",
     "main": "./dist/index.js",
@@ -38,12 +38,12 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Tada5hi/hapiq.git"
+        "url": "git+https://github.com/Tada5hi/rapiq.git"
     },
     "bugs": {
-        "url": "https://github.com/Tada5hi/hapiq/issues"
+        "url": "https://github.com/Tada5hi/rapiq/issues"
     },
-    "homepage": "https://github.com/Tada5hi/hapiq#readme",
+    "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
         "minimatch": "^5.1.0"
     },

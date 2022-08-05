@@ -1,11 +1,11 @@
-# hapiq 🌈
+# rapiq 🌈
 
-[![main](https://github.com/Tada5hi/hapiq/actions/workflows/main.yml/badge.svg)](https://github.com/Tada5hi/hapiq/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/tada5hi/hapiq/branch/master/graph/badge.svg?token=QFGCsHRUax)](https://codecov.io/gh/tada5hi/hapiq)
-[![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/hapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/hapiq)
-[![npm version](https://badge.fury.io/js/hapiq.svg)](https://badge.fury.io/js/hapiq)
+[![main](https://github.com/Tada5hi/rapiq/actions/workflows/main.yml/badge.svg)](https://github.com/Tada5hi/rapiq/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/tada5hi/rapiq/branch/master/graph/badge.svg?token=QFGCsHRUax)](https://codecov.io/gh/tada5hi/rapiq)
+[![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/rapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/rapiq)
+[![npm version](https://badge.fury.io/js/rapiq.svg)](https://badge.fury.io/js/rapiq)
 
-Hapiq (**H**TTP **API** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
+Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
 It defines a format for the request, but **not** for the response.
 
 **Table of Contents**
@@ -18,11 +18,11 @@ It defines a format for the request, but **not** for the response.
 ## Installation
 
 ```bash
-npm install hapiq --save
+npm install rapiq --save
 ```
 ## Documentation
 
-To read the docs, visit [https://hapiq.tada5hi.net](https://hapiq.tada5hi.net)
+To read the docs, visit [https://rapiq.tada5hi.net](https://rapiq.tada5hi.net)
 
 ## Parameters
 - `fields`
@@ -46,12 +46,12 @@ It is based on the [JSON-API](https://jsonapi.org/format/) specification.
 ## Usage
 
 This is a small outlook on how to use the library. For detailed explanations and extended examples,
-read the [docs](https://hapiq.tada5hi.net).
+read the [docs](https://rapiq.tada5hi.net).
 
 ### Build 🏗
 
-The first step is to construct a [BuildInput](https://hapiq.tada5hi.net/guide/build-api-reference.html#buildinput) object for a generic Record `<T>` and
-pass it to the [buildQuery](https://hapiq.tada5hi.net/guide/build-api-reference.html#buildquery) method to convert it to a string.
+The first step is to construct a [BuildInput](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildinput) object for a generic Record `<T>` and
+pass it to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildquery) method to convert it to a string.
 
 The result string can then be provided as a URL query string to a backend application.
 The backend application can than process the request, by [parsing](#parse-) the query string.
@@ -65,7 +65,7 @@ import axios from "axios";
 import {
     buildQuery,
     BuildInput
-} from "hapiq";
+} from "rapiq";
 
 type Profile = {
     id: number;
@@ -185,7 +185,7 @@ import {
     parseQuery,
     Parameter,
     ParseOutput
-} from 'hapiq';
+} from 'rapiq';
 
 import {
     applyQueryParseOutput,
