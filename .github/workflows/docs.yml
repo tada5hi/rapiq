@@ -24,7 +24,7 @@ jobs:
               run: |
                     cd ./docs/.vitepress/dist/
                     touch CNAME
-                    echo "hapiq.tada5hi.net" > CNAME
+                    echo "rapiq.tada5hi.net" > CNAME
 
             - name: Deploy
               uses: peaceiris/actions-gh-pages@v3
