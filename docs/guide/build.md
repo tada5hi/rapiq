@@ -15,7 +15,7 @@ import axios from "axios";
 import {
     buildQuery,
     BuildInput
-} from "hapiq";
+} from "rapiq";
 
 type Profile = {
     id: number;

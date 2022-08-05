@@ -16,7 +16,7 @@ function parseQuery(input: ParseInput, options?: ParseOptions): string;
 ```typescript
 import {
     parseQuery,
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQuery({
     fields: ['+age'],
@@ -75,7 +75,7 @@ function parseQueryParameter(
 ```typescript
 import {
     parseQueryParameter,
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQueryParameter(
     // 'fields' ||
@@ -98,7 +98,7 @@ console.log(output);
 ```typescript
 import {
     parseQueryParameter
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQueryParameter(
     // 'filters' | 'filter' |
@@ -120,7 +120,7 @@ console.log(output);
 ```typescript
 import {
     parseQueryParameter
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQueryParameter(
     // 'pagination' | 'page' |
@@ -141,7 +141,7 @@ console.log(output);
 ```typescript
 import {
     parseQueryParameter
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQueryParameter(
     // 'relations' || 'include' ||
@@ -163,7 +163,7 @@ console.log(output);
 ```typescript
 import {
     parseQueryParameter
-} from 'hapiq';
+} from 'rapiq';
 
 const output = parseQueryParameter(
     // 'sort' ||

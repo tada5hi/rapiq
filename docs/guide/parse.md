@@ -61,7 +61,7 @@ import {
     parseQueryPagination,
     parseQuerySort,
     Parameter
-} from "hapiq";
+} from "rapiq";
 
 import {
     applyQueryParseOutput,
@@ -170,7 +170,7 @@ import {
     parseQuery,
     Parameter,
     ParseOutput
-} from 'hapiq';
+} from 'rapiq';
 
 import {
     applyQueryParseOutput,

@@ -1,7 +1,7 @@
 ---
 layout: home
 hero:
-    name: hapiq
+    name: Rapiq
     text: Query Specification
     tagline: This is a library to build an efficient interface between client- & server-side applications.
     actions:
@@ -10,5 +10,5 @@ hero:
          link: /guide/
        - theme: alt
          text: View on GitHub
-         link: https://github.com/tada5hi/hapiq
+         link: https://github.com/tada5hi/rapiq
 ---

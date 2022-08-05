@@ -15,7 +15,7 @@ function buildQuery<T>(record: BuildInput<T>, options?: BuildOptions): string;
 ```typescript
 import {
     buildQuery
-} from "hapiq";
+} from "rapiq";
 
 type User = {
     id: number,

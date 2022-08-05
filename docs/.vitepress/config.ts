@@ -1,14 +1,14 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-    title: 'Hapiq',
+    title: 'Rapiq',
     base: '/',
     themeConfig: {
         socialLinks: [
-            { icon: 'github', link: 'https://github.com/tada5hi/hapiq' },
+            { icon: 'github', link: 'https://github.com/tada5hi/rapiq' },
         ],
         editLink: {
-            pattern: 'https://github.com/tada5hi/hapiq/edit/master/docs/:path',
+            pattern: 'https://github.com/tada5hi/rapiq/edit/master/docs/:path',
             text: 'Edit this page on GitHub'
         },
         nav: [

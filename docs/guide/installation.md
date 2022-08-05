@@ -3,5 +3,5 @@
 Add the package as a dependency to the project.
 
 ```sh
-npm install hapiq --save
+npm install rapiq --save
 ```
