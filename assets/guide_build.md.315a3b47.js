@@ -62,4 +62,4 @@ import{_ as s,c as n,o as a,a as l}from"./app.11f741a9.js";const A=JSON.parse('{
 <span class="line"></span>
 <span class="line"><span style="color:#89DDFF;">    </span><span style="color:#676E95;font-style:italic;">// do something with the response :)</span></span>
 <span class="line"><span style="color:#89DDFF;">}</span><span style="color:#A6ACCD;">)()</span><span style="color:#89DDFF;">;</span></span>
-<span class="line"></span></code></pre></div><p>The next section will describe, on how to parse and interpret the query string on the backend side.</p>`,6),e=[o];function t(c,r,F,y,D,i){return a(),n("div",null,e)}var d=s(p,[["render",t]]);export{A as __pageData,d as default};
+<span class="line"></span></code></pre></div><p>The next <a href="./parse.html">section</a> will describe, how to parse the query string on the backend side.</p>`,6),e=[o];function t(c,r,F,y,D,i){return a(),n("div",null,e)}var d=s(p,[["render",t]]);export{A as __pageData,d as default};
