@@ -1,7 +1,7 @@
 # hapiq 🌈
 
 [![main](https://github.com/Tada5hi/hapiq/actions/workflows/main.yml/badge.svg)](https://github.com/Tada5hi/hapiq/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/Tada5hi/hapiq/branch/main/graph/badge.svg?token=ZUJ8F5TTSX)](https://codecov.io/gh/Tada5hi/hapiq)
+[![codecov](https://codecov.io/gh/tada5hi/hapiq/branch/master/graph/badge.svg?token=QFGCsHRUax)](https://codecov.io/gh/tada5hi/hapiq)
 [![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/hapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/hapiq)
 [![npm version](https://badge.fury.io/js/hapiq.svg)](https://badge.fury.io/js/hapiq)
 
