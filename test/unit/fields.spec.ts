@@ -10,7 +10,7 @@ import {
     FieldOperator,
     FieldsParseOptions,
     FieldsParseOutput,
-    buildDomainFields,
+    buildFieldDomainRecords,
     parseQueryFields,
     parseQueryRelations,
 } from '../../src';
@@ -20,13 +20,13 @@ describe('src/fields/index.ts', () => {
     it('should transform allowed domain fields', () => {
         const fields : string[] = ['id', 'name'];
 
-        let transformedFields = buildDomainFields(fields);
+        let transformedFields = buildFieldDomainRecords(fields);
         expect(transformedFields).toEqual({ [DEFAULT_ALIAS_ID]: fields });
 
-        transformedFields = buildDomainFields({ domain: fields });
+        transformedFields = buildFieldDomainRecords({ domain: fields });
         expect(transformedFields).toEqual({ domain: fields });
 
-        transformedFields = buildDomainFields({});
+        transformedFields = buildFieldDomainRecords({});
         expect(transformedFields).toEqual({});
     });
 
@@ -60,7 +60,7 @@ describe('src/fields/index.ts', () => {
 
         // fields as string and append fields
         data = parseQueryFields('id,+name', options);
-        expect(data).toEqual([{ key: 'id' }, { key: 'name', value: FieldOperator.INCLUDE }] as FieldsParseOutput);
+        expect(data).toEqual([{ key: 'id' }, { key: 'name' }] as FieldsParseOutput);
 
         // empty allowed -> allows nothing
         data = parseQueryFields('id', { ...options, allowed: [] });
@@ -86,6 +86,23 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields(['id'], { allowed: { domain: ['id'], domain2: ['id'] } });
         expect(data).toEqual([] as FieldsParseOutput);
     });
+
+    it('should transform fields with defaults', () => {
+        let data = parseQueryFields([], { default: { domain: ['id', 'name'] } });
+        expect(data).toEqual([{ alias: 'domain', key: 'id' }, { alias: 'domain', key: 'name'}] as FieldsParseOutput);
+
+        data = parseQueryFields(['id'], { default: { domain: ['id', 'name'] } });
+        expect(data).toEqual([{ alias: 'domain', key: 'id' }] as FieldsParseOutput);
+
+        data = parseQueryFields(['fake'], { default: { domain: ['id', 'name'] } });
+        expect(data).toEqual([{ alias: 'domain', key: 'id' }, { alias: 'domain', key: 'name'}] as FieldsParseOutput);
+
+        data = parseQueryFields(['id'], { default: { domain: ['name'] }, allowed: { domain: ['id' ] }});
+        expect(data).toEqual([{ alias: 'domain', key: 'id' }] as FieldsParseOutput);
+
+        data = parseQueryFields([], { default: { domain: ['name'] }, allowed: { domain: ['id' ] }});
+        expect(data).toEqual([{ alias: 'domain', key: 'name' }] as FieldsParseOutput);
+    })
 
     it('should transform fields with includes', () => {
         const includes = parseQueryRelations(['profile', 'roles'], { allowed: ['user', 'profile'] });

@@ -7,19 +7,18 @@
 
 import { Parameter } from '../../constants';
 import {
-    Flatten, KeyWithOptionalPrefix, OnlyObject, ParseOptionsBase, ParseOutputElementBase, ToOneAndMany,
+    Flatten,
+    KeyWithOptionalPrefix,
+    OnlyObject,
+    ParseOptionsBase,
+    ParseOutputElementBase,
+    ToOneAndMany,
 } from '../type';
-
-export const DEFAULT_ALIAS_ID = '__DEFAULT__';
+import { FieldOperator } from './constants';
 
 // -----------------------------------------------------------
 // Build
 // -----------------------------------------------------------
-
-export enum FieldOperator {
-    INCLUDE = '+',
-    EXCLUDE = '-',
-}
 
 type FieldWithOperator<T extends Record<string, any>> =
     KeyWithOptionalPrefix<keyof T, FieldOperator> |
@@ -39,7 +38,15 @@ export type FieldsBuildInput<T extends Record<string, any>> =
 // Parse
 // -----------------------------------------------------------
 
-export type FieldsParseOptions = ParseOptionsBase<Parameter.FIELDS, Record<string, string[]> | string[]>;
+export type FieldsParseOptions = ParseOptionsBase<Parameter.FIELDS, Record<string, string[]> | string[]> & {
+    default?: Record<string, string[]> | string[]
+};
 
 export type FieldsParseOutputElement = ParseOutputElementBase<Parameter.FIELDS, FieldOperator>;
 export type FieldsParseOutput = FieldsParseOutputElement[];
+
+export type FieldsInputTransformed = {
+    default: string[],
+    included: string[],
+    excluded: string[]
+};

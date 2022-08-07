@@ -29,10 +29,10 @@ export type ParseOutputElementBase<K extends `${Parameter}`,
         value: V
     });
 
-export type ParseOptionsBase<K extends `${Parameter}`,
+export type ParseOptionsBase<K extends `${Parameter}` | Parameter,
     A = string[],
     > = (
-        K extends `${Parameter.PAGINATION}` ?
+        K extends `${Parameter.PAGINATION}` | Parameter.PAGINATION ?
             Record<string, any> :
             {
                 aliasMapping?: Record<string, string>,
@@ -40,7 +40,7 @@ export type ParseOptionsBase<K extends `${Parameter}`,
                 defaultAlias?: string
             }
     ) & (
-        K extends `${Parameter.PAGINATION}` | `${Parameter.RELATIONS}` ?
+        K extends `${Parameter.PAGINATION}` | Parameter.PAGINATION | `${Parameter.RELATIONS}` | Parameter.RELATIONS ?
             Record<string, any> :
             {
                 relations?: ParseOutputElementBase<Parameter.RELATIONS, string>[]
