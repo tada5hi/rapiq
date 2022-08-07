@@ -12,7 +12,7 @@ import {
 describe('src/filter/index.ts', () => {
     it('should transform request filters', () => {
         // filter id
-        let allowedFilter = parseQueryFilters({ id: 1 });
+        let allowedFilter = parseQueryFilters({ id: 1 }, {allowed: ['id']});
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
@@ -192,7 +192,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should transform filters with includes', () => {
-        const include = parseQueryRelations(['profile', 'user_roles.role']);
+        const include = parseQueryRelations(['profile', 'user_roles.role'], {allowed: ['profile', 'user_roles.role']});
 
         const options : FiltersParseOptions = {
             allowed: ['id', 'profile.id', 'role.id'],

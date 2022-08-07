@@ -98,7 +98,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should transform sort data with includes', () => {
-        const includes = parseQueryRelations(['profile', 'user_roles.role']);
+        const includes = parseQueryRelations(['profile', 'user_roles.role'], {allowed: ['profile', 'user_roles.role']});
 
         const options : SortParseOptions = {
             allowed: ['id', 'profile.id', 'user_roles.role.id'],

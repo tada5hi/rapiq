@@ -16,7 +16,7 @@ import { ParseParameterOptions, ParseParameterOutput } from './type';
 export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`>(
     key: K,
     data: unknown,
-    options?: ParseParameterOptions<K> | boolean,
+    options?: ParseParameterOptions<K>,
     relations?: RelationsParseOutput,
 ): ParseParameterOutput<K> {
     switch (key) {

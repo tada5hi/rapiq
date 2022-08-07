@@ -20,8 +20,6 @@ export type FilterOperatorConfig<V extends string | number | boolean | null | un
     value: V | V[]
 };
 
-export type FilterOperatorLabelType = `${FilterOperatorLabel}`;
-
 type FilterValue<V> = V extends string | number | boolean ? (V | V[]) : never;
 type FilterValueWithOperator<V> = V extends string | number | boolean ?
     (FilterValue<V> | FilterValueOperator<V> | Array<FilterValueOperator<V>>) :

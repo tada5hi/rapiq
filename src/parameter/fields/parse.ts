@@ -50,11 +50,11 @@ export function parseQueryFields(
     options ??= {};
     options.defaultAlias ??= DEFAULT_ALIAS_ID;
 
-    const defaultDomainFields = buildFieldDomainRecords(options.default ?? []);
+    const defaultDomainFields = buildFieldDomainRecords(options.default);
     const defaultDomainKeys = Object.keys(defaultDomainFields);
 
     const allowedDomainFields = mergeFieldsDomainRecords(
-        buildFieldDomainRecords(options.allowed ?? []),
+        buildFieldDomainRecords(options.allowed),
         { ...defaultDomainFields },
         options,
     );
@@ -131,7 +131,7 @@ export function parseQueryFields(
             }
 
             if (fieldsInputTransformed.default.length > 0) {
-                fieldsInputTransformed.default = [...fieldsInputTransformed.default, ...fieldsInputTransformed.included];
+                fieldsInputTransformed.default = Array.from(new Set([...fieldsInputTransformed.default, ...fieldsInputTransformed.included]));
                 for (let j = 0; j < fieldsInputTransformed.excluded.length; j++) {
                     const index = fieldsInputTransformed.default.indexOf(fieldsInputTransformed.excluded[j]);
                     if (index !== -1) {

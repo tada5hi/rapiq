@@ -66,9 +66,9 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields('id', { ...options, allowed: [] });
         expect(data).toEqual([] as FieldsParseOutput);
 
-        // undefined allowed -> allows everything
+        // undefined allowed -> allows nothing
         data = parseQueryFields('id', { ...options, allowed: undefined });
-        expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
+        expect(data).toEqual([] as FieldsParseOutput);
 
         // field not allowed
         data = parseQueryFields('avatar', options);

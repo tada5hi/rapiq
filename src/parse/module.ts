@@ -6,7 +6,11 @@
  */
 
 import {
-    FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
+    FieldsParseOutput,
+    FiltersParseOutput,
+    PaginationParseOutput,
+    RelationsParseOutput,
+    SortParseOutput,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import { parseQueryParameter } from './parameter';
@@ -20,20 +24,12 @@ export function parseQuery(
 
     const output : ParseOutput = {};
 
-    const nonEnabled : boolean = Object.keys(options).length === 0;
-
     let relations : RelationsParseOutput | undefined;
-    if (!!options[Parameter.RELATIONS] || nonEnabled) {
-        relations = parseQueryParameter(
-            Parameter.RELATIONS,
-            input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS],
-            options[Parameter.RELATIONS],
-        );
-
-        output[Parameter.RELATIONS] = relations;
-    }
 
     const keys : Parameter[] = [
+        // relations must be first parameter
+        Parameter.RELATIONS,
+
         Parameter.FIELDS,
         Parameter.FILTERS,
         Parameter.PAGINATION,
@@ -41,46 +37,70 @@ export function parseQuery(
     ];
 
     for (let i = 0; i < keys.length; i++) {
-        const enabled = !!options[keys[i]] ||
-            nonEnabled;
-
-        if (!enabled) continue;
-
         const key : Parameter = keys[i];
 
         switch (key) {
-            case Parameter.FIELDS:
-                output[Parameter.FIELDS] = parseQueryParameter(
-                    keys[i],
-                    input[Parameter.FIELDS] ?? input[URLParameter.FIELDS],
-                    options[Parameter.FIELDS],
-                    relations,
-                ) as FieldsParseOutput;
+            case Parameter.RELATIONS: {
+                const value = input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS];
+                if (value || options[Parameter.RELATIONS]) {
+                    relations = parseQueryParameter(
+                        Parameter.RELATIONS,
+                        value,
+                        options[Parameter.RELATIONS],
+                    );
+
+                    output[Parameter.RELATIONS] = relations;
+                }
                 break;
-            case Parameter.FILTERS:
-                output[Parameter.FILTERS] = parseQueryParameter(
-                    keys[i],
-                    input[Parameter.FILTERS] ?? input[URLParameter.FILTERS],
-                    options[Parameter.FILTERS],
-                    relations,
-                ) as FiltersParseOutput;
+            }
+            case Parameter.FIELDS: {
+                const value = input[Parameter.FIELDS] ?? input[URLParameter.FIELDS];
+                if (value || options[Parameter.FIELDS]) {
+                    output[Parameter.FIELDS] = parseQueryParameter(
+                        keys[i],
+                        value,
+                        options[Parameter.FIELDS],
+                        relations,
+                    ) as FieldsParseOutput;
+                }
                 break;
-            case Parameter.PAGINATION:
-                output[Parameter.PAGINATION] = parseQueryParameter(
-                    keys[i],
-                    input[Parameter.PAGINATION] ?? input[URLParameter.PAGINATION],
-                    options[Parameter.PAGINATION],
-                    relations,
-                ) as PaginationParseOutput;
+            }
+            case Parameter.FILTERS: {
+                const value = input[Parameter.FILTERS] ?? input[URLParameter.FILTERS];
+                if (value || options[Parameter.FILTERS]) {
+                    output[Parameter.FILTERS] = parseQueryParameter(
+                        keys[i],
+                        value,
+                        options[Parameter.FILTERS],
+                        relations,
+                    ) as FiltersParseOutput;
+                }
                 break;
-            case Parameter.SORT:
-                output[Parameter.SORT] = parseQueryParameter(
-                    keys[i],
-                    input[Parameter.SORT] ?? input[URLParameter.SORT],
-                    options[Parameter.SORT],
-                    relations,
-                ) as SortParseOutput;
+            }
+            case Parameter.PAGINATION: {
+                const value = input[Parameter.PAGINATION] ?? input[URLParameter.PAGINATION];
+                if (value || options[Parameter.PAGINATION]) {
+                    output[Parameter.PAGINATION] = parseQueryParameter(
+                        keys[i],
+                        value,
+                        options[Parameter.PAGINATION],
+                        relations,
+                    ) as PaginationParseOutput;
+                }
                 break;
+            }
+            case Parameter.SORT: {
+                const value = input[Parameter.SORT] ?? input[URLParameter.SORT];
+                if (value || options[Parameter.SORT]) {
+                    output[Parameter.SORT] = parseQueryParameter(
+                        keys[i],
+                        value,
+                        options[Parameter.SORT],
+                        relations,
+                    ) as SortParseOutput;
+                }
+                break;
+            }
         }
     }
 

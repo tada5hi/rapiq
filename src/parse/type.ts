@@ -21,7 +21,7 @@ export type ParseOptions = {
     /**
      * On default all query keys are enabled.
      */
-    [K in `${Parameter}`]?: ParseParameterOptions<K> | boolean
+    [K in `${Parameter}`]?: ParseParameterOptions<K>
 };
 
 //------------------------------------------------

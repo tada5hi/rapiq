@@ -40,10 +40,9 @@ export function parseQueryFilters(
     options = options ?? {};
 
     // If it is an empty array nothing is allowed
-
     if (
-        typeof options.allowed !== 'undefined' &&
-        Object.keys(options.allowed).length === 0
+        typeof options.allowed === 'undefined' ||
+        options.allowed.length === 0
     ) {
         return [];
     }

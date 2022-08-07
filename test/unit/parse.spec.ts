@@ -6,7 +6,13 @@
  */
 
 import {
-    FieldsParseOutput, Parameter, ParseOutput, parseQuery, parseQueryParameter,
+    FieldsParseOutput,
+    FiltersParseOutput,
+    PaginationParseOutput,
+    Parameter,
+    ParseOutput,
+    parseQuery,
+    parseQueryParameter, RelationsParseOutput, SortDirection, SortParseOutput,
 } from '../../src';
 
 describe('src/parse.ts', () => {
@@ -14,13 +20,14 @@ describe('src/parse.ts', () => {
         let value = parseQuery({
             fields: ['id', 'name'],
         }, {
-            [Parameter.FIELDS]: true,
+            fields: {
+                allowed: ['id']
+            }
         });
 
         expect(value).toEqual({
             fields: [
                 { key: 'id' },
-                { key: 'name' },
             ],
         } as ParseOutput);
 
@@ -29,22 +36,40 @@ describe('src/parse.ts', () => {
         });
 
         expect(value).toEqual({
-            [Parameter.FIELDS]: [
-                { key: 'id' },
-                { key: 'name' },
-            ],
-            [Parameter.FILTERS]: [],
-            [Parameter.RELATIONS]: [],
-            [Parameter.PAGINATION]: {},
-            [Parameter.SORT]: [],
+            fields: []
         } as ParseOutput);
     });
 
-    it('should parse single query parameter', () => {
-        const value = parseQueryParameter(Parameter.FIELDS, ['id', 'name']);
+    it('should parse field query parameter', () => {
+        let value = parseQueryParameter(Parameter.FIELDS, ['id', 'name'], {allowed: ['id', 'name']});
         expect(value).toEqual([
             { key: 'id' },
             { key: 'name' },
         ] as FieldsParseOutput);
+    });
+
+    it('should parse filter query parameter', () => {
+        let value = parseQueryParameter(Parameter.FILTERS, { name: 'tada5hi' }, {allowed: ['name']});
+        expect(value).toEqual([{
+            key: 'name',
+            value: 'tada5hi',
+        }] as FiltersParseOutput);
+    });
+
+    it('should parse pagination query parameter', () => {
+        let value = parseQueryParameter(Parameter.PAGINATION, { offset: 20, limit: 20 }, { maxLimit: 50 });
+        expect(value).toEqual({ offset: 20, limit: 20 } as PaginationParseOutput);
+    });
+
+    it('should parse relation query parameter', () => {
+        let value = parseQueryParameter(Parameter.RELATIONS, 'profile', { allowed: ['profile'] });
+        expect(value).toEqual([
+            { key: 'profile', value: 'profile' },
+        ] as RelationsParseOutput);
+    });
+
+    it('should parse sort query parameter', () => {
+        let value = parseQueryParameter(Parameter.SORT, '-id', { allowed: ['id'] });
+        expect(value).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
     });
 });

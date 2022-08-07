@@ -10,9 +10,13 @@ import { DEFAULT_ALIAS_ID } from '../constants';
 import { hasOwnProperty } from '../../../utils';
 
 export function buildFieldDomainRecords(
-    data: Record<string, string[]> | string[],
+    data?: Record<string, string[]> | string[],
     options?: FieldsParseOptions,
 ): Record<string, string[]> {
+    if (typeof data === 'undefined') {
+        return {};
+    }
+
     options = options ?? { defaultAlias: DEFAULT_ALIAS_ID };
 
     let domainFields: Record<string, string[]> = {};

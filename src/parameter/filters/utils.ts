@@ -6,7 +6,7 @@
  */
 
 import {
-    FilterOperatorConfig, FilterOperatorLabelType,
+    FilterOperatorConfig,
 } from './type';
 import { hasOwnProperty, isSimpleValue } from '../../utils';
 import { FilterOperator, FilterOperatorLabel } from './constants';
@@ -25,12 +25,12 @@ for (let i = 0; i < operatorKeys.length; i++) {
 }
 
 export function determineFilterOperatorLabelsByValue(input: string) : {
-    operators: FilterOperatorLabelType[],
+    operators: (`${FilterOperatorLabel}`)[],
     value: string | string[]
 } {
     let value : string[] | string = input;
 
-    const operators : FilterOperatorLabelType[] = [];
+    const operators : (`${FilterOperatorLabel}`)[] = [];
 
     for (let i = 0; i < config.length; i++) {
         if (typeof value !== 'string') {

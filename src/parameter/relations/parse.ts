@@ -65,7 +65,7 @@ export function parseQueryRelations(
 
     // If it is an empty array nothing is allowed
     if (
-        Array.isArray(options.allowed) &&
+        typeof options.allowed === 'undefined' ||
         options.allowed.length === 0
     ) {
         return [];
@@ -101,14 +101,11 @@ export function parseQueryRelations(
         return [];
     }
 
-    items = items
-        .map((item) => {
-            if (hasOwnProperty(options.aliasMapping, item)) {
-                item = options.aliasMapping[item];
-            }
-
-            return item;
-        });
+    for (let i = 0; i < items.length; i++) {
+        if (hasOwnProperty(options.aliasMapping, items[i])) {
+            items[i] = options.aliasMapping[items[i]];
+        }
+    }
 
     if (options.allowed) {
         items = items
