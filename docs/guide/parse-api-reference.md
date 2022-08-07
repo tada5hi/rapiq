@@ -8,7 +8,7 @@ parsed data as value.
 
 **Type**
 ```ts
-function parseQuery(input: ParseInput, options?: ParseOptions): string;
+declare function parseQuery(input: ParseInput, options?: ParseOptions): string;
 ```
 
 **Example** 
@@ -55,6 +55,10 @@ console.log(output);
 
 The function returns an object.
 
+**References**
+- [ParseOutput](#parseoutput)
+- [ParseOptions](#parseoptions)
+
 ## `parseQueryParameter`
 
 Parse a query string to an efficient data structure ⚡. The output will
@@ -63,7 +67,7 @@ parsed data as value.
 
 **Type**
 ```ts
-function parseQueryParameter(
+declare function parseQueryParameter(
     key: T,
     input: unknown,
     options?: ParseParameterOptions<T>

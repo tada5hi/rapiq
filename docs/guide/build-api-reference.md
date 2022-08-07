@@ -8,7 +8,7 @@ The allowed input keys are values of the [Parameter](parameter-api-reference.md#
 
 **Type**
 ```ts
-function buildQuery<T>(record: BuildInput<T>, options?: BuildOptions): string;
+declare function buildQuery<T>(record: BuildInput<T>, options?: BuildOptions): string;
 ```
 
 **Example**
@@ -56,13 +56,10 @@ The function returns a string, which can be parsed with the [parseQuery](parse-a
 
 I.e. `/users?page[limit]=10&page[offset]=0&include=profile&filter[id]=1&fields[user]=id,name`
 
-## `BuildOptions`
+**References**
+- [BuildInput](#buildinput)
+- [BuildOptions](#buildoptions)
 
-```typescript
-export type BuildOptions = {
-    // empty type for now :)
-}
-```
 ## `BuildInput`
 
 ```typescript
@@ -72,3 +69,12 @@ export type BuildInput<
     [T in Parameter | URLParameter]?: BuildParameterInput<T, V>
 }
 ```
+
+## `BuildOptions`
+
+```typescript
+export type BuildOptions = {
+    // empty type for now :)
+}
+```
+
