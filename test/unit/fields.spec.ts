@@ -6,15 +6,15 @@
  */
 
 import {
+    buildFieldDomainRecords,
     DEFAULT_ALIAS_ID,
     FieldOperator,
     FieldsParseOptions,
     FieldsParseOutput,
-    buildFieldDomainRecords,
     parseQueryFields,
     parseQueryRelations,
 } from '../../src';
-import { buildObjectFromStringArray } from '../../src/utils';
+import {buildObjectFromStringArray} from '../../src/utils';
 
 describe('src/fields/index.ts', () => {
     it('should transform allowed domain fields', () => {
@@ -29,6 +29,54 @@ describe('src/fields/index.ts', () => {
         transformedFields = buildFieldDomainRecords({});
         expect(transformedFields).toEqual({});
     });
+
+    it('should transform fields with defaultAlias', () => {
+        let options : FieldsParseOptions = {
+            allowed: ['id', 'name', 'email'],
+            defaultAlias: 'user'
+        };
+
+        let data = parseQueryFields('+email', options);
+
+        expect(data).toEqual([
+            {
+                key: 'email',
+                value: FieldOperator.INCLUDE,
+                alias: 'user'
+            }
+        ] as FieldsParseOutput);
+
+        options = {
+            allowed: {
+                user: ['id', 'name', 'email'],
+                domain: ['extra']
+            },
+            defaultAlias: 'user'
+        }
+
+        data = parseQueryFields('+email', options);
+        expect(data).toEqual([
+            {
+                key: 'email',
+                value: FieldOperator.INCLUDE,
+                alias: 'user'
+            }
+        ] as FieldsParseOutput);
+
+        data = parseQueryFields('+extra', options);
+        expect(data).toEqual([]);
+
+        data = parseQueryFields({
+            domain: '+extra'
+        }, options);
+        expect(data).toEqual([
+            {
+                key: 'extra',
+                value: FieldOperator.INCLUDE,
+                alias: 'domain'
+            }
+        ] as FieldsParseOutput);
+    })
 
     it('should transform fields', () => {
         const options : FieldsParseOptions = {

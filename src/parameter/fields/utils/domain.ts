@@ -5,24 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldsParseOptions } from '../type';
 import { DEFAULT_ALIAS_ID } from '../constants';
 import { hasOwnProperty } from '../../../utils';
 
 export function buildFieldDomainRecords(
     data?: Record<string, string[]> | string[],
-    options?: FieldsParseOptions,
+    defaultAlias?: string,
 ): Record<string, string[]> {
     if (typeof data === 'undefined') {
         return {};
     }
 
-    options = options ?? { defaultAlias: DEFAULT_ALIAS_ID };
-
     let domainFields: Record<string, string[]> = {};
 
     if (Array.isArray(data)) {
-        domainFields[options.defaultAlias] = data;
+        domainFields[defaultAlias || DEFAULT_ALIAS_ID] = data;
     } else {
         domainFields = data;
     }
@@ -33,10 +30,9 @@ export function buildFieldDomainRecords(
 export function mergeFieldsDomainRecords(
     sourceA: Record<string, string[]>,
     sourceB: Record<string, string[]>,
-    options?: FieldsParseOptions,
+    defaultAlias?: string,
 ) {
     const target: Record<string, string[]> = {};
-    options = options ?? { defaultAlias: DEFAULT_ALIAS_ID };
 
     let keys = Object.keys(sourceA);
     for (let i = 0; i < keys.length; i++) {
@@ -57,12 +53,15 @@ export function mergeFieldsDomainRecords(
     }
 
     keys = Object.keys(target);
+
+    const alias = defaultAlias || DEFAULT_ALIAS_ID;
+
     if (
         keys.length >= 2 &&
-        hasOwnProperty(target, options.defaultAlias) &&
-        target[options.defaultAlias].length === 0
+        hasOwnProperty(target, alias) &&
+        target[alias].length === 0
     ) {
-        delete target[options.defaultAlias];
+        delete target[alias];
     }
 
     return target;

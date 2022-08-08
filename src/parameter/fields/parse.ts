@@ -48,15 +48,13 @@ export function parseQueryFields(
     options?: FieldsParseOptions,
 ) : FieldsParseOutput {
     options ??= {};
-    options.defaultAlias ??= DEFAULT_ALIAS_ID;
 
-    const defaultDomainFields = buildFieldDomainRecords(options.default);
+    const defaultDomainFields = buildFieldDomainRecords(options.default, options.defaultAlias);
     const defaultDomainKeys = Object.keys(defaultDomainFields);
 
     const allowedDomainFields = mergeFieldsDomainRecords(
-        buildFieldDomainRecords(options.allowed),
+        buildFieldDomainRecords(options.allowed, options.defaultAlias),
         { ...defaultDomainFields },
-        options,
     );
     const allowedDomainKeys : string[] = Object.keys(allowedDomainFields);
 
@@ -77,11 +75,11 @@ export function parseQueryFields(
     }
 
     if (prototype === '[object String]') {
-        data = { [options.defaultAlias]: data };
+        data = { [DEFAULT_ALIAS_ID]: data };
     }
 
     if (prototype === '[object Array]') {
-        data = { [options.defaultAlias]: data };
+        data = { [DEFAULT_ALIAS_ID]: data };
     }
 
     let transformed : FieldsParseOutput = [];
@@ -102,16 +100,22 @@ export function parseQueryFields(
         const fields = parseFieldsInput(data[domainKey]);
 
         domainKey = hasOwnProperty(options.aliasMapping, domainKeys[i]) ?
-            options.aliasMapping[domainKeys[i]] :
+            options.aliasMapping[domainKey] :
             domainKey;
 
         if (!isRelationIncluded(domainKey, options)) {
             continue;
         }
 
-        domainKey = allowedDomainKeys.length === 1 ?
-            allowedDomainKeys[0] :
-            domainKey;
+        if (domainKey === DEFAULT_ALIAS_ID) {
+            if (options.defaultAlias) {
+                domainKey = options.defaultAlias;
+            } else {
+                domainKey = allowedDomainKeys.length === 1 ?
+                    allowedDomainKeys[0] :
+                    domainKey;
+            }
+        }
 
         if (
             fields.length === 0 &&
@@ -183,7 +187,9 @@ export function parseQueryFields(
                 options.aliasMapping,
             );
 
-            if (domainKey !== options.defaultAlias) {
+            if (
+                domainKey !== DEFAULT_ALIAS_ID
+            ) {
                 output[j].alias = domainKey;
             }
         }
@@ -219,7 +225,11 @@ export function parseQueryFields(
             for (let i = 0; i < missingDomainKeys.length; i++) {
                 for (let j = 0; j < defaultDomainFields[missingDomainKeys[i]].length; j++) {
                     transformed.push({
-                        ...(missingDomainKeys[i] !== options.defaultAlias ? { alias: missingDomainKeys[i] } : {}),
+                        ...(
+                            missingDomainKeys[i] !== DEFAULT_ALIAS_ID ?
+                                { alias: missingDomainKeys[i] } :
+                                {}
+                        ),
                         key: getFieldNamedByAliasMapping(
                             missingDomainKeys[i],
                             defaultDomainFields[missingDomainKeys[i]][j],

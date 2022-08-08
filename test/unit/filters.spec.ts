@@ -6,7 +6,11 @@
  */
 
 import {
-    FilterOperatorLabel, FiltersParseOptions, FiltersParseOutput, parseQueryFilters, parseQueryRelations,
+    FilterOperatorLabel,
+    FiltersParseOptions,
+    FiltersParseOutput,
+    parseQueryFilters,
+    parseQueryRelations,
 } from '../../src';
 
 describe('src/filter/index.ts', () => {
@@ -69,6 +73,23 @@ describe('src/filter/index.ts', () => {
         allowedFilter = parseQueryFilters({}, { allowed: ['name'] });
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
     });
+
+    it('should transform fields with defaultAlias', () => {
+        const options : FiltersParseOptions= {
+            allowed: ['id'],
+            defaultAlias: 'user'
+        };
+
+        const data = parseQueryFilters({ id: 1 }, options);
+
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 1,
+                alias: 'user'
+            }
+        ] as FiltersParseOutput)
+    })
 
     it('should transform filters with different operators', () => {
         // equal operator
