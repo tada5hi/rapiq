@@ -209,6 +209,8 @@ export function parseQueryFields(
         }
     }
 
+    // todo: use allowedDomainFields instead of defaultDomains
+
     if (defaultDomainKeys.length > 0) {
         const missingDomainKeys: string[] = [];
 
