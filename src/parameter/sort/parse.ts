@@ -8,8 +8,8 @@
 import {
     buildFieldWithAlias,
     buildObjectFromStringArray,
-    getFieldDetails, hasOwnProperty,
-    isFieldAllowedByRelations,
+    getFieldDetails, getNameByAliasMapping, hasOwnProperty,
+    isAllowedByRelations,
 } from '../../utils';
 
 import { SortDirection, SortParseOptions, SortParseOutput } from './type';
@@ -98,14 +98,10 @@ export function parseQuerySort(
             parts[i] = parts[i].substring(1);
         }
 
-        let key: string = parts[i];
-
-        if (hasOwnProperty(options.aliasMapping, key)) {
-            key = options.aliasMapping[key];
-        }
+        const key: string = getNameByAliasMapping(parts[i], options.aliasMapping);
 
         const fieldDetails = getFieldDetails(key);
-        if (!isFieldAllowedByRelations(fieldDetails, options.relations, { defaultAlias: options.defaultAlias })) {
+        if (!isAllowedByRelations(fieldDetails, options.relations, options.defaultAlias)) {
             continue;
         }
 

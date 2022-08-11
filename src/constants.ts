@@ -24,3 +24,7 @@ export enum URLParameter {
     RELATIONS = 'include',
     SORT = 'sort',
 }
+
+// -----------------------------------------------------------
+
+export const DEFAULT_ALIAS_ID = '__DEFAULT__';

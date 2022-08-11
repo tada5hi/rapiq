@@ -5,45 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { hasOwnProperty } from '../../utils';
+import {
+    buildFieldWithAlias, getNameByAliasMapping, hasOwnProperty, isAllowedByRelations,
+} from '../../utils';
 import {
     FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
 } from './type';
-import { DEFAULT_ALIAS_ID } from './constants';
 import {
     buildFieldDomainRecords,
-    getFieldNamedByAliasMapping,
     mergeFieldsDomainRecords,
     parseFieldsInput, removeFieldInputOperator,
     transformFieldsInput,
 } from './utils';
+import { DEFAULT_ALIAS_ID } from '../../constants';
 
 // --------------------------------------------------
-
-function isRelationIncluded(key: string, options: FieldsParseOptions) : boolean {
-    // is not default domain && includes are defined?
-
-    if (
-        key !== DEFAULT_ALIAS_ID &&
-        key !== options.defaultAlias &&
-        typeof options.relations !== 'undefined'
-    ) {
-        let index = -1;
-
-        for (let j = 0; j < options.relations.length; j++) {
-            if (options.relations[j].value === key) {
-                index = j;
-                break;
-            }
-        }
-
-        if (index === -1) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 function buildReverseRecord(
     record: Record<string, string>,
@@ -139,7 +115,7 @@ export function parseQueryFields(
     for (let i = 0; i < domainKeys.length; i++) {
         const domainKey = domainKeys[i];
 
-        if (!isRelationIncluded(domainKey, options)) {
+        if (!isAllowedByRelations({ alias: domainKey }, options.relations, options.defaultAlias)) {
             continue;
         }
 
@@ -165,10 +141,10 @@ export function parseQueryFields(
 
         if (fields.length > 0) {
             for (let j = 0; j < fields.length; j++) {
-                fields[j] = getFieldNamedByAliasMapping(
-                    domainKey,
-                    fields[j],
+                fields[j] = getNameByAliasMapping(
+                    buildFieldWithAlias({ name: fields[j], alias: domainKey }),
                     options.aliasMapping,
+                    true,
                 );
             }
 

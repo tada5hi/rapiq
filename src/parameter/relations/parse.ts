@@ -6,7 +6,7 @@
  */
 
 import minimatch from 'minimatch';
-import { buildObjectFromStringArray, hasOwnProperty } from '../../utils';
+import { buildObjectFromStringArray, getNameByAliasMapping } from '../../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
 
@@ -16,45 +16,23 @@ import { RelationsParseOptions, RelationsParseOutput } from './type';
 
 function includeParents(
     data: string[],
-    options: RelationsParseOptions,
 ) : string[] {
-    const ret : string[] = [];
-
     for (let i = 0; i < data.length; i++) {
         const parts: string[] = data[i].split('.');
 
-        let value: string = parts.shift();
-
-        /* istanbul ignore next */
-        if (
-            options.aliasMapping &&
-            hasOwnProperty(options.aliasMapping, value)
-        ) {
-            value = options.aliasMapping[value];
-        }
-
-        if (ret.indexOf(value) === -1) {
-            ret.push(value);
-        }
-
         while (parts.length > 0) {
-            const postValue: string = parts.shift();
-            value += `.${postValue}`;
-            /* istanbul ignore next */
-            if (
-                options.aliasMapping &&
-                hasOwnProperty(options.aliasMapping, value)
-            ) {
-                value = options.aliasMapping[value];
-            }
+            parts.pop();
 
-            if (ret.indexOf(value) === -1) {
-                ret.push(value);
+            if (parts.length > 0) {
+                const value = parts.join('.');
+                if (data.indexOf(value) === -1) {
+                    data.unshift(value);
+                }
             }
         }
     }
 
-    return ret;
+    return data;
 }
 
 export function parseQueryRelations(
@@ -102,9 +80,7 @@ export function parseQueryRelations(
     }
 
     for (let i = 0; i < items.length; i++) {
-        if (hasOwnProperty(options.aliasMapping, items[i])) {
-            items[i] = options.aliasMapping[items[i]];
-        }
+        items[i] = getNameByAliasMapping(items[i], options.aliasMapping);
     }
 
     if (options.allowed) {
@@ -122,10 +98,13 @@ export function parseQueryRelations(
 
     if (options.includeParents) {
         if (Array.isArray(options.includeParents)) {
-            const parentIncludes = items.filter((item) => item.includes('.') && (options.includeParents as string[]).filter((parent) => minimatch(item, parent)).length > 0);
-            items.unshift(...includeParents(parentIncludes, options));
+            const parentIncludes = items.filter(
+                (item) => item.includes('.') &&
+                    (options.includeParents as string[]).filter((parent) => minimatch(item, parent)).length > 0,
+            );
+            items.unshift(...includeParents(parentIncludes));
         } else {
-            items = includeParents(items, options);
+            items = includeParents(items);
         }
     }
 

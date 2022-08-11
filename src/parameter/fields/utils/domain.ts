@@ -5,8 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ALIAS_ID } from '../constants';
 import { hasOwnProperty } from '../../../utils';
+import { DEFAULT_ALIAS_ID } from '../../../constants';
 
 export function buildFieldDomainRecords(
     data?: Record<string, string[]> | string[],
@@ -62,19 +62,4 @@ export function mergeFieldsDomainRecords(
     }
 
     return target;
-}
-
-export function getFieldNamedByAliasMapping(
-    domain: string,
-    field: string,
-    aliasMapping?: Record<string, string>,
-) {
-    if (typeof aliasMapping === 'undefined') {
-        return field;
-    }
-
-    const key = `${domain}.${field}`;
-    return hasOwnProperty(aliasMapping, key) ?
-        aliasMapping[key].split('.').pop() :
-        field;
 }

@@ -7,21 +7,20 @@
 
 import { getFieldDetails } from './field';
 import { FieldDetails } from './type';
+import { DEFAULT_ALIAS_ID } from '../constants';
 
-export function isFieldAllowedByRelations<T extends {
-    value: string
-}>(
-    field: string | FieldDetails,
-    includes?: T[],
-    options?: {defaultAlias?: string},
+export function isAllowedByRelations(
+    field: string | Pick<FieldDetails, 'alias' | 'path'>,
+    includes?: { value: string }[],
+    defaultAlias? :string,
 ) : boolean {
     if (typeof includes === 'undefined') {
         return true;
     }
 
-    options = options ?? {};
-
-    const details : FieldDetails = typeof field === 'string' ? getFieldDetails(field) : field;
+    const details : Pick<FieldDetails, 'alias' | 'path'> = typeof field === 'string' ?
+        getFieldDetails(field) :
+        field;
 
     // check if field is associated to the default domain.
     if (
@@ -33,30 +32,27 @@ export function isFieldAllowedByRelations<T extends {
 
     // check if field is associated to the default domain.
     if (
-        details.path === options.defaultAlias ||
-        details.alias === options.defaultAlias
+        details.path === defaultAlias ||
+        details.alias === defaultAlias ||
+        details.alias === DEFAULT_ALIAS_ID
     ) {
         return true;
     }
 
-    return includes.filter(
+    return includes.some(
         (include) => include.value === details.path || include.value === details.alias,
-    ).length > 0;
+    );
 }
 
 export function buildFieldWithAlias(
-    field: string | FieldDetails,
+    field: string | Pick<FieldDetails, 'alias' | 'name'>,
     defaultAlias?: string,
 ) : string {
-    const details : FieldDetails = typeof field === 'string' ? getFieldDetails(field) : field;
+    const details : Pick<FieldDetails, 'alias' | 'name'> = typeof field === 'string' ?
+        getFieldDetails(field) :
+        field;
 
-    if (
-        typeof details.path === 'undefined' &&
-        typeof details.alias === 'undefined'
-    ) {
-        // try to use query alias
-        return defaultAlias ? `${defaultAlias}.${details.name}` : details.name;
-    }
-
-    return `${details.alias}.${details.name}`;
+    return defaultAlias || details.alias ?
+        `${details.alias || defaultAlias}.${details.name}` :
+        details.name;
 }

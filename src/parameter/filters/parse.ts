@@ -5,12 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import minimatch from 'minimatch';
 import {
     FieldDetails,
     buildFieldWithAlias,
     buildObjectFromStringArray,
     getFieldDetails,
-    hasOwnProperty, isFieldAllowedByRelations,
+    getNameByAliasMapping,
+    hasOwnProperty,
+    isAllowedByRelations,
 } from '../../utils';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { determineFilterOperatorLabelsByValue } from './utils';
@@ -101,12 +104,10 @@ export function parseQueryFilters(
             }
         }
 
-        if (Object.prototype.hasOwnProperty.call(options.aliasMapping, keys[i])) {
-            keys[i] = options.aliasMapping[keys[i]];
-        }
+        keys[i] = getNameByAliasMapping(keys[i], options.aliasMapping);
 
         const fieldDetails : FieldDetails = getFieldDetails(keys[i]);
-        if (!isFieldAllowedByRelations(fieldDetails, options.relations, { defaultAlias: options.defaultAlias })) {
+        if (!isAllowedByRelations(fieldDetails, options.relations, options.defaultAlias)) {
             // eslint-disable-next-line no-continue
             continue;
         }
@@ -115,8 +116,8 @@ export function parseQueryFilters(
 
         if (
             typeof options.allowed !== 'undefined' &&
-            options.allowed.indexOf(keys[i]) === -1 &&
-            options.allowed.indexOf(keyWithAlias) === -1
+            // eslint-disable-next-line no-loop-func,@typescript-eslint/no-loop-func
+            !options.allowed.some((allowed) => minimatch(keys[i], allowed) || minimatch(keyWithAlias, allowed))
         ) {
             continue;
         }
