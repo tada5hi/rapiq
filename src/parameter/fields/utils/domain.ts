@@ -10,7 +10,6 @@ import { hasOwnProperty } from '../../../utils';
 
 export function buildFieldDomainRecords(
     data?: Record<string, string[]> | string[],
-    defaultAlias?: string,
 ): Record<string, string[]> {
     if (typeof data === 'undefined') {
         return {};
@@ -19,7 +18,7 @@ export function buildFieldDomainRecords(
     let domainFields: Record<string, string[]> = {};
 
     if (Array.isArray(data)) {
-        domainFields[defaultAlias || DEFAULT_ALIAS_ID] = data;
+        domainFields[DEFAULT_ALIAS_ID] = data;
     } else {
         domainFields = data;
     }
@@ -30,7 +29,6 @@ export function buildFieldDomainRecords(
 export function mergeFieldsDomainRecords(
     sourceA: Record<string, string[]>,
     sourceB: Record<string, string[]>,
-    defaultAlias?: string,
 ) {
     const target: Record<string, string[]> = {};
 
@@ -54,14 +52,13 @@ export function mergeFieldsDomainRecords(
 
     keys = Object.keys(target);
 
-    const alias = defaultAlias || DEFAULT_ALIAS_ID;
-
     if (
         keys.length >= 2 &&
-        hasOwnProperty(target, alias) &&
-        target[alias].length === 0
+        hasOwnProperty(target, DEFAULT_ALIAS_ID) &&
+        Array.isArray(target[DEFAULT_ALIAS_ID]) &&
+        target[DEFAULT_ALIAS_ID].length === 0
     ) {
-        delete target[alias];
+        delete target[DEFAULT_ALIAS_ID];
     }
 
     return target;

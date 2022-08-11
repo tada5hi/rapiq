@@ -8,7 +8,16 @@
 import { FieldsInputTransformed } from '../type';
 import { FieldOperator } from '../constants';
 
-export function transformFieldsInput(fields: string[]): FieldsInputTransformed {
+export function removeFieldInputOperator(field: string) {
+    return field.substring(0, 1) === FieldOperator.INCLUDE ||
+        field.substring(0, 1) === FieldOperator.EXCLUDE ?
+        field.substring(1) :
+        field;
+}
+
+export function transformFieldsInput(
+    fields: string[],
+): FieldsInputTransformed {
     const output: FieldsInputTransformed = {
         default: [],
         included: [],

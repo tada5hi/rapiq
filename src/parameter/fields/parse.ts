@@ -6,13 +6,15 @@
  */
 
 import { hasOwnProperty } from '../../utils';
-import { FieldsParseOptions, FieldsParseOutput, FieldsParseOutputElement } from './type';
-import { DEFAULT_ALIAS_ID, FieldOperator } from './constants';
+import {
+    FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
+} from './type';
+import { DEFAULT_ALIAS_ID } from './constants';
 import {
     buildFieldDomainRecords,
     getFieldNamedByAliasMapping,
     mergeFieldsDomainRecords,
-    parseFieldsInput,
+    parseFieldsInput, removeFieldInputOperator,
     transformFieldsInput,
 } from './utils';
 
@@ -43,27 +45,74 @@ function isRelationIncluded(key: string, options: FieldsParseOptions) : boolean 
     return true;
 }
 
+function buildReverseRecord(
+    record: Record<string, string>,
+) : Record<string, string> {
+    const keys = Object.keys(record);
+    const output : Record<string, string> = {};
+
+    for (let i = 0; i < keys.length; i++) {
+        output[record[keys[i]]] = keys[i];
+    }
+
+    return output;
+}
+
+export function replaceRecordKey(record: Record<string, any>, key: string, newKey: string) : Record<string, any> {
+    if (
+        hasOwnProperty(record, key)
+    ) {
+        const value = record[key];
+        delete record[key];
+        record[newKey] = value;
+    }
+
+    return record;
+}
+
 export function parseQueryFields(
     data: unknown,
     options?: FieldsParseOptions,
 ) : FieldsParseOutput {
     options ??= {};
 
-    const defaultDomainFields = buildFieldDomainRecords(options.default, options.defaultAlias);
-    const defaultDomainKeys = Object.keys(defaultDomainFields);
-
-    const allowedDomainFields = mergeFieldsDomainRecords(
-        buildFieldDomainRecords(options.allowed, options.defaultAlias),
+    const defaultDomainFields = buildFieldDomainRecords(options.default);
+    const domainFields = mergeFieldsDomainRecords(
+        buildFieldDomainRecords(options.allowed),
         { ...defaultDomainFields },
     );
-    const allowedDomainKeys : string[] = Object.keys(allowedDomainFields);
+    let domainKeys : string[] = Object.keys(domainFields);
 
     // If it is an empty array nothing is allowed
-    if (allowedDomainKeys.length === 0) {
+    if (domainKeys.length === 0) {
         return [];
     }
 
-    options.aliasMapping ??= {};
+    if (options.defaultAlias) {
+        if (hasOwnProperty(defaultDomainFields, DEFAULT_ALIAS_ID)) {
+            replaceRecordKey(defaultDomainFields, DEFAULT_ALIAS_ID, options.defaultAlias);
+        }
+
+        if (hasOwnProperty(domainFields, DEFAULT_ALIAS_ID)) {
+            replaceRecordKey(domainFields, DEFAULT_ALIAS_ID, options.defaultAlias);
+        }
+    }
+
+    domainKeys = Object.keys(domainFields);
+
+    let defaultAlias : string;
+
+    if (
+        domainKeys.length === 1 &&
+        !options.defaultAlias
+    ) {
+        // eslint-disable-next-line prefer-destructuring
+        defaultAlias = domainKeys[0];
+    } else {
+        defaultAlias = options.defaultAlias || DEFAULT_ALIAS_ID;
+    }
+
+    options.defaultAlias = defaultAlias;
 
     const prototype: string = Object.prototype.toString.call(data);
     if (
@@ -71,177 +120,105 @@ export function parseQueryFields(
         prototype !== '[object Array]' &&
         prototype !== '[object String]'
     ) {
-        return [];
+        data = { [defaultAlias]: [] };
     }
 
     if (prototype === '[object String]') {
-        data = { [DEFAULT_ALIAS_ID]: data };
+        data = { [defaultAlias]: data };
     }
 
     if (prototype === '[object Array]') {
-        data = { [DEFAULT_ALIAS_ID]: data };
+        data = { [defaultAlias]: data };
     }
 
-    let transformed : FieldsParseOutput = [];
+    options.aliasMapping ??= {};
+    const reverseAliasMapping = buildReverseRecord(options.aliasMapping);
 
-    const domainKeys = Object.keys(data);
-    const processedDomainKeys : string[] = [];
+    const output : FieldsParseOutput = [];
+
     for (let i = 0; i < domainKeys.length; i++) {
-        if (
-            !hasOwnProperty(data, domainKeys[i]) ||
-            typeof domainKeys[i] !== 'string'
-        ) {
-            continue;
-        }
-
-        let domainKey = domainKeys[i];
-        let output : FieldsParseOutputElement[] = [];
-
-        const fields = parseFieldsInput(data[domainKey]);
-
-        domainKey = hasOwnProperty(options.aliasMapping, domainKeys[i]) ?
-            options.aliasMapping[domainKey] :
-            domainKey;
+        const domainKey = domainKeys[i];
 
         if (!isRelationIncluded(domainKey, options)) {
             continue;
         }
 
-        if (domainKey === DEFAULT_ALIAS_ID) {
-            if (options.defaultAlias) {
-                domainKey = options.defaultAlias;
-            } else {
-                domainKey = allowedDomainKeys.length === 1 ?
-                    allowedDomainKeys[0] :
-                    domainKey;
+        let fields : string[] = [];
+
+        if (
+            hasOwnProperty(data, domainKey)
+        ) {
+            fields = parseFieldsInput(data[domainKey]);
+        } else if (
+            hasOwnProperty(reverseAliasMapping, domainKey)
+        ) {
+            if (hasOwnProperty(data, reverseAliasMapping[domainKey])) {
+                fields = parseFieldsInput(data[reverseAliasMapping[domainKey]]);
             }
+        }
+
+        let transformed : FieldsInputTransformed = {
+            default: [],
+            included: [],
+            excluded: [],
+        };
+
+        if (fields.length > 0) {
+            for (let j = 0; j < fields.length; j++) {
+                fields[j] = getFieldNamedByAliasMapping(
+                    domainKey,
+                    fields[j],
+                    options.aliasMapping,
+                );
+            }
+
+            fields = fields
+                .filter((field) => domainFields[domainKey].indexOf(
+                    removeFieldInputOperator(field),
+                ) !== -1);
+
+            transformed = transformFieldsInput(
+                fields,
+            );
         }
 
         if (
-            fields.length === 0 &&
-            !hasOwnProperty(defaultDomainFields, domainKey)
+            transformed.default.length === 0
         ) {
-            continue;
-        }
-
-        if (fields.length > 0) {
-            const fieldsInputTransformed = transformFieldsInput(fields);
+            if (hasOwnProperty(defaultDomainFields, domainKey)) {
+                transformed.default = defaultDomainFields[domainKey];
+            }
 
             if (
-                fieldsInputTransformed.default.length === 0 &&
-                hasOwnProperty(defaultDomainFields, domainKey)
+                transformed.included.length === 0 &&
+                transformed.default.length === 0 &&
+                hasOwnProperty(domainFields, domainKey)
             ) {
-                fieldsInputTransformed.default = defaultDomainFields[domainKey];
+                transformed.default = domainFields[domainKey];
             }
+        }
 
-            if (fieldsInputTransformed.default.length > 0) {
-                fieldsInputTransformed.default = Array.from(new Set([...fieldsInputTransformed.default, ...fieldsInputTransformed.included]));
-                for (let j = 0; j < fieldsInputTransformed.excluded.length; j++) {
-                    const index = fieldsInputTransformed.default.indexOf(fieldsInputTransformed.excluded[j]);
-                    if (index !== -1) {
-                        fieldsInputTransformed.default.splice(index, 1);
-                    }
-                }
+        transformed.default = Array.from(new Set([
+            ...transformed.default,
+            ...transformed.included,
+        ]));
 
-                fieldsInputTransformed.included = [];
-                fieldsInputTransformed.excluded = [];
+        for (let j = 0; j < transformed.excluded.length; j++) {
+            const index = transformed.default.indexOf(transformed.excluded[j]);
+            if (index !== -1) {
+                transformed.default.splice(index, 1);
             }
+        }
 
-            if (fieldsInputTransformed.default.length > 0) {
-                for (let j = 0; j < fieldsInputTransformed.default.length; j++) {
-                    output.push({
-                        key: fieldsInputTransformed.default[j],
-                    });
-                }
-            }
-
-            if (fieldsInputTransformed.included.length > 0) {
-                for (let j = 0; j < fieldsInputTransformed.included.length; j++) {
-                    output.push({
-                        key: fieldsInputTransformed.included[j],
-                        value: FieldOperator.INCLUDE,
-                    });
-                }
-            }
-
-            if (fieldsInputTransformed.excluded.length > 0) {
-                for (let j = 0; j < fieldsInputTransformed.excluded.length; j++) {
-                    output.push({
-                        key: fieldsInputTransformed.excluded[j],
-                        value: FieldOperator.EXCLUDE,
-                    });
-                }
-            }
-        } else if (defaultDomainFields[domainKey].length > 0) {
-            for (let j = 0; j < defaultDomainFields[domainKey].length; j++) {
+        if (transformed.default.length > 0) {
+            for (let j = 0; j < transformed.default.length; j++) {
                 output.push({
-                    key: defaultDomainFields[domainKey][j],
+                    key: transformed.default[j],
+                    ...(domainKey !== DEFAULT_ALIAS_ID ? { alias: domainKey } : {}),
                 });
             }
         }
-
-        for (let j = 0; j < output.length; j++) {
-            output[j].key = getFieldNamedByAliasMapping(
-                domainKey,
-                output[j].key,
-                options.aliasMapping,
-            );
-
-            if (
-                domainKey !== DEFAULT_ALIAS_ID
-            ) {
-                output[j].alias = domainKey;
-            }
-        }
-
-        if (
-            typeof options.allowed !== 'undefined' ||
-            typeof options.default !== 'undefined'
-        ) {
-            output = output
-                .filter((field) => hasOwnProperty(allowedDomainFields, domainKey) &&
-                        allowedDomainFields[domainKey].indexOf(field.key) !== -1);
-        }
-
-        if (output.length > 0) {
-            processedDomainKeys.push(domainKey);
-            transformed = [...transformed, ...output];
-        }
     }
 
-    // todo: use allowedDomainFields instead of defaultDomains
-
-    if (defaultDomainKeys.length > 0) {
-        const missingDomainKeys: string[] = [];
-
-        for (let i = 0; i < defaultDomainKeys.length; i++) {
-            if (
-                processedDomainKeys.indexOf(defaultDomainKeys[i]) === -1 &&
-                isRelationIncluded(defaultDomainKeys[i], options)
-            ) {
-                missingDomainKeys.push(defaultDomainKeys[i]);
-            }
-        }
-
-        if (missingDomainKeys.length > 0) {
-            for (let i = 0; i < missingDomainKeys.length; i++) {
-                for (let j = 0; j < defaultDomainFields[missingDomainKeys[i]].length; j++) {
-                    transformed.push({
-                        ...(
-                            missingDomainKeys[i] !== DEFAULT_ALIAS_ID ?
-                                { alias: missingDomainKeys[i] } :
-                                {}
-                        ),
-                        key: getFieldNamedByAliasMapping(
-                            missingDomainKeys[i],
-                            defaultDomainFields[missingDomainKeys[i]][j],
-                            options.aliasMapping,
-                        ),
-                    });
-                }
-            }
-        }
-    }
-
-    return transformed;
+    return output;
 }
