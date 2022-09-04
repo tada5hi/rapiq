@@ -1,1 +1,0 @@
-import{_ as s,c as n,o as a,a as l}from"./app.561631bb.js";const A=JSON.parse('{"title":"Build \u{1F3D7}","description":"","frontmatter":{},"headers":[],"relativePath":"guide/build.md"}'),p={name:"guide/build.md"},o=l("",6),e=[o];function t(r,c,F,y,D,i){return a(),n("div",null,e)}const d=s(p,[["render",t]]);export{A as __pageData,d as default};
