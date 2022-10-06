@@ -9,14 +9,16 @@
     ],
     "scripts": {
         "build": "rimraf ./dist && tsc",
+        "commit": "npx git-cz",
         "test": "cross-env NODE_ENV=test jest --config ./test/jest.config.js",
         "test:coverage": "cross-env NODE_ENV=test jest --config ./test/jest.config.js --coverage",
         "lint": "eslint --ext .js,.ts ./src",
         "lint:fix": "npm run lint -- --fix",
-        "prepublishOnly": "npm run build",
         "docs:dev": "vitepress dev docs --temp .temp",
         "docs:build": "vitepress build docs --temp .temp",
-        "docs:help": "vitepress --help"
+        "docs:help": "vitepress --help",
+        "prepare": "npx husky install",
+        "prepublishOnly": "npm run build"
     },
     "author": {
         "name": "Peter Placzek",
@@ -50,6 +52,16 @@
         "minimatch": "^5.1.0"
     },
     "devDependencies": {
+        "@commitlint/cli": "^17.1.2",
+        "@commitlint/config-angular": "^17.1.0",
+        "@commitlint/config-conventional": "^17.1.0",
+        "@commitlint/cz-commitlint": "^17.1.2",
+        "@semantic-release/changelog": "^6.0.1",
+        "@semantic-release/commit-analyzer": "^9.0.2",
+        "@semantic-release/git": "^10.0.1",
+        "@semantic-release/github": "^8.0.6",
+        "@semantic-release/npm": "^9.0.1",
+        "@semantic-release/release-notes-generator": "^10.0.3",
         "@tada5hi/eslint-config-typescript": "^1.0.4",
         "@types/jest": "^27.5.0",
         "@types/minimatch": "^3.0.5",
@@ -57,12 +69,18 @@
         "codecov": "^3.8.3",
         "cross-env": "^7.0.3",
         "eslint": "^8.18.0",
+        "husky": "^8.0.1",
         "jest": "^27.5.1",
-        "np": "^7.6.2",
         "rimraf": "^3.0.2",
+        "semantic-release": "^19.0.5",
         "ts-jest": "^27.1.4",
         "typescript": "^4.7.4",
         "vitepress": "^1.0.0-alpha.4",
         "vue": "^3.2.37"
+    },
+    "config": {
+        "commitizen": {
+            "path": "@commitlint/cz-commitlint"
+        }
     }
 }
