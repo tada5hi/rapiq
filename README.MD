@@ -1,9 +1,11 @@
 # rapiq 🌈
 
+[![npm version](https://badge.fury.io/js/rapiq.svg)](https://badge.fury.io/js/rapiq)
 [![main](https://github.com/Tada5hi/rapiq/actions/workflows/main.yml/badge.svg)](https://github.com/Tada5hi/rapiq/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/tada5hi/rapiq/branch/master/graph/badge.svg?token=QFGCsHRUax)](https://codecov.io/gh/tada5hi/rapiq)
 [![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/rapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/rapiq)
-[![npm version](https://badge.fury.io/js/rapiq.svg)](https://badge.fury.io/js/rapiq)
+[![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
+
 
 Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
 It defines a format for the request, but **not** for the response.
@@ -14,6 +16,7 @@ It defines a format for the request, but **not** for the response.
 - [Documentation](#documentation)
 - [Parameters](#parameters)
 - [Usage](#usage)
+- [License](#license)
 
 ## Installation
 
@@ -248,3 +251,9 @@ export async function getUsers(req: Request, res: Response) {
     });
 }
 ```
+
+## License
+
+Made with 💚
+
+Published under [MIT License](./LICENSE).
