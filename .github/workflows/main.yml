@@ -31,7 +31,7 @@ jobs:
                   node-version: ${{ env.PRIMARY_NODE_VERSION }}
 
     lint:
-        name: lint Packages
+        name: lint Package
         needs: [build]
         runs-on: ubuntu-latest
         steps:
@@ -51,7 +51,7 @@ jobs:
                     npm run lint
 
     build:
-        name: Build Packages
+        name: Build Package
         needs: [install]
         runs-on: ubuntu-latest
         steps:
@@ -65,7 +65,7 @@ jobs:
               uses: ./.github/actions/build
 
     tests:
-        name: Test Packages
+        name: Test Package
         needs: [build]
         runs-on: ubuntu-latest
         steps:
@@ -85,7 +85,7 @@ jobs:
                     npm run test
 
     release:
-        name: Semantic release
+        name: Release
         needs: [lint, tests]
         runs-on: ubuntu-latest
         steps:
@@ -123,13 +123,13 @@ jobs:
             -   name: Build
                 uses: ./.github/actions/build
 
-            - name: Coverage
-              run: |
+            -   name: Coverage
+                run: |
                   npm run test:coverage
 
-            - name: Upload report
-              uses: codecov/codecov-action@v3.1.1
-              with:
+            -   name: Upload report
+                uses: codecov/codecov-action@v3.1.1
+                with:
                   token: ${{ secrets.codecov }}
                   file: ./coverage/*.json
 
