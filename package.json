@@ -37,6 +37,7 @@
         "pagination",
         "sort",
         "fields",
+        "filter",
         "relations",
         "typescript"
     ],
