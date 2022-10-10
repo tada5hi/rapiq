@@ -23,7 +23,7 @@ type SortWithOperator<T extends Record<string, any>> =
     KeyWithOptionalPrefix<keyof T, '-'> |
     KeyWithOptionalPrefix<keyof T, '-'>[];
 
-export type SortBuildInput<T> = {
+export type SortBuildInput<T extends Record<string, any>> = {
     [K in keyof T]?: T[K] extends OnlyScalar<T[K]> ?
         `${SortDirection}` :
         T[K] extends Date ?
