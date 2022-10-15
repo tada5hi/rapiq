@@ -65,7 +65,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
     }
 }
 
-function invalidToEmptyObject<K extends Parameter>(
+function invalidToEmptyObject<K extends `${Parameter}` | `${URLParameter}`>(
     value: ParseParameterOptions<K> | boolean,
 ): ParseParameterOptions<K> {
     return typeof value === 'boolean' ||

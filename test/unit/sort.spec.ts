@@ -60,6 +60,27 @@ describe('src/sort/index.ts', () => {
         expect(transformed).toEqual([{ alias: 'user', key: 'id', value: SortDirection.DESC }] as SortParseOutput);
     });
 
+    it('should transform sort with default', () => {
+        const options : SortParseOptions = {
+            allowed: ['id', 'name'],
+            default: {
+                id: 'DESC'
+            }
+        };
+
+        let transformed = parseQuerySort(['id'], options);
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] as SortParseOutput);
+
+        transformed = parseQuerySort(undefined, options);
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+
+        transformed = parseQuerySort([], options);
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+
+        transformed = parseQuerySort('-age', options);
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+    })
+
     it('should transform sort with sort indexes', () => {
         const options : SortParseOptions = {
             allowed: [

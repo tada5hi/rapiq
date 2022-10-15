@@ -67,7 +67,6 @@
         "@types/jest": "^27.5.0",
         "@types/minimatch": "^5.1.2",
         "@types/node": "^18.8.5",
-        "codecov": "^3.8.3",
         "cross-env": "^7.0.3",
         "eslint": "^8.25.0",
         "husky": "^8.0.1",

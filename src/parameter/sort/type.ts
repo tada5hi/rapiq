@@ -36,6 +36,9 @@ export type SortBuildInput<T extends Record<string, any>> = {
 // -----------------------------------------------------------
 // Parse
 // -----------------------------------------------------------
-export type SortParseOptions = ParseOptionsBase<Parameter.SORT, string[] | string[][]>;
-export type SortParseOutputElement = ParseOutputElementBase<Parameter.SORT, SortDirection>;
+
+export type SortParseOptions = ParseOptionsBase<Parameter.SORT, string[] | string[][]> & {
+    default?: Record<string, `${SortDirection}`>
+};
+export type SortParseOutputElement = ParseOutputElementBase<Parameter.SORT, `${SortDirection}`>;
 export type SortParseOutput = SortParseOutputElement[];

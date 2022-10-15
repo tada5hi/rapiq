@@ -12,7 +12,9 @@ import {
     isAllowedByRelations,
 } from '../../utils';
 
-import { SortDirection, SortParseOptions, SortParseOutput } from './type';
+import {
+    SortDirection, SortParseOptions, SortParseOutput, SortParseOutputElement,
+} from './type';
 
 // --------------------------------------------------
 
@@ -24,6 +26,28 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     }
 
     return arr.length > 0 && Array.isArray(arr[0]);
+}
+
+function applyDefault(options: SortParseOptions) {
+    if (options.default) {
+        const keys = Object.keys(options.default);
+
+        const output : SortParseOutputElement[] = [];
+
+        for (let i = 0; i < keys.length; i++) {
+            const fieldDetails = getFieldDetails(keys[i]);
+
+            output.push({
+                key: fieldDetails.name,
+                ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
+                value: options.default[keys[i]],
+            });
+        }
+
+        return output;
+    }
+
+    return [];
 }
 
 /**
@@ -55,7 +79,7 @@ export function parseQuerySort(
         prototype !== '[object Array]' &&
         prototype !== '[object Object]'
     ) {
-        return [];
+        return applyDefault(options);
     }
 
     let parts : string[] = [];
@@ -85,11 +109,9 @@ export function parseQuerySort(
         }
     }
 
-    const items : Record<string, {
-        alias?: string,
-        key: string,
-        value: SortDirection
-    }> = {};
+    const items : Record<string, SortParseOutputElement> = {};
+
+    let matched = false;
 
     for (let i = 0; i < parts.length; i++) {
         let direction: SortDirection = SortDirection.ASC;
@@ -100,7 +122,7 @@ export function parseQuerySort(
 
         const key: string = getNameByAliasMapping(parts[i], options.aliasMapping);
 
-        const fieldDetails = getFieldDetails(key);
+        const fieldDetails = getFieldDetails(key, options.defaultAlias);
         if (!isAllowedByRelations(fieldDetails, options.relations, options.defaultAlias)) {
             continue;
         }
@@ -116,20 +138,17 @@ export function parseQuerySort(
             continue;
         }
 
-        let { alias } = fieldDetails;
-
-        if (
-            typeof fieldDetails.path === 'undefined' &&
-            typeof fieldDetails.alias === 'undefined'
-        ) {
-            alias = options.defaultAlias;
-        }
+        matched = true;
 
         items[keyWithAlias] = {
             key: fieldDetails.name,
-            ...(alias ? { alias } : {}),
+            ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
             value: direction,
         };
+    }
+
+    if (!matched) {
+        return applyDefault(options);
     }
 
     if (isMultiDimensionalArray(options.allowed)) {

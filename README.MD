@@ -6,7 +6,6 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/rapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/rapiq)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
-
 Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
 It defines a format for the request, but **not** for the response.
 
