@@ -12,22 +12,30 @@ import {
 import { FilterOperator, FilterOperatorLabel } from './constants';
 
 // -----------------------------------------------------------
+
+type FilterValueInputPrimitive = boolean | number | string;
+type FilterValueInput = FilterValueInputPrimitive | null | undefined;
+
+export type FilterValueSimple<V extends FilterValueInput = FilterValueInput> = V extends FilterValueInputPrimitive ? (V | V[]) : V;
+export type FilterValueWithOperator<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
+    `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` :
+    never;
+
+export type FilterValue<V extends FilterValueInput = FilterValueInput> = V extends FilterValueInputPrimitive ?
+    (FilterValueSimple<V> | FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>) :
+    V;
+
+export type FilterOperatorConfig<V extends FilterValueInput = FilterValueInput> = {
+    operator: `${FilterOperator}` | (`${FilterOperator}`)[];
+    value: FilterValueSimple<V>
+};
+
+// -----------------------------------------------------------
 // Build
 // -----------------------------------------------------------
 
-export type FilterOperatorConfig<V extends string | number | boolean | null | undefined> = {
-    operator: `${FilterOperator}` | (`${FilterOperator}`)[];
-    value: V | V[]
-};
-
-type FilterValue<V> = V extends string | number | boolean ? (V | V[]) : never;
-type FilterValueOperator<V extends string | number | boolean> = `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}`;
-type FilterValueWithOperator<V> = V extends string | number | boolean ?
-    (FilterValue<V> | FilterValueOperator<V> | Array<FilterValueOperator<V>>) :
-    never;
-
 export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
-    T | FilterValueWithOperator<T> | FilterOperatorConfig<T> :
+    T | FilterValue<T> | FilterOperatorConfig<T> :
     T extends OnlyObject<T> ? FiltersBuildInput<Flatten<T>> : never;
 
 export type FiltersBuildInput<T> = {
@@ -39,11 +47,11 @@ export type FiltersBuildInput<T> = {
 // -----------------------------------------------------------
 
 export type FiltersParseOptions = ParseOptionsBase<Parameter.FILTERS> & {
-    default?: Record<string, FilterValueWithOperator<any>>,
+    default?: Record<string, FilterValue<any>>,
     defaultByElement?: boolean
 };
 
-export type FiltersParseOutputElement = ParseOutputElementBase<Parameter.FILTERS, FilterValue<string | number | boolean | null>> & {
+export type FiltersParseOutputElement = ParseOutputElementBase<Parameter.FILTERS, FilterValueSimple> & {
     operator?: {
         [K in FilterOperatorLabel]?: boolean
     }

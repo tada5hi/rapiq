@@ -113,7 +113,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'age',
-                value: '18',
+                value: 18,
                 alias: 'user',
                 operator: {
                     lessThan: true
@@ -125,7 +125,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'age',
-                value: '18',
+                value: 18,
                 alias: 'user',
                 operator: {
                     lessThan: true
@@ -152,7 +152,7 @@ describe('src/filter/index.ts', () => {
             },
             {
                 key: 'age',
-                value: '18',
+                value: 18,
                 operator: {
                     lessThan: true
                 }
@@ -167,7 +167,7 @@ describe('src/filter/index.ts', () => {
             },
             {
                 key: 'age',
-                value: '18',
+                value: 18,
                 operator: {
                     lessThan: true
                 }
@@ -189,7 +189,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                value: '1',
+                value: 1,
             },
         ] as FiltersParseOutput);
 
@@ -201,19 +201,19 @@ describe('src/filter/index.ts', () => {
                 operator: {
                     [FilterOperatorLabel.NEGATION]: true,
                 },
-                value: '1',
+                value: 1,
             },
         ] as FiltersParseOutput);
 
         // in operator
-        data = parseQueryFilters({ id: '1,2,3' }, { allowed: ['id'] });
+        data = parseQueryFilters({ id: 'null,0,1,2,3' }, { allowed: ['id'] });
         expect(data).toEqual([
             {
                 key: 'id',
                 operator: {
                     [FilterOperatorLabel.IN]: true,
                 },
-                value: ['1', '2', '3'],
+                value: [0, 1, 2, 3],
             },
         ] as FiltersParseOutput);
 
@@ -226,7 +226,7 @@ describe('src/filter/index.ts', () => {
                     [FilterOperatorLabel.IN]: true,
                     [FilterOperatorLabel.NEGATION]: true,
                 },
-                value: ['1', '2', '3'],
+                value: [1, 2, 3],
             },
         ] as FiltersParseOutput);
 
@@ -250,7 +250,7 @@ describe('src/filter/index.ts', () => {
                 operator: {
                     [FilterOperatorLabel.LESS_THAN]: true,
                 },
-                value: '10',
+                value: 10,
             },
         ] as FiltersParseOutput);
 
@@ -262,7 +262,7 @@ describe('src/filter/index.ts', () => {
                 operator: {
                     [FilterOperatorLabel.LESS_THAN_EQUAL]: true,
                 },
-                value: '10',
+                value: 10,
             },
         ] as FiltersParseOutput);
 
@@ -274,7 +274,7 @@ describe('src/filter/index.ts', () => {
                 operator: {
                     [FilterOperatorLabel.MORE_THAN]: true,
                 },
-                value: '10',
+                value: 10,
             },
         ] as FiltersParseOutput);
 
@@ -286,7 +286,7 @@ describe('src/filter/index.ts', () => {
                 operator: {
                     [FilterOperatorLabel.MORE_THAN_EQUAL]: true,
                 },
-                value: '10',
+                value: 10,
             },
         ] as FiltersParseOutput);
 

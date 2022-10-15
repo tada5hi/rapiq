@@ -16,7 +16,7 @@ import {
     isAllowedByRelations,
 } from '../../utils';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
-import { determineFilterOperatorLabelsByValue } from './utils';
+import { determineFilterOperatorLabelsByValue, transformFilterValue } from './utils';
 
 // --------------------------------------------------
 
@@ -57,7 +57,7 @@ function transformFiltersParseOutputElement(element: FiltersParseOutputElement) 
         }
     }
 
-    // todo: cast unknown/unknown[] to number ( Number(value) <- isNan? ) or boolean ('false', 'FALSE', 'true', ... )
+    element.value = transformFilterValue(element.value);
 
     return element;
 }
@@ -172,14 +172,9 @@ export function parseQueryFilters(
         if (typeof value === 'string') {
             value = value.trim();
             const stripped : string = (value as string).replace('/,/g', '');
-
             if (stripped.length === 0) {
                 // eslint-disable-next-line no-continue
                 continue;
-            }
-
-            if ((value as string).toLowerCase() === 'null') {
-                value = null;
             }
         }
 
