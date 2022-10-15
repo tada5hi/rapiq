@@ -91,6 +91,98 @@ describe('src/filter/index.ts', () => {
         ] as FiltersParseOutput)
     })
 
+    it('should transform filters with default', () => {
+        const options : FiltersParseOptions= {
+            allowed: ['id', 'age'],
+            defaultAlias: 'user',
+            default: {
+                age: '<18'
+            }
+        };
+
+        let data = parseQueryFilters({ id: 1 }, options);
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 1,
+                alias: 'user'
+            }
+        ] as FiltersParseOutput);
+
+        data = parseQueryFilters({ name: 'Peter' }, options);
+        expect(data).toEqual([
+            {
+                key: 'age',
+                value: '18',
+                alias: 'user',
+                operator: {
+                    lessThan: true
+                }
+            }
+        ] as FiltersParseOutput);
+
+        data = parseQueryFilters({name: 'Peter'}, options);
+        expect(data).toEqual([
+            {
+                key: 'age',
+                value: '18',
+                alias: 'user',
+                operator: {
+                    lessThan: true
+                }
+            }
+        ] as FiltersParseOutput)
+    });
+
+    it('should transform filters with default by element', () => {
+        const options: FiltersParseOptions = {
+            allowed: ['id', 'age'],
+            default: {
+                id: 18,
+                age: '<18',
+            },
+            defaultByElement: true
+        };
+
+        let data = parseQueryFilters([], options);
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 18,
+            },
+            {
+                key: 'age',
+                value: '18',
+                operator: {
+                    lessThan: true
+                }
+            }
+        ] as FiltersParseOutput);
+
+        data = parseQueryFilters({id: 5}, options);
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 5,
+            },
+            {
+                key: 'age',
+                value: '18',
+                operator: {
+                    lessThan: true
+                }
+            }
+        ] as FiltersParseOutput);
+
+        data = parseQueryFilters({id: 5}, {...options, defaultByElement: false});
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 5,
+            }
+        ] as FiltersParseOutput);
+    });
+
     it('should transform filters with different operators', () => {
         // equal operator
         let data = parseQueryFilters({ id: '1' }, { allowed: ['id'] });

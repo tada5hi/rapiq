@@ -21,11 +21,10 @@ export type FilterOperatorConfig<V extends string | number | boolean | null | un
 };
 
 type FilterValue<V> = V extends string | number | boolean ? (V | V[]) : never;
+type FilterValueOperator<V extends string | number | boolean> = `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}`;
 type FilterValueWithOperator<V> = V extends string | number | boolean ?
     (FilterValue<V> | FilterValueOperator<V> | Array<FilterValueOperator<V>>) :
     never;
-
-type FilterValueOperator<V extends string | number | boolean> = `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}`;
 
 export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
     T | FilterValueWithOperator<T> | FilterOperatorConfig<T> :
@@ -39,7 +38,10 @@ export type FiltersBuildInput<T> = {
 // Parse
 // -----------------------------------------------------------
 
-export type FiltersParseOptions = ParseOptionsBase<Parameter.FILTERS>;
+export type FiltersParseOptions = ParseOptionsBase<Parameter.FILTERS> & {
+    default?: Record<string, FilterValueWithOperator<any>>,
+    defaultByElement?: boolean
+};
 
 export type FiltersParseOutputElement = ParseOutputElementBase<Parameter.FILTERS, FilterValue<string | number | boolean | null>> & {
     operator?: {

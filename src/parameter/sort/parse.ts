@@ -18,8 +18,6 @@ import {
 
 // --------------------------------------------------
 
-// --------------------------------------------------
-
 function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     if (!Array.isArray(arr)) {
         return false;
@@ -28,14 +26,14 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     return arr.length > 0 && Array.isArray(arr[0]);
 }
 
-function applyDefault(options: SortParseOptions) {
+function buildDefaultSortParseOutput(options: SortParseOptions) : SortParseOutput {
     if (options.default) {
         const keys = Object.keys(options.default);
 
-        const output : SortParseOutputElement[] = [];
+        const output : SortParseOutput = [];
 
         for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = getFieldDetails(keys[i]);
+            const fieldDetails = getFieldDetails(keys[i], options.defaultAlias);
 
             output.push({
                 key: fieldDetails.name,
@@ -79,7 +77,7 @@ export function parseQuerySort(
         prototype !== '[object Array]' &&
         prototype !== '[object Object]'
     ) {
-        return applyDefault(options);
+        return buildDefaultSortParseOutput(options);
     }
 
     let parts : string[] = [];
@@ -92,7 +90,10 @@ export function parseQuerySort(
         parts = data.filter((item) => typeof item === 'string');
     }
 
-    if (typeof data === 'object') {
+    if (
+        typeof data === 'object' &&
+        data !== null
+    ) {
         const keys = Object.keys(data);
         for (let i = 0; i < keys.length; i++) {
             /* istanbul ignore next */
@@ -148,7 +149,7 @@ export function parseQuerySort(
     }
 
     if (!matched) {
-        return applyDefault(options);
+        return buildDefaultSortParseOutput(options);
     }
 
     if (isMultiDimensionalArray(options.allowed)) {
