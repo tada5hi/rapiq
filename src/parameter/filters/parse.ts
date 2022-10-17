@@ -5,16 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import minimatch from 'minimatch';
 import {
     FieldDetails,
-    buildFieldWithAlias,
-    buildObjectFromStringArray,
+    applyMapping,
+    buildFieldWithPath,
+    flattenNestedObject,
     getFieldDetails,
-    getNameByAliasMapping,
-    hasOwnProperty,
-    isAllowedByRelations,
+    hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
+import { isPathCoveredByParseOptionsAllowed } from '../utils';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { determineFilterOperatorLabelsByValue, transformFilterValue } from './utils';
 
@@ -23,26 +22,21 @@ import { determineFilterOperatorLabelsByValue, transformFilterValue } from './ut
 function buildOptions(options?: FiltersParseOptions) : FiltersParseOptions {
     options ??= {};
 
-    if (options.aliasMapping) {
-        options.aliasMapping = buildObjectFromStringArray(options.aliasMapping);
-    } else {
-        options.aliasMapping = {};
-    }
-
-    options.relations ??= [];
+    options.mapping = options.mapping || {};
+    options.relations = options.relations || [];
 
     return options;
 }
 
 function transformFiltersParseOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
     if (
-        hasOwnProperty(element, 'alias') &&
+        hasOwnProperty(element, 'path') &&
         (
-            typeof element.alias === 'undefined' ||
-            element.alias === null
+            typeof element.path === 'undefined' ||
+            element.path === null
         )
     ) {
-        delete element.alias;
+        delete element.path;
     }
 
     if (typeof element.value === 'string') {
@@ -84,18 +78,19 @@ function buildDefaultFiltersParseOutput(
     }
 
     if (options.default) {
-        const keys = Object.keys(options.default);
+        const flatten = flattenNestedObject(options.default);
+        const keys = Object.keys(flatten);
 
         const output : FiltersParseOutput = [];
 
         for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = getFieldDetails(keys[i], options.defaultAlias);
+            const fieldDetails = getFieldDetails(keys[i]);
 
             if (
                 options.defaultByElement &&
                 inputKeys.length > 0
             ) {
-                const fieldWithAlias = buildFieldWithAlias(fieldDetails);
+                const fieldWithAlias = buildFieldWithPath(fieldDetails);
                 if (hasOwnProperty(input, fieldWithAlias)) {
                     continue;
                 }
@@ -103,9 +98,9 @@ function buildDefaultFiltersParseOutput(
 
             if (options.defaultByElement || inputKeys.length === 0) {
                 output.push(transformFiltersParseOutputElement({
-                    ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
+                    ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
                     key: fieldDetails.name,
-                    value: options.default[keys[i]],
+                    value: flatten[keys[i]],
                 }));
             }
         }
@@ -116,9 +111,9 @@ function buildDefaultFiltersParseOutput(
     return input ? Object.values(input) : [];
 }
 
-export function parseQueryFilters(
+export function parseQueryFilters<T extends Record<string, any>>(
     data: unknown,
-    options?: FiltersParseOptions,
+    options?: FiltersParseOptions<T>,
 ) : FiltersParseOutput {
     options = options ?? {};
 
@@ -178,26 +173,28 @@ export function parseQueryFilters(
             }
         }
 
-        keys[i] = getNameByAliasMapping(keys[i], options.aliasMapping);
+        keys[i] = applyMapping(keys[i], options.mapping);
 
-        const fieldDetails : FieldDetails = getFieldDetails(keys[i], options.defaultAlias);
-        if (!isAllowedByRelations(fieldDetails, options.relations, options.defaultAlias)) {
-            // eslint-disable-next-line no-continue
-            continue;
-        }
-
-        const keyWithAlias : string = buildFieldWithAlias(fieldDetails, options.defaultAlias);
+        const fieldDetails : FieldDetails = getFieldDetails(keys[i]);
 
         if (
-            typeof options.allowed !== 'undefined' &&
-            // eslint-disable-next-line no-loop-func,@typescript-eslint/no-loop-func
-            !options.allowed.some((allowed) => minimatch(keys[i], allowed) || minimatch(keyWithAlias, allowed))
+            !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
+            !isFieldNonRelational(fieldDetails)
         ) {
             continue;
         }
 
-        temp[keyWithAlias] = {
-            ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
+        const fullKey : string = buildFieldWithPath(fieldDetails);
+
+        if (
+            options.allowed &&
+            !isPathCoveredByParseOptionsAllowed(options.allowed, [keys[i], fullKey])
+        ) {
+            continue;
+        }
+
+        temp[fullKey] = {
+            ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
             key: fieldDetails.name,
             value: value as string | boolean | number,
         };

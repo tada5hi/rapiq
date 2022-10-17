@@ -12,6 +12,7 @@ import {
     parseQueryRelations,
     parseQuerySort,
 } from '../../src';
+import {User} from "../data";
 
 describe('src/sort/index.ts', () => {
     it('should transform sort data', () => {
@@ -48,20 +49,20 @@ describe('src/sort/index.ts', () => {
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] as SortParseOutput);
 
         // with query alias
-        transformed = parseQuerySort('-id', { allowed: ['id'], defaultAlias: 'user' });
-        expect(transformed).toEqual([{ alias: 'user', key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+        transformed = parseQuerySort('-id', { allowed: ['id'] });
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
 
         // with alias mapping
-        transformed = parseQuerySort('-pit', { aliasMapping: { pit: 'id' }, allowed: ['id'] });
+        transformed = parseQuerySort('-pit', { mapping: { pit: 'id' }, allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
 
         // with alias mapping & query alias
-        transformed = parseQuerySort('-pit', { aliasMapping: { pit: 'id' }, allowed: ['id'], defaultAlias: 'user' });
-        expect(transformed).toEqual([{ alias: 'user', key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+        transformed = parseQuerySort('-pit', { mapping: { pit: 'id' }, allowed: ['id'] });
+        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
     });
 
     it('should transform sort with default', () => {
-        const options : SortParseOptions = {
+        const options : SortParseOptions<{id: number, name: string, role: {id: number}}> = {
             allowed: ['id', 'name'],
             default: {
                 id: 'DESC'
@@ -82,7 +83,7 @@ describe('src/sort/index.ts', () => {
     })
 
     it('should transform sort with sort indexes', () => {
-        const options : SortParseOptions = {
+        const options : SortParseOptions<User> = {
             allowed: [
                 ['name', 'email'],
                 ['id'],
@@ -133,30 +134,30 @@ describe('src/sort/index.ts', () => {
         ] as SortParseOutput);
 
         // with query alias
-        transformed = parseQuerySort(['id'], { ...options, defaultAlias: 'user' });
+        transformed = parseQuerySort(['id'], { ...options });
         expect(transformed).toEqual([
-            { alias: 'user', key: 'id', value: SortDirection.ASC },
+            { key: 'id', value: SortDirection.ASC },
         ] as SortParseOutput);
 
         // with include
         transformed = parseQuerySort(['id', 'profile.id'], options);
         expect(transformed).toEqual([
             { key: 'id', value: SortDirection.ASC },
-            { alias: 'profile', key: 'id', value: SortDirection.ASC },
+            { path: 'profile', key: 'id', value: SortDirection.ASC },
         ] as SortParseOutput);
 
         // with include & query alias
-        transformed = parseQuerySort(['id', 'profile.id'], { ...options, defaultAlias: 'user' });
+        transformed = parseQuerySort(['id', 'profile.id'], { ...options});
         expect(transformed).toEqual([
-            { alias: 'user', key: 'id', value: SortDirection.ASC },
-            { alias: 'profile', key: 'id', value: SortDirection.ASC },
+            { key: 'id', value: SortDirection.ASC },
+            { path: 'profile', key: 'id', value: SortDirection.ASC },
         ] as SortParseOutput);
 
         // with deep nested include
         transformed = parseQuerySort(['id', 'user_roles.role.id', 'user_roles.user.id'], options);
         expect(transformed).toEqual([
             { key: 'id', value: SortDirection.ASC },
-            { alias: 'role', key: 'id', value: SortDirection.ASC },
+            { path: 'user_roles.role', key: 'id', value: SortDirection.ASC },
         ] as SortParseOutput);
     });
 });

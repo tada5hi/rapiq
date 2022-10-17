@@ -27,4 +27,4 @@ export enum URLParameter {
 
 // -----------------------------------------------------------
 
-export const DEFAULT_ALIAS_ID = '__DEFAULT__';
+export const DEFAULT_ID = '__DEFAULT__';

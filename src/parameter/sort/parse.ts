@@ -6,15 +6,20 @@
  */
 
 import {
-    buildFieldWithAlias,
-    buildObjectFromStringArray,
-    getFieldDetails, getNameByAliasMapping, hasOwnProperty,
-    isAllowedByRelations,
+    applyMapping,
+    buildFieldWithPath, flattenNestedObject,
+    getFieldDetails,
+    hasOwnProperty, isFieldNonRelational,
+    isFieldPathAllowedByRelations,
 } from '../../utils';
+import { flattenParseOptionsAllowed, isPathCoveredByParseOptionsAllowed } from '../utils';
 
 import {
-    SortDirection, SortParseOptions, SortParseOutput, SortParseOutputElement,
+    SortParseOptions,
+    SortParseOutput,
+    SortParseOutputElement,
 } from './type';
+import { parseSortValue } from './utils';
 
 // --------------------------------------------------
 
@@ -26,19 +31,20 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     return arr.length > 0 && Array.isArray(arr[0]);
 }
 
-function buildDefaultSortParseOutput(options: SortParseOptions) : SortParseOutput {
+function buildDefaultSortParseOutput<T extends Record<string, any>>(options: SortParseOptions<T>) : SortParseOutput {
     if (options.default) {
-        const keys = Object.keys(options.default);
-
         const output : SortParseOutput = [];
 
+        const flatten = flattenNestedObject(options.default);
+        const keys = Object.keys(flatten);
+
         for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = getFieldDetails(keys[i], options.defaultAlias);
+            const fieldDetails = getFieldDetails(keys[i]);
 
             output.push({
                 key: fieldDetails.name,
-                ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
-                value: options.default[keys[i]],
+                ...(fieldDetails.path ? { alias: fieldDetails.path } : {}),
+                value: flatten[keys[i]],
             });
         }
 
@@ -53,9 +59,9 @@ function buildDefaultSortParseOutput(options: SortParseOptions) : SortParseOutpu
  * @param data
  * @param options
  */
-export function parseQuerySort(
+export function parseQuerySort<T extends Record<string, any>>(
     data: unknown,
-    options?: SortParseOptions,
+    options?: SortParseOptions<T>,
 ) : SortParseOutput {
     options = options ?? {};
 
@@ -67,7 +73,7 @@ export function parseQuerySort(
         return [];
     }
 
-    options.aliasMapping = options.aliasMapping ? buildObjectFromStringArray(options.aliasMapping) : {};
+    options.mapping = options.mapping || {};
 
     const prototype = Object.prototype.toString.call(data);
 
@@ -115,26 +121,25 @@ export function parseQuerySort(
     let matched = false;
 
     for (let i = 0; i < parts.length; i++) {
-        let direction: SortDirection = SortDirection.ASC;
-        if (parts[i].substring(0, 1) === '-') {
-            direction = SortDirection.DESC;
-            parts[i] = parts[i].substring(1);
-        }
+        const { value, direction } = parseSortValue(parts[i]);
+        parts[i] = value;
 
-        const key: string = getNameByAliasMapping(parts[i], options.aliasMapping);
+        const key: string = applyMapping(parts[i], options.mapping);
 
-        const fieldDetails = getFieldDetails(key, options.defaultAlias);
-        if (!isAllowedByRelations(fieldDetails, options.relations, options.defaultAlias)) {
+        const fieldDetails = getFieldDetails(key);
+        if (
+            !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
+            !isFieldNonRelational(fieldDetails)
+        ) {
             continue;
         }
 
-        const keyWithAlias : string = buildFieldWithAlias(fieldDetails, options.defaultAlias);
+        const keyWithAlias : string = buildFieldWithPath(fieldDetails);
 
         if (
             typeof options.allowed !== 'undefined' &&
             !isMultiDimensionalArray(options.allowed) &&
-            options.allowed.indexOf(key) === -1 &&
-            options.allowed.indexOf(keyWithAlias) === -1
+            !isPathCoveredByParseOptionsAllowed(options.allowed, [key, keyWithAlias])
         ) {
             continue;
         }
@@ -143,7 +148,7 @@ export function parseQuerySort(
 
         items[keyWithAlias] = {
             key: fieldDetails.name,
-            ...(fieldDetails.alias ? { alias: fieldDetails.alias } : {}),
+            ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
             value: direction,
         };
     }
@@ -158,8 +163,10 @@ export function parseQuerySort(
         for (let i = 0; i < options.allowed.length; i++) {
             const temp : SortParseOutput = [];
 
-            for (let j = 0; j < options.allowed[i].length; j++) {
-                const keyWithAlias : string = options.allowed[i][j];
+            const keyPaths = flattenParseOptionsAllowed(options.allowed[i]);
+
+            for (let j = 0; j < keyPaths.length; j++) {
+                const keyWithAlias : string = keyPaths[j];
                 const key : string = keyWithAlias.includes('.') ?
                     keyWithAlias.split('.').pop() :
                     keyWithAlias;

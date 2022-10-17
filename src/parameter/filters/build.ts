@@ -5,11 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenNestedProperties } from '../utils';
-import { FilterOperatorConfig, FiltersBuildInput, FiltersBuildInputValue } from './type';
+import { FiltersBuildInput } from './type';
 import { FilterOperator } from './constants';
 import { isFilterOperatorConfig } from './utils';
-import { mergeDeep } from '../../utils';
+import { flattenNestedObject, mergeDeep } from '../../utils';
 
 export function buildQueryFiltersForMany<T>(
     input: FiltersBuildInput<T>[],
@@ -29,7 +28,30 @@ export function buildQueryFiltersForMany<T>(
 export function buildQueryFilters<T>(
     data: FiltersBuildInput<T>,
 ) : Record<string, string> {
-    return flattenNestedProperties(transformOperatorConfigToValue(data));
+    return flattenNestedObject(data, {
+        transformer: (input, output, key) => {
+            if (typeof input === 'undefined') {
+                output[key] = null;
+
+                return undefined;
+            }
+
+            if (isFilterOperatorConfig(input)) {
+                input.value = transformValue(input.value);
+
+                if (Array.isArray(input.operator)) {
+                    // merge operators
+                    input.operator = input.operator
+                        .sort((a, b) => OperatorWeight[a] - OperatorWeight[b])
+                        .join('') as FilterOperator;
+                }
+
+                output[key] = `${input.operator}${input.value}`;
+            }
+
+            return undefined;
+        },
+    });
 }
 
 const OperatorWeight = {
@@ -48,33 +70,4 @@ function transformValue<T>(value: T) : T | null {
     }
 
     return value;
-}
-
-function transformOperatorConfigToValue<T>(
-    data: FiltersBuildInput<T> | FilterOperatorConfig<any>,
-) : FiltersBuildInput<T> | FilterOperatorConfig<any> {
-    if (Object.prototype.toString.call(data) !== '[object Object]') {
-        return data as FiltersBuildInput<T>;
-    }
-
-    if (isFilterOperatorConfig(data)) {
-        data.value = transformValue(data.value);
-
-        if (Array.isArray(data.operator)) {
-            // merge operators
-            data.operator = data.operator
-                .sort((a, b) => OperatorWeight[a] - OperatorWeight[b])
-                .join('') as FilterOperator;
-        }
-
-        return data;
-    }
-
-    const keys = Object.keys(data) as (keyof T)[];
-    for (let i = 0; i < keys.length; i++) {
-        data[keys[i]] = transformValue(data[keys[i]]);
-        data[keys[i]] = transformOperatorConfigToValue(data[keys[i]] as any) as FiltersBuildInputValue<T[keyof T]>;
-    }
-
-    return data;
 }

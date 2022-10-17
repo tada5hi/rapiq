@@ -5,54 +5,50 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { RelationsParseOutput } from '../parameter';
 import { getFieldDetails } from './field';
 import { FieldDetails } from './type';
-import { DEFAULT_ALIAS_ID } from '../constants';
 
-export function isAllowedByRelations(
-    field: string | Pick<FieldDetails, 'alias' | 'path'>,
-    includes?: { value: string }[],
-    defaultAlias? :string,
+export function isFieldNonRelational(field: string | FieldDetails) {
+    const details = typeof field === 'string' ?
+        getFieldDetails(field) :
+        field;
+
+    return typeof details.path === 'undefined';
+}
+
+export function isFieldPathAllowedByRelations(
+    field: string | Pick<FieldDetails, 'path'>,
+    includes?: RelationsParseOutput,
 ) : boolean {
     if (typeof includes === 'undefined') {
         return true;
     }
 
-    const details : Pick<FieldDetails, 'alias' | 'path'> = typeof field === 'string' ?
+    const details : Pick<FieldDetails, 'path'> = typeof field === 'string' ?
         getFieldDetails(field) :
         field;
 
-    // check if field is associated to the default domain.
     if (
-        typeof details.path === 'undefined' &&
-        typeof details.alias === 'undefined'
-    ) {
-        return true;
-    }
-
-    // check if field is associated to the default domain.
-    if (
-        details.path === defaultAlias ||
-        details.alias === defaultAlias ||
-        details.alias === DEFAULT_ALIAS_ID
+        typeof details.path === 'undefined'
     ) {
         return true;
     }
 
     return includes.some(
-        (include) => include.value === details.path || include.value === details.alias,
+        (include) => include.key === details.path,
     );
 }
 
-export function buildFieldWithAlias(
-    field: string | Pick<FieldDetails, 'alias' | 'name'>,
-    defaultAlias?: string,
+export function buildFieldWithPath(
+    field: string | FieldDetails,
+    path?: string,
 ) : string {
-    const details : Pick<FieldDetails, 'alias' | 'name'> = typeof field === 'string' ?
+    const details = typeof field === 'string' ?
         getFieldDetails(field) :
         field;
 
-    return defaultAlias || details.alias ?
-        `${details.alias || defaultAlias}.${details.name}` :
+    return details.path || path ?
+        `${details.path || path}.${details.name}` :
         details.name;
 }

@@ -5,7 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './alias';
+export * from './array';
+export * from './mapping';
 export * from './field';
 export * from './relation';
 export * from './merge-deep';

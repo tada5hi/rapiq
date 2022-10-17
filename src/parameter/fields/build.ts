@@ -5,9 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenNestedProperties } from '../utils';
 import { FieldsBuildInput } from './type';
-import { mergeDeep } from '../../utils';
+import { flattenNestedObject, mergeDeep } from '../../utils';
 
 export function buildQueryFieldsForMany<T>(
     inputs: FieldsBuildInput<T>[],
@@ -39,6 +38,6 @@ export function buildQueryFields<T>(
         case Array.isArray(data):
             return data;
         default:
-            return flattenNestedProperties(data as Record<string, any>);
+            return flattenNestedObject(data as Record<string, any>);
     }
 }

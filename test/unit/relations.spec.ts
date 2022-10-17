@@ -13,13 +13,13 @@ describe('src/relations/index.ts', () => {
         let allowed = parseQueryRelations('profile', { allowed: ['profile'] });
         expect(allowed).toEqual([
             { key: 'profile', value: 'profile' },
-        ]);
+        ] as RelationsParseOutput);
 
         allowed = parseQueryRelations([], { allowed: ['profile'] });
         expect(allowed).toEqual([]);
 
         // with alias
-        allowed = parseQueryRelations('pro', { aliasMapping: { pro: 'profile' }, allowed: ['profile'] });
+        allowed = parseQueryRelations('pro', { mapping: { pro: 'profile' }, allowed: ['profile'] });
         expect(allowed).toEqual([
             { key: 'profile', value: 'profile' },
         ]);
@@ -28,10 +28,10 @@ describe('src/relations/index.ts', () => {
         allowed = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
             defaultAlias: 'user',
-            aliasMapping: { 'abc.photos': 'profile.photos' },
+            mapping: { 'abc.photos': 'profile.photos' },
         });
         expect(allowed).toEqual([
-            { key: 'user.profile', value: 'profile' },
+            { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
@@ -39,7 +39,7 @@ describe('src/relations/index.ts', () => {
         allowed = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
             defaultAlias: 'user',
-            aliasMapping: { 'abc.photos': 'profile.photos' },
+            mapping: { 'abc.photos': 'profile.photos' },
             includeParents: false,
         });
         expect(allowed).toEqual([
@@ -50,11 +50,11 @@ describe('src/relations/index.ts', () => {
         allowed = parseQueryRelations(['abc.photos', 'user_roles.role'], {
             allowed: ['profile.photos', 'user_roles.role'],
             defaultAlias: 'user',
-            aliasMapping: { 'abc.photos': 'profile.photos' },
+            mapping: { 'abc.photos': 'profile.photos' },
             includeParents: ['profile.**'],
         });
         expect(allowed).toEqual([
-            { key: 'user.profile', value: 'profile' },
+            { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
             { key: 'user_roles.role', value: 'role' },
         ] as RelationsParseOutput);
@@ -74,16 +74,16 @@ describe('src/relations/index.ts', () => {
         // nested data with alias
         allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'], defaultAlias: 'user' });
         expect(allowed).toEqual([
-            { key: 'user.profile', value: 'profile' },
+            { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
         // nested data with alias
         allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos**'], defaultAlias: 'user' });
         expect(allowed).toEqual([
-            { key: 'user.profile', value: 'profile' },
+            { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
-            { key: 'photos.abc', value: 'abc' },
+            { key: 'profile.photos.abc', value: 'abc' },
         ] as RelationsParseOutput);
 
         // null data

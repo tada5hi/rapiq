@@ -5,10 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '../../constants';
-import {
-    Flatten, OnlyObject, ParseOptionsBase, ParseOutputElementBase,
-} from '../type';
+import { Flatten, NestedResourceKeys, OnlyObject } from '../../type';
 
 // -----------------------------------------------------------
 // Build
@@ -22,9 +19,20 @@ export type RelationsBuildInput<T extends Record<string, any>> = {
 // Parse
 // -----------------------------------------------------------
 
-export type RelationsParseOptions = ParseOptionsBase<Parameter.RELATIONS> & {
-    includeParents?: boolean | string[] | string
-};
+export type RelationsParseOptions<
+    T extends Record<string, any> = Record<string, any>,
+    > = {
+        allowed?: NestedResourceKeys<T>[],
+        // maps input name to local name
+        mapping?: Record<string, string>,
+        // set alternate value for relation key.
+        pathMapping?: Record<string, string>,
+        defaultAlias?: string,
+        includeParents?: boolean | string[] | string
+    };
 
-export type RelationsParseOutputElement = ParseOutputElementBase<Parameter.RELATIONS, string>;
+export type RelationsParseOutputElement = {
+    key: string,
+    value: string
+};
 export type RelationsParseOutput = RelationsParseOutputElement[];

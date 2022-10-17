@@ -8,9 +8,9 @@
 import {
     FieldsParseOutput,
     FiltersParseOutput,
-    PaginationParseOutput,
-    RelationsParseOutput,
+    PaginationParseOutput, RelationsParseOutput,
     SortParseOutput,
+    parseQueryRelations,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import { parseQueryParameter } from './parameter';
@@ -43,8 +43,7 @@ export function parseQuery(
             case Parameter.RELATIONS: {
                 const value = input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS];
                 if (value || options[Parameter.RELATIONS]) {
-                    relations = parseQueryParameter(
-                        Parameter.RELATIONS,
+                    relations = parseQueryRelations(
                         value,
                         options[Parameter.RELATIONS],
                     );

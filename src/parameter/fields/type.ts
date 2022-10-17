@@ -5,14 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '../../constants';
 import {
-    Flatten,
-    KeyWithOptionalPrefix,
-    OnlyObject,
-    ParseOptionsBase,
-    ParseOutputElementBase,
-    ToOneAndMany,
+    Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
+} from '../../type';
+import { RelationsParseOutput } from '../relations';
+import {
+    ParseOptionsAllowed,
 } from '../type';
 import { FieldOperator } from './constants';
 
@@ -20,29 +18,44 @@ import { FieldOperator } from './constants';
 // Build
 // -----------------------------------------------------------
 
-type FieldWithOperator<T extends Record<string, any>> =
-    KeyWithOptionalPrefix<keyof T, FieldOperator> |
-    KeyWithOptionalPrefix<keyof T, FieldOperator>[];
+type FieldWithOperator<T extends string> = KeyWithOptionalPrefix<T, FieldOperator>;
 
 export type FieldsBuildInput<T extends Record<string, any>> =
-    {
-        [K in keyof T]?: T[K] extends OnlyObject<T[K]> ?
-            (FieldsBuildInput<Flatten<T[K]>> | FieldWithOperator<Flatten<T[K]>>) : never
-    } |
-    {
-        [key: string]: ToOneAndMany<KeyWithOptionalPrefix<keyof T, FieldOperator>[]>,
-    } |
-    FieldWithOperator<T>;
+        {
+            [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+                FieldsBuildInput<Flatten<T[K]>> :
+                never
+        }
+        |
+        [
+            FieldWithOperator<SimpleKeys<T>>[],
+            {
+                [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+                    FieldsBuildInput<Flatten<T[K]>> :
+                    never
+            },
+        ]
+        |
+        FieldWithOperator<NestedKeys<T>>[];
 
 // -----------------------------------------------------------
 // Parse
 // -----------------------------------------------------------
 
-export type FieldsParseOptions = ParseOptionsBase<Parameter.FIELDS, Record<string, string[]> | string[]> & {
-    default?: Record<string, string[]> | string[]
+export type FieldsParseOptions<
+    T extends Record<string, any> = Record<string, any>,
+> = {
+    mapping?: Record<string, string>,
+    allowed?: ParseOptionsAllowed<T>,
+    default?: ParseOptionsAllowed<T>,
+    relations?: RelationsParseOutput
 };
 
-export type FieldsParseOutputElement = ParseOutputElementBase<Parameter.FIELDS, FieldOperator>;
+export type FieldsParseOutputElement = {
+    key: string,
+    path?: string,
+    value?: string
+};
 export type FieldsParseOutput = FieldsParseOutputElement[];
 
 export type FieldsInputTransformed = {

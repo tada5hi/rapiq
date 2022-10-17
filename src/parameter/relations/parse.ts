@@ -6,34 +6,12 @@
  */
 
 import minimatch from 'minimatch';
-import { buildObjectFromStringArray, getNameByAliasMapping } from '../../utils';
+import { applyMapping, hasOwnProperty } from '../../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
+import { includeParents } from './utils';
 
 // --------------------------------------------------
-
-// --------------------------------------------------
-
-function includeParents(
-    data: string[],
-) : string[] {
-    for (let i = 0; i < data.length; i++) {
-        const parts: string[] = data[i].split('.');
-
-        while (parts.length > 0) {
-            parts.pop();
-
-            if (parts.length > 0) {
-                const value = parts.join('.');
-                if (data.indexOf(value) === -1) {
-                    data.unshift(value);
-                }
-            }
-        }
-    }
-
-    return data;
-}
 
 export function parseQueryRelations(
     data: unknown,
@@ -49,12 +27,8 @@ export function parseQueryRelations(
         return [];
     }
 
-    if (options.aliasMapping) {
-        options.aliasMapping = buildObjectFromStringArray(options.aliasMapping);
-    } else {
-        options.aliasMapping = {};
-    }
-
+    options.mapping = options.mapping || {};
+    options.pathMapping = options.pathMapping || {};
     options.includeParents ??= true;
 
     let items: string[] = [];
@@ -80,7 +54,7 @@ export function parseQueryRelations(
     }
 
     for (let i = 0; i < items.length; i++) {
-        items[i] = getNameByAliasMapping(items[i], options.aliasMapping);
+        items[i] = applyMapping(items[i], options.mapping);
     }
 
     if (options.allowed) {
@@ -111,17 +85,31 @@ export function parseQueryRelations(
     items = Array.from(new Set(items));
 
     return items
-        .map((relation) => {
+        .map((key) => {
+            const parts = key.split('.');
+
+            /*
             let key : string;
-            if (relation.includes('.')) {
-                key = relation.split('.').slice(-2).join('.');
+            if (path.includes('.')) {
+                key = parts.slice(-2).join('.');
             } else {
-                key = options.defaultAlias ? `${options.defaultAlias}.${relation}` : relation;
+                key = options.defaultAlias ? `${options.defaultAlias}.${path}` : path;
+            }
+            */
+
+            let value : string;
+            if (
+                options.pathMapping &&
+                hasOwnProperty(options.pathMapping, key)
+            ) {
+                value = options.pathMapping[key];
+            } else {
+                value = parts.pop();
             }
 
             return {
                 key,
-                value: relation.split('.').pop(),
+                value,
             };
         });
 }

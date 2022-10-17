@@ -5,9 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenNestedProperties } from '../utils';
 import { RelationsBuildInput } from './type';
-import { mergeDeep } from '../../utils';
+import { flattenNestedObject, mergeDeep } from '../../utils';
 
 export function buildQueryRelationsForMany<T>(
     input: RelationsBuildInput<T>[],
@@ -25,7 +24,7 @@ export function buildQueryRelationsForMany<T>(
 }
 
 export function buildQueryRelations<T>(data: RelationsBuildInput<T>): string[] {
-    const properties: Record<string, boolean> = flattenNestedProperties(data);
+    const properties: Record<string, boolean> = flattenNestedObject(data);
     const keys: string[] = Object.keys(properties);
 
     return Array.from(new Set(keys));

@@ -5,9 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenNestedProperties } from '../utils';
 import { SortBuildInput } from './type';
-import { mergeDeep } from '../../utils';
+import { flattenNestedObject, mergeDeep } from '../../utils';
 
 export function buildQuerySortForMany<T>(inputs: SortBuildInput<T>[]) {
     let data: SortBuildInput<T>;
@@ -38,6 +37,6 @@ export function buildQuerySort<T>(data: SortBuildInput<T>) {
         case Array.isArray(data):
             return data;
         default:
-            return flattenNestedProperties(data as Record<string, any>);
+            return flattenNestedObject(data as Record<string, any>);
     }
 }

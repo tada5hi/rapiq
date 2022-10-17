@@ -11,30 +11,66 @@ export function hasOwnProperty<
     return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-/**
- * Build alias mapping from strings in array or object representation to object representation.
- *
- * {field1: 'field1', ...} => {field1: 'field1', ...}
- * ['field1', 'field2'] => {field1: 'field1', field2: 'field2'}
- *
- * @param rawFields
- */
-export function buildObjectFromStringArray(
-    rawFields: string[] | Record<string, string>,
-): Record<string, string> {
-    if (Array.isArray(rawFields)) {
-        const record: Record<string, any> = {};
+type Options = {
+    transformer?: (
+        input: unknown,
+        output: Record<string, any>,
+        key: string
+    ) => Record<string, any> | undefined
+};
 
-        rawFields
-            .filter((field) => typeof field === 'string')
-            .map((field) => {
-                record[field] = field;
+export function flattenNestedObject(
+    data: Record<string, any>,
+    options?: Options,
+    prefixParts?: string[],
+): Record<string, any> {
+    options = options || {};
+    prefixParts = prefixParts || [];
 
-                return field;
-            });
+    let output: Record<string, string> = {};
 
-        return record;
+    if (options.transformer) {
+        const result = options.transformer(data, output, prefixParts.join('.'));
+        if (typeof result !== 'undefined') {
+            return { ...output, ...flattenNestedObject(result, options, prefixParts) };
+        }
     }
 
-    return rawFields;
+    const keys = Object.keys(data);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+
+        if (options.transformer) {
+            const result = options.transformer(data[key], output, [...prefixParts, key].join('.'));
+            if (typeof result !== 'undefined') {
+                output = { ...output, ...flattenNestedObject(result, options, prefixParts) };
+            }
+
+            continue;
+        }
+
+        if (
+            typeof data[key] === 'object' &&
+            data[key]
+        ) {
+            output = { ...output, ...flattenNestedObject(data[key], options, [...prefixParts, key]) };
+
+            continue;
+        }
+
+        const destinationKey = [...prefixParts, key].join('.');
+
+        if (
+            typeof data[key] === 'boolean' ||
+            typeof data[key] === 'string' ||
+            typeof data[key] === 'number' ||
+            typeof data[key] === 'undefined' ||
+            data[key] === null ||
+            Array.isArray(data[key])
+        ) {
+            output[destinationKey] = data[key];
+        }
+    }
+
+    return output;
 }

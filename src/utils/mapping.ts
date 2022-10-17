@@ -7,12 +7,12 @@
 
 import { hasOwnProperty } from './object';
 
-export function getNameByAliasMapping(
+export function applyMapping(
     name: string,
-    aliasMapping?: Record<string, string>,
+    map?: Record<string, string>,
     onlyKey?: boolean,
 ) {
-    if (typeof aliasMapping === 'undefined') {
+    if (typeof map === 'undefined') {
         return name;
     }
 
@@ -27,8 +27,8 @@ export function getNameByAliasMapping(
             break;
         }
 
-        if (hasOwnProperty(aliasMapping, value)) {
-            output.push(aliasMapping[value]);
+        if (hasOwnProperty(map, value)) {
+            output.push(map[value]);
         } else {
             let found = false;
 
@@ -36,8 +36,8 @@ export function getNameByAliasMapping(
             const copy = [...parts];
             while (copy.length > 0) {
                 const key = [value, ...copy].join('.');
-                if (hasOwnProperty(aliasMapping, key)) {
-                    output.push(aliasMapping[key]);
+                if (hasOwnProperty(map, key)) {
+                    output.push(map[key]);
                     found = true;
                     break;
                 } else {

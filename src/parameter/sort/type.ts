@@ -6,9 +6,12 @@
  */
 
 import {
-    Flatten, KeyWithOptionalPrefix, OnlyObject, OnlyScalar, ParseOptionsBase, ParseOutputElementBase,
+    Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
+} from '../../type';
+import { RelationsParseOutput } from '../relations';
+import {
+    ParseOptionsAllowed,
 } from '../type';
-import { Parameter } from '../../constants';
 
 export enum SortDirection {
     ASC = 'ASC',
@@ -19,26 +22,49 @@ export enum SortDirection {
 // Build
 // -----------------------------------------------------------
 
-type SortWithOperator<T extends Record<string, any>> =
-    KeyWithOptionalPrefix<keyof T, '-'> |
-    KeyWithOptionalPrefix<keyof T, '-'>[];
+type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
 
-export type SortBuildInput<T extends Record<string, any>> = {
-    [K in keyof T]?: T[K] extends OnlyScalar<T[K]> ?
-        `${SortDirection}` :
-        T[K] extends Date ?
-            `${SortDirection}` :
-            T[K] extends OnlyObject<T[K]> ?
-                SortBuildInput<Flatten<T[K]>> | SortWithOperator<Flatten<T[K]>> :
-                never
-} | SortWithOperator<T>;
+export type SortBuildInput<T extends Record<string, any>> =
+    {
+        [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+            SortBuildInput<Flatten<T[K]>> :
+            `${SortDirection}`
+    }
+    |
+    [
+        SortWithOperator<SimpleKeys<T>>[],
+        {
+            [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+                SortBuildInput<Flatten<T[K]>> :
+                `${SortDirection}`
+        },
+    ]
+    |
+    SortWithOperator<NestedKeys<T>>[];
 
 // -----------------------------------------------------------
 // Parse
 // -----------------------------------------------------------
 
-export type SortParseOptions = ParseOptionsBase<Parameter.SORT, string[] | string[][]> & {
-    default?: Record<string, `${SortDirection}`>
+export type SortParseOptionsDefault<T extends Record<string, any>> = {
+    [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+        SortParseOptionsDefault<Flatten<T[K]>> :
+        `${SortDirection}`
+} | {
+    [K in NestedKeys<T>]?: `${SortDirection}`
 };
-export type SortParseOutputElement = ParseOutputElementBase<Parameter.SORT, `${SortDirection}`>;
+
+export type SortParseOptions<
+    T extends Record<string, any> = Record<string, any>,
+    > = {
+        allowed?: ParseOptionsAllowed<T> | ParseOptionsAllowed<T>[],
+        mapping?: Record<string, string>,
+        default?: SortParseOptionsDefault<T>,
+        relations?: RelationsParseOutput,
+    };
+export type SortParseOutputElement = {
+    key: string,
+    value: `${SortDirection}`,
+    path?: string
+};
 export type SortParseOutput = SortParseOutputElement[];

@@ -5,19 +5,19 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { merge } from 'smob';
 import {
-    buildFieldWithAlias, getNameByAliasMapping, hasOwnProperty, isAllowedByRelations,
+    applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
 } from '../../utils';
+import { flattenParseOptionsAllowed } from '../utils';
 import {
     FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
 } from './type';
 import {
-    buildFieldDomainRecords,
-    mergeFieldsDomainRecords,
     parseFieldsInput, removeFieldInputOperator,
     transformFieldsInput,
 } from './utils';
-import { DEFAULT_ALIAS_ID } from '../../constants';
+import { DEFAULT_ID } from '../../constants';
 
 // --------------------------------------------------
 
@@ -52,11 +52,20 @@ export function parseQueryFields(
 ) : FieldsParseOutput {
     options ??= {};
 
-    const defaultDomainFields = buildFieldDomainRecords(options.default);
-    const domainFields = mergeFieldsDomainRecords(
-        buildFieldDomainRecords(options.allowed),
-        { ...defaultDomainFields },
+    const defaultDomainFields = groupArrayByKeyPath(
+        flattenParseOptionsAllowed(options.default),
     );
+
+    const allowedDomainFields = groupArrayByKeyPath(
+        flattenParseOptionsAllowed(options.allowed),
+    );
+
+    const domainFields = merge(
+        {},
+        defaultDomainFields,
+        allowedDomainFields,
+    );
+
     let domainKeys : string[] = Object.keys(domainFields);
 
     // If it is an empty array nothing is allowed
@@ -64,31 +73,7 @@ export function parseQueryFields(
         return [];
     }
 
-    if (options.defaultAlias) {
-        if (hasOwnProperty(defaultDomainFields, DEFAULT_ALIAS_ID)) {
-            replaceRecordKey(defaultDomainFields, DEFAULT_ALIAS_ID, options.defaultAlias);
-        }
-
-        if (hasOwnProperty(domainFields, DEFAULT_ALIAS_ID)) {
-            replaceRecordKey(domainFields, DEFAULT_ALIAS_ID, options.defaultAlias);
-        }
-    }
-
     domainKeys = Object.keys(domainFields);
-
-    let defaultAlias : string;
-
-    if (
-        domainKeys.length === 1 &&
-        !options.defaultAlias
-    ) {
-        // eslint-disable-next-line prefer-destructuring
-        defaultAlias = domainKeys[0];
-    } else {
-        defaultAlias = options.defaultAlias || DEFAULT_ALIAS_ID;
-    }
-
-    options.defaultAlias = defaultAlias;
 
     const prototype: string = Object.prototype.toString.call(data);
     if (
@@ -96,26 +81,29 @@ export function parseQueryFields(
         prototype !== '[object Array]' &&
         prototype !== '[object String]'
     ) {
-        data = { [defaultAlias]: [] };
+        data = { [DEFAULT_ID]: [] };
     }
 
     if (prototype === '[object String]') {
-        data = { [defaultAlias]: data };
+        data = { [DEFAULT_ID]: data };
     }
 
     if (prototype === '[object Array]') {
-        data = { [defaultAlias]: data };
+        data = { [DEFAULT_ID]: data };
     }
 
-    options.aliasMapping ??= {};
-    const reverseAliasMapping = buildReverseRecord(options.aliasMapping);
+    options.mapping ??= {};
+    const reverseMapping = buildReverseRecord(options.mapping);
 
     const output : FieldsParseOutput = [];
 
     for (let i = 0; i < domainKeys.length; i++) {
         const domainKey = domainKeys[i];
 
-        if (!isAllowedByRelations({ alias: domainKey }, options.relations, options.defaultAlias)) {
+        if (
+            !isFieldPathAllowedByRelations({ path: domainKey }, options.relations) &&
+            domainKey !== DEFAULT_ID
+        ) {
             continue;
         }
 
@@ -126,10 +114,10 @@ export function parseQueryFields(
         ) {
             fields = parseFieldsInput(data[domainKey]);
         } else if (
-            hasOwnProperty(reverseAliasMapping, domainKey)
+            hasOwnProperty(reverseMapping, domainKey)
         ) {
-            if (hasOwnProperty(data, reverseAliasMapping[domainKey])) {
-                fields = parseFieldsInput(data[reverseAliasMapping[domainKey]]);
+            if (hasOwnProperty(data, reverseMapping[domainKey])) {
+                fields = parseFieldsInput(data[reverseMapping[domainKey]]);
             }
         }
 
@@ -141,9 +129,9 @@ export function parseQueryFields(
 
         if (fields.length > 0) {
             for (let j = 0; j < fields.length; j++) {
-                fields[j] = getNameByAliasMapping(
-                    buildFieldWithAlias({ name: fields[j], alias: domainKey }),
-                    options.aliasMapping,
+                fields[j] = applyMapping(
+                    buildFieldWithPath({ name: fields[j], path: domainKey }),
+                    options.mapping,
                     true,
                 );
             }
@@ -159,19 +147,18 @@ export function parseQueryFields(
         }
 
         if (
-            transformed.default.length === 0
+            transformed.default.length === 0 &&
+            hasOwnProperty(defaultDomainFields, domainKey)
         ) {
-            if (hasOwnProperty(defaultDomainFields, domainKey)) {
-                transformed.default = defaultDomainFields[domainKey];
-            }
+            transformed.default = defaultDomainFields[domainKey];
+        }
 
-            if (
-                transformed.included.length === 0 &&
-                transformed.default.length === 0 &&
-                hasOwnProperty(domainFields, domainKey)
-            ) {
-                transformed.default = domainFields[domainKey];
-            }
+        if (
+            transformed.included.length === 0 &&
+            transformed.default.length === 0 &&
+            hasOwnProperty(allowedDomainFields, domainKey)
+        ) {
+            transformed.default = allowedDomainFields[domainKey];
         }
 
         transformed.default = Array.from(new Set([
@@ -190,7 +177,7 @@ export function parseQueryFields(
             for (let j = 0; j < transformed.default.length; j++) {
                 output.push({
                     key: transformed.default[j],
-                    ...(domainKey !== DEFAULT_ALIAS_ID ? { alias: domainKey } : {}),
+                    ...(domainKey !== DEFAULT_ID ? { path: domainKey } : {}),
                 });
             }
         }

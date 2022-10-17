@@ -27,16 +27,15 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
 
         // filter with alias
-        allowedFilter = parseQueryFilters({ aliasId: 1 }, { aliasMapping: { aliasId: 'id' }, allowed: ['id'] });
+        allowedFilter = parseQueryFilters({ aliasId: 1 }, { mapping: { aliasId: 'id' }, allowed: ['id'] });
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
         }] as FiltersParseOutput);
 
         // filter with query alias
-        allowedFilter = parseQueryFilters({ id: 1 }, { defaultAlias: 'user', allowed: ['id'] });
+        allowedFilter = parseQueryFilters({ id: 1 }, { allowed: ['id'] });
         expect(allowedFilter).toEqual([{
-            alias: 'user',
             key: 'id',
             value: 1,
         }] as FiltersParseOutput);
@@ -76,8 +75,7 @@ describe('src/filter/index.ts', () => {
 
     it('should transform fields with defaultAlias', () => {
         const options : FiltersParseOptions= {
-            allowed: ['id'],
-            defaultAlias: 'user'
+            allowed: ['id']
         };
 
         const data = parseQueryFilters({ id: 1 }, options);
@@ -85,16 +83,14 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                value: 1,
-                alias: 'user'
+                value: 1
             }
         ] as FiltersParseOutput)
     })
 
     it('should transform filters with default', () => {
-        const options : FiltersParseOptions= {
+        const options : FiltersParseOptions<{id: string, age: number }> = {
             allowed: ['id', 'age'],
-            defaultAlias: 'user',
             default: {
                 age: '<18'
             }
@@ -104,8 +100,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                value: 1,
-                alias: 'user'
+                value: 1
             }
         ] as FiltersParseOutput);
 
@@ -114,7 +109,6 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'age',
                 value: 18,
-                alias: 'user',
                 operator: {
                     lessThan: true
                 }
@@ -126,7 +120,6 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'age',
                 value: 18,
-                alias: 'user',
                 operator: {
                     lessThan: true
                 }
@@ -305,10 +298,12 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should transform filters with includes', () => {
-        const include = parseQueryRelations(['profile', 'user_roles.role'], {allowed: ['profile', 'user_roles.role']});
+        const include = parseQueryRelations(['profile', 'user_roles.role'], {
+            allowed: ['profile', 'user_roles.role']
+        });
 
         const options : FiltersParseOptions = {
-            allowed: ['id', 'profile.id', 'role.id'],
+            allowed: ['id', 'profile.id', 'user_roles.role.id'],
             relations: include,
         };
 
@@ -320,36 +315,35 @@ describe('src/filter/index.ts', () => {
                 value: 1,
             },
             {
-                alias: 'profile',
+                path: 'profile',
                 key: 'id',
                 value: 2,
             },
         ] as FiltersParseOutput);
 
         // with include & query alias
-        transformed = parseQueryFilters({ id: 1, 'profile.id': 2 }, { ...options, defaultAlias: 'user' });
+        transformed = parseQueryFilters({ id: 1, 'profile.id': 2 }, options);
         expect(transformed).toEqual([
             {
-                alias: 'user',
                 key: 'id',
                 value: 1,
             },
             {
-                alias: 'profile',
+                path: 'profile',
                 key: 'id',
                 value: 2,
             },
         ] as FiltersParseOutput);
 
         // with deep nested include
-        transformed = parseQueryFilters({ id: 1, 'role.id': 2 }, options);
+        transformed = parseQueryFilters({ id: 1, 'user_roles.role.id': 2 }, options);
         expect(transformed).toEqual([
             {
                 key: 'id',
                 value: 1,
             },
             {
-                alias: 'role',
+                path: 'user_roles.role',
                 key: 'id',
                 value: 2,
             },

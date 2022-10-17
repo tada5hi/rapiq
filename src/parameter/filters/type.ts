@@ -5,9 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '../../constants';
 import {
-    Flatten, OnlyObject, OnlyScalar, ParseOptionsBase, ParseOutputElementBase,
+    Flatten,
+    NestedKeys, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
+} from '../../type';
+import { RelationsParseOutput } from '../relations';
+import {
+    ParseOptionsAllowed,
 } from '../type';
 import { FilterOperator, FilterOperatorLabel } from './constants';
 
@@ -36,24 +40,44 @@ export type FilterOperatorConfig<V extends FilterValueInput = FilterValueInput> 
 
 export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
     T | FilterValue<T> | FilterOperatorConfig<T> :
-    T extends OnlyObject<T> ? FiltersBuildInput<Flatten<T>> : never;
+    never;
 
-export type FiltersBuildInput<T> = {
-    [K in keyof T]?: FiltersBuildInputValue<T[K]>
+export type FiltersBuildInput<T extends Record<string, any>> = {
+    [K in keyof T]?: Flatten<T[K]> extends Record<string, any> ?
+        FiltersBuildInput<Flatten<T[K]>> :
+        FiltersBuildInputValue<Flatten<T[K]>>
+} & {
+    [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
 };
 
 // -----------------------------------------------------------
 // Parse
 // -----------------------------------------------------------
 
-export type FiltersParseOptions = ParseOptionsBase<Parameter.FILTERS> & {
-    default?: Record<string, FilterValue<any>>,
-    defaultByElement?: boolean
+export type FiltersParseOptionsDefault<T extends Record<string, any>> = {
+    [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
+        FiltersParseOptionsDefault<Flatten<T[K]>> :
+        (K extends string ? FilterValue<TypeFromNestedKeyPath<T, K>> : never)
+} | {
+    [K in NestedKeys<T>]?: FilterValue<TypeFromNestedKeyPath<T, K>>
 };
 
-export type FiltersParseOutputElement = ParseOutputElementBase<Parameter.FILTERS, FilterValueSimple> & {
+export type FiltersParseOptions<
+    T extends Record<string, any> = Record<string, any>,
+    > = {
+        mapping?: Record<string, string>,
+        allowed?: ParseOptionsAllowed<T>,
+        default?: FiltersParseOptionsDefault<T>,
+        defaultByElement?: boolean,
+        relations?: RelationsParseOutput
+    };
+
+export type FiltersParseOutputElement = {
     operator?: {
         [K in FilterOperatorLabel]?: boolean
-    }
+    },
+    value: FilterValueSimple,
+    key: string,
+    path?: string
 };
 export type FiltersParseOutput = FiltersParseOutputElement[];
