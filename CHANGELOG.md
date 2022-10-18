@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/Tada5hi/rapiq/compare/v0.2.0...v0.2.1) (2022-10-18)
+
+
+### Bug Fixes
+
+* parse query relations typing and allowed matching ([b60f9f4](https://github.com/Tada5hi/rapiq/commit/b60f9f4649a2353534e1279a2c50f08dec64c53a))
+
 # [0.2.0](https://github.com/Tada5hi/rapiq/compare/v0.1.1...v0.2.0) (2022-10-18)
 
 
