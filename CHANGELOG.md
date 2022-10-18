@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/Tada5hi/rapiq/compare/v0.1.1...v0.2.0) (2022-10-18)
+
+
+### Features
+
+* backported defaultAlias as defaultPath ([82f820c](https://github.com/Tada5hi/rapiq/commit/82f820cf1ce4425765795be0a859a39c5a838493))
+
 ## [0.1.1](https://github.com/Tada5hi/rapiq/compare/v0.1.0...v0.1.1) (2022-10-18)
 
 
