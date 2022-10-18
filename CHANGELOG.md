@@ -1,3 +1,11 @@
+## [0.1.1](https://github.com/Tada5hi/rapiq/compare/v0.1.0...v0.1.1) (2022-10-18)
+
+
+### Bug Fixes
+
+* filter array value transformation + removed unnecessary methods ([a02767a](https://github.com/Tada5hi/rapiq/commit/a02767a5149fd0088a83a6b97035dc30badd5b41))
+* query parameter building + enhanced generation ([40d56c4](https://github.com/Tada5hi/rapiq/commit/40d56c438c25c4a35fdef1a6b3c2ab72e02ebdf7))
+
 # [0.1.0](https://github.com/Tada5hi/rapiq/compare/v0.0.6...v0.1.0) (2022-10-15)
 
 
