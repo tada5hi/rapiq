@@ -7,15 +7,16 @@
 
 import minimatch from 'minimatch';
 import { applyMapping, hasOwnProperty } from '../../utils';
+import { isPathCoveredByParseOptionsAllowed } from '../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
 import { includeParents } from './utils';
 
 // --------------------------------------------------
 
-export function parseQueryRelations(
+export function parseQueryRelations<T extends Record<string, any> = Record<string, any>>(
     data: unknown,
-    options?: RelationsParseOptions,
+    options?: RelationsParseOptions<T>,
 ): RelationsParseOutput {
     options ??= {};
 
@@ -58,16 +59,7 @@ export function parseQueryRelations(
     }
 
     if (options.allowed) {
-        items = items
-            .filter((item) => {
-                for (let i = 0; i < options.allowed.length; i++) {
-                    if (minimatch(item, options.allowed[i])) {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
+        items = items.filter((item) => isPathCoveredByParseOptionsAllowed(options.allowed, item));
     }
 
     if (options.includeParents) {

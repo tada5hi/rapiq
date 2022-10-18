@@ -75,14 +75,6 @@ describe('src/relations/index.ts', () => {
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
-        // nested data with alias
-        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos**'] });
-        expect(allowed).toEqual([
-            { key: 'profile', value: 'profile' },
-            { key: 'profile.photos', value: 'photos' },
-            { key: 'profile.photos.abc', value: 'abc' },
-        ] as RelationsParseOutput);
-
         // null data
         allowed = parseQueryRelations(null);
         expect(allowed).toEqual([]);
