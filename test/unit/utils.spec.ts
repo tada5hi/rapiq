@@ -36,7 +36,7 @@ describe('src/utils/*.ts', () => {
 
         data = flattenParseOptionsAllowed<User>({
             realm: ['id'],
-            roles: ['realm.name']
+            items: ['realm.name']
         });
         expect(data).toEqual([
             'realm.id',
@@ -84,18 +84,18 @@ describe('src/utils/*.ts', () => {
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseOptionsAllowed<User>({roles: ['realm.id']}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.id']}, 'roles.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseOptionsAllowed<User>({roles: ['realm.name']}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.name']}, 'roles.realm.id');
         expect(result).toBeFalsy();
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseOptionsAllowed<User>({roles: {realm: ['id']}}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['id']}}, 'roles.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseOptionsAllowed<User>({roles: {realm: ['name']}}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['name']}}, 'roles.realm.id');
         expect(result).toBeFalsy();
     })
 })

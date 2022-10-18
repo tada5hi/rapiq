@@ -29,7 +29,6 @@ export type RelationsParseOptions<
         mapping?: Record<string, string>,
         // set alternate value for relation key.
         pathMapping?: Record<string, string>,
-        defaultAlias?: string,
         includeParents?: boolean | string[] | string
     };
 

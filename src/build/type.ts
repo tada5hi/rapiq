@@ -13,7 +13,7 @@ export type BuildOptions = {
 };
 
 export type BuildInput<
-    V extends Record<string, any>,
+    T extends Record<string, any>,
 > = {
-    [K in `${Parameter}` | `${URLParameter}`]?: BuildParameterInput<K, V>
+    [P in `${Parameter}` | `${URLParameter}`]?: BuildParameterInput<P, T>
 };

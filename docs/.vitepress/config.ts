@@ -47,7 +47,12 @@ export default defineConfig({
                     items: [
                         {text: 'Parameter', link: '/guide/parameter-api-reference'},
                         {text: 'Build', link: '/guide/build-api-reference'},
-                        {text: 'Parse', link: '/guide/parse-api-reference'}
+                        {text: 'Parse', link: '/guide/parse-api-reference'},
+                        {text: 'Fields', link: '/guide/fields-api-reference'},
+                        {text: 'Filters', link: '/guide/filters-api-reference'},
+                        {text: 'Pagination', link: '/guide/pagination-api-reference'},
+                        {text: 'Relations', link: '/guide/relations-api-reference'},
+                        {text: 'Sort', link: '/guide/sort-api-reference'},
                     ]
                 },
             ]

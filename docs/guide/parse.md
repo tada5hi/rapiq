@@ -1,7 +1,27 @@
 # Parse 🔎
-For explanation purposes, two simple entities with a basic relation between them are declared to demonstrate 
+
+The last step of the whole process is to parse the transpiled query string, to an efficient data structure.
+The result object (`ParseOutput`) can contain an output for each
+[Parameter](parameter-api-reference.md#parameter)/[URLParameter](parameter-api-reference.md#urlparameter).
+- [Fields](fields-api-reference.md#fieldsparseoutput): `FieldsParseOutput<T>`
+- [Filter(s)](filters-api-reference.md#filtersparseoutput): `FiltersParseOutput<T>`
+- [Pagination](pagination-api-reference.md#paginationparseoutput): `PaginationParseOutput<T>`
+- [Relations](relations-api-reference.md#relationsparseoutput): `RelationsParseOutput<T>`
+- [Sort](sort-api-reference.md#sortparseoutput): `SortParseOutput<T>`
+
+::: tip
+Check out the API-Reference of each parameter for output formats and examples.
+:::
+
+## Example
+
+The following example is based on the assumption, that the following packages are installed:
+- [express](https://www.npmjs.com/package/express)
+- [typeorm](https://www.npmjs.com/package/typeorm)
+- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
+
+For explanation purposes, three simple entities with relations between them are declared to demonstrate 
 the usage on the backend side.
-Therefore, [typeorm](https://typeorm.io/) is used as ORM for the database.
 
 **`entities.ts`**
 ```typescript
@@ -9,8 +29,9 @@ import {
     Entity,
     PrimaryGeneratedColumn,
     Column,
-    OneToOne,
-    JoinColumn
+    OneToMany,
+    JoinColumn,
+    ManyToOne
 } from "typeorm";
 
 @Entity()
@@ -24,24 +45,38 @@ export class User {
 
     @Column({type: 'varchar', length: 255, default: null, nullable: true})
     email: string;
+    
+    @Column({type: 'int', nullable: true})
+    age: number
 
-    @OneToOne(() => Profile)
-    profile: Profile;
+    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
+    realm: Realm;
+
+    @OneToMany(() => User, { onDelete: 'CASCADE' })
+    items: Item[];
 }
 
 @Entity()
-export class Profile {
+export class Realm {
+    @PrimaryColumn({ type: 'varchar', length: 36 })
+    id: string;
+
+    @Column({ type: 'varchar', length: 128, unique: true })
+    name: string;
+
+    @Column({ type: 'text', nullable: true, default: null })
+    description: string | null;
+}
+
+@Entity()
+export class Item {
     @PrimaryGeneratedColumn({unsigned: true})
     id: number;
 
-    @Column({type: 'varchar', length: 255, default: null, nullable: true})
-    avatar: string;
+    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
+    realm: Realm;
 
-    @Column({type: 'varchar', length: 255, default: null, nullable: true})
-    cover: string;
-
-    @OneToOne(() => User)
-    @JoinColumn()
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     user: User;
 }
 ```
@@ -74,12 +109,19 @@ import { User } from './entities';
  * Get many users.
  *
  * Request example
- * - url: /users?page[limit]=10&page[offset]=0&include=profile&filter[id]=1&fields[user]=id,name
+ * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
  *
  * Return Example:
  * {
  *     data: [
- *         {id: 1, name: 'tada5hi', profile: {avatar: 'avatar.jpg', cover: 'cover.jpg'}}
+ *         {
+ *              id: 1, 
+ *              name: 'tada5hi', 
+ *              realm: {
+ *                  id: 'xxx', 
+ *                  name: 'xxx'
+ *              }
+ *         }
  *      ],
  *     meta: {
  *        total: 1,
@@ -98,48 +140,37 @@ export async function getUsers(req: Request, res: Response) {
     const query = repository.createQueryBuilder('user');
 
     // -----------------------------------------------------
-
-    const relationsParsed = parseQueryRelations(include, {
-        allowed: 'profile'
-    });
-
-    const fieldsParsed = parseQueryFields(fields, {
-        defaultAlias: 'user',
-        // profile.id can only be used as sorting key, if the relation 'profile' is included.
-        allowed: ['id', 'name', 'profile.id', 'profile.avatar'],
-        relations: relationsParsed
-    });
-
-    const filterParsed = parseQueryFilters(filter, {
-        defaultAlias: 'user',
-        // profile.id can only be used as sorting key, if the relation 'profile' is included.
-        allowed: ['id', 'name', 'profile.id'],
-        relations: relationsParsed
-    });
-
-    const pageParsed = parseQueryPagination(page, {
-        maxLimit: 20
-    });
-
-    const sortParsed = parseQuerySort(sort, {
-        defaultAlias: 'user',
-        // profile.id can only be used as sorting key, if the relation 'profile' is included.
-        allowed: ['id', 'name', 'profile.id'],
-        relations: relationsParsed
-    });
-
-    // -----------------------------------------------------
-
-    // group back parsed parameter back,
-    // so they can applied on the db query.
+    
     const parsed = applyQueryParseOutput(query, {
-        fields: fieldsParsed,
+        fields: parseQueryFields(fields, {
+            defaultAlias: 'user',
+            // The fields id & name of the realm entity can only be used, 
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id', 'realm.name'],
+            relations: relationsParsed
+        }),
         // only allow filtering users by id & name
-        filters: filterParsed,
-        relations: relationsParsed,
+        filters: parseQueryFilters(filter, {
+            defaultAlias: 'user',
+            // realm.id can only be used as filter key, 
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id'],
+            relations: relationsParsed
+        }),
+        relations: parseQueryRelations(include, {
+            allowed: ['resources', 'realm']
+        }),
         // only allow to select 20 items at maximum.
-        pagination: pageParsed,
-        sort: sortParsed
+        pagination: parseQueryPagination(page, {
+            maxLimit: 20
+        }),
+        sort: parseQuerySort(sort, {
+            defaultAlias: 'user',
+            // profile.id can only be used as sorting key,
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id'],
+            relations: relationsParsed
+        })
     });
 
     // -----------------------------------------------------
@@ -191,21 +222,21 @@ export async function getUsers(req: Request, res: Response) {
     const output: ParseOutput = parseQuery(req.query, {
         fields: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id', 'profile.avatar']
+            allowed: ['id', 'name', 'realm.id', 'realm.name'],
         },
         filters: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id']
+            allowed: ['id', 'name', 'realm.id'],
         },
         relations: {
-            allowed: ['profile']
+            allowed: ['resources', 'realm']
         },
         pagination: {
             maxLimit: 20
         },
         sort: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id']
+            allowed: ['id', 'name', 'realm.id'],
         }
     });
 

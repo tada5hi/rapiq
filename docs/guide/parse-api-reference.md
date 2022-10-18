@@ -2,8 +2,8 @@
 
 ## `parseQuery`
 
-Parse a query string to an efficient data structure ⚡. The output will
-be an object with each possible value of the [Parameter](parameter-api-reference.md#parameter) enum as property key and the
+Parse a query string to an efficient data structure ⚡.
+The output will be an object with each possible value of the [Parameter](parameter-api-reference.md#parameter) enum as property key and the
 parsed data as value.
 
 **Type**
@@ -206,238 +206,66 @@ The function returns an object.
 ## ParseOptions
 
 ```typescript
-export type ParseOptions = {
+type ParseOptions = {
     /**
      * On default all query keys are enabled.
      */
     [K in Parameter]?: ParseParameterOptions<K> | boolean
 }
 ```
-[ParseParameterOptions](#parseparameteroptions)
+**References**
+- [ParseParameterOptions](#parseparameteroptions)
 
 ## ParseInput
 
 ````typescript
-export type ParseInput = {
+type ParseInput = {
     [K in Parameter | URLParameter]?: any
 }
 ````
-[Parameter/URLParameter](parameter-api-reference#parameter)
+**References**
+- [Parameter](parameter-api-reference#parameter)
+- [URLParameter](parameter-api-reference.md#urlparameter)
 
 ## ParseOutput
 
 ```typescript
-export type ParseOutput = {
+type ParseOutput = {
     [K in Parameter]?: ParseParameterOutput<K>
 }
 ```
-[ParseParameterOutput](#parseparameteroutput)
+**References**
+- [ParseParameterOutput](#parseparameteroutput)
 
 ## ParseParameterOptions
 ```typescript
-type ParseParameterOptions<T extends ParameterType | URLParameterType>;
+type ParseParameterOptions<
+    P extends ParameterType | URLParameterType,
+    T extends Record<string, any> = Record<string, any>
+>;
 ```
-is a generic type and returns the available options for a given parameter type, e.g.
-- [FieldsParseOptions](#filtersparseoptions),
-- [FiltersParseOptions](#filtersparseoptions)
-- ...
+is a generic type and returns the available options for a given parameter type:
+**References**
+- [FieldsParseOptions](fields-api-reference.md#fieldsparseoptions),
+- [FiltersParseOptions](filters-api-reference.md#filtersparseoptions)
+- [PaginationParseOptions](pagination-api-reference.md#paginationparseoptions)
+- [RelationsParseOptions](relations-api-reference.md#relationsparseoptions)
+- [SortParseOptions](sort-api-reference.md#sortparseoptions)
 
 ## ParseParameterOutput
 ```typescript
-type ParseParameterOutput<T extends ParameterType | URLParameterType>
+type ParseParameterOutput<P extends ParameterType | URLParameterType>;
 ```
 
-is a generic type and returns the parsed output data for a given parameter type, e.g.
-- [FieldsParseOutput](#fieldsparseoutput)
-- [FiltersParseOutput](#filtersparseoutput)
-- ...
+is a generic type and returns the parsed output data for a given parameter type:
+
+**References**
+- [FieldsParseOutput](fields-api-reference.md#fieldsparseoutput)
+- [FiltersParseOutput](filters-api-reference.md#filtersparseoutput)
+- [PaginationParseOutput](pagination-api-reference.md#paginationparseoutput)
+- [RelationsParseOutput](relations-api-reference.md#relationsparseoutput)
+- [SortParseOutput](sort-api-reference.md#sortparseoutput)
 
 
-## `FieldsParseOptions`
-```typescript
-export type FieldsParseOptions =
-    ParseOptionsBase<Parameter.FIELDS, Record<string, string[]> | string[]>;
-```
-The type structure looks like this:
-```text
-{
-    aliasMapping?: Record<string, string>,
-    allowed?: Record<string, string[]> | string[],
-    relations?: RelationsParseOutput,
-    defaultAlias?: string
-}
-```
 
-## `FieldsParseOutput`
 
-```typescript
-export enum FieldOperator {
-    INCLUDE = '+',
-    EXCLUDE = '-'
-}
-
-export type FieldsParseOutputElement =
-    ParseOutputElementBase<Parameter.FIELDS, FieldOperator>;
-export type FieldsParseOutput =
-    FieldsParseOutputElement[];
-```
-The type structure looks like this:
-```text
-{
-    // relation/resource alias
-    alias?: string,
-
-    // field name
-    key: string,
-
-    // '+' | '-'
-    value?: FieldOperator
-}
-```
-
-## `FiltersParseOptions`
-
-```typescript
-export type FiltersParseOptions =
-    ParseOptionsBase<Parameter.FILTERS>
-```
-The type structure looks like this:
-```text
-{
-    aliasMapping?: Record<string, string>,
-    allowed?: string[],
-    relations?: RelationsParseOutput,
-    defaultAlias?: string
-}
-```
-
-## `FiltersParseOutput`
-```typescript
-export enum FilterOperatorLabel {
-    NEGATION = 'negation',
-    LIKE = 'like',
-    IN = 'in'
-}
-
-export type FiltersParseOutputElement =
-    ParseOutputElementBase<
-        Parameter.FILTERS,
-        FilterValue<string | number | boolean | null>
-    > & {
-        operator?: {
-            [K in FilterOperatorLabel]?: boolean
-        }
-    };
-export type FiltersParseOutput = FiltersParseOutputElement[];
-```
-```text
-{
-    // relation/resource alias
-    alias?: string,
-
-    // filter name
-    key: string,
-
-    // {in: ..., ...}
-    operator?: {
-        [K in FilterOperatorLabel]?: boolean
-    },
-
-    value: FilterValue<string | number | boolean | null>
-}
-```
-
-## `PaginationParseOptions`
-```typescript
-export type PaginationParseOptions =
-    ParseOptionsBase<Parameter.PAGINATION> & {
-        maxLimit?: number
-    };
-```
-The type structure looks like this:
-```text
-{
-    maxLimit?: number
-}
-```
-
-## `PaginationParseOutput`
-```typescript
-export type PaginationParseOutput = {
-    limit?: number,
-    offset?: number
-};
-```
-
-## `RelationsParseOptions`
-
-```typescript
-export type RelationsParseOptions =
-    ParseOptionsBase<Parameter.SORT, string[] | string[][]>;
-```
-The type structure looks like this:
-```text
-{
-    aliasMapping?: Record<string, string>,
-    allowed?: string[],
-    defaultAlias?: string,
-    includeParents?: boolean | string[] | string
-}
-```
-
-## `RelationsParseOutput`
-```typescript
-export type RelationsParseOutputElement =
-    ParseOutputElementBase<Parameter.RELATIONS, string>;
-export type RelationsParseOutput = RelationsParseOutputElement[];
-```
-The type structure looks like this:
-```text
-{
-    // relation relative depth path
-    key: string,
-
-    // relation alias
-    value: string
-}
-```
-
-## `SortParseOptions`
-```typescript
-export type SortParseOptions = ParseOptionsBase<Parameter.SORT, string[] | string[][]>;
-```
-
-The type structure looks like this:
-```text
-{
-    aliasMapping?: Record<string, string>,
-    allowed?: string[] | string[][],
-    defaultAlias?: string
-    relations?: RelationsParseOutput
-}
-```
-
-## `SortParseOutput`
-```typescript
-export enum SortDirection {
-    ASC = 'ASC',
-    DESC = 'DESC'
-}
-
-export type SortParseOutputElement =
-    ParseOutputElementBase<Parameter.SORT, SortDirection>;
-export type SortParseOutput = SortParseOutputElement[];
-```
-The type structure looks like this:
-```text
-{
-    // resource/relation alias
-    alias?: string,
-
-    // field name
-    key: string,
-
-    // 'ASC' | 'DESC'
-    value: SortDirection
-}
-```

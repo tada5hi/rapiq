@@ -22,7 +22,7 @@ type FilterValueInput = FilterValueInputPrimitive | null | undefined;
 
 export type FilterValueSimple<V extends FilterValueInput = FilterValueInput> = V extends FilterValueInputPrimitive ? (V | V[]) : V;
 export type FilterValueWithOperator<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
-    `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
+    `!${V}` | `!~${V}` | `~${V}` | `${V}~` | `~${V}~` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
     V extends boolean ? null | '!null' : never;
 
 export type FilterValue<V extends FilterValueInput = FilterValueInput> = V extends FilterValueInputPrimitive ?

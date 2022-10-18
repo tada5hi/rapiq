@@ -20,28 +20,31 @@ import {
 
 import { Parameter, URLParameter } from '../../constants';
 
-export type ParseParameterOptions<T extends `${Parameter}` | `${URLParameter}`> =
-    T extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
-        FieldsParseOptions :
-        T extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
-            FiltersParseOptions :
-            T extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
-                RelationsParseOptions :
-                T extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
+export type ParseParameterOptions<
+    P extends `${Parameter}` | `${URLParameter}`,
+    T extends Record<string, any> = Record<string, any>,
+    > =
+    P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
+        FieldsParseOptions<T> :
+        P extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
+            FiltersParseOptions<T> :
+            P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
+                RelationsParseOptions<T> :
+                P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
                     PaginationParseOptions :
-                    T extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
-                        SortParseOptions :
+                    P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
+                        SortParseOptions<T> :
                         never;
 
-export type ParseParameterOutput<T extends `${Parameter}` | `${URLParameter}`> =
-    T extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
+export type ParseParameterOutput<P extends `${Parameter}` | `${URLParameter}`> =
+    P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
         FieldsParseOutput :
-        T extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
+        P extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
             FiltersParseOutput :
-            T extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
+            P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
                 RelationsParseOutput :
-                T extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
+                P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
                     PaginationParseOutput :
-                    T extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
+                    P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
                         SortParseOutput :
                         never;

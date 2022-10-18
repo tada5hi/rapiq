@@ -8,7 +8,7 @@ The allowed input keys are values of the [Parameter](parameter-api-reference.md#
 
 **Type**
 ```ts
-declare function buildQuery<T>(record: BuildInput<T>, options?: BuildOptions): string;
+declare function buildQuery<T>(record: BuildInput<T>): string;
 ```
 
 **Example**
@@ -46,7 +46,6 @@ console.log(query);
 | Name      | Type              | Description                                       |
 |:----------|:------------------|:--------------------------------------------------|
 | `input`   | `BuildInput`<`T`> | Input specification [more](#buildinput).          |
-| `options` | `BuildOptions`    | Options for building fields, filter, include, ... |
 
 **Returns**
 
@@ -58,23 +57,33 @@ I.e. `/users?page[limit]=10&page[offset]=0&include=profile&filter[id]=1&fields[u
 
 **References**
 - [BuildInput](#buildinput)
-- [BuildOptions](#buildoptions)
 
 ## `BuildInput`
 
 ```typescript
-export type BuildInput<
-    V extends Record<string, any>
+type BuildInput<
+    T extends Record<string, any>
 > = {
-    [T in Parameter | URLParameter]?: BuildParameterInput<T, V>
+    [P in Parameter | URLParameter]?: BuildParameterInput<P, T>
 }
 ```
 
-## `BuildOptions`
+**References**
+- [BuildParameterInput](#buildparameterinput)
 
+## BuildParameterInput
 ```typescript
-export type BuildOptions = {
-    // empty type for now :)
-}
+declare type BuildParameterInput<
+    P extends ParameterType | URLParameterType,
+    T extends Record<string, any> = Record<string, any>
+>;
 ```
 
+is a generic type and returns the input structure for a given parameter type:
+
+**References**
+- [FieldsBuildInput](fields-api-reference.md#fieldsbuildinput)
+- [FiltersBuildInput](filters-api-reference.md#filtersbuildinput)
+- [PaginationBuildInput](pagination-api-reference.md#paginationbuildinput)
+- [RelationsBuildInput](relations-api-reference.md#relationsbuildinput)
+- [SortBuildInput](sort-api-reference.md#sortbuildinput)

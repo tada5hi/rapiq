@@ -11,15 +11,17 @@ export type Realm = {
     description: string,
 }
 
-export type Role = {
+export type Item = {
     id: string,
-    realm: Realm
+    realm: Realm,
+    user: User
 }
 
 export type User = {
     id: string,
     name: string,
     email: string,
+    age: number,
     realm: Realm,
-    roles: Role[]
+    items: Item[]
 }

@@ -1,12 +1,32 @@
 # Build 🏗
 
-The first step is to construct a [BuildInput](build-api-reference#buildinput) object for a generic Record `<T>` and 
-pass it to the [buildQuery](build-api-reference#buildquery) method to convert it to a string.
+The first step is to construct a [BuildInput](build-api-reference#buildinput) object for a generic Record `<T>`.
+Pass the object to the [buildQuery](build-api-reference#buildquery) method to convert it to a transportable string.
 
-The result string can then be provided as a URL query string to a backend application.
-The backend application can than process the request, by [parsing](parse.md) the query string.
+The `BuildInput<T>` can contain a configuration for each 
+[Parameter](parameter-api-reference.md#parameter)/[URLParameter](parameter-api-reference.md#urlparameter).
+- [Fields](fields-api-reference.md#fieldsbuildinput): `FieldsBuildInput<T>`
+- [Filter(s)](filters-api-reference.md#filtersbuildinput): `FiltersBuildInput<T>`
+- [Pagination](pagination-api-reference.md#paginationbuildinput): `PaginationBuildInput<T>`
+- [Relations](relations-api-reference.md#relationsbuildinput): `RelationsBuildInput<T>`
+- [Sort](sort-api-reference.md#sortbuildinput): `SortBuildInput<T>`
 
-The following example should give an insight on how to use this library.
+::: tip
+Check out the API-Reference of each parameter for acceptable input formats and examples.
+:::
+
+After building, the string can be passed to a backend application as http query string argument.
+The backend application can process the request, by [parsing](parse.md) the query string.
+
+
+## Example
+
+The following example is based on the assumption, that the following packages are installed:
+- [express](https://www.npmjs.com/package/express)
+- [typeorm](https://www.npmjs.com/package/typeorm)
+- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
+
+It should give an insight on how to use this library.
 Therefore, a type which will represent a `User` and a method `getAPIUsers` are defined.
 The method should perform a request to the resource API to receive a collection of entities.
 
@@ -17,17 +37,25 @@ import {
     BuildInput
 } from "rapiq";
 
-type Profile = {
-    id: number;
-    avatar: string;
-    cover: string;
+export type Realm = {
+    id: string,
+    name: string,
+    description: string,
 }
 
-type User = {
-    id: number;
-    name: string;
-    age?: number;
-    profile: Profile;
+export type Item = {
+    id: string,
+    realm: Realm,
+    user: User
+}
+
+export type User = {
+    id: number,
+    name: string,
+    email: string,
+    age: number,
+    realm: Realm,
+    items: Item[]
 }
 
 type ResponsePayload = {
@@ -39,7 +67,24 @@ type ResponsePayload = {
     }
 }
 
-export async function getAPIUsers(
+const record: BuildInput<User> = {
+    pagination: {
+        limit: 20,
+        offset: 10
+    },
+    filters: {
+        id: 1
+    },
+    fields: ['id', 'name'], 
+    sort: '-id', 
+    relations: ['realm']
+};
+
+const query = buildQuery(record);
+// console.log(query);
+// ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=realm
+
+async function getAPIUsers(
     record: BuildInput<User>
 ): Promise<ResponsePayload> {
     const response = await axios.get('users' + buildQuery(record));
@@ -48,29 +93,6 @@ export async function getAPIUsers(
 }
 
 (async () => {
-    const record: BuildInput<User> = {
-        pagination: {
-            limit: 20,
-            offset: 10
-        },
-        filters: {
-            id: 1 // some possible values:
-            // 1 | [1,2,3] | '!1' | '~1' | ['!1',2,3] | {profile: {avatar: 'xxx.jpg'}}
-        },
-        fields: ['id', 'name'], // some possible values:
-        // 'id' | ['id', 'name'] | '+id' | {user: ['id', 'name'], profile: ['avatar']}
-        sort: '-id', // some possible values:
-        // 'id' | ['id', 'name'] | '-id' | {id: 'DESC', profile: {avatar: 'ASC'}}
-        relations: {
-            profile: true
-        }
-    };
-
-    const query = buildQuery(record);
-
-    // console.log(query);
-    // ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=profile
-
     let response = await getAPIUsers(record);
 
     // do something with the response :)

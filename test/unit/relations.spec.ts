@@ -27,7 +27,6 @@ describe('src/relations/index.ts', () => {
         // with nested alias
         allowed = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
-            defaultAlias: 'user',
             mapping: { 'abc.photos': 'profile.photos' },
         });
         expect(allowed).toEqual([
@@ -38,7 +37,6 @@ describe('src/relations/index.ts', () => {
         // with nested alias & includeParents
         allowed = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
-            defaultAlias: 'user',
             mapping: { 'abc.photos': 'profile.photos' },
             includeParents: false,
         });
@@ -49,7 +47,6 @@ describe('src/relations/index.ts', () => {
         // with nested alias & limited includeParents ( no user_roles rel)
         allowed = parseQueryRelations(['abc.photos', 'user_roles.role'], {
             allowed: ['profile.photos', 'user_roles.role'],
-            defaultAlias: 'user',
             mapping: { 'abc.photos': 'profile.photos' },
             includeParents: ['profile.**'],
         });
@@ -72,14 +69,14 @@ describe('src/relations/index.ts', () => {
         expect(allowed).toEqual([] as RelationsParseOutput);
 
         // nested data with alias
-        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'], defaultAlias: 'user' });
+        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'] });
         expect(allowed).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
         // nested data with alias
-        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos**'], defaultAlias: 'user' });
+        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos**'] });
         expect(allowed).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
