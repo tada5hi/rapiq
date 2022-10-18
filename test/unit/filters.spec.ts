@@ -12,6 +12,7 @@ import {
     parseQueryFilters,
     parseQueryRelations,
 } from '../../src';
+import {isFilterOperatorConfig} from "../../src/parameter/filters/utils";
 
 describe('src/filter/index.ts', () => {
     it('should transform request filters', () => {
@@ -349,4 +350,27 @@ describe('src/filter/index.ts', () => {
             },
         ] as FiltersParseOutput);
     });
+
+    it('should determine filter operator config', () => {
+        let data = isFilterOperatorConfig({
+            value: 1,
+            operator: '<'
+        });
+
+        expect(data).toBeTruthy();
+
+        data = isFilterOperatorConfig({
+            value: 1,
+            operator: {}
+        })
+
+        expect(data).toBeFalsy();
+
+        data = isFilterOperatorConfig({
+            value: {},
+            operator: '<'
+        });
+
+        expect(data).toBeFalsy();
+    })
 });

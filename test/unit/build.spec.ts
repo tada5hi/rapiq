@@ -67,6 +67,19 @@ describe('src/build.ts', () => {
 
         record = buildQuery<Entity>({
             filter: {
+                'child.id': 1,
+                child: {
+                    'child.id': 'abc'
+                },
+            },
+        });
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: {
+            'child.id': 1,
+            'child.child.id': 'abc'
+        } }));
+
+        record = buildQuery<Entity>({
+            filter: {
                 siblings: {
                     id: 1,
                 },
@@ -138,6 +151,14 @@ describe('src/build.ts', () => {
         // with negation & in operator
         record = buildQuery<Entity>({
             filter: {
+                id: [1,2,3],
+            },
+        });
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '1,2,3' } }));
+
+        // with negation & like operator
+        record = buildQuery<Entity>({
+            filter: {
                 id: {
                     operator: [
                         FilterOperator.NEGATION,
@@ -200,6 +221,32 @@ describe('src/build.ts', () => {
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id'], child: ['id', 'name'] } }));
+
+        record = buildQuery<Entity>({
+            fields: [
+                ['id'],
+                ['name'],
+                {
+                    child: ['id', 'name'],
+                }
+            ]
+        });
+
+        expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id', 'name'], child: ['id', 'name'] } }));
+        record = buildQuery<Entity>({
+            fields: [
+                ['id'],
+                {
+                    child: ['id'],
+                },
+                {
+                    child: ['name'],
+                }
+            ]
+        });
+
+        expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id'], child: ['id', 'name'] } }));
+
     });
 
     it('should format sort record', () => {

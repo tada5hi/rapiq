@@ -53,7 +53,7 @@ read the [docs](https://rapiq.tada5hi.net).
 ### Build 🏗
 
 The first step is to construct a [BuildInput](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildinput) object for a generic Record `<T>` and
-pass it to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildquery) method to convert it to a string.
+pass it to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildquery) method to convert it to a transportable string.
 
 The result string can then be provided as a URL query string to a backend application.
 The backend application can than process the request, by [parsing](#parse-) the query string.

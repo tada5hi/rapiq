@@ -34,18 +34,6 @@ function buildReverseRecord(
     return output;
 }
 
-export function replaceRecordKey(record: Record<string, any>, key: string, newKey: string) : Record<string, any> {
-    if (
-        hasOwnProperty(record, key)
-    ) {
-        const value = record[key];
-        delete record[key];
-        record[newKey] = value;
-    }
-
-    return record;
-}
-
 export function parseQueryFields(
     data: unknown,
     options?: FieldsParseOptions,

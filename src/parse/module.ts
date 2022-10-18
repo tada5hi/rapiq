@@ -8,9 +8,9 @@
 import {
     FieldsParseOutput,
     FiltersParseOutput,
-    PaginationParseOutput, RelationsParseOutput,
+    PaginationParseOutput,
+    RelationsParseOutput,
     SortParseOutput,
-    parseQueryRelations,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import { parseQueryParameter } from './parameter';
@@ -43,7 +43,8 @@ export function parseQuery(
             case Parameter.RELATIONS: {
                 const value = input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS];
                 if (value || options[Parameter.RELATIONS]) {
-                    relations = parseQueryRelations(
+                    relations = parseQueryParameter(
+                        key,
                         value,
                         options[Parameter.RELATIONS],
                     );
@@ -56,7 +57,7 @@ export function parseQuery(
                 const value = input[Parameter.FIELDS] ?? input[URLParameter.FIELDS];
                 if (value || options[Parameter.FIELDS]) {
                     output[Parameter.FIELDS] = parseQueryParameter(
-                        keys[i],
+                        key,
                         value,
                         options[Parameter.FIELDS],
                         relations,
@@ -68,7 +69,7 @@ export function parseQuery(
                 const value = input[Parameter.FILTERS] ?? input[URLParameter.FILTERS];
                 if (value || options[Parameter.FILTERS]) {
                     output[Parameter.FILTERS] = parseQueryParameter(
-                        keys[i],
+                        key,
                         value,
                         options[Parameter.FILTERS],
                         relations,
@@ -80,7 +81,7 @@ export function parseQuery(
                 const value = input[Parameter.PAGINATION] ?? input[URLParameter.PAGINATION];
                 if (value || options[Parameter.PAGINATION]) {
                     output[Parameter.PAGINATION] = parseQueryParameter(
-                        keys[i],
+                        key,
                         value,
                         options[Parameter.PAGINATION],
                         relations,
@@ -92,7 +93,7 @@ export function parseQuery(
                 const value = input[Parameter.SORT] ?? input[URLParameter.SORT];
                 if (value || options[Parameter.SORT]) {
                     output[Parameter.SORT] = parseQueryParameter(
-                        keys[i],
+                        key,
                         value,
                         options[Parameter.SORT],
                         relations,

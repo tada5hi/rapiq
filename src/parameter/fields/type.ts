@@ -27,14 +27,15 @@ export type FieldsBuildInput<T extends Record<string, any>> =
                 never
         }
         |
-        [
-            FieldWithOperator<SimpleKeys<T>>[],
+        (
+            FieldWithOperator<SimpleKeys<T>>[]
+            |
             {
                 [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
                     FieldsBuildInput<Flatten<T[K]>> :
                     never
-            },
-        ]
+            }
+        )[]
         |
         FieldWithOperator<NestedKeys<T>>[] |
         FieldWithOperator<NestedKeys<T>>;

@@ -36,9 +36,21 @@ export function buildQueryFilters<T>(
                 return true;
             }
 
+            if (Array.isArray(input)) {
+                // todo: check array elements are string
+                output[key] = input.join(',');
+
+                return true;
+            }
+
             if (isFilterOperatorConfig(input)) {
                 if (typeof input.value === 'undefined') {
                     input.value = null;
+                }
+
+                if (Array.isArray(input.value)) {
+                    // todo: check array elements are string
+                    input.value = input.value.join(',');
                 }
 
                 if (Array.isArray(input.operator)) {
