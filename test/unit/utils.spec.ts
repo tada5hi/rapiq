@@ -40,7 +40,7 @@ describe('src/utils/*.ts', () => {
         });
         expect(data).toEqual([
             'realm.id',
-            'roles.realm.name'
+            'items.realm.name'
         ])
 
     });
@@ -84,18 +84,18 @@ describe('src/utils/*.ts', () => {
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.id']}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.id']}, 'items.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.name']}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: ['realm.name']}, 'items.realm.id');
         expect(result).toBeFalsy();
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['id']}}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['id']}}, 'items.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['name']}}, 'roles.realm.id');
+        result = isPathCoveredByParseOptionsAllowed<User>({items: {realm: ['name']}}, 'items.realm.id');
         expect(result).toBeFalsy();
     })
 })
