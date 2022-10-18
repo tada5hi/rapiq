@@ -5,27 +5,23 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { mergeArrays } from 'smob';
 import { RelationsBuildInput } from './type';
-import { flattenNestedObject, mergeDeep } from '../../utils';
+import { flattenToKeyPathArray } from '../../utils';
 
-export function buildQueryRelationsForMany<T>(
-    input: RelationsBuildInput<T>[],
+export function buildQueryRelations<T>(
+    input?: RelationsBuildInput<T>,
 ) : string[] {
-    let data : RelationsBuildInput<T>;
-    for (let i = 0; i < input.length; i++) {
-        if (data) {
-            data = mergeDeep(data, input[i]);
-        } else {
-            data = input[i];
-        }
+    if (typeof input === 'undefined') {
+        return input;
     }
 
-    return buildQueryRelations(data);
+    return flattenToKeyPathArray(input);
 }
 
-export function buildQueryRelations<T>(data: RelationsBuildInput<T>): string[] {
-    const properties: Record<string, boolean> = flattenNestedObject(data);
-    const keys: string[] = Object.keys(properties);
-
-    return Array.from(new Set(keys));
+export function mergeQueryRelations<T>(
+    target?: string[],
+    source?: string[],
+) : string[] {
+    return mergeArrays(target || [], source || [], true);
 }

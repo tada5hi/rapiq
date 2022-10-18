@@ -36,7 +36,8 @@ export type FieldsBuildInput<T extends Record<string, any>> =
             },
         ]
         |
-        FieldWithOperator<NestedKeys<T>>[];
+        FieldWithOperator<NestedKeys<T>>[] |
+        FieldWithOperator<NestedKeys<T>>;
 
 // -----------------------------------------------------------
 // Parse

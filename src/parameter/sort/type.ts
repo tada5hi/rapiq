@@ -40,7 +40,8 @@ export type SortBuildInput<T extends Record<string, any>> =
         },
     ]
     |
-    SortWithOperator<NestedKeys<T>>[];
+    SortWithOperator<NestedKeys<T>>[] |
+    SortWithOperator<NestedKeys<T>>;
 
 // -----------------------------------------------------------
 // Parse

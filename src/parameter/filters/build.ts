@@ -5,54 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { merge } from 'smob';
 import { FiltersBuildInput } from './type';
 import { FilterOperator } from './constants';
 import { isFilterOperatorConfig } from './utils';
-import { flattenNestedObject, mergeDeep } from '../../utils';
-
-export function buildQueryFiltersForMany<T>(
-    input: FiltersBuildInput<T>[],
-) : Record<string, string> {
-    let data : FiltersBuildInput<T>;
-    for (let i = 0; i < input.length; i++) {
-        if (data) {
-            data = mergeDeep(data, input[i]);
-        } else {
-            data = input[i];
-        }
-    }
-
-    return buildQueryFilters(data);
-}
-
-export function buildQueryFilters<T>(
-    data: FiltersBuildInput<T>,
-) : Record<string, string> {
-    return flattenNestedObject(data, {
-        transformer: (input, output, key) => {
-            if (typeof input === 'undefined') {
-                output[key] = null;
-
-                return undefined;
-            }
-
-            if (isFilterOperatorConfig(input)) {
-                input.value = transformValue(input.value);
-
-                if (Array.isArray(input.operator)) {
-                    // merge operators
-                    input.operator = input.operator
-                        .sort((a, b) => OperatorWeight[a] - OperatorWeight[b])
-                        .join('') as FilterOperator;
-                }
-
-                output[key] = `${input.operator}${input.value}`;
-            }
-
-            return undefined;
-        },
-    });
-}
+import { flattenNestedObject } from '../../utils';
 
 const OperatorWeight = {
     [FilterOperator.NEGATION]: 0,
@@ -64,10 +21,46 @@ const OperatorWeight = {
     [FilterOperator.IN]: 13105,
 };
 
-function transformValue<T>(value: T) : T | null {
-    if (typeof value === 'undefined') {
-        return null;
+export function buildQueryFilters<T>(
+    data?: FiltersBuildInput<T>,
+) : Record<string, any> {
+    if (typeof data === 'undefined') {
+        return {};
     }
 
-    return value;
+    return flattenNestedObject(data, {
+        transformer: (input, output, key) => {
+            if (typeof input === 'undefined') {
+                output[key] = null;
+
+                return true;
+            }
+
+            if (isFilterOperatorConfig(input)) {
+                if (typeof input.value === 'undefined') {
+                    input.value = null;
+                }
+
+                if (Array.isArray(input.operator)) {
+                    // merge operators
+                    input.operator = input.operator
+                        .sort((a, b) => OperatorWeight[a] - OperatorWeight[b])
+                        .join('') as FilterOperator;
+                }
+
+                output[key] = `${input.operator}${input.value}`;
+
+                return true;
+            }
+
+            return undefined;
+        },
+    });
+}
+
+export function mergeQueryFilters<T>(
+    target?: Record<string, any>,
+    source?: Record<string, any>,
+) : Record<string, any> {
+    return merge({}, target || {}, source || {});
 }

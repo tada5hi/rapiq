@@ -68,7 +68,7 @@ export function determineFilterOperatorLabelsByValue(input: string) : {
 }
 
 export function isFilterOperatorConfig(data: unknown) : data is FilterOperatorConfig<any> {
-    if (typeof data !== 'object') {
+    if (typeof data !== 'object' || data === null) {
         return false;
     }
 

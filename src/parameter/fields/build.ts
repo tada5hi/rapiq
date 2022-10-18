@@ -5,39 +5,50 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { createMerger } from 'smob';
 import { FieldsBuildInput } from './type';
-import { flattenNestedObject, mergeDeep } from '../../utils';
-
-export function buildQueryFieldsForMany<T>(
-    inputs: FieldsBuildInput<T>[],
-): Record<string, any> | string | string[] {
-    let data: FieldsBuildInput<T>;
-
-    for (let i = 0; i < inputs.length; i++) {
-        if (data) {
-            const current = inputs[i];
-            if (typeof data === 'string' || typeof current === 'string') {
-                data = inputs[i];
-            } else {
-                data = mergeDeep(data, current);
-            }
-        } else {
-            data = inputs[i];
-        }
-    }
-
-    return buildQueryFields(data);
-}
+import { flattenToKeyPathArray, groupArrayByKeyPath } from '../../utils';
 
 export function buildQueryFields<T>(
-    data: FieldsBuildInput<T>,
-): Record<string, any> | string | string[] {
-    switch (true) {
-        case typeof data === 'string':
-            return data;
-        case Array.isArray(data):
-            return data;
-        default:
-            return flattenNestedObject(data as Record<string, any>);
+    input?: FieldsBuildInput<T>,
+) : Record<string, string[]> | string[] {
+    if (typeof input === 'undefined') {
+        return [];
     }
+
+    const data = groupArrayByKeyPath(flattenToKeyPathArray(input));
+
+    const keys = Object.keys(data);
+    if (keys.length === 1) {
+        return data[keys[0]];
+    }
+
+    return data;
+}
+
+export function mergeQueryFields<T>(
+    target: Record<string, string[]> | string[],
+    source: Record<string, string[]> | string[],
+): Record<string, string[]> | string[] {
+    if (Array.isArray(target)) {
+        target = groupArrayByKeyPath(target);
+    }
+
+    if (Array.isArray(source)) {
+        source = groupArrayByKeyPath(source);
+    }
+
+    const merge = createMerger({
+        array: true,
+        arrayDistinct: true,
+    });
+
+    const data = merge({}, target, source);
+
+    const keys = Object.keys(data);
+    if (keys.length === 1) {
+        return data[keys[0]];
+    }
+
+    return data;
 }

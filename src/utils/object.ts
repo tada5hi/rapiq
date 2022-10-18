@@ -16,7 +16,7 @@ type Options = {
         input: unknown,
         output: Record<string, any>,
         key: string
-    ) => Record<string, any> | undefined
+    ) => boolean | undefined
 };
 
 export function flattenNestedObject(
@@ -31,8 +31,8 @@ export function flattenNestedObject(
 
     if (options.transformer) {
         const result = options.transformer(data, output, prefixParts.join('.'));
-        if (typeof result !== 'undefined') {
-            return { ...output, ...flattenNestedObject(result, options, prefixParts) };
+        if (typeof result !== 'undefined' && !!result) {
+            return output;
         }
     }
 
@@ -42,11 +42,9 @@ export function flattenNestedObject(
 
         if (options.transformer) {
             const result = options.transformer(data[key], output, [...prefixParts, key].join('.'));
-            if (typeof result !== 'undefined') {
-                output = { ...output, ...flattenNestedObject(result, options, prefixParts) };
+            if (typeof result !== 'undefined' && !!result) {
+                continue;
             }
-
-            continue;
         }
 
         if (

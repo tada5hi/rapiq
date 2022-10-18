@@ -5,38 +5,46 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SortBuildInput } from './type';
-import { flattenNestedObject, mergeDeep } from '../../utils';
+import { mergeArrays } from 'smob';
+import { SortBuildInput, SortDirection } from './type';
+import { flattenToKeyPathArray } from '../../utils';
 
-export function buildQuerySortForMany<T>(inputs: SortBuildInput<T>[]) {
-    let data: SortBuildInput<T>;
-
-    for (let i = 0; i < inputs.length; i++) {
-        if (data) {
-            const current = inputs[i];
-            if (
-                typeof data === 'string' ||
-                typeof current === 'string'
-            ) {
-                data = inputs[i];
-            } else {
-                data = mergeDeep(data, current);
-            }
-        } else {
-            data = inputs[i];
-        }
+export function buildQuerySort<T>(data?: SortBuildInput<T>) {
+    if (typeof data === 'undefined') {
+        return [];
     }
 
-    return buildQuerySort(data);
+    if (typeof data === 'string') {
+        return [data];
+    }
+
+    return flattenToKeyPathArray(data, {
+        transformer: ((input, output, path) => {
+            if (
+                typeof input === 'string' &&
+                path &&
+                (
+                    input === SortDirection.ASC ||
+                    input === SortDirection.DESC
+                )
+            ) {
+                if (input === SortDirection.DESC) {
+                    output.push(`-${path}`);
+                } else {
+                    output.push(path);
+                }
+
+                return true;
+            }
+
+            return undefined;
+        }),
+    });
 }
 
-export function buildQuerySort<T>(data: SortBuildInput<T>) {
-    switch (true) {
-        case typeof data === 'string':
-            return data;
-        case Array.isArray(data):
-            return data;
-        default:
-            return flattenNestedObject(data as Record<string, any>);
-    }
+export function mergeQuerySort<T>(
+    target?: string[],
+    source?: string[],
+) {
+    return mergeArrays(target || [], source || [], true);
 }

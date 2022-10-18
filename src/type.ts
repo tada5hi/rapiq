@@ -25,8 +25,8 @@ export type NestedKeys<T extends Record<string, any>> =
     }[keyof T & (string | number)];
 
 export type NestedResourceKeys<T extends Record<string, any>> =
-    {[Key in keyof T & (string | number)]: T[Key] extends Record<string, any>
-        ? Key | `${Key}.${NestedKeys<T[Key]>}`
+    {[Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any>
+        ? Key | `${Key}.${NestedResourceKeys<Flatten<T[Key]>>}`
         : never
     }[keyof T & (string | number)];
 

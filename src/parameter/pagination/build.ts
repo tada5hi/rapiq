@@ -5,22 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { merge } from 'smob';
 import { PaginationBuildInput } from './type';
-import { mergeDeep } from '../../utils';
 
-export function buildQueryPaginationForMany<T>(
-    inputs: PaginationBuildInput<T>[],
+export function mergeQueryPagination<T>(
+    target?: PaginationBuildInput<T>,
+    source?: PaginationBuildInput<T>,
 ) : PaginationBuildInput<T> {
-    const inputSources = Array.isArray(inputs) ? inputs : [inputs];
-
-    let data : PaginationBuildInput<T>;
-    for (let i = 0; i < inputSources.length; i++) {
-        if (data) {
-            data = mergeDeep(data, inputSources[i]);
-        } else {
-            data = inputSources[i];
-        }
-    }
-
-    return data;
+    return merge({}, target || {}, source || {});
 }

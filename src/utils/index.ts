@@ -9,7 +9,6 @@ export * from './array';
 export * from './mapping';
 export * from './field';
 export * from './relation';
-export * from './merge-deep';
 export * from './object';
 export * from './simple';
 export * from './type';

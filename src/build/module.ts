@@ -7,11 +7,15 @@
 
 import { BuildInput, BuildOptions } from './type';
 import {
-    buildQueryFieldsForMany,
-    buildQueryFiltersForMany,
-    buildQueryPaginationForMany,
-    buildQueryRelationsForMany,
-    buildQuerySortForMany,
+    buildQueryFields,
+    buildQueryFilters,
+    buildQueryRelations,
+    buildQuerySort,
+    mergeQueryFields,
+    mergeQueryFilters,
+    mergeQueryPagination,
+    mergeQueryRelations,
+    mergeQuerySort,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import {
@@ -35,50 +39,50 @@ export function buildQuery<T extends Record<string, any>>(
         typeof input[Parameter.FIELDS] !== 'undefined' ||
         typeof input[URLParameter.FIELDS] !== 'undefined'
     ) {
-        query[URLParameter.FIELDS] = buildQueryFieldsForMany([
-            ...(input[Parameter.FIELDS] ? [input[Parameter.FIELDS]] : []),
-            ...(input[URLParameter.FIELDS] ? [input[URLParameter.FIELDS]] : []),
-        ]);
+        query[URLParameter.FIELDS] = mergeQueryFields(
+            buildQueryFields(input[Parameter.FIELDS]),
+            buildQueryFields(input[URLParameter.FIELDS]),
+        );
     }
 
     if (
         typeof input[Parameter.FILTERS] !== 'undefined' ||
         typeof input[URLParameter.FILTERS] !== 'undefined'
     ) {
-        query[URLParameter.FILTERS] = buildQueryFiltersForMany([
-            ...(input[Parameter.FILTERS] ? [input[Parameter.FILTERS]] : []),
-            ...(input[URLParameter.FILTERS] ? [input[URLParameter.FILTERS]] : []),
-        ]);
+        query[URLParameter.FILTERS] = mergeQueryFilters(
+            buildQueryFilters(input[Parameter.FILTERS]),
+            buildQueryFilters(input[URLParameter.FILTERS]),
+        );
     }
 
     if (
         typeof input[Parameter.PAGINATION] !== 'undefined' ||
         typeof input[URLParameter.PAGINATION] !== 'undefined'
     ) {
-        query[URLParameter.PAGINATION] = buildQueryPaginationForMany([
-            ...(input[Parameter.PAGINATION] ? [input[Parameter.PAGINATION]] : []),
-            ...(input[URLParameter.PAGINATION] ? [input[URLParameter.PAGINATION]] : []),
-        ]);
+        query[URLParameter.PAGINATION] = mergeQueryPagination(
+            input[Parameter.PAGINATION],
+            input[URLParameter.PAGINATION],
+        );
     }
 
     if (
         typeof input[Parameter.RELATIONS] !== 'undefined' ||
         typeof input[URLParameter.RELATIONS] !== 'undefined'
     ) {
-        query[URLParameter.RELATIONS] = buildQueryRelationsForMany([
-            ...(input[Parameter.RELATIONS] ? [input[Parameter.RELATIONS]] : []),
-            ...(input[URLParameter.RELATIONS] ? [input[URLParameter.RELATIONS]] : []),
-        ]);
+        query[URLParameter.RELATIONS] = mergeQueryRelations(
+            buildQueryRelations(input[Parameter.RELATIONS]),
+            buildQueryRelations(input[URLParameter.RELATIONS]),
+        );
     }
 
     if (
         typeof input[Parameter.SORT] !== 'undefined' ||
         typeof input[URLParameter.SORT] !== 'undefined'
     ) {
-        query[URLParameter.SORT] = buildQuerySortForMany([
-            ...(input[Parameter.SORT] ? [input[Parameter.SORT]] : []),
-            ...(input[URLParameter.SORT] ? [input[URLParameter.SORT]] : []),
-        ]);
+        query[URLParameter.SORT] = mergeQuerySort(
+            buildQuerySort(input[Parameter.SORT]),
+            buildQuerySort(input[URLParameter.SORT]),
+        );
     }
 
     return buildURLQueryString(query);

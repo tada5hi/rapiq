@@ -6,30 +6,38 @@
  */
 
 import {
-    FilterOperator, Parameter, SortDirection, URLParameter, buildQuery,
+    FilterOperator, Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
 } from '../../src';
 import { buildURLQueryString } from '../../src/utils';
 
 describe('src/build.ts', () => {
-    class ChildEntity {
+    type GrandChild = {
+        id: string,
+
+        name: string
+    }
+
+    type ChildEntity = {
         id: number;
 
         name: string;
 
         age: number;
+
+        child: GrandChild
     }
 
     type Entity = {
         id: number,
         name: string,
         child: ChildEntity,
-        siblings: Entity[]
+        siblings: ChildEntity[]
     };
 
     it('should format filter record', () => {
         let record = buildQuery<Entity>({
             filter: {
-                id: 1,
+                id: 1
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: 1 } }));
@@ -183,13 +191,15 @@ describe('src/build.ts', () => {
         expect(record).toEqual(buildURLQueryString({ fields: ['+id', 'name'] }));
 
         record = buildQuery<Entity>({
-            fields: {
-                default: ['id'],
-                child: ['id', 'name'],
-            },
+            fields: [
+                ['id'],
+                {
+                    child: ['id', 'name'],
+                }
+            ]
         });
 
-        expect(record).toEqual(buildURLQueryString({ fields: { default: ['id'], child: ['id', 'name'] } }));
+        expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id'], child: ['id', 'name'] } }));
     });
 
     it('should format sort record', () => {
@@ -199,7 +209,7 @@ describe('src/build.ts', () => {
             },
         });
 
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.SORT]: { id: 'DESC' } }));
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.SORT]: '-id' }));
 
         record = buildQuery<Entity>({
             sort: '-id',
@@ -221,7 +231,7 @@ describe('src/build.ts', () => {
             },
         });
 
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.SORT]: { 'child.id': 'DESC' } }));
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.SORT]: '-child.id' }));
     });
 
     it('should format page record', () => {
@@ -275,9 +285,7 @@ describe('src/build.ts', () => {
         expect(record).toEqual(buildURLQueryString({ [URLParameter.PAGINATION]: { limit: 10, offset: 0 } }));
 
         record = buildQuery<Entity>({
-            [Parameter.RELATIONS]: {
-                child: true,
-            },
+            [Parameter.RELATIONS]: ['child', 'child.child'],
             [URLParameter.RELATIONS]: {
                 siblings: {
                     child: true,
@@ -285,6 +293,6 @@ describe('src/build.ts', () => {
             },
         });
 
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.RELATIONS]: ['child', 'siblings.child'] }));
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.RELATIONS]: ['child', 'child.child', 'siblings.child'] }));
     });
 });

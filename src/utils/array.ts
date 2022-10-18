@@ -15,34 +15,64 @@ export function buildKeyPath(key: string, prefix?: string) {
     return key;
 }
 
+type Options = {
+    transformer?: (
+        input: unknown,
+        output: string[],
+        prefix?: string
+    ) => boolean | undefined
+};
+
 export function flattenToKeyPathArray(
-    items: unknown,
+    input: unknown,
+    options?: Options,
     prefix?: string,
 ): string[] {
+    options = options || {};
+
     const output: string[] = [];
 
-    if (Array.isArray(items)) {
-        for (let i = 0; i < items.length; i++) {
-            if (Array.isArray(items[i])) {
-                for (let j = 0; j < items[i].length; j++) {
-                    const key = buildKeyPath(items[i][j], prefix);
+    if (options.transformer) {
+        const result = options.transformer(input, output, prefix);
+        if (typeof result !== 'undefined' && !!result) {
+            return output;
+        }
+    }
+
+    if (Array.isArray(input)) {
+        for (let i = 0; i < input.length; i++) {
+            if (options.transformer) {
+                const result = options.transformer(input[i], output, prefix);
+                if (typeof result !== 'undefined' && !!result) {
+                    return output;
+                }
+            }
+
+            if (Array.isArray(input[i])) {
+                for (let j = 0; j < input[i].length; j++) {
+                    const key = buildKeyPath(input[i][j], prefix);
                     output.push(key);
                 }
 
                 continue;
             }
 
-            if (typeof items[i] === 'string') {
-                output.push(buildKeyPath(items[i], prefix));
+            if (typeof input[i] === 'string') {
+                output.push(buildKeyPath(input[i], prefix));
 
                 continue;
             }
 
-            if (typeof items[i] === 'object') {
-                const keys = Object.keys(items[i]);
+            if (typeof input[i] === 'object') {
+                const keys = Object.keys(input[i]);
                 for (let j = 0; j < keys.length; j++) {
                     const value = buildKeyPath(keys[j] as string, prefix);
-                    output.push(...flattenToKeyPathArray(items[i][keys[j]], value));
+                    const data = flattenToKeyPathArray(input[i][keys[j]], options, value);
+                    if (data.length === 0) {
+                        output.push(value);
+                    } else {
+                        output.push(...data);
+                    }
                 }
             }
         }
@@ -51,14 +81,30 @@ export function flattenToKeyPathArray(
     }
 
     if (
-        typeof items === 'object' &&
-        items
+        typeof input === 'object' &&
+        input !== null
     ) {
-        const keys = Object.keys(items);
+        const keys = Object.keys(input);
         for (let i = 0; i < keys.length; i++) {
             const value = buildKeyPath(keys[i], prefix);
-            output.push(...flattenToKeyPathArray((items as Record<string, any>)[keys[i]], value));
+            const data = flattenToKeyPathArray((input as Record<string, any>)[keys[i]], options, value);
+            if (data.length === 0) {
+                output.push(value);
+            } else {
+                output.push(...data);
+            }
         }
+
+        return output;
+    }
+
+    if (
+        typeof input === 'string'
+    ) {
+        const value = buildKeyPath(input, prefix);
+        output.push(value);
+
+        return output;
     }
 
     return output;
