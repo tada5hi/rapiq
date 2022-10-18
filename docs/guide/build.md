@@ -1,4 +1,4 @@
-# Build 🏗
+# Build 🔧
 
 The first step is to construct a [BuildInput](build-api-reference#buildinput) object for a generic Record `<T>`.
 Pass the object to the [buildQuery](build-api-reference#buildquery) method to convert it to a transportable string.
@@ -99,4 +99,4 @@ async function getAPIUsers(
 })();
 ```
 
-The next [section](parse) will describe, how to parse the query string on the backend side.
+The next [section](parse.md) will describe, how to parse the query string on the backend side.

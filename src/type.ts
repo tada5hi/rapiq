@@ -11,7 +11,7 @@ export type OnlySingleObject<T> = T extends { [key: string]: any } ? T : never;
 export type OnlyObject<T> = Flatten<T> extends OnlySingleObject<Flatten<T>> ? T | Flatten<T> : never;
 export type KeyWithOptionalPrefix<T, O extends string> = T extends string ? (`${O}${T}` | T) : never;
 
-export type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 export type SimpleKeys<T extends Record<string, any>> =
     {[Key in keyof T & (string | number)]: T[Key] extends Record<string, any>

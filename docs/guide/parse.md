@@ -158,7 +158,7 @@ export async function getUsers(req: Request, res: Response) {
             relations: relationsParsed
         }),
         relations: parseQueryRelations(include, {
-            allowed: ['resources', 'realm']
+            allowed: ['items', 'realm']
         }),
         // only allow to select 20 items at maximum.
         pagination: parseQueryPagination(page, {
@@ -229,7 +229,7 @@ export async function getUsers(req: Request, res: Response) {
             allowed: ['id', 'name', 'realm.id'],
         },
         relations: {
-            allowed: ['resources', 'realm']
+            allowed: ['items', 'realm']
         },
         pagination: {
             maxLimit: 20

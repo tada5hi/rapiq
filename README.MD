@@ -27,14 +27,15 @@ npm install rapiq --save
 To read the docs, visit [https://rapiq.tada5hi.net](https://rapiq.tada5hi.net)
 
 ## Parameters
+
 - `fields`
-    - Description: Return only specific fields or extend the default selection.
+    - Description: Return only specific resource fields or extend the default selection.
     - URL-Parameter: **fields**
 - `filters`
-    - Description: Filter the data set, according to specific criteria.
+    - Description: Filter the resources, according to specific criteria.
     - URL-Parameter: **filter**
 - `relations`
-    - Description: Include related resources of the primary data.
+    - Description: Include related resources of the primary resource.
     - URL-Parameter: **include**
 - `pagination`
     - Description: Limit the number of resources returned from the entire collection.
@@ -50,15 +51,33 @@ It is based on the [JSON-API](https://jsonapi.org/format/) specification.
 This is a small outlook on how to use the library. For detailed explanations and extended examples,
 read the [docs](https://rapiq.tada5hi.net).
 
-### Build 🏗
+### Build 🔧
 
-The first step is to construct a [BuildInput](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildinput) object for a generic Record `<T>`.
-Pass the object to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference.html#buildquery) method to convert it to a transportable string.
+The first step is to construct a [BuildInput](https://rapiq.tada5hi.net/guide/build-api-reference#buildinput) object for a generic Record `<T>`.
+Pass the object to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference#buildquery) method to convert it to a transportable string.
 
-The result string can than be passed as a URL query string to a backend application.
-The backend application can than process the request, by [parsing](#parse-) the query string.
+The `BuildInput<T>` can contain a configuration for each
+[Parameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#parameter)/
+[URLParameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#urlparameter).
+- [Fields](https://rapiq.tada5hi.net/guide/fields-api-reference.md#fieldsbuildinput): `FieldsBuildInput<T>`
+- [Filter(s)](https://rapiq.tada5hi.net/guide/filters-api-reference.md#filtersbuildinput): `FiltersBuildInput<T>`
+- [Pagination](https://rapiq.tada5hi.net/guide/pagination-api-reference.md#paginationbuildinput): `PaginationBuildInput<T>`
+- [Relations](https://rapiq.tada5hi.net/guide/relations-api-reference.md#relationsbuildinput): `RelationsBuildInput<T>`
+- [Sort](https://rapiq.tada5hi.net/guide/sort-api-reference.md#sortbuildinput): `SortBuildInput<T>`
 
-The following example should give an insight on how to use this library.
+> **NOTE**: Check out the API-Reference of each parameter for acceptable input formats and examples.
+
+After building, the string can be passed to a backend application as http query string argument.
+The backend application can process the request, by [parsing](https://rapiq.tada5hi.net/guide/parse.md) the query string.
+
+#### Example
+
+The following example is based on the assumption, that the following packages are installed:
+- [express](https://www.npmjs.com/package/express)
+- [typeorm](https://www.npmjs.com/package/typeorm)
+- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
+
+It should give an insight on how to use this library.
 Therefore, a type which will represent a `User` and a method `getAPIUsers` are defined.
 The method should perform a request to the resource API to receive a collection of entities.
 
@@ -69,17 +88,25 @@ import {
     BuildInput
 } from "rapiq";
 
-type Profile = {
-    id: number;
-    avatar: string;
-    cover: string;
+export type Realm = {
+    id: string,
+    name: string,
+    description: string,
 }
 
-type User = {
-    id: number;
-    name: string;
-    age?: number;
-    profile: Profile;
+export type Item = {
+    id: string,
+    realm: Realm,
+    user: User
+}
+
+export type User = {
+    id: number,
+    name: string,
+    email: string,
+    age: number,
+    realm: Realm,
+    items: Item[]
 }
 
 type ResponsePayload = {
@@ -91,7 +118,24 @@ type ResponsePayload = {
     }
 }
 
-export async function getAPIUsers(
+const record: BuildInput<User> = {
+    pagination: {
+        limit: 20,
+        offset: 10
+    },
+    filters: {
+        id: 1
+    },
+    fields: ['id', 'name'],
+    sort: '-id',
+    relations: ['realm']
+};
+
+const query = buildQuery(record);
+// console.log(query);
+// ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=realm
+
+async function getAPIUsers(
     record: BuildInput<User>
 ): Promise<ResponsePayload> {
     const response = await axios.get('users' + buildQuery(record));
@@ -100,30 +144,6 @@ export async function getAPIUsers(
 }
 
 (async () => {
-    const record: BuildInput<User> = {
-        pagination: {
-            limit: 20,
-            offset: 10
-        },
-        filters: {
-            id: 1 // some possible values:
-            // 1 | [1,2,3] | '!1' | '~1' | ['!1',2,3] | {profile: {avatar: 'xxx.jpg'}}
-        },
-        fields: ['id', 'name'], // some possible values:
-        // 'id' | ['id', 'name'] | '+id' | {user: ['id', 'name'], profile: ['avatar']}
-        sort: '-id', // some possible values:
-        // 'id' | ['id', 'name'] | '-id' | {id: 'DESC', profile: {avatar: 'ASC'}}
-        relations: {
-            profile: true
-        }
-        // ['profile']
-    };
-
-    const query = buildQuery(record);
-
-    // console.log(query);
-    // ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=profile
-
     let response = await getAPIUsers(record);
 
     // do something with the response :)
@@ -134,9 +154,27 @@ The next [section](#parse-) will describe, how to parse the query string on the 
 
 ### Parse 🔎
 
-For explanation purposes, two simple entities with a basic relation between them are declared to demonstrate
+The last step of the whole process is to parse the transpiled query string, to an efficient data structure.
+The result object (`ParseOutput`) can contain an output for each
+[Parameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#parameter)/
+[URLParameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#urlparameter).
+- [Fields](https://rapiq.tada5hi.net/guide/fields-api-reference.md#fieldsparseoutput): `FieldsParseOutput<T>`
+- [Filter(s)](https://rapiq.tada5hi.net/guide/filters-api-reference.md#filtersparseoutput): `FiltersParseOutput<T>`
+- [Pagination](https://rapiq.tada5hi.net/guide/pagination-api-reference.md#paginationparseoutput): `PaginationParseOutput<T>`
+- [Relations](https://rapiq.tada5hi.net/guide/relations-api-reference.md#relationsparseoutput): `RelationsParseOutput<T>`
+- [Sort](https://rapiq.tada5hi.net/guide/sort-api-reference.md#sortparseoutput): `SortParseOutput<T>`
+
+> **NOTE**: Check out the API-Reference of each parameter for output formats and examples.
+
+#### Example
+
+The following example is based on the assumption, that the following packages are installed:
+- [express](https://www.npmjs.com/package/express)
+- [typeorm](https://www.npmjs.com/package/typeorm)
+- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
+
+For explanation purposes, three simple entities with relations between them are declared to demonstrate
 the usage on the backend side.
-Therefore, [typeorm](https://typeorm.io/) is used as ORM for the database.
 
 **`entities.ts`**
 ```typescript
@@ -144,8 +182,9 @@ import {
     Entity,
     PrimaryGeneratedColumn,
     Column,
-    OneToOne,
-    JoinColumn
+    OneToMany,
+    JoinColumn,
+    ManyToOne
 } from "typeorm";
 
 @Entity()
@@ -160,23 +199,37 @@ export class User {
     @Column({type: 'varchar', length: 255, default: null, nullable: true})
     email: string;
 
-    @OneToOne(() => Profile)
-    profile: Profile;
+    @Column({type: 'int', nullable: true})
+    age: number
+
+    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
+    realm: Realm;
+
+    @OneToMany(() => User, { onDelete: 'CASCADE' })
+    items: Item[];
 }
 
 @Entity()
-export class Profile {
+export class Realm {
+    @PrimaryColumn({ type: 'varchar', length: 36 })
+    id: string;
+
+    @Column({ type: 'varchar', length: 128, unique: true })
+    name: string;
+
+    @Column({ type: 'text', nullable: true, default: null })
+    description: string | null;
+}
+
+@Entity()
+export class Item {
     @PrimaryGeneratedColumn({unsigned: true})
     id: number;
 
-    @Column({type: 'varchar', length: 255, default: null, nullable: true})
-    avatar: string;
+    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
+    realm: Realm;
 
-    @Column({type: 'varchar', length: 255, default: null, nullable: true})
-    cover: string;
-
-    @OneToOne(() => User)
-    @JoinColumn()
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     user: User;
 }
 ```
@@ -209,21 +262,21 @@ export async function getUsers(req: Request, res: Response) {
     const output: ParseOutput = parseQuery(req.query, {
         fields: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id', 'profile.avatar']
+            allowed: ['id', 'name', 'realm.id', 'realm.name'],
         },
         filters: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id']
+            allowed: ['id', 'name', 'realm.id'],
         },
         relations: {
-            allowed: ['profile']
+            allowed: ['items', 'realm']
         },
         pagination: {
             maxLimit: 20
         },
         sort: {
             defaultAlias: 'user',
-            allowed: ['id', 'name', 'profile.id']
+            allowed: ['id', 'name', 'realm.id'],
         }
     });
 

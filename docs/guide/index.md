@@ -12,13 +12,13 @@ The guide is under construction ☂ at the moment. So please stay patient or con
 ## Parameters
 
 - `fields`
-    - Description: Return only specific fields or extend the default selection.
+    - Description: Return only specific resource fields or extend the default selection.
     - URL-Parameter: **fields**
 - `filters`
-    - Description: Filter the data set, according to specific criteria.
+    - Description: Filter the resources, according to specific criteria.
     - URL-Parameter: **filter**
 - `relations`
-    - Description: Include related resources of the primary data.
+    - Description: Include related resources of the primary resource.
     - URL-Parameter: **include**
 - `pagination`
     - Description: Limit the number of resources returned from the entire collection.
