@@ -1,3 +1,16 @@
+# [0.1.0](https://github.com/Tada5hi/rapiq/compare/v0.0.6...v0.1.0) (2022-10-15)
+
+
+### Bug Fixes
+
+* transform filter output value + enhanced typing for filter(s) ([cb4cafb](https://github.com/Tada5hi/rapiq/commit/cb4cafb9c9a92c1ccd2cc40d4a0f5bcd3ea06c3a))
+
+
+### Features
+
+* add default & default-by-element option for filter(s) parsing ([c2e552d](https://github.com/Tada5hi/rapiq/commit/c2e552d51a5c588a3eb53263863be30f80ea9aa7))
+* allow specifying default sort column(s) for parsing ([0029731](https://github.com/Tada5hi/rapiq/commit/00297318c6798520f2e8595541ad2f920d03b8c3))
+
 ## [0.0.6](https://github.com/Tada5hi/rapiq/compare/v0.0.5...v0.0.6) (2022-10-10)
 
 
