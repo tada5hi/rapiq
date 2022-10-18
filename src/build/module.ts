@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { BuildInput, BuildOptions } from './type';
+import { BuildInput } from './type';
 import {
     buildQueryFields,
     buildQueryFilters,
@@ -24,7 +24,6 @@ import {
 
 export function buildQuery<T extends Record<string, any>>(
     input?: BuildInput<T>,
-    options?: BuildOptions,
 ) : string {
     if (
         typeof input === 'undefined' ||

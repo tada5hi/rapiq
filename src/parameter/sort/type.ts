@@ -61,6 +61,7 @@ export type SortParseOptions<
         allowed?: ParseOptionsAllowed<T> | ParseOptionsAllowed<T>[],
         mapping?: Record<string, string>,
         default?: SortParseOptionsDefault<T>,
+        defaultPath?: string,
         relations?: RelationsParseOutput,
     };
 export type SortParseOutputElement = {

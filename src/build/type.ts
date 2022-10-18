@@ -8,10 +8,6 @@
 import { Parameter, URLParameter } from '../constants';
 import { BuildParameterInput } from './parameter';
 
-export type BuildOptions = {
-    // empty type for now :)
-};
-
 export type BuildInput<
     T extends Record<string, any>,
 > = {

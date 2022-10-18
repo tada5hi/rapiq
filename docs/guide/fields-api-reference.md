@@ -91,6 +91,7 @@ type FieldsParseOptions<
     mapping?: Record<string, string>,
     allowed?: ParseOptionsAllowed<T>,
     default?: ParseOptionsAllowed<T>,
+    defaultPath?: string,
     relations?: RelationsParseOutput
 };
 ```

@@ -162,6 +162,7 @@ type FiltersParseOptions<
     allowed?: ParseOptionsAllowed<T>,
     default?: FiltersParseOptionsDefault<T>,
     defaultByElement?: boolean,
+    defaultPath?: string,
     relations?: RelationsParseOutput
 };
 ```

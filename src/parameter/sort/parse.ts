@@ -146,9 +146,16 @@ export function parseQuerySort<T extends Record<string, any>>(
 
         matched = true;
 
+        let path : string | undefined;
+        if (fieldDetails.path) {
+            path = fieldDetails.path;
+        } else if (options.defaultPath) {
+            path = options.defaultPath;
+        }
+
         items[keyWithAlias] = {
             key: fieldDetails.name,
-            ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
+            ...(path ? { path } : {}),
             value: direction,
         };
     }

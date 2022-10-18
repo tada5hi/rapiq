@@ -163,9 +163,16 @@ export function parseQueryFields(
 
         if (transformed.default.length > 0) {
             for (let j = 0; j < transformed.default.length; j++) {
+                let path : string | undefined;
+                if (domainKey !== DEFAULT_ID) {
+                    path = domainKey;
+                } else if (options.defaultPath) {
+                    path = options.defaultPath;
+                }
+
                 output.push({
                     key: transformed.default[j],
-                    ...(domainKey !== DEFAULT_ID ? { path: domainKey } : {}),
+                    ...(path ? { path } : {}),
                 });
             }
         }

@@ -19,15 +19,6 @@ import { determineFilterOperatorLabelsByValue, transformFilterValue } from './ut
 
 // --------------------------------------------------
 
-function buildOptions(options?: FiltersParseOptions) : FiltersParseOptions {
-    options ??= {};
-
-    options.mapping = options.mapping || {};
-    options.relations = options.relations || [];
-
-    return options;
-}
-
 function transformFiltersParseOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
     if (
         hasOwnProperty(element, 'path') &&
@@ -97,8 +88,14 @@ function buildDefaultFiltersParseOutput(
             }
 
             if (options.defaultByElement || inputKeys.length === 0) {
+                let path : string | undefined;
+                if (fieldDetails.path) {
+                    path = fieldDetails.path;
+                } else if (options.defaultPath) {
+                    path = options.defaultPath;
+                }
                 output.push(transformFiltersParseOutputElement({
-                    ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
+                    ...(path ? { path } : {}),
                     key: fieldDetails.name,
                     value: flatten[keys[i]],
                 }));
@@ -116,6 +113,8 @@ export function parseQueryFilters<T extends Record<string, any>>(
     options?: FiltersParseOptions<T>,
 ) : FiltersParseOutput {
     options = options ?? {};
+    options.mapping = options.mapping || {};
+    options.relations = options.relations || [];
 
     // If it is an empty array nothing is allowed
     if (
@@ -138,8 +137,6 @@ export function parseQueryFilters<T extends Record<string, any>>(
             buildDefaultFiltersParseOutput(options),
         );
     }
-
-    options = buildOptions(options);
 
     const temp : Record<string, FiltersParseOutputElement> = {};
 
@@ -193,8 +190,15 @@ export function parseQueryFilters<T extends Record<string, any>>(
             continue;
         }
 
+        let path : string | undefined;
+        if (fieldDetails.path) {
+            path = fieldDetails.path;
+        } else if (options.defaultPath) {
+            path = options.defaultPath;
+        }
+
         temp[fullKey] = {
-            ...(fieldDetails.path ? { path: fieldDetails.path } : {}),
+            ...(path ? { path } : {}),
             key: fieldDetails.name,
             value: value as string | boolean | number,
         };

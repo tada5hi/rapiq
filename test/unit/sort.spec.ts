@@ -52,11 +52,11 @@ describe('src/sort/index.ts', () => {
         transformed = parseQuerySort('-id', { allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
 
-        // with alias mapping
+        // with mapping
         transformed = parseQuerySort('-pit', { mapping: { pit: 'id' }, allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
 
-        // with alias mapping & query alias
+        // with mapping & query alias
         transformed = parseQuerySort('-pit', { mapping: { pit: 'id' }, allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
     });
@@ -109,9 +109,9 @@ describe('src/sort/index.ts', () => {
         ] as SortParseOutput);
 
         // incomplete match
-        transformed = parseQuerySort(['email', 'id'], options);
+        transformed = parseQuerySort(['email', 'id'], {...options, defaultPath: 'user'});
         expect(transformed).toStrictEqual([
-            { key: 'id', value: SortDirection.ASC },
+            { key: 'id', path: 'user', value: SortDirection.ASC },
         ] as SortParseOutput);
 
         // no match

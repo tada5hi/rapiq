@@ -28,16 +28,18 @@ describe('src/fields/index.ts', () => {
         expect(transformedFields).toEqual({});
     });
 
-    it('should transform fields with defaultAlias', () => {
+    it('should transform fields with defaultPath', () => {
         let options : FieldsParseOptions = {
-            allowed: ['id', 'name', 'email']
+            allowed: ['id', 'name', 'email'],
+            defaultPath: 'user'
         };
 
         let data = parseQueryFields('+email', options);
 
         expect(data).toEqual([
             {
-                key: 'email'
+                key: 'email',
+                path: 'user'
             }
         ] as FieldsParseOutput);
 
@@ -47,13 +49,15 @@ describe('src/fields/index.ts', () => {
                 {
                     domain: ['extra']
                 }
-            ]
+            ],
+            defaultPath: 'user'
         }
 
         data = parseQueryFields('+email', options);
         expect(data).toEqual([
             {
                 key: 'email',
+                path: 'user'
             },
             {
                 key: 'extra',
@@ -64,13 +68,16 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields('+extra', options);
         expect(data).toEqual([
             {
-                key: 'id'
+                key: 'id',
+                path: 'user'
             },
             {
-                key: 'name'
+                key: 'name',
+                path: 'user'
             },
             {
-                key: 'email'
+                key: 'email',
+                path: 'user'
             },
             {
                 key: 'extra',
@@ -83,13 +90,16 @@ describe('src/fields/index.ts', () => {
         }, options);
         expect(data).toEqual([
             {
-                key: 'id'
+                key: 'id',
+                path: 'user'
             },
             {
                 key: 'name',
+                path: 'user'
             },
             {
-                key: 'email'
+                key: 'email',
+                path: 'user'
             },
             {
                 key: 'extra',

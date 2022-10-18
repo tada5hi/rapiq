@@ -50,7 +50,8 @@ export type FieldsParseOptions<
     mapping?: Record<string, string>,
     allowed?: ParseOptionsAllowed<T>,
     default?: ParseOptionsAllowed<T>,
-    relations?: RelationsParseOutput
+    defaultPath?: string,
+    relations?: RelationsParseOutput,
 };
 
 export type FieldsParseOutputElement = {

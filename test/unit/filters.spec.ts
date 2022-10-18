@@ -74,9 +74,10 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
     });
 
-    it('should transform fields with defaultAlias', () => {
+    it('should transform fields with default path', () => {
         const options : FiltersParseOptions= {
-            allowed: ['id']
+            allowed: ['id'],
+            defaultPath: 'user'
         };
 
         const data = parseQueryFilters({ id: 1 }, options);
@@ -84,6 +85,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
+                path: 'user',
                 value: 1
             }
         ] as FiltersParseOutput)
@@ -153,14 +155,16 @@ describe('src/filter/index.ts', () => {
             }
         ] as FiltersParseOutput);
 
-        data = parseQueryFilters({id: 5}, options);
+        data = parseQueryFilters({id: 5}, {...options, defaultPath: 'user'});
         expect(data).toEqual([
             {
                 key: 'id',
+                path: 'user',
                 value: 5,
             },
             {
                 key: 'age',
+                path: 'user',
                 value: 18,
                 operator: {
                     lessThan: true
@@ -168,10 +172,11 @@ describe('src/filter/index.ts', () => {
             }
         ] as FiltersParseOutput);
 
-        data = parseQueryFilters({id: 5}, {...options, defaultByElement: false});
+        data = parseQueryFilters({id: 5}, {...options, defaultByElement: false, defaultPath: 'user'});
         expect(data).toEqual([
             {
                 key: 'id',
+                path: 'user',
                 value: 5,
             }
         ] as FiltersParseOutput);
