@@ -1,7 +1,7 @@
 # What is it?
 
 Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
-It defines a format for the request, but **not** for the response.
+It defines a scheme for the request, but **not** for the response.
 
 ::: warning **Important NOTE**
 
