@@ -1,3 +1,10 @@
+## [0.2.4](https://github.com/Tada5hi/rapiq/compare/v0.2.3...v0.2.4) (2022-10-19)
+
+
+### Bug Fixes
+
+* add Date type as allowed simple key ([44fa46e](https://github.com/Tada5hi/rapiq/commit/44fa46edb7c2f12a6fb6510e26eac7f291eebcf6))
+
 ## [0.2.3](https://github.com/Tada5hi/rapiq/compare/v0.2.2...v0.2.3) (2022-10-19)
 
 
