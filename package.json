@@ -51,7 +51,7 @@
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
         "minimatch": "^5.1.0",
-        "smob": "^0.0.3"
+        "smob": "^0.0.6"
     },
     "devDependencies": {
         "@commitlint/cli": "^17.1.2",
