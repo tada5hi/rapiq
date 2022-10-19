@@ -30,6 +30,7 @@ describe('src/build.ts', () => {
     type Entity = {
         id: number,
         name: string,
+        created_at: Date,
         child: ChildEntity,
         siblings: ChildEntity[]
     };
@@ -194,10 +195,10 @@ describe('src/build.ts', () => {
         expect(record).toEqual(buildURLQueryString({ fields: 'id' }));
 
         record = buildQuery<Entity>({
-            fields: ['id', 'name'],
+            fields: ['id', 'name', 'created_at'],
         });
 
-        expect(record).toEqual(buildURLQueryString({ fields: ['id', 'name'] }));
+        expect(record).toEqual(buildURLQueryString({ fields: ['id', 'name', 'created_at'] }));
 
         record = buildQuery<Entity>({
             fields: '+id',

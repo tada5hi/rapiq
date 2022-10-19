@@ -14,15 +14,15 @@ export type KeyWithOptionalPrefix<T, O extends string> = T extends string ? (`${
 type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 export type SimpleKeys<T extends Record<string, any>> =
-    {[Key in keyof T & (string | number)]: T[Key] extends Record<string, any>
-        ? never
+    {[Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any>
+        ? (Flatten<T[Key]> extends Date ? `${Key}` : never)
         : `${Key}`
     }[keyof T & (string | number)];
 
 export type NestedKeys<T extends Record<string, any>, Depth extends number = 4> =
     [Depth] extends [0] ? never :
         {[Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any>
-            ? `${Key}.${NestedKeys<Flatten<T[Key]>, PrevIndex[Depth]>}`
+            ? (Flatten<T[Key]> extends Date ? `${Key}` : `${Key}.${NestedKeys<Flatten<T[Key]>, PrevIndex[Depth]>}`)
             : `${Key}`
         }[keyof T & (string | number)];
 
