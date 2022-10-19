@@ -142,8 +142,9 @@ export async function getUsers(req: Request, res: Response) {
     // -----------------------------------------------------
     
     const parsed = applyQueryParseOutput(query, {
+        defaultPath: 'user',
         fields: parseQueryFields(fields, {
-            defaultAlias: 'user',
+            defaultPath: 'user',
             // The fields id & name of the realm entity can only be used, 
             // if the relation 'realm' is included.
             allowed: ['id', 'name', 'realm.id', 'realm.name'],
@@ -151,7 +152,7 @@ export async function getUsers(req: Request, res: Response) {
         }),
         // only allow filtering users by id & name
         filters: parseQueryFilters(filter, {
-            defaultAlias: 'user',
+            defaultPath: 'user',
             // realm.id can only be used as filter key, 
             // if the relation 'realm' is included.
             allowed: ['id', 'name', 'realm.id'],
@@ -165,7 +166,7 @@ export async function getUsers(req: Request, res: Response) {
             maxLimit: 20
         }),
         sort: parseQuerySort(sort, {
-            defaultAlias: 'user',
+            defaultPath: 'user',
             // profile.id can only be used as sorting key,
             // if the relation 'realm' is included.
             allowed: ['id', 'name', 'realm.id'],
@@ -220,12 +221,11 @@ export async function getUsers(req: Request, res: Response) {
     // const {fields, filter, include, page, sort} = req.query;
 
     const output: ParseOutput = parseQuery(req.query, {
+        defaultPath: 'user',
         fields: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id', 'realm.name'],
         },
         filters: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id'],
         },
         relations: {
@@ -235,7 +235,6 @@ export async function getUsers(req: Request, res: Response) {
             maxLimit: 20
         },
         sort: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id'],
         }
     });

@@ -22,7 +22,18 @@ export function parseQuery(
 ) : ParseOutput {
     options ??= {};
 
+    const mergeWithGlobalOptions = <T extends {[key: string]: any} & {defaultPath?: string} >(data: T) : T => {
+        if (options.defaultPath) {
+            data.defaultPath = options.defaultPath;
+        }
+
+        return data;
+    };
+
     const output : ParseOutput = {};
+    if (options.defaultPath) {
+        output.defaultPath = options.defaultPath;
+    }
 
     let relations : RelationsParseOutput | undefined;
 
@@ -59,7 +70,7 @@ export function parseQuery(
                     output[Parameter.FIELDS] = parseQueryParameter(
                         key,
                         value,
-                        options[Parameter.FIELDS],
+                        mergeWithGlobalOptions(options[Parameter.FIELDS]),
                         relations,
                     ) as FieldsParseOutput;
                 }
@@ -71,7 +82,7 @@ export function parseQuery(
                     output[Parameter.FILTERS] = parseQueryParameter(
                         key,
                         value,
-                        options[Parameter.FILTERS],
+                        mergeWithGlobalOptions(options[Parameter.FILTERS]),
                         relations,
                     ) as FiltersParseOutput;
                 }
@@ -95,7 +106,7 @@ export function parseQuery(
                     output[Parameter.SORT] = parseQueryParameter(
                         key,
                         value,
-                        options[Parameter.SORT],
+                        mergeWithGlobalOptions(options[Parameter.SORT]),
                         relations,
                     ) as SortParseOutput;
                 }

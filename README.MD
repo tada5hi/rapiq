@@ -260,12 +260,11 @@ export async function getUsers(req: Request, res: Response) {
     // const {fields, filter, include, page, sort} = req.query;
 
     const output: ParseOutput = parseQuery(req.query, {
+        defaultPath: 'user',
         fields: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id', 'realm.name'],
         },
         filters: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id'],
         },
         relations: {
@@ -275,7 +274,6 @@ export async function getUsers(req: Request, res: Response) {
             maxLimit: 20
         },
         sort: {
-            defaultAlias: 'user',
             allowed: ['id', 'name', 'realm.id'],
         }
     });

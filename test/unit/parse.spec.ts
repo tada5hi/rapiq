@@ -24,7 +24,6 @@ describe('src/parse.ts', () => {
                 allowed: ['id']
             }
         });
-
         expect(value).toEqual({
             fields: [
                 { key: 'id' },
@@ -34,11 +33,27 @@ describe('src/parse.ts', () => {
         value = parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
         });
-
         expect(value).toEqual({
             fields: []
         } as ParseOutput);
     });
+
+    it('should parse query with default path', () => {
+        let value = parseQuery({
+            fields: ['id', 'name'],
+        }, {
+            defaultPath: 'user',
+            fields: {
+                allowed: ['id']
+            }
+        });
+        expect(value).toEqual({
+            defaultPath: 'user',
+            fields: [
+                { key: 'id', path: 'user' },
+            ],
+        } as ParseOutput);
+    })
 
     it('should parse field query parameter', () => {
         let value = parseQueryParameter(Parameter.FIELDS, ['id', 'name'], {allowed: ['id', 'name']});

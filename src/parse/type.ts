@@ -22,10 +22,14 @@ export type ParseOptions = {
      * On default all query keys are enabled.
      */
     [K in `${Parameter}`]?: ParseParameterOptions<K>
+} & {
+    defaultPath?: string
 };
 
 //------------------------------------------------
 
 export type ParseOutput = {
     [K in `${Parameter}`]?: ParseParameterOutput<K>
+} & {
+    defaultPath?: string
 };
