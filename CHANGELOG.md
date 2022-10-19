@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/Tada5hi/rapiq/compare/v0.2.1...v0.2.2) (2022-10-19)
+
+
+### Bug Fixes
+
+* allow global default-path for parse-query method ([2580bb9](https://github.com/Tada5hi/rapiq/commit/2580bb930ec40cd1550d67fbf20a9e88bdca9505))
+
 ## [0.2.1](https://github.com/Tada5hi/rapiq/compare/v0.2.0...v0.2.1) (2022-10-18)
 
 
