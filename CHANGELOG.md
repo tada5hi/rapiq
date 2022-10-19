@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/Tada5hi/rapiq/compare/v0.2.2...v0.2.3) (2022-10-19)
+
+
+### Bug Fixes
+
+* updated smob dependency ([2f0ca15](https://github.com/Tada5hi/rapiq/commit/2f0ca15a3f9a4db60ae8d9ad5ab409442d55c3b1))
+
 ## [0.2.2](https://github.com/Tada5hi/rapiq/compare/v0.2.1...v0.2.2) (2022-10-19)
 
 

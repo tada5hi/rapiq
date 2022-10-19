@@ -1,6 +1,6 @@
 {
     "name": "rapiq",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "A tiny library which provides utility types/functions for request and response query handling.",
     "main": "./dist/index.js",
     "typings": "dist/index.d.ts",
