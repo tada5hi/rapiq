@@ -187,7 +187,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
                 let key : string;
 
                 const parts = keyWithAlias.split('.');
-                if (parts.length > 0) {
+                if (parts.length > 1) {
                     key = parts.pop();
                 } else {
                     key = keyWithAlias;
