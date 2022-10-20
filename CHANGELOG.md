@@ -1,3 +1,11 @@
+## [0.2.6](https://github.com/Tada5hi/rapiq/compare/v0.2.5...v0.2.6) (2022-10-20)
+
+
+### Bug Fixes
+
+* applying default fields with alias ([177f5cd](https://github.com/Tada5hi/rapiq/commit/177f5cd1cd25d63388bcddad173341811eb05f2c))
+* length comparision for key with alias ([0ebf707](https://github.com/Tada5hi/rapiq/commit/0ebf7071369e4b6297213ecfbb95c4fa89fa3171))
+
 ## [0.2.5](https://github.com/Tada5hi/rapiq/compare/v0.2.4...v0.2.5) (2022-10-20)
 
 
