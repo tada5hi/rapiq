@@ -1,3 +1,10 @@
+## [0.2.5](https://github.com/Tada5hi/rapiq/compare/v0.2.4...v0.2.5) (2022-10-20)
+
+
+### Bug Fixes
+
+* add missing generic type argument for parameters ([01f1065](https://github.com/Tada5hi/rapiq/commit/01f1065fffcf3c0a3a753793d3c67ccf32d71a30))
+
 ## [0.2.4](https://github.com/Tada5hi/rapiq/compare/v0.2.3...v0.2.4) (2022-10-19)
 
 
