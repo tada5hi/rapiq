@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ObjectLiteral } from '../../type';
 import {
     FieldDetails,
     applyMapping,
@@ -55,8 +56,8 @@ function transformFiltersParseOutput(output: FiltersParseOutput) {
     return output;
 }
 
-function buildDefaultFiltersParseOutput(
-    options: FiltersParseOptions,
+function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>(
+    options: FiltersParseOptions<T>,
     input?: Record<string, FiltersParseOutputElement>,
 ) : FiltersParseOutput {
     const inputKeys = Object.keys(input || {});
@@ -108,7 +109,7 @@ function buildDefaultFiltersParseOutput(
     return input ? Object.values(input) : [];
 }
 
-export function parseQueryFilters<T extends Record<string, any>>(
+export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: FiltersParseOptions<T>,
 ) : FiltersParseOutput {

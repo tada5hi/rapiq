@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ObjectLiteral } from '../../type';
 import {
     applyMapping,
     buildFieldWithPath, flattenNestedObject,
@@ -31,7 +32,9 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     return arr.length > 0 && Array.isArray(arr[0]);
 }
 
-function buildDefaultSortParseOutput<T extends Record<string, any>>(options: SortParseOptions<T>) : SortParseOutput {
+function buildDefaultSortParseOutput<T extends ObjectLiteral = ObjectLiteral>(
+    options: SortParseOptions<T>,
+) : SortParseOutput {
     if (options.default) {
         const output : SortParseOutput = [];
 
@@ -59,7 +62,7 @@ function buildDefaultSortParseOutput<T extends Record<string, any>>(options: Sor
  * @param data
  * @param options
  */
-export function parseQuerySort<T extends Record<string, any>>(
+export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: SortParseOptions<T>,
 ) : SortParseOutput {

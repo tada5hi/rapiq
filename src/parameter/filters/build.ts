@@ -6,6 +6,7 @@
  */
 
 import { merge } from 'smob';
+import { ObjectLiteral } from '../../type';
 import { FiltersBuildInput } from './type';
 import { FilterOperator } from './constants';
 import { isFilterOperatorConfig } from './utils';
@@ -21,7 +22,7 @@ const OperatorWeight = {
     [FilterOperator.IN]: 13105,
 };
 
-export function buildQueryFilters<T>(
+export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data?: FiltersBuildInput<T>,
 ) : Record<string, any> {
     if (typeof data === 'undefined') {

@@ -6,6 +6,7 @@
  */
 
 import { merge } from 'smob';
+import { ObjectLiteral } from '../../type';
 import {
     applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
 } from '../../utils';
@@ -34,9 +35,9 @@ function buildReverseRecord(
     return output;
 }
 
-export function parseQueryFields(
+export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options?: FieldsParseOptions,
+    options?: FieldsParseOptions<T>,
 ) : FieldsParseOutput {
     options ??= {};
 

@@ -6,10 +6,11 @@
  */
 
 import { mergeArrays } from 'smob';
+import { ObjectLiteral } from '../../type';
 import { RelationsBuildInput } from './type';
 import { flattenToKeyPathArray } from '../../utils';
 
-export function buildQueryRelations<T>(
+export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input?: RelationsBuildInput<T>,
 ) : string[] {
     if (typeof input === 'undefined') {
@@ -19,7 +20,7 @@ export function buildQueryRelations<T>(
     return flattenToKeyPathArray(input);
 }
 
-export function mergeQueryRelations<T>(
+export function mergeQueryRelations(
     target?: string[],
     source?: string[],
 ) : string[] {

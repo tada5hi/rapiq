@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+export type ObjectLiteral = Record<string, any>;
 export type Flatten<Type> = Type extends Array<infer Item> ? Item : Type;
 export type OnlyScalar<T> = T extends string | number | boolean | undefined | null ? T : never;
 export type OnlySingleObject<T> = T extends { [key: string]: any } ? T : never;

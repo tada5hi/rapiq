@@ -177,7 +177,7 @@ describe('src/fields/index.ts', () => {
         ] as FieldsParseOutput);
 
         // if multiple possibilities are available for request field, use default
-        data = parseQueryFields(['id'], {
+        data = parseQueryFields<Record<string, any>>(['id'], {
             allowed: { domain: ['id', 'name'], domain2: ['id', 'name'] },
             default: { domain: ['id'], domain2: ['name']}
         });

@@ -6,10 +6,11 @@
  */
 
 import { createMerger } from 'smob';
+import { ObjectLiteral } from '../../type';
 import { FieldsBuildInput } from './type';
 import { flattenToKeyPathArray, groupArrayByKeyPath } from '../../utils';
 
-export function buildQueryFields<T>(
+export function buildQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     input?: FieldsBuildInput<T>,
 ) : Record<string, string[]> | string[] {
     if (typeof input === 'undefined') {
@@ -26,7 +27,7 @@ export function buildQueryFields<T>(
     return data;
 }
 
-export function mergeQueryFields<T>(
+export function mergeQueryFields(
     target: Record<string, string[]> | string[],
     source: Record<string, string[]> | string[],
 ): Record<string, string[]> | string[] {

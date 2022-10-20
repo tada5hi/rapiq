@@ -9,7 +9,10 @@ import { PaginationParseOptions, PaginationParseOutput } from './type';
 
 // --------------------------------------------------
 
-function finalizePagination(data: PaginationParseOutput, options: PaginationParseOptions) : PaginationParseOutput {
+function finalizePagination(
+    data: PaginationParseOutput,
+    options: PaginationParseOptions,
+) : PaginationParseOutput {
     if (typeof options.maxLimit !== 'undefined') {
         if (
             typeof data.limit === 'undefined' ||

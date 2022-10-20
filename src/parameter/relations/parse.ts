@@ -6,6 +6,7 @@
  */
 
 import minimatch from 'minimatch';
+import { ObjectLiteral } from '../../type';
 import { applyMapping, hasOwnProperty } from '../../utils';
 import { isPathCoveredByParseOptionsAllowed } from '../utils';
 
@@ -14,7 +15,7 @@ import { includeParents } from './utils';
 
 // --------------------------------------------------
 
-export function parseQueryRelations<T extends Record<string, any> = Record<string, any>>(
+export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: RelationsParseOptions<T>,
 ): RelationsParseOutput {

@@ -6,10 +6,13 @@
  */
 
 import { mergeArrays } from 'smob';
+import { ObjectLiteral } from '../../type';
 import { SortBuildInput, SortDirection } from './type';
 import { flattenToKeyPathArray } from '../../utils';
 
-export function buildQuerySort<T>(data?: SortBuildInput<T>) {
+export function buildQuerySort<T extends ObjectLiteral = ObjectLiteral>(
+    data?: SortBuildInput<T>,
+) {
     if (typeof data === 'undefined') {
         return [];
     }
@@ -42,7 +45,7 @@ export function buildQuerySort<T>(data?: SortBuildInput<T>) {
     });
 }
 
-export function mergeQuerySort<T>(
+export function mergeQuerySort(
     target?: string[],
     source?: string[],
 ) {
