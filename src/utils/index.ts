@@ -8,6 +8,7 @@
 export * from './array';
 export * from './mapping';
 export * from './field';
+export * from './key';
 export * from './relation';
 export * from './object';
 export * from './simple';

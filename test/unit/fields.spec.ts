@@ -34,8 +34,23 @@ describe('src/fields/index.ts', () => {
             defaultPath: 'user'
         };
 
-        let data = parseQueryFields('+email', options);
+        let data = parseQueryFields([], options);
+        expect(data).toEqual([
+            {
+                key: 'id',
+                path: 'user'
+            },
+            {
+                key: 'name',
+                path: 'user'
+            },
+            {
+                key: 'email',
+                path: 'user'
+            }
+        ] as FieldsParseOutput);
 
+        data = parseQueryFields('+email', options);
         expect(data).toEqual([
             {
                 key: 'email',

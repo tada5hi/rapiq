@@ -8,7 +8,7 @@
 import { ObjectLiteral } from '../../type';
 import {
     applyMapping,
-    buildFieldWithPath, flattenNestedObject,
+    buildFieldWithPath, buildKeyPath, flattenNestedObject,
     getFieldDetails,
     hasOwnProperty, isFieldNonRelational,
     isFieldPathAllowedByRelations,
@@ -44,9 +44,16 @@ function buildDefaultSortParseOutput<T extends ObjectLiteral = ObjectLiteral>(
         for (let i = 0; i < keys.length; i++) {
             const fieldDetails = getFieldDetails(keys[i]);
 
+            let path : string | undefined;
+            if (fieldDetails.path) {
+                path = fieldDetails.path;
+            } else if (options.defaultPath) {
+                path = options.defaultPath;
+            }
+
             output.push({
                 key: fieldDetails.name,
-                ...(fieldDetails.path ? { alias: fieldDetails.path } : {}),
+                ...(path ? { path } : {}),
                 value: flatten[keys[i]],
             });
         }
@@ -176,10 +183,17 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
             const keyPaths = flattenParseOptionsAllowed(options.allowed[i]);
 
             for (let j = 0; j < keyPaths.length; j++) {
-                const keyWithAlias : string = keyPaths[j];
-                const key : string = keyWithAlias.includes('.') ?
-                    keyWithAlias.split('.').pop() :
-                    keyWithAlias;
+                let keyWithAlias : string = keyPaths[j];
+                let key : string;
+
+                const parts = keyWithAlias.split('.');
+                if (parts.length > 0) {
+                    key = parts.pop();
+                } else {
+                    key = keyWithAlias;
+
+                    keyWithAlias = buildKeyPath(key, options.defaultPath);
+                }
 
                 if (
                     hasOwnProperty(items, key) ||
