@@ -259,7 +259,7 @@ import {
 export async function getUsers(req: Request, res: Response) {
     // const {fields, filter, include, page, sort} = req.query;
 
-    const output: ParseOutput = parseQuery(req.query, {
+    const output: ParseOutput = parseQuery<User>(req.query, {
         defaultPath: 'user',
         fields: {
             allowed: ['id', 'name', 'realm.id', 'realm.name'],

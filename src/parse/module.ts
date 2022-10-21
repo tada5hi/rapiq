@@ -19,7 +19,7 @@ import { ParseInput, ParseOptions, ParseOutput } from './type';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,
-    options?: ParseOptions<T extends unknown ? ObjectLiteral : T>,
+    options?: ParseOptions<T>,
 ) : ParseOutput {
     options ??= {};
 

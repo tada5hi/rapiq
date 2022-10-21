@@ -20,7 +20,7 @@ export function parseQueryParameter<
     >(
     key: P,
     data: unknown,
-    options?: ParseParameterOptions<P, T extends unknown ? ObjectLiteral : T>,
+    options?: ParseParameterOptions<P, T>,
     relations?: RelationsParseOutput,
 ): ParseParameterOutput<P> {
     switch (key) {

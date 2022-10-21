@@ -95,7 +95,6 @@ import {
     parseQueryRelations,
     parseQueryPagination,
     parseQuerySort,
-    Parameter
 } from "rapiq";
 
 import {
@@ -143,7 +142,7 @@ export async function getUsers(req: Request, res: Response) {
     
     const parsed = applyQueryParseOutput(query, {
         defaultPath: 'user',
-        fields: parseQueryFields(fields, {
+        fields: parseQueryFields<User>(fields, {
             defaultPath: 'user',
             // The fields id & name of the realm entity can only be used, 
             // if the relation 'realm' is included.
@@ -151,21 +150,21 @@ export async function getUsers(req: Request, res: Response) {
             relations: relationsParsed
         }),
         // only allow filtering users by id & name
-        filters: parseQueryFilters(filter, {
+        filters: parseQueryFilters<User>(filter, {
             defaultPath: 'user',
             // realm.id can only be used as filter key, 
             // if the relation 'realm' is included.
             allowed: ['id', 'name', 'realm.id'],
             relations: relationsParsed
         }),
-        relations: parseQueryRelations(include, {
+        relations: parseQueryRelations<User>(include, {
             allowed: ['items', 'realm']
         }),
         // only allow to select 20 items at maximum.
         pagination: parseQueryPagination(page, {
             maxLimit: 20
         }),
-        sort: parseQuerySort(sort, {
+        sort: parseQuerySort<User>(sort, {
             defaultPath: 'user',
             // profile.id can only be used as sorting key,
             // if the relation 'realm' is included.
@@ -200,7 +199,6 @@ import { Request, Response } from 'express';
 
 import {
     parseQuery,
-    Parameter,
     ParseOutput
 } from 'rapiq';
 
@@ -220,7 +218,7 @@ import {
 export async function getUsers(req: Request, res: Response) {
     // const {fields, filter, include, page, sort} = req.query;
 
-    const output: ParseOutput = parseQuery(req.query, {
+    const output: ParseOutput = parseQuery<User>(req.query, {
         defaultPath: 'user',
         fields: {
             allowed: ['id', 'name', 'realm.id', 'realm.name'],
