@@ -9,7 +9,7 @@ import { merge } from 'smob';
 import { ObjectLiteral } from '../../type';
 import { FiltersBuildInput } from './type';
 import { FilterOperator } from './constants';
-import { isFilterOperatorConfig } from './utils';
+import { isFilterValueConfig } from './utils';
 import { flattenNestedObject } from '../../utils';
 
 const OperatorWeight = {
@@ -44,7 +44,7 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                 return true;
             }
 
-            if (isFilterOperatorConfig(input)) {
+            if (isFilterValueConfig(input)) {
                 if (typeof input.value === 'undefined') {
                     input.value = null;
                 }

@@ -10,7 +10,7 @@ import {
 } from '../../type';
 import { RelationsParseOutput } from '../relations';
 import {
-    ParseOptionsAllowed,
+    ParseAllowedKeys,
 } from '../type';
 
 export enum SortDirection {
@@ -31,14 +31,14 @@ export type SortBuildInput<T extends Record<string, any>> =
             `${SortDirection}`
     }
     |
-    [
-        SortWithOperator<SimpleKeys<T>>[],
+    (
+        SortWithOperator<SimpleKeys<T>>[] |
         {
             [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
                 SortBuildInput<Flatten<T[K]>> :
                 `${SortDirection}`
-        },
-    ]
+        }
+    )[]
     |
     SortWithOperator<NestedKeys<T>>[] |
     SortWithOperator<NestedKeys<T>>;
@@ -58,7 +58,7 @@ export type SortParseOptionsDefault<T extends Record<string, any>> = {
 export type SortParseOptions<
     T extends Record<string, any> = Record<string, any>,
     > = {
-        allowed?: ParseOptionsAllowed<T> | ParseOptionsAllowed<T>[],
+        allowed?: ParseAllowedKeys<T>,
         mapping?: Record<string, string>,
         default?: SortParseOptionsDefault<T>,
         defaultPath?: string,

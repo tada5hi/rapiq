@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ObjectLiteral } from '../../type';
+import { NestedKeys, ObjectLiteral } from '../../type';
 import {
     FieldDetails,
     applyMapping,
@@ -14,7 +14,7 @@ import {
     getFieldDetails,
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
-import { isPathCoveredByParseOptionsAllowed } from '../utils';
+import { isPathCoveredByParseAllowed } from '../utils';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { determineFilterOperatorLabelsByValue, transformFilterValue } from './utils';
 
@@ -95,6 +95,7 @@ function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>
                 } else if (options.defaultPath) {
                     path = options.defaultPath;
                 }
+
                 output.push(transformFiltersParseOutputElement({
                     ...(path ? { path } : {}),
                     key: fieldDetails.name,
@@ -139,7 +140,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
         );
     }
 
-    const temp : Record<string, FiltersParseOutputElement> = {};
+    const items : Record<string, FiltersParseOutputElement> = {};
 
     // transform to appreciate data format & validate input
     const keys = Object.keys(data);
@@ -186,26 +187,33 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             options.allowed &&
-            !isPathCoveredByParseOptionsAllowed(options.allowed, [keys[i], fullKey])
+            !isPathCoveredByParseAllowed(options.allowed, [keys[i], fullKey])
         ) {
             continue;
         }
 
-        let path : string | undefined;
-        if (fieldDetails.path) {
-            path = fieldDetails.path;
-        } else if (options.defaultPath) {
-            path = options.defaultPath;
-        }
-
-        temp[fullKey] = {
-            ...(path ? { path } : {}),
+        const filter = transformFiltersParseOutputElement({
             key: fieldDetails.name,
             value: value as string | boolean | number,
-        };
+        });
+
+        if (options.validate) {
+            if (Array.isArray(filter.value)) {
+                filter.value = (filter.value as any[]).filter((item: unknown) => options.validate(filter.key as NestedKeys<T>, item));
+                if (filter.value.length === 0) {
+                    continue;
+                }
+            } else if (!options.validate(filter.key as NestedKeys<T>, filter.value)) {
+                continue;
+            }
+        }
+
+        if (fieldDetails.path || options.defaultPath) {
+            filter.path = fieldDetails.path || options.defaultPath;
+        }
+
+        items[fullKey] = filter;
     }
 
-    return transformFiltersParseOutput(
-        buildDefaultFiltersParseOutput(options, temp),
-    );
+    return buildDefaultFiltersParseOutput(options, items);
 }

@@ -10,7 +10,7 @@ import {
 } from '../../type';
 import { RelationsParseOutput } from '../relations';
 import {
-    ParseOptionsAllowed,
+    ParseAllowedKeys,
 } from '../type';
 import { FieldOperator } from './constants';
 
@@ -48,8 +48,8 @@ export type FieldsParseOptions<
     T extends Record<string, any> = Record<string, any>,
 > = {
     mapping?: Record<string, string>,
-    allowed?: ParseOptionsAllowed<T>,
-    default?: ParseOptionsAllowed<T>,
+    allowed?: ParseAllowedKeys<T>,
+    default?: ParseAllowedKeys<T>,
     defaultPath?: string,
     relations?: RelationsParseOutput,
 };

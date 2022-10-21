@@ -6,21 +6,24 @@
  */
 
 import {
-    Flatten, NestedKeys, OnlyObject, SimpleKeys,
+    Flatten, NestedKeys, ObjectLiteral, OnlyObject, SimpleKeys,
 } from '../type';
 
 // -----------------------------------------------------------
 
-export type ParseOptionsAllowedObject<T extends Record<string, any>> = {
+type ParseAllowedObject<T extends ObjectLiteral = ObjectLiteral> = {
     [K in keyof T]?: T[K] extends OnlyObject<T[K]> ?
-        ParseOptionsAllowed<Flatten<T[K]>> :
+        ParseAllowedKeys<Flatten<T[K]>> :
         never
 };
 
-export type ParseOptionsAllowed<T extends Record<string, any>> = ParseOptionsAllowedObject<T> |
-[
-    SimpleKeys<T>[],
-    ParseOptionsAllowedObject<T>,
-]
-|
-NestedKeys<T>[];
+export type ParseAllowedKeys<T extends ObjectLiteral = ObjectLiteral> = T extends ObjectLiteral ?
+    (
+        ParseAllowedObject<T> |
+        (
+            SimpleKeys<T>[] |
+            ParseAllowedObject<T>
+        )[]
+        |
+        NestedKeys<T>[]
+    ) : string[];

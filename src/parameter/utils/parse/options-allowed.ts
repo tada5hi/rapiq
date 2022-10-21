@@ -5,17 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { NestedKeys, NestedResourceKeys } from '../../../type';
 import { flattenToKeyPathArray } from '../../../utils';
-import { ParseOptionsAllowed } from '../../type';
+import { ParseAllowedKeys } from '../../type';
 
 export function flattenParseOptionsAllowed<T>(
-    input: ParseOptionsAllowed<T>,
+    input: ParseAllowedKeys<T>,
 ) : string[] {
     return flattenToKeyPathArray(input);
 }
 
-export function isPathCoveredByParseOptionsAllowed<T>(
-    input: ParseOptionsAllowed<T>,
+export function isPathCoveredByParseAllowed<T>(
+    input: ParseAllowedKeys<T> |
+    NestedKeys<T>[] |
+    NestedResourceKeys<T>[],
     path: string | string[],
 ) : boolean {
     const paths = Array.isArray(path) ? path : [path];

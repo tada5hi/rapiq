@@ -6,13 +6,13 @@
  */
 
 import {
+    isFilterValueConfig,
     FilterOperatorLabel,
     FiltersParseOptions,
     FiltersParseOutput,
     parseQueryFilters,
     parseQueryRelations,
 } from '../../src';
-import {isFilterOperatorConfig} from "../../src/parameter/filters/utils";
 
 describe('src/filter/index.ts', () => {
     it('should transform request filters', () => {
@@ -181,6 +181,46 @@ describe('src/filter/index.ts', () => {
             }
         ] as FiltersParseOutput);
     });
+
+    it('should transform filters with validator', () => {
+        let data = parseQueryFilters(
+            { id: '1' },
+            {
+                allowed: ['id'],
+                validate: (key, value) => {
+                    if(key === 'id') {
+                        return typeof value === 'number';
+                    }
+
+                    return false;
+                }
+            }
+        );
+        expect(data).toEqual([
+            {
+                key: 'id',
+                value: 1,
+            },
+        ] as FiltersParseOutput);
+
+        data = parseQueryFilters(
+            { id: '1,2,3' },
+            {
+                allowed: ['id'],
+                validate: (key, value) => {
+                    if(key === 'id') {
+                        return typeof value === 'number' &&
+                            value > 1;
+                    }
+
+                    return false;
+                }
+            }
+        );
+        expect(data).toEqual([
+            { key: 'id', value: [2, 3], operator: { in: true }},
+        ] as FiltersParseOutput);
+    })
 
     it('should transform filters with different operators', () => {
         // equal operator
@@ -357,21 +397,21 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should determine filter operator config', () => {
-        let data = isFilterOperatorConfig({
+        let data = isFilterValueConfig({
             value: 1,
             operator: '<'
         });
 
         expect(data).toBeTruthy();
 
-        data = isFilterOperatorConfig({
+        data = isFilterValueConfig({
             value: 1,
             operator: {}
         })
 
         expect(data).toBeFalsy();
 
-        data = isFilterOperatorConfig({
+        data = isFilterValueConfig({
             value: {},
             operator: '<'
         });

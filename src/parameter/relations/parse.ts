@@ -8,7 +8,7 @@
 import minimatch from 'minimatch';
 import { ObjectLiteral } from '../../type';
 import { applyMapping, hasOwnProperty } from '../../utils';
-import { isPathCoveredByParseOptionsAllowed } from '../utils';
+import { isPathCoveredByParseAllowed } from '../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
 import { includeParents } from './utils';
@@ -60,7 +60,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     }
 
     if (options.allowed) {
-        items = items.filter((item) => isPathCoveredByParseOptionsAllowed(options.allowed, item));
+        items = items.filter((item) => isPathCoveredByParseAllowed(options.allowed, item));
     }
 
     if (options.includeParents) {

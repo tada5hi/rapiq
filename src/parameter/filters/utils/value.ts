@@ -5,16 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FilterValueSimple } from '../type';
+import { FilterValue } from '../type';
 
-export function transformFilterValue<T>(input: FilterValueSimple) : FilterValueSimple {
+export function transformFilterValue(input: FilterValue) : FilterValue {
     if (Array.isArray(input)) {
         for (let i = 0; i < input.length; i++) {
-            input[i] = transformFilterValue(input[i]) as string | number | boolean;
+            input[i] = transformFilterValue(input[i]) as string | number;
         }
 
         return (input as unknown[])
-            .filter((n) => n === 0 || !!n) as FilterValueSimple;
+            .filter((n) => n === 0 || !!n) as FilterValue;
     }
 
     if (typeof input === 'undefined' || input === null) {

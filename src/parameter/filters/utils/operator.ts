@@ -6,7 +6,7 @@
  */
 
 import {
-    FilterOperatorConfig,
+    FilterValueConfig,
 } from '../type';
 import { hasOwnProperty, isSimpleValue } from '../../../utils';
 import { FilterOperator, FilterOperatorLabel } from '../constants';
@@ -67,7 +67,7 @@ export function determineFilterOperatorLabelsByValue(input: string) : {
     };
 }
 
-export function isFilterOperatorConfig(data: unknown) : data is FilterOperatorConfig<any> {
+export function isFilterValueConfig(data: unknown) : data is FilterValueConfig<any> {
     if (typeof data !== 'object' || data === null) {
         return false;
     }
