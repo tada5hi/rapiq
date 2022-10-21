@@ -8,18 +8,18 @@
 import { merge } from 'smob';
 import { ObjectLiteral } from '../../type';
 import { FiltersBuildInput } from './type';
-import { FilterOperator } from './constants';
+import { FilterInputOperatorValue } from './constants';
 import { isFilterValueConfig } from './utils';
 import { flattenNestedObject } from '../../utils';
 
 const OperatorWeight = {
-    [FilterOperator.NEGATION]: 0,
-    [FilterOperator.LIKE]: 50,
-    [FilterOperator.LESS_THAN_EQUAL]: 150,
-    [FilterOperator.LESS_THAN]: 450,
-    [FilterOperator.MORE_THAN_EQUAL]: 1350,
-    [FilterOperator.MORE_THAN]: 4050,
-    [FilterOperator.IN]: 13105,
+    [FilterInputOperatorValue.NEGATION]: 0,
+    [FilterInputOperatorValue.LIKE]: 50,
+    [FilterInputOperatorValue.LESS_THAN_EQUAL]: 150,
+    [FilterInputOperatorValue.LESS_THAN]: 450,
+    [FilterInputOperatorValue.MORE_THAN_EQUAL]: 1350,
+    [FilterInputOperatorValue.MORE_THAN]: 4050,
+    [FilterInputOperatorValue.IN]: 13105,
 };
 
 export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
@@ -58,7 +58,7 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                     // merge operators
                     input.operator = input.operator
                         .sort((a, b) => OperatorWeight[a] - OperatorWeight[b])
-                        .join('') as FilterOperator;
+                        .join('') as FilterInputOperatorValue;
                 }
 
                 output[key] = `${input.operator}${input.value}`;

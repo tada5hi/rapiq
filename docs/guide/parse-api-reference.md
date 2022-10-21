@@ -31,7 +31,7 @@ console.log(output);
 //        {key: 'age', operator: FieldOperator.INCLUDE}
 //    ],
 //    filters: [
-//        {key: 'name', value: 'pe', operator: FilterOperator.LIKE}
+//        {key: 'name', value: 'pe', operator: FilterComparisonOperator.LIKE}
 //   ]
 //}
 ```

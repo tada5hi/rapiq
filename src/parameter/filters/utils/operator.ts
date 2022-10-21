@@ -5,65 +5,97 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
-    FilterValueConfig,
-} from '../type';
 import { hasOwnProperty, isSimpleValue } from '../../../utils';
-import { FilterOperator, FilterOperatorLabel } from '../constants';
+import { FilterComparisonOperator, FilterInputOperatorValue } from '../constants';
+import { FilterValueConfig } from '../type';
 
-const config : {
-    sign: FilterOperator | `${FilterOperator}`,
-    label: FilterOperatorLabel | `${FilterOperatorLabel}`
-}[] = [];
-
-const operatorKeys = Object.keys(FilterOperator) as (keyof typeof FilterOperator)[];
-for (let i = 0; i < operatorKeys.length; i++) {
-    config.push({
-        sign: FilterOperator[operatorKeys[i]],
-        label: FilterOperatorLabel[operatorKeys[i]],
-    });
-}
-
-export function determineFilterOperatorLabelsByValue(input: string) : {
-    operators: (`${FilterOperatorLabel}`)[],
-    value: string | string[]
-} {
-    let value : string[] | string = input;
-
-    const operators : (`${FilterOperatorLabel}`)[] = [];
-
-    for (let i = 0; i < config.length; i++) {
-        if (typeof value !== 'string') {
-            // eslint-disable-next-line no-continue
-            continue;
+function matchOperator(key: string, value: string, position: 'start' | 'end' | 'global') : string | undefined {
+    switch (position) {
+        case 'start': {
+            if (value.substring(0, key.length) === key) {
+                return value.substring(key.length);
+            }
+            break;
         }
-
-        switch (config[i].sign) {
-            case FilterOperator.IN:
-                if (
-                    value.includes(config[i].sign)
-                ) {
-                    operators.push(config[i].label);
-                    value = value.split(config[i].sign);
-                }
-                break;
-            default:
-                if (
-                    value.slice(0, config[i].sign.length) === config[i].sign
-                ) {
-                    operators.push(config[i].label);
-                    value = value.slice(config[i].sign.length);
-                    if (value.toLowerCase() === 'null') {
-                        value = null;
-                    }
-                }
-                break;
+        case 'end': {
+            if (value.substring(0 - key.length) === key) {
+                return value.substring(0, value.length - key.length - 1);
+            }
+            break;
         }
     }
 
+    return undefined;
+}
+
+export function parseFilterValue(input: string) : {
+    operator: `${FilterComparisonOperator}`,
+    value: string | string[]
+} {
+    let negation = false;
+
+    let value = matchOperator(FilterInputOperatorValue.NEGATION, input, 'start');
+    if (typeof value !== 'undefined') {
+        negation = true;
+        input = value;
+    }
+
+    value = matchOperator(FilterInputOperatorValue.LIKE, input, 'start');
+    if (typeof value !== 'undefined') {
+        return {
+            value,
+            operator: negation ?
+                FilterComparisonOperator.NOT_LIKE :
+                FilterComparisonOperator.LIKE,
+        };
+    }
+
+    value = matchOperator(FilterInputOperatorValue.LESS_THAN_EQUAL, input, 'start');
+    if (typeof value !== 'undefined') {
+        return {
+            value,
+            operator: FilterComparisonOperator.LESS_THAN_EQUAL,
+        };
+    }
+
+    value = matchOperator(FilterInputOperatorValue.LESS_THAN, input, 'start');
+    if (typeof value !== 'undefined') {
+        return {
+            value,
+            operator: FilterComparisonOperator.LESS_THAN,
+        };
+    }
+
+    value = matchOperator(FilterInputOperatorValue.MORE_THAN_EQUAL, input, 'start');
+    if (typeof value !== 'undefined') {
+        return {
+            value,
+            operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
+        };
+    }
+
+    value = matchOperator(FilterInputOperatorValue.MORE_THAN, input, 'start');
+    if (typeof value !== 'undefined') {
+        return {
+            value,
+            operator: FilterComparisonOperator.GREATER_THAN,
+        };
+    }
+
+    if (input.includes(FilterInputOperatorValue.IN)) {
+        return {
+            value: input.split(FilterInputOperatorValue.IN),
+            operator: negation ?
+                FilterComparisonOperator.NOT_IN :
+                FilterComparisonOperator.IN,
+        };
+    }
+
     return {
-        operators,
-        value,
+        value: input,
+        operator: negation ?
+            FilterComparisonOperator.NOT_EQUAL :
+            FilterComparisonOperator.EQUAL,
     };
 }
 
@@ -73,7 +105,7 @@ export function isFilterValueConfig(data: unknown) : data is FilterValueConfig<a
     }
 
     if (hasOwnProperty(data, 'operator')) {
-        const operators : string[] = Object.values(FilterOperator);
+        const operators : string[] = Object.values(FilterInputOperatorValue);
 
         if (typeof data.operator === 'string') {
             if (operators.indexOf(data.operator) === -1) {

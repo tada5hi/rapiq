@@ -8,19 +8,6 @@
 import { FilterValue } from '../type';
 
 export function transformFilterValue(input: FilterValue) : FilterValue {
-    if (Array.isArray(input)) {
-        for (let i = 0; i < input.length; i++) {
-            input[i] = transformFilterValue(input[i]) as string | number;
-        }
-
-        return (input as unknown[])
-            .filter((n) => n === 0 || !!n) as FilterValue;
-    }
-
-    if (typeof input === 'undefined' || input === null) {
-        return null;
-    }
-
     if (typeof input === 'string') {
         const lower = input.trim().toLowerCase();
 
@@ -40,6 +27,24 @@ export function transformFilterValue(input: FilterValue) : FilterValue {
         if (!Number.isNaN(num)) {
             return num;
         }
+
+        const parts = input.split(',');
+        if (parts.length > 1) {
+            return transformFilterValue(parts);
+        }
+    }
+
+    if (Array.isArray(input)) {
+        for (let i = 0; i < input.length; i++) {
+            input[i] = transformFilterValue(input[i]) as string | number;
+        }
+
+        return (input as unknown[])
+            .filter((n) => n === 0 || !!n) as FilterValue;
+    }
+
+    if (typeof input === 'undefined' || input === null) {
+        return null;
     }
 
     return input;

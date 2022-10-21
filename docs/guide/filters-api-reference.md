@@ -171,9 +171,7 @@ type FiltersParseOptions<
 
 ```typescript
 type FiltersParseOutputElement = {
-    operator?: {
-        [K in FilterOperatorLabel]?: boolean
-    },
+    operator: `${FilterComparisonOperator}`,
     value: FilterValueSimple,
     key: string,
     path?: string

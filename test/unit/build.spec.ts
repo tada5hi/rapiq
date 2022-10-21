@@ -6,7 +6,7 @@
  */
 
 import {
-    FilterOperator, Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
+    FilterInputOperatorValue, Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
 } from '../../src';
 import { buildURLQueryString } from '../../src/utils';
 
@@ -98,7 +98,7 @@ describe('src/build.ts', () => {
         record = buildQuery<Entity>({
             filter: {
                 id: {
-                    operator: FilterOperator.LIKE,
+                    operator: FilterInputOperatorValue.LIKE,
                     value: 1,
                 },
             },
@@ -109,7 +109,7 @@ describe('src/build.ts', () => {
         record = buildQuery<Entity>({
             filter: {
                 id: {
-                    operator: FilterOperator.LESS_THAN,
+                    operator: FilterInputOperatorValue.LESS_THAN,
                     value: 1,
                 },
             },
@@ -120,7 +120,7 @@ describe('src/build.ts', () => {
         record = buildQuery<Entity>({
             filter: {
                 id: {
-                    operator: FilterOperator.LESS_THAN_EQUAL,
+                    operator: FilterInputOperatorValue.LESS_THAN_EQUAL,
                     value: 1,
                 },
             },
@@ -131,7 +131,7 @@ describe('src/build.ts', () => {
         record = buildQuery<Entity>({
             filter: {
                 id: {
-                    operator: FilterOperator.MORE_THAN,
+                    operator: FilterInputOperatorValue.MORE_THAN,
                     value: 1,
                 },
             },
@@ -142,7 +142,7 @@ describe('src/build.ts', () => {
         record = buildQuery<Entity>({
             filter: {
                 id: {
-                    operator: FilterOperator.MORE_THAN_EQUAL,
+                    operator: FilterInputOperatorValue.MORE_THAN_EQUAL,
                     value: 1,
                 },
             },
@@ -162,8 +162,8 @@ describe('src/build.ts', () => {
             filter: {
                 id: {
                     operator: [
-                        FilterOperator.NEGATION,
-                        FilterOperator.LIKE,
+                        FilterInputOperatorValue.NEGATION,
+                        FilterInputOperatorValue.LIKE,
                     ],
                     value: [1, 2, 3],
                 },
@@ -176,8 +176,8 @@ describe('src/build.ts', () => {
             filter: {
                 id: {
                     operator: [
-                        FilterOperator.LIKE,
-                        FilterOperator.NEGATION,
+                        FilterInputOperatorValue.LIKE,
+                        FilterInputOperatorValue.NEGATION,
                     ],
                     value: [1, 2, 3],
                 },

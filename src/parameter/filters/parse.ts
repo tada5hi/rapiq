@@ -15,32 +15,31 @@ import {
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
 import { isPathCoveredByParseAllowed } from '../utils';
+import { FilterComparisonOperator } from './constants';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
-import { determineFilterOperatorLabelsByValue, transformFilterValue } from './utils';
+import { parseFilterValue, transformFilterValue } from './utils';
 
 // --------------------------------------------------
 
 function transformFiltersParseOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
     if (
         hasOwnProperty(element, 'path') &&
-        (
-            typeof element.path === 'undefined' ||
-            element.path === null
-        )
+        (typeof element.path === 'undefined' || element.path === null)
     ) {
         delete element.path;
     }
 
-    if (typeof element.value === 'string') {
-        const { value, operators } = determineFilterOperatorLabelsByValue(element.value);
-        if (operators.length > 0) {
-            element.value = value;
-            element.operator = {};
+    if (element.operator) {
+        return element;
+    }
 
-            for (let i = 0; i < operators.length; i++) {
-                element.operator[operators[i]] = true;
-            }
-        }
+    if (typeof element.value === 'string') {
+        element = {
+            ...element,
+            ...parseFilterValue(element.value),
+        };
+    } else {
+        element.operator = FilterComparisonOperator.EQUAL;
     }
 
     element.value = transformFilterValue(element.value);

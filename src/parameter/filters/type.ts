@@ -13,7 +13,7 @@ import { RelationsParseOutput } from '../relations';
 import {
     ParseAllowedKeys,
 } from '../type';
-import { FilterOperator, FilterOperatorLabel } from './constants';
+import { FilterComparisonOperator, FilterInputOperatorValue } from './constants';
 
 // -----------------------------------------------------------
 
@@ -30,7 +30,7 @@ export type FilterValue<V extends FilterValueInput = FilterValueInput> = V exten
     V;
 
 export type FilterValueConfig<V extends FilterValueInput = FilterValueInput> = {
-    operator: `${FilterOperator}` | (`${FilterOperator}`)[];
+    operator: `${FilterInputOperatorValue}` | (`${FilterInputOperatorValue}`)[];
     value: FilterValueSimple<V>
 };
 
@@ -77,9 +77,7 @@ export type FiltersParseOptions<
     };
 
 export type FiltersParseOutputElement = {
-    operator?: {
-        [K in FilterOperatorLabel]?: boolean
-    },
+    operator?: `${FilterComparisonOperator}`,
     value: FilterValueSimple,
     key: string,
     path?: string

@@ -6,7 +6,7 @@
  */
 
 import {
-    FieldsParseOutput,
+    FieldsParseOutput, FilterComparisonOperator,
     FiltersParseOutput,
     PaginationParseOutput,
     Parameter,
@@ -68,6 +68,7 @@ describe('src/parse.ts', () => {
         expect(value).toEqual([{
             key: 'name',
             value: 'tada5hi',
+            operator: FilterComparisonOperator.EQUAL
         }] as FiltersParseOutput);
     });
 

@@ -5,17 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export enum FilterOperatorLabel {
-    NEGATION = 'negation',
-    LIKE = 'like',
-    LESS_THAN_EQUAL = 'lessThanEqual',
-    LESS_THAN = 'lessThan',
-    MORE_THAN_EQUAL = 'moreThanEqual',
-    MORE_THAN = 'moreThan',
-    IN = 'in',
+export enum FilterComparisonOperator {
+    EQUAL = '$eq',
+    NOT_EQUAL = '$ne',
+    LIKE = '$l',
+    NOT_LIKE = '$nl',
+    LESS_THAN_EQUAL = '$lte',
+    LESS_THAN = '$lt',
+    GREATER_THAN_EQUAL = '$gte',
+    GREATER_THAN = '$gt',
+    IN = '$in',
+    NOT_IN = '$nin',
 }
 
-export enum FilterOperator {
+export enum FilterInputOperatorValue {
     NEGATION = '!',
     LIKE = '~',
     LESS_THAN_EQUAL = '<=',

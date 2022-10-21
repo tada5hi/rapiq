@@ -7,11 +7,10 @@
 
 import {
     isFilterValueConfig,
-    FilterOperatorLabel,
     FiltersParseOptions,
     FiltersParseOutput,
     parseQueryFilters,
-    parseQueryRelations,
+    parseQueryRelations, FilterComparisonOperator,
 } from '../../src';
 
 describe('src/filter/index.ts', () => {
@@ -21,6 +20,7 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         // filter none
@@ -32,6 +32,7 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         // filter with query alias
@@ -39,6 +40,7 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         // filter allowed
@@ -46,6 +48,7 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([{
             key: 'name',
             value: 'tada5hi',
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         // filter data with el empty value
@@ -57,12 +60,14 @@ describe('src/filter/index.ts', () => {
         expect(allowedFilter).toEqual([{
             key: 'name',
             value: null,
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         allowedFilter = parseQueryFilters({ name: 'null' }, { allowed: ['name'] });
         expect(allowedFilter).toEqual([{
             key: 'name',
             value: null,
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
         // filter wrong allowed
@@ -86,7 +91,8 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 path: 'user',
-                value: 1
+                value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             }
         ] as FiltersParseOutput)
     })
@@ -103,7 +109,8 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                value: 1
+                value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             }
         ] as FiltersParseOutput);
 
@@ -112,20 +119,16 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'age',
                 value: 18,
-                operator: {
-                    lessThan: true
-                }
+                operator: FilterComparisonOperator.LESS_THAN
             }
         ] as FiltersParseOutput);
 
-        data = parseQueryFilters({name: 'Peter'}, options);
+        data = parseQueryFilters({age: 20}, options);
         expect(data).toEqual([
             {
                 key: 'age',
-                value: 18,
-                operator: {
-                    lessThan: true
-                }
+                value: 20,
+                operator: FilterComparisonOperator.EQUAL,
             }
         ] as FiltersParseOutput)
     });
@@ -145,13 +148,12 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 18,
+                operator: FilterComparisonOperator.EQUAL,
             },
             {
                 key: 'age',
                 value: 18,
-                operator: {
-                    lessThan: true
-                }
+                operator: FilterComparisonOperator.LESS_THAN,
             }
         ] as FiltersParseOutput);
 
@@ -161,14 +163,13 @@ describe('src/filter/index.ts', () => {
                 key: 'id',
                 path: 'user',
                 value: 5,
+                operator: FilterComparisonOperator.EQUAL,
             },
             {
                 key: 'age',
                 path: 'user',
                 value: 18,
-                operator: {
-                    lessThan: true
-                }
+                operator: FilterComparisonOperator.LESS_THAN,
             }
         ] as FiltersParseOutput);
 
@@ -178,6 +179,7 @@ describe('src/filter/index.ts', () => {
                 key: 'id',
                 path: 'user',
                 value: 5,
+                operator: FilterComparisonOperator.EQUAL,
             }
         ] as FiltersParseOutput);
     });
@@ -200,6 +202,7 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
 
@@ -218,7 +221,7 @@ describe('src/filter/index.ts', () => {
             }
         );
         expect(data).toEqual([
-            { key: 'id', value: [2, 3], operator: { in: true }},
+            { key: 'id', value: [2, 3], operator: FilterComparisonOperator.IN, },
         ] as FiltersParseOutput);
     })
 
@@ -229,6 +232,7 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
 
@@ -237,9 +241,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.NEGATION]: true,
-                },
+                operator: FilterComparisonOperator.NOT_EQUAL,
                 value: 1,
             },
         ] as FiltersParseOutput);
@@ -249,9 +251,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.IN]: true,
-                },
+                operator: FilterComparisonOperator.IN,
                 value: [0, 1, 2, 3],
             },
         ] as FiltersParseOutput);
@@ -261,10 +261,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.IN]: true,
-                    [FilterOperatorLabel.NEGATION]: true,
-                },
+                operator: FilterComparisonOperator.NOT_IN,
                 value: [1, 2, 3],
             },
         ] as FiltersParseOutput);
@@ -274,9 +271,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'name',
-                operator: {
-                    [FilterOperatorLabel.LIKE]: true,
-                },
+                operator: FilterComparisonOperator.LIKE,
                 value: 'name',
             },
         ] as FiltersParseOutput);
@@ -286,9 +281,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.LESS_THAN]: true,
-                },
+                operator: FilterComparisonOperator.LESS_THAN,
                 value: 10,
             },
         ] as FiltersParseOutput);
@@ -298,9 +291,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.LESS_THAN_EQUAL]: true,
-                },
+                operator: FilterComparisonOperator.LESS_THAN_EQUAL,
                 value: 10,
             },
         ] as FiltersParseOutput);
@@ -310,9 +301,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.MORE_THAN]: true,
-                },
+                operator: FilterComparisonOperator.GREATER_THAN,
                 value: 10,
             },
         ] as FiltersParseOutput);
@@ -322,9 +311,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                operator: {
-                    [FilterOperatorLabel.MORE_THAN_EQUAL]: true,
-                },
+                operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
                 value: 10,
             },
         ] as FiltersParseOutput);
@@ -334,10 +321,7 @@ describe('src/filter/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'name',
-                operator: {
-                    [FilterOperatorLabel.LIKE]: true,
-                    [FilterOperatorLabel.NEGATION]: true,
-                },
+                operator: FilterComparisonOperator.NOT_LIKE,
                 value: 'name',
             },
         ] as FiltersParseOutput);
@@ -359,11 +343,13 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             },
             {
                 path: 'profile',
                 key: 'id',
                 value: 2,
+                operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
 
@@ -373,11 +359,13 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             },
             {
                 path: 'profile',
                 key: 'id',
                 value: 2,
+                operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
 
@@ -387,11 +375,13 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
             },
             {
                 path: 'user_roles.role',
                 key: 'id',
                 value: 2,
+                operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
     });
