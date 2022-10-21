@@ -1,3 +1,10 @@
+## [0.2.8](https://github.com/Tada5hi/rapiq/compare/v0.2.7...v0.2.8) (2022-10-21)
+
+
+### Bug Fixes
+
+* typing for parse-query & parse-query-parameter ([1924ea7](https://github.com/Tada5hi/rapiq/commit/1924ea7969fb8cf1d4ceabe49fbe215706797238))
+
 ## [0.2.7](https://github.com/Tada5hi/rapiq/compare/v0.2.6...v0.2.7) (2022-10-21)
 
 
