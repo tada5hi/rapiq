@@ -238,8 +238,7 @@ export class Item {
 import { Request, Response } from 'express';
 
 import {
-    applyQueryParseOutput,
-    parseQuery,
+    applyQuery,
     useDataSource
 } from 'typeorm-extension';
 
@@ -252,9 +251,14 @@ import {
  * @param res
  */
 export async function getUsers(req: Request, res: Response) {
-    // const {fields, filter, include, page, sort} = req.query;
+    const dataSource = await useDataSource();
+    const repository = dataSource.getRepository(User);
+    const query = repository.createQueryBuilder('user');
 
-    const output = parseQuery<User>(req.query, {
+    // -----------------------------------------------------
+
+    // parse and apply data on the db query.
+    const { pagination } = applyQuery(query, req.query, {
         defaultPath: 'user',
         fields: {
             allowed: ['id', 'name', 'realm.id', 'realm.name'],
@@ -273,15 +277,6 @@ export async function getUsers(req: Request, res: Response) {
         }
     });
 
-    const dataSource = await useDataSource();
-    const repository = dataSource.getRepository(User);
-    const query = repository.createQueryBuilder('user');
-
-    // -----------------------------------------------------
-
-    // apply parsed data on the db query.
-    const parsed = applyQueryParseOutput(query, output);
-
     // -----------------------------------------------------
 
     const [entities, total] = await query.getManyAndCount();
@@ -291,7 +286,7 @@ export async function getUsers(req: Request, res: Response) {
             data: entities,
             meta: {
                 total,
-                ...output.pagination
+                ...pagination
             }
         }
     });
