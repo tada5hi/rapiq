@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FilterValue } from '../type';
+import { FilterValue, FilterValueSimple } from '../type';
 
-export function transformFilterValue(input: FilterValue) : FilterValue {
+export function transformFilterValue(input: FilterValue) : FilterValueSimple {
     if (typeof input === 'string') {
         const lower = input.trim().toLowerCase();
 
@@ -40,7 +40,7 @@ export function transformFilterValue(input: FilterValue) : FilterValue {
         }
 
         return (input as unknown[])
-            .filter((n) => n === 0 || !!n) as FilterValue;
+            .filter((n) => n === 0 || !!n) as FilterValueSimple;
     }
 
     if (typeof input === 'undefined' || input === null) {

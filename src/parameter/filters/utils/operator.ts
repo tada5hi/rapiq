@@ -5,9 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { hasOwnProperty, isSimpleValue } from '../../../utils';
 import { FilterComparisonOperator, FilterInputOperatorValue } from '../constants';
-import { FilterValueConfig } from '../type';
 
 function matchOperator(key: string, value: string, position: 'start' | 'end' | 'global') : string | undefined {
     switch (position) {
@@ -97,57 +95,4 @@ export function parseFilterValue(input: string) : {
             FilterComparisonOperator.NOT_EQUAL :
             FilterComparisonOperator.EQUAL,
     };
-}
-
-export function isFilterValueConfig(data: unknown) : data is FilterValueConfig<any> {
-    if (typeof data !== 'object' || data === null) {
-        return false;
-    }
-
-    if (hasOwnProperty(data, 'operator')) {
-        const operators : string[] = Object.values(FilterInputOperatorValue);
-
-        if (typeof data.operator === 'string') {
-            if (operators.indexOf(data.operator) === -1) {
-                return false;
-            }
-        } else if (Array.isArray(data.operator)) {
-            for (let i = 0; i < data.operator.length; i++) {
-                if (typeof data.operator[i] !== 'string') {
-                    return false;
-                }
-
-                if (operators.indexOf(data.operator[i]) === -1) {
-                    return false;
-                }
-            }
-        } else {
-            return false;
-        }
-    } else {
-        return false;
-    }
-
-    if (hasOwnProperty(data, 'value')) {
-        if (
-            !isSimpleValue(data.value, {
-                withNull: true,
-                withUndefined: true,
-            })
-        ) {
-            if (Array.isArray(data.value)) {
-                for (let i = 0; i < data.value.length; i++) {
-                    if (!isSimpleValue(data.value[i])) {
-                        return false;
-                    }
-                }
-            } else {
-                return false;
-            }
-        }
-    } else {
-        return false;
-    }
-
-    return true;
 }

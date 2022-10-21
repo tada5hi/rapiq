@@ -13,7 +13,7 @@ import { RelationsParseOutput } from '../relations';
 import {
     ParseAllowedKeys,
 } from '../type';
-import { FilterComparisonOperator, FilterInputOperatorValue } from './constants';
+import { FilterComparisonOperator } from './constants';
 
 // -----------------------------------------------------------
 
@@ -22,25 +22,18 @@ type FilterValueInput = FilterValueInputPrimitive | null | undefined;
 
 export type FilterValueSimple<V extends FilterValueInput = FilterValueInput> = V extends string | number ? (V | V[]) : V;
 export type FilterValueWithOperator<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
-    `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
-    V extends boolean ? null | '!null' : never;
+    V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
+    V extends boolean ? V | null | '!null' : never;
 
 export type FilterValue<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
     (FilterValueSimple<V> | FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>) :
     V;
 
-export type FilterValueConfig<V extends FilterValueInput = FilterValueInput> = {
-    operator: `${FilterInputOperatorValue}` | (`${FilterInputOperatorValue}`)[];
-    value: FilterValueSimple<V>
-};
-
 // -----------------------------------------------------------
 // Build
 // -----------------------------------------------------------
 
-export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
-    T | FilterValue<T> | FilterValueConfig<T> :
-    never;
+export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ? T | FilterValue<T> : never;
 
 export type FiltersBuildInput<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends Record<string, any> ?

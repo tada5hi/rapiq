@@ -6,7 +6,7 @@
  */
 
 import {
-    FilterInputOperatorValue, Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
+    Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
 } from '../../src';
 import { buildURLQueryString } from '../../src/utils';
 
@@ -97,10 +97,7 @@ describe('src/build.ts', () => {
 
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: FilterInputOperatorValue.LIKE,
-                    value: 1,
-                },
+                id: '~1',
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '~1' } }));
@@ -108,10 +105,7 @@ describe('src/build.ts', () => {
         // with lessThan
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: FilterInputOperatorValue.LESS_THAN,
-                    value: 1,
-                },
+                id: '<1',
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '<1' } }));
@@ -119,10 +113,7 @@ describe('src/build.ts', () => {
         // with lessThanEqual
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: FilterInputOperatorValue.LESS_THAN_EQUAL,
-                    value: 1,
-                },
+                id: '<=1',
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '<=1' } }));
@@ -130,10 +121,7 @@ describe('src/build.ts', () => {
         // with moreThan
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: FilterInputOperatorValue.MORE_THAN,
-                    value: 1,
-                },
+                id: '>1',
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '>1' } }));
@@ -141,10 +129,7 @@ describe('src/build.ts', () => {
         // with moreThanEqual
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: FilterInputOperatorValue.MORE_THAN_EQUAL,
-                    value: 1,
-                },
+                id: '>=1',
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '>=1' } }));
@@ -160,30 +145,9 @@ describe('src/build.ts', () => {
         // with negation & like operator
         record = buildQuery<Entity>({
             filter: {
-                id: {
-                    operator: [
-                        FilterInputOperatorValue.NEGATION,
-                        FilterInputOperatorValue.LIKE,
-                    ],
-                    value: [1, 2, 3],
-                },
+                id: ['!~1', 2, 3],
             },
         });
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
-
-        // with wrong operator order :)
-        record = buildQuery<Entity>({
-            filter: {
-                id: {
-                    operator: [
-                        FilterInputOperatorValue.LIKE,
-                        FilterInputOperatorValue.NEGATION,
-                    ],
-                    value: [1, 2, 3],
-                },
-            },
-        });
-
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
     });
 

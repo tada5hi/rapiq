@@ -6,7 +6,6 @@
  */
 
 import {
-    isFilterValueConfig,
     FiltersParseOptions,
     FiltersParseOutput,
     parseQueryFilters,
@@ -385,27 +384,4 @@ describe('src/filter/index.ts', () => {
             },
         ] as FiltersParseOutput);
     });
-
-    it('should determine filter operator config', () => {
-        let data = isFilterValueConfig({
-            value: 1,
-            operator: '<'
-        });
-
-        expect(data).toBeTruthy();
-
-        data = isFilterValueConfig({
-            value: 1,
-            operator: {}
-        })
-
-        expect(data).toBeFalsy();
-
-        data = isFilterValueConfig({
-            value: {},
-            operator: '<'
-        });
-
-        expect(data).toBeFalsy();
-    })
 });
