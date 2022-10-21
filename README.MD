@@ -238,13 +238,8 @@ export class Item {
 import { Request, Response } from 'express';
 
 import {
-    parseQuery,
-    Parameter,
-    ParseOutput
-} from 'rapiq';
-
-import {
     applyQueryParseOutput,
+    parseQuery,
     useDataSource
 } from 'typeorm-extension';
 
@@ -259,7 +254,7 @@ import {
 export async function getUsers(req: Request, res: Response) {
     // const {fields, filter, include, page, sort} = req.query;
 
-    const output: ParseOutput = parseQuery<User>(req.query, {
+    const output = parseQuery<User>(req.query, {
         defaultPath: 'user',
         fields: {
             allowed: ['id', 'name', 'realm.id', 'realm.name'],

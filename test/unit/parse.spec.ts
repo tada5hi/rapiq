@@ -77,7 +77,7 @@ describe('src/parse.ts', () => {
     });
 
     it('should parse relation query parameter', () => {
-        let value = parseQueryParameter(Parameter.RELATIONS, 'profile', { allowed: ['profile'] });
+        let value = parseQueryParameter<Parameter.RELATIONS, Record<string, any>>(Parameter.RELATIONS, 'profile', { allowed: ['profile'] });
         expect(value).toEqual([
             { key: 'profile', value: 'profile' },
         ] as RelationsParseOutput);
