@@ -1,3 +1,10 @@
+## [0.2.9](https://github.com/Tada5hi/rapiq/compare/v0.2.8...v0.2.9) (2022-10-21)
+
+
+### Bug Fixes
+
+* example in README.md & bump version ([521fed8](https://github.com/Tada5hi/rapiq/commit/521fed8fda810d5dc1487db7c7a97962ea3baa0a))
+
 ## [0.2.8](https://github.com/Tada5hi/rapiq/compare/v0.2.7...v0.2.8) (2022-10-21)
 
 
