@@ -11,14 +11,18 @@ import {
 import {
     Parameter, URLParameter,
 } from '../../constants';
+import { ObjectLiteral } from '../../type';
 import { ParseParameterOptions, ParseParameterOutput } from './type';
 
-export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`>(
-    key: K,
+export function parseQueryParameter<
+    P extends `${Parameter}` | `${URLParameter}`,
+    T extends ObjectLiteral = ObjectLiteral,
+    >(
+    key: P,
     data: unknown,
-    options?: ParseParameterOptions<K>,
+    options?: ParseParameterOptions<P, T extends unknown ? ObjectLiteral : T>,
     relations?: RelationsParseOutput,
-): ParseParameterOutput<K> {
+): ParseParameterOutput<P> {
     switch (key) {
         case Parameter.FIELDS:
         case URLParameter.FIELDS:
@@ -28,7 +32,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
                     ...(invalidToEmptyObject(options)) as ParseParameterOptions<Parameter.FIELDS>,
                     ...(relations ? { relations } : {}),
                 },
-            ) as ParseParameterOutput<K>);
+            ) as ParseParameterOutput<P>);
         case Parameter.FILTERS:
         case URLParameter.FILTERS:
             return (parseQueryFilters(
@@ -37,7 +41,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
                     ...(invalidToEmptyObject(options)) as ParseParameterOptions<Parameter.FILTERS>,
                     ...(relations ? { relations } : {}),
                 },
-            ) as ParseParameterOutput<K>);
+            ) as ParseParameterOutput<P>);
         case Parameter.PAGINATION:
         case URLParameter.PAGINATION:
             return (parseQueryPagination(
@@ -45,7 +49,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
                 {
                     ...(invalidToEmptyObject(options)) as ParseParameterOptions<Parameter.PAGINATION>,
                 },
-            ) as ParseParameterOutput<K>);
+            ) as ParseParameterOutput<P>);
         case Parameter.RELATIONS:
         case URLParameter.RELATIONS:
             return (parseQueryRelations(
@@ -53,7 +57,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
                 {
                     ...(invalidToEmptyObject(options)) as ParseParameterOptions<Parameter.RELATIONS>,
                 },
-            ) as ParseParameterOutput<K>);
+            ) as ParseParameterOutput<P>);
         default:
             return (parseQuerySort(
                 data,
@@ -61,7 +65,7 @@ export function parseQueryParameter<K extends `${Parameter}` | `${URLParameter}`
                     ...(invalidToEmptyObject(options)) as ParseParameterOptions<Parameter.SORT>,
                     ...(relations ? { relations } : {}),
                 },
-            ) as ParseParameterOutput<K>);
+            ) as ParseParameterOutput<P>);
     }
 }
 

@@ -6,6 +6,7 @@
  */
 
 import { Parameter, URLParameter } from '../constants';
+import { ObjectLiteral } from '../type';
 
 import { ParseParameterOptions, ParseParameterOutput } from './parameter';
 
@@ -17,11 +18,11 @@ export type ParseInput = {
 
 //------------------------------------------------
 
-export type ParseOptions = {
+export type ParseOptions<T extends ObjectLiteral = ObjectLiteral> = {
     /**
      * On default all query keys are enabled.
      */
-    [K in `${Parameter}`]?: ParseParameterOptions<K>
+    [P in `${Parameter}`]?: ParseParameterOptions<P, T>
 } & {
     defaultPath?: string
 };

@@ -19,10 +19,11 @@ import {
 } from '../../parameter';
 
 import { Parameter, URLParameter } from '../../constants';
+import { ObjectLiteral } from '../../type';
 
 export type ParseParameterOptions<
     P extends `${Parameter}` | `${URLParameter}`,
-    T extends Record<string, any> = Record<string, any>,
+    T extends ObjectLiteral = ObjectLiteral,
     > =
     P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
         FieldsParseOptions<T> :

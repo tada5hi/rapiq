@@ -13,12 +13,13 @@ import {
     SortParseOutput,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
+import { ObjectLiteral } from '../type';
 import { parseQueryParameter } from './parameter';
 import { ParseInput, ParseOptions, ParseOutput } from './type';
 
-export function parseQuery(
+export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,
-    options?: ParseOptions,
+    options?: ParseOptions<T extends unknown ? ObjectLiteral : T>,
 ) : ParseOutput {
     options ??= {};
 

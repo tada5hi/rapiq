@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ObjectLiteral } from '../type';
 import { BuildInput } from './type';
 import {
     buildQueryFields,
@@ -22,7 +23,7 @@ import {
     buildURLQueryString,
 } from '../utils';
 
-export function buildQuery<T extends Record<string, any>>(
+export function buildQuery<T extends ObjectLiteral = ObjectLiteral>(
     input?: BuildInput<T>,
 ) : string {
     if (
