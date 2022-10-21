@@ -1,3 +1,10 @@
+## [0.2.7](https://github.com/Tada5hi/rapiq/compare/v0.2.6...v0.2.7) (2022-10-21)
+
+
+### Bug Fixes
+
+* add generic argument for parse-query function ([ac0e89f](https://github.com/Tada5hi/rapiq/commit/ac0e89f331b479d520aa345219c8dce9471c5eeb))
+
 ## [0.2.6](https://github.com/Tada5hi/rapiq/compare/v0.2.5...v0.2.6) (2022-10-20)
 
 
