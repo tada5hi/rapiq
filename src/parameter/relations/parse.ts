@@ -8,7 +8,7 @@
 import minimatch from 'minimatch';
 import { ObjectLiteral } from '../../type';
 import { applyMapping, hasOwnProperty } from '../../utils';
-import { isPathCoveredByParseAllowed } from '../utils';
+import { isPathCoveredByParseAllowedOption } from '../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
 import { includeParents } from './utils';
@@ -55,12 +55,15 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         return [];
     }
 
-    for (let i = 0; i < items.length; i++) {
-        items[i] = applyMapping(items[i], options.mapping);
+    const mappingKeys = Object.keys(options.mapping);
+    if (mappingKeys.length > 0) {
+        for (let i = 0; i < items.length; i++) {
+            items[i] = applyMapping(items[i], options.mapping);
+        }
     }
 
     if (options.allowed) {
-        items = items.filter((item) => isPathCoveredByParseAllowed(options.allowed, item));
+        items = items.filter((item) => isPathCoveredByParseAllowedOption(options.allowed, item));
     }
 
     if (options.includeParents) {
@@ -80,15 +83,6 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     return items
         .map((key) => {
             const parts = key.split('.');
-
-            /*
-            let key : string;
-            if (path.includes('.')) {
-                key = parts.slice(-2).join('.');
-            } else {
-                key = options.defaultAlias ? `${options.defaultAlias}.${path}` : path;
-            }
-            */
 
             let value : string;
             if (

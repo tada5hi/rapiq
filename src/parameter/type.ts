@@ -11,18 +11,18 @@ import {
 
 // -----------------------------------------------------------
 
-type ParseAllowedObject<T extends ObjectLiteral = ObjectLiteral> = {
+type ParseAllowedObjectOption<T extends ObjectLiteral = ObjectLiteral> = {
     [K in keyof T]?: T[K] extends OnlyObject<T[K]> ?
-        ParseAllowedKeys<Flatten<T[K]>> :
+        ParseAllowedOption<Flatten<T[K]>> :
         never
 };
 
-export type ParseAllowedKeys<T extends ObjectLiteral = ObjectLiteral> = T extends ObjectLiteral ?
+export type ParseAllowedOption<T extends ObjectLiteral = ObjectLiteral> = T extends ObjectLiteral ?
     (
-        ParseAllowedObject<T> |
+        ParseAllowedObjectOption<T> |
         (
             SimpleKeys<T>[] |
-            ParseAllowedObject<T>
+            ParseAllowedObjectOption<T>
         )[]
         |
         NestedKeys<T>[]

@@ -245,7 +245,8 @@ import {
 /**
  * Get many users.
  *
- * ...
+ * Request example
+ * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
  *
  * @param req
  * @param res

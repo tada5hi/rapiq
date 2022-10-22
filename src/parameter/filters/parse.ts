@@ -14,7 +14,7 @@ import {
     getFieldDetails,
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
-import { isPathCoveredByParseAllowed } from '../utils';
+import { isPathCoveredByParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { parseFilterValue, transformFilterValue } from './utils';
@@ -150,25 +150,17 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             continue;
         }
 
-        let value : unknown = data[keys[i]];
+        const value : unknown = data[keys[i]];
 
         if (
             typeof value !== 'string' &&
             typeof value !== 'number' &&
             typeof value !== 'boolean' &&
-            value !== null
+            typeof value !== 'undefined' &&
+            value !== null &&
+            !Array.isArray(value)
         ) {
-            // eslint-disable-next-line no-continue
             continue;
-        }
-
-        if (typeof value === 'string') {
-            value = value.trim();
-            const stripped : string = (value as string).replace('/,/g', '');
-            if (stripped.length === 0) {
-                // eslint-disable-next-line no-continue
-                continue;
-            }
         }
 
         keys[i] = applyMapping(keys[i], options.mapping);
@@ -186,7 +178,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             options.allowed &&
-            !isPathCoveredByParseAllowed(options.allowed, [keys[i], fullKey])
+            !isPathCoveredByParseAllowedOption(options.allowed, [keys[i], fullKey])
         ) {
             continue;
         }
@@ -198,13 +190,34 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
         if (options.validate) {
             if (Array.isArray(filter.value)) {
-                filter.value = (filter.value as any[]).filter((item: unknown) => options.validate(filter.key as NestedKeys<T>, item));
+                const output : (string | number)[] = [];
+                for (let j = 0; j < filter.value.length; j++) {
+                    if (options.validate(filter.key as NestedKeys<T>, filter.value[j])) {
+                        output.push(filter.value[j]);
+                    }
+                }
+
+                filter.value = output as string[] | number[];
                 if (filter.value.length === 0) {
                     continue;
                 }
             } else if (!options.validate(filter.key as NestedKeys<T>, filter.value)) {
                 continue;
             }
+        }
+
+        if (
+            typeof filter.value === 'string' &&
+            filter.value.length === 0
+        ) {
+            continue;
+        }
+
+        if (
+            Array.isArray(filter.value) &&
+            filter.value.length === 0
+        ) {
+            continue;
         }
 
         if (fieldDetails.path || options.defaultPath) {

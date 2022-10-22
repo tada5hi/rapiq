@@ -149,7 +149,7 @@ const input : FiltersBuildInput<User> = {
 ```typescript
 type FiltersParseOptionsDefault<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-        FiltersParseOptionsDefault<Flatten<T[K]>> :
+        FiltersParseDefaultOption<Flatten<T[K]>> :
         (K extends string ? FilterValue<TypeFromNestedKeyPath<T, K>> : never)
 } | {
     [K in NestedKeys<T>]?: FilterValue<TypeFromNestedKeyPath<T, K>>
@@ -159,8 +159,8 @@ type FiltersParseOptions<
     T extends Record<string, any> = Record<string, any>,
 > = {
     mapping?: Record<string, string>,
-    allowed?: ParseOptionsAllowed<T>,
-    default?: FiltersParseOptionsDefault<T>,
+    allowed?: ParseAllowedOption<T>,
+    default?: FiltersParseDefaultOption<T>,
     defaultByElement?: boolean,
     defaultPath?: string,
     relations?: RelationsParseOutput

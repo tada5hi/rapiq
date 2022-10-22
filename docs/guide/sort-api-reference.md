@@ -73,9 +73,9 @@ const input : SortBuildInput<User> = [
 
 ## `SortParseOptions`
 ```typescript
-type SortParseOptionsDefault<T extends Record<string, any>> = {
+type SortPaseDefaultOption<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-        SortParseOptionsDefault<Flatten<T[K]>> :
+        SortPaseDefaultOption<Flatten<T[K]>> :
         `${SortDirection}`
 } | {
     [K in NestedKeys<T>]?: `${SortDirection}`
@@ -84,9 +84,9 @@ type SortParseOptionsDefault<T extends Record<string, any>> = {
 type SortParseOptions<
     T extends Record<string, any> = Record<string, any>,
 > = {
-    allowed?: ParseOptionsAllowed<T> | ParseOptionsAllowed<T>[],
+    allowed?: ParseAllowedOption<T>,
     mapping?: Record<string, string>,
-    default?: SortParseOptionsDefault<T>,
+    default?: SortPaseDefaultOption<T>,
     defaultPath?: string,
     relations?: RelationsParseOutput,
 };

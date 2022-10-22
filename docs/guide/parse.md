@@ -81,118 +81,13 @@ export class Item {
 }
 ```
 
-## Extended Example
+## Separate
 
-In the following code snippet, all query parameter parse functions (`parseQueryFields`, `parseQueryFilters`, ...)
-will be imported separately, to show the usage in detail.
+The following variant will `parse` and `apply` the query parameters in **two** steps.
 
-```typescript
-import {Request, Response} from 'express';
-
-import {
-    parseQueryFields,
-    parseQueryFilters,
-    parseQueryRelations,
-    parseQueryPagination,
-    parseQuerySort,
-} from "rapiq";
-
-import {
-    applyQueryParseOutput,
-    useDataSource
-} from 'typeorm-extension';
-
-import { User } from './entities';
-
-/**
- * Get many users.
- *
- * Request example
- * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
- *
- * Return Example:
- * {
- *     data: [
- *         {
- *              id: 1, 
- *              name: 'tada5hi', 
- *              realm: {
- *                  id: 'xxx', 
- *                  name: 'xxx'
- *              }
- *         }
- *      ],
- *     meta: {
- *        total: 1,
- *        limit: 20,
- *        offset: 0
- *    }
- * }
- * @param req
- * @param res
- */
-export async function getUsers(req: Request, res: Response) {
-    const {fields, filter, include, page, sort} = req.query;
-
-    const dataSource = await useDataSource();
-    const repository = dataSource.getRepository(User);
-    const query = repository.createQueryBuilder('user');
-
-    // -----------------------------------------------------
-    
-    const parsed = applyQueryParseOutput(query, {
-        defaultPath: 'user',
-        fields: parseQueryFields<User>(fields, {
-            defaultPath: 'user',
-            // The fields id & name of the realm entity can only be used, 
-            // if the relation 'realm' is included.
-            allowed: ['id', 'name', 'realm.id', 'realm.name'],
-            relations: relationsParsed
-        }),
-        // only allow filtering users by id & name
-        filters: parseQueryFilters<User>(filter, {
-            defaultPath: 'user',
-            // realm.id can only be used as filter key, 
-            // if the relation 'realm' is included.
-            allowed: ['id', 'name', 'realm.id'],
-            relations: relationsParsed
-        }),
-        relations: parseQueryRelations<User>(include, {
-            allowed: ['items', 'realm']
-        }),
-        // only allow to select 20 items at maximum.
-        pagination: parseQueryPagination(page, {
-            maxLimit: 20
-        }),
-        sort: parseQuerySort<User>(sort, {
-            defaultPath: 'user',
-            // profile.id can only be used as sorting key,
-            // if the relation 'realm' is included.
-            allowed: ['id', 'name', 'realm.id'],
-            relations: relationsParsed
-        })
-    });
-
-    // -----------------------------------------------------
-
-    const [entities, total] = await query.getManyAndCount();
-
-    return res.json({
-        data: {
-            data: entities,
-            meta: {
-                total,
-                ...parsed.pagination
-            }
-        }
-    });
-}
-```
-
-## Simple Example
-
-Another way is to directly import the [parseQuery](parse-api-reference#parsequery) method, which will handle a group of query parameter values & options.
-The [ParseInput](parse-api-reference#parseinput) argument of the `parseQuery` method accepts multiple (alias-) property keys.
+After the [ParseOutput](parse-api-reference.md#parseoutput) is generated using the [parseQuery](parse-api-reference.md#parsequery) function, 
+the output can be applied on the typeorm QueryBuilder using the `applyQueryParseOutput` function of 
+the [typeorm-extension](https://www.npmjs.com/package/typeorm-extension).
 
 ```typescript
 import { Request, Response } from 'express';
@@ -210,14 +105,13 @@ import {
 /**
  * Get many users.
  *
- * ...
+ * Request example
+ * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
  *
  * @param req
  * @param res
  */
 export async function getUsers(req: Request, res: Response) {
-    // const {fields, filter, include, page, sort} = req.query;
-
     const output: ParseOutput = parseQuery<User>(req.query, {
         defaultPath: 'user',
         fields: {
@@ -244,7 +138,7 @@ export async function getUsers(req: Request, res: Response) {
     // -----------------------------------------------------
 
     // apply parsed data on the db query.
-    const parsed = applyQueryParseOutput(query, output);
+    applyQueryParseOutput(query, output);
 
     // -----------------------------------------------------
 
@@ -262,10 +156,78 @@ export async function getUsers(req: Request, res: Response) {
 }
 ```
 
-## Third Party Support
+## Compact
 
-It can even be much simpler to parse the query key-value pairs with the `typeorm-extension` library, because it
-uses this library under the hood ⚡.
-This is much shorter than the previous example and has less explicit dependencies 😁.
+Another way is to use the `applyQuery` function which will `parse` and `apply` the query parameters in **one** step.
 
-[read more](https://www.npmjs.com/package/typeorm-extension)
+This is much shorter than the previous example and has less explicit dependencies ⚡.
+
+```typescript
+import {Request, Response} from 'express';
+
+import {
+    applyQuery,
+    useDataSource
+} from 'typeorm-extension';
+
+import { User } from './entities';
+
+/**
+ * Get many users.
+ *
+ * Request example
+ * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
+ *
+ * @param req
+ * @param res
+ */
+export async function getUsers(req: Request, res: Response) {
+    const dataSource = await useDataSource();
+    const repository = dataSource.getRepository(User);
+    const query = repository.createQueryBuilder('user');
+
+    // -----------------------------------------------------
+    
+    const { pagination } = applyQuery(query, req.query, {
+        // defaultAlais is an alias for the defaultPath option
+        defaultAlias: 'user',
+        fields: {
+            // The fields id & name of the realm entity can only be used, 
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id', 'realm.name']
+        },
+        // only allow filtering users by id & name
+        filters: {
+            // realm.id can only be used as filter key, 
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id']
+        },
+        relations: {
+            allowed: ['items', 'realm']
+        },
+        // only allow to select 20 items at maximum.
+        pagination: {
+            maxLimit: 20
+        },
+        sort: {
+            // profile.id can only be used as sorting key,
+            // if the relation 'realm' is included.
+            allowed: ['id', 'name', 'realm.id']
+        }
+    });
+
+    // -----------------------------------------------------
+
+    const [entities, total] = await query.getManyAndCount();
+
+    return res.json({
+        data: {
+            data: entities,
+            meta: {
+                total,
+                ...pagination
+            }
+        }
+    });
+}
+```

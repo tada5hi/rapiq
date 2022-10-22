@@ -7,16 +7,16 @@
 
 import { NestedKeys, NestedResourceKeys } from '../../../type';
 import { flattenToKeyPathArray } from '../../../utils';
-import { ParseAllowedKeys } from '../../type';
+import { ParseAllowedOption } from '../../type';
 
-export function flattenParseOptionsAllowed<T>(
-    input: ParseAllowedKeys<T>,
+export function flattenParseAllowedOption<T>(
+    input: ParseAllowedOption<T>,
 ) : string[] {
     return flattenToKeyPathArray(input);
 }
 
-export function isPathCoveredByParseAllowed<T>(
-    input: ParseAllowedKeys<T> |
+export function isPathCoveredByParseAllowedOption<T>(
+    input: ParseAllowedOption<T> |
     NestedKeys<T>[] |
     NestedResourceKeys<T>[],
     path: string | string[],

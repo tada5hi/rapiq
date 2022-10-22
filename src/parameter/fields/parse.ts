@@ -10,7 +10,7 @@ import { ObjectLiteral } from '../../type';
 import {
     applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
 } from '../../utils';
-import { flattenParseOptionsAllowed } from '../utils';
+import { flattenParseAllowedOption } from '../utils';
 import {
     FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
 } from './type';
@@ -42,11 +42,11 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     options ??= {};
 
     const defaultDomainFields = groupArrayByKeyPath(
-        flattenParseOptionsAllowed(options.default),
+        flattenParseAllowedOption(options.default),
     );
 
     const allowedDomainFields = groupArrayByKeyPath(
-        flattenParseOptionsAllowed(options.allowed),
+        flattenParseAllowedOption(options.allowed),
     );
 
     const domainFields = merge(

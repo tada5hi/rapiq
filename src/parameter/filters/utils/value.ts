@@ -5,11 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FilterValue, FilterValueSimple } from '../type';
+import { FilterValueSimple } from '../type';
 
-export function transformFilterValue(input: FilterValue) : FilterValueSimple {
+export function transformFilterValue(input: FilterValueSimple) : FilterValueSimple {
     if (typeof input === 'string') {
-        const lower = input.trim().toLowerCase();
+        input = input.trim();
+        const lower = input.toLowerCase();
 
         if (lower === 'true') {
             return true;
@@ -21,6 +22,10 @@ export function transformFilterValue(input: FilterValue) : FilterValueSimple {
 
         if (lower === 'null') {
             return null;
+        }
+
+        if (input.length === 0) {
+            return input;
         }
 
         const num = Number(input);

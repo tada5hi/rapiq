@@ -13,7 +13,7 @@ import {
     hasOwnProperty, isFieldNonRelational,
     isFieldPathAllowedByRelations,
 } from '../../utils';
-import { flattenParseOptionsAllowed, isPathCoveredByParseAllowed } from '../utils';
+import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 
 import {
     SortParseOptions,
@@ -149,7 +149,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         if (
             typeof options.allowed !== 'undefined' &&
             !isMultiDimensionalArray(options.allowed) &&
-            !isPathCoveredByParseAllowed(options.allowed, [key, keyWithAlias])
+            !isPathCoveredByParseAllowedOption(options.allowed, [key, keyWithAlias])
         ) {
             continue;
         }
@@ -180,7 +180,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         for (let i = 0; i < options.allowed.length; i++) {
             const temp : SortParseOutput = [];
 
-            const keyPaths = flattenParseOptionsAllowed(options.allowed[i]);
+            const keyPaths = flattenParseAllowedOption(options.allowed[i]);
 
             for (let j = 0; j < keyPaths.length; j++) {
                 let keyWithAlias : string = keyPaths[j];

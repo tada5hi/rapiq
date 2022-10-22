@@ -6,36 +6,72 @@
  */
 
 import { FilterComparisonOperator, FilterInputOperatorValue } from '../constants';
+import { FilterValueSimple } from '../type';
 
-function matchOperator(key: string, value: string, position: 'start' | 'end' | 'global') : string | undefined {
-    switch (position) {
-        case 'start': {
-            if (value.substring(0, key.length) === key) {
-                return value.substring(key.length);
+function matchOperator(key: string, value: FilterValueSimple, position: 'start' | 'end' | 'global') : FilterValueSimple | undefined {
+    if (typeof value === 'string') {
+        switch (position) {
+            case 'start': {
+                if (value.substring(0, key.length) === key) {
+                    return value.substring(key.length);
+                }
+                break;
             }
-            break;
+            case 'end': {
+                if (value.substring(0 - key.length) === key) {
+                    return value.substring(0, value.length - key.length - 1);
+                }
+                break;
+            }
         }
-        case 'end': {
-            if (value.substring(0 - key.length) === key) {
-                return value.substring(0, value.length - key.length - 1);
+
+        return undefined;
+    }
+
+    if (Array.isArray(value)) {
+        let match = false;
+        for (let i = 0; i < value.length; i++) {
+            const output = matchOperator(key, value[i], position);
+            if (typeof output !== 'undefined') {
+                match = true;
+                value[i] = output as string | number;
             }
-            break;
+        }
+
+        if (match) {
+            return value;
         }
     }
 
     return undefined;
 }
 
-export function parseFilterValue(input: string) : {
+export function parseFilterValue(input: FilterValueSimple) : {
     operator: `${FilterComparisonOperator}`,
-    value: string | string[]
+    value: FilterValueSimple
 } {
+    if (
+        typeof input === 'string' &&
+        input.includes(FilterInputOperatorValue.IN)
+    ) {
+        input = input.split(FilterInputOperatorValue.IN);
+    }
+
     let negation = false;
 
     let value = matchOperator(FilterInputOperatorValue.NEGATION, input, 'start');
     if (typeof value !== 'undefined') {
         negation = true;
         input = value;
+    }
+
+    if (Array.isArray(input)) {
+        return {
+            value: input,
+            operator: negation ?
+                FilterComparisonOperator.NOT_IN :
+                FilterComparisonOperator.IN,
+        };
     }
 
     value = matchOperator(FilterInputOperatorValue.LIKE, input, 'start');
@@ -77,15 +113,6 @@ export function parseFilterValue(input: string) : {
         return {
             value,
             operator: FilterComparisonOperator.GREATER_THAN,
-        };
-    }
-
-    if (input.includes(FilterInputOperatorValue.IN)) {
-        return {
-            value: input.split(FilterInputOperatorValue.IN),
-            operator: negation ?
-                FilterComparisonOperator.NOT_IN :
-                FilterComparisonOperator.IN,
         };
     }
 

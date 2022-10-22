@@ -85,12 +85,11 @@ const input : FieldsBuildInput<User> = [
 ## `FieldsParseOptions`
 
 ```typescript
-type FieldsParseOptions<
-    T extends Record<string, any> = Record<string, any>,
-> = {
+type FieldsParseOptions<T extends Record<string, any> = Record<string, any>,
+    > = {
     mapping?: Record<string, string>,
-    allowed?: ParseOptionsAllowed<T>,
-    default?: ParseOptionsAllowed<T>,
+    allowed?: ParseAllowedOption<T>,
+    default?: ParseAllowedOption<T>,
     defaultPath?: string,
     relations?: RelationsParseOutput
 };
