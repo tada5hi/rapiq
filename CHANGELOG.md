@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/Tada5hi/rapiq/compare/v0.3.0...v0.3.1) (2022-10-22)
+
+
+### Bug Fixes
+
+* cleanup types + support more filter input values ([1c0e59f](https://github.com/Tada5hi/rapiq/commit/1c0e59f4981b1b2ce6b2d671f670243486719142))
+
 # [0.3.0](https://github.com/Tada5hi/rapiq/compare/v0.2.9...v0.3.0) (2022-10-21)
 
 
