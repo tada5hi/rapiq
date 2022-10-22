@@ -1,3 +1,17 @@
+# [0.3.0](https://github.com/Tada5hi/rapiq/compare/v0.2.9...v0.3.0) (2022-10-21)
+
+
+### Bug Fixes
+
+* changed structure of filters-parse-output-element ([0f3ec4e](https://github.com/Tada5hi/rapiq/commit/0f3ec4e98abd740762f07d5c6fbb518f4da5abe9))
+* filter-value-with-operator type ([acbc090](https://github.com/Tada5hi/rapiq/commit/acbc0908febd2e66c52368dc199734fd0008033e))
+* remove filter-value-config format ([a7172b0](https://github.com/Tada5hi/rapiq/commit/a7172b00d1cdc28ba22f0b6555a69f134c2d8321))
+
+
+### Features
+
+* add filter validate option ([882a5dc](https://github.com/Tada5hi/rapiq/commit/882a5dcb58ecd5cb57a7e4f5326b9e6a528a1194))
+
 ## [0.2.9](https://github.com/Tada5hi/rapiq/compare/v0.2.8...v0.2.9) (2022-10-21)
 
 
