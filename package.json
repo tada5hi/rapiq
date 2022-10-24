@@ -67,7 +67,7 @@
         "@tada5hi/eslint-config-typescript": "^1.0.8",
         "@types/jest": "^27.5.0",
         "@types/minimatch": "^5.1.2",
-        "@types/node": "^18.11.3",
+        "@types/node": "^18.11.4",
         "cross-env": "^7.0.3",
         "eslint": "^8.25.0",
         "husky": "^8.0.1",
