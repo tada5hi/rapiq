@@ -13,7 +13,7 @@ import { ParseParameterOptions, ParseParameterOutput } from './parameter';
 //------------------------------------------------
 
 export type ParseInput = {
-    [K in `${Parameter}` | `${URLParameter}`]?: any
+    [K in `${Parameter}` | `${URLParameter}`]?: unknown
 };
 
 //------------------------------------------------
