@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/Tada5hi/rapiq/compare/v0.4.0...v0.4.1) (2022-10-28)
+
+
+### Bug Fixes
+
+* allow enable/disable parameter parsing by boolean for parseQuery ([2b29f41](https://github.com/Tada5hi/rapiq/commit/2b29f41ed17ff1cd93b5b60ad0deedd92cc1ee41))
+
 # [0.4.0](https://github.com/Tada5hi/rapiq/compare/v0.3.2...v0.4.0) (2022-10-28)
 
 
