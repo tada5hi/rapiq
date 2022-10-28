@@ -26,6 +26,28 @@ describe('src/filter/index.ts', () => {
         allowedFilter = parseQueryFilters({ id: 1 }, { allowed: [] });
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
 
+        // filter
+        allowedFilter = parseQueryFilters({ id: 1 }, { allowed: undefined });
+        expect(allowedFilter).toEqual([{
+            key: 'id',
+            value: 1,
+            operator: FilterComparisonOperator.EQUAL,
+        }] as FiltersParseOutput);
+
+        allowedFilter = parseQueryFilters({ id: 1 }, { default: { name: 'admin' } });
+        expect(allowedFilter).toEqual([{
+            key: 'name',
+            value: 'admin',
+            operator: FilterComparisonOperator.EQUAL,
+        }] as FiltersParseOutput);
+
+        allowedFilter = parseQueryFilters({ name: 'tada5hi' }, { default: { name: 'admin' } });
+        expect(allowedFilter).toEqual([{
+            key: 'name',
+            value: 'tada5hi',
+            operator: FilterComparisonOperator.EQUAL,
+        }] as FiltersParseOutput);
+
         // filter with alias
         allowedFilter = parseQueryFilters({ aliasId: 1 }, { mapping: { aliasId: 'id' }, allowed: ['id'] });
         expect(allowedFilter).toEqual([{

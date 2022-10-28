@@ -132,6 +132,9 @@ describe('src/fields/index.ts', () => {
         let data = parseQueryFields(undefined, options);
         expect(data).toEqual([{key: 'id'}, {key: 'name'}]);
 
+        data = parseQueryFields('name', { default: ['id']});
+        expect(data).toEqual([{ key: 'id' }]);
+
         // fields undefined with default
         data = parseQueryFields(undefined, {...options, default: ['id']});
         expect(data).toEqual([{ key: 'id' }]);
@@ -139,6 +142,18 @@ describe('src/fields/index.ts', () => {
         // fields as array
         data = parseQueryFields(['id'], options);
         expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
+
+        // no options
+        data = parseQueryFields(['id']);
+        expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
+
+        // empty allowed -> allows nothing
+        data = parseQueryFields(['id'], {allowed: []});
+        expect(data).toEqual([] as FieldsParseOutput);
+
+        // empty default -> allows nothing
+        data = parseQueryFields(['id'], {default: []});
+        expect(data).toEqual([] as FieldsParseOutput);
 
         // fields as string
         data = parseQueryFields('id', options);
@@ -166,9 +181,9 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields('id', { ...options, allowed: [] });
         expect(data).toEqual([] as FieldsParseOutput);
 
-        // undefined allowed -> allows nothing
+        // undefined allowed -> allows everything
         data = parseQueryFields('id', { ...options, allowed: undefined });
-        expect(data).toEqual([] as FieldsParseOutput);
+        expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
 
         // field not allowed
         data = parseQueryFields('avatar', options);

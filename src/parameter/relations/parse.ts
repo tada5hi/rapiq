@@ -23,7 +23,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
 
     // If it is an empty array nothing is allowed
     if (
-        typeof options.allowed === 'undefined' ||
+        Array.isArray(options.allowed) &&
         options.allowed.length === 0
     ) {
         return [];

@@ -14,7 +14,8 @@ import {
     getFieldDetails,
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
-import { isPathCoveredByParseAllowedOption } from '../utils';
+import { ParseAllowedOption } from '../type';
+import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
 import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { parseFilterValue, transformFilterValue } from './utils';
@@ -45,14 +46,6 @@ function transformFiltersParseOutputElement(element: FiltersParseOutputElement) 
     element.value = transformFilterValue(element.value);
 
     return element;
-}
-
-function transformFiltersParseOutput(output: FiltersParseOutput) {
-    for (let i = 0; i < output.length; i++) {
-        output[i] = transformFiltersParseOutputElement(output[i]);
-    }
-
-    return output;
 }
 
 function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>(
@@ -118,25 +111,29 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     options.relations = options.relations || [];
 
     // If it is an empty array nothing is allowed
-    if (
-        typeof options.allowed === 'undefined' ||
-        options.allowed.length === 0
-    ) {
-        return [];
+    if (typeof options.allowed !== 'undefined') {
+        options.allowed = flattenParseAllowedOption(options.allowed) as ParseAllowedOption<T>;
+        if (options.allowed.length === 0) {
+            return buildDefaultFiltersParseOutput(options);
+        }
     }
 
     /* istanbul ignore next */
     if (typeof data !== 'object' || data === null) {
-        return transformFiltersParseOutput(
-            buildDefaultFiltersParseOutput(options),
-        );
+        return buildDefaultFiltersParseOutput(options);
     }
 
     const { length } = Object.keys(data);
     if (length === 0) {
-        return transformFiltersParseOutput(
-            buildDefaultFiltersParseOutput(options),
-        );
+        return buildDefaultFiltersParseOutput(options);
+    }
+
+    if (
+        (typeof options.allowed === 'undefined' || options.allowed.length === 0) &&
+        options.default
+    ) {
+        const flatten = flattenNestedObject(options.default);
+        options.allowed = Object.keys(flatten) as ParseAllowedOption<T>;
     }
 
     const items : Record<string, FiltersParseOutputElement> = {};

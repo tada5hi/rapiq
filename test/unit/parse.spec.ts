@@ -34,6 +34,20 @@ describe('src/parse.ts', () => {
             [Parameter.FIELDS]: ['id', 'name'],
         });
         expect(value).toEqual({
+            fields: [
+                {key: 'id'},
+                {key: 'name'}
+            ]
+        } as ParseOutput);
+
+        value = parseQuery({
+            [Parameter.FIELDS]: ['id', 'name'],
+        }, {
+            fields: {
+                allowed: []
+            }
+        });
+        expect(value).toEqual({
             fields: []
         } as ParseOutput);
     });

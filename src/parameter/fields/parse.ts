@@ -55,14 +55,17 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         allowedDomainFields,
     );
 
-    let domainKeys : string[] = Object.keys(domainFields);
+    let keys : string[] = Object.keys(domainFields);
 
     // If it is an empty array nothing is allowed
-    if (domainKeys.length === 0) {
+    if (
+        (
+            typeof options.default !== 'undefined' ||
+            typeof options.allowed !== 'undefined'
+        ) && keys.length === 0
+    ) {
         return [];
     }
-
-    domainKeys = Object.keys(domainFields);
 
     const prototype: string = Object.prototype.toString.call(data);
     if (
@@ -84,14 +87,18 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     options.mapping ??= {};
     const reverseMapping = buildReverseRecord(options.mapping);
 
+    if (keys.length === 0) {
+        keys = Object.keys(data);
+    }
+
     const output : FieldsParseOutput = [];
 
-    for (let i = 0; i < domainKeys.length; i++) {
-        const domainKey = domainKeys[i];
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
 
         if (
-            !isFieldPathAllowedByRelations({ path: domainKey }, options.relations) &&
-            domainKey !== DEFAULT_ID
+            !isFieldPathAllowedByRelations({ path: key }, options.relations) &&
+            key !== DEFAULT_ID
         ) {
             continue;
         }
@@ -99,14 +106,14 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         let fields : string[] = [];
 
         if (
-            hasOwnProperty(data, domainKey)
+            hasOwnProperty(data, key)
         ) {
-            fields = parseFieldsInput(data[domainKey]);
+            fields = parseFieldsInput(data[key]);
         } else if (
-            hasOwnProperty(reverseMapping, domainKey)
+            hasOwnProperty(reverseMapping, key)
         ) {
-            if (hasOwnProperty(data, reverseMapping[domainKey])) {
-                fields = parseFieldsInput(data[reverseMapping[domainKey]]);
+            if (hasOwnProperty(data, reverseMapping[key])) {
+                fields = parseFieldsInput(data[reverseMapping[key]]);
             }
         }
 
@@ -119,16 +126,18 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         if (fields.length > 0) {
             for (let j = 0; j < fields.length; j++) {
                 fields[j] = applyMapping(
-                    buildFieldWithPath({ name: fields[j], path: domainKey }),
+                    buildFieldWithPath({ name: fields[j], path: key }),
                     options.mapping,
                     true,
                 );
             }
 
-            fields = fields
-                .filter((field) => domainFields[domainKey].indexOf(
-                    removeFieldInputOperator(field),
-                ) !== -1);
+            if (hasOwnProperty(domainFields, key)) {
+                fields = fields
+                    .filter((field) => domainFields[key].indexOf(
+                        removeFieldInputOperator(field),
+                    ) !== -1);
+            }
 
             transformed = transformFieldsInput(
                 fields,
@@ -137,17 +146,17 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             transformed.default.length === 0 &&
-            hasOwnProperty(defaultDomainFields, domainKey)
+            hasOwnProperty(defaultDomainFields, key)
         ) {
-            transformed.default = defaultDomainFields[domainKey];
+            transformed.default = defaultDomainFields[key];
         }
 
         if (
             transformed.included.length === 0 &&
             transformed.default.length === 0 &&
-            hasOwnProperty(allowedDomainFields, domainKey)
+            hasOwnProperty(allowedDomainFields, key)
         ) {
-            transformed.default = allowedDomainFields[domainKey];
+            transformed.default = allowedDomainFields[key];
         }
 
         transformed.default = Array.from(new Set([
@@ -165,8 +174,8 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         if (transformed.default.length > 0) {
             for (let j = 0; j < transformed.default.length; j++) {
                 let path : string | undefined;
-                if (domainKey !== DEFAULT_ID) {
-                    path = domainKey;
+                if (key !== DEFAULT_ID) {
+                    path = key;
                 } else if (options.defaultPath) {
                     path = options.defaultPath;
                 }

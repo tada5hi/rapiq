@@ -19,7 +19,8 @@ type ParseAllowedObjectOption<T extends ObjectLiteral = ObjectLiteral> = {
 
 export type ParseAllowedOption<T extends ObjectLiteral = ObjectLiteral> = T extends ObjectLiteral ?
     (
-        ParseAllowedObjectOption<T> |
+        ParseAllowedObjectOption<T>
+        |
         (
             SimpleKeys<T>[] |
             ParseAllowedObjectOption<T>

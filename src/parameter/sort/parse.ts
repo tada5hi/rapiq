@@ -13,6 +13,7 @@ import {
     hasOwnProperty, isFieldNonRelational,
     isFieldPathAllowedByRelations,
 } from '../../utils';
+import { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 
 import {
@@ -76,11 +77,11 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     options = options ?? {};
 
     // If it is an empty array nothing is allowed
-    if (
-        Array.isArray(options.allowed) &&
-        options.allowed.length === 0
-    ) {
-        return [];
+    if (typeof options.allowed !== 'undefined') {
+        const allowed = flattenParseAllowedOption(options.allowed) as ParseAllowedOption<T>;
+        if (allowed.length === 0) {
+            return buildDefaultSortParseOutput(options);
+        }
     }
 
     options.mapping = options.mapping || {};
@@ -94,6 +95,14 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         prototype !== '[object Object]'
     ) {
         return buildDefaultSortParseOutput(options);
+    }
+
+    if (
+        typeof options.allowed === 'undefined' &&
+        options.default
+    ) {
+        const flatten = flattenNestedObject(options.default);
+        options.allowed = Object.keys(flatten) as ParseAllowedOption<T>;
     }
 
     let parts : string[] = [];

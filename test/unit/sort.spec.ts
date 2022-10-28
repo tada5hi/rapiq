@@ -32,6 +32,14 @@ describe('src/sort/index.ts', () => {
         transformed = parseQuerySort('-id', { allowed: undefined });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
 
+        // only default
+        transformed = parseQuerySort('name', { default: { name: 'DESC' } });
+        expect(transformed).toEqual([{ key: 'name', value: SortDirection.ASC }] as SortParseOutput);
+
+        // only default with no match
+        transformed = parseQuerySort('-id', { default: { name: 'DESC' } });
+        expect(transformed).toEqual([{ key: 'name', value: SortDirection.DESC }] as SortParseOutput);
+
         // wrong allowed
         transformed = parseQuerySort('-id', { allowed: ['a'] });
         expect(transformed).toEqual([] as SortParseOutput);
