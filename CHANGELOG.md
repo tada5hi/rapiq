@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/Tada5hi/rapiq/compare/v0.3.1...v0.3.2) (2022-10-27)
+
+
+### Bug Fixes
+
+* only inherit default-path for defined options ([454b54a](https://github.com/Tada5hi/rapiq/commit/454b54add0cd61e03f7968cc5700d7b24b825b47))
+
 ## [0.3.1](https://github.com/Tada5hi/rapiq/compare/v0.3.0...v0.3.1) (2022-10-22)
 
 
