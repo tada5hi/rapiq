@@ -14,7 +14,7 @@ import {
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import { ObjectLiteral } from '../type';
-import { parseQueryParameter } from './parameter';
+import { buildQueryParameterOptions, isQueryParameterEnabled, parseQueryParameter } from './parameter';
 import { ParseInput, ParseOptions, ParseOutput } from './type';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
@@ -56,11 +56,11 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
         switch (key) {
             case Parameter.RELATIONS: {
                 const value = input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS];
-                if (value || options[Parameter.RELATIONS]) {
+                if (value && isQueryParameterEnabled(options[Parameter.RELATIONS])) {
                     relations = parseQueryParameter(
                         key,
                         value,
-                        options[Parameter.RELATIONS],
+                        buildQueryParameterOptions(options[Parameter.RELATIONS]),
                     );
 
                     output[Parameter.RELATIONS] = relations;
@@ -69,11 +69,11 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
             case Parameter.FIELDS: {
                 const value = input[Parameter.FIELDS] ?? input[URLParameter.FIELDS];
-                if (value || options[Parameter.FIELDS]) {
+                if (value && isQueryParameterEnabled(options[Parameter.FIELDS])) {
                     output[Parameter.FIELDS] = parseQueryParameter(
                         key,
                         value,
-                        mergeWithGlobalOptions(options[Parameter.FIELDS]),
+                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FIELDS])),
                         relations,
                     ) as FieldsParseOutput;
                 }
@@ -81,11 +81,11 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
             case Parameter.FILTERS: {
                 const value = input[Parameter.FILTERS] ?? input[URLParameter.FILTERS];
-                if (value || options[Parameter.FILTERS]) {
+                if (value && isQueryParameterEnabled(options[Parameter.FILTERS])) {
                     output[Parameter.FILTERS] = parseQueryParameter(
                         key,
                         value,
-                        mergeWithGlobalOptions(options[Parameter.FILTERS]),
+                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FILTERS])),
                         relations,
                     ) as FiltersParseOutput;
                 }
@@ -93,11 +93,11 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
             case Parameter.PAGINATION: {
                 const value = input[Parameter.PAGINATION] ?? input[URLParameter.PAGINATION];
-                if (value || options[Parameter.PAGINATION]) {
+                if (value && isQueryParameterEnabled(options[Parameter.PAGINATION])) {
                     output[Parameter.PAGINATION] = parseQueryParameter(
                         key,
                         value,
-                        options[Parameter.PAGINATION],
+                        buildQueryParameterOptions(options[Parameter.PAGINATION]),
                         relations,
                     ) as PaginationParseOutput;
                 }
@@ -105,11 +105,11 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
             case Parameter.SORT: {
                 const value = input[Parameter.SORT] ?? input[URLParameter.SORT];
-                if (value || options[Parameter.SORT]) {
+                if (value && isQueryParameterEnabled(options[Parameter.SORT])) {
                     output[Parameter.SORT] = parseQueryParameter(
                         key,
                         value,
-                        mergeWithGlobalOptions(options[Parameter.SORT]),
+                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.SORT])),
                         relations,
                     ) as SortParseOutput;
                 }

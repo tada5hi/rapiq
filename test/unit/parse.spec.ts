@@ -50,6 +50,54 @@ describe('src/parse.ts', () => {
         expect(value).toEqual({
             fields: []
         } as ParseOutput);
+
+        value = parseQuery({
+            [Parameter.FIELDS]: ['id', 'name'],
+            [Parameter.FILTERS]: { id: 1},
+            [Parameter.PAGINATION]: { limit: 20 },
+            [Parameter.RELATIONS]: ['relation'],
+            [Parameter.SORT]: {id: 'DESC'},
+        }, {
+            fields: true,
+            filters: true,
+            pagination: true,
+            relations: true,
+            sort: true
+        });
+        expect(value).toEqual({
+            fields: [
+                {key: 'id'},
+                {key: 'name'}
+            ],
+            filters: [
+                {key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL}
+            ],
+            pagination: {
+                limit: 20,
+                offset: 0
+            },
+            relations: [
+                { key: 'relation', value: 'relation'}
+            ],
+            sort: [
+                { key: 'id', value: 'DESC'}
+            ]
+        } as ParseOutput);
+
+        value = parseQuery({
+            [Parameter.FIELDS]: ['id', 'name'],
+            [Parameter.FILTERS]: { id: 1},
+            [Parameter.PAGINATION]: { limit: 20 },
+            [Parameter.RELATIONS]: ['relation'],
+            [Parameter.SORT]: {id: 'DESC'},
+        }, {
+            fields: false,
+            filters: false,
+            pagination: false,
+            relations: false,
+            sort: false
+        });
+        expect(value).toEqual({} as ParseOutput);
     });
 
     it('should parse query with default path', () => {

@@ -22,7 +22,7 @@ export type ParseOptions<T extends ObjectLiteral = ObjectLiteral> = {
     /**
      * On default all query keys are enabled.
      */
-    [P in `${Parameter}`]?: ParseParameterOptions<P, T>
+    [P in `${Parameter}`]?: boolean | ParseParameterOptions<P, T>
 } & {
     defaultPath?: string
 };
