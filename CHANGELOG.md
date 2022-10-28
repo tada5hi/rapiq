@@ -1,3 +1,15 @@
+# [0.4.0](https://github.com/Tada5hi/rapiq/compare/v0.3.2...v0.4.0) (2022-10-28)
+
+
+### Bug Fixes
+
+* allow non matching regex strings, if permitted by options ([145b119](https://github.com/Tada5hi/rapiq/commit/145b1199b79f5dc33893bca32e110ec2d7700985))
+
+
+### Features
+
+* parse everything, if allowed- & default- option are not defined ([9bda36a](https://github.com/Tada5hi/rapiq/commit/9bda36a4fa0619952b0e9375c8e8b3365ba34df4))
+
 ## [0.3.2](https://github.com/Tada5hi/rapiq/compare/v0.3.1...v0.3.2) (2022-10-27)
 
 
