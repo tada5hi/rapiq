@@ -11,11 +11,12 @@ import {
     SortParseOutput,
     parseQueryRelations,
     parseQuerySort,
+    FieldsParseOutput,
 } from '../../src';
 import {User} from "../data";
 
 describe('src/sort/index.ts', () => {
-    it('should transform sort data', () => {
+    it('should parse sort data', () => {
         // sort asc
         let transformed = parseQuerySort('id', { allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] as SortParseOutput);
@@ -23,6 +24,14 @@ describe('src/sort/index.ts', () => {
         // sort desc
         transformed = parseQuerySort('-id', { allowed: ['id'] });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
+
+        // invalid field names
+        transformed = parseQuerySort('-!id');
+        expect(transformed).toEqual([] as FieldsParseOutput);
+
+        // ignore field name pattern, if permitted by allowed key
+        transformed = parseQuerySort(['-!id'], { allowed: ['!id'] });
+        expect(transformed).toEqual([{key: '!id', value: SortDirection.DESC}] as FieldsParseOutput);
 
         // empty allowed
         transformed = parseQuerySort('-id', { allowed: [] });

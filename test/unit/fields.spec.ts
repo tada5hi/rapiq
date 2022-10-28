@@ -147,6 +147,14 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields(['id']);
         expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
 
+        // invalid field names
+        data = parseQueryFields(['"id', 'name!']);
+        expect(data).toEqual([] as FieldsParseOutput);
+
+        // ignore field name pattern, if permitted by allowed key
+        data = parseQueryFields(['name!'], { allowed: ['name!'] });
+        expect(data).toEqual([{key: 'name!'}] as FieldsParseOutput);
+
         // empty allowed -> allows nothing
         data = parseQueryFields(['id'], {allowed: []});
         expect(data).toEqual([] as FieldsParseOutput);

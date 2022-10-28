@@ -13,6 +13,7 @@ import {
     hasOwnProperty, isFieldNonRelational,
     isFieldPathAllowedByRelations,
 } from '../../utils';
+import { isValidFieldName } from '../fields';
 import { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 
@@ -146,6 +147,14 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         const key: string = applyMapping(parts[i], options.mapping);
 
         const fieldDetails = getFieldDetails(key);
+
+        if (
+            typeof options.allowed === 'undefined' &&
+            !isValidFieldName(fieldDetails.name)
+        ) {
+            continue;
+        }
+
         if (
             !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
             !isFieldNonRelational(fieldDetails)

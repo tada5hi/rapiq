@@ -41,6 +41,18 @@ describe('src/filter/index.ts', () => {
             operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
+        // invalid field name
+        allowedFilter = parseQueryFilters({ 'id!': 1 }, { allowed: undefined });
+        expect(allowedFilter).toEqual([] as FiltersParseOutput);
+
+        // ignore field name pattern, if permitted by allowed key
+        allowedFilter = parseQueryFilters({ 'id!': 1 }, { allowed: ['id!'] });
+        expect(allowedFilter).toEqual([{
+            key: 'id!',
+            value: 1,
+            operator: FilterComparisonOperator.EQUAL,
+        }] as FiltersParseOutput);
+
         allowedFilter = parseQueryFilters({ name: 'tada5hi' }, { default: { name: 'admin' } });
         expect(allowedFilter).toEqual([{
             key: 'name',

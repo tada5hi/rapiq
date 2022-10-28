@@ -15,6 +15,7 @@ import {
     FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
 } from './type';
 import {
+    isValidFieldName,
     parseFieldsInput, removeFieldInputOperator,
     transformFieldsInput,
 } from './utils';
@@ -94,11 +95,11 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     const output : FieldsParseOutput = [];
 
     for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
+        const path = keys[i];
 
         if (
-            !isFieldPathAllowedByRelations({ path: key }, options.relations) &&
-            key !== DEFAULT_ID
+            !isFieldPathAllowedByRelations({ path }, options.relations) &&
+            path !== DEFAULT_ID
         ) {
             continue;
         }
@@ -106,14 +107,14 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         let fields : string[] = [];
 
         if (
-            hasOwnProperty(data, key)
+            hasOwnProperty(data, path)
         ) {
-            fields = parseFieldsInput(data[key]);
+            fields = parseFieldsInput(data[path]);
         } else if (
-            hasOwnProperty(reverseMapping, key)
+            hasOwnProperty(reverseMapping, path)
         ) {
-            if (hasOwnProperty(data, reverseMapping[key])) {
-                fields = parseFieldsInput(data[reverseMapping[key]]);
+            if (hasOwnProperty(data, reverseMapping[path])) {
+                fields = parseFieldsInput(data[reverseMapping[path]]);
             }
         }
 
@@ -126,17 +127,18 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         if (fields.length > 0) {
             for (let j = 0; j < fields.length; j++) {
                 fields[j] = applyMapping(
-                    buildFieldWithPath({ name: fields[j], path: key }),
+                    buildFieldWithPath({ name: fields[j], path }),
                     options.mapping,
                     true,
                 );
             }
 
-            if (hasOwnProperty(domainFields, key)) {
-                fields = fields
-                    .filter((field) => domainFields[key].indexOf(
-                        removeFieldInputOperator(field),
-                    ) !== -1);
+            if (hasOwnProperty(domainFields, path)) {
+                fields = fields.filter((field) => domainFields[path].indexOf(
+                    removeFieldInputOperator(field),
+                ) !== -1);
+            } else {
+                fields = fields.filter((field) => isValidFieldName(removeFieldInputOperator(field)));
             }
 
             transformed = transformFieldsInput(
@@ -146,17 +148,17 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             transformed.default.length === 0 &&
-            hasOwnProperty(defaultDomainFields, key)
+            hasOwnProperty(defaultDomainFields, path)
         ) {
-            transformed.default = defaultDomainFields[key];
+            transformed.default = defaultDomainFields[path];
         }
 
         if (
             transformed.included.length === 0 &&
             transformed.default.length === 0 &&
-            hasOwnProperty(allowedDomainFields, key)
+            hasOwnProperty(allowedDomainFields, path)
         ) {
-            transformed.default = allowedDomainFields[key];
+            transformed.default = allowedDomainFields[path];
         }
 
         transformed.default = Array.from(new Set([
@@ -173,16 +175,16 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (transformed.default.length > 0) {
             for (let j = 0; j < transformed.default.length; j++) {
-                let path : string | undefined;
-                if (key !== DEFAULT_ID) {
-                    path = key;
+                let destPath : string | undefined;
+                if (path !== DEFAULT_ID) {
+                    destPath = path;
                 } else if (options.defaultPath) {
-                    path = options.defaultPath;
+                    destPath = options.defaultPath;
                 }
 
                 output.push({
                     key: transformed.default[j],
-                    ...(path ? { path } : {}),
+                    ...(destPath ? { path: destPath } : {}),
                 });
             }
         }

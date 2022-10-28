@@ -11,7 +11,7 @@ import { applyMapping, hasOwnProperty } from '../../utils';
 import { isPathCoveredByParseAllowedOption } from '../utils';
 
 import { RelationsParseOptions, RelationsParseOutput } from './type';
-import { includeParents } from './utils';
+import { includeParents, isValidRelationPath } from './utils';
 
 // --------------------------------------------------
 
@@ -64,6 +64,8 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
 
     if (options.allowed) {
         items = items.filter((item) => isPathCoveredByParseAllowedOption(options.allowed, item));
+    } else {
+        items = items.filter((item) => isValidRelationPath(item));
     }
 
     if (options.includeParents) {

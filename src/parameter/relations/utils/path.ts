@@ -5,5 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './parents';
-export * from './path';
+export function isValidRelationPath(input: string) : boolean {
+    return /^[a-zA-Z0-9_-]+([.]*[a-zA-Z0-9_-])*$/gu.test(input);
+}

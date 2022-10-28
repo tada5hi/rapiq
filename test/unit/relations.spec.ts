@@ -18,6 +18,16 @@ describe('src/relations/index.ts', () => {
         allowed = parseQueryRelations([], { allowed: ['profile'] });
         expect(allowed).toEqual([]);
 
+        // invalid path
+        allowed = parseQueryRelations(['profile!']);
+        expect(allowed).toEqual([]);
+
+        // ignore path pattern, if permitted by allowed key
+        allowed = parseQueryRelations(['profile!'], {allowed: ['profile!']});
+        expect(allowed).toEqual([
+            { key: 'profile!', value: 'profile!'}
+        ] as RelationsParseOutput);
+
         // with alias
         allowed = parseQueryRelations('pro', { mapping: { pro: 'profile' }, allowed: ['profile'] });
         expect(allowed).toEqual([

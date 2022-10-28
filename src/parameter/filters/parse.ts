@@ -14,6 +14,7 @@ import {
     getFieldDetails,
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
+import { isValidFieldName } from '../fields';
 import { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
@@ -163,6 +164,13 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
         keys[i] = applyMapping(keys[i], options.mapping);
 
         const fieldDetails : FieldDetails = getFieldDetails(keys[i]);
+
+        if (
+            typeof options.allowed === 'undefined' &&
+            !isValidFieldName(fieldDetails.name)
+        ) {
+            continue;
+        }
 
         if (
             !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
