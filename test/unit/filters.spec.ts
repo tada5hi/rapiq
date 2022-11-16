@@ -22,6 +22,14 @@ describe('src/filter/index.ts', () => {
             operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
 
+        // filter with underscore key
+        allowedFilter = parseQueryFilters({ display_name: 'admin' }, {allowed: ['display_name']});
+        expect(allowedFilter).toEqual([{
+            key: 'display_name',
+            value: 'admin',
+            operator: FilterComparisonOperator.EQUAL,
+        }] as FiltersParseOutput);
+
         // filter none
         allowedFilter = parseQueryFilters({ id: 1 }, { allowed: [] });
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
@@ -114,17 +122,28 @@ describe('src/filter/index.ts', () => {
 
     it('should transform fields with default path', () => {
         const options : FiltersParseOptions= {
-            allowed: ['id'],
+            allowed: ['id', 'display_name'],
             defaultPath: 'user'
         };
 
-        const data = parseQueryFilters({ id: 1 }, options);
+        let data = parseQueryFilters({ id: 1 }, options);
 
         expect(data).toEqual([
             {
                 key: 'id',
                 path: 'user',
                 value: 1,
+                operator: FilterComparisonOperator.EQUAL,
+            }
+        ] as FiltersParseOutput)
+
+        data = parseQueryFilters({ display_name: 'admin' }, options);
+
+        expect(data).toEqual([
+            {
+                key: 'display_name',
+                path: 'user',
+                value: 'admin',
                 operator: FilterComparisonOperator.EQUAL,
             }
         ] as FiltersParseOutput)

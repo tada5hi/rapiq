@@ -115,6 +115,33 @@ describe('src/parse.ts', () => {
                 { key: 'id', path: 'user' },
             ],
         } as ParseOutput);
+
+        value = parseQuery<{id: string, name: string, realm: { display_name: string }}>({
+            filters: {
+                'realm.display_name': 'master'
+            },
+            include: ['realm']
+        }, {
+            defaultPath: 'user',
+            filters: {
+                allowed: [
+                    'id',
+                    'realm.display_name'
+                ]
+            },
+            relations: {
+                allowed: ['realm']
+            }
+        });
+        expect(value).toEqual({
+            defaultPath: 'user',
+            filters: [
+                { key: 'display_name', operator: FilterComparisonOperator.EQUAL, path: 'realm', value: 'master' },
+            ],
+            relations: [
+                { key: 'realm', value: 'realm' }
+            ]
+        } as ParseOutput);
     })
 
     it('should parse field query parameter', () => {
