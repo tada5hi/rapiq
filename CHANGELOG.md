@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/Tada5hi/rapiq/compare/v0.4.1...v0.5.0) (2022-11-27)
+
+
+### Features
+
+* allow null value in filter list ([a264d6c](https://github.com/Tada5hi/rapiq/commit/a264d6cce4e43bb0543b2f57d32a34b1bee04f4d))
+
 ## [0.4.1](https://github.com/Tada5hi/rapiq/compare/v0.4.0...v0.4.1) (2022-10-28)
 
 
