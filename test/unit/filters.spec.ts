@@ -304,7 +304,7 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'id',
                 operator: FilterComparisonOperator.IN,
-                value: [0, 1, 2, 3],
+                value: [null, 0, 1, 2, 3],
             },
         ] as FiltersParseOutput);
 

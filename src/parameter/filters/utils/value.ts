@@ -45,7 +45,7 @@ export function transformFilterValue(input: FilterValueSimple) : FilterValueSimp
         }
 
         return (input as unknown[])
-            .filter((n) => n === 0 || !!n) as FilterValueSimple;
+            .filter((n) => n === 0 || n === null || !!n) as FilterValueSimple;
     }
 
     if (typeof input === 'undefined' || input === null) {

@@ -26,8 +26,23 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             }
 
             if (Array.isArray(input)) {
-                // todo: check array elements are string
-                output[key] = input.join(',');
+                // preserve null values
+                const data : string[] = [];
+                for (let i = 0; i < input.length; i++) {
+                    if (input[i] === null) {
+                        input[i] = 'null';
+                    }
+
+                    if (typeof input[i] === 'number') {
+                        input[i] = `${input[i]}`;
+                    }
+
+                    if (typeof input[i] === 'string') {
+                        data.push(input[i]);
+                    }
+                }
+
+                output[key] = data.join(',');
 
                 return true;
             }

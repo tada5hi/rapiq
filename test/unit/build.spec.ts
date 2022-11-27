@@ -137,10 +137,10 @@ describe('src/build.ts', () => {
         // with negation & in operator
         record = buildQuery<Entity>({
             filter: {
-                id: [1,2,3],
+                id: [null, 1,2,3],
             },
         });
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: '1,2,3' } }));
+        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: 'null,1,2,3' } }));
 
         // with negation & like operator
         record = buildQuery<Entity>({
