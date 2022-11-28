@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/Tada5hi/rapiq/compare/v0.5.0...v0.6.0) (2022-11-28)
+
+
+### Features
+
+* add esm support ([9986da1](https://github.com/Tada5hi/rapiq/commit/9986da15cc7ff120f289264ba163fafa163a1076))
+
 # [0.5.0](https://github.com/Tada5hi/rapiq/compare/v0.4.1...v0.5.0) (2022-11-27)
 
 
