@@ -1,3 +1,10 @@
+## [0.6.1](https://github.com/Tada5hi/rapiq/compare/v0.6.0...v0.6.1) (2022-11-30)
+
+
+### Bug Fixes
+
+* **deps:** bump minimatch from 5.1.0 to 5.1.1 ([d1e3852](https://github.com/Tada5hi/rapiq/commit/d1e3852c40055a8f82e29427460f3140dac03970))
+
 # [0.6.0](https://github.com/Tada5hi/rapiq/compare/v0.5.0...v0.6.0) (2022-11-28)
 
 
