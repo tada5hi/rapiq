@@ -53,7 +53,7 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
-        "minimatch": "^5.1.1",
+        "minimatch": "^5.1.2",
         "smob": "^0.0.6"
     },
     "devDependencies": {
