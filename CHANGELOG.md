@@ -1,3 +1,10 @@
+## [0.6.3](https://github.com/Tada5hi/rapiq/compare/v0.6.2...v0.6.3) (2023-01-04)
+
+
+### Bug Fixes
+
+* **deps:** bump json5 from 1.0.1 to 1.0.2 ([dfede3d](https://github.com/Tada5hi/rapiq/commit/dfede3d9f2b0e15e90f47001842cb58ab94945c9))
+
 ## [0.6.2](https://github.com/Tada5hi/rapiq/compare/v0.6.1...v0.6.2) (2022-12-22)
 
 
