@@ -81,7 +81,7 @@
         "eslint": "^8.32.0",
         "husky": "^8.0.3",
         "jest": "^27.5.1",
-        "rimraf": "^4.1.0",
+        "rimraf": "^4.1.1",
         "rollup": "^3.10.0",
         "semantic-release": "^20.0.2",
         "ts-jest": "^27.1.4",
