@@ -1,3 +1,10 @@
+## [0.6.6](https://github.com/Tada5hi/rapiq/compare/v0.6.5...v0.6.6) (2023-01-18)
+
+
+### Bug Fixes
+
+* avoid nullish coalescing operator ([2f98bc1](https://github.com/Tada5hi/rapiq/commit/2f98bc18c5714732b4e234776f1a8b7aab372a71))
+
 ## [0.6.5](https://github.com/Tada5hi/rapiq/compare/v0.6.4...v0.6.5) (2023-01-18)
 
 
