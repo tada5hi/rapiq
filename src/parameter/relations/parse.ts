@@ -5,7 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import minimatch from 'minimatch';
 import { ObjectLiteral } from '../../type';
 import { applyMapping, hasOwnProperty } from '../../utils';
 import { isPathCoveredByParseAllowedOption } from '../utils';
@@ -72,7 +71,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         if (Array.isArray(options.includeParents)) {
             const parentIncludes = items.filter(
                 (item) => item.includes('.') &&
-                    (options.includeParents as string[]).filter((parent) => minimatch(item, parent)).length > 0,
+                    (options.includeParents as string[]).filter((parent) => item.startsWith(parent)).length > 0,
             );
             items.unshift(...includeParents(parentIncludes));
         } else {

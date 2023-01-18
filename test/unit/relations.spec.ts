@@ -58,7 +58,7 @@ describe('src/relations/index.ts', () => {
         allowed = parseQueryRelations(['abc.photos', 'user_roles.role'], {
             allowed: ['profile.photos', 'user_roles.role'],
             mapping: { 'abc.photos': 'profile.photos' },
-            includeParents: ['profile.**'],
+            includeParents: ['profile'],
         });
         expect(allowed).toEqual([
             { key: 'profile', value: 'profile' },
