@@ -1,3 +1,10 @@
+## [0.6.5](https://github.com/Tada5hi/rapiq/compare/v0.6.4...v0.6.5) (2023-01-18)
+
+
+### Bug Fixes
+
+* removed minimatch + replaced babel with esbuild for transpiling ([3b6744d](https://github.com/Tada5hi/rapiq/commit/3b6744db4d7808633cb326ab4adf0a1e6bb5b870))
+
 ## [0.6.4](https://github.com/Tada5hi/rapiq/compare/v0.6.3...v0.6.4) (2023-01-17)
 
 
