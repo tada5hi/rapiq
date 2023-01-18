@@ -18,7 +18,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: RelationsParseOptions<T>,
 ): RelationsParseOutput {
-    options ??= {};
+    options = options || {};
 
     // If it is an empty array nothing is allowed
     if (
@@ -30,7 +30,9 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
 
     options.mapping = options.mapping || {};
     options.pathMapping = options.pathMapping || {};
-    options.includeParents ??= true;
+    if (typeof options.includeParents === 'undefined') {
+        options.includeParents = true;
+    }
 
     let items: string[] = [];
 

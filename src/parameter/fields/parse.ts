@@ -40,7 +40,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: FieldsParseOptions<T>,
 ) : FieldsParseOutput {
-    options ??= {};
+    options = options || {};
 
     const defaultDomainFields = groupArrayByKeyPath(
         flattenParseAllowedOption(options.default),
@@ -85,7 +85,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         data = { [DEFAULT_ID]: data };
     }
 
-    options.mapping ??= {};
+    options.mapping = options.mapping || {};
     const reverseMapping = buildReverseRecord(options.mapping);
 
     if (keys.length === 0) {

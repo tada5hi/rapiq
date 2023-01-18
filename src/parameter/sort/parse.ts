@@ -75,7 +75,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: SortParseOptions<T>,
 ) : SortParseOutput {
-    options = options ?? {};
+    options = options || {};
 
     // If it is an empty array nothing is allowed
     if (typeof options.allowed !== 'undefined') {

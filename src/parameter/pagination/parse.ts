@@ -42,7 +42,7 @@ export function parseQueryPagination(
     data: unknown,
     options?: PaginationParseOptions,
 ) : PaginationParseOutput {
-    options ??= {};
+    options = options || {};
 
     const pagination : PaginationParseOutput = {};
 

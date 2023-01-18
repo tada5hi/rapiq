@@ -107,7 +107,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
     options?: FiltersParseOptions<T>,
 ) : FiltersParseOutput {
-    options = options ?? {};
+    options = options || {};
     options.mapping = options.mapping || {};
     options.relations = options.relations || [];
 

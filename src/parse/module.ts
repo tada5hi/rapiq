@@ -21,7 +21,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,
     options?: ParseOptions<T>,
 ) : ParseOutput {
-    options ??= {};
+    options = options || {};
 
     const mergeWithGlobalOptions = <T extends {[key: string]: any} & {defaultPath?: string} >(data?: T) : T => {
         if (typeof data !== 'undefined') {
@@ -55,7 +55,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
 
         switch (key) {
             case Parameter.RELATIONS: {
-                const value = input[Parameter.RELATIONS] ?? input[URLParameter.RELATIONS];
+                const value = input[Parameter.RELATIONS] || input[URLParameter.RELATIONS];
                 if (value && isQueryParameterEnabled(options[Parameter.RELATIONS])) {
                     relations = parseQueryParameter(
                         key,
@@ -68,7 +68,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
                 break;
             }
             case Parameter.FIELDS: {
-                const value = input[Parameter.FIELDS] ?? input[URLParameter.FIELDS];
+                const value = input[Parameter.FIELDS] || input[URLParameter.FIELDS];
                 if (value && isQueryParameterEnabled(options[Parameter.FIELDS])) {
                     output[Parameter.FIELDS] = parseQueryParameter(
                         key,
@@ -80,7 +80,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
                 break;
             }
             case Parameter.FILTERS: {
-                const value = input[Parameter.FILTERS] ?? input[URLParameter.FILTERS];
+                const value = input[Parameter.FILTERS] || input[URLParameter.FILTERS];
                 if (value && isQueryParameterEnabled(options[Parameter.FILTERS])) {
                     output[Parameter.FILTERS] = parseQueryParameter(
                         key,
@@ -92,7 +92,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
                 break;
             }
             case Parameter.PAGINATION: {
-                const value = input[Parameter.PAGINATION] ?? input[URLParameter.PAGINATION];
+                const value = input[Parameter.PAGINATION] || input[URLParameter.PAGINATION];
                 if (value && isQueryParameterEnabled(options[Parameter.PAGINATION])) {
                     output[Parameter.PAGINATION] = parseQueryParameter(
                         key,
@@ -104,7 +104,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
                 break;
             }
             case Parameter.SORT: {
-                const value = input[Parameter.SORT] ?? input[URLParameter.SORT];
+                const value = input[Parameter.SORT] || input[URLParameter.SORT];
                 if (value && isQueryParameterEnabled(options[Parameter.SORT])) {
                     output[Parameter.SORT] = parseQueryParameter(
                         key,
