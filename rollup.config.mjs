@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
-import esbuild from 'rollup-plugin-esbuild';
+import { transform } from '@swc/core';
 import pkg from './package.json' assert { type: 'json' };
+import terser from "@rollup/plugin-terser";
 
 const extensions = [
-    '.js', '.jsx', '.ts', '.tsx',
+    '.js', '.cjs', '.mjs', '.jsx', '.ts', '.tsx',
 ];
 
 export default [
@@ -29,21 +29,33 @@ export default [
             // Allows node_modules resolution
             resolve({ extensions }),
 
-            // Allow bundling cjs modules. Rollup doesn't understand cjs
-            commonjs(),
-
             // Compile TypeScript/JavaScript files
-            esbuild({
-                tsconfig: 'tsconfig.json'
-            })
+            {
+                name: 'swc',
+                transform(code) {
+                    return transform(code, {
+                        jsc: {
+                            target: 'es2016',
+                            parser: {
+                                syntax: 'typescript'
+                            },
+                            loose: true
+                        },
+                        sourceMaps: true
+                    });
+                }
+            },
+            terser()
         ],
         output: [
             {
                 file: pkg.main,
                 format: 'cjs',
+                sourcemap: true
             }, {
                 file: pkg.module,
                 format: 'esm',
+                sourcemap: true
             },
         ],
     },
