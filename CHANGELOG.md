@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/Tada5hi/rapiq/compare/v0.6.6...v0.7.0) (2023-01-27)
+
+
+### Features
+
+* refactor build pipeline & replaced babel with swc ([a3dcc53](https://github.com/Tada5hi/rapiq/commit/a3dcc53d60164d0950221bdaa6ed9eacfa8d9c60))
+
 ## [0.6.6](https://github.com/Tada5hi/rapiq/compare/v0.6.5...v0.6.6) (2023-01-18)
 
 
