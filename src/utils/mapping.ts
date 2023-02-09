@@ -57,7 +57,11 @@ export function applyMapping(
     }
 
     if (onlyKey) {
-        return output.pop();
+        return output.pop() || name;
+    }
+
+    if (output.length === 0) {
+        return name;
     }
 
     return output.join('.');

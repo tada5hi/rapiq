@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { isObject } from 'smob';
 import { PaginationParseOptions, PaginationParseOutput } from './type';
 
 // --------------------------------------------------
@@ -46,8 +47,7 @@ export function parseQueryPagination(
 
     const pagination : PaginationParseOutput = {};
 
-    const prototype: string = Object.prototype.toString.call(data);
-    if (prototype !== '[object Object]') {
+    if (!isObject(data)) {
         return finalizePagination(pagination, options);
     }
 

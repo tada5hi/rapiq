@@ -52,7 +52,7 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     });
 }
 
-export function mergeQueryFilters<T>(
+export function mergeQueryFilters(
     target?: Record<string, any>,
     source?: Record<string, any>,
 ) : Record<string, any> {

@@ -14,7 +14,7 @@ export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input?: RelationsBuildInput<T>,
 ) : string[] {
     if (typeof input === 'undefined') {
-        return input;
+        return [];
     }
 
     return flattenToKeyPathArray(input);

@@ -5,17 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { NestedKeys, NestedResourceKeys } from '../../../type';
+import { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../type';
 import { flattenToKeyPathArray } from '../../../utils';
 import { ParseAllowedOption } from '../../type';
 
-export function flattenParseAllowedOption<T>(
-    input: ParseAllowedOption<T>,
+export function flattenParseAllowedOption<T extends ObjectLiteral>(
+    input?: ParseAllowedOption<T>,
 ) : string[] {
+    if (typeof input === 'undefined') {
+        return [];
+    }
+
     return flattenToKeyPathArray(input);
 }
 
-export function isPathCoveredByParseAllowedOption<T>(
+export function isPathCoveredByParseAllowedOption<T extends ObjectLiteral>(
     input: ParseAllowedOption<T> |
     NestedKeys<T>[] |
     NestedResourceKeys<T>[],

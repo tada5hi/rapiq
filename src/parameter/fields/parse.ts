@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { merge } from 'smob';
+import { isObject, merge } from 'smob';
 import { ObjectLiteral } from '../../type';
 import {
     applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
@@ -37,7 +37,7 @@ function buildReverseRecord(
 }
 
 export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
-    data: unknown,
+    input: unknown,
     options?: FieldsParseOptions<T>,
 ) : FieldsParseOutput {
     options = options || {};
@@ -63,26 +63,22 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         (
             typeof options.default !== 'undefined' ||
             typeof options.allowed !== 'undefined'
-        ) && keys.length === 0
+        ) &&
+        keys.length === 0
     ) {
         return [];
     }
 
-    const prototype: string = Object.prototype.toString.call(data);
-    if (
-        prototype !== '[object Object]' &&
-        prototype !== '[object Array]' &&
-        prototype !== '[object String]'
-    ) {
-        data = { [DEFAULT_ID]: [] };
-    }
+    let data : Record<string, any> = {
+        [DEFAULT_ID]: [],
+    };
 
-    if (prototype === '[object String]') {
-        data = { [DEFAULT_ID]: data };
-    }
-
-    if (prototype === '[object Array]') {
-        data = { [DEFAULT_ID]: data };
+    if (isObject(input)) {
+        data = input;
+    } else if (typeof input === 'string') {
+        data = { [DEFAULT_ID]: input };
+    } else if (Array.isArray(input)) {
+        data = { [DEFAULT_ID]: input };
     }
 
     options.mapping = options.mapping || {};
@@ -106,16 +102,13 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         let fields : string[] = [];
 
-        if (
-            hasOwnProperty(data, path)
-        ) {
+        if (hasOwnProperty(data, path)) {
             fields = parseFieldsInput(data[path]);
         } else if (
-            hasOwnProperty(reverseMapping, path)
+            hasOwnProperty(reverseMapping, path) &&
+            hasOwnProperty(data, reverseMapping[path])
         ) {
-            if (hasOwnProperty(data, reverseMapping[path])) {
-                fields = parseFieldsInput(data[reverseMapping[path]]);
-            }
+            fields = parseFieldsInput(data[reverseMapping[path]]);
         }
 
         let transformed : FieldsInputTransformed = {

@@ -74,6 +74,6 @@ function invalidToEmptyObject<V>(
 ): NonNullable<V> {
     return typeof value === 'boolean' ||
         typeof value === 'undefined' ?
-        {} as V :
-        value;
+        {} as NonNullable<V> :
+        value as NonNullable<V>;
 }

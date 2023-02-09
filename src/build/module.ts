@@ -26,10 +26,7 @@ import {
 export function buildQuery<T extends ObjectLiteral = ObjectLiteral>(
     input?: BuildInput<T>,
 ) : string {
-    if (
-        typeof input === 'undefined' ||
-        input === null
-    ) {
+    if (!input) {
         return '';
     }
 

@@ -51,7 +51,7 @@ function transformFiltersParseOutputElement(element: FiltersParseOutputElement) 
 
 function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>(
     options: FiltersParseOptions<T>,
-    input?: Record<string, FiltersParseOutputElement>,
+    input: Record<string, FiltersParseOutputElement> = {},
 ) : FiltersParseOutput {
     const inputKeys = Object.keys(input || {});
 

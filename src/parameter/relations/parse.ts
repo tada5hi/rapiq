@@ -15,8 +15,8 @@ import { includeParents, isValidRelationPath } from './utils';
 // --------------------------------------------------
 
 export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
-    data: unknown,
-    options?: RelationsParseOptions<T>,
+    input: unknown,
+    options: RelationsParseOptions<T> = {},
 ): RelationsParseOutput {
     options = options || {};
 
@@ -36,20 +36,14 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
 
     let items: string[] = [];
 
-    const prototype: string = Object.prototype.toString.call(data);
-    if (
-        prototype !== '[object Array]' &&
-        prototype !== '[object String]'
-    ) {
-        return [];
-    }
-
-    if (prototype === '[object String]') {
-        items = (data as string).split(',');
-    }
-
-    if (prototype === '[object Array]') {
-        items = (data as any[]).filter((el) => typeof el === 'string');
+    if (typeof input === 'string') {
+        items = input.split(',');
+    } else if (Array.isArray(input)) {
+        for (let i = 0; i < input.length; i++) {
+            if (typeof input[i] === 'string') {
+                items.push(input[i]);
+            }
+        }
     }
 
     if (items.length === 0) {
@@ -64,7 +58,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     }
 
     if (options.allowed) {
-        items = items.filter((item) => isPathCoveredByParseAllowedOption(options.allowed, item));
+        items = items.filter((item) => isPathCoveredByParseAllowedOption(options.allowed as string[], item));
     } else {
         items = items.filter((item) => isValidRelationPath(item));
     }
@@ -94,7 +88,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
             ) {
                 value = options.pathMapping[key];
             } else {
-                value = parts.pop();
+                value = parts.pop() as string;
             }
 
             return {

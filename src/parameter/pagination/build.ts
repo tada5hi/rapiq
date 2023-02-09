@@ -6,12 +6,11 @@
  */
 
 import { merge } from 'smob';
-import { ObjectLiteral } from '../../type';
 import { PaginationBuildInput } from './type';
 
-export function mergeQueryPagination<T extends ObjectLiteral = ObjectLiteral>(
-    target?: PaginationBuildInput<T>,
-    source?: PaginationBuildInput<T>,
-) : PaginationBuildInput<T> {
+export function mergeQueryPagination(
+    target?: PaginationBuildInput,
+    source?: PaginationBuildInput,
+) : PaginationBuildInput {
     return merge({}, target || {}, source || {});
 }
