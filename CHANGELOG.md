@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/Tada5hi/rapiq/compare/v0.7.0...v0.8.0) (2023-02-14)
+
+
+### Features
+
+* enhance parsing of parameters ([2cc8b4d](https://github.com/Tada5hi/rapiq/commit/2cc8b4df6dcaf1ee8feb35037a2def1426c46193))
+
 # [0.7.0](https://github.com/Tada5hi/rapiq/compare/v0.6.6...v0.7.0) (2023-01-27)
 
 
