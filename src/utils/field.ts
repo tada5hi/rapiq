@@ -11,7 +11,7 @@ export function getFieldDetails(field: string) : FieldDetails {
     const parts : string[] = field.split('.');
 
     return {
-        name: parts.pop(),
+        name: parts.pop() as string,
         path: parts.length > 0 ? parts.join('.') : undefined,
     };
 }

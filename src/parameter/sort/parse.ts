@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { isObject } from 'smob';
 import { ObjectLiteral } from '../../type';
 import {
     applyMapping,
@@ -87,13 +88,11 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
 
     options.mapping = options.mapping || {};
 
-    const prototype = Object.prototype.toString.call(data);
-
     /* istanbul ignore next */
     if (
-        prototype !== '[object String]' &&
-        prototype !== '[object Array]' &&
-        prototype !== '[object Object]'
+        typeof data !== 'string' &&
+        !Array.isArray(data) &&
+        !isObject(data)
     ) {
         return buildDefaultSortParseOutput(options);
     }
@@ -198,7 +197,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         for (let i = 0; i < options.allowed.length; i++) {
             const temp : SortParseOutput = [];
 
-            const keyPaths = flattenParseAllowedOption(options.allowed[i]);
+            const keyPaths = flattenParseAllowedOption(options.allowed[i] as string[]);
 
             for (let j = 0; j < keyPaths.length; j++) {
                 let keyWithAlias : string = keyPaths[j];
@@ -206,7 +205,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
 
                 const parts = keyWithAlias.split('.');
                 if (parts.length > 1) {
-                    key = parts.pop();
+                    key = parts.pop() as string;
                 } else {
                     key = keyWithAlias;
 

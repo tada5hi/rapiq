@@ -29,7 +29,7 @@ export type BuildParameterInput<
             P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
                 RelationsBuildInput<T> :
                 P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
-                    PaginationBuildInput<T> :
+                    PaginationBuildInput :
                     P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
                         SortBuildInput<T> :
                         never;

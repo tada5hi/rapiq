@@ -9,7 +9,7 @@
 // Build
 // -----------------------------------------------------------
 
-export type PaginationBuildInput<T> = {
+export type PaginationBuildInput = {
     limit?: number,
     offset?: number
 };

@@ -122,7 +122,7 @@ export function groupArrayByKeyPath(input: string[]): Record<string, string[]> {
             key = DEFAULT_ID;
             name = input[i];
         } else {
-            name = parts.pop();
+            name = parts.pop() as string;
             key = parts.join('.');
         }
 

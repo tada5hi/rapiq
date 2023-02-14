@@ -9,8 +9,10 @@ import { FieldsInputTransformed } from '../type';
 import { FieldOperator } from '../constants';
 
 export function removeFieldInputOperator(field: string) {
-    return field.substring(0, 1) === FieldOperator.INCLUDE ||
-        field.substring(0, 1) === FieldOperator.EXCLUDE ?
+    const firstCharacter = field.substring(0, 1);
+
+    return firstCharacter === FieldOperator.INCLUDE ||
+        firstCharacter === FieldOperator.EXCLUDE ?
         field.substring(1) :
         field;
 }
@@ -27,9 +29,11 @@ export function transformFieldsInput(
     for (let i = 0; i < fields.length; i++) {
         let operator: FieldOperator | undefined;
 
-        if (fields[i].substring(0, 1) === FieldOperator.INCLUDE) {
+        const character = fields[i].substring(0, 1);
+
+        if (character === FieldOperator.INCLUDE) {
             operator = FieldOperator.INCLUDE;
-        } else if (fields[i].substring(0, 1) === FieldOperator.EXCLUDE) {
+        } else if (character === FieldOperator.EXCLUDE) {
             operator = FieldOperator.EXCLUDE;
         }
 
@@ -54,27 +58,18 @@ export function transformFieldsInput(
     return output;
 }
 
-export function parseFieldsInput(data: unknown): string[] {
-    const valuePrototype: string = Object.prototype.toString.call(data);
-    if (
-        valuePrototype !== '[object Array]' &&
-        valuePrototype !== '[object String]'
-    ) {
-        return [];
+export function parseFieldsInput(input: unknown): string[] {
+    let output: string[] = [];
+
+    if (typeof input === 'string') {
+        output = input.split(',');
+    } else if (Array.isArray(input)) {
+        for (let i = 0; i < input.length; i++) {
+            if (typeof input[i] === 'string') {
+                output.push(input[i]);
+            }
+        }
     }
 
-    let fieldsArr: string[] = [];
-
-    /* istanbul ignore next */
-    if (valuePrototype === '[object String]') {
-        fieldsArr = (data as string).split(',');
-    }
-
-    /* istanbul ignore next */
-    if (valuePrototype === '[object Array]') {
-        fieldsArr = (data as unknown[])
-            .filter((val) => typeof val === 'string') as string[];
-    }
-
-    return fieldsArr;
+    return output;
 }

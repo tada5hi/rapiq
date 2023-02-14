@@ -19,7 +19,7 @@ import { ParseInput, ParseOptions, ParseOutput } from './type';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,
-    options?: ParseOptions<T>,
+    options: ParseOptions<T> = {},
 ) : ParseOutput {
     options = options || {};
 
@@ -30,7 +30,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
         }
 
-        return data;
+        return data || {} as T;
     };
 
     const output : ParseOutput = {};
