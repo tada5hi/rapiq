@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldDetails } from './type';
+import type { FieldDetails } from './type';
 
 export function getFieldDetails(field: string) : FieldDetails {
     const parts : string[] = field.split('.');

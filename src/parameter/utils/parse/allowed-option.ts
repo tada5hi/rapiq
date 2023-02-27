@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../type';
+import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../type';
 import { flattenToKeyPathArray } from '../../../utils';
-import { ParseAllowedOption } from '../../type';
+import type { ParseAllowedOption } from '../../type';
 
 export function flattenParseAllowedOption<T extends ObjectLiteral>(
     input?: ParseAllowedOption<T>,

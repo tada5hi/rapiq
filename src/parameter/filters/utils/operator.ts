@@ -6,7 +6,7 @@
  */
 
 import { FilterComparisonOperator, FilterInputOperatorValue } from '../constants';
-import { FilterValueSimple } from '../type';
+import type { FilterValueSimple } from '../type';
 
 function matchOperator(key: string, value: FilterValueSimple, position: 'start' | 'end' | 'global') : FilterValueSimple | undefined {
     if (typeof value === 'string') {

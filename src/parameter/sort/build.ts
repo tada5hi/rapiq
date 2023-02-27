@@ -6,8 +6,9 @@
  */
 
 import { mergeArrays } from 'smob';
-import { ObjectLiteral } from '../../type';
-import { SortBuildInput, SortDirection } from './type';
+import type { ObjectLiteral } from '../../type';
+import type { SortBuildInput } from './type';
+import { SortDirection } from './type';
 import { flattenToKeyPathArray } from '../../utils';
 
 export function buildQuerySort<T extends ObjectLiteral = ObjectLiteral>(

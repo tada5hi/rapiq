@@ -5,10 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter, URLParameter } from '../constants';
-import { ObjectLiteral } from '../type';
+import type { Parameter, URLParameter } from '../constants';
+import type { ObjectLiteral } from '../type';
 
-import { ParseParameterOptions, ParseParameterOutput } from './parameter';
+import type { ParseParameterOptions, ParseParameterOutput } from './parameter';
 
 //------------------------------------------------
 

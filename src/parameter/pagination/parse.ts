@@ -6,7 +6,7 @@
  */
 
 import { isObject } from 'smob';
-import { PaginationParseOptions, PaginationParseOutput } from './type';
+import type { PaginationParseOptions, PaginationParseOutput } from './type';
 
 // --------------------------------------------------
 

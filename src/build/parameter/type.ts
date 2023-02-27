@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
+import type {
     FieldsBuildInput,
     FiltersBuildInput,
     PaginationBuildInput,
@@ -13,7 +13,7 @@ import {
     SortBuildInput,
 } from '../../parameter';
 
-import {
+import type {
     Parameter,
     URLParameter,
 } from '../../constants';

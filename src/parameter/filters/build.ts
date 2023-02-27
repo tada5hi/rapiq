@@ -6,8 +6,8 @@
  */
 
 import { merge } from 'smob';
-import { ObjectLiteral } from '../../type';
-import { FiltersBuildInput } from './type';
+import type { ObjectLiteral } from '../../type';
+import type { FiltersBuildInput } from './type';
 import { flattenNestedObject } from '../../utils';
 
 export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(

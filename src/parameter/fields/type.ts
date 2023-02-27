@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
+import type {
     Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
 } from '../../type';
-import { RelationsParseOutput } from '../relations';
-import {
+import type { RelationsParseOutput } from '../relations';
+import type {
     ParseAllowedOption,
 } from '../type';
-import { FieldOperator } from './constants';
+import type { FieldOperator } from './constants';
 
 // -----------------------------------------------------------
 // Build

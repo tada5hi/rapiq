@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
+import type {
     FieldsParseOutput,
     FiltersParseOutput,
     PaginationParseOutput,
@@ -13,9 +13,9 @@ import {
     SortParseOutput,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
-import { ObjectLiteral } from '../type';
+import type { ObjectLiteral } from '../type';
 import { buildQueryParameterOptions, isQueryParameterEnabled, parseQueryParameter } from './parameter';
-import { ParseInput, ParseOptions, ParseOutput } from './type';
+import type { ParseInput, ParseOptions, ParseOutput } from './type';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,

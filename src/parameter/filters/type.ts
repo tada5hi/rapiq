@@ -5,15 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
+import type {
     Flatten,
     NestedKeys, ObjectLiteral, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
 } from '../../type';
-import { RelationsParseOutput } from '../relations';
-import {
+import type { RelationsParseOutput } from '../relations';
+import type {
     ParseAllowedOption,
 } from '../type';
-import { FilterComparisonOperator } from './constants';
+import type { FilterComparisonOperator } from './constants';
 
 // -----------------------------------------------------------
 

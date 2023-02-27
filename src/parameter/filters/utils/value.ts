@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FilterValueSimple } from '../type';
+import type { FilterValueSimple } from '../type';
 
 export function transformFilterValue(input: FilterValueSimple) : FilterValueSimple {
     if (typeof input === 'string') {

@@ -6,7 +6,7 @@
  */
 
 import { merge } from 'smob';
-import { PaginationBuildInput } from './type';
+import type { PaginationBuildInput } from './type';
 
 export function mergeQueryPagination(
     target?: PaginationBuildInput,

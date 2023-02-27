@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { NestedKeys, ObjectLiteral } from '../../type';
+import type { NestedKeys, ObjectLiteral } from '../../type';
+import type { FieldDetails } from '../../utils';
 import {
-    FieldDetails,
     applyMapping,
     buildFieldWithPath,
     flattenNestedObject,
@@ -15,10 +15,10 @@ import {
     hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
-import { ParseAllowedOption } from '../type';
+import type { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
-import { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
+import type { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { parseFilterValue, transformFilterValue } from './utils';
 
 // --------------------------------------------------

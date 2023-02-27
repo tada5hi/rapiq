@@ -6,8 +6,8 @@
  */
 
 import { mergeArrays } from 'smob';
-import { ObjectLiteral } from '../../type';
-import { RelationsBuildInput } from './type';
+import type { ObjectLiteral } from '../../type';
+import type { RelationsBuildInput } from './type';
 import { flattenToKeyPathArray } from '../../utils';
 
 export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(

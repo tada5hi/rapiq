@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldsInputTransformed } from '../type';
+import type { FieldsInputTransformed } from '../type';
 import { FieldOperator } from '../constants';
 
 export function removeFieldInputOperator(field: string) {

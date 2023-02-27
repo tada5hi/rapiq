@@ -6,8 +6,8 @@
  */
 
 import { createMerger } from 'smob';
-import { ObjectLiteral } from '../../type';
-import { FieldsBuildInput } from './type';
+import type { ObjectLiteral } from '../../type';
+import type { FieldsBuildInput } from './type';
 import { flattenToKeyPathArray, groupArrayByKeyPath } from '../../utils';
 
 export function buildQueryFields<T extends ObjectLiteral = ObjectLiteral>(

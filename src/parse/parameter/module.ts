@@ -5,14 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { RelationsParseOutput } from '../../parameter';
 import {
-    RelationsParseOutput, parseQueryFields, parseQueryFilters, parseQueryPagination, parseQueryRelations, parseQuerySort,
+    parseQueryFields, parseQueryFilters, parseQueryPagination, parseQueryRelations, parseQuerySort,
 } from '../../parameter';
 import {
     Parameter, URLParameter,
 } from '../../constants';
-import { ObjectLiteral } from '../../type';
-import { ParseParameterOptions, ParseParameterOutput } from './type';
+import type { ObjectLiteral } from '../../type';
+import type { ParseParameterOptions, ParseParameterOutput } from './type';
 
 export function parseQueryParameter<
     P extends `${Parameter}` | `${URLParameter}`,

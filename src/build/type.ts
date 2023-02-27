@@ -5,8 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter, URLParameter } from '../constants';
-import { BuildParameterInput } from './parameter';
+import type { Parameter, URLParameter } from '../constants';
+import type { BuildParameterInput } from './parameter';
 
 export type BuildInput<
     T extends Record<string, any>,

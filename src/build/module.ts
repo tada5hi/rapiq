@@ -5,8 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ObjectLiteral } from '../type';
-import { BuildInput } from './type';
+import type { ObjectLiteral } from '../type';
+import type { BuildInput } from './type';
 import {
     buildQueryFields,
     buildQueryFilters,

@@ -6,12 +6,12 @@
  */
 
 import { isObject, merge } from 'smob';
-import { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../type';
 import {
     applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
-import {
+import type {
     FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
 } from './type';
 import {

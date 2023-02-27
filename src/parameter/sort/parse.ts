@@ -6,7 +6,7 @@
  */
 
 import { isObject } from 'smob';
-import { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../type';
 import {
     applyMapping,
     buildFieldWithPath, buildKeyPath, flattenNestedObject,
@@ -15,10 +15,10 @@ import {
     isFieldPathAllowedByRelations,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
-import { ParseAllowedOption } from '../type';
+import type { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 
-import {
+import type {
     SortParseOptions,
     SortParseOutput,
     SortParseOutputElement,

@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseOutput } from '../parameter';
+import type { RelationsParseOutput } from '../parameter';
 import { getFieldDetails } from './field';
-import { FieldDetails } from './type';
+import type { FieldDetails } from './type';
 
 export function isFieldNonRelational(field: string | FieldDetails) {
     const details = typeof field === 'string' ?
