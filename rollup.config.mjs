@@ -8,7 +8,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import { transform } from '@swc/core';
 import pkg from './package.json' assert { type: 'json' };
-import terser from "@rollup/plugin-terser";
 
 const extensions = [
     '.js', '.cjs', '.mjs', '.jsx', '.ts', '.tsx',
@@ -35,7 +34,7 @@ export default [
                 transform(code) {
                     return transform(code, {
                         jsc: {
-                            target: 'es2016',
+                            target: 'es2020',
                             parser: {
                                 syntax: 'typescript'
                             },
@@ -44,8 +43,7 @@ export default [
                         sourceMaps: true
                     });
                 }
-            },
-            terser()
+            }
         ],
         output: [
             {
