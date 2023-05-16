@@ -79,7 +79,7 @@
         "jest": "^27.5.1",
         "rimraf": "^5.0.0",
         "rollup": "^3.21.7",
-        "semantic-release": "^21.0.2",
+        "semantic-release": "^19.0.5",
         "typescript": "^5.0.4",
         "vitepress": "^1.0.0-alpha.75",
         "vue": "^3.3.2"
