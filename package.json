@@ -78,7 +78,7 @@
         "husky": "^8.0.3",
         "jest": "^27.5.1",
         "rimraf": "^5.0.0",
-        "rollup": "^3.21.7",
+        "rollup": "^3.22.0",
         "semantic-release": "^19.0.5",
         "typescript": "^5.0.4",
         "vitepress": "^1.0.0-alpha.75",
