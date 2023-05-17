@@ -72,7 +72,7 @@
         "@tada5hi/semantic-release": "^0.1.0",
         "@tada5hi/tsconfig": "^0.4.0",
         "@types/jest": "^27.5.0",
-        "@types/node": "^20.1.4",
+        "@types/node": "^20.1.7",
         "cross-env": "^7.0.3",
         "eslint": "^8.40.0",
         "husky": "^8.0.3",
