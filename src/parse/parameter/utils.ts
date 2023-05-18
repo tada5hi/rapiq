@@ -17,12 +17,29 @@ export function buildQueryParameterOptions<T extends Record<string, any>>(
     return {} as T;
 }
 
-export function isQueryParameterEnabled<T extends Record<string, any>>(
-    input?: T | boolean,
-) : boolean {
-    if (typeof input === 'boolean') {
-        return input;
+type QueryParameterEnabledContext = {
+    data: unknown,
+    options?: Record<string, any> | boolean
+};
+export function isQueryParameterEnabled(context: QueryParameterEnabledContext) : boolean {
+    if (typeof context.options === 'boolean') {
+        return context.options;
     }
 
-    return true;
+    if (
+        typeof context.data !== 'undefined' &&
+        typeof context.options === 'undefined'
+    ) {
+        return true;
+    }
+
+    if (isObject(context.options)) {
+        if (typeof context.options.default !== 'undefined') {
+            return true;
+        }
+
+        return typeof context.data !== 'undefined';
+    }
+
+    return false;
 }

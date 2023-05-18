@@ -100,6 +100,42 @@ describe('src/parse.ts', () => {
         expect(value).toEqual({} as ParseOutput);
     });
 
+    it('should parse query with defaults', () => {
+        let value = parseQuery({
+            fields: ['id', 'name'],
+        }, {
+            fields: {
+                default: ['id']
+            }
+        });
+        expect(value).toEqual({
+            fields: [
+                { key: 'id' },
+            ],
+        } as ParseOutput);
+
+        value = parseQuery<{ id: number, name: string }>({}, {
+            fields: {
+                default: ['id', 'name']
+            },
+            filters: {
+                default: {
+                    id: 1
+                }
+            }
+        });
+
+        expect(value).toEqual({
+            fields: [
+                { key: 'id' },
+                { key: 'name' }
+            ],
+            filters: [
+                {key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL }
+            ]
+        } as ParseOutput);
+    })
+
     it('should parse query with default path', () => {
         let value = parseQuery({
             fields: ['id', 'name'],
