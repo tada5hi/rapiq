@@ -81,7 +81,7 @@
         "rollup": "^3.22.0",
         "semantic-release": "^19.0.5",
         "typescript": "^5.0.4",
-        "vitepress": "^1.0.0-alpha.75",
+        "vitepress": "^1.0.0-alpha.76",
         "vue": "^3.3.3"
     }
 }
