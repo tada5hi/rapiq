@@ -1,3 +1,13 @@
+## [0.8.1](https://github.com/Tada5hi/rapiq/compare/v0.8.0...v0.8.1) (2023-05-29)
+
+
+### Bug Fixes
+
+* apply defaults if parse input has no parameter keys ([c4ba303](https://github.com/Tada5hi/rapiq/commit/c4ba3036da2b4c5bbd02411f8f54787bc7e90953))
+* **deps:** bump smob to v1.x ([978da3a](https://github.com/Tada5hi/rapiq/commit/978da3adfe399749b4afb91d901b84cc736641c7))
+* simplify build query string util ([7e7eb28](https://github.com/Tada5hi/rapiq/commit/7e7eb28372900f4c2c09a99460dfa179fe49b837))
+* use custom merger for parameters ([4ff0ca5](https://github.com/Tada5hi/rapiq/commit/4ff0ca5fc18065c515090d01e87244f1a9fbba10))
+
 # [0.8.0](https://github.com/Tada5hi/rapiq/compare/v0.7.0...v0.8.0) (2023-02-14)
 
 
