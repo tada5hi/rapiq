@@ -5,10 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { mergeArrays } from 'smob';
 import type { ObjectLiteral } from '../../type';
 import type { RelationsBuildInput } from './type';
-import { flattenToKeyPathArray } from '../../utils';
+import { flattenToKeyPathArray, merge } from '../../utils';
 
 export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input?: RelationsBuildInput<T>,
@@ -24,5 +23,5 @@ export function mergeQueryRelations(
     target?: string[],
     source?: string[],
 ) : string[] {
-    return mergeArrays(target || [], source || [], true);
+    return merge(target || [], source || []);
 }

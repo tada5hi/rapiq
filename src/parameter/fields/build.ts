@@ -5,10 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { createMerger } from 'smob';
 import type { ObjectLiteral } from '../../type';
 import type { FieldsBuildInput } from './type';
-import { flattenToKeyPathArray, groupArrayByKeyPath } from '../../utils';
+import { flattenToKeyPathArray, groupArrayByKeyPath, merge } from '../../utils';
 
 export function buildQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     input?: FieldsBuildInput<T>,
@@ -39,12 +38,7 @@ export function mergeQueryFields(
         source = groupArrayByKeyPath(source);
     }
 
-    const merge = createMerger({
-        array: true,
-        arrayDistinct: true,
-    });
-
-    const data = merge({}, target, source);
+    const data = merge(target, source);
 
     const keys = Object.keys(data);
     if (keys.length === 1) {

@@ -5,10 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { isObject, merge } from 'smob';
+import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../type';
 import {
-    applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations,
+    applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations, merge,
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type {
@@ -51,7 +51,6 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     );
 
     const domainFields = merge(
-        {},
         defaultDomainFields,
         allowedDomainFields,
     );

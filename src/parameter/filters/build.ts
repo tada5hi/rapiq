@@ -5,10 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { merge } from 'smob';
+import { flattenNestedObject, merge } from '../../utils';
 import type { ObjectLiteral } from '../../type';
 import type { FiltersBuildInput } from './type';
-import { flattenNestedObject } from '../../utils';
 
 export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data?: FiltersBuildInput<T>,
@@ -56,5 +55,5 @@ export function mergeQueryFilters(
     target?: Record<string, any>,
     source?: Record<string, any>,
 ) : Record<string, any> {
-    return merge({}, target || {}, source || {});
+    return merge(target || {}, source || {});
 }

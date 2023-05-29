@@ -5,12 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { merge } from 'smob';
+import { merge } from '../../utils';
 import type { PaginationBuildInput } from './type';
 
 export function mergeQueryPagination(
     target?: PaginationBuildInput,
     source?: PaginationBuildInput,
 ) : PaginationBuildInput {
-    return merge({}, target || {}, source || {});
+    return merge(target || {}, source || {});
 }
