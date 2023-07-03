@@ -9,7 +9,7 @@ import {
     FiltersParseOptions,
     FiltersParseOutput,
     parseQueryFilters,
-    parseQueryRelations, FilterComparisonOperator,
+    parseQueryRelations, FilterComparisonOperator, FiltersParseError,
 } from '../../src';
 
 describe('src/filter/index.ts', () => {
@@ -436,5 +436,102 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.EQUAL,
             },
         ] as FiltersParseOutput);
+    });
+
+    it('should throw on invalid input shape', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true
+        }
+
+        let error = FiltersParseError.inputInvalid();
+        let evaluate = () => {
+            parseQueryFilters('foo', options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid key value', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true
+        }
+
+        let error = FiltersParseError.keyValueInvalid('foo');
+        let evaluate = () => {
+            parseQueryFilters({
+                foo: new Buffer('foo'),
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid key', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true
+        }
+
+        let error = FiltersParseError.keyInvalid('1foo');
+        let evaluate = () => {
+            parseQueryFilters({
+                '1foo': 1
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed relation', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true,
+            allowed: ['user.foo'],
+            relations: [
+                {
+                    key: 'user',
+                    value: 'user'
+                }
+            ]
+        }
+
+        let error = FiltersParseError.keyPathInvalid('bar');
+        let evaluate = () => {
+            parseQueryFilters({
+                'bar.bar': 1
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed key which is not covered by a relation', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true,
+            allowed: ['user.foo'],
+            relations: [
+                {
+                    key: 'user',
+                    value: 'user'
+                }
+            ]
+        }
+
+        let error = FiltersParseError.keyInvalid('bar');
+        let evaluate = () => {
+            parseQueryFilters({
+                'user.bar': 1
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed key', () => {
+        let options : FiltersParseOptions = {
+            throwOnError: true,
+            allowed: ['foo']
+        }
+
+        let error = FiltersParseError.keyInvalid('bar');
+        let evaluate = () => {
+            parseQueryFilters({
+                bar: 1
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
     });
 });

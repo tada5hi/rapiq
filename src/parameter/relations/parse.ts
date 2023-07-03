@@ -8,6 +8,7 @@
 import type { ObjectLiteral } from '../../type';
 import { applyMapping, hasOwnProperty } from '../../utils';
 import { isPathCoveredByParseAllowedOption } from '../utils';
+import { RelationsParseError } from './errors';
 
 import type { RelationsParseOptions, RelationsParseOutput } from './type';
 import { includeParents, isValidRelationPath } from './utils';
@@ -42,8 +43,12 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         for (let i = 0; i < input.length; i++) {
             if (typeof input[i] === 'string') {
                 items.push(input[i]);
+            } else {
+                throw RelationsParseError.inputInvalid();
             }
         }
+    } else if (options.throwOnError) {
+        throw RelationsParseError.inputInvalid();
     }
 
     if (items.length === 0) {
@@ -57,10 +62,21 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         }
     }
 
-    if (options.allowed) {
-        items = items.filter((item) => isPathCoveredByParseAllowedOption(options.allowed as string[], item));
-    } else {
-        items = items.filter((item) => isValidRelationPath(item));
+    for (let j = items.length - 1; j >= 0; j--) {
+        let isValid : boolean;
+        if (options.allowed) {
+            isValid = isPathCoveredByParseAllowedOption(options.allowed as string[], items[j]);
+        } else {
+            isValid = isValidRelationPath(items[j]);
+        }
+
+        if (!isValid) {
+            if (options.throwOnError) {
+                throw RelationsParseError.keyInvalid(items[j]);
+            }
+
+            items.splice(j, 1);
+        }
     }
 
     if (options.includeParents) {

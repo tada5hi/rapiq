@@ -29,7 +29,8 @@ export type RelationsParseOptions<
         mapping?: Record<string, string>,
         // set alternate value for relation key.
         pathMapping?: Record<string, string>,
-        includeParents?: boolean | string[] | string
+        includeParents?: boolean | string[] | string,
+        throwOnError?: boolean
     };
 
 export type RelationsParseOutputElement = {

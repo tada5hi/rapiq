@@ -24,7 +24,8 @@ export type ParseOptions<T extends ObjectLiteral = ObjectLiteral> = {
      */
     [P in `${Parameter}`]?: boolean | ParseParameterOptions<P, T>
 } & {
-    defaultPath?: string
+    defaultPath?: string,
+    throwOnError?: boolean
 };
 
 //------------------------------------------------

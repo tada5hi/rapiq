@@ -8,6 +8,7 @@
 import {
     buildFieldDomainRecords,
     DEFAULT_ID,
+    FieldsParseError,
     FieldsParseOptions,
     FieldsParseOutput,
     parseQueryFields,
@@ -200,22 +201,32 @@ describe('src/fields/index.ts', () => {
         // field with invalid value
         data = parseQueryFields({ id: null }, options);
         expect(data).toEqual([{ key: 'id' }, { key: 'name' }] as FieldsParseOutput);
+    });
 
+    it('should parse with single allowed domain', () => {
         // if only one domain is given, try to parse request field to single domain.
-        data = parseQueryFields(['id'], { allowed: { domain: ['id'] } });
+        const data = parseQueryFields(['id'], { allowed: { domain: ['id'] } });
         expect(data).toEqual([{ path: 'domain', key: 'id' }] as FieldsParseOutput);
+    });
 
+    it('should parse with multiple allowed domains', () => {
         // if multiple possibilities are available for request field, use allowed
-        data = parseQueryFields(['id'], { allowed: { domain: ['id', 'name'], domain2: ['id', 'name'] } });
+        const data = parseQueryFields(['id'], {
+            allowed: {
+                domain: ['id', 'name'],
+                domain2: ['id', 'name']
+            }
+        });
         expect(data).toEqual([
             { path: 'domain', key: 'id' },
-            { path: 'domain', key: 'name' },
             { path: 'domain2', key: 'id' },
             { path: 'domain2', key: 'name' },
         ] as FieldsParseOutput);
+    });
 
+    it('should use default fields if default & allowed are set', () => {
         // if multiple possibilities are available for request field, use default
-        data = parseQueryFields<Record<string, any>>(['id'], {
+        const data = parseQueryFields<Record<string, any>>(['id'], {
             allowed: { domain: ['id', 'name'], domain2: ['id', 'name'] },
             default: { domain: ['id'], domain2: ['name']}
         });
@@ -223,9 +234,9 @@ describe('src/fields/index.ts', () => {
             { path: 'domain', key: 'id' },
             { path: 'domain2', key: 'name' },
         ] as FieldsParseOutput);
-    });
+    })
 
-    it('should transform fields with defaults', () => {
+    it('should parse with defaults', () => {
         let data = parseQueryFields([], { default: ['id', 'name'] });
         expect(data).toEqual([{ key: 'id' }, { key: 'name'}] as FieldsParseOutput);
 
@@ -247,17 +258,18 @@ describe('src/fields/index.ts', () => {
 
     it('should transform fields with aliasMapping', () => {
         let data = parseQueryFields('+alias', {
-            allowed: ['id'],
+            allowed: ['id', 'name'],
             mapping: {
                 path: 'id'
             }
         });
         expect(data).toEqual([
-            {key: 'id'}
+            {key: 'id'},
+            {key: 'name'}
         ] as FieldsParseOutput);
 
         data = parseQueryFields('+alias', {
-            allowed: ['id'],
+            allowed: ['id', 'name'],
             mapping: {
                 alias: 'id'
             }
@@ -267,7 +279,7 @@ describe('src/fields/index.ts', () => {
         ] as FieldsParseOutput);
     })
 
-    it('should transform fields with includes', () => {
+    it('should parse with includes', () => {
         const includes = parseQueryRelations(['profile', 'roles'], { allowed: ['user', 'profile'] });
 
         // simple domain match
@@ -278,4 +290,58 @@ describe('src/fields/index.ts', () => {
         data = parseQueryFields({ profile: ['id'], permissions: ['id'] }, { allowed: { profile: ['id'], permissions: ['id'] }, relations: includes });
         expect(data).toEqual([{ path: 'profile', key: 'id' }] as FieldsParseOutput);
     });
+
+    it('should throw on invalid input shape', () => {
+        let options : FieldsParseOptions = {
+            throwOnError: true
+        }
+
+        let error = FieldsParseError.inputInvalid();
+        let evaluate = () => {
+            parseQueryFields(false, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed relation', () => {
+        let options : FieldsParseOptions = {
+            throwOnError: true,
+            allowed: ['user.foo'],
+            relations: [
+                {
+                    key: 'user',
+                    value: 'user'
+                }
+            ]
+        }
+
+        let error = FieldsParseError.keyPathInvalid('bar');
+        let evaluate = () => {
+            parseQueryFields({
+                'bar': ['bar']
+            }, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid key', () => {
+        let options : FieldsParseOptions = {
+            throwOnError: true
+        };
+
+        let t = () => {
+            return parseQueryFields(['!.bar'], options)
+        }
+
+        expect(t).toThrow(FieldsParseError);
+
+        options.allowed = ['id', 'name', 'email'];
+        options.defaultPath = 'user';
+
+        t = () => {
+            return parseQueryFields(['baz'], options)
+        }
+
+        expect(t).toThrow(FieldsParseError);
+    })
 });

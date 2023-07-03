@@ -6,5 +6,6 @@
  */
 
 export * from './build';
+export * from './errors';
 export * from './parse';
 export * from './type';

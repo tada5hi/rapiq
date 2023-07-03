@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { parseQueryPagination } from '../../src';
+import {PaginationParseError, PaginationParseOptions, parseQueryPagination} from '../../src';
 
 describe('src/pagination/index.ts', () => {
     it('should transform pagination', () => {
@@ -24,4 +24,57 @@ describe('src/pagination/index.ts', () => {
         pagination = parseQueryPagination({ offset: 20, limit: 20 }, { maxLimit: 50 });
         expect(pagination).toEqual({ offset: 20, limit: 20 });
     });
+
+    it('should throw on exceeded limit', () => {
+        let options : PaginationParseOptions = {
+            throwOnError: true,
+            maxLimit: 50
+        };
+
+        let evaluate = () => {
+            parseQueryPagination({limit: 100}, options);
+        }
+
+        const error = PaginationParseError.limitExceeded(50);
+        expect(evaluate).toThrowError(error);
+    })
+
+    it('should throw on invalid input', () => {
+        let options : PaginationParseOptions = {
+            throwOnError: true
+        };
+
+        let evaluate = () => {
+            parseQueryPagination(false, options);
+        }
+
+        const error = PaginationParseError.inputInvalid();
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid limit', () => {
+        let options : PaginationParseOptions = {
+            throwOnError: true
+        };
+
+        let evaluate = () => {
+            parseQueryPagination({limit: false}, options);
+        }
+
+        const error = PaginationParseError.keyValueInvalid('limit');
+        expect(evaluate).toThrowError(error);
+    })
+
+    it('should throw on invalid offset', () => {
+        let options : PaginationParseOptions = {
+            throwOnError: true
+        };
+
+        let evaluate = () => {
+            parseQueryPagination({offset: false}, options);
+        }
+
+        const error = PaginationParseError.keyValueInvalid('offset');
+        expect(evaluate).toThrowError(error);
+    })
 });

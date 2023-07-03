@@ -6,6 +6,7 @@
  */
 
 import { isObject } from 'smob';
+import { PaginationParseError } from './errors';
 import type { PaginationParseOptions, PaginationParseOutput } from './type';
 
 // --------------------------------------------------
@@ -19,6 +20,10 @@ function finalizePagination(
             typeof data.limit === 'undefined' ||
             data.limit > options.maxLimit
         ) {
+            if (options.throwOnError) {
+                throw PaginationParseError.limitExceeded(options.maxLimit);
+            }
+
             data.limit = options.maxLimit;
         }
     }
@@ -48,6 +53,10 @@ export function parseQueryPagination(
     const pagination : PaginationParseOutput = {};
 
     if (!isObject(data)) {
+        if (options.throwOnError) {
+            throw PaginationParseError.inputInvalid();
+        }
+
         return finalizePagination(pagination, options);
     }
 
@@ -58,6 +67,8 @@ export function parseQueryPagination(
 
         if (!Number.isNaN(limit) && limit > 0) {
             pagination.limit = limit;
+        } else if (options.throwOnError) {
+            throw PaginationParseError.keyValueInvalid('limit');
         }
     }
 
@@ -66,6 +77,8 @@ export function parseQueryPagination(
 
         if (!Number.isNaN(offset) && offset >= 0) {
             pagination.offset = offset;
+        } else if (options.throwOnError) {
+            throw PaginationParseError.keyValueInvalid('offset');
         }
     }
 

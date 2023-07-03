@@ -61,6 +61,7 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
+        "ebec": "^1.1.0",
         "smob": "^1.4.0"
     },
     "devDependencies": {

@@ -6,6 +6,7 @@
  */
 
 export * from './build';
+export * from './errors';
 export * from './parameter';
 export * from './parse';
 export * from './constants';

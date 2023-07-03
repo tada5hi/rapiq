@@ -5,88 +5,142 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseOutput, parseQueryRelations } from '../../src';
+import {RelationsParseOutput, parseQueryRelations, RelationsParseOptions, RelationsParseError} from '../../src';
 
 describe('src/relations/index.ts', () => {
-    it('should transform request relations', () => {
-        // single data matching
-        let allowed = parseQueryRelations('profile', { allowed: ['profile'] });
-        expect(allowed).toEqual([
-            { key: 'profile', value: 'profile' },
+    it('should parse simple relations', () => {
+        let output = parseQueryRelations('profile', {allowed: ['profile']});
+        expect(output).toEqual([
+            {key: 'profile', value: 'profile'},
         ] as RelationsParseOutput);
 
-        allowed = parseQueryRelations([], { allowed: ['profile'] });
-        expect(allowed).toEqual([]);
+        output = parseQueryRelations([], {allowed: ['profile']});
+        expect(output).toEqual([]);
 
+    })
+
+    it('should parse with invalid path', () => {
         // invalid path
-        allowed = parseQueryRelations(['profile!']);
-        expect(allowed).toEqual([]);
+        let output = parseQueryRelations(['profile!']);
+        expect(output).toEqual([]);
 
+    })
+
+    it('should parse ignore path pattern, if permitted by allowed key', () => {
         // ignore path pattern, if permitted by allowed key
-        allowed = parseQueryRelations(['profile!'], {allowed: ['profile!']});
-        expect(allowed).toEqual([
-            { key: 'profile!', value: 'profile!'}
+        let output = parseQueryRelations(['profile!'], {allowed: ['profile!']});
+        expect(output).toEqual([
+            {key: 'profile!', value: 'profile!'}
         ] as RelationsParseOutput);
+    });
 
+    it('should parse with alias', () => {
         // with alias
-        allowed = parseQueryRelations('pro', { mapping: { pro: 'profile' }, allowed: ['profile'] });
-        expect(allowed).toEqual([
-            { key: 'profile', value: 'profile' },
+        let output = parseQueryRelations('pro', {mapping: {pro: 'profile'}, allowed: ['profile']});
+        expect(output).toEqual([
+            {key: 'profile', value: 'profile'},
         ]);
+    });
 
+    it('should parse with nested alias', () => {
         // with nested alias
-        allowed = parseQueryRelations(['abc.photos'], {
+        let output = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
             mapping: { 'abc.photos': 'profile.photos' },
         });
-        expect(allowed).toEqual([
+        expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
         // with nested alias & includeParents
-        allowed = parseQueryRelations(['abc.photos'], {
+        output = parseQueryRelations(['abc.photos'], {
             allowed: ['profile.photos'],
             mapping: { 'abc.photos': 'profile.photos' },
             includeParents: false,
         });
-        expect(allowed).toEqual([
+        expect(output).toEqual([
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
         // with nested alias & limited includeParents ( no user_roles rel)
-        allowed = parseQueryRelations(['abc.photos', 'user_roles.role'], {
+        output = parseQueryRelations(['abc.photos', 'user_roles.role'], {
             allowed: ['profile.photos', 'user_roles.role'],
             mapping: { 'abc.photos': 'profile.photos' },
             includeParents: ['profile'],
         });
-        expect(allowed).toEqual([
+        expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
             { key: 'user_roles.role', value: 'role' },
         ] as RelationsParseOutput);
 
         // multiple data matching
-        allowed = parseQueryRelations(['profile', 'abc'], { allowed: ['profile'] });
-        expect(allowed).toEqual([{ key: 'profile', value: 'profile' }] as RelationsParseOutput);
+        output = parseQueryRelations(['profile', 'abc'], { allowed: ['profile'] });
+        expect(output).toEqual([{ key: 'profile', value: 'profile' }] as RelationsParseOutput);
 
         // no allowed
-        allowed = parseQueryRelations(['profile'], { allowed: [] });
-        expect(allowed).toEqual([] as RelationsParseOutput);
+        output = parseQueryRelations(['profile'], { allowed: [] });
+        expect(output).toEqual([] as RelationsParseOutput);
 
         // non array, permit everything
-        allowed = parseQueryRelations(['profile'], { allowed: undefined });
-        expect(allowed).toEqual([{key: 'profile', value: 'profile'}] as RelationsParseOutput);
+        output = parseQueryRelations(['profile'], { allowed: undefined });
+        expect(output).toEqual([{key: 'profile', value: 'profile'}] as RelationsParseOutput);
 
         // nested data with alias
-        allowed = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'] });
-        expect(allowed).toEqual([
+        output = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'] });
+        expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
 
         // null data
-        allowed = parseQueryRelations(null);
-        expect(allowed).toEqual([]);
+        output = parseQueryRelations(null);
+        expect(output).toEqual([]);
     });
+
+    it('should throw on invalid input', () => {
+        let options : RelationsParseOptions = {
+            throwOnError: true
+        };
+
+        let error = RelationsParseError.inputInvalid();
+
+        let evaluate = () => {
+            parseQueryRelations(['foo', true], options);
+        }
+        expect(evaluate).toThrowError(error);
+
+        evaluate = () => {
+            parseQueryRelations(false, options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed key', () => {
+        let options : RelationsParseOptions = {
+            throwOnError: true,
+            allowed: ['foo']
+        };
+
+        let error = RelationsParseError.keyInvalid('bar');
+
+        let evaluate = () => {
+            parseQueryRelations(['foo', 'bar'], options);
+        }
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid key', () => {
+        let options : RelationsParseOptions = {
+            throwOnError: true
+        };
+
+        let error = RelationsParseError.keyInvalid(',foo');
+
+        let evaluate = () => {
+            parseQueryRelations([',foo'], options);
+        }
+        expect(evaluate).toThrowError(error);
+    })
 });
