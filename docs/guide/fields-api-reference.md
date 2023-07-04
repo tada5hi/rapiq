@@ -91,7 +91,8 @@ type FieldsParseOptions<T extends Record<string, any> = Record<string, any>,
     allowed?: ParseAllowedOption<T>,
     default?: ParseAllowedOption<T>,
     defaultPath?: string,
-    relations?: RelationsParseOutput
+    relations?: RelationsParseOutput,
+    throwOnFailure?: boolean
 };
 ```
 

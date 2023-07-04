@@ -88,6 +88,7 @@ type SortParseOptions<
     mapping?: Record<string, string>,
     default?: SortPaseDefaultOption<T>,
     defaultPath?: string,
+    throwOnFailure?: boolean,
     relations?: RelationsParseOutput,
 };
 ```

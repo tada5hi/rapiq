@@ -23,7 +23,8 @@ const input : PaginationBuildInput = {
 ## `PaginationParseOptions`
 ```typescript
 export type PaginationParseOptions = {
-    maxLimit?: number
+    maxLimit?: number,
+    throwOnFailure?: boolean
 };
 ```
 

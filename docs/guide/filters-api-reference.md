@@ -163,7 +163,8 @@ type FiltersParseOptions<
     default?: FiltersParseDefaultOption<T>,
     defaultByElement?: boolean,
     defaultPath?: string,
-    relations?: RelationsParseOutput
+    relations?: RelationsParseOutput,
+    throwOnFailure?: boolean
 };
 ```
 

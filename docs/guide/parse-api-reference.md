@@ -211,6 +211,9 @@ type ParseOptions = {
      * On default all query keys are enabled.
      */
     [K in Parameter]?: ParseParameterOptions<K> | boolean
+} & {
+    defaultPath?: string,
+    throwOnFailure?: boolean
 }
 ```
 **References**
