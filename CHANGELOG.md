@@ -1,3 +1,15 @@
+# [0.9.0](https://github.com/Tada5hi/rapiq/compare/v0.8.1...v0.9.0) (2023-07-04)
+
+
+### Bug Fixes
+
+* refactoring bug of throwOnFailure option ([a555b2d](https://github.com/Tada5hi/rapiq/commit/a555b2d2e97dc33b35a5bd3b0bbdb2f9fdaab348))
+
+
+### Features
+
+* allow throwing error on invalid parsing input ([#312](https://github.com/Tada5hi/rapiq/issues/312)) ([3afd7f2](https://github.com/Tada5hi/rapiq/commit/3afd7f218402738a57f8b2c0bf241b2399024164))
+
 ## [0.8.1](https://github.com/Tada5hi/rapiq/compare/v0.8.0...v0.8.1) (2023-05-29)
 
 
