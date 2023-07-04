@@ -213,7 +213,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                 for (let j = 0; j < filter.value.length; j++) {
                     if (options.validate(filter.key as NestedKeys<T>, filter.value[j])) {
                         output.push(filter.value[j]);
-                    } else if (options.throwOnError) {
+                    } else if (options.throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                     }
                 }

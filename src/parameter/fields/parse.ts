@@ -146,7 +146,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
                 }
 
                 if (!isValid) {
-                    if (options.throwOnError) {
+                    if (options.throwOnFailure) {
                         throw FieldsParseError.keyNotAllowed(fields[j]);
                     }
 
