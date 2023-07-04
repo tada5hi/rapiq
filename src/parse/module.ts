@@ -33,7 +33,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
             }
 
             if (typeof data.throwOnError === 'undefined') {
-                data.throwOnError = options.throwOnError;
+                data.throwOnError = options.throwOnFailure;
             }
         }
 

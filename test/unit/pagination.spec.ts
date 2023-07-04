@@ -27,7 +27,7 @@ describe('src/pagination/index.ts', () => {
 
     it('should throw on exceeded limit', () => {
         let options : PaginationParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             maxLimit: 50
         };
 
@@ -41,7 +41,7 @@ describe('src/pagination/index.ts', () => {
 
     it('should throw on invalid input', () => {
         let options : PaginationParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let evaluate = () => {
@@ -54,7 +54,7 @@ describe('src/pagination/index.ts', () => {
 
     it('should throw on invalid limit', () => {
         let options : PaginationParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let evaluate = () => {
@@ -67,7 +67,7 @@ describe('src/pagination/index.ts', () => {
 
     it('should throw on invalid offset', () => {
         let options : PaginationParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let evaluate = () => {

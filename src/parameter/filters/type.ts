@@ -65,7 +65,7 @@ export type FiltersParseOptions<
         default?: FiltersParseDefaultOption<T>,
         defaultByElement?: boolean,
         defaultPath?: string,
-        throwOnError?: boolean,
+        throwOnFailure?: boolean,
         relations?: RelationsParseOutput,
         validate?: FiltersValidatorOption<NestedKeys<T>>
     };

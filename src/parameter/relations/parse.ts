@@ -47,7 +47,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
                 throw RelationsParseError.inputInvalid();
             }
         }
-    } else if (options.throwOnError) {
+    } else if (options.throwOnFailure) {
         throw RelationsParseError.inputInvalid();
     }
 
@@ -71,7 +71,7 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         }
 
         if (!isValid) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw RelationsParseError.keyInvalid(items[j]);
             }
 

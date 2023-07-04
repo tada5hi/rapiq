@@ -440,7 +440,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on invalid input shape', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         }
 
         let error = FiltersParseError.inputInvalid();
@@ -452,7 +452,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on invalid key value', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         }
 
         let error = FiltersParseError.keyValueInvalid('foo');
@@ -466,7 +466,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on invalid key', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         }
 
         let error = FiltersParseError.keyInvalid('1foo');
@@ -480,7 +480,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on non allowed relation', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
@@ -501,7 +501,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on non allowed key which is not covered by a relation', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
@@ -522,7 +522,7 @@ describe('src/filter/index.ts', () => {
 
     it('should throw on non allowed key', () => {
         let options : FiltersParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             allowed: ['foo']
         }
 

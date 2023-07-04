@@ -20,7 +20,7 @@ function finalizePagination(
             typeof data.limit === 'undefined' ||
             data.limit > options.maxLimit
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw PaginationParseError.limitExceeded(options.maxLimit);
             }
 
@@ -53,7 +53,7 @@ export function parseQueryPagination(
     const pagination : PaginationParseOutput = {};
 
     if (!isObject(data)) {
-        if (options.throwOnError) {
+        if (options.throwOnFailure) {
             throw PaginationParseError.inputInvalid();
         }
 
@@ -67,7 +67,7 @@ export function parseQueryPagination(
 
         if (!Number.isNaN(limit) && limit > 0) {
             pagination.limit = limit;
-        } else if (options.throwOnError) {
+        } else if (options.throwOnFailure) {
             throw PaginationParseError.keyValueInvalid('limit');
         }
     }
@@ -77,7 +77,7 @@ export function parseQueryPagination(
 
         if (!Number.isNaN(offset) && offset >= 0) {
             pagination.offset = offset;
-        } else if (options.throwOnError) {
+        } else if (options.throwOnFailure) {
             throw PaginationParseError.keyValueInvalid('offset');
         }
     }

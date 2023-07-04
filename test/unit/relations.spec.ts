@@ -101,7 +101,7 @@ describe('src/relations/index.ts', () => {
 
     it('should throw on invalid input', () => {
         let options : RelationsParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let error = RelationsParseError.inputInvalid();
@@ -119,7 +119,7 @@ describe('src/relations/index.ts', () => {
 
     it('should throw on non allowed key', () => {
         let options : RelationsParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             allowed: ['foo']
         };
 
@@ -133,7 +133,7 @@ describe('src/relations/index.ts', () => {
 
     it('should throw on invalid key', () => {
         let options : RelationsParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let error = RelationsParseError.keyInvalid(',foo');

@@ -293,7 +293,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid input shape', () => {
         let options : FieldsParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         }
 
         let error = FieldsParseError.inputInvalid();
@@ -305,7 +305,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on non allowed relation', () => {
         let options : FieldsParseOptions = {
-            throwOnError: true,
+            throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
@@ -326,7 +326,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid key', () => {
         let options : FieldsParseOptions = {
-            throwOnError: true
+            throwOnFailure: true
         };
 
         let t = () => {

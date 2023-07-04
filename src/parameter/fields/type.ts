@@ -51,7 +51,7 @@ export type FieldsParseOptions<
     allowed?: ParseAllowedOption<T>,
     default?: ParseAllowedOption<T>,
     defaultPath?: string,
-    throwOnError?: boolean,
+    throwOnFailure?: boolean,
     relations?: RelationsParseOutput,
 };
 

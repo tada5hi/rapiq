@@ -124,7 +124,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
     /* istanbul ignore next */
     if (!isObject(data)) {
-        if (options.throwOnError) {
+        if (options.throwOnFailure) {
             throw FiltersParseError.inputInvalid();
         }
 
@@ -159,7 +159,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             value !== null &&
             !Array.isArray(value)
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(keys[i]);
             }
             continue;
@@ -173,7 +173,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             typeof options.allowed === 'undefined' &&
             !isValidFieldName(fieldDetails.name)
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyInvalid(fieldDetails.name);
             }
             continue;
@@ -183,7 +183,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             typeof fieldDetails.path !== 'undefined' &&
             !isPathAllowedByRelations(fieldDetails.path, options.relations)
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyPathInvalid(fieldDetails.path);
             }
             continue;
@@ -195,7 +195,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             options.allowed &&
             !isPathCoveredByParseAllowedOption(options.allowed, [keys[i], fullKey])
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyInvalid(fieldDetails.name);
             }
 
@@ -223,7 +223,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                     continue;
                 }
             } else if (!options.validate(filter.key as NestedKeys<T>, filter.value)) {
-                if (options.throwOnError) {
+                if (options.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
@@ -235,7 +235,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             typeof filter.value === 'string' &&
             filter.value.length === 0
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(fieldDetails.name);
             }
 
@@ -246,7 +246,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             Array.isArray(filter.value) &&
             filter.value.length === 0
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(fieldDetails.name);
             }
 

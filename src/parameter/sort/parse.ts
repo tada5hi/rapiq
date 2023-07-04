@@ -97,7 +97,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         !Array.isArray(data) &&
         !isObject(data)
     ) {
-        if (options.throwOnError) {
+        if (options.throwOnFailure) {
             throw SortParseError.inputInvalid();
         }
 
@@ -131,7 +131,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
                 typeof keys[i] !== 'string' ||
                 typeof data[keys[i]] !== 'string'
             ) {
-                if (options.throwOnError) {
+                if (options.throwOnFailure) {
                     throw SortParseError.keyValueInvalid(keys[i]);
                 }
 
@@ -161,7 +161,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
             typeof options.allowed === 'undefined' &&
             !isValidFieldName(fieldDetails.name)
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw SortParseError.keyInvalid(fieldDetails.name);
             }
 
@@ -172,7 +172,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
             !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
             typeof fieldDetails.path !== 'undefined'
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw SortParseError.keyPathInvalid(fieldDetails.path);
             }
 
@@ -185,7 +185,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
             !isMultiDimensionalArray(options.allowed) &&
             !isPathCoveredByParseAllowedOption(options.allowed, [key, keyWithAlias])
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw SortParseError.keyNotAllowed(fieldDetails.name);
             }
 

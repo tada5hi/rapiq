@@ -69,7 +69,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         data = input;
     } else if (typeof input === 'string' || Array.isArray(input)) {
         data = { [DEFAULT_ID]: input };
-    } else if (options.throwOnError) {
+    } else if (options.throwOnFailure) {
         throw FieldsParseError.inputInvalid();
     }
 
@@ -96,7 +96,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
             path !== DEFAULT_ID &&
             !isPathAllowedByRelations(path, options.relations)
         ) {
-            if (options.throwOnError) {
+            if (options.throwOnFailure) {
                 throw FieldsParseError.keyPathInvalid(path);
             }
 
