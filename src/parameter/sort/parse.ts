@@ -9,14 +9,17 @@ import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../type';
 import {
     applyMapping,
-    buildFieldWithPath, buildKeyPath, flattenNestedObject,
-    getFieldDetails,
-    hasOwnProperty, isFieldNonRelational,
-    isFieldPathAllowedByRelations,
+    buildKeyPath,
+    buildKeyWithPath,
+    flattenNestedObject,
+    hasOwnProperty,
+    isPathAllowedByRelations,
+    parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
 import type { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
+import { SortParseError } from './errors';
 
 import type {
     SortParseOptions,
@@ -45,7 +48,7 @@ function buildDefaultSortParseOutput<T extends ObjectLiteral = ObjectLiteral>(
         const keys = Object.keys(flatten);
 
         for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = getFieldDetails(keys[i]);
+            const fieldDetails = parseKey(keys[i]);
 
             let path : string | undefined;
             if (fieldDetails.path) {
@@ -94,6 +97,10 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         !Array.isArray(data) &&
         !isObject(data)
     ) {
+        if (options.throwOnFailure) {
+            throw SortParseError.inputInvalid();
+        }
+
         return buildDefaultSortParseOutput(options);
     }
 
@@ -115,10 +122,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         parts = data.filter((item) => typeof item === 'string');
     }
 
-    if (
-        typeof data === 'object' &&
-        data !== null
-    ) {
+    if (isObject(data)) {
         const keys = Object.keys(data);
         for (let i = 0; i < keys.length; i++) {
             /* istanbul ignore next */
@@ -126,7 +130,13 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
                 !hasOwnProperty(data, keys[i]) ||
                 typeof keys[i] !== 'string' ||
                 typeof data[keys[i]] !== 'string'
-            ) continue;
+            ) {
+                if (options.throwOnFailure) {
+                    throw SortParseError.keyValueInvalid(keys[i]);
+                }
+
+                continue;
+            }
 
             const fieldPrefix = (data[keys[i]] as string)
                 .toLowerCase() === 'desc' ? '-' : '';
@@ -145,29 +155,40 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
 
         const key: string = applyMapping(parts[i], options.mapping);
 
-        const fieldDetails = getFieldDetails(key);
+        const fieldDetails = parseKey(key);
 
         if (
             typeof options.allowed === 'undefined' &&
             !isValidFieldName(fieldDetails.name)
         ) {
+            if (options.throwOnFailure) {
+                throw SortParseError.keyInvalid(fieldDetails.name);
+            }
+
             continue;
         }
 
         if (
-            !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
-            !isFieldNonRelational(fieldDetails)
+            !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
+            typeof fieldDetails.path !== 'undefined'
         ) {
+            if (options.throwOnFailure) {
+                throw SortParseError.keyPathInvalid(fieldDetails.path);
+            }
+
             continue;
         }
 
-        const keyWithAlias : string = buildFieldWithPath(fieldDetails);
-
+        const keyWithAlias = buildKeyWithPath(fieldDetails);
         if (
             typeof options.allowed !== 'undefined' &&
             !isMultiDimensionalArray(options.allowed) &&
             !isPathCoveredByParseAllowedOption(options.allowed, [key, keyWithAlias])
         ) {
+            if (options.throwOnFailure) {
+                throw SortParseError.keyNotAllowed(fieldDetails.name);
+            }
+
             continue;
         }
 

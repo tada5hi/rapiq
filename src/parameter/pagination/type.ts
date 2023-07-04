@@ -20,6 +20,7 @@ export type PaginationBuildInput = {
 
 export type PaginationParseOptions = {
     maxLimit?: number
+    throwOnFailure?: boolean
 };
 
 export type PaginationParseOutput = {

@@ -16,6 +16,11 @@ export function applyMapping(
         return name;
     }
 
+    const keys = Object.keys(map);
+    if (keys.length === 0) {
+        return name;
+    }
+
     let parts = name.split('.');
 
     const output = [];

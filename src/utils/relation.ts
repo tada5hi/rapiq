@@ -5,48 +5,38 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { isObject } from 'smob';
 import type { RelationsParseOutput } from '../parameter';
-import { getFieldDetails } from './field';
-import type { FieldDetails } from './type';
+import type { KeyDetails } from './type';
 
-export function isFieldNonRelational(field: string | FieldDetails) {
-    const details = typeof field === 'string' ?
-        getFieldDetails(field) :
-        field;
-
-    return typeof details.path === 'undefined';
-}
-
-export function isFieldPathAllowedByRelations(
-    field: string | Pick<FieldDetails, 'path'>,
+export function isPathAllowedByRelations(
+    path?: string,
     includes?: RelationsParseOutput,
 ) : boolean {
-    if (typeof includes === 'undefined') {
-        return true;
-    }
-
-    const details : Pick<FieldDetails, 'path'> = typeof field === 'string' ?
-        getFieldDetails(field) :
-        field;
-
-    if (
-        typeof details.path === 'undefined'
-    ) {
+    if (typeof path === 'undefined' || typeof includes === 'undefined') {
         return true;
     }
 
     return includes.some(
-        (include) => include.key === details.path,
+        (include) => include.key === path,
     );
 }
 
-export function buildFieldWithPath(
-    field: string | FieldDetails,
+export function buildKeyWithPath(input: KeyDetails) : string;
+export function buildKeyWithPath(key: string, path: string): string;
+export function buildKeyWithPath(
+    name: string | KeyDetails,
     path?: string,
 ) : string {
-    const details = typeof field === 'string' ?
-        getFieldDetails(field) :
-        field;
+    let details : KeyDetails;
+    if (isObject(name)) {
+        details = name;
+    } else {
+        details = {
+            name,
+            path,
+        };
+    }
 
     return details.path || path ?
         `${details.path || path}.${details.name}` :

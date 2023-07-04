@@ -6,23 +6,26 @@
  */
 
 import type { NestedKeys, ObjectLiteral } from '../../type';
-import type { FieldDetails } from '../../utils';
+import type { KeyDetails } from '../../utils';
 import {
     applyMapping,
-    buildFieldWithPath,
+    buildKeyWithPath,
     flattenNestedObject,
-    getFieldDetails,
-    hasOwnProperty, isFieldNonRelational, isFieldPathAllowedByRelations,
+    hasOwnProperty,
+    isObject,
+    isPathAllowedByRelations,
+    parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
 import type { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
+import { FiltersParseError } from './errors';
 import type { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
 import { parseFilterValue, transformFilterValue } from './utils';
 
 // --------------------------------------------------
-
+// ^([0-9]+(?:\.[0-9]+)*){0,1}([a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]+)*){0,1}$
 function transformFiltersParseOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
     if (
         hasOwnProperty(element, 'path') &&
@@ -69,29 +72,29 @@ function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>
         const output : FiltersParseOutput = [];
 
         for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = getFieldDetails(keys[i]);
+            const keyDetails = parseKey(keys[i]);
 
             if (
                 options.defaultByElement &&
                 inputKeys.length > 0
             ) {
-                const fieldWithAlias = buildFieldWithPath(fieldDetails);
-                if (hasOwnProperty(input, fieldWithAlias)) {
+                const keyWithPath = buildKeyWithPath(keyDetails);
+                if (hasOwnProperty(input, keyWithPath)) {
                     continue;
                 }
             }
 
             if (options.defaultByElement || inputKeys.length === 0) {
                 let path : string | undefined;
-                if (fieldDetails.path) {
-                    path = fieldDetails.path;
+                if (keyDetails.path) {
+                    path = keyDetails.path;
                 } else if (options.defaultPath) {
                     path = options.defaultPath;
                 }
 
                 output.push(transformFiltersParseOutputElement({
                     ...(path ? { path } : {}),
-                    key: fieldDetails.name,
+                    key: keyDetails.name,
                     value: flatten[keys[i]],
                 }));
             }
@@ -120,7 +123,11 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     }
 
     /* istanbul ignore next */
-    if (typeof data !== 'object' || data === null) {
+    if (!isObject(data)) {
+        if (options.throwOnFailure) {
+            throw FiltersParseError.inputInvalid();
+        }
+
         return buildDefaultFiltersParseOutput(options);
     }
 
@@ -142,12 +149,6 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     // transform to appreciate data format & validate input
     const keys = Object.keys(data);
     for (let i = 0; i < keys.length; i++) {
-        /* istanbul ignore next */
-        if (!hasOwnProperty(data, keys[i])) {
-            // eslint-disable-next-line no-continue
-            continue;
-        }
-
         const value : unknown = data[keys[i]];
 
         if (
@@ -158,33 +159,46 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             value !== null &&
             !Array.isArray(value)
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyValueInvalid(keys[i]);
+            }
             continue;
         }
 
         keys[i] = applyMapping(keys[i], options.mapping);
 
-        const fieldDetails : FieldDetails = getFieldDetails(keys[i]);
+        const fieldDetails : KeyDetails = parseKey(keys[i]);
 
         if (
             typeof options.allowed === 'undefined' &&
             !isValidFieldName(fieldDetails.name)
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyInvalid(fieldDetails.name);
+            }
             continue;
         }
 
         if (
-            !isFieldPathAllowedByRelations(fieldDetails, options.relations) &&
-            !isFieldNonRelational(fieldDetails)
+            typeof fieldDetails.path !== 'undefined' &&
+            !isPathAllowedByRelations(fieldDetails.path, options.relations)
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyPathInvalid(fieldDetails.path);
+            }
             continue;
         }
 
-        const fullKey : string = buildFieldWithPath(fieldDetails);
+        const fullKey : string = buildKeyWithPath(fieldDetails);
 
         if (
             options.allowed &&
             !isPathCoveredByParseAllowedOption(options.allowed, [keys[i], fullKey])
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyInvalid(fieldDetails.name);
+            }
+
             continue;
         }
 
@@ -199,6 +213,8 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                 for (let j = 0; j < filter.value.length; j++) {
                     if (options.validate(filter.key as NestedKeys<T>, filter.value[j])) {
                         output.push(filter.value[j]);
+                    } else if (options.throwOnError) {
+                        throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                     }
                 }
 
@@ -207,6 +223,10 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                     continue;
                 }
             } else if (!options.validate(filter.key as NestedKeys<T>, filter.value)) {
+                if (options.throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+                }
+
                 continue;
             }
         }
@@ -215,6 +235,10 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             typeof filter.value === 'string' &&
             filter.value.length === 0
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+            }
+
             continue;
         }
 
@@ -222,6 +246,10 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             Array.isArray(filter.value) &&
             filter.value.length === 0
         ) {
+            if (options.throwOnFailure) {
+                throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+            }
+
             continue;
         }
 

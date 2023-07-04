@@ -5,21 +5,17 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { isObject } from 'smob';
+import { distinctArray, isObject } from 'smob';
+import { DEFAULT_ID } from '../../constants';
 import type { ObjectLiteral } from '../../type';
 import {
-    applyMapping, buildFieldWithPath, groupArrayByKeyPath, hasOwnProperty, isFieldPathAllowedByRelations, merge,
+    applyMapping, groupArrayByKeyPath, hasOwnProperty, isPathAllowedByRelations, merge,
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
-import type {
-    FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput,
-} from './type';
-import {
-    isValidFieldName,
-    parseFieldsInput, removeFieldInputOperator,
-    transformFieldsInput,
-} from './utils';
-import { DEFAULT_ID } from '../../constants';
+import { FieldOperator } from './constants';
+import { FieldsParseError } from './errors';
+import type { FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput } from './type';
+import { isValidFieldName, parseFieldsInput } from './utils';
 
 // --------------------------------------------------
 
@@ -59,10 +55,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
     // If it is an empty array nothing is allowed
     if (
-        (
-            typeof options.default !== 'undefined' ||
-            typeof options.allowed !== 'undefined'
-        ) &&
+        (typeof options.default !== 'undefined' || typeof options.allowed !== 'undefined') &&
         keys.length === 0
     ) {
         return [];
@@ -74,17 +67,24 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
     if (isObject(input)) {
         data = input;
-    } else if (typeof input === 'string') {
+    } else if (typeof input === 'string' || Array.isArray(input)) {
         data = { [DEFAULT_ID]: input };
-    } else if (Array.isArray(input)) {
-        data = { [DEFAULT_ID]: input };
+    } else if (options.throwOnFailure) {
+        throw FieldsParseError.inputInvalid();
     }
 
     options.mapping = options.mapping || {};
     const reverseMapping = buildReverseRecord(options.mapping);
 
-    if (keys.length === 0) {
-        keys = Object.keys(data);
+    if (
+        keys.length > 0 &&
+        hasOwnProperty(data, DEFAULT_ID)
+    ) {
+        data = {
+            [keys[0]]: data[DEFAULT_ID],
+        };
+    } else {
+        keys = distinctArray([...keys, ...Object.keys(data)]);
     }
 
     const output : FieldsParseOutput = [];
@@ -93,9 +93,13 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         const path = keys[i];
 
         if (
-            !isFieldPathAllowedByRelations({ path }, options.relations) &&
-            path !== DEFAULT_ID
+            path !== DEFAULT_ID &&
+            !isPathAllowedByRelations(path, options.relations)
         ) {
+            if (options.throwOnFailure) {
+                throw FieldsParseError.keyPathInvalid(path);
+            }
+
             continue;
         }
 
@@ -110,7 +114,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
             fields = parseFieldsInput(data[reverseMapping[path]]);
         }
 
-        let transformed : FieldsInputTransformed = {
+        const transformed : FieldsInputTransformed = {
             default: [],
             included: [],
             excluded: [],
@@ -118,24 +122,45 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (fields.length > 0) {
             for (let j = 0; j < fields.length; j++) {
-                fields[j] = applyMapping(
-                    buildFieldWithPath({ name: fields[j], path }),
-                    options.mapping,
-                    true,
-                );
-            }
+                let operator: FieldOperator | undefined;
 
-            if (hasOwnProperty(domainFields, path)) {
-                fields = fields.filter((field) => domainFields[path].indexOf(
-                    removeFieldInputOperator(field),
-                ) !== -1);
-            } else {
-                fields = fields.filter((field) => isValidFieldName(removeFieldInputOperator(field)));
-            }
+                const character = fields[j].substring(0, 1);
 
-            transformed = transformFieldsInput(
-                fields,
-            );
+                if (character === FieldOperator.INCLUDE) {
+                    operator = FieldOperator.INCLUDE;
+                } else if (character === FieldOperator.EXCLUDE) {
+                    operator = FieldOperator.EXCLUDE;
+                }
+
+                if (operator) {
+                    fields[j] = fields[j].substring(1);
+                }
+
+                fields[j] = applyMapping(fields[j], options.mapping, true);
+
+                let isValid : boolean;
+                if (hasOwnProperty(domainFields, path)) {
+                    isValid = domainFields[path].indexOf(fields[j]) !== -1;
+                } else {
+                    isValid = isValidFieldName(fields[j]);
+                }
+
+                if (!isValid) {
+                    if (options.throwOnError) {
+                        throw FieldsParseError.keyNotAllowed(fields[j]);
+                    }
+
+                    continue;
+                }
+
+                if (operator === FieldOperator.INCLUDE) {
+                    transformed.included.push(fields[j]);
+                } else if (operator === FieldOperator.EXCLUDE) {
+                    transformed.excluded.push(fields[j]);
+                } else {
+                    transformed.default.push(fields[j]);
+                }
+            }
         }
 
         if (

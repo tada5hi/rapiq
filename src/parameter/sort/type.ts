@@ -62,6 +62,7 @@ export type SortParseOptions<
         mapping?: Record<string, string>,
         default?: SortParseDefaultOption<T>,
         defaultPath?: string,
+        throwOnFailure?: boolean,
         relations?: RelationsParseOutput,
     };
 export type SortParseOutputElement = {

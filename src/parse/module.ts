@@ -23,10 +23,17 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
 ) : ParseOutput {
     options = options || {};
 
-    const mergeWithGlobalOptions = <T extends {[key: string]: any} & {defaultPath?: string} >(data?: T) : T => {
+    const mergeWithGlobalOptions = <T extends {[key: string]: any} & {
+        defaultPath?: string,
+        throwOnError?: boolean
+    }>(data?: T) : T => {
         if (typeof data !== 'undefined') {
-            if (options.defaultPath) {
+            if (typeof data.defaultPath === 'undefined') {
                 data.defaultPath = options.defaultPath;
+            }
+
+            if (typeof data.throwOnError === 'undefined') {
+                data.throwOnError = options.throwOnFailure;
             }
         }
 

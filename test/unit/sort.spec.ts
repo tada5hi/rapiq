@@ -12,6 +12,7 @@ import {
     parseQueryRelations,
     parseQuerySort,
     FieldsParseOutput,
+    SortParseError,
 } from '../../src';
 import {User} from "../data";
 
@@ -176,5 +177,108 @@ describe('src/sort/index.ts', () => {
             { key: 'id', value: SortDirection.ASC },
             { path: 'user_roles.role', key: 'id', value: SortDirection.ASC },
         ] as SortParseOutput);
+    });
+
+    it('should throw on invalid input', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true,
+        };
+
+        let evaluate = () => {
+            parseQuerySort(false, options);
+        }
+
+        let error = SortParseError.inputInvalid();
+        expect(evaluate).toThrowError(error);
+    })
+
+    it('should throw on invalid key', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true
+        }
+
+        let evaluate = () => {
+            parseQuerySort({
+                '1foo': 'desc'
+            }, options);
+        }
+        let error = SortParseError.keyInvalid('1foo');
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed relation', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true,
+            allowed: ['user.foo'],
+            relations: [
+                {
+                    key: 'user',
+                    value: 'user'
+                }
+            ]
+        }
+
+        let evaluate = () => {
+            parseQuerySort({
+                'bar.bar': 'desc'
+            }, options);
+        }
+
+        let error = SortParseError.keyPathInvalid('bar');
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed key which is not covered by a relation', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true,
+            allowed: ['user.foo'],
+            relations: [
+                {
+                    key: 'user',
+                    value: 'user'
+                }
+            ]
+        }
+
+        let evaluate = () => {
+            parseQuerySort({
+                'user.bar': 'desc'
+            }, options);
+        }
+
+        let error = SortParseError.keyNotAllowed('bar');
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on invalid key value', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true,
+            allowed: ['foo']
+        }
+
+        let evaluate = () => {
+            parseQuerySort({
+                bar: 1
+            }, options);
+        }
+
+        let error = SortParseError.keyValueInvalid('bar');
+        expect(evaluate).toThrowError(error);
+    });
+
+    it('should throw on non allowed key', () => {
+        let options : SortParseOptions = {
+            throwOnFailure: true,
+            allowed: ['foo']
+        }
+
+        let evaluate = () => {
+            parseQuerySort({
+                bar: 'desc'
+            }, options);
+        }
+
+        let error = SortParseError.keyNotAllowed('bar');
+        expect(evaluate).toThrowError(error);
     });
 });
