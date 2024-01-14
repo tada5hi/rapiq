@@ -59,165 +59,26 @@ The function returns an object.
 - [ParseOutput](#parseoutput)
 - [ParseOptions](#parseoptions)
 
-## `parseQueryParameter`
-
-Parse a query string to an efficient data structure ⚡. The output will
-be an object with each possible value of the [Parameter](parameter-api-reference#parameter) enum as property key and the
-parsed data as value.
-
-**Type**
-```ts
-declare function parseQueryParameter(
-    key: T,
-    input: unknown,
-    options?: ParseParameterOptions<T>
-): ParseParameterOutput<T>
-```
-
-**Example: Fields**
-
-```typescript
-import {
-    parseQueryParameter,
-} from 'rapiq';
-
-const output = parseQueryParameter(
-    // 'fields' ||
-    // Parameter.FIELDS | URLParameter.FIELDS
-    'fields',
-    ['+name'],
-    {
-        allowed: ['id', 'name'],
-        defaultAlias: 'user'
-    }
-);
-
-console.log(output);
-// [{key: 'id', value: FieldOperator.INCLUDE}] ||
-// [{key: 'id', value: '+'}]
-```
-
-**Example: Filters**
-
-```typescript
-import {
-    parseQueryParameter
-} from 'rapiq';
-
-const output = parseQueryParameter(
-    // 'filters' | 'filter' |
-    // Parameter.FILTERS | URLParameter.FILTERS
-    'filters',
-    {id: 1},
-    {
-        allowed: ['id', 'name'],
-        defaultAlias: 'user'
-    }
-);
-
-console.log(output);
-// [{alias: 'user', key: 'id', value: 1, }]
-```
-
-**Example: Pagination**
-
-```typescript
-import {
-    parseQueryParameter
-} from 'rapiq';
-
-const output = parseQueryParameter(
-    // 'pagination' | 'page' |
-    // Parameter.PAGINATION | URLParameter.PAGINATION
-    'pagination',
-    {limit: 100},
-    {
-        maxLimit: 50
-    }
-);
-
-console.log(output);
-// {limit: 50}
-```
-
-**Example: Relations**
-
-```typescript
-import {
-    parseQueryParameter
-} from 'rapiq';
-
-const output = parseQueryParameter(
-    // 'relations' || 'include' ||
-    // Parameter.RELATIONS | URLParameter.RELATIONS
-    'relations',
-    ['roles'],
-    {
-        allowed: ['roles', 'photos'],
-        defaultAlias: 'user'
-    }
-);
-
-console.log(output);
-// [{key: 'user.roles', value: 'roles'}]
-```
-
-**Example: Sort**
-
-```typescript
-import {
-    parseQueryParameter
-} from 'rapiq';
-
-const output = parseQueryParameter(
-    // 'sort' ||
-    // Parameter.SORT || URLParameter.SORT
-    'sort',
-    ['-name'],
-    {
-        allowed: ['id', 'name'],
-        defaultAlias: 'user'
-    }
-);
-
-console.log(output);
-// [{alias: 'user', key: 'name', value: 'DESC'}]
-```
-
-**Type parameters**
-
-| Name  | Description |
-|:------|:------------|
-
-
-**Parameters**
-
-| Name      | Type                               | Description                                                            |
-|:----------|:-----------------------------------|:-----------------------------------------------------------------------|
-| `input`   | `unknown`                          | Query input data passed e.g. via URL [more](#parseinput).              |
-| `options` | `ParseParameterOptions<Parameter>` | Options for parsing fields, filter, include, ... [more](#parseoptions) |
-
-**Returns**
-
-[ParseOutput](#parseoutput)
-
-The function returns an object.
-
 ## ParseOptions
 
 ```typescript
 type ParseOptions = {
-    /**
-     * On default all query keys are enabled.
-     */
-    [K in Parameter]?: ParseParameterOptions<K> | boolean
-} & {
+    [Parameter.FIELDS]?: FieldsParseOptions<T> | boolean,
+    [Parameter.FILTERS]?: FiltersParseOptions<T> | boolean,
+    [Parameter.RELATIONS]?: RelationsParseOptions<T> | boolean,
+    [Parameter.PAGINATION]?: PaginationParseOptions | boolean,
+    [Parameter.SORT]?: SortParseOptions<T> | boolean,
     defaultPath?: string,
     throwOnFailure?: boolean
 }
 ```
 **References**
-- [ParseParameterOptions](#parseparameteroptions)
+- [Parameter](parameter-api-reference#parameter)
+- [FieldsParseOptions](fields-api-reference.md#fieldsparseoptions),
+- [FiltersParseOptions](filters-api-reference.md#filtersparseoptions)
+- [PaginationParseOptions](pagination-api-reference.md#paginationparseoptions)
+- [RelationsParseOptions](relations-api-reference.md#relationsparseoptions)
+- [SortParseOptions](sort-api-reference.md#sortparseoptions)
 
 ## ParseInput
 
@@ -234,35 +95,15 @@ type ParseInput = {
 
 ```typescript
 type ParseOutput = {
-    [K in Parameter]?: ParseParameterOutput<K>
+    [Parameter.FIELDS]?: FieldsParseOutput,
+    [Parameter.FILTERS]?: FiltersParseOutput,
+    [Parameter.RELATIONS]?: RelationsParseOutput,
+    [Parameter.PAGINATION]?: PaginationParseOutput,
+    [Parameter.SORT]?: SortParseOutput,
 }
 ```
 **References**
-- [ParseParameterOutput](#parseparameteroutput)
-
-## ParseParameterOptions
-```typescript
-type ParseParameterOptions<
-    P extends ParameterType | URLParameterType,
-    T extends Record<string, any> = Record<string, any>
->;
-```
-is a generic type and returns the available options for a given parameter type:
-**References**
-- [FieldsParseOptions](fields-api-reference.md#fieldsparseoptions),
-- [FiltersParseOptions](filters-api-reference.md#filtersparseoptions)
-- [PaginationParseOptions](pagination-api-reference.md#paginationparseoptions)
-- [RelationsParseOptions](relations-api-reference.md#relationsparseoptions)
-- [SortParseOptions](sort-api-reference.md#sortparseoptions)
-
-## ParseParameterOutput
-```typescript
-type ParseParameterOutput<P extends ParameterType | URLParameterType>;
-```
-
-is a generic type and returns the parsed output data for a given parameter type:
-
-**References**
+- [Parameter](parameter-api-reference#parameter)
 - [FieldsParseOutput](fields-api-reference.md#fieldsparseoutput)
 - [FiltersParseOutput](filters-api-reference.md#filtersparseoutput)
 - [PaginationParseOutput](pagination-api-reference.md#paginationparseoutput)

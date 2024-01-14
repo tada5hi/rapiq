@@ -1,5 +1,53 @@
 # Sort
 
+## `parseQuerySort`
+
+**Type**
+```ts
+declare function parseQuerySort<T>(
+    input: unknown,
+    options?: SortParseOptions<T>
+): SortParseOutput
+```
+
+**Example**
+
+```typescript
+import {
+    parseQuerySort
+} from 'rapiq';
+
+const output = parseQuerySort(
+    ['-name'],
+    {
+        allowed: ['id', 'name'],
+        defaultAlias: 'user'
+    }
+);
+
+console.log(output);
+// [{alias: 'user', key: 'name', value: 'DESC'}]
+```
+
+**Type parameters**
+
+| Name  | Description |
+|:------|:------------|
+
+
+**Parameters**
+
+| Name      | Type                  | Description                                              |
+|:----------|:----------------------|:---------------------------------------------------------|
+| `input`   | `unknown`             | Query input data passed e.g. via URL .                   |
+| `options` | `SortParseOptions<T>` | Options for parsing sort data [more](#sortparseoptions). |
+
+**Returns**
+
+[SortParseOutput](#sortparseoutput)
+
+The function returns an object.
+
 ## `SortBuildInput`
 
 The following types are defined, to illustrate which kind of input data is covered by the

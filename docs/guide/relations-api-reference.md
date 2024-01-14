@@ -1,5 +1,53 @@
 # Relations
 
+## `parseQueryRelations`
+
+**Type**
+```ts
+declare function parseQueryRelations<T>(
+    input: unknown,
+    options?: RelationsParseOptions<T>
+): RelationsParseOutput
+```
+
+**Example**
+
+```typescript
+import {
+    parseQueryRelations
+} from 'rapiq';
+
+const output = parseQueryRelations(
+    ['roles'],
+    {
+        allowed: ['roles', 'photos'],
+        defaultAlias: 'user'
+    }
+);
+
+console.log(output);
+// [{key: 'user.roles', value: 'roles'}]
+```
+
+**Type parameters**
+
+| Name  | Description |
+|:------|:------------|
+
+
+**Parameters**
+
+| Name      | Type                       | Description                                                        |
+|:----------|:---------------------------|:-------------------------------------------------------------------|
+| `input`   | `unknown`                  | Query input data passed e.g. via URL .                             |
+| `options` | `RelationsParseOptions<T>` | Options for parsing relations data [more](#relationsparseoptions). |
+
+**Returns**
+
+[RelationsParseOutput](#relationsparseoutput)
+
+The function returns an object.
+
 ## `RelationsBuildInput`
 
 The following types are defined, to illustrate which kind of input data is covered by the

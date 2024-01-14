@@ -30,9 +30,9 @@ export type ParseParametersOptions<T extends ObjectLiteral = ObjectLiteral> = {
 };
 
 export type ParseParametersOutput = {
-    [Parameter.FIELDS]?: FieldsParseOutput | boolean,
-    [Parameter.FILTERS]?: FiltersParseOutput | boolean,
-    [Parameter.RELATIONS]?: RelationsParseOutput | boolean,
-    [Parameter.PAGINATION]?: PaginationParseOutput | boolean,
-    [Parameter.SORT]?: SortParseOutput | boolean,
+    [Parameter.FIELDS]?: FieldsParseOutput,
+    [Parameter.FILTERS]?: FiltersParseOutput,
+    [Parameter.RELATIONS]?: RelationsParseOutput,
+    [Parameter.PAGINATION]?: PaginationParseOutput,
+    [Parameter.SORT]?: SortParseOutput,
 };
