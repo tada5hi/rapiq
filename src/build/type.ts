@@ -5,11 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Parameter, URLParameter } from '../constants';
-import type { BuildParameterInput } from './parameter';
+import type { ObjectLiteral } from '../type';
+import type { BuildParametersInput, BuildURLParametersInput } from './parameter';
 
 export type BuildInput<
-    T extends Record<string, any>,
-> = {
-    [P in `${Parameter}` | `${URLParameter}`]?: BuildParameterInput<P, T>
-};
+    T extends ObjectLiteral,
+> = BuildParametersInput<T> & BuildURLParametersInput<T>;

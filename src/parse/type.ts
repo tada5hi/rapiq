@@ -7,8 +7,7 @@
 
 import type { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../type';
-
-import type { ParseParameterOptions, ParseParameterOutput } from './parameter';
+import type { ParseParametersOptions, ParseParametersOutput } from './parameter';
 
 //------------------------------------------------
 
@@ -18,20 +17,15 @@ export type ParseInput = {
 
 //------------------------------------------------
 
-export type ParseOptions<T extends ObjectLiteral = ObjectLiteral> = {
-    /**
-     * On default all query keys are enabled.
-     */
-    [P in `${Parameter}`]?: boolean | ParseParameterOptions<P, T>
-} & {
+export type ParseOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+> = ParseParametersOptions<T> & {
     defaultPath?: string,
     throwOnFailure?: boolean
 };
 
 //------------------------------------------------
 
-export type ParseOutput = {
-    [K in `${Parameter}`]?: ParseParameterOutput<K>
-} & {
+export type ParseOutput = ParseParametersOutput & {
     defaultPath?: string
 };
