@@ -1,5 +1,54 @@
 # Fields
 
+## `parseQueryFields`
+
+**Type**
+```ts
+declare function parseQueryFields<T>(
+    input: unknown,
+    options?: FieldsParseOptions<T>
+): FieldsParseOutput
+```
+
+**Example**
+
+```typescript
+import {
+    parseQueryFields,
+} from 'rapiq';
+
+const output = parseQueryFields(
+    ['+name'],
+    {
+        allowed: ['id', 'name'],
+        defaultAlias: 'user'
+    }
+);
+
+console.log(output);
+// [{key: 'id', value: FieldOperator.INCLUDE}] ||
+// [{key: 'id', value: '+'}]
+```
+
+**Type parameters**
+
+| Name  | Description |
+|:------|:------------|
+
+
+**Parameters**
+
+| Name      | Type                    | Description                                                  |
+|:----------|:------------------------|:-------------------------------------------------------------|
+| `input`   | `unknown`               | Query input data passed e.g. via URL .                       |
+| `options` | `FieldsParseOptions<T>` | Options for parsing fields data [more](#fieldsparseoptions). |
+
+**Returns**
+
+[FieldsParseOutput](#fieldsparseoutput)
+
+The function returns an object.
+
 ## `FieldsBuildInput`
 The following types are defined, to illustrate which kind of input data is covered by the 
 `FieldsBuildInput<T>` type.

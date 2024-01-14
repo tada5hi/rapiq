@@ -1,5 +1,53 @@
 # Filters
 
+## `parseQueryFilters`
+
+**Type**
+```ts
+declare function parseQueryFilters<T>(
+    input: unknown,
+    options?: FiltersParseOptions<T>
+): FiltersParseOutput
+```
+
+**Example**
+
+```typescript
+import {
+    parseQueryFilters
+} from 'rapiq';
+
+const output = parseQueryFilters(
+    {id: 1},
+    {
+        allowed: ['id', 'name'],
+        defaultAlias: 'user'
+    }
+);
+
+console.log(output);
+// [{alias: 'user', key: 'id', value: 1, }]
+```
+
+**Type parameters**
+
+| Name  | Description |
+|:------|:------------|
+
+
+**Parameters**
+
+| Name      | Type                     | Description                                                    |
+|:----------|:-------------------------|:---------------------------------------------------------------|
+| `input`   | `unknown`                | Query input data passed e.g. via URL .                         |
+| `options` | `FiltersParseOptions<T>` | Options for parsing filters data [more](#filtersparseoptions). |
+
+**Returns**
+
+[FiltersParseOutput](#filtersparseoutput)
+
+The function returns an object.
+
 ## `FiltersBuildInput`
 
 The following types are defined, to illustrate which kind of input data is covered by the
