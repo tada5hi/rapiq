@@ -18,34 +18,21 @@ import type {
     SortParseOutput,
 } from '../../parameter';
 
-import type { Parameter, URLParameter } from '../../constants';
+import type { Parameter } from '../../constants';
 import type { ObjectLiteral } from '../../type';
 
-export type ParseParameterOptions<
-    P extends `${Parameter}` | `${URLParameter}`,
-    T extends ObjectLiteral = ObjectLiteral,
-    > =
-    P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
-        FieldsParseOptions<T> :
-        P extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
-            FiltersParseOptions<T> :
-            P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
-                RelationsParseOptions<T> :
-                P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
-                    PaginationParseOptions :
-                    P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
-                        SortParseOptions<T> :
-                        never;
+export type ParseParametersOptions<T extends ObjectLiteral = ObjectLiteral> = {
+    [Parameter.FIELDS]?: FieldsParseOptions<T> | boolean,
+    [Parameter.FILTERS]?: FiltersParseOptions<T> | boolean,
+    [Parameter.RELATIONS]?: RelationsParseOptions<T> | boolean,
+    [Parameter.PAGINATION]?: PaginationParseOptions | boolean,
+    [Parameter.SORT]?: SortParseOptions<T> | boolean,
+};
 
-export type ParseParameterOutput<P extends `${Parameter}` | `${URLParameter}`> =
-    P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
-        FieldsParseOutput :
-        P extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
-            FiltersParseOutput :
-            P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
-                RelationsParseOutput :
-                P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
-                    PaginationParseOutput :
-                    P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
-                        SortParseOutput :
-                        never;
+export type ParseParametersOutput = {
+    [Parameter.FIELDS]?: FieldsParseOutput | boolean,
+    [Parameter.FILTERS]?: FiltersParseOutput | boolean,
+    [Parameter.RELATIONS]?: RelationsParseOutput | boolean,
+    [Parameter.PAGINATION]?: PaginationParseOutput | boolean,
+    [Parameter.SORT]?: SortParseOutput | boolean,
+};

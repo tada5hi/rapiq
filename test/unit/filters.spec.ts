@@ -458,7 +458,7 @@ describe('src/filter/index.ts', () => {
         let error = FiltersParseError.keyValueInvalid('foo');
         let evaluate = () => {
             parseQueryFilters({
-                foo: new Buffer('foo'),
+                foo: Buffer.from('foo'),
             }, options);
         }
         expect(evaluate).toThrowError(error);

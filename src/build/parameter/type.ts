@@ -17,19 +17,20 @@ import type {
     Parameter,
     URLParameter,
 } from '../../constants';
+import type { ObjectLiteral } from '../../type';
 
-export type BuildParameterInput<
-    P extends `${Parameter}` | `${URLParameter}`,
-    T extends Record<string, any> = Record<string, any>,
-    > =
-    P extends `${Parameter.FIELDS}` | `${URLParameter.FIELDS}` ?
-        FieldsBuildInput<T> :
-        P extends `${Parameter.FILTERS}` | `${URLParameter.FILTERS}` ?
-            FiltersBuildInput<T> :
-            P extends `${Parameter.RELATIONS}` | `${URLParameter.RELATIONS}` ?
-                RelationsBuildInput<T> :
-                P extends `${Parameter.PAGINATION}` | `${URLParameter.PAGINATION}` ?
-                    PaginationBuildInput :
-                    P extends `${Parameter.SORT}` | `${URLParameter.SORT}` ?
-                        SortBuildInput<T> :
-                        never;
+export type BuildParametersInput<T extends ObjectLiteral = ObjectLiteral> = {
+    [Parameter.FIELDS]?: FieldsBuildInput<T>,
+    [Parameter.FILTERS]?: FiltersBuildInput<T>,
+    [Parameter.RELATIONS]?: RelationsBuildInput<T>,
+    [Parameter.PAGINATION]?: PaginationBuildInput,
+    [Parameter.SORT]?: SortBuildInput<T>,
+};
+
+export type BuildURLParametersInput<T extends ObjectLiteral = ObjectLiteral> = {
+    [URLParameter.FIELDS]?: FieldsBuildInput<T>,
+    [URLParameter.FILTERS]?: FiltersBuildInput<T>,
+    [URLParameter.RELATIONS]?: RelationsBuildInput<T>,
+    [URLParameter.PAGINATION]?: PaginationBuildInput,
+    [URLParameter.SORT]?: SortBuildInput<T>,
+};

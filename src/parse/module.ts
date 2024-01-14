@@ -5,16 +5,19 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import {
+    parseQueryFields,
+    parseQueryFilters,
+    parseQueryPagination,
+    parseQueryRelations,
+    parseQuerySort,
+} from '../parameter';
 import type {
-    FieldsParseOutput,
-    FiltersParseOutput,
-    PaginationParseOutput,
     RelationsParseOutput,
-    SortParseOutput,
 } from '../parameter';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../type';
-import { buildQueryParameterOptions, isQueryParameterEnabled, parseQueryParameter } from './parameter';
+import { buildQueryParameterOptions, isQueryParameterEnabled } from './parameter';
 import type { ParseInput, ParseOptions, ParseOutput } from './type';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
@@ -23,21 +26,19 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
 ) : ParseOutput {
     options = options || {};
 
-    const mergeWithGlobalOptions = <T extends {[key: string]: any} & {
+    const mergeWithGlobalOptions = <T extends {
         defaultPath?: string,
-        throwOnError?: boolean
-    }>(data?: T) : T => {
-        if (typeof data !== 'undefined') {
-            if (typeof data.defaultPath === 'undefined') {
-                data.defaultPath = options.defaultPath;
-            }
-
-            if (typeof data.throwOnError === 'undefined') {
-                data.throwOnError = options.throwOnFailure;
-            }
+        throwOnFailure?: boolean
+    }>(data: T) : T => {
+        if (typeof data.defaultPath === 'undefined') {
+            data.defaultPath = options.defaultPath;
         }
 
-        return data || {} as T;
+        if (typeof data.throwOnFailure === 'undefined') {
+            data.throwOnFailure = options.throwOnFailure;
+        }
+
+        return data;
     };
 
     const output : ParseOutput = {};
@@ -47,82 +48,55 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
 
     let relations : RelationsParseOutput | undefined;
 
-    const keys : Parameter[] = [
-        // relations must be first parameter
-        Parameter.RELATIONS,
+    let value = input[Parameter.RELATIONS] || input[URLParameter.RELATIONS];
+    if (isQueryParameterEnabled({ data: value, options: options[Parameter.RELATIONS] })) {
+        relations = parseQueryRelations(
+            value,
+            buildQueryParameterOptions(options[Parameter.RELATIONS]),
+        );
 
-        Parameter.FIELDS,
-        Parameter.FILTERS,
-        Parameter.PAGINATION,
-        Parameter.SORT,
-    ];
+        output[Parameter.RELATIONS] = relations;
+    }
 
-    for (let i = 0; i < keys.length; i++) {
-        const key : Parameter = keys[i];
+    value = input[Parameter.FIELDS] || input[URLParameter.FIELDS];
+    if (isQueryParameterEnabled({ data: value, options: options[Parameter.FIELDS] })) {
+        output[Parameter.FIELDS] = parseQueryFields(
+            value,
+            {
+                ...mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FIELDS])),
+                ...(relations ? { relations } : {}),
+            },
+        );
+    }
 
-        switch (key) {
-            case Parameter.RELATIONS: {
-                const value = input[Parameter.RELATIONS] || input[URLParameter.RELATIONS];
-                if (isQueryParameterEnabled({ data: value, options: options[Parameter.RELATIONS] })) {
-                    relations = parseQueryParameter(
-                        key,
-                        value,
-                        buildQueryParameterOptions(options[Parameter.RELATIONS]),
-                    );
+    value = input[Parameter.FILTERS] || input[URLParameter.FILTERS];
+    if (isQueryParameterEnabled({ data: value, options: options[Parameter.FILTERS] })) {
+        output[Parameter.FILTERS] = parseQueryFilters(
+            value,
+            {
+                ...mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FILTERS])),
+                ...(relations ? { relations } : {}),
+            },
+        );
+    }
 
-                    output[Parameter.RELATIONS] = relations;
-                }
-                break;
-            }
-            case Parameter.FIELDS: {
-                const value = input[Parameter.FIELDS] || input[URLParameter.FIELDS];
-                if (isQueryParameterEnabled({ data: value, options: options[Parameter.FIELDS] })) {
-                    output[Parameter.FIELDS] = parseQueryParameter(
-                        key,
-                        value,
-                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FIELDS])),
-                        relations,
-                    ) as FieldsParseOutput;
-                }
-                break;
-            }
-            case Parameter.FILTERS: {
-                const value = input[Parameter.FILTERS] || input[URLParameter.FILTERS];
-                if (isQueryParameterEnabled({ data: value, options: options[Parameter.FILTERS] })) {
-                    output[Parameter.FILTERS] = parseQueryParameter(
-                        key,
-                        value,
-                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.FILTERS])),
-                        relations,
-                    ) as FiltersParseOutput;
-                }
-                break;
-            }
-            case Parameter.PAGINATION: {
-                const value = input[Parameter.PAGINATION] || input[URLParameter.PAGINATION];
-                if (isQueryParameterEnabled({ data: value, options: options[Parameter.PAGINATION] })) {
-                    output[Parameter.PAGINATION] = parseQueryParameter(
-                        key,
-                        value,
-                        buildQueryParameterOptions(options[Parameter.PAGINATION]),
-                        relations,
-                    ) as PaginationParseOutput;
-                }
-                break;
-            }
-            case Parameter.SORT: {
-                const value = input[Parameter.SORT] || input[URLParameter.SORT];
-                if (isQueryParameterEnabled({ data: value, options: options[Parameter.SORT] })) {
-                    output[Parameter.SORT] = parseQueryParameter(
-                        key,
-                        value,
-                        mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.SORT])),
-                        relations,
-                    ) as SortParseOutput;
-                }
-                break;
-            }
-        }
+    value = input[Parameter.PAGINATION] || input[URLParameter.PAGINATION];
+    if (isQueryParameterEnabled({ data: value, options: options[Parameter.PAGINATION] })) {
+        output[Parameter.PAGINATION] = parseQueryPagination(
+            value,
+            mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.PAGINATION])),
+        );
+    }
+
+    value = input[Parameter.SORT] || input[URLParameter.SORT];
+    if (isQueryParameterEnabled({ data: value, options: options[Parameter.SORT] })) {
+        output[Parameter.SORT] = parseQuerySort(
+            value,
+            {
+                ...mergeWithGlobalOptions(buildQueryParameterOptions(options[Parameter.SORT])),
+                ...(relations ? { relations } : {}),
+            },
+        );
     }
 
     return output;
