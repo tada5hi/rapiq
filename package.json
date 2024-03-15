@@ -68,7 +68,7 @@
         "@swc/core": "^1.4.8",
         "@swc/jest": "^0.2.36",
         "@tada5hi/commitlint-config": "^1.1.5",
-        "@tada5hi/eslint-config-typescript": "^1.2.8",
+        "@tada5hi/eslint-config-typescript": "^1.2.9",
         "@tada5hi/semantic-release": "^0.3.1",
         "@tada5hi/tsconfig": "^0.5.0",
         "@types/jest": "^29.5.11",
