@@ -5,11 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { BaseError as Base } from 'ebec';
 import { ErrorCode } from './code';
+import type { BaseErrorOptions } from './types';
 
-export class BaseError extends Base {
-    get code() : `${ErrorCode}` {
-        return this.getOption('code') as `${ErrorCode}` || ErrorCode.NONE;
+export class BaseError extends Error {
+    public readonly code : `${ErrorCode}`;
+
+    constructor(input: BaseErrorOptions | string) {
+        if (typeof input === 'string') {
+            super(input);
+
+            this.code = ErrorCode.NONE;
+        } else {
+            super(input.message);
+
+            this.code = input.code || ErrorCode.NONE;
+        }
     }
 }

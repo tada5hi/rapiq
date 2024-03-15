@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Options } from 'ebec';
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
+import type { BaseErrorOptions } from './types';
 
 export class ParseError extends BaseError {
-    constructor(message?: string | Options) {
+    constructor(message?: string | BaseErrorOptions) {
         if (isObject(message)) {
             message.message = message.message || 'A parsing error has occurred.';
         }
