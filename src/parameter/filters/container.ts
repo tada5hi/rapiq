@@ -39,15 +39,15 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.defaultKeys = [];
         this.defaultOutput = [];
 
-        this.buildDefaultDomainFields();
-        this.buildAllowedDomainFields();
+        this.initDefault();
+        this.initAllowed();
     }
 
-    protected buildDefaultDomainFields() {
+    protected initDefault() {
         if (!this.options.default) {
             this.default = {};
             this.defaultKeys = [];
-            this.buildParseOutput();
+            this.defaultOutput = this.buildParseOutput();
             return;
         }
 
@@ -56,7 +56,7 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.defaultOutput = this.buildParseOutput();
     }
 
-    protected buildAllowedDomainFields() {
+    protected initAllowed() {
         if (typeof this.options.allowed === 'undefined') {
             if (typeof this.options.default !== 'undefined') {
                 const flatten = flattenNestedObject(this.options.default);

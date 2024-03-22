@@ -113,8 +113,8 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
                 fields[j] = applyMapping(fields[j], container.options.mapping, true);
 
                 let isValid : boolean;
-                if (hasOwnProperty(container.fields, path)) {
-                    isValid = container.fields[path].indexOf(fields[j]) !== -1;
+                if (hasOwnProperty(container.items, path)) {
+                    isValid = container.items[path].indexOf(fields[j]) !== -1;
                 } else {
                     isValid = isValidFieldName(fields[j]);
                 }

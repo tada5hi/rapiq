@@ -22,7 +22,7 @@ import type { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement
 
 export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options: FiltersParseOptions<T> | FiltersOptionsContainer<T>,
+    options?: FiltersParseOptions<T> | FiltersOptionsContainer<T>,
 ) : FiltersParseOutput {
     let container : FiltersOptionsContainer<T>;
     if (options instanceof FiltersOptionsContainer) {

@@ -45,7 +45,7 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         if (!this.options.default) {
             this.default = {};
             this.defaultKeys = [];
-            this.buildParseOutput();
+            this.defaultOutput = this.buildParseOutput();
             return;
         }
 

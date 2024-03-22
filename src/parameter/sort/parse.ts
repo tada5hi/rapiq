@@ -44,7 +44,7 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
  */
 export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options: SortParseOptions<T> | SortOptionsContainer<T>,
+    options?: SortParseOptions<T> | SortOptionsContainer<T>,
 ) : SortParseOutput {
     let container : SortOptionsContainer<T>;
     if (options instanceof SortOptionsContainer) {

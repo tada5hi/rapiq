@@ -21,7 +21,7 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public allowedIsUndefined : boolean;
 
-    public fields : Record<string, string[]>;
+    public items : Record<string, string[]>;
 
     public keys : string[];
 
@@ -36,19 +36,19 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.default = {};
         this.defaultIsUndefined = true;
 
-        this.fields = {};
+        this.items = {};
         this.keys = [];
 
         this.reverseMapping = {};
 
-        this.buildDefaultDomainFields();
-        this.buildAllowedDomainFields();
-        this.buildDomainFields();
+        this.initDefault();
+        this.initAllowed();
+        this.initItems();
 
-        this.buildReverseMapping();
+        this.initReverseMapping();
     }
 
-    protected buildDefaultDomainFields() {
+    protected initDefault() {
         if (typeof this.options.default === 'undefined') {
             this.default = {};
             this.defaultIsUndefined = true;
@@ -61,7 +61,7 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.defaultIsUndefined = false;
     }
 
-    protected buildAllowedDomainFields() {
+    protected initAllowed() {
         if (typeof this.options.allowed === 'undefined') {
             this.allowed = {};
             this.allowedIsUndefined = true;
@@ -74,12 +74,12 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.allowedIsUndefined = false;
     }
 
-    protected buildDomainFields() {
-        this.fields = merge(this.default || {}, this.allowed || {});
-        this.keys = Object.keys(this.fields);
+    protected initItems() {
+        this.items = merge(this.default || {}, this.allowed || {});
+        this.keys = Object.keys(this.items);
     }
 
-    protected buildReverseMapping() {
+    protected initReverseMapping() {
         if (typeof this.options.mapping === 'undefined') {
             return;
         }
