@@ -46,10 +46,8 @@ function finalizePagination(
  */
 export function parseQueryPagination(
     data: unknown,
-    options?: PaginationParseOptions,
+    options: PaginationParseOptions = {},
 ) : PaginationParseOutput {
-    options = options || {};
-
     const pagination : PaginationParseOutput = {};
 
     if (!isObject(data)) {

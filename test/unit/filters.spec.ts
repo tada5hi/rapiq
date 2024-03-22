@@ -13,25 +13,29 @@ import {
 } from '../../src';
 
 describe('src/filter/index.ts', () => {
-    it('should transform request filters', () => {
+    it('should parse allowed filter', () => {
         // filter id
-        let allowedFilter = parseQueryFilters({ id: 1 }, {allowed: ['id']});
+        let allowedFilter = parseQueryFilters({id: 1}, {allowed: ['id']});
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
             operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
+    });
 
+    it('should parse filter with underscore key', () => {
         // filter with underscore key
-        allowedFilter = parseQueryFilters({ display_name: 'admin' }, {allowed: ['display_name']});
+        const allowedFilter = parseQueryFilters({display_name: 'admin'}, {allowed: ['display_name']});
         expect(allowedFilter).toEqual([{
             key: 'display_name',
             value: 'admin',
             operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
+    });
 
+    it('should transform request filters', () => {
         // filter none
-        allowedFilter = parseQueryFilters({ id: 1 }, { allowed: [] });
+        let allowedFilter = parseQueryFilters({ id: 1 }, { allowed: [] });
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
 
         // filter
@@ -47,11 +51,11 @@ describe('src/filter/index.ts', () => {
             key: 'name',
             value: 'admin',
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // invalid field name
         allowedFilter = parseQueryFilters({ 'id!': 1 }, { allowed: undefined });
-        expect(allowedFilter).toEqual([] as FiltersParseOutput);
+        expect(allowedFilter).toEqual([] satisfies FiltersParseOutput);
 
         // ignore field name pattern, if permitted by allowed key
         allowedFilter = parseQueryFilters({ 'id!': 1 }, { allowed: ['id!'] });
@@ -59,14 +63,14 @@ describe('src/filter/index.ts', () => {
             key: 'id!',
             value: 1,
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         allowedFilter = parseQueryFilters({ name: 'tada5hi' }, { default: { name: 'admin' } });
         expect(allowedFilter).toEqual([{
             key: 'name',
             value: 'tada5hi',
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // filter with alias
         allowedFilter = parseQueryFilters({ aliasId: 1 }, { mapping: { aliasId: 'id' }, allowed: ['id'] });
@@ -74,7 +78,7 @@ describe('src/filter/index.ts', () => {
             key: 'id',
             value: 1,
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // filter with query alias
         allowedFilter = parseQueryFilters({ id: 1 }, { allowed: ['id'] });
@@ -82,7 +86,7 @@ describe('src/filter/index.ts', () => {
             key: 'id',
             value: 1,
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // filter allowed
         allowedFilter = parseQueryFilters({ name: 'tada5hi' }, { allowed: ['name'] });
@@ -90,11 +94,11 @@ describe('src/filter/index.ts', () => {
             key: 'name',
             value: 'tada5hi',
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // filter data with el empty value
         allowedFilter = parseQueryFilters({ name: '' }, { allowed: ['name'] });
-        expect(allowedFilter).toEqual([] as FiltersParseOutput);
+        expect(allowedFilter).toEqual([] satisfies FiltersParseOutput);
 
         // filter data with el null value
         allowedFilter = parseQueryFilters({ name: null }, { allowed: ['name'] });
@@ -102,22 +106,22 @@ describe('src/filter/index.ts', () => {
             key: 'name',
             value: null,
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         allowedFilter = parseQueryFilters({ name: 'null' }, { allowed: ['name'] });
         expect(allowedFilter).toEqual([{
             key: 'name',
             value: null,
             operator: FilterComparisonOperator.EQUAL,
-        }] as FiltersParseOutput);
+        }] satisfies FiltersParseOutput);
 
         // filter wrong allowed
         allowedFilter = parseQueryFilters({ id: 1 }, { allowed: ['name'] });
-        expect(allowedFilter).toEqual([] as FiltersParseOutput);
+        expect(allowedFilter).toEqual([] satisfies FiltersParseOutput);
 
         // filter empty data
         allowedFilter = parseQueryFilters({}, { allowed: ['name'] });
-        expect(allowedFilter).toEqual([] as FiltersParseOutput);
+        expect(allowedFilter).toEqual([] satisfies FiltersParseOutput);
     });
 
     it('should transform fields with default path', () => {
@@ -135,7 +139,7 @@ describe('src/filter/index.ts', () => {
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
             }
-        ] as FiltersParseOutput)
+        ] satisfies FiltersParseOutput)
 
         data = parseQueryFilters({ display_name: 'admin' }, options);
 
@@ -146,7 +150,7 @@ describe('src/filter/index.ts', () => {
                 value: 'admin',
                 operator: FilterComparisonOperator.EQUAL,
             }
-        ] as FiltersParseOutput)
+        ] satisfies FiltersParseOutput)
     })
 
     it('should transform filters with default', () => {
@@ -164,7 +168,7 @@ describe('src/filter/index.ts', () => {
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
             }
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({ name: 'Peter' }, options);
         expect(data).toEqual([
@@ -173,7 +177,7 @@ describe('src/filter/index.ts', () => {
                 value: 18,
                 operator: FilterComparisonOperator.LESS_THAN
             }
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({age: 20}, options);
         expect(data).toEqual([
@@ -182,7 +186,7 @@ describe('src/filter/index.ts', () => {
                 value: 20,
                 operator: FilterComparisonOperator.EQUAL,
             }
-        ] as FiltersParseOutput)
+        ] satisfies FiltersParseOutput)
     });
 
     it('should transform filters with default by element', () => {
@@ -207,7 +211,7 @@ describe('src/filter/index.ts', () => {
                 value: 18,
                 operator: FilterComparisonOperator.LESS_THAN,
             }
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({id: 5}, {...options, defaultPath: 'user'});
         expect(data).toEqual([
@@ -223,7 +227,7 @@ describe('src/filter/index.ts', () => {
                 value: 18,
                 operator: FilterComparisonOperator.LESS_THAN,
             }
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({id: 5}, {...options, defaultByElement: false, defaultPath: 'user'});
         expect(data).toEqual([
@@ -233,7 +237,7 @@ describe('src/filter/index.ts', () => {
                 value: 5,
                 operator: FilterComparisonOperator.EQUAL,
             }
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
     });
 
     it('should transform filters with validator', () => {
@@ -256,7 +260,7 @@ describe('src/filter/index.ts', () => {
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters(
             { id: '1,2,3' },
@@ -274,7 +278,7 @@ describe('src/filter/index.ts', () => {
         );
         expect(data).toEqual([
             { key: 'id', value: [2, 3], operator: FilterComparisonOperator.IN, },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
     })
 
     it('should transform filters with different operators', () => {
@@ -286,7 +290,7 @@ describe('src/filter/index.ts', () => {
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // negation with equal operator
         data = parseQueryFilters({ id: '!1' }, { allowed: ['id'] });
@@ -296,7 +300,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.NOT_EQUAL,
                 value: 1,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // in operator
         data = parseQueryFilters({ id: 'null,0,1,2,3' }, { allowed: ['id'] });
@@ -306,7 +310,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.IN,
                 value: [null, 0, 1, 2, 3],
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // negation with in operator
         data = parseQueryFilters({ id: '!1,2,3' }, { allowed: ['id'] });
@@ -316,7 +320,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.NOT_IN,
                 value: [1, 2, 3],
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // like operator
         data = parseQueryFilters({ name: '~name' }, { allowed: ['name'] });
@@ -326,7 +330,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.LIKE,
                 value: 'name',
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // less than operator
         data = parseQueryFilters({ id: '<10' }, { allowed: ['id'] });
@@ -336,7 +340,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.LESS_THAN,
                 value: 10,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // less than equal operator
         data = parseQueryFilters({ id: '<=10' }, { allowed: ['id'] });
@@ -346,7 +350,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.LESS_THAN_EQUAL,
                 value: 10,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // more than operator
         data = parseQueryFilters({ id: '>10' }, { allowed: ['id'] });
@@ -356,7 +360,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.GREATER_THAN,
                 value: 10,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // more than equal operator
         data = parseQueryFilters({ id: '>=10' }, { allowed: ['id'] });
@@ -366,7 +370,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
                 value: 10,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // negation with like operator
         data = parseQueryFilters({ name: '!~name' }, { allowed: ['name'] });
@@ -376,7 +380,7 @@ describe('src/filter/index.ts', () => {
                 operator: FilterComparisonOperator.NOT_LIKE,
                 value: 'name',
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
     });
 
     it('should transform filters with includes', () => {
@@ -403,7 +407,7 @@ describe('src/filter/index.ts', () => {
                 value: 2,
                 operator: FilterComparisonOperator.EQUAL,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // with include & query alias
         transformed = parseQueryFilters({ id: 1, 'profile.id': 2 }, options);
@@ -419,7 +423,7 @@ describe('src/filter/index.ts', () => {
                 value: 2,
                 operator: FilterComparisonOperator.EQUAL,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
 
         // with deep nested include
         transformed = parseQueryFilters({ id: 1, 'user_roles.role.id': 2 }, options);
@@ -435,7 +439,7 @@ describe('src/filter/index.ts', () => {
                 value: 2,
                 operator: FilterComparisonOperator.EQUAL,
             },
-        ] as FiltersParseOutput);
+        ] satisfies FiltersParseOutput);
     });
 
     it('should throw on invalid input shape', () => {
