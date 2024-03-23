@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_ID } from '../constants';
+import { isObject } from './object';
 
 export function buildKeyPath(key: string, prefix?: string) {
     if (typeof prefix === 'string') {
@@ -23,7 +24,7 @@ type Options = {
     ) => boolean | undefined
 };
 
-export function flattenToKeyPathArray(
+export function toKeyPathArray(
     input: unknown,
     options?: Options,
     prefix?: string,
@@ -34,7 +35,7 @@ export function flattenToKeyPathArray(
 
     if (options.transformer) {
         const result = options.transformer(input, output, prefix);
-        if (typeof result !== 'undefined' && !!result) {
+        if (result) {
             return output;
         }
     }
@@ -43,7 +44,7 @@ export function flattenToKeyPathArray(
         for (let i = 0; i < input.length; i++) {
             if (options.transformer) {
                 const result = options.transformer(input[i], output, prefix);
-                if (typeof result !== 'undefined' && !!result) {
+                if (result) {
                     return output;
                 }
             }
@@ -63,11 +64,11 @@ export function flattenToKeyPathArray(
                 continue;
             }
 
-            if (typeof input[i] === 'object') {
+            if (isObject(input[i])) {
                 const keys = Object.keys(input[i]);
                 for (let j = 0; j < keys.length; j++) {
                     const value = buildKeyPath(keys[j] as string, prefix);
-                    const data = flattenToKeyPathArray(input[i][keys[j]], options, value);
+                    const data = toKeyPathArray(input[i][keys[j]], options, value);
                     if (data.length === 0) {
                         output.push(value);
                     } else {
@@ -80,14 +81,11 @@ export function flattenToKeyPathArray(
         return output;
     }
 
-    if (
-        typeof input === 'object' &&
-        input !== null
-    ) {
+    if (isObject(input)) {
         const keys = Object.keys(input);
         for (let i = 0; i < keys.length; i++) {
             const value = buildKeyPath(keys[i], prefix);
-            const data = flattenToKeyPathArray((input as Record<string, any>)[keys[i]], options, value);
+            const data = toKeyPathArray(input[keys[i]], options, value);
             if (data.length === 0) {
                 output.push(value);
             } else {
@@ -98,9 +96,7 @@ export function flattenToKeyPathArray(
         return output;
     }
 
-    if (
-        typeof input === 'string'
-    ) {
+    if (typeof input === 'string') {
         const value = buildKeyPath(input, prefix);
         output.push(value);
 

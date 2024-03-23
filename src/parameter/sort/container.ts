@@ -7,7 +7,7 @@
 
 import type { ObjectLiteral } from '../../type';
 import {
-    flattenNestedObject, parseKey,
+    parseKey, toFlatObject,
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type {
@@ -49,7 +49,7 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
             return;
         }
 
-        this.default = flattenNestedObject(this.options.default);
+        this.default = toFlatObject(this.options.default);
         this.defaultKeys = Object.keys(this.default);
         this.defaultOutput = this.buildParseOutput();
     }
@@ -57,7 +57,7 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
     protected buildAllowedDomainFields() {
         if (typeof this.options.allowed === 'undefined') {
             if (typeof this.options.default !== 'undefined') {
-                const flatten = flattenNestedObject(this.options.default);
+                const flatten = toFlatObject(this.options.default);
                 const allowed = Object.keys(flatten);
                 if (allowed.length > 0) {
                     this.allowed = allowed;
@@ -79,7 +79,7 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         if (this.default) {
             const output : SortParseOutput = [];
 
-            const flatten = flattenNestedObject(this.default);
+            const flatten = toFlatObject(this.default);
             const keys = Object.keys(flatten);
 
             for (let i = 0; i < keys.length; i++) {

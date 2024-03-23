@@ -6,17 +6,17 @@
  */
 
 import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../type';
-import { flattenToKeyPathArray } from '../../../utils';
+import { toKeyPathArray } from '../../../utils';
 import type { ParseAllowedOption } from '../../type';
 
-export function flattenParseAllowedOption<T extends ObjectLiteral>(
+export function flattenParseAllowedOption<T>(
     input?: ParseAllowedOption<T>,
 ) : string[] {
     if (typeof input === 'undefined') {
         return [];
     }
 
-    return flattenToKeyPathArray(input);
+    return toKeyPathArray(input);
 }
 
 export function isPathCoveredByParseAllowedOption<T extends ObjectLiteral>(
@@ -27,7 +27,7 @@ export function isPathCoveredByParseAllowedOption<T extends ObjectLiteral>(
 ) : boolean {
     const paths = Array.isArray(path) ? path : [path];
 
-    const items = flattenToKeyPathArray(input);
+    const items = toKeyPathArray(input);
     for (let i = 0; i < items.length; i++) {
         if (paths.indexOf(items[i]) !== -1) {
             return true;

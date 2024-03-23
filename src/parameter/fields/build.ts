@@ -7,7 +7,7 @@
 
 import type { ObjectLiteral } from '../../type';
 import type { FieldsBuildInput } from './type';
-import { flattenToKeyPathArray, groupArrayByKeyPath, merge } from '../../utils';
+import { groupArrayByKeyPath, merge, toKeyPathArray } from '../../utils';
 
 export function buildQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     input?: FieldsBuildInput<T>,
@@ -16,7 +16,7 @@ export function buildQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         return [];
     }
 
-    const data = groupArrayByKeyPath(flattenToKeyPathArray(input));
+    const data = groupArrayByKeyPath(toKeyPathArray(input));
 
     const keys = Object.keys(data);
     if (keys.length === 1) {

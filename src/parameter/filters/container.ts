@@ -7,7 +7,7 @@
 
 import type { ObjectLiteral } from '../../type';
 import {
-    buildKeyWithPath, flattenNestedObject, hasOwnProperty, parseKey,
+    buildKeyWithPath, hasOwnProperty, parseKey, toFlatObject,
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
@@ -51,7 +51,7 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
             return;
         }
 
-        this.default = flattenNestedObject(this.options.default);
+        this.default = toFlatObject(this.options.default);
         this.defaultKeys = Object.keys(this.default);
         this.defaultOutput = this.buildParseOutput();
     }
@@ -59,7 +59,7 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
     protected initAllowed() {
         if (typeof this.options.allowed === 'undefined') {
             if (typeof this.options.default !== 'undefined') {
-                const flatten = flattenNestedObject(this.options.default);
+                const flatten = toFlatObject(this.options.default);
                 const allowed = Object.keys(flatten);
                 if (allowed.length > 0) {
                     this.allowed = allowed;

@@ -6,7 +6,7 @@
  */
 
 import type { ObjectLiteral } from '../../type';
-import { groupArrayByKeyPath, merge } from '../../utils';
+import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type { FieldsParseOptions } from './type';
 
@@ -63,6 +63,24 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     protected initAllowed() {
         if (typeof this.options.allowed === 'undefined') {
+            if (typeof this.options.default !== 'undefined') {
+                const items = toFlatObject(this.options.default, {
+                    validator(input) {
+                        if (!Array.isArray(input)) {
+                            return false;
+                        }
+
+                        return !input.some((el) => typeof el !== 'string');
+                    },
+                });
+
+                if (items.length > 0) {
+                    this.allowed = items;
+                    this.allowedIsUndefined = false;
+                    return;
+                }
+            }
+
             this.allowed = {};
             this.allowedIsUndefined = true;
             return;

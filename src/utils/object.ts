@@ -23,58 +23,64 @@ type Options = {
         input: unknown,
         output: Record<string, any>,
         key: string
-    ) => boolean | undefined
+    ) => boolean | undefined,
+    validator?: (
+        input: unknown,
+        key: string
+    ) => boolean | undefined,
+    prefixParts?: string[]
 };
 
-export function flattenNestedObject(
-    data: Record<string, any>,
-    options?: Options,
-    prefixParts?: string[],
+export function toFlatObject(
+    data: Record<string, any> | Record<string, any>[],
+    options: Options = {},
 ): Record<string, any> {
-    options = options || {};
-    prefixParts = prefixParts || [];
-
+    const prefixParts = options.prefixParts || [];
     let output: Record<string, string> = {};
 
-    if (options.transformer) {
-        const result = options.transformer(data, output, prefixParts.join('.'));
-        if (typeof result !== 'undefined' && !!result) {
-            return output;
+    if (Array.isArray(data)) {
+        for (let i = 0; i < data.length; i++) {
+            output = {
+                ...output,
+                ...toFlatObject(data[i]),
+            };
         }
+        return data;
     }
 
     const keys = Object.keys(data);
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
 
-        if (options.transformer) {
-            const result = options.transformer(data[key], output, [...prefixParts, key].join('.'));
-            if (typeof result !== 'undefined' && !!result) {
-                continue;
-            }
-        }
-
-        if (
-            typeof data[key] === 'object' &&
-            data[key]
-        ) {
-            output = { ...output, ...flattenNestedObject(data[key], options, [...prefixParts, key]) };
+        if (isObject(data[key])) {
+            output = {
+                ...output,
+                ...toFlatObject(data[key], {
+                    ...options,
+                    prefixParts: [...prefixParts, key],
+                }),
+            };
 
             continue;
         }
 
         const destinationKey = [...prefixParts, key].join('.');
 
-        if (
-            typeof data[key] === 'boolean' ||
-            typeof data[key] === 'string' ||
-            typeof data[key] === 'number' ||
-            typeof data[key] === 'undefined' ||
-            data[key] === null ||
-            Array.isArray(data[key])
-        ) {
-            output[destinationKey] = data[key];
+        if (options.transformer) {
+            const result = options.transformer(data[key], output, destinationKey);
+            if (result) {
+                continue;
+            }
         }
+
+        if (options.validator) {
+            const result = options.validator(data[key], destinationKey);
+            if (!result) {
+                continue;
+            }
+        }
+
+        output[destinationKey] = data[key];
     }
 
     return output;
