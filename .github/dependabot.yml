@@ -30,6 +30,7 @@ updates:
               dependency-type: development
               exclude-patterns:
                   - "eslint"
+                  - "semantic-release"
               update-types:
                   - "major"
           minorAndPatch:
