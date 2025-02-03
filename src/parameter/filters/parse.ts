@@ -10,138 +10,47 @@ import type { KeyDetails } from '../../utils';
 import {
     applyMapping,
     buildKeyWithPath,
-    flattenNestedObject,
-    hasOwnProperty,
     isObject,
     isPathAllowedByRelations,
     parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
-import type { ParseAllowedOption } from '../type';
-import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
-import { FilterComparisonOperator } from './constants';
+import { isPathCoveredByParseAllowedOption } from '../utils';
+import { FiltersOptionsContainer } from './container';
 import { FiltersParseError } from './errors';
 import type { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
-import { parseFilterValue, transformFilterValue } from './utils';
-
-// --------------------------------------------------
-// ^([0-9]+(?:\.[0-9]+)*){0,1}([a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]+)*){0,1}$
-function transformFiltersParseOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
-    if (
-        hasOwnProperty(element, 'path') &&
-        (typeof element.path === 'undefined' || element.path === null)
-    ) {
-        delete element.path;
-    }
-
-    if (element.operator) {
-        return element;
-    }
-
-    if (typeof element.value === 'string') {
-        element = {
-            ...element,
-            ...parseFilterValue(element.value),
-        };
-    } else {
-        element.operator = FilterComparisonOperator.EQUAL;
-    }
-
-    element.value = transformFilterValue(element.value);
-
-    return element;
-}
-
-function buildDefaultFiltersParseOutput<T extends ObjectLiteral = ObjectLiteral>(
-    options: FiltersParseOptions<T>,
-    input: Record<string, FiltersParseOutputElement> = {},
-) : FiltersParseOutput {
-    const inputKeys = Object.keys(input || {});
-
-    if (
-        !options.defaultByElement &&
-        inputKeys.length > 0
-    ) {
-        return Object.values(input);
-    }
-
-    if (options.default) {
-        const flatten = flattenNestedObject(options.default);
-        const keys = Object.keys(flatten);
-
-        const output : FiltersParseOutput = [];
-
-        for (let i = 0; i < keys.length; i++) {
-            const keyDetails = parseKey(keys[i]);
-
-            if (
-                options.defaultByElement &&
-                inputKeys.length > 0
-            ) {
-                const keyWithPath = buildKeyWithPath(keyDetails);
-                if (hasOwnProperty(input, keyWithPath)) {
-                    continue;
-                }
-            }
-
-            if (options.defaultByElement || inputKeys.length === 0) {
-                let path : string | undefined;
-                if (keyDetails.path) {
-                    path = keyDetails.path;
-                } else if (options.defaultPath) {
-                    path = options.defaultPath;
-                }
-
-                output.push(transformFiltersParseOutputElement({
-                    ...(path ? { path } : {}),
-                    key: keyDetails.name,
-                    value: flatten[keys[i]],
-                }));
-            }
-        }
-
-        return input ? [...Object.values(input), ...output] : output;
-    }
-
-    return input ? Object.values(input) : [];
-}
 
 export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options?: FiltersParseOptions<T>,
+    options?: FiltersParseOptions<T> | FiltersOptionsContainer<T>,
 ) : FiltersParseOutput {
-    options = options || {};
-    options.mapping = options.mapping || {};
-    options.relations = options.relations || [];
+    let container : FiltersOptionsContainer<T>;
+    if (options instanceof FiltersOptionsContainer) {
+        container = options;
+    } else {
+        container = new FiltersOptionsContainer<T>(options);
+    }
 
     // If it is an empty array nothing is allowed
-    if (typeof options.allowed !== 'undefined') {
-        options.allowed = flattenParseAllowedOption(options.allowed) as ParseAllowedOption<T>;
-        if (options.allowed.length === 0) {
-            return buildDefaultFiltersParseOutput(options);
-        }
+    if (
+        !container.allowedIsUndefined &&
+        container.allowed.length === 0
+    ) {
+        return container.defaultOutput;
     }
 
     /* istanbul ignore next */
     if (!isObject(data)) {
-        if (options.throwOnFailure) {
+        if (container.options.throwOnFailure) {
             throw FiltersParseError.inputInvalid();
         }
 
-        return buildDefaultFiltersParseOutput(options);
+        return container.defaultOutput;
     }
 
     const { length } = Object.keys(data);
     if (length === 0) {
-        return buildDefaultFiltersParseOutput(options);
-    }
-
-    if (
-        (typeof options.allowed === 'undefined' || options.allowed.length === 0) &&
-        options.default
-    ) {
-        const flatten = flattenNestedObject(options.default);
-        options.allowed = Object.keys(flatten) as ParseAllowedOption<T>;
+        return container.defaultOutput;
     }
 
     const items : Record<string, FiltersParseOutputElement> = {};
@@ -159,21 +68,21 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             value !== null &&
             !Array.isArray(value)
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(keys[i]);
             }
             continue;
         }
 
-        keys[i] = applyMapping(keys[i], options.mapping);
+        keys[i] = applyMapping(keys[i], container.options.mapping);
 
         const fieldDetails : KeyDetails = parseKey(keys[i]);
 
         if (
-            typeof options.allowed === 'undefined' &&
+            container.allowedIsUndefined &&
             !isValidFieldName(fieldDetails.name)
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyInvalid(fieldDetails.name);
             }
             continue;
@@ -181,39 +90,39 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             typeof fieldDetails.path !== 'undefined' &&
-            !isPathAllowedByRelations(fieldDetails.path, options.relations)
+            !isPathAllowedByRelations(fieldDetails.path, container.options.relations)
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyPathInvalid(fieldDetails.path);
             }
             continue;
         }
 
         const fullKey : string = buildKeyWithPath(fieldDetails);
-
         if (
-            options.allowed &&
-            !isPathCoveredByParseAllowedOption(options.allowed, [keys[i], fullKey])
+            !container.allowedIsUndefined &&
+            container.allowed &&
+            !isPathCoveredByParseAllowedOption(container.allowed, [keys[i], fullKey])
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyInvalid(fieldDetails.name);
             }
 
             continue;
         }
 
-        const filter = transformFiltersParseOutputElement({
+        const filter = container.transformParseOutputElement({
             key: fieldDetails.name,
             value: value as string | boolean | number,
         });
 
-        if (options.validate) {
+        if (container.options.validate) {
             if (Array.isArray(filter.value)) {
                 const output : (string | number)[] = [];
                 for (let j = 0; j < filter.value.length; j++) {
-                    if (options.validate(filter.key as NestedKeys<T>, filter.value[j])) {
+                    if (container.options.validate(filter.key as NestedKeys<T>, filter.value[j])) {
                         output.push(filter.value[j]);
-                    } else if (options.throwOnFailure) {
+                    } else if (container.options.throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                     }
                 }
@@ -222,8 +131,8 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                 if (filter.value.length === 0) {
                     continue;
                 }
-            } else if (!options.validate(filter.key as NestedKeys<T>, filter.value)) {
-                if (options.throwOnFailure) {
+            } else if (!container.options.validate(filter.key as NestedKeys<T>, filter.value)) {
+                if (container.options.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
@@ -235,7 +144,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             typeof filter.value === 'string' &&
             filter.value.length === 0
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(fieldDetails.name);
             }
 
@@ -246,19 +155,19 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
             Array.isArray(filter.value) &&
             filter.value.length === 0
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyValueInvalid(fieldDetails.name);
             }
 
             continue;
         }
 
-        if (fieldDetails.path || options.defaultPath) {
-            filter.path = fieldDetails.path || options.defaultPath;
+        if (fieldDetails.path || container.options.defaultPath) {
+            filter.path = fieldDetails.path || container.options.defaultPath;
         }
 
         items[fullKey] = filter;
     }
 
-    return buildDefaultFiltersParseOutput(options, items);
+    return container.buildParseOutput(items);
 }

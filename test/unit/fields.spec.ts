@@ -300,7 +300,7 @@ describe('src/fields/index.ts', () => {
         let evaluate = () => {
             parseQueryFields(false, options);
         }
-        expect(evaluate).toThrowError(error);
+        expect(evaluate).toThrow(error);
     });
 
     it('should throw on non allowed relation', () => {
@@ -321,7 +321,7 @@ describe('src/fields/index.ts', () => {
                 'bar': ['bar']
             }, options);
         }
-        expect(evaluate).toThrowError(error);
+        expect(evaluate).toThrow(error);
     });
 
     it('should throw on invalid key', () => {

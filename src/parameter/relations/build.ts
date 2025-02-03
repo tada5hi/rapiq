@@ -7,7 +7,7 @@
 
 import type { ObjectLiteral } from '../../type';
 import type { RelationsBuildInput } from './type';
-import { flattenToKeyPathArray, merge } from '../../utils';
+import { merge, toKeyPathArray } from '../../utils';
 
 export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input?: RelationsBuildInput<T>,
@@ -16,7 +16,7 @@ export function buildQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
         return [];
     }
 
-    return flattenToKeyPathArray(input);
+    return toKeyPathArray(input);
 }
 
 export function mergeQueryRelations(

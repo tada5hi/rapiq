@@ -11,14 +11,13 @@ import {
     applyMapping,
     buildKeyPath,
     buildKeyWithPath,
-    flattenNestedObject,
     hasOwnProperty,
     isPathAllowedByRelations,
     parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
-import type { ParseAllowedOption } from '../type';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
+import { SortOptionsContainer } from './container';
 import { SortParseError } from './errors';
 
 import type {
@@ -38,38 +37,6 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
     return arr.length > 0 && Array.isArray(arr[0]);
 }
 
-function buildDefaultSortParseOutput<T extends ObjectLiteral = ObjectLiteral>(
-    options: SortParseOptions<T>,
-) : SortParseOutput {
-    if (options.default) {
-        const output : SortParseOutput = [];
-
-        const flatten = flattenNestedObject(options.default);
-        const keys = Object.keys(flatten);
-
-        for (let i = 0; i < keys.length; i++) {
-            const fieldDetails = parseKey(keys[i]);
-
-            let path : string | undefined;
-            if (fieldDetails.path) {
-                path = fieldDetails.path;
-            } else if (options.defaultPath) {
-                path = options.defaultPath;
-            }
-
-            output.push({
-                key: fieldDetails.name,
-                ...(path ? { path } : {}),
-                value: flatten[keys[i]],
-            });
-        }
-
-        return output;
-    }
-
-    return [];
-}
-
 /**
  * Transform sort data to appreciate data format.
  * @param data
@@ -77,19 +44,22 @@ function buildDefaultSortParseOutput<T extends ObjectLiteral = ObjectLiteral>(
  */
 export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options?: SortParseOptions<T>,
+    options?: SortParseOptions<T> | SortOptionsContainer<T>,
 ) : SortParseOutput {
-    options = options || {};
-
-    // If it is an empty array nothing is allowed
-    if (typeof options.allowed !== 'undefined') {
-        const allowed = flattenParseAllowedOption(options.allowed) as ParseAllowedOption<T>;
-        if (allowed.length === 0) {
-            return buildDefaultSortParseOutput(options);
-        }
+    let container : SortOptionsContainer<T>;
+    if (options instanceof SortOptionsContainer) {
+        container = options;
+    } else {
+        container = new SortOptionsContainer<T>(options);
     }
 
-    options.mapping = options.mapping || {};
+    // If it is an empty array nothing is allowed
+    if (
+        !container.allowedIsUndefined &&
+        container.allowed.length === 0
+    ) {
+        return container.defaultOutput;
+    }
 
     /* istanbul ignore next */
     if (
@@ -97,19 +67,11 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         !Array.isArray(data) &&
         !isObject(data)
     ) {
-        if (options.throwOnFailure) {
+        if (container.options.throwOnFailure) {
             throw SortParseError.inputInvalid();
         }
 
-        return buildDefaultSortParseOutput(options);
-    }
-
-    if (
-        typeof options.allowed === 'undefined' &&
-        options.default
-    ) {
-        const flatten = flattenNestedObject(options.default);
-        options.allowed = Object.keys(flatten) as ParseAllowedOption<T>;
+        return container.defaultOutput;
     }
 
     let parts : string[] = [];
@@ -131,7 +93,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
                 typeof keys[i] !== 'string' ||
                 typeof data[keys[i]] !== 'string'
             ) {
-                if (options.throwOnFailure) {
+                if (container.options.throwOnFailure) {
                     throw SortParseError.keyValueInvalid(keys[i]);
                 }
 
@@ -153,15 +115,15 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         const { value, direction } = parseSortValue(parts[i]);
         parts[i] = value;
 
-        const key: string = applyMapping(parts[i], options.mapping);
+        const key: string = applyMapping(parts[i], container.options.mapping);
 
         const fieldDetails = parseKey(key);
 
         if (
-            typeof options.allowed === 'undefined' &&
+            container.allowedIsUndefined &&
             !isValidFieldName(fieldDetails.name)
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw SortParseError.keyInvalid(fieldDetails.name);
             }
 
@@ -169,10 +131,10 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         }
 
         if (
-            !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
+            !isPathAllowedByRelations(fieldDetails.path, container.options.relations) &&
             typeof fieldDetails.path !== 'undefined'
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw SortParseError.keyPathInvalid(fieldDetails.path);
             }
 
@@ -181,11 +143,12 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
 
         const keyWithAlias = buildKeyWithPath(fieldDetails);
         if (
-            typeof options.allowed !== 'undefined' &&
-            !isMultiDimensionalArray(options.allowed) &&
-            !isPathCoveredByParseAllowedOption(options.allowed, [key, keyWithAlias])
+            !container.allowedIsUndefined &&
+            container.allowed &&
+            !isMultiDimensionalArray(container.options.allowed) &&
+            !isPathCoveredByParseAllowedOption(container.allowed, [key, keyWithAlias])
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw SortParseError.keyNotAllowed(fieldDetails.name);
             }
 
@@ -197,8 +160,8 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         let path : string | undefined;
         if (fieldDetails.path) {
             path = fieldDetails.path;
-        } else if (options.defaultPath) {
-            path = options.defaultPath;
+        } else if (container.options.defaultPath) {
+            path = container.options.defaultPath;
         }
 
         items[keyWithAlias] = {
@@ -209,16 +172,16 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     }
 
     if (!matched) {
-        return buildDefaultSortParseOutput(options);
+        return container.defaultOutput;
     }
 
-    if (isMultiDimensionalArray(options.allowed)) {
+    if (isMultiDimensionalArray(container.options.allowed)) {
         // eslint-disable-next-line no-labels,no-restricted-syntax
         outerLoop:
-        for (let i = 0; i < options.allowed.length; i++) {
+        for (let i = 0; i < container.allowed.length; i++) {
             const temp : SortParseOutput = [];
 
-            const keyPaths = flattenParseAllowedOption(options.allowed[i] as string[]);
+            const keyPaths = flattenParseAllowedOption(container.options.allowed[i] as string[]);
 
             for (let j = 0; j < keyPaths.length; j++) {
                 let keyWithAlias : string = keyPaths[j];
@@ -230,7 +193,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
                 } else {
                     key = keyWithAlias;
 
-                    keyWithAlias = buildKeyPath(key, options.defaultPath);
+                    keyWithAlias = buildKeyPath(key, container.options.defaultPath);
                 }
 
                 if (

@@ -46,18 +46,16 @@ function finalizePagination(
  */
 export function parseQueryPagination(
     data: unknown,
-    options?: PaginationParseOptions,
+    options: PaginationParseOptions = {},
 ) : PaginationParseOutput {
-    options = options || {};
-
-    const pagination : PaginationParseOutput = {};
+    const output : PaginationParseOutput = {};
 
     if (!isObject(data)) {
         if (options.throwOnFailure) {
             throw PaginationParseError.inputInvalid();
         }
 
-        return finalizePagination(pagination, options);
+        return finalizePagination(output, options);
     }
 
     let { limit, offset } = data as Record<string, any>;
@@ -66,7 +64,7 @@ export function parseQueryPagination(
         limit = parseInt(limit, 10);
 
         if (!Number.isNaN(limit) && limit > 0) {
-            pagination.limit = limit;
+            output.limit = limit;
         } else if (options.throwOnFailure) {
             throw PaginationParseError.keyValueInvalid('limit');
         }
@@ -76,11 +74,11 @@ export function parseQueryPagination(
         offset = parseInt(offset, 10);
 
         if (!Number.isNaN(offset) && offset >= 0) {
-            pagination.offset = offset;
+            output.offset = offset;
         } else if (options.throwOnFailure) {
             throw PaginationParseError.keyValueInvalid('offset');
         }
     }
 
-    return finalizePagination(pagination, options);
+    return finalizePagination(output, options);
 }

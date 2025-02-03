@@ -9,54 +9,29 @@ import { distinctArray, isObject } from 'smob';
 import { DEFAULT_ID } from '../../constants';
 import type { ObjectLiteral } from '../../type';
 import {
-    applyMapping, groupArrayByKeyPath, hasOwnProperty, isPathAllowedByRelations, merge,
+    applyMapping, hasOwnProperty, isPathAllowedByRelations,
 } from '../../utils';
-import { flattenParseAllowedOption } from '../utils';
 import { FieldOperator } from './constants';
+import { FieldsOptionsContainer } from './container';
 import { FieldsParseError } from './errors';
 import type { FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput } from './type';
 import { isValidFieldName, parseFieldsInput } from './utils';
 
-// --------------------------------------------------
-
-function buildReverseRecord(
-    record: Record<string, string>,
-) : Record<string, string> {
-    const keys = Object.keys(record);
-    const output : Record<string, string> = {};
-
-    for (let i = 0; i < keys.length; i++) {
-        output[record[keys[i]]] = keys[i];
-    }
-
-    return output;
-}
-
 export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     input: unknown,
-    options?: FieldsParseOptions<T>,
+    options?: FieldsParseOptions<T> | FieldsOptionsContainer<T>,
 ) : FieldsParseOutput {
-    options = options || {};
-
-    const defaultDomainFields = groupArrayByKeyPath(
-        flattenParseAllowedOption(options.default),
-    );
-
-    const allowedDomainFields = groupArrayByKeyPath(
-        flattenParseAllowedOption(options.allowed),
-    );
-
-    const domainFields = merge(
-        defaultDomainFields,
-        allowedDomainFields,
-    );
-
-    let keys : string[] = Object.keys(domainFields);
+    let container : FieldsOptionsContainer<T>;
+    if (options instanceof FieldsOptionsContainer) {
+        container = options;
+    } else {
+        container = new FieldsOptionsContainer<T>(options);
+    }
 
     // If it is an empty array nothing is allowed
     if (
-        (typeof options.default !== 'undefined' || typeof options.allowed !== 'undefined') &&
-        keys.length === 0
+        (!container.allowedIsUndefined || !container.defaultIsUndefined) &&
+        container.keys.length === 0
     ) {
         return [];
     }
@@ -69,12 +44,11 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         data = input;
     } else if (typeof input === 'string' || Array.isArray(input)) {
         data = { [DEFAULT_ID]: input };
-    } else if (options.throwOnFailure) {
+    } else if (container.options.throwOnFailure) {
         throw FieldsParseError.inputInvalid();
     }
 
-    options.mapping = options.mapping || {};
-    const reverseMapping = buildReverseRecord(options.mapping);
+    let { keys } = container;
 
     if (
         keys.length > 0 &&
@@ -94,9 +68,9 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             path !== DEFAULT_ID &&
-            !isPathAllowedByRelations(path, options.relations)
+            !isPathAllowedByRelations(path, container.options.relations)
         ) {
-            if (options.throwOnFailure) {
+            if (container.options.throwOnFailure) {
                 throw FieldsParseError.keyPathInvalid(path);
             }
 
@@ -108,10 +82,10 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
         if (hasOwnProperty(data, path)) {
             fields = parseFieldsInput(data[path]);
         } else if (
-            hasOwnProperty(reverseMapping, path) &&
-            hasOwnProperty(data, reverseMapping[path])
+            hasOwnProperty(container.reverseMapping, path) &&
+            hasOwnProperty(data, container.reverseMapping[path])
         ) {
-            fields = parseFieldsInput(data[reverseMapping[path]]);
+            fields = parseFieldsInput(data[container.reverseMapping[path]]);
         }
 
         const transformed : FieldsInputTransformed = {
@@ -136,17 +110,17 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
                     fields[j] = fields[j].substring(1);
                 }
 
-                fields[j] = applyMapping(fields[j], options.mapping, true);
+                fields[j] = applyMapping(fields[j], container.options.mapping, true);
 
                 let isValid : boolean;
-                if (hasOwnProperty(domainFields, path)) {
-                    isValid = domainFields[path].indexOf(fields[j]) !== -1;
+                if (hasOwnProperty(container.items, path)) {
+                    isValid = container.items[path].indexOf(fields[j]) !== -1;
                 } else {
                     isValid = isValidFieldName(fields[j]);
                 }
 
                 if (!isValid) {
-                    if (options.throwOnFailure) {
+                    if (container.options.throwOnFailure) {
                         throw FieldsParseError.keyNotAllowed(fields[j]);
                     }
 
@@ -165,17 +139,17 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             transformed.default.length === 0 &&
-            hasOwnProperty(defaultDomainFields, path)
+            hasOwnProperty(container.default, path)
         ) {
-            transformed.default = defaultDomainFields[path];
+            transformed.default = container.default[path];
         }
 
         if (
             transformed.included.length === 0 &&
             transformed.default.length === 0 &&
-            hasOwnProperty(allowedDomainFields, path)
+            hasOwnProperty(container.allowed, path)
         ) {
-            transformed.default = allowedDomainFields[path];
+            transformed.default = container.allowed[path];
         }
 
         transformed.default = Array.from(new Set([
@@ -195,8 +169,8 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
                 let destPath : string | undefined;
                 if (path !== DEFAULT_ID) {
                     destPath = path;
-                } else if (options.defaultPath) {
-                    destPath = options.defaultPath;
+                } else if (container.options.defaultPath) {
+                    destPath = container.options.defaultPath;
                 }
 
                 output.push({

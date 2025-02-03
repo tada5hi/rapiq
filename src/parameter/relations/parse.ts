@@ -19,8 +19,6 @@ export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input: unknown,
     options: RelationsParseOptions<T> = {},
 ): RelationsParseOutput {
-    options = options || {};
-
     // If it is an empty array nothing is allowed
     if (
         Array.isArray(options.allowed) &&

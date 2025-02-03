@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenNestedObject, merge } from '../../utils';
+import { merge, toFlatObject } from '../../utils';
 import type { ObjectLiteral } from '../../type';
 import type { FiltersBuildInput } from './type';
 
@@ -16,7 +16,7 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
         return {};
     }
 
-    return flattenNestedObject(data, {
+    return toFlatObject(data, {
         transformer: (input, output, key) => {
             if (typeof input === 'undefined') {
                 output[key] = null;

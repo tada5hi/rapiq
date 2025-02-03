@@ -7,7 +7,7 @@
 import type { ObjectLiteral } from '../../type';
 import type { SortBuildInput } from './type';
 import { SortDirection } from './type';
-import { flattenToKeyPathArray, merge } from '../../utils';
+import { merge, toKeyPathArray } from '../../utils';
 
 export function buildQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data?: SortBuildInput<T>,
@@ -20,7 +20,7 @@ export function buildQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         return [data];
     }
 
-    return flattenToKeyPathArray(data, {
+    return toKeyPathArray(data, {
         transformer: ((input, output, path) => {
             if (
                 typeof input === 'string' &&
