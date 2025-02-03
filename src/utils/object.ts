@@ -32,21 +32,11 @@ type Options = {
 };
 
 export function toFlatObject(
-    data: Record<string, any> | Record<string, any>[],
+    data: Record<string, any>,
     options: Options = {},
 ): Record<string, any> {
     const prefixParts = options.prefixParts || [];
     let output: Record<string, string> = {};
-
-    if (Array.isArray(data)) {
-        for (let i = 0; i < data.length; i++) {
-            output = {
-                ...output,
-                ...toFlatObject(data[i]),
-            };
-        }
-        return data;
-    }
 
     const keys = Object.keys(data);
     for (let i = 0; i < keys.length; i++) {
