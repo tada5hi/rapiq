@@ -4,49 +4,58 @@
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
-import type { ObjectLiteral } from '../../type';
 import type { SortBuildInput } from './type';
 import { SortDirection } from './type';
-import { merge, toKeyPathArray } from '../../utils';
+import {
+    extendObject,
+    isObject,
+    toFlatObject,
+} from '../../utils';
 
-export function buildQuerySort<T extends ObjectLiteral = ObjectLiteral>(
-    data?: SortBuildInput<T>,
-) {
-    if (typeof data === 'undefined') {
-        return [];
+export function transformSortBuildInput(input: SortBuildInput<any>) : Record<string, SortDirection> {
+    if (typeof input === 'undefined') {
+        return {};
     }
 
-    if (typeof data === 'string') {
-        return [data];
-    }
-
-    return toKeyPathArray(data, {
-        transformer: ((input, output, path) => {
-            if (
-                typeof input === 'string' &&
-                path &&
-                (
-                    input === SortDirection.ASC ||
-                    input === SortDirection.DESC
-                )
-            ) {
-                if (input === SortDirection.DESC) {
-                    output.push(`-${path}`);
+    if (typeof input === 'string') {
+        return input.split(',')
+            .reduce((acc, curr) => {
+                if (curr.startsWith('-')) {
+                    acc[curr.slice(1)] = SortDirection.DESC;
                 } else {
-                    output.push(path);
+                    acc[curr] = SortDirection.ASC;
                 }
 
-                return true;
-            }
+                return acc;
+            }, {} as Record<string, SortDirection>);
+    }
 
-            return undefined;
-        }),
-    });
-}
+    if (Array.isArray(input)) {
+        let output : Record<string, SortDirection> = {};
+        for (let i = 0; i < input.length; i++) {
+            output = {
+                ...output,
+                ...transformSortBuildInput(input[i]),
+            };
+        }
 
-export function mergeQuerySort(
-    target?: string[],
-    source?: string[],
-) {
-    return merge(target || [], source || []);
+        return output;
+    }
+
+    if (isObject(input)) {
+        return toFlatObject(input, {
+            transformer: (input, output) => {
+                if (isObject(input)) {
+                    const tmp = transformSortBuildInput(input as SortBuildInput<any>);
+                    extendObject(output, tmp);
+
+                    return true;
+                }
+
+                return undefined;
+            },
+        });
+    }
+
+    return {};
 }

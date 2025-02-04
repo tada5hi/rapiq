@@ -7,14 +7,16 @@
 
 import { isObject } from 'smob';
 
-export function buildURLQueryString(data?: any, withQuestionMark = true) {
-    if (typeof data === 'undefined' || data === null) return '';
+type Options = {
+    withoutQuestionMark?: boolean,
+    prefixParts?: string[]
+};
 
-    // If the data is already a string, return it as-is
-    if (typeof data === 'string') return data;
+export function serializeAsURI(data: Record<string, any>, options: Options = {}) : string {
+    const prefixParts = options.prefixParts || [];
 
     // Create a query array to hold the key/value pairs
-    const query : string[] = [];
+    const query: string[] = [];
 
     // Loop through the data object
     const keys = Object.keys(data);
@@ -22,28 +24,44 @@ export function buildURLQueryString(data?: any, withQuestionMark = true) {
         let value = data[keys[i]];
 
         if (isObject(value)) {
-            const valueKeys = Object.keys(value);
-            for (let j = 0; j < valueKeys.length; j++) {
-                let v = value[valueKeys[j]];
-
-                if (Array.isArray(v)) {
-                    v = v.join(',');
-                }
-
-                query.push(`${encodeURIComponent(`${keys[i]}[${valueKeys[j]}]`)}=${encodeURIComponent(v)}`);
-            }
+            query.push(...serializeAsURI(value, {
+                ...options,
+                prefixParts: [...prefixParts, keys[i]],
+            }));
 
             continue;
         }
 
         if (Array.isArray(value)) {
-            value = value.join(',');
+            value = value
+                .map((el) => `${el}`)
+                .filter(Boolean)
+                .join(',');
         }
 
-        // Encode each key and value, concatenate them into a string, and push them to the array
-        query.push(`${encodeURIComponent(keys[i])}=${encodeURIComponent(value)}`);
+        if (value) {
+            const destinationKey = [...prefixParts, keys[i]]
+                .reduce((acc, curr) => `${acc}[${curr}]`, '');
+
+            // Encode each key and value, concatenate them into a string, and push them to the array
+            query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
+        }
+    }
+
+    return query.join('&');
+}
+
+export function buildURLQueryString(data?: string | Record<string, any>, options: Options = {}) {
+    if (typeof data === 'undefined' || data === null) return '';
+
+    // If the data is already a string, return it as-is
+    if (typeof data === 'string') return data;
+
+    const output = serializeAsURI(data);
+    if (output.length === 0) {
+        return '';
     }
 
     // Join each item in the array with a `&` and return the resulting string
-    return (withQuestionMark ? '?' : '') + query.join('&');
+    return (options.withoutQuestionMark ? '' : '?') + output;
 }
