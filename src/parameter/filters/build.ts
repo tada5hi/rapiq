@@ -5,18 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { merge, toFlatObject } from '../../utils';
-import type { ObjectLiteral } from '../../type';
+import {
+    extendObject, isObject, toFlatObject,
+} from '../../utils';
 import type { FiltersBuildInput } from './type';
 
-export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
-    data?: FiltersBuildInput<T>,
-) : Record<string, any> {
-    if (typeof data === 'undefined') {
-        return {};
-    }
-
-    return toFlatObject(data, {
+export function transformFiltersBuildInput(input: FiltersBuildInput<any>) : Record<string, any> {
+    return toFlatObject(input, {
         transformer: (input, output, key) => {
             if (typeof input === 'undefined') {
                 output[key] = null;
@@ -46,14 +41,12 @@ export function buildQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
                 return true;
             }
 
+            if (isObject(input)) {
+                const tmp = transformFiltersBuildInput(input as FiltersBuildInput<any>);
+                extendObject(output, tmp);
+            }
+
             return undefined;
         },
     });
-}
-
-export function mergeQueryFilters(
-    target?: Record<string, any>,
-    source?: Record<string, any>,
-) : Record<string, any> {
-    return merge(target || {}, source || {});
 }

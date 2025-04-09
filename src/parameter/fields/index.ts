@@ -5,7 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './build';
 export * from './container';
 export * from './constants';
 export * from './errors';

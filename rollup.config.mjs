@@ -7,7 +7,7 @@
 
 import resolve from '@rollup/plugin-node-resolve';
 import { transform } from '@swc/core';
-import pkg from './package.json' assert { type: 'json' };
+import pkg from './package.json' with { type: 'json' };
 
 const extensions = [
     '.js', '.cjs', '.mjs', '.jsx', '.ts', '.tsx',
@@ -36,24 +36,24 @@ export default [
                         jsc: {
                             target: 'es2020',
                             parser: {
-                                syntax: 'typescript'
+                                syntax: 'typescript',
                             },
-                            loose: true
+                            loose: true,
                         },
-                        sourceMaps: true
+                        sourceMaps: true,
                     });
-                }
-            }
+                },
+            },
         ],
         output: [
             {
                 file: pkg.main,
                 format: 'cjs',
-                sourcemap: true
+                sourcemap: true,
             }, {
                 file: pkg.module,
                 format: 'esm',
-                sourcemap: true
+                sourcemap: true,
             },
         ],
     },
