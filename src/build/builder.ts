@@ -34,7 +34,7 @@ export class QueryBuilder<T extends ObjectLiteral = ObjectLiteral> {
 
     protected relations: string[];
 
-    protected sort: Map<string, SortDirection>;
+    protected sort: Record<string, SortDirection>;
 
     // --------------------------------------------------
 
@@ -43,7 +43,7 @@ export class QueryBuilder<T extends ObjectLiteral = ObjectLiteral> {
         this.filters = {};
         this.pagination = {};
         this.relations = [];
-        this.sort = new Map<string, SortDirection>();
+        this.sort = {};
     }
 
     // --------------------------------------------------
@@ -105,81 +105,63 @@ export class QueryBuilder<T extends ObjectLiteral = ObjectLiteral> {
         const record = transformSortBuildInput(data);
         const keys = Object.keys(record);
         for (let i = 0; i < keys.length; i++) {
-            this.sort.set(keys[i], record[keys[i]]);
+            this.sort[keys[i]] = record[keys[i]];
         }
     }
 
     // --------------------------------------------------
 
     toString() {
-        return this.serialize();
+        return this.build();
     }
 
     // --------------------------------------------------
 
-    serialize() {
-        const output = [
-            this.serializeFields(),
-            this.serializeFilters(),
-            this.serializePagination(),
-            this.serializeRelations(),
-            this.serializeSort(),
-        ]
-            .filter(Boolean)
-            .join('&');
+    build() {
+        const record : Record<string, any> = {};
 
-        if (output.length > 0) {
-            return `?${output}`;
+        let keys : string[];
+
+        keys = Object.keys(this.fields);
+        if (keys.length > 0) {
+            if (
+                keys.length === 1 &&
+                keys[0] === DEFAULT_ID
+            ) {
+                record[URLParameter.FIELDS] = this.fields[DEFAULT_ID];
+            } else {
+                record[URLParameter.FIELDS] = this.fields;
+            }
         }
 
-        return '';
-    }
-
-    serializeFields() : string {
-        const keys = Object.keys(this.fields);
-        if (
-            keys.length === 1 &&
-            keys[0] === DEFAULT_ID
-        ) {
-            return serializeAsURI({
-                [URLParameter.FIELDS]: this.fields[DEFAULT_ID],
-            });
+        keys = Object.keys(this.filters);
+        if (keys.length > 0) {
+            record[URLParameter.FILTERS] = this.filters;
         }
 
-        return serializeAsURI({
-            [URLParameter.FIELDS]: this.fields,
-        });
-    }
-
-    serializeFilters() : string {
-        return serializeAsURI({
-            [URLParameter.FILTERS]: this.filters,
-        });
-    }
-
-    serializePagination() : string {
-        return serializeAsURI({
-            [URLParameter.PAGINATION]: this.pagination,
-        });
-    }
-
-    serializeRelations(): string {
-        return serializeAsURI({
-            [URLParameter.RELATIONS]: this.relations,
-        });
-    }
-
-    serializeSort() : string {
-        const sort = Object.fromEntries(this.sort);
-        const sortKeys = Object.keys(sort);
-        const sortParts : string[] = [];
-
-        for (let i = 0; i < sortKeys.length; i++) {
-            sortParts.push((sort[sortKeys[i]] === SortDirection.DESC ? '-' : '') + sortKeys[i]);
+        keys = Object.keys(this.pagination);
+        if (keys.length > 0) {
+            record[URLParameter.PAGINATION] = this.pagination;
         }
 
-        return serializeAsURI({
-            [URLParameter.SORT]: sortParts,
-        });
+        if (this.relations.length > 0) {
+            record[URLParameter.RELATIONS] = this.relations;
+        }
+
+        keys = Object.keys(this.sort);
+        if (keys.length > 0) {
+            const parts : string[] = [];
+
+            for (let i = 0; i < keys.length; i++) {
+                parts.push((this.sort[keys[i]] === SortDirection.DESC ? '-' : '') + keys[i]);
+            }
+
+            record[URLParameter.SORT] = parts;
+        }
+
+        const output = serializeAsURI(record);
+        return output.length > 0 ?
+            `?${output}` :
+            '';
     }
 }

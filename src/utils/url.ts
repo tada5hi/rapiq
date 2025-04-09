@@ -13,13 +13,17 @@ type Options = {
 };
 
 export function serializeAsURI(data: Record<string, any>, options: Options = {}) : string {
+    // Loop through the data object
+    const keys = Object.keys(data);
+    if (keys.length === 0) {
+        return '';
+    }
+
     const prefixParts = options.prefixParts || [];
 
     // Create a query array to hold the key/value pairs
     const query: string[] = [];
 
-    // Loop through the data object
-    const keys = Object.keys(data);
     for (let i = 0; i < keys.length; i++) {
         let value = data[keys[i]];
 
