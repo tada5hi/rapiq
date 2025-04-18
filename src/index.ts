@@ -10,4 +10,4 @@ export * from './errors';
 export * from './parameter';
 export * from './parse';
 export * from './constants';
-export * from './type';
+export * from './types';

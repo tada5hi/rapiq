@@ -21,15 +21,14 @@ import {
 } from '../parameter';
 import type {
     ParseInput,
-    ParseOutput,
+    ParseOutput, ParseParametersOutput,
     QueryParserOptions,
-} from './type';
-import type { ParseParametersOutput } from './parameter';
+} from './types';
 import {
     buildQueryParameterOptions,
     isQueryParameterEnabled,
-} from './parameter';
-import type { ObjectLiteral } from '../type';
+} from './utils';
+import type { ObjectLiteral } from '../types';
 
 export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
     protected options : QueryParserOptions<T>;

@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { Parameter, URLParameter } from '../constants';
 import type {
     FieldsParseOptions,
     FieldsParseOutput,
@@ -16,23 +17,50 @@ import type {
     RelationsParseOutput,
     SortParseOptions,
     SortParseOutput,
-} from '../../parameter';
+} from '../parameter';
+import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
 
-import type { Parameter } from '../../constants';
-import type { ObjectLiteral } from '../../type';
+//------------------------------------------------
 
-export type ParseParametersOptions<T extends ObjectLiteral = ObjectLiteral> = {
+export type ParseInput = {
+    [K in `${Parameter}` | `${URLParameter}`]?: unknown
+};
+
+//------------------------------------------------
+
+export type ParseParametersOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+> = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsParseOptions<T> | boolean,
     [Parameter.FILTERS]?: FiltersParseOptions<T> | boolean,
     [Parameter.RELATIONS]?: RelationsParseOptions<T> | boolean,
     [Parameter.PAGINATION]?: PaginationParseOptions | boolean,
     [Parameter.SORT]?: SortParseOptions<T> | boolean,
-};
+}>;
 
-export type ParseParametersOutput = {
+export type ParseParametersOutput = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsParseOutput,
     [Parameter.FILTERS]?: FiltersParseOutput,
     [Parameter.RELATIONS]?: RelationsParseOutput,
     [Parameter.PAGINATION]?: PaginationParseOutput,
     [Parameter.SORT]?: SortParseOutput,
+}>;
+
+export type ParseOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+> = ParseParametersOptions<T> & {
+    defaultPath?: string,
+    throwOnFailure?: boolean
 };
+
+//------------------------------------------------
+
+export type ParseOutput = ParseParametersOutput & {
+    defaultPath?: string
+};
+export type QueryParserOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+> = {
+    defaultPath?: string,
+    throwOnFailure?: boolean
+} & ParseParametersOptions<T>;

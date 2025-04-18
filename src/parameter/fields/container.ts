@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../types';
 import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type { FieldsParseOptions } from './type';

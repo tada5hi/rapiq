@@ -8,7 +8,7 @@
 import type {
     Flatten,
     NestedKeys, ObjectLiteral, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
-} from '../../type';
+} from '../../types';
 import type { RelationsParseOutput } from '../relations';
 import type {
     ParseAllowedOption,

@@ -7,7 +7,7 @@
 
 import { distinctArray, isObject } from 'smob';
 import { DEFAULT_ID } from '../../constants';
-import type { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../types';
 import {
     applyMapping, hasOwnProperty, isPathAllowedByRelations,
 } from '../../utils';

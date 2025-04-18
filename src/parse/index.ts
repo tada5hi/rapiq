@@ -6,6 +6,6 @@
  */
 
 export * from './module';
-export * from './type';
-export * from './parameter';
+export * from './types';
+export * from './utils';
 export * from './parser';

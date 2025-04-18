@@ -7,7 +7,7 @@
 
 import type {
     Flatten, NestedKeys, ObjectLiteral, OnlyObject, SimpleKeys,
-} from '../type';
+} from '../types';
 
 // -----------------------------------------------------------
 

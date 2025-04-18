@@ -6,6 +6,10 @@
  */
 
 export type ObjectLiteral = Record<string, any>;
+export type ObjectLiteralKeys<T extends ObjectLiteral> = {
+    [K in keyof T as `${K & (string | number)}`]: T[K];
+};
+
 export type Flatten<Type> = Type extends Array<infer Item> ? Item : Type;
 export type OnlyScalar<T> = T extends string | number | boolean | undefined | null ? T : never;
 export type OnlySingleObject<T> = T extends { [key: string]: any } ? T : never;

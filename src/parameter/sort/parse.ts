@@ -6,7 +6,7 @@
  */
 
 import { isObject } from 'smob';
-import type { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../types';
 import {
     applyMapping,
     buildKeyPath,

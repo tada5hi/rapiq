@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../type';
+import type { ObjectLiteral } from '../../types';
 import { applyMapping, hasOwnProperty } from '../../utils';
 import { isPathCoveredByParseAllowedOption } from '../utils';
 import { RelationsParseError } from './errors';

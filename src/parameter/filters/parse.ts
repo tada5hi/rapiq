@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedKeys, ObjectLiteral } from '../../type';
+import type { NestedKeys, ObjectLiteral } from '../../types';
 import type { KeyDetails } from '../../utils';
 import {
     applyMapping,

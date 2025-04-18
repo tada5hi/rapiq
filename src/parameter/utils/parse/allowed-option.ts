@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../type';
+import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../types';
 import { toKeyPathArray } from '../../../utils';
 import type { ParseAllowedOption } from '../../type';
 

@@ -6,8 +6,8 @@
  */
 
 import { QueryParser } from './parser';
-import type { ObjectLiteral } from '../type';
-import type { ParseInput, ParseOptions, ParseOutput } from './type';
+import type { ObjectLiteral } from '../types';
+import type { ParseInput, ParseOptions, ParseOutput } from './types';
 
 export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,

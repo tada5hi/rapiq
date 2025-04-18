@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { BuildInput } from './type';
+import type { BuildInput } from './types';
 import { DEFAULT_ID, Parameter, URLParameter } from '../constants';
 import type {
     FieldsBuildInput,
@@ -20,7 +20,7 @@ import {
     transformFiltersBuildInput,
     transformSortBuildInput,
 } from '../parameter';
-import type { ObjectLiteral } from '../type';
+import type { ObjectLiteral } from '../types';
 import {
     groupArrayByKeyPath, merge, serializeAsURI, toKeyPathArray,
 } from '../utils';

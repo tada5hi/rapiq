@@ -7,7 +7,7 @@
 
 import type {
     Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
-} from '../../type';
+} from '../../types';
 import type { RelationsParseOutput } from '../relations';
 import type {
     ParseAllowedOption,
