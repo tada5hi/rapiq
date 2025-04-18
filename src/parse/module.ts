@@ -13,7 +13,7 @@ export function parseQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: ParseInput,
     options: ParseOptions<T> = {},
 ) : ParseOutput {
-    const schema = new QueryParser<T>(options);
+    const parser = new QueryParser<T>(options);
 
-    return schema.parse(input);
+    return parser.parse(input);
 }
