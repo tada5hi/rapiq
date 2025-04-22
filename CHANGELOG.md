@@ -1,3 +1,32 @@
+# [1.0.0](https://github.com/Tada5hi/rapiq/compare/v0.9.0...v1.0.0) (2025-04-22)
+
+
+### Bug Fixes
+
+* **deps:** bump smob from 1.4.0 to 1.4.1 ([#401](https://github.com/Tada5hi/rapiq/issues/401)) ([04f5545](https://github.com/Tada5hi/rapiq/commit/04f554598195e18cc853fcd2bd90adec4b97140a))
+* **deps:** bump the minorandpatch group across 1 directory with 9 updates ([#562](https://github.com/Tada5hi/rapiq/issues/562)) ([06ff918](https://github.com/Tada5hi/rapiq/commit/06ff91890b91c28e8a62efe3edde3fd6f5893a19))
+* remove ebec as dependency ([701e5dc](https://github.com/Tada5hi/rapiq/commit/701e5dc7bd4eade37515e901f8d4f9f419f21a6d))
+
+
+### Features
+
+* dedicated builder & parser class ([#566](https://github.com/Tada5hi/rapiq/issues/566)) ([94677b4](https://github.com/Tada5hi/rapiq/commit/94677b4fd5e2973f9625ba89c36b939f6566c931))
+* initial parameter container(s) ([#481](https://github.com/Tada5hi/rapiq/issues/481)) ([1b3b5bf](https://github.com/Tada5hi/rapiq/commit/1b3b5bf03bcd4fe45924a09320d63c2d806b0966))
+* remove parse-query-paramter fn ([669cee0](https://github.com/Tada5hi/rapiq/commit/669cee07c3d7cd592d3cafb84a6f52ea67531722))
+* simplify parsing & refactored typings ([#471](https://github.com/Tada5hi/rapiq/issues/471)) ([cc336b7](https://github.com/Tada5hi/rapiq/commit/cc336b7dbac2c094d0c22d8ce1ffa117de321006))
+
+
+### BREAKING CHANGES
+
+* parseQueryParameter fn removed
+
+* docs: updated documentation
+
+* build: downgraded semantic-release to v22.x
+
+* build: bump rollup and swc
+* parseQueryParameter fn removed
+
 # [0.9.0](https://github.com/Tada5hi/rapiq/compare/v0.8.1...v0.9.0) (2023-07-04)
 
 
