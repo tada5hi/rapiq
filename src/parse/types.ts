@@ -58,9 +58,3 @@ export type ParseOptions<
 export type ParseOutput = ParseParametersOutput & {
     defaultPath?: string
 };
-export type QueryParserOptions<
-    T extends ObjectLiteral = ObjectLiteral,
-> = {
-    defaultPath?: string,
-    throwOnFailure?: boolean
-} & ParseParametersOptions<T>;

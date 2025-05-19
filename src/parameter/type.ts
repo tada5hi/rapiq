@@ -5,9 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { SchemaRegistry } from '../schema/registry';
 import type {
     Flatten, NestedKeys, ObjectLiteral, OnlyObject, SimpleKeys,
 } from '../types';
+import type { RelationsParseOutput } from './relations';
 
 // -----------------------------------------------------------
 
@@ -30,3 +32,8 @@ export type ParseAllowedOption<T> = T extends ObjectLiteral ?
         |
         NestedKeys<T>[]
     ) : string[];
+
+export type ParseBaseOptions = {
+    registry?: SchemaRegistry,
+    relations?: RelationsParseOutput
+};

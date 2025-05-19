@@ -8,7 +8,7 @@
 import type { ObjectLiteral } from '../../types';
 import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
-import type { FieldsParseOptions } from './type';
+import type { FieldsParseOptions } from './types';
 
 export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
     public options : FieldsParseOptions<T>;

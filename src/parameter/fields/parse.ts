@@ -14,7 +14,7 @@ import {
 import { FieldOperator } from './constants';
 import { FieldsOptionsContainer } from './container';
 import { FieldsParseError } from './errors';
-import type { FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput } from './type';
+import type { FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
 import { isValidFieldName, parseFieldsInput } from './utils';
 
 export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
