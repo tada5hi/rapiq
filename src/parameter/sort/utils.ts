@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SortDirection } from './type';
+import { SortDirection } from './types';
 
 export function parseSortValue(value: string) : {value: string, direction: `${SortDirection}`} {
     let direction: SortDirection = SortDirection.ASC;

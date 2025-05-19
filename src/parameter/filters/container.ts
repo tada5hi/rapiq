@@ -12,12 +12,12 @@ import {
 import { flattenParseAllowedOption } from '../utils';
 import { FilterComparisonOperator } from './constants';
 import type {
-    FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement,
-} from './type';
+    FiltersOptions, FiltersParseOutput, FiltersParseOutputElement,
+} from './types';
 import { parseFilterValue, transformFilterValue } from './utils';
 
 export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : FiltersParseOptions<T>;
+    public options : FiltersOptions<T>;
 
     public default : Record<string, any>;
 
@@ -29,7 +29,7 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public allowedIsUndefined : boolean;
 
-    constructor(input: FiltersParseOptions<T> = {}) {
+    constructor(input: FiltersOptions<T> = {}) {
         this.options = input;
 
         this.allowed = [];

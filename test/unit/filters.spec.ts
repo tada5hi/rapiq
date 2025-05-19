@@ -6,7 +6,7 @@
  */
 
 import {
-    FiltersParseOptions,
+    FiltersOptions,
     FiltersParseOutput,
     parseQueryFilters,
     parseQueryRelations, FilterComparisonOperator, FiltersParseError,
@@ -125,7 +125,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should transform fields with default path', () => {
-        const options : FiltersParseOptions= {
+        const options : FiltersOptions= {
             allowed: ['id', 'display_name'],
             defaultPath: 'user'
         };
@@ -154,7 +154,7 @@ describe('src/filter/index.ts', () => {
     })
 
     it('should transform filters with default', () => {
-        const options : FiltersParseOptions<{id: string, age: number }> = {
+        const options : FiltersOptions<{id: string, age: number }> = {
             allowed: ['id', 'age'],
             default: {
                 age: '<18'
@@ -190,7 +190,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should transform filters with default by element', () => {
-        const options: FiltersParseOptions = {
+        const options: FiltersOptions = {
             allowed: ['id', 'age'],
             default: {
                 id: 18,
@@ -388,7 +388,7 @@ describe('src/filter/index.ts', () => {
             allowed: ['profile', 'user_roles.role']
         });
 
-        const options : FiltersParseOptions = {
+        const options : FiltersOptions = {
             allowed: ['id', 'profile.id', 'user_roles.role.id'],
             relations: include,
         };
@@ -443,7 +443,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid input shape', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true
         }
 
@@ -455,7 +455,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid key value', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true
         }
 
@@ -469,7 +469,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid key', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true
         }
 
@@ -483,7 +483,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on non allowed relation', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
@@ -504,7 +504,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
@@ -525,7 +525,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on non allowed key', () => {
-        let options : FiltersParseOptions = {
+        let options : FiltersOptions = {
             throwOnFailure: true,
             allowed: ['foo']
         }

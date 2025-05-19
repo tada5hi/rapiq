@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {PaginationParseError, PaginationParseOptions, parseQueryPagination} from '../../src';
+import {PaginationParseError, PaginationOptions, parseQueryPagination} from '../../src';
 
 describe('src/pagination/index.ts', () => {
     it('should transform pagination', () => {
@@ -26,7 +26,7 @@ describe('src/pagination/index.ts', () => {
     });
 
     it('should throw on exceeded limit', () => {
-        let options : PaginationParseOptions = {
+        let options : PaginationOptions = {
             throwOnFailure: true,
             maxLimit: 50
         };
@@ -40,7 +40,7 @@ describe('src/pagination/index.ts', () => {
     })
 
     it('should throw on invalid input', () => {
-        let options : PaginationParseOptions = {
+        let options : PaginationOptions = {
             throwOnFailure: true
         };
 
@@ -53,7 +53,7 @@ describe('src/pagination/index.ts', () => {
     });
 
     it('should throw on invalid limit', () => {
-        let options : PaginationParseOptions = {
+        let options : PaginationOptions = {
             throwOnFailure: true
         };
 
@@ -66,7 +66,7 @@ describe('src/pagination/index.ts', () => {
     })
 
     it('should throw on invalid offset', () => {
-        let options : PaginationParseOptions = {
+        let options : PaginationOptions = {
             throwOnFailure: true
         };
 

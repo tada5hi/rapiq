@@ -6,72 +6,82 @@
  */
 
 import {
+    defineSchema,
     FieldsParseOutput, FilterComparisonOperator,
     FiltersParseOutput,
     PaginationParseOutput,
     Parameter,
-    ParseOutput,
-    parseQuery,
     parseQueryFields,
     parseQueryFilters,
     parseQueryPagination,
     parseQueryRelations,
     parseQuerySort,
+    QueryParseOutput,
     RelationsParseOutput,
     SortDirection,
     SortParseOutput,
 } from '../../src';
 
+type ParseOutput = QueryParseOutput;
+
 describe('src/parse.ts', () => {
-    it('should parse query', () => {
-        let value = parseQuery({
-            fields: ['id', 'name'],
-        }, {
+    it('should parse with allowed', () => {
+        const schema = defineSchema({
             fields: {
                 allowed: ['id']
             }
+        })
+
+        let output = schema.parseQuery({
+            fields: ['id', 'name'],
         });
-        expect(value).toEqual({
+
+        expect(output).toEqual({
             fields: [
                 { key: 'id' },
             ],
-        } as ParseOutput);
+        } as ParseOutput)
+    })
 
-        value = parseQuery({
+    it('should parse query without options', () => {
+        const schema = defineSchema({});
+
+        const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
         });
-        expect(value).toEqual({
+        expect(output).toEqual({
             fields: [
                 {key: 'id'},
                 {key: 'name'}
             ]
         } as ParseOutput);
+    });
 
-        value = parseQuery({
-            [Parameter.FIELDS]: ['id', 'name'],
-        }, {
+    it('should parse with empty fields allowed option', () => {
+        const schema = defineSchema({
             fields: {
                 allowed: []
             }
+        })
+        const output = schema.parseQuery({
+            [Parameter.FIELDS]: ['id', 'name'],
         });
-        expect(value).toEqual({
+        expect(output).toEqual({
             fields: []
         } as ParseOutput);
+    });
 
-        value = parseQuery({
+    it('should parse with all parameters defined', () => {
+        const schema = defineSchema();
+        const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
             [Parameter.FILTERS]: { id: 1},
             [Parameter.PAGINATION]: { limit: 20 },
             [Parameter.RELATIONS]: ['relation'],
             [Parameter.SORT]: {id: 'DESC'},
-        }, {
-            fields: true,
-            filters: true,
-            pagination: true,
-            relations: true,
-            sort: true
         });
-        expect(value).toEqual({
+
+        expect(output).toEqual({
             fields: [
                 {key: 'id'},
                 {key: 'name'}
@@ -90,8 +100,12 @@ describe('src/parse.ts', () => {
                 { key: 'id', value: 'DESC'}
             ]
         } as ParseOutput);
+    });
 
-        value = parseQuery({
+    it('should parse with all parameters disabled', () => {
+        const schema = defineSchema();
+
+        const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
             [Parameter.FILTERS]: { id: 1},
             [Parameter.PAGINATION]: { limit: 20 },
@@ -104,24 +118,30 @@ describe('src/parse.ts', () => {
             relations: false,
             sort: false
         });
-        expect(value).toEqual({} as ParseOutput);
-    });
 
-    it('should parse query with defaults', () => {
-        let value = parseQuery({
-            fields: ['id', 'name'],
-        }, {
+        expect(output).toEqual({});
+    })
+
+    it('should parse query with default fields', () => {
+        const schema = defineSchema({
             fields: {
                 default: ['id']
             }
+        })
+        let value = schema.parseQuery({
+            fields: ['id', 'name'],
         });
+
         expect(value).toEqual({
             fields: [
-                { key: 'id' },
+                {key: 'id'},
             ],
         } as ParseOutput);
+    });
 
-        value = parseQuery<{ id: number, name: string }>({}, {
+
+    it('should parse query with default fields & filters', () => {
+        const schema = defineSchema<{ id: number, name: string }>({
             fields: {
                 default: ['id', 'name']
             },
@@ -130,7 +150,8 @@ describe('src/parse.ts', () => {
                     id: 1
                 }
             }
-        });
+        })
+        const value = schema.parseQuery({});
 
         expect(value).toEqual({
             fields: [
@@ -144,27 +165,34 @@ describe('src/parse.ts', () => {
     })
 
     it('should parse query with default path', () => {
-        let value = parseQuery({
-            fields: ['id', 'name'],
-        }, {
+        const schema = defineSchema({
             defaultPath: 'user',
             fields: {
                 allowed: ['id']
             }
+        })
+        let output = schema.parseQuery({
+            fields: ['id', 'name'],
         });
-        expect(value).toEqual({
+        expect(output).toEqual({
             defaultPath: 'user',
             fields: [
-                { key: 'id', path: 'user' },
+                {key: 'id', path: 'user'},
             ],
         } as ParseOutput);
 
-        value = parseQuery<{id: string, name: string, realm: { display_name: string }}>({
-            filters: {
-                'realm.display_name': 'master'
-            },
-            include: ['realm']
-        }, {
+    });
+
+    it('should parse query with default path & relations', () => {
+        const schema = defineSchema<
+            {
+                id: string,
+                name: string,
+                realm: {
+                    display_name: string
+                }
+            }
+        >({
             defaultPath: 'user',
             filters: {
                 allowed: [
@@ -175,8 +203,16 @@ describe('src/parse.ts', () => {
             relations: {
                 allowed: ['realm']
             }
+        })
+
+        const output = schema.parseQuery({
+            filters: {
+                'realm.display_name': 'master'
+            },
+            include: ['realm']
+        }, {
         });
-        expect(value).toEqual({
+        expect(output).toEqual({
             defaultPath: 'user',
             filters: [
                 { key: 'display_name', operator: FilterComparisonOperator.EQUAL, path: 'realm', value: 'master' },

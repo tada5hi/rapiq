@@ -8,10 +8,9 @@
 import type {
     Flatten, KeyWithOptionalPrefix, NestedKeys, ObjectLiteral, OnlyObject, SimpleKeys,
 } from '../../types';
-import type { RelationsParseOutput } from '../relations';
 import type {
     ParseAllowedOption,
-} from '../type';
+} from '../types';
 import type { FieldOperator } from './constants';
 
 // -----------------------------------------------------------
@@ -37,17 +36,6 @@ FieldsBuildNestedKeyInput;
 // Parse
 // -----------------------------------------------------------
 
-export type FieldsParseOptions<
-    T extends Record<string, any> = Record<string, any>,
-> = {
-    mapping?: Record<string, string>,
-    allowed?: ParseAllowedOption<T>,
-    default?: ParseAllowedOption<T>,
-    defaultPath?: string,
-    throwOnFailure?: boolean,
-    relations?: RelationsParseOutput,
-};
-
 export type FieldsParseOutputElement = {
     key: string,
     path?: string,
@@ -59,4 +47,16 @@ export type FieldsInputTransformed = {
     default: string[],
     included: string[],
     excluded: string[]
+};
+
+// -----------------------------------------------------------
+
+export type FieldsOptions<
+    T extends Record<string, any> = Record<string, any>,
+> = {
+    mapping?: Record<string, string>,
+    allowed?: ParseAllowedOption<T>,
+    default?: ParseAllowedOption<T>,
+    defaultPath?: string,
+    throwOnFailure?: boolean,
 };

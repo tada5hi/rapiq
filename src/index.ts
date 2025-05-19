@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './build';
+export * from './query';
 export * from './errors';
 export * from './parameter';
-export * from './parse';
 export * from './constants';
+export * from './schema';
 export * from './types';

@@ -4,8 +4,8 @@
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
-import type { SortBuildInput } from './type';
-import { SortDirection } from './type';
+import type { SortBuildInput } from './types';
+import { SortDirection } from './types';
 import {
     extendObject,
     isObject,

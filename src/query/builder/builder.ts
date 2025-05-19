@@ -6,24 +6,24 @@
  */
 
 import type { BuildInput } from './types';
-import { DEFAULT_ID, Parameter, URLParameter } from '../constants';
+import { DEFAULT_ID, Parameter, URLParameter } from '../../constants';
 import type {
     FieldsBuildInput,
     FiltersBuildInput,
     PaginationBuildInput,
     RelationsBuildInput,
     SortBuildInput,
-} from '../parameter';
+} from '../../parameter';
 import {
     SortDirection,
 
     transformFiltersBuildInput,
     transformSortBuildInput,
-} from '../parameter';
-import type { ObjectLiteral } from '../types';
+} from '../../parameter';
+import type { ObjectLiteral } from '../../types';
 import {
     groupArrayByKeyPath, merge, serializeAsURI, toKeyPathArray,
-} from '../utils';
+} from '../../utils';
 
 export class QueryBuilder<T extends ObjectLiteral = ObjectLiteral> {
     protected fields : Record<string, string[]>;

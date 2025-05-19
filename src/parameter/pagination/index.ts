@@ -7,4 +7,4 @@
 
 export * from './errors';
 export * from './parse';
-export * from './type';
+export * from './types';

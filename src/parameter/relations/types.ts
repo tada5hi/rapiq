@@ -21,20 +21,22 @@ export type RelationsBuildInput<T extends Record<string, any>> = {
 // Parse
 // -----------------------------------------------------------
 
-export type RelationsParseOptions<
-    T extends Record<string, any> = Record<string, any>,
-    > = {
-        allowed?: NestedResourceKeys<T>[],
-        includeParents?: boolean | string[] | string,
-        // maps input name to local name
-        mapping?: Record<string, string>,
-        // set alternate value for relation key.
-        pathMapping?: Record<string, string>,
-        throwOnFailure?: boolean
-    };
-
 export type RelationsParseOutputElement = {
     key: string,
     value: string
 };
 export type RelationsParseOutput = RelationsParseOutputElement[];
+
+// -----------------------------------------------------------
+
+export type RelationsOptions<
+    T extends Record<string, any> = Record<string, any>,
+> = {
+    allowed?: NestedResourceKeys<T>[],
+    includeParents?: boolean | string[] | string,
+    // maps input name to local name
+    mapping?: Record<string, string>,
+    // set alternate value for relation key.
+    pathMapping?: Record<string, string>,
+    throwOnFailure?: boolean
+};

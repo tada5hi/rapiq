@@ -9,7 +9,7 @@ import {
     buildFieldDomainRecords,
     DEFAULT_ID,
     FieldsParseError,
-    FieldsParseOptions,
+    FieldsOptions,
     FieldsParseOutput,
     parseQueryFields,
     parseQueryRelations,
@@ -30,7 +30,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should transform fields with defaultPath', () => {
-        let options : FieldsParseOptions = {
+        let options : FieldsOptions = {
             allowed: ['id', 'name', 'email'],
             defaultPath: 'user'
         };
@@ -125,7 +125,7 @@ describe('src/fields/index.ts', () => {
     })
 
     it('should transform fields', () => {
-        const options : FieldsParseOptions = {
+        const options : FieldsOptions = {
             allowed: ['id', 'name'],
         };
 
@@ -292,7 +292,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should throw on invalid input shape', () => {
-        let options : FieldsParseOptions = {
+        let options : FieldsOptions = {
             throwOnFailure: true
         }
 
@@ -304,7 +304,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should throw on non allowed relation', () => {
-        let options : FieldsParseOptions = {
+        let options : FieldsOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
@@ -325,7 +325,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should throw on invalid key', () => {
-        let options : FieldsParseOptions = {
+        let options : FieldsOptions = {
             throwOnFailure: true
         };
 

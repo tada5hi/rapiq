@@ -8,7 +8,7 @@
 import {
     extendObject, isObject, toFlatObject,
 } from '../../utils';
-import type { FiltersBuildInput } from './type';
+import type { FiltersBuildInput } from './types';
 
 export function transformFiltersBuildInput(input: FiltersBuildInput<any>) : Record<string, any> {
     return toFlatObject(input, {

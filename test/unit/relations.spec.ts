@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {RelationsParseOutput, parseQueryRelations, RelationsParseOptions, RelationsParseError} from '../../src';
+import {RelationsParseOutput, parseQueryRelations, RelationsOptions, RelationsParseError} from '../../src';
 
 describe('src/relations/index.ts', () => {
     it('should parse simple relations', () => {
@@ -100,7 +100,7 @@ describe('src/relations/index.ts', () => {
     });
 
     it('should throw on invalid input', () => {
-        let options : RelationsParseOptions = {
+        let options : RelationsOptions = {
             throwOnFailure: true
         };
 
@@ -118,7 +118,7 @@ describe('src/relations/index.ts', () => {
     });
 
     it('should throw on non allowed key', () => {
-        let options : RelationsParseOptions = {
+        let options : RelationsOptions = {
             throwOnFailure: true,
             allowed: ['foo']
         };
@@ -132,7 +132,7 @@ describe('src/relations/index.ts', () => {
     });
 
     it('should throw on invalid key', () => {
-        let options : RelationsParseOptions = {
+        let options : RelationsOptions = {
             throwOnFailure: true
         };
 

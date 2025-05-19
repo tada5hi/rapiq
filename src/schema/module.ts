@@ -5,201 +5,45 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter, URLParameter } from '../constants';
-import type {
-    FieldsParseOutput,
-    FiltersParseOutput,
-    PaginationParseOutput,
-    ParseBaseOptions,
-
-    RelationsParseOutput,
-    SortParseOutput,
-} from '../parameter';
+import type { PaginationOptions, RelationsOptions } from '../parameter';
 import {
     FieldsOptionsContainer,
     FiltersOptionsContainer,
     SortOptionsContainer,
-    parseQueryFields,
-    parseQueryFilters,
-    parseQueryPagination,
-    parseQueryRelations,
-    parseQuerySort,
 } from '../parameter';
-import type { ParseInput, ParseOutput } from '../parse';
-import { isQueryParameterEnabled } from '../parse';
+import type {
+    SchemaOptions,
+} from './types';
 import type { ObjectLiteral } from '../types';
-import type { SchemaOptions } from './types';
+import { normalizeSchemaOptions } from './normalize';
 
 export class Schema<T extends ObjectLiteral = ObjectLiteral> {
-    protected options: SchemaOptions<T>;
+    public readonly defaultPath : string | undefined;
 
-    protected fieldsOptionsContainer : FieldsOptionsContainer<T>;
+    public readonly throwOnFailure : boolean | undefined;
 
-    protected filtersOptionsContainer : FiltersOptionsContainer<T>;
+    public readonly fields : FieldsOptionsContainer<T>;
 
-    protected sortOptionsContainer: SortOptionsContainer<T>;
+    public readonly filters : FiltersOptionsContainer<T>;
 
-    // ---------------------------------------------------------
+    public readonly pagination : PaginationOptions;
 
-    constructor(options: SchemaOptions<T>) {
-        this.options = options;
+    public readonly relations: RelationsOptions<T>;
 
-        this.fieldsOptionsContainer = new FieldsOptionsContainer(this.options.fields);
-        this.filtersOptionsContainer = new FiltersOptionsContainer(this.options.filters);
-        this.sortOptionsContainer = new SortOptionsContainer(this.options.sort);
-    }
+    public readonly sort: SortOptionsContainer<T>;
 
     // ---------------------------------------------------------
 
-    parseQuery(
-        input: ParseInput,
-        options: ParseBaseOptions = {},
-    ) {
-        const output : ParseOutput = {};
-        if (this.options.defaultPath) {
-            output.defaultPath = this.options.defaultPath;
-        }
+    constructor(input: SchemaOptions<T>) {
+        const options = normalizeSchemaOptions(input);
 
-        let value = input[Parameter.RELATIONS] || input[URLParameter.RELATIONS];
-        if (isQueryParameterEnabled({ data: value, options: this.options[Parameter.RELATIONS] })) {
-            const relations = this.parseQueryRelations(value);
+        this.defaultPath = options.defaultPath;
+        this.throwOnFailure = options.throwOnFailure;
 
-            output[Parameter.RELATIONS] = relations;
-            options.relations = relations;
-        }
-
-        value = input[Parameter.FIELDS] || input[URLParameter.FIELDS];
-        if (isQueryParameterEnabled({ data: value, options: this.options[Parameter.FIELDS] })) {
-            output[Parameter.FIELDS] = this.parseQueryFields(value, options);
-        }
-
-        value = input[Parameter.FILTERS] || input[URLParameter.FILTERS];
-        if (isQueryParameterEnabled({ data: value, options: this.options[Parameter.FILTERS] })) {
-            output[Parameter.FILTERS] = this.parseQueryFilters(value, options);
-        }
-
-        value = input[Parameter.PAGINATION] || input[URLParameter.PAGINATION];
-        if (isQueryParameterEnabled({ data: value, options: this.options[Parameter.PAGINATION] })) {
-            output[Parameter.PAGINATION] = this.parseQueryPagination(value);
-        }
-
-        value = input[Parameter.SORT] || input[URLParameter.SORT];
-        if (isQueryParameterEnabled({ data: value, options: this.options[Parameter.SORT] })) {
-            output[Parameter.SORT] = this.parseQuerySort(value, options);
-        }
-
-        return output;
-    }
-
-    /**
-     * Parse relations input parameter.
-     *
-     * @param input
-     * @param options
-     */
-    parseQueryRelations(
-        input: unknown,
-        options: ParseBaseOptions = {},
-    ): RelationsParseOutput {
-        return parseQueryRelations(
-            input,
-            {
-                ...this.extendParameterOptions(this.options[Parameter.RELATIONS] || {}),
-                ...options,
-            },
-        );
-    }
-
-    /**
-     * Parse fields input parameter.
-     *
-     * @param input
-     * @param options
-     */
-    parseQueryFields(
-        input: unknown,
-        options: ParseBaseOptions = {},
-    ) : FieldsParseOutput {
-        return parseQueryFields(
-            input,
-            {
-                ...this.extendParameterOptions(this.options[Parameter.FIELDS] || {}),
-                ...options,
-            },
-        );
-    }
-
-    /**
-     * Parse filter(s) input parameter.
-     *
-     * @param input
-     * @param options
-     */
-    parseQueryFilters(
-        input: unknown,
-        options: ParseBaseOptions = {},
-    ) : FiltersParseOutput {
-        return parseQueryFilters(
-            input,
-            {
-                ...this.extendParameterOptions(this.options[Parameter.FILTERS] || {}),
-                ...options,
-            },
-        );
-    }
-
-    /**
-     * Parse pagination input parameter.
-     *
-     * @param input
-     */
-    parseQueryPagination(input: unknown) : PaginationParseOutput {
-        return parseQueryPagination(
-            input,
-            this.extendParameterOptions(this.options[Parameter.PAGINATION] || {}),
-        );
-    }
-
-    /**
-     * Parse sort input parameter.
-     *
-     * @param input
-     * @param options
-     */
-    parseQuerySort(
-        input: unknown,
-        options: ParseBaseOptions = {},
-    ) : SortParseOutput {
-        return parseQuerySort(
-            input,
-            {
-                ...this.extendParameterOptions(this.options[Parameter.SORT] || {}),
-                ...options,
-            },
-        );
-    }
-
-    // ---------------------------------------------------------
-
-    buildQuery(query: unknown): string {
-        // todo: implement method
-        return `${query}`;
-    }
-
-    // --------------------------------------------------
-
-    protected extendParameterOptions<T extends {
-        defaultPath?: string,
-        throwOnFailure?: boolean
-    }>(data: T) : T {
-        if (typeof data.defaultPath === 'undefined') {
-            data.defaultPath = this.options.defaultPath;
-        }
-
-        if (typeof data.throwOnFailure === 'undefined') {
-            data.throwOnFailure = this.options.throwOnFailure;
-        }
-
-        return data;
+        this.fields = new FieldsOptionsContainer(options.fields);
+        this.filters = new FiltersOptionsContainer(options.filters);
+        this.pagination = options.pagination;
+        this.relations = options.relations;
+        this.sort = new SortOptionsContainer(options.sort);
     }
 }

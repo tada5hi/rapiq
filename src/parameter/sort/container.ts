@@ -11,11 +11,11 @@ import {
 } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type {
-    SortParseOptions, SortParseOutput,
-} from './type';
+    SortOptions, SortParseOutput,
+} from './types';
 
 export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : SortParseOptions<T>;
+    public options : SortOptions<T>;
 
     public default : Record<string, any>;
 
@@ -27,7 +27,7 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public allowedIsUndefined : boolean;
 
-    constructor(input: SortParseOptions<T> = {}) {
+    constructor(input: SortOptions<T> = {}) {
         this.options = input;
 
         this.allowed = [];

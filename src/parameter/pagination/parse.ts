@@ -7,13 +7,13 @@
 
 import { isObject } from 'smob';
 import { PaginationParseError } from './errors';
-import type { PaginationParseOptions, PaginationParseOutput } from './type';
+import type { PaginationOptions, PaginationParseOutput } from './types';
 
 // --------------------------------------------------
 
 function finalizePagination(
     data: PaginationParseOutput,
-    options: PaginationParseOptions,
+    options: PaginationOptions,
 ) : PaginationParseOutput {
     if (typeof options.maxLimit !== 'undefined') {
         if (
@@ -46,7 +46,7 @@ function finalizePagination(
  */
 export function parseQueryPagination(
     data: unknown,
-    options: PaginationParseOptions = {},
+    options: PaginationOptions = {},
 ) : PaginationParseOutput {
     const output : PaginationParseOutput = {};
 

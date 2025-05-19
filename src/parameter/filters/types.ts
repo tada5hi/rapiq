@@ -9,10 +9,9 @@ import type {
     Flatten,
     NestedKeys, ObjectLiteral, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
 } from '../../types';
-import type { RelationsParseOutput } from '../relations';
 import type {
     ParseAllowedOption,
-} from '../type';
+} from '../types';
 import type { FilterComparisonOperator } from './constants';
 
 // -----------------------------------------------------------
@@ -57,19 +56,6 @@ export type FiltersParseDefaultOption<T extends Record<string, any>> = {
 
 export type FiltersValidatorOption<K extends string> = (key: K, value: unknown) => boolean;
 
-export type FiltersParseOptions<
-    T extends ObjectLiteral = ObjectLiteral,
-    > = {
-        mapping?: Record<string, string>,
-        allowed?: ParseAllowedOption<T>,
-        default?: FiltersParseDefaultOption<T>,
-        defaultByElement?: boolean,
-        defaultPath?: string,
-        throwOnFailure?: boolean,
-        relations?: RelationsParseOutput,
-        validate?: FiltersValidatorOption<NestedKeys<T>>
-    };
-
 export type FiltersParseOutputElement = {
     operator?: `${FilterComparisonOperator}`,
     value: FilterValueSimple,
@@ -77,3 +63,17 @@ export type FiltersParseOutputElement = {
     path?: string
 };
 export type FiltersParseOutput = FiltersParseOutputElement[];
+
+// -----------------------------------------------------------
+
+export type FiltersOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+> = {
+    mapping?: Record<string, string>,
+    allowed?: ParseAllowedOption<T>,
+    default?: FiltersParseDefaultOption<T>,
+    defaultByElement?: boolean,
+    defaultPath?: string,
+    throwOnFailure?: boolean,
+    validate?: FiltersValidatorOption<NestedKeys<T>>
+};

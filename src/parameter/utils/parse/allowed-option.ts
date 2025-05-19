@@ -7,7 +7,7 @@
 
 import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../types';
 import { toKeyPathArray } from '../../../utils';
-import type { ParseAllowedOption } from '../../type';
+import type { ParseAllowedOption } from '../../types';
 
 export function flattenParseAllowedOption<T>(
     input?: ParseAllowedOption<T>,

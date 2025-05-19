@@ -7,17 +7,19 @@
 
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, hasOwnProperty } from '../../utils';
+import type { ParseSession } from '../types';
 import { isPathCoveredByParseAllowedOption } from '../utils';
 import { RelationsParseError } from './errors';
 
-import type { RelationsParseOptions, RelationsParseOutput } from './type';
+import type { RelationsOptions, RelationsParseOutput } from './types';
 import { includeParents, isValidRelationPath } from './utils';
 
 // --------------------------------------------------
 
 export function parseQueryRelations<T extends ObjectLiteral = ObjectLiteral>(
     input: unknown,
-    options: RelationsParseOptions<T> = {},
+    options: RelationsOptions<T> = {},
+    session: ParseSession = {},
 ): RelationsParseOutput {
     // If it is an empty array nothing is allowed
     if (

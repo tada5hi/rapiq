@@ -6,7 +6,7 @@
  */
 
 import { QueryBuilder } from './builder';
-import type { ObjectLiteral } from '../types';
+import type { ObjectLiteral } from '../../types';
 import type { BuildInput } from './types';
 
 export function buildQuery<T extends ObjectLiteral = ObjectLiteral>(

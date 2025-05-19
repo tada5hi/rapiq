@@ -7,7 +7,7 @@
 
 import {
     SortDirection,
-    SortParseOptions,
+    SortOptions,
     SortParseOutput,
     parseQueryRelations,
     parseQuerySort,
@@ -80,7 +80,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should transform sort with default', () => {
-        const options : SortParseOptions<{id: number, name: string, role: {id: number}}> = {
+        const options : SortOptions<{id: number, name: string, role: {id: number}}> = {
             allowed: ['id', 'name'],
             default: {
                 id: 'DESC'
@@ -101,7 +101,7 @@ describe('src/sort/index.ts', () => {
     })
 
     it('should transform sort with sort indexes', () => {
-        const options : SortParseOptions<User> = {
+        const options : SortOptions<User> = {
             allowed: [
                 ['name', 'email'],
                 ['id'],
@@ -140,7 +140,7 @@ describe('src/sort/index.ts', () => {
     it('should transform sort data with includes', () => {
         const includes = parseQueryRelations(['profile', 'user_roles.role'], {allowed: ['profile', 'user_roles.role']});
 
-        const options : SortParseOptions = {
+        const options : SortOptions = {
             allowed: ['id', 'profile.id', 'user_roles.role.id'],
             relations: includes,
         };
@@ -180,7 +180,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on invalid input', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true,
         };
 
@@ -193,7 +193,7 @@ describe('src/sort/index.ts', () => {
     })
 
     it('should throw on invalid key', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true
         }
 
@@ -207,7 +207,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on non allowed relation', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
@@ -229,7 +229,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
@@ -251,7 +251,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on invalid key value', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true,
             allowed: ['foo']
         }
@@ -267,7 +267,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on non allowed key', () => {
-        let options : SortParseOptions = {
+        let options : SortOptions = {
             throwOnFailure: true,
             allowed: ['foo']
         }

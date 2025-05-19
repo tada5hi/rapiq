@@ -10,5 +10,5 @@ export * from './filters';
 export * from './pagination';
 export * from './relations';
 export * from './sort';
-export * from './type';
+export * from './types';
 export * from './utils';

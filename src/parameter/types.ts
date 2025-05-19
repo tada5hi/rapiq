@@ -33,7 +33,7 @@ export type ParseAllowedOption<T> = T extends ObjectLiteral ?
         NestedKeys<T>[]
     ) : string[];
 
-export type ParseBaseOptions = {
+export type ParseSession = {
     registry?: SchemaRegistry,
     relations?: RelationsParseOutput
 };

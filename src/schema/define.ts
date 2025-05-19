@@ -11,6 +11,6 @@ import type { ObjectLiteral } from '../types';
 
 export function defineSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
->(options: SchemaOptions<RECORD>) : Schema<RECORD> {
+>(options: SchemaOptions<RECORD> = {}) : Schema<RECORD> {
     return new Schema(options);
 }

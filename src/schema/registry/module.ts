@@ -31,4 +31,13 @@ export class SchemaRegistry {
     get(name: string): Schema | undefined {
         return this.entities.get(name);
     }
+
+    getOrFail(name: string): Schema {
+        const schema = this.get(name);
+        if (typeof schema === 'undefined') {
+            throw new Error(`Cannot find schema with name "${name}".`);
+        }
+
+        return schema;
+    }
 }

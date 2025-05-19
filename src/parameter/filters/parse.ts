@@ -15,14 +15,16 @@ import {
     parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
+import type { ParseSession } from '../types';
 import { isPathCoveredByParseAllowedOption } from '../utils';
 import { FiltersOptionsContainer } from './container';
 import { FiltersParseError } from './errors';
-import type { FiltersParseOptions, FiltersParseOutput, FiltersParseOutputElement } from './type';
+import type { FiltersOptions, FiltersParseOutput, FiltersParseOutputElement } from './types';
 
 export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options?: FiltersParseOptions<T> | FiltersOptionsContainer<T>,
+    options?: FiltersOptions<T> | FiltersOptionsContainer<T>,
+    session: ParseSession = {},
 ) : FiltersParseOutput {
     let container : FiltersOptionsContainer<T>;
     if (options instanceof FiltersOptionsContainer) {
@@ -90,7 +92,7 @@ export function parseQueryFilters<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             typeof fieldDetails.path !== 'undefined' &&
-            !isPathAllowedByRelations(fieldDetails.path, container.options.relations)
+            !isPathAllowedByRelations(fieldDetails.path, session.relations)
         ) {
             if (container.options.throwOnFailure) {
                 throw FiltersParseError.keyPathInvalid(fieldDetails.path);

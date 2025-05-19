@@ -11,15 +11,17 @@ import type { ObjectLiteral } from '../../types';
 import {
     applyMapping, hasOwnProperty, isPathAllowedByRelations,
 } from '../../utils';
+import type { ParseSession } from '../types';
 import { FieldOperator } from './constants';
 import { FieldsOptionsContainer } from './container';
 import { FieldsParseError } from './errors';
-import type { FieldsInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
+import type { FieldsInputTransformed, FieldsOptions, FieldsParseOutput } from './types';
 import { isValidFieldName, parseFieldsInput } from './utils';
 
 export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
     input: unknown,
-    options?: FieldsParseOptions<T> | FieldsOptionsContainer<T>,
+    options?: FieldsOptions<T> | FieldsOptionsContainer<T>,
+    session: ParseSession = {},
 ) : FieldsParseOutput {
     let container : FieldsOptionsContainer<T>;
     if (options instanceof FieldsOptionsContainer) {
@@ -68,7 +70,7 @@ export function parseQueryFields<T extends ObjectLiteral = ObjectLiteral>(
 
         if (
             path !== DEFAULT_ID &&
-            !isPathAllowedByRelations(path, container.options.relations)
+            !isPathAllowedByRelations(path, session.relations)
         ) {
             if (container.options.throwOnFailure) {
                 throw FieldsParseError.keyPathInvalid(path);

@@ -16,15 +16,16 @@ import {
     parseKey,
 } from '../../utils';
 import { isValidFieldName } from '../fields';
+import type { ParseSession } from '../types';
 import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
 import { SortOptionsContainer } from './container';
 import { SortParseError } from './errors';
 
 import type {
-    SortParseOptions,
+    SortOptions,
     SortParseOutput,
     SortParseOutputElement,
-} from './type';
+} from './types';
 import { parseSortValue } from './utils';
 
 // --------------------------------------------------
@@ -39,12 +40,15 @@ function isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
 
 /**
  * Transform sort data to appreciate data format.
+ *
  * @param data
  * @param options
+ * @param session
  */
 export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
     data: unknown,
-    options?: SortParseOptions<T> | SortOptionsContainer<T>,
+    options?: SortOptions<T> | SortOptionsContainer<T>,
+    session: ParseSession = {},
 ) : SortParseOutput {
     let container : SortOptionsContainer<T>;
     if (options instanceof SortOptionsContainer) {
@@ -131,7 +135,7 @@ export function parseQuerySort<T extends ObjectLiteral = ObjectLiteral>(
         }
 
         if (
-            !isPathAllowedByRelations(fieldDetails.path, container.options.relations) &&
+            !isPathAllowedByRelations(fieldDetails.path, session.relations) &&
             typeof fieldDetails.path !== 'undefined'
         ) {
             if (container.options.throwOnFailure) {

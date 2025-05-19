@@ -8,10 +8,10 @@
 import type { ObjectLiteral } from '../../types';
 import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
-import type { FieldsParseOptions } from './types';
+import type { FieldsOptions } from './types';
 
 export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : FieldsParseOptions<T>;
+    public options : FieldsOptions<T>;
 
     public default : Record<string, string[]>;
 
@@ -27,7 +27,7 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public reverseMapping : Record<string, string>;
 
-    constructor(input: FieldsParseOptions<T> = {}) {
+    constructor(input: FieldsOptions<T> = {}) {
         this.options = input;
 
         this.allowed = {};
