@@ -1,0 +1,10 @@
+{
+    "include-component-in-tag": false,
+    "release-type": "node",
+    "bump-minor-pre-major": true,
+    "bump-patch-for-minor-pre-major": true,
+    "packages": {
+        ".": { "component": "root" }
+    },
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
