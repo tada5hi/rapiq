@@ -1,20 +1,21 @@
 /*
- * Copyright (c) 2022.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2022-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
 import { isObject } from 'smob';
-import { PaginationParseError } from './errors';
-import type { PaginationOptions, PaginationParseOutput } from './types';
-import { BaseParser } from '../../parser';
-import type { RelationsParseOutput } from '../relations';
-import type { Schema, SchemaOptions } from '../../schema';
+import { PaginationParseError } from '../../parameter/pagination/errors';
+import type { PaginationParseOutput } from '../../parameter/pagination/types';
+import { BaseParser } from '../module';
+import type { RelationsParseOutput } from '../../parameter/relations';
+import type { Schema } from '../../schema';
+import type { PaginationSchema } from '../../parameter';
 
 type PaginationParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | SchemaOptions
+    schema?: string | Schema
 };
 
 export class PaginationParser extends BaseParser<
@@ -64,7 +65,7 @@ PaginationParseOutput
 
     protected finalizePagination(
         data: PaginationParseOutput,
-        options: PaginationOptions,
+        options: PaginationSchema,
     ) : PaginationParseOutput {
         if (typeof options.maxLimit !== 'undefined') {
             if (

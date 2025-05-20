@@ -9,6 +9,7 @@ import type {
     FieldsParseOutput,
     ObjectLiteral,
 } from '../../../src';
+
 import {
     DEFAULT_ID,
     FieldsParseError,

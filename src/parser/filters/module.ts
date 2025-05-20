@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2021-2022.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2021-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
 import type { KeyDetails } from '../../utils';
@@ -13,12 +13,12 @@ import {
     isPathAllowedByRelations,
     parseKey,
 } from '../../utils';
-import { isValidFieldName } from '../fields';
-import { isPathCoveredByParseAllowedOption } from '../utils';
-import { FiltersParseError } from './errors';
-import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
-import { BaseParser } from '../../parser';
-import type { RelationsParseOutput } from '../relations';
+import { isValidFieldName } from '../../parameter/fields';
+import { isPathCoveredByParseAllowedOption } from '../../parameter/utils';
+import { FiltersParseError } from '../../parameter/filters/errors';
+import type { FiltersParseOutput, FiltersParseOutputElement } from '../../parameter/filters/types';
+import { BaseParser } from '../module';
+import type { RelationsParseOutput } from '../../parameter/relations';
 import type { Schema, SchemaOptions } from '../../schema';
 
 type FiltersParseOptions = {
@@ -48,7 +48,7 @@ FiltersParseOutput
 
         /* istanbul ignore next */
         if (!isObject(data)) {
-            if (container.options.throwOnFailure) {
+            if (container.throwOnFailure) {
                 throw FiltersParseError.inputInvalid();
             }
 
@@ -75,13 +75,13 @@ FiltersParseOutput
                 value !== null &&
                 !Array.isArray(value)
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(keys[i]);
                 }
                 continue;
             }
 
-            keys[i] = applyMapping(keys[i], container.options.mapping);
+            keys[i] = applyMapping(keys[i], container.mapping);
 
             const fieldDetails : KeyDetails = parseKey(keys[i]);
 
@@ -89,7 +89,7 @@ FiltersParseOutput
                 container.allowedIsUndefined &&
                 !isValidFieldName(fieldDetails.name)
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyInvalid(fieldDetails.name);
                 }
                 continue;
@@ -99,7 +99,7 @@ FiltersParseOutput
                 typeof fieldDetails.path !== 'undefined' &&
                 !isPathAllowedByRelations(fieldDetails.path, options.relations)
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyPathInvalid(fieldDetails.path);
                 }
                 continue;
@@ -111,7 +111,7 @@ FiltersParseOutput
                 container.allowed &&
                 !isPathCoveredByParseAllowedOption(container.allowed, [keys[i], fullKey])
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyInvalid(fieldDetails.name);
                 }
 
@@ -123,35 +123,33 @@ FiltersParseOutput
                 value: value as string | boolean | number,
             });
 
-            if (container.options.validate) {
-                if (Array.isArray(filter.value)) {
-                    const output : (string | number)[] = [];
-                    for (let j = 0; j < filter.value.length; j++) {
-                        if (container.options.validate(filter.key, filter.value[j])) {
-                            output.push(filter.value[j]);
-                        } else if (container.options.throwOnFailure) {
-                            throw FiltersParseError.keyValueInvalid(fieldDetails.name);
-                        }
-                    }
-
-                    filter.value = output as string[] | number[];
-                    if (filter.value.length === 0) {
-                        continue;
-                    }
-                } else if (!container.options.validate(filter.key, filter.value)) {
-                    if (container.options.throwOnFailure) {
+            if (Array.isArray(filter.value)) {
+                const output : (string | number)[] = [];
+                for (let j = 0; j < filter.value.length; j++) {
+                    if (container.validate(filter.key, filter.value[j])) {
+                        output.push(filter.value[j]);
+                    } else if (container.throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                     }
+                }
 
+                filter.value = output as string[] | number[];
+                if (filter.value.length === 0) {
                     continue;
                 }
+            } else if (!container.validate(filter.key, filter.value)) {
+                if (container.throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+                }
+
+                continue;
             }
 
             if (
                 typeof filter.value === 'string' &&
                 filter.value.length === 0
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
@@ -162,15 +160,15 @@ FiltersParseOutput
                 Array.isArray(filter.value) &&
                 filter.value.length === 0
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
                 continue;
             }
 
-            if (fieldDetails.path || container.options.defaultPath) {
-                filter.path = fieldDetails.path || container.options.defaultPath;
+            if (fieldDetails.path || container.defaultPath) {
+                filter.path = fieldDetails.path || container.defaultPath;
             }
 
             items[fullKey] = filter;

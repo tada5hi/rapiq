@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2021-2022.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2021-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
 import { applyMapping, hasOwnProperty } from '../../utils';
-import { isPathCoveredByParseAllowedOption } from '../utils';
-import { RelationsParseError } from './errors';
+import { isPathCoveredByParseAllowedOption } from '../../parameter/utils';
+import { RelationsParseError } from '../../parameter/relations/errors';
 
-import type { RelationsParseOutput } from './types';
-import { includeParents, isValidRelationPath } from './utils';
-import { BaseParser } from '../../parser';
+import type { RelationsParseOutput } from '../../parameter/relations/types';
+import { includeParents, isValidRelationPath } from '../../parameter/relations/utils';
+import { BaseParser } from '../module';
 import type { Schema, SchemaOptions } from '../../schema';
 
 // --------------------------------------------------
@@ -37,12 +37,6 @@ RelationsParseOutput
             schema.relations.allowed.length === 0
         ) {
             return [];
-        }
-
-        schema.relations.mapping = schema.relations.mapping || {};
-        schema.relations.pathMapping = schema.relations.pathMapping || {};
-        if (typeof schema.relations.includeParents === 'undefined') {
-            schema.relations.includeParents = true;
         }
 
         let items: string[] = [];

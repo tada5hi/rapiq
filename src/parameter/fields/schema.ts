@@ -9,10 +9,11 @@ import type { ObjectLiteral } from '../../types';
 import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
 import { flattenParseAllowedOption } from '../utils';
 import type { FieldsOptions } from './types';
+import { BaseSchema } from '../../schema/base';
 
-export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : FieldsOptions<T>;
-
+export class FieldsSchema<
+    T extends ObjectLiteral = ObjectLiteral,
+> extends BaseSchema<FieldsOptions<T>> {
     public default : Record<string, string[]>;
 
     public defaultIsUndefined : boolean;
@@ -27,8 +28,10 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public reverseMapping : Record<string, string>;
 
+    // ---------------------------------------------------------
+
     constructor(input: FieldsOptions<T> = {}) {
-        this.options = input;
+        super(input);
 
         this.allowed = {};
         this.allowedIsUndefined = true;
@@ -47,6 +50,14 @@ export class FieldsOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
         this.initReverseMapping();
     }
+
+    // ---------------------------------------------------------
+
+    get mapping() {
+        return this.options.mapping;
+    }
+
+    // ---------------------------------------------------------
 
     protected initDefault() {
         if (typeof this.options.default === 'undefined') {

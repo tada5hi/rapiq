@@ -13,10 +13,11 @@ import { flattenParseAllowedOption } from '../utils';
 import type {
     SortOptions, SortParseOutput,
 } from './types';
+import { BaseSchema } from '../../schema/base';
 
-export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : SortOptions<T>;
-
+export class SortSchema<
+    T extends ObjectLiteral = ObjectLiteral,
+> extends BaseSchema<SortOptions<T>> {
     public default : Record<string, any>;
 
     public defaultKeys : string[];
@@ -27,8 +28,10 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public allowedIsUndefined : boolean;
 
+    // ---------------------------------------------------------
+
     constructor(input: SortOptions<T> = {}) {
-        this.options = input;
+        super(input);
 
         this.allowed = [];
         this.allowedIsUndefined = true;
@@ -40,6 +43,18 @@ export class SortOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.buildDefaultDomainFields();
         this.buildAllowedDomainFields();
     }
+
+    // ---------------------------------------------------------
+
+    get mapping() : Record<string, string> | undefined {
+        return this.options.mapping;
+    }
+
+    get allowedRaw() {
+        return this.options.allowed;
+    }
+
+    // ---------------------------------------------------------
 
     protected buildDefaultDomainFields() {
         if (!this.options.default) {

@@ -6,15 +6,15 @@
  */
 
 import { distinctArray, isObject } from 'smob';
-import type { RelationsParseOutput } from '../relations';
-import { BaseParser } from '../../parser';
+import type { RelationsParseOutput } from '../../parameter/relations';
+import { BaseParser } from '../module';
 import type { Schema, SchemaOptions } from '../../schema';
 import { DEFAULT_ID } from '../../constants';
-import { FieldsParseError } from './errors';
+import { FieldsParseError } from '../../parameter/fields/errors';
 import { applyMapping, hasOwnProperty, isPathAllowedByRelations } from '../../utils';
-import type { FieldsInputTransformed, FieldsParseOutput } from './types';
-import { isValidFieldName, parseFieldsInput } from './utils';
-import { FieldOperator } from './constants';
+import type { FieldsInputTransformed, FieldsParseOutput } from '../../parameter/fields/types';
+import { isValidFieldName, parseFieldsInput } from '../../parameter/fields/utils';
+import { FieldOperator } from '../../parameter/fields/constants';
 
 type FieldsParseOptions = {
     relations?: RelationsParseOutput,
@@ -49,7 +49,7 @@ FieldsParseOutput
             data = input;
         } else if (typeof input === 'string' || Array.isArray(input)) {
             data = { [DEFAULT_ID]: input };
-        } else if (container.options.throwOnFailure) {
+        } else if (container.throwOnFailure) {
             throw FieldsParseError.inputInvalid();
         }
 
@@ -75,7 +75,7 @@ FieldsParseOutput
                 path !== DEFAULT_ID &&
                 !isPathAllowedByRelations(path, options.relations)
             ) {
-                if (container.options.throwOnFailure) {
+                if (container.throwOnFailure) {
                     throw FieldsParseError.keyPathInvalid(path);
                 }
 
@@ -115,7 +115,7 @@ FieldsParseOutput
                         fields[j] = fields[j].substring(1);
                     }
 
-                    fields[j] = applyMapping(fields[j], container.options.mapping, true);
+                    fields[j] = applyMapping(fields[j], container.mapping, true);
 
                     let isValid : boolean;
                     if (hasOwnProperty(container.items, path)) {
@@ -125,7 +125,7 @@ FieldsParseOutput
                     }
 
                     if (!isValid) {
-                        if (container.options.throwOnFailure) {
+                        if (container.throwOnFailure) {
                             throw FieldsParseError.keyNotAllowed(fields[j]);
                         }
 
@@ -174,8 +174,8 @@ FieldsParseOutput
                     let destPath : string | undefined;
                     if (path !== DEFAULT_ID) {
                         destPath = path;
-                    } else if (container.options.defaultPath) {
-                        destPath = container.options.defaultPath;
+                    } else if (container.defaultPath) {
+                        destPath = container.defaultPath;
                     }
 
                     output.push({

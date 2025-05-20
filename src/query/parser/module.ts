@@ -14,17 +14,17 @@ import type {
     SortParseOutput,
 } from '../../parameter';
 import {
-    FiltersParser, PaginationParser,
-
+    BaseParser,
+    FieldsParser,
+    FiltersParser,
+    PaginationParser,
     RelationsParser,
     SortParser,
-} from '../../parameter';
+} from '../../parser';
 import { isObject, isPropertySet } from '../../utils';
 import type {
     QueryParseInput, QueryParseOptions, QueryParseOutput, QueryParseParameterOptions,
 } from './types';
-import { BaseParser } from '../../parser';
-import { FieldsParser } from '../../parameter/fields/parser';
 import type { SchemaRegistry } from '../../schema';
 
 export class QueryParser extends BaseParser<

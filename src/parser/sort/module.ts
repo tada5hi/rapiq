@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2021-2022.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2021-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
 import { isObject } from 'smob';
@@ -14,18 +14,18 @@ import {
     isPathAllowedByRelations,
     parseKey,
 } from '../../utils';
-import { isValidFieldName } from '../fields';
-import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../utils';
-import { SortParseError } from './errors';
+import { isValidFieldName } from '../../parameter/fields';
+import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../../parameter/utils';
+import { SortParseError } from '../../parameter/sort/errors';
 
 import type {
     SortParseOutput,
     SortParseOutputElement,
-} from './types';
-import { parseSortValue } from './utils';
-import type { RelationsParseOutput } from '../relations';
+} from '../../parameter/sort/types';
+import { parseSortValue } from '../../parameter/sort/utils';
+import type { RelationsParseOutput } from '../../parameter/relations';
 import type { Schema, SchemaOptions } from '../../schema';
-import { BaseParser } from '../../parser';
+import { BaseParser } from '../module';
 
 type SortParseOptions = {
     relations?: RelationsParseOutput,
@@ -53,7 +53,7 @@ SortParseOutput
             !Array.isArray(input) &&
             !isObject(input)
         ) {
-            if (schema.sort.options.throwOnFailure) {
+            if (schema.sort.throwOnFailure) {
                 throw SortParseError.inputInvalid();
             }
 
@@ -79,7 +79,7 @@ SortParseOutput
                     typeof keys[i] !== 'string' ||
                     typeof input[keys[i]] !== 'string'
                 ) {
-                    if (schema.sort.options.throwOnFailure) {
+                    if (schema.sort.throwOnFailure) {
                         throw SortParseError.keyValueInvalid(keys[i]);
                     }
 
@@ -101,7 +101,7 @@ SortParseOutput
             const { value, direction } = parseSortValue(parts[i]);
             parts[i] = value;
 
-            const key: string = applyMapping(parts[i], schema.sort.options.mapping);
+            const key: string = applyMapping(parts[i], schema.sort.mapping);
 
             const fieldDetails = parseKey(key);
 
@@ -109,7 +109,7 @@ SortParseOutput
                 schema.sort.allowedIsUndefined &&
                 !isValidFieldName(fieldDetails.name)
             ) {
-                if (schema.sort.options.throwOnFailure) {
+                if (schema.sort.throwOnFailure) {
                     throw SortParseError.keyInvalid(fieldDetails.name);
                 }
 
@@ -120,7 +120,7 @@ SortParseOutput
                 !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
                 typeof fieldDetails.path !== 'undefined'
             ) {
-                if (schema.sort.options.throwOnFailure) {
+                if (schema.sort.throwOnFailure) {
                     throw SortParseError.keyPathInvalid(fieldDetails.path);
                 }
 
@@ -131,10 +131,10 @@ SortParseOutput
             if (
                 !schema.sort.allowedIsUndefined &&
                 schema.sort.allowed &&
-                !this.isMultiDimensionalArray(schema.sort.options.allowed) &&
+                !this.isMultiDimensionalArray(schema.sort.allowedRaw) &&
                 !isPathCoveredByParseAllowedOption(schema.sort.allowed, [key, keyWithAlias])
             ) {
-                if (schema.sort.options.throwOnFailure) {
+                if (schema.sort.throwOnFailure) {
                     throw SortParseError.keyNotAllowed(fieldDetails.name);
                 }
 
@@ -146,8 +146,8 @@ SortParseOutput
             let path : string | undefined;
             if (fieldDetails.path) {
                 path = fieldDetails.path;
-            } else if (schema.sort.options.defaultPath) {
-                path = schema.sort.options.defaultPath;
+            } else if (schema.sort.defaultPath) {
+                path = schema.sort.defaultPath;
             }
 
             items[keyWithAlias] = {
@@ -161,13 +161,13 @@ SortParseOutput
             return schema.sort.defaultOutput;
         }
 
-        if (this.isMultiDimensionalArray(schema.sort.options.allowed)) {
+        if (this.isMultiDimensionalArray(schema.sort.allowedRaw)) {
             // eslint-disable-next-line no-labels,no-restricted-syntax
             outerLoop:
             for (let i = 0; i < schema.sort.allowed.length; i++) {
                 const temp : SortParseOutput = [];
 
-                const keyPaths = flattenParseAllowedOption(schema.sort.options.allowed[i] as string[]);
+                const keyPaths = flattenParseAllowedOption(schema.sort.allowedRaw[i] as string[]);
 
                 for (let j = 0; j < keyPaths.length; j++) {
                     let keyWithAlias : string = keyPaths[j];
@@ -179,7 +179,7 @@ SortParseOutput
                     } else {
                         key = keyWithAlias;
 
-                        keyWithAlias = buildKeyPath(key, schema.sort.options.defaultPath);
+                        keyWithAlias = buildKeyPath(key, schema.sort.defaultPath);
                     }
 
                     if (

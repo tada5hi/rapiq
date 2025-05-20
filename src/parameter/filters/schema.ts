@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../types';
+import type { NestedKeys, ObjectLiteral } from '../../types';
 import {
     buildKeyWithPath, hasOwnProperty, parseKey, toFlatObject,
 } from '../../utils';
@@ -15,10 +15,11 @@ import type {
     FiltersOptions, FiltersParseOutput, FiltersParseOutputElement,
 } from './types';
 import { parseFilterValue, transformFilterValue } from './utils';
+import { BaseSchema } from '../../schema/base';
 
-export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
-    public options : FiltersOptions<T>;
-
+export class FiltersSchema<
+    T extends ObjectLiteral = ObjectLiteral,
+> extends BaseSchema<FiltersOptions<T>> {
     public default : Record<string, any>;
 
     public defaultKeys : string[];
@@ -29,8 +30,10 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
 
     public allowedIsUndefined : boolean;
 
+    // ---------------------------------------------------------
+
     constructor(input: FiltersOptions<T> = {}) {
-        this.options = input;
+        super(input);
 
         this.allowed = [];
         this.allowedIsUndefined = true;
@@ -42,6 +45,22 @@ export class FiltersOptionsContainer<T extends ObjectLiteral = ObjectLiteral> {
         this.initDefault();
         this.initAllowed();
     }
+
+    // ---------------------------------------------------------
+
+    validate(key: NestedKeys<T>, value: unknown) {
+        if (typeof this.options.validate === 'undefined') {
+            return true;
+        }
+
+        return this.options.validate(key, value);
+    }
+
+    get mapping() {
+        return this.options.mapping;
+    }
+
+    // ---------------------------------------------------------
 
     protected initDefault() {
         if (!this.options.default) {

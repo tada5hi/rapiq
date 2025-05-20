@@ -6,28 +6,34 @@
  */
 
 import type {
-    FieldsOptions, FiltersOptions, PaginationOptions, RelationsOptions, SortOptions,
+    FieldsOptions,
+    FieldsSchema,
+    FiltersOptions,
+    FiltersSchema,
+    PaginationOptions,
+    PaginationSchema,
+    RelationsOptions,
+    RelationsSchema,
+    SortOptions,
+    SortSchema,
 } from '../parameter';
 import type { ObjectLiteral } from '../types';
 
-export type SchemaOptionsNormalized<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-
+export type BaseSchemaOptions = {
     defaultPath?: string,
     throwOnFailure?: boolean,
+};
 
-    fields: FieldsOptions<RECORD>,
-    filters: FiltersOptions<RECORD>,
-    relations: RelationsOptions<RECORD>,
-    pagination: PaginationOptions,
-    sort : SortOptions<RECORD>,
+export type SchemaOptionsNormalized<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = BaseSchemaOptions & {
+    fields: FieldsOptions<RECORD> | FieldsSchema<RECORD>,
+    filters: FiltersOptions<RECORD> | FiltersSchema<RECORD>,
+    relations: RelationsOptions<RECORD> | RelationsSchema<RECORD>,
+    pagination: PaginationOptions | PaginationSchema,
+    sort : SortOptions<RECORD> | SortSchema<RECORD>,
 };
 
 export type SchemaOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = Partial<SchemaOptionsNormalized<RECORD>>;
-
-// --------------------------------------------------------------
-
-// --------------------------------------------------------------

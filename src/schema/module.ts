@@ -5,45 +5,99 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { PaginationOptions, RelationsOptions } from '../parameter';
 import {
-    FieldsOptionsContainer,
-    FiltersOptionsContainer,
-    SortOptionsContainer,
+    FieldsSchema,
+    FiltersSchema,
+    PaginationSchema,
+    RelationsSchema,
+    SortSchema,
+
+    defineFieldsSchema,
+    defineFiltersSchema,
+    definePaginationSchema,
+    defineRelationsSchema,
+    defineSortSchema,
 } from '../parameter';
 import type {
     SchemaOptions,
 } from './types';
 import type { ObjectLiteral } from '../types';
-import { normalizeSchemaOptions } from './normalize';
+import { BaseSchema } from './base';
 
-export class Schema<T extends ObjectLiteral = ObjectLiteral> {
-    public readonly defaultPath : string | undefined;
+export class Schema<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> extends BaseSchema<SchemaOptions<RECORD>> {
+    public readonly fields : FieldsSchema<RECORD>;
 
-    public readonly throwOnFailure : boolean | undefined;
+    public readonly filters : FiltersSchema<RECORD>;
 
-    public readonly fields : FieldsOptionsContainer<T>;
+    public readonly pagination : PaginationSchema;
 
-    public readonly filters : FiltersOptionsContainer<T>;
+    public readonly relations: RelationsSchema<RECORD>;
 
-    public readonly pagination : PaginationOptions;
-
-    public readonly relations: RelationsOptions<T>;
-
-    public readonly sort: SortOptionsContainer<T>;
+    public readonly sort: SortSchema<RECORD>;
 
     // ---------------------------------------------------------
 
-    constructor(input: SchemaOptions<T>) {
-        const options = normalizeSchemaOptions(input);
+    constructor(options: SchemaOptions<RECORD> = {}) {
+        super(options);
 
-        this.defaultPath = options.defaultPath;
-        this.throwOnFailure = options.throwOnFailure;
+        if (options.fields instanceof FieldsSchema) {
+            this.fields = options.fields;
+        } else {
+            this.fields = defineFieldsSchema(options.fields);
+        }
 
-        this.fields = new FieldsOptionsContainer(options.fields);
-        this.filters = new FiltersOptionsContainer(options.filters);
-        this.pagination = options.pagination;
-        this.relations = options.relations;
-        this.sort = new SortOptionsContainer(options.sort);
+        if (options.filters instanceof FiltersSchema) {
+            this.filters = options.filters;
+        } else {
+            this.filters = defineFiltersSchema(options.filters);
+        }
+
+        if (options.pagination instanceof PaginationSchema) {
+            this.pagination = options.pagination;
+        } else {
+            this.pagination = definePaginationSchema(options.pagination);
+        }
+
+        if (options.relations instanceof RelationsSchema) {
+            this.relations = options.relations;
+        } else {
+            this.relations = defineRelationsSchema(options.relations);
+        }
+
+        if (options.sort instanceof SortSchema) {
+            this.sort = options.sort;
+        } else {
+            this.sort = defineSortSchema(options.sort);
+        }
+
+        this.extendSchemasOptions();
+    }
+
+    // ---------------------------------------------------------
+
+    private extendSchemasOptions() {
+        this.extendSchemaOptions(this.fields);
+        this.extendSchemaOptions(this.filters);
+        this.extendSchemaOptions(this.pagination);
+        this.extendSchemaOptions(this.relations);
+        this.extendSchemaOptions(this.sort);
+    }
+
+    private extendSchemaOptions(schema: BaseSchema<any>) {
+        if (
+            typeof this.options.throwOnFailure !== 'undefined' &&
+            typeof schema.throwOnFailure === 'undefined'
+        ) {
+            schema.throwOnFailure = this.options.throwOnFailure;
+        }
+
+        if (
+            typeof this.options.defaultPath !== 'undefined' &&
+            typeof schema.defaultPath === 'undefined'
+        ) {
+            schema.defaultPath = this.options.defaultPath;
+        }
     }
 }

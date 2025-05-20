@@ -6,7 +6,7 @@
  */
 
 export * from './build';
-export * from './container';
+export * from './define';
+export * from './schema';
 export * from './errors';
-export * from './parser';
 export * from './types';
