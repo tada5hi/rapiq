@@ -10,39 +10,68 @@ import type {
     FieldsParseOutput,
     FiltersParseOutput,
     PaginationParseOutput,
-    ParseSession,
-    RelationsParseOutput, SortParseOutput,
+    RelationsParseOutput,
+    SortParseOutput,
 } from '../../parameter';
 import {
-    parseQueryFields, parseQueryFilters, parseQueryPagination,
-    parseQueryRelations,
-    parseQuerySort,
+    FiltersParser, PaginationParser,
+
+    RelationsParser,
+    SortParser,
 } from '../../parameter';
+import { isObject, isPropertySet } from '../../utils';
 import type {
-    Schema,
-} from '../../schema';
-import type { ObjectLiteral } from '../../types';
-import { isPropertySet } from '../../utils';
-import type { QueryParseInput, QueryParseOptions, QueryParseOutput } from './types';
+    QueryParseInput, QueryParseOptions, QueryParseOutput, QueryParseParameterOptions,
+} from './types';
+import { BaseParser } from '../../parser';
+import { FieldsParser } from '../../parameter/fields/parser';
+import type { SchemaRegistry } from '../../schema';
 
-export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
-    protected schema : Schema<T>;
+export class QueryParser extends BaseParser<
+QueryParseOptions,
+QueryParseOutput
+> {
+    protected fieldsParser : FieldsParser;
 
-    constructor(schema: Schema<T>) {
-        this.schema = schema;
+    protected filtersParser : FiltersParser;
+
+    protected paginationParser : PaginationParser;
+
+    protected relationsParser : RelationsParser;
+
+    protected sortParser : SortParser;
+
+    // -----------------------------------------------------
+
+    constructor(input?: SchemaRegistry) {
+        super(input);
+
+        this.fieldsParser = new FieldsParser(this.registry);
+        this.filtersParser = new FiltersParser(this.registry);
+        this.paginationParser = new PaginationParser(this.registry);
+        this.relationsParser = new RelationsParser(this.registry);
+        this.sortParser = new SortParser(this.registry);
     }
 
+    // -----------------------------------------------------
+
     parse(
-        input: QueryParseInput,
+        input: unknown,
         options: QueryParseOptions = {},
-    ) : QueryParseOutput {
+    ): QueryParseOutput {
+        const schema = this.resolveSchema(options.schema);
+
         const output : QueryParseOutput = {};
-        if (this.schema.defaultPath) {
-            output.defaultPath = this.schema.defaultPath;
+        if (schema.defaultPath) {
+            output.defaultPath = schema.defaultPath;
         }
 
-        const session : ParseSession = {
-            registry: options.registry,
+        if (!isObject(input)) {
+            return output;
+        }
+
+        const parameterOptions : QueryParseParameterOptions = {
+            schema,
         };
 
         if (!this.skipParameter(options.relations)) {
@@ -53,14 +82,14 @@ export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
                 relations = this.parseRelations(
                     input[Parameter.RELATIONS] || input[URLParameter.RELATIONS],
                 );
-            } else if (this.hasParameterOptionDefault(this.schema.relations)) {
+            } else if (this.hasParameterOptionDefault(schema.relations)) {
                 // todo: this should be simplified
-                relations = this.parseRelations(undefined, session);
+                relations = this.parseRelations(undefined, parameterOptions);
             }
 
             if (typeof relations !== 'undefined') {
                 output[Parameter.RELATIONS] = relations;
-                session.relations = relations;
+                parameterOptions.relations = relations;
             }
         }
 
@@ -71,11 +100,14 @@ export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
                 // todo: parse parameter & url-parameter
                 fields = this.parseFields(
                     input[Parameter.FIELDS] || input[URLParameter.FIELDS],
-                    session,
+                    parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(this.schema.fields)) {
+            } else if (this.hasParameterOptionDefault(schema.fields)) {
                 // todo: this should be simplified
-                fields = this.parseFields(undefined, session);
+                fields = this.parseFields(
+                    undefined,
+                    parameterOptions,
+                );
             }
 
             if (typeof fields !== 'undefined') {
@@ -89,11 +121,11 @@ export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
                 // todo: parse parameter & url-parameter
                 output[Parameter.FILTERS] = this.parseFilters(
                     input[Parameter.FILTERS] || input[URLParameter.FILTERS],
-                    session,
+                    parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(this.schema.filters)) {
+            } else if (this.hasParameterOptionDefault(schema.filters)) {
                 // todo: this should be simplified
-                filters = this.parseFilters(undefined, session);
+                filters = this.parseFilters(undefined, parameterOptions);
             }
 
             if (typeof filters !== 'undefined') {
@@ -123,11 +155,11 @@ export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
                 // todo: parse parameter & url-parameter
                 sort = this.parseSort(
                     input[Parameter.SORT] || input[URLParameter.SORT],
-                    session,
+                    parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(this.schema.sort)) {
+            } else if (this.hasParameterOptionDefault(schema.sort)) {
                 // todo: this should be simplified
-                sort = this.parseSort(undefined, session);
+                sort = this.parseSort(undefined, parameterOptions);
             }
 
             if (typeof sort !== 'undefined') {
@@ -138,84 +170,71 @@ export class QueryParser<T extends ObjectLiteral = ObjectLiteral> {
         return output;
     }
 
+    // -----------------------------------------------------
+
     /**
      * Parse relations input parameter.
      *
      * @param input
-     * @param session
+     * @param options
      */
     parseRelations(
         input: unknown,
-        session: ParseSession = {},
+        options: QueryParseParameterOptions = {},
     ): RelationsParseOutput {
-        return parseQueryRelations(
-            input,
-            this.schema.relations,
-            session,
-        );
+        return this.relationsParser.parse(input, options);
     }
 
     /**
      * Parse fields input parameter.
      *
      * @param input
-     * @param session
+     * @param options
      */
     parseFields(
         input: unknown,
-        session: ParseSession = {},
+        options: QueryParseParameterOptions = {},
     ) : FieldsParseOutput {
-        return parseQueryFields(
-            input,
-            this.schema.fields,
-            session,
-        );
+        return this.fieldsParser.parse(input, options);
     }
 
     /**
      * Parse filter(s) input parameter.
      *
      * @param input
-     * @param session
+     * @param options
      */
     parseFilters(
         input: unknown,
-        session: ParseSession = {},
+        options: QueryParseParameterOptions = {},
     ) : FiltersParseOutput {
-        return parseQueryFilters(
-            input,
-            this.schema.filters,
-            session,
-        );
+        return this.filtersParser.parse(input, options);
     }
 
     /**
      * Parse pagination input parameter.
      *
      * @param input
+     * @param options
      */
-    parsePagination(input: unknown) : PaginationParseOutput {
-        return parseQueryPagination(
-            input,
-            this.schema.pagination,
-        );
+    parsePagination(
+        input: unknown,
+        options: QueryParseParameterOptions = {},
+    ) : PaginationParseOutput {
+        return this.paginationParser.parse(input, options);
     }
 
     /**
      * Parse sort input parameter.
      *
      * @param input
-     * @param session
+     * @param options
      */
     parseSort(
         input: unknown,
-        session: ParseSession = {},
+        options: QueryParseParameterOptions = {},
     ) : SortParseOutput {
-        return parseQuerySort(
-            input,
-            this.schema.sort,
-            session,
-        );
+        return this.sortParser.parse(input, options);
     }
 
     // --------------------------------------------------

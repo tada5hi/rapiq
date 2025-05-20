@@ -10,12 +10,15 @@ import {
     DEFAULT_ID,
     FieldsParseError,
     FieldsOptions,
+    FieldsParser,
     FieldsParseOutput,
-    parseQueryFields,
-    parseQueryRelations,
 } from '../../src';
 
 describe('src/fields/index.ts', () => {
+    const parser = new FieldsParser()
+    beforeAll(() => {
+
+    })
     it('should transform allowed domain fields', () => {
         const fields : string[] = ['id', 'name'];
 

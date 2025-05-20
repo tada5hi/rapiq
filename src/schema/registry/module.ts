@@ -6,23 +6,24 @@
  */
 
 import type { Schema } from '../module';
+import type { ObjectLiteral } from '../../types';
 
 export class SchemaRegistry {
-    protected entities : Map<string, Schema>;
+    protected entities : Map<string, Schema<any>>;
 
     // ----------------------------------------------------
 
     constructor() {
-        this.entities = new Map<string, Schema>();
+        this.entities = new Map<string, Schema<any>>();
     }
 
     // ----------------------------------------------------
 
-    register(name: string, schema: Schema) {
+    add<T extends ObjectLiteral>(name: string, schema: Schema<T>) {
         this.entities.set(name, schema);
     }
 
-    unregister(name: string) {
+    drop(name: string) {
         this.entities.delete(name);
     }
 
@@ -39,5 +40,31 @@ export class SchemaRegistry {
         }
 
         return schema;
+    }
+
+    // ----------------------------------------------------
+
+    getFirst() : Schema | undefined {
+        const key = this.entities.keys().next().value;
+        if (!key) {
+            return undefined;
+        }
+
+        return this.entities.get(key);
+    }
+
+    getFirstOrFail() : Schema {
+        const schema = this.getFirst();
+        if (typeof schema === 'undefined') {
+            throw new Error('The registry is empty.');
+        }
+
+        return schema;
+    }
+
+    // ----------------------------------------------------
+
+    get size(): number {
+        return this.entities.size;
     }
 }

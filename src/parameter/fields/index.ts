@@ -8,6 +8,6 @@
 export * from './container';
 export * from './constants';
 export * from './errors';
-export * from './parse';
+export * from './parser';
 export * from './types';
 export * from './utils';

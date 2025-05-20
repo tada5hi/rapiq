@@ -13,7 +13,7 @@ import type {
     RelationsParseOutput,
     SortParseOutput,
 } from '../../parameter';
-import type { SchemaRegistry } from '../../schema';
+import type { Schema, SchemaRegistry } from '../../schema';
 import type { ObjectLiteralKeys } from '../../types';
 
 export type QueryParseOptions = {
@@ -23,10 +23,18 @@ export type QueryParseOptions = {
     relations?: boolean,
     pagination?: boolean,
     sort?: boolean,
+    schema?: Schema | string
 };
+
+export type QueryParseParameterOptions = {
+    schema?: Schema | string,
+    relations?: RelationsParseOutput,
+};
+
 export type QueryParseInput = {
     [K in `${Parameter}` | `${URLParameter}`]?: unknown
 };
+
 export type QueryParseParametersOutput = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsParseOutput,
     [Parameter.FILTERS]?: FiltersParseOutput,
