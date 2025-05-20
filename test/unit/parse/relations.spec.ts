@@ -5,142 +5,223 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import {RelationsParseOutput, parseQueryRelations, RelationsOptions, RelationsParseError} from '../../../src';
+import type { RelationsOptions, RelationsParseOutput } from '../../../src';
+import { RelationsParseError, RelationsParser, defineSchema } from '../../../src';
 
 describe('src/relations/index.ts', () => {
+    let parser : RelationsParser;
+
+    beforeAll(() => {
+        parser = new RelationsParser();
+    });
+
     it('should parse simple relations', () => {
-        let output = parseQueryRelations('profile', {allowed: ['profile']});
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile'],
+            },
+        });
+        let output = parser.parse('profile', { schema });
         expect(output).toEqual([
-            {key: 'profile', value: 'profile'},
+            { key: 'profile', value: 'profile' },
         ] as RelationsParseOutput);
 
-        output = parseQueryRelations([], {allowed: ['profile']});
+        output = parser.parse([], { schema });
         expect(output).toEqual([]);
+    });
 
-    })
-
-    it('should parse with invalid path', () => {
+    it('should parse with invalid pattern', () => {
         // invalid path
-        let output = parseQueryRelations(['profile!']);
+        const output = parser.parse(['profile!']);
         expect(output).toEqual([]);
-
-    })
+    });
 
     it('should parse ignore path pattern, if permitted by allowed key', () => {
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile!'],
+            },
+        });
+
         // ignore path pattern, if permitted by allowed key
-        let output = parseQueryRelations(['profile!'], {allowed: ['profile!']});
+        const output = parser.parse(['profile!'], { schema });
         expect(output).toEqual([
-            {key: 'profile!', value: 'profile!'}
+            { key: 'profile!', value: 'profile!' },
         ] as RelationsParseOutput);
     });
 
     it('should parse with alias', () => {
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile'],
+                mapping: {
+                    pro: 'profile',
+                },
+            },
+        });
+
         // with alias
-        let output = parseQueryRelations('pro', {mapping: {pro: 'profile'}, allowed: ['profile']});
+        const output = parser.parse('pro', { schema });
         expect(output).toEqual([
-            {key: 'profile', value: 'profile'},
+            { key: 'profile', value: 'profile' },
         ]);
     });
 
     it('should parse with nested alias', () => {
-        // with nested alias
-        let output = parseQueryRelations(['abc.photos'], {
-            allowed: ['profile.photos'],
-            mapping: { 'abc.photos': 'profile.photos' },
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile.photos'],
+                mapping: { 'abc.photos': 'profile.photos' },
+            },
         });
+
+        // with nested alias
+        const output = parser.parse(['abc.photos'], { schema });
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
+    });
+
+    it('should parse with nested alias & not includeParents', () => {
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile.photos'],
+                mapping: { 'abc.photos': 'profile.photos' },
+                includeParents: false,
+            },
+        });
 
         // with nested alias & includeParents
-        output = parseQueryRelations(['abc.photos'], {
-            allowed: ['profile.photos'],
-            mapping: { 'abc.photos': 'profile.photos' },
-            includeParents: false,
-        });
+        const output = parser.parse(['abc.photos'], { schema });
         expect(output).toEqual([
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
+    });
+
+    it('should parse with nested alias & explicit includeParents', () => {
+        const schema = defineSchema({
+            relations: {
+                allowed: ['profile.photos', 'user_roles.role'],
+                mapping: { 'abc.photos': 'profile.photos' },
+                includeParents: ['profile'],
+            },
+        });
 
         // with nested alias & limited includeParents ( no user_roles rel)
-        output = parseQueryRelations(['abc.photos', 'user_roles.role'], {
-            allowed: ['profile.photos', 'user_roles.role'],
-            mapping: { 'abc.photos': 'profile.photos' },
-            includeParents: ['profile'],
-        });
+        const output = parser.parse(['abc.photos', 'user_roles.role'], { schema });
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
             { key: 'user_roles.role', value: 'role' },
         ] as RelationsParseOutput);
+    });
 
+    it('should parse with array input', () => {
         // multiple data matching
-        output = parseQueryRelations(['profile', 'abc'], { allowed: ['profile'] });
-        expect(output).toEqual([{ key: 'profile', value: 'profile' }] as RelationsParseOutput);
+        const output = parser.parse(['profile', 'abc'], {
+            schema: defineSchema({
+                relations: {
+                    allowed: ['profile'],
+                },
+            }),
+        });
+        expect(output).toEqual([{ key: 'profile', value: 'profile' }] satisfies RelationsParseOutput);
+    });
 
+    it('should parse with empty allowed', () => {
         // no allowed
-        output = parseQueryRelations(['profile'], { allowed: [] });
+        const output = parser.parse(['profile'], {
+            schema: defineSchema({
+                relations: {
+                    allowed: [],
+                },
+            }),
+        });
         expect(output).toEqual([] as RelationsParseOutput);
+    });
 
+    it('should parse with undefined allowed', () => {
         // non array, permit everything
-        output = parseQueryRelations(['profile'], { allowed: undefined });
-        expect(output).toEqual([{key: 'profile', value: 'profile'}] as RelationsParseOutput);
+        const output = parser.parse(['profile'], {
+            schema: defineSchema({
+                relations: {
+                    allowed: undefined,
+                },
+            }),
+        });
+        expect(output).toEqual([{ key: 'profile', value: 'profile' }] satisfies RelationsParseOutput);
+    });
 
+    it('should parse with nested allowed', () => {
         // nested data with alias
-        output = parseQueryRelations(['profile.photos', 'profile.photos.abc', 'profile.abc'], { allowed: ['profile.photos'] });
+        const output = parser.parse([
+            'profile.photos',
+            'profile.photos.abc',
+            'profile.abc',
+        ], {
+            schema: defineSchema({
+                relations: {
+                    allowed: ['profile.photos'],
+                },
+            }),
+        });
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
         ] as RelationsParseOutput);
+    });
 
+    it('should pare with null input', () => {
         // null data
-        output = parseQueryRelations(null);
+        const output = parser.parse(null);
         expect(output).toEqual([]);
     });
 
     it('should throw on invalid input', () => {
-        let options : RelationsOptions = {
-            throwOnFailure: true
-        };
+        const schema = defineSchema({
+            throwOnFailure: true,
+        });
 
-        let error = RelationsParseError.inputInvalid();
+        const error = RelationsParseError.inputInvalid();
 
         let evaluate = () => {
-            parseQueryRelations(['foo', true], options);
-        }
-        expect(evaluate).toThrowError(error);
+            parser.parse(['foo', true], { schema });
+        };
+        expect(evaluate).toThrow(error);
 
         evaluate = () => {
-            parseQueryRelations(false, options);
-        }
-        expect(evaluate).toThrowError(error);
+            parser.parse(false, { schema });
+        };
+        expect(evaluate).toThrow(error);
     });
 
     it('should throw on non allowed key', () => {
-        let options : RelationsOptions = {
+        const schema = defineSchema({
             throwOnFailure: true,
-            allowed: ['foo']
+            relations: {
+                allowed: ['foo'],
+            },
+        });
+
+        const error = RelationsParseError.keyInvalid('bar');
+
+        const evaluate = () => {
+            parser.parse(['foo', 'bar'], { schema });
         };
-
-        let error = RelationsParseError.keyInvalid('bar');
-
-        let evaluate = () => {
-            parseQueryRelations(['foo', 'bar'], options);
-        }
-        expect(evaluate).toThrowError(error);
+        expect(evaluate).toThrow(error);
     });
 
     it('should throw on invalid key', () => {
-        let options : RelationsOptions = {
-            throwOnFailure: true
+        const schema = defineSchema({
+            throwOnFailure: true,
+        });
+
+        const error = RelationsParseError.keyInvalid(',foo');
+
+        const evaluate = () => {
+            parser.parse([',foo'], { schema });
         };
-
-        let error = RelationsParseError.keyInvalid(',foo');
-
-        let evaluate = () => {
-            parseQueryRelations([',foo'], options);
-        }
-        expect(evaluate).toThrowError(error);
-    })
+        expect(evaluate).toThrow(error);
+    });
 });
