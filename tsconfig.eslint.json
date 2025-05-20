@@ -3,6 +3,8 @@
     "include": [
         "src/**/*",
         "test/**/*.ts",
+        "test/**/*.js",
+        "test/**/*.spec.ts",
         "commitlint.config.js",
         "release.config.js",
         "rollup.config.mjs"

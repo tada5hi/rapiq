@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2021.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2021-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
-import {RelationsParseOutput, parseQueryRelations, RelationsOptions, RelationsParseError} from '../../src';
+import {RelationsParseOutput, parseQueryRelations, RelationsOptions, RelationsParseError} from '../../../src';
 
 describe('src/relations/index.ts', () => {
     it('should parse simple relations', () => {
