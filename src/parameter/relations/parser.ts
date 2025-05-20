@@ -12,13 +12,13 @@ import { RelationsParseError } from './errors';
 import type { RelationsParseOutput } from './types';
 import { includeParents, isValidRelationPath } from './utils';
 import { BaseParser } from '../../parser';
-import type { Schema } from '../../schema';
+import type { Schema, SchemaOptions } from '../../schema';
 
 // --------------------------------------------------
 
 type RelationsParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema | SchemaOptions
 };
 
 export class RelationsParser extends BaseParser<

@@ -19,11 +19,11 @@ import { FiltersParseError } from './errors';
 import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
 import { BaseParser } from '../../parser';
 import type { RelationsParseOutput } from '../relations';
-import type { Schema } from '../../schema';
+import type { Schema, SchemaOptions } from '../../schema';
 
 type FiltersParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema | SchemaOptions
 };
 
 export class FiltersParser extends BaseParser<

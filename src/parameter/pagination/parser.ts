@@ -10,11 +10,11 @@ import { PaginationParseError } from './errors';
 import type { PaginationOptions, PaginationParseOutput } from './types';
 import { BaseParser } from '../../parser';
 import type { RelationsParseOutput } from '../relations';
-import type { Schema } from '../../schema';
+import type { Schema, SchemaOptions } from '../../schema';
 
 type PaginationParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema | SchemaOptions
 };
 
 export class PaginationParser extends BaseParser<

@@ -8,7 +8,7 @@
 import { distinctArray, isObject } from 'smob';
 import type { RelationsParseOutput } from '../relations';
 import { BaseParser } from '../../parser';
-import type { Schema } from '../../schema';
+import type { Schema, SchemaOptions } from '../../schema';
 import { DEFAULT_ID } from '../../constants';
 import { FieldsParseError } from './errors';
 import { applyMapping, hasOwnProperty, isPathAllowedByRelations } from '../../utils';
@@ -18,7 +18,7 @@ import { FieldOperator } from './constants';
 
 type FieldsParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema | SchemaOptions
 };
 
 export class FieldsParser extends BaseParser<

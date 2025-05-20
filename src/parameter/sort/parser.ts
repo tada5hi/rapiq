@@ -24,12 +24,12 @@ import type {
 } from './types';
 import { parseSortValue } from './utils';
 import type { RelationsParseOutput } from '../relations';
-import type { Schema } from '../../schema';
+import type { Schema, SchemaOptions } from '../../schema';
 import { BaseParser } from '../../parser';
 
 type SortParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema | SchemaOptions
 };
 
 export class SortParser extends BaseParser<
