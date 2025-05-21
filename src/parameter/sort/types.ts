@@ -8,9 +8,7 @@
 import type {
     Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
 } from '../../types';
-import type {
-    ParseAllowedOption,
-} from '../types';
+import type { OptionAllowed } from '../../utils';
 
 export enum SortDirection {
     ASC = 'ASC',
@@ -43,17 +41,6 @@ export type SortBuildInput<T extends Record<string, any>> =
     SortWithOperator<NestedKeys<T>>;
 
 // -----------------------------------------------------------
-// Parse
-// -----------------------------------------------------------
-
-export type SortParseOutputElement = {
-    key: string,
-    value: `${SortDirection}`,
-    path?: string
-};
-export type SortParseOutput = SortParseOutputElement[];
-
-// -----------------------------------------------------------
 
 export type SortOptionDefault<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
@@ -66,7 +53,7 @@ export type SortOptionDefault<T extends Record<string, any>> = {
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
 > = {
-    allowed?: ParseAllowedOption<T>,
+    allowed?: OptionAllowed<T>,
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
     defaultPath?: string,

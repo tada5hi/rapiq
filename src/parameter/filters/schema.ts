@@ -5,16 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { FiltersParseOutput, FiltersParseOutputElement } from '../../parser';
 import type { NestedKeys, ObjectLiteral } from '../../types';
 import {
-    buildKeyWithPath, hasOwnProperty, parseKey, toFlatObject,
+    buildKeyWithPath, flattenParseAllowedOption, hasOwnProperty, parseKey, toFlatObject,
 } from '../../utils';
-import { flattenParseAllowedOption } from '../utils';
-import { FilterComparisonOperator } from './constants';
+import { FilterComparisonOperator, FilterInputOperatorValue } from './constants';
 import type {
-    FiltersOptions, FiltersParseOutput, FiltersParseOutputElement,
+    FilterValueSimple, FiltersOptions,
 } from './types';
-import { parseFilterValue, transformFilterValue } from './utils';
 import { BaseSchema } from '../../schema/base';
 
 export class FiltersSchema<
@@ -162,14 +161,178 @@ export class FiltersSchema<
         if (typeof element.value === 'string') {
             element = {
                 ...element,
-                ...parseFilterValue(element.value),
+                ...this.parseFilterValue(element.value),
             };
         } else {
             element.operator = FilterComparisonOperator.EQUAL;
         }
 
-        element.value = transformFilterValue(element.value);
+        element.value = this.transformFilterValue(element.value);
 
         return element;
+    }
+
+    protected transformFilterValue(input: FilterValueSimple) : FilterValueSimple {
+        if (typeof input === 'string') {
+            input = input.trim();
+            const lower = input.toLowerCase();
+
+            if (lower === 'true') {
+                return true;
+            }
+
+            if (lower === 'false') {
+                return false;
+            }
+
+            if (lower === 'null') {
+                return null;
+            }
+
+            if (input.length === 0) {
+                return input;
+            }
+
+            const num = Number(input);
+            if (!Number.isNaN(num)) {
+                return num;
+            }
+
+            const parts = input.split(',');
+            if (parts.length > 1) {
+                return this.transformFilterValue(parts);
+            }
+        }
+
+        if (Array.isArray(input)) {
+            for (let i = 0; i < input.length; i++) {
+                input[i] = this.transformFilterValue(input[i]) as string | number;
+            }
+
+            return (input as unknown[])
+                .filter((n) => n === 0 || n === null || !!n) as FilterValueSimple;
+        }
+
+        if (typeof input === 'undefined' || input === null) {
+            return null;
+        }
+
+        return input;
+    }
+
+    protected parseFilterValue(input: FilterValueSimple) : {
+        operator: `${FilterComparisonOperator}`,
+        value: FilterValueSimple
+    } {
+        if (
+            typeof input === 'string' &&
+            input.includes(FilterInputOperatorValue.IN)
+        ) {
+            input = input.split(FilterInputOperatorValue.IN);
+        }
+
+        let negation = false;
+
+        let value = this.matchOperator(FilterInputOperatorValue.NEGATION, input, 'start');
+        if (typeof value !== 'undefined') {
+            negation = true;
+            input = value;
+        }
+
+        if (Array.isArray(input)) {
+            return {
+                value: input,
+                operator: negation ?
+                    FilterComparisonOperator.NOT_IN :
+                    FilterComparisonOperator.IN,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LIKE, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: negation ?
+                    FilterComparisonOperator.NOT_LIKE :
+                    FilterComparisonOperator.LIKE,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN_EQUAL, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.LESS_THAN_EQUAL,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.LESS_THAN,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN_EQUAL, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.GREATER_THAN,
+            };
+        }
+
+        return {
+            value: input,
+            operator: negation ?
+                FilterComparisonOperator.NOT_EQUAL :
+                FilterComparisonOperator.EQUAL,
+        };
+    }
+
+    protected matchOperator(key: string, value: FilterValueSimple, position: 'start' | 'end' | 'global') : FilterValueSimple | undefined {
+        if (typeof value === 'string') {
+            switch (position) {
+                case 'start': {
+                    if (value.substring(0, key.length) === key) {
+                        return value.substring(key.length);
+                    }
+                    break;
+                }
+                case 'end': {
+                    if (value.substring(0 - key.length) === key) {
+                        return value.substring(0, value.length - key.length - 1);
+                    }
+                    break;
+                }
+            }
+
+            return undefined;
+        }
+
+        if (Array.isArray(value)) {
+            let match = false;
+            for (let i = 0; i < value.length; i++) {
+                const output = this.matchOperator(key, value[i], position);
+                if (typeof output !== 'undefined') {
+                    match = true;
+                    value[i] = output as string | number;
+                }
+            }
+
+            if (match) {
+                return value;
+            }
+        }
+
+        return undefined;
     }
 }

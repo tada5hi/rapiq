@@ -6,13 +6,9 @@
  */
 
 import type {
-    Flatten,
-    NestedKeys, ObjectLiteral, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
+    Flatten, NestedKeys, ObjectLiteral, OnlyObject, OnlyScalar, TypeFromNestedKeyPath,
 } from '../../types';
-import type {
-    ParseAllowedOption,
-} from '../types';
-import type { FilterComparisonOperator } from './constants';
+import type { OptionAllowed } from '../../utils';
 
 // -----------------------------------------------------------
 
@@ -43,37 +39,25 @@ export type FiltersBuildInput<T extends Record<string, any>> = {
 };
 
 // -----------------------------------------------------------
-// Parse
-// -----------------------------------------------------------
 
-export type FiltersParseDefaultOption<T extends Record<string, any>> = {
+export type FiltersOptionDefault<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-        FiltersParseDefaultOption<Flatten<T[K]>> :
+        FiltersOptionDefault<Flatten<T[K]>> :
         (K extends string ? FilterValue<TypeFromNestedKeyPath<T, K>> : never)
 } | {
     [K in NestedKeys<T>]?: FilterValue<TypeFromNestedKeyPath<T, K>>
 };
 
-export type FiltersValidatorOption<K extends string> = (key: K, value: unknown) => boolean;
-
-export type FiltersParseOutputElement = {
-    operator?: `${FilterComparisonOperator}`,
-    value: FilterValueSimple,
-    key: string,
-    path?: string
-};
-export type FiltersParseOutput = FiltersParseOutputElement[];
-
-// -----------------------------------------------------------
+export type FiltersOptionValidator<K extends string> = (key: K, value: unknown) => boolean;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,
 > = {
     mapping?: Record<string, string>,
-    allowed?: ParseAllowedOption<T>,
-    default?: FiltersParseDefaultOption<T>,
+    allowed?: OptionAllowed<T>,
+    default?: FiltersOptionDefault<T>,
     defaultByElement?: boolean,
     defaultPath?: string,
     throwOnFailure?: boolean,
-    validate?: FiltersValidatorOption<NestedKeys<T>>
+    validate?: FiltersOptionValidator<NestedKeys<T>>
 };

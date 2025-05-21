@@ -5,13 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { SortParseOutput } from '../../parser';
 import type { ObjectLiteral } from '../../types';
 import {
+    flattenParseAllowedOption,
     parseKey, toFlatObject,
 } from '../../utils';
-import { flattenParseAllowedOption } from '../utils';
 import type {
-    SortOptions, SortParseOutput,
+    SortOptions,
 } from './types';
 import { BaseSchema } from '../../schema/base';
 

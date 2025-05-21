@@ -5,21 +5,20 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type {
+    QueryParseOutput,
+
+} from '../../../src';
 import {
-    defineSchema,
-    FieldsParseOutput, FilterComparisonOperator,
-    FiltersParseOutput,
-    PaginationParseOutput,
+    FilterComparisonOperator,
     Parameter,
+    SortDirection,
+    defineSchema,
     parseQueryFields,
     parseQueryFilters,
     parseQueryPagination,
     parseQueryRelations,
     parseQuerySort,
-    QueryParseOutput,
-    RelationsParseOutput,
-    SortDirection,
-    SortParseOutput,
 } from '../../../src';
 
 type ParseOutput = QueryParseOutput;
@@ -28,11 +27,11 @@ describe('src/parse.ts', () => {
     it('should parse with allowed', () => {
         const schema = defineSchema({
             fields: {
-                allowed: ['id']
-            }
-        })
+                allowed: ['id'],
+            },
+        });
 
-        let output = schema.parseQuery({
+        const output = schema.parseQuery({
             fields: ['id', 'name'],
         });
 
@@ -40,8 +39,8 @@ describe('src/parse.ts', () => {
             fields: [
                 { key: 'id' },
             ],
-        } as ParseOutput)
-    })
+        } as ParseOutput);
+    });
 
     it('should parse query without options', () => {
         const schema = defineSchema({});
@@ -51,23 +50,23 @@ describe('src/parse.ts', () => {
         });
         expect(output).toEqual({
             fields: [
-                {key: 'id'},
-                {key: 'name'}
-            ]
+                { key: 'id' },
+                { key: 'name' },
+            ],
         } as ParseOutput);
     });
 
     it('should parse with empty fields allowed option', () => {
         const schema = defineSchema({
             fields: {
-                allowed: []
-            }
-        })
+                allowed: [],
+            },
+        });
         const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
         });
         expect(output).toEqual({
-            fields: []
+            fields: [],
         } as ParseOutput);
     });
 
@@ -75,30 +74,30 @@ describe('src/parse.ts', () => {
         const schema = defineSchema();
         const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
-            [Parameter.FILTERS]: { id: 1},
+            [Parameter.FILTERS]: { id: 1 },
             [Parameter.PAGINATION]: { limit: 20 },
             [Parameter.RELATIONS]: ['relation'],
-            [Parameter.SORT]: {id: 'DESC'},
+            [Parameter.SORT]: { id: 'DESC' },
         });
 
         expect(output).toEqual({
             fields: [
-                {key: 'id'},
-                {key: 'name'}
+                { key: 'id' },
+                { key: 'name' },
             ],
             filters: [
-                {key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL}
+                { key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL },
             ],
             pagination: {
                 limit: 20,
-                offset: 0
+                offset: 0,
             },
             relations: [
-                { key: 'relation', value: 'relation'}
+                { key: 'relation', value: 'relation' },
             ],
             sort: [
-                { key: 'id', value: 'DESC'}
-            ]
+                { key: 'id', value: 'DESC' },
+            ],
         } as ParseOutput);
     });
 
@@ -107,124 +106,124 @@ describe('src/parse.ts', () => {
 
         const output = schema.parseQuery({
             [Parameter.FIELDS]: ['id', 'name'],
-            [Parameter.FILTERS]: { id: 1},
+            [Parameter.FILTERS]: { id: 1 },
             [Parameter.PAGINATION]: { limit: 20 },
             [Parameter.RELATIONS]: ['relation'],
-            [Parameter.SORT]: {id: 'DESC'},
+            [Parameter.SORT]: { id: 'DESC' },
         }, {
             fields: false,
             filters: false,
             pagination: false,
             relations: false,
-            sort: false
+            sort: false,
         });
 
         expect(output).toEqual({});
-    })
+    });
 
     it('should parse query with default fields', () => {
         const schema = defineSchema({
             fields: {
-                default: ['id']
-            }
-        })
-        let value = schema.parseQuery({
+                default: ['id'],
+            },
+        });
+        const value = schema.parseQuery({
             fields: ['id', 'name'],
         });
 
         expect(value).toEqual({
             fields: [
-                {key: 'id'},
+                { key: 'id' },
             ],
         } as ParseOutput);
     });
 
-
     it('should parse query with default fields & filters', () => {
         const schema = defineSchema<{ id: number, name: string }>({
             fields: {
-                default: ['id', 'name']
+                default: ['id', 'name'],
             },
             filters: {
                 default: {
-                    id: 1
-                }
-            }
-        })
+                    id: 1,
+                },
+            },
+        });
         const value = schema.parseQuery({});
 
         expect(value).toEqual({
             fields: [
                 { key: 'id' },
-                { key: 'name' }
+                { key: 'name' },
             ],
             filters: [
-                {key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL }
-            ]
+                { key: 'id', value: 1, operator: FilterComparisonOperator.EQUAL },
+            ],
         } as ParseOutput);
-    })
+    });
 
     it('should parse query with default path', () => {
         const schema = defineSchema({
             defaultPath: 'user',
             fields: {
-                allowed: ['id']
-            }
-        })
-        let output = schema.parseQuery({
+                allowed: ['id'],
+            },
+        });
+        const output = schema.parseQuery({
             fields: ['id', 'name'],
         });
         expect(output).toEqual({
             defaultPath: 'user',
             fields: [
-                {key: 'id', path: 'user'},
+                { key: 'id', path: 'user' },
             ],
         } as ParseOutput);
-
     });
 
     it('should parse query with default path & relations', () => {
         const schema = defineSchema<
-            {
-                id: string,
-                name: string,
-                realm: {
-                    display_name: string
-                }
+        {
+            id: string,
+            name: string,
+            realm: {
+                display_name: string
             }
+        }
         >({
             defaultPath: 'user',
             filters: {
                 allowed: [
                     'id',
-                    'realm.display_name'
-                ]
+                    'realm.display_name',
+                ],
             },
             relations: {
-                allowed: ['realm']
-            }
-        })
+                allowed: ['realm'],
+            },
+        });
 
         const output = schema.parseQuery({
             filters: {
-                'realm.display_name': 'master'
+                'realm.display_name': 'master',
             },
-            include: ['realm']
+            include: ['realm'],
         }, {
         });
         expect(output).toEqual({
             defaultPath: 'user',
             filters: [
-                { key: 'display_name', operator: FilterComparisonOperator.EQUAL, path: 'realm', value: 'master' },
+                {
+                    key: 'display_name', operator: FilterComparisonOperator.EQUAL, path: 'realm', value: 'master',
+                },
             ],
             relations: [
-                { key: 'realm', value: 'realm' }
-            ]
+                { key: 'realm', value: 'realm' },
+            ],
         } as ParseOutput);
-    })
+    });
 
     it('should parse field query parameter', () => {
-        let value = parseQueryFields(['id', 'name'], {allowed: ['id', 'name']});
+        const value = parseQueryFields(['id', 'name'], { allowed: ['id', 'name'] });
         expect(value).toEqual([
             { key: 'id' },
             { key: 'name' },
@@ -232,28 +231,28 @@ describe('src/parse.ts', () => {
     });
 
     it('should parse filter query parameter', () => {
-        let value = parseQueryFilters( { name: 'tada5hi' }, {allowed: ['name']});
+        const value = parseQueryFilters({ name: 'tada5hi' }, { allowed: ['name'] });
         expect(value).toEqual([{
             key: 'name',
             value: 'tada5hi',
-            operator: FilterComparisonOperator.EQUAL
+            operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
     });
 
     it('should parse pagination query parameter', () => {
-        let value = parseQueryPagination({ offset: 20, limit: 20 }, { maxLimit: 50 });
+        const value = parseQueryPagination({ offset: 20, limit: 20 }, { maxLimit: 50 });
         expect(value).toEqual({ offset: 20, limit: 20 } as PaginationParseOutput);
     });
 
     it('should parse relation query parameter', () => {
-        let value = parseQueryRelations('profile', { allowed: ['profile'] });
+        const value = parseQueryRelations('profile', { allowed: ['profile'] });
         expect(value).toEqual([
             { key: 'profile', value: 'profile' },
         ] as RelationsParseOutput);
     });
 
     it('should parse sort query parameter', () => {
-        let value = parseQuerySort('-id', { allowed: ['id'] });
+        const value = parseQuerySort('-id', { allowed: ['id'] });
         expect(value).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
     });
 });

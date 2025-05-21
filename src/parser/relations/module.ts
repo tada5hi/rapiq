@@ -5,14 +5,13 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { applyMapping, hasOwnProperty } from '../../utils';
-import { isPathCoveredByParseAllowedOption } from '../../parameter/utils';
+import { applyMapping, hasOwnProperty, isPathCoveredByParseAllowedOption } from '../../utils';
 import { RelationsParseError } from '../../parameter/relations/errors';
 
-import type { RelationsParseOutput } from '../../parameter/relations/types';
 import { includeParents, isValidRelationPath } from '../../parameter/relations/utils';
 import { BaseParser } from '../module';
 import type { Schema, SchemaOptions } from '../../schema';
+import type { RelationsParseOutput } from './types';
 
 // --------------------------------------------------
 

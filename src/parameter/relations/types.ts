@@ -21,12 +21,6 @@ export type RelationsBuildInput<T extends Record<string, any>> = {
 // Parse
 // -----------------------------------------------------------
 
-export type RelationsParseOutputElement = {
-    key: string,
-    value: string
-};
-export type RelationsParseOutput = RelationsParseOutputElement[];
-
 // -----------------------------------------------------------
 
 export type RelationsOptions<

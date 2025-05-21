@@ -5,9 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { RelationsOptions } from './types';
 import { RelationsSchema } from './schema';
 import type { ObjectLiteral } from '../../types';
+import type { RelationsOptions } from './types';
 
 export function defineRelationsSchema<
     T extends ObjectLiteral= ObjectLiteral,

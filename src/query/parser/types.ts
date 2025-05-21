@@ -7,12 +7,8 @@
 
 import type { Parameter, URLParameter } from '../../constants';
 import type {
-    FieldsParseOutput,
-    FiltersParseOutput,
-    PaginationParseOutput,
-    RelationsParseOutput,
-    SortParseOutput,
-} from '../../parameter';
+    FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
+} from '../../parser';
 import type { Schema, SchemaRegistry } from '../../schema';
 import type { ObjectLiteralKeys } from '../../types';
 

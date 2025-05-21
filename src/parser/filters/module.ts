@@ -11,15 +11,15 @@ import {
     buildKeyWithPath,
     isObject,
     isPathAllowedByRelations,
+    isPathCoveredByParseAllowedOption,
+    isPropertyNameValid,
     parseKey,
 } from '../../utils';
-import { isValidFieldName } from '../../parameter/fields';
-import { isPathCoveredByParseAllowedOption } from '../../parameter/utils';
 import { FiltersParseError } from '../../parameter/filters/errors';
-import type { FiltersParseOutput, FiltersParseOutputElement } from '../../parameter/filters/types';
 import { BaseParser } from '../module';
-import type { RelationsParseOutput } from '../../parameter/relations';
 import type { Schema, SchemaOptions } from '../../schema';
+import type { RelationsParseOutput } from '../relations';
+import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
 
 type FiltersParseOptions = {
     relations?: RelationsParseOutput,
@@ -87,7 +87,7 @@ FiltersParseOutput
 
             if (
                 container.allowedIsUndefined &&
-                !isValidFieldName(fieldDetails.name)
+                !isPropertyNameValid(fieldDetails.name)
             ) {
                 if (container.throwOnFailure) {
                     throw FiltersParseError.keyInvalid(fieldDetails.name);

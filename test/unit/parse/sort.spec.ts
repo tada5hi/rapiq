@@ -5,16 +5,17 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type {
+    SortOptions,
+
+} from '../../../src';
 import {
     SortDirection,
-    SortOptions,
-    SortParseOutput,
+    SortParseError,
     parseQueryRelations,
     parseQuerySort,
-    FieldsParseOutput,
-    SortParseError,
 } from '../../../src';
-import {User} from "../../data";
+import type { User } from '../../data';
 
 describe('src/sort/index.ts', () => {
     it('should parse sort data', () => {
@@ -32,7 +33,7 @@ describe('src/sort/index.ts', () => {
 
         // ignore field name pattern, if permitted by allowed key
         transformed = parseQuerySort(['-!id'], { allowed: ['!id'] });
-        expect(transformed).toEqual([{key: '!id', value: SortDirection.DESC}] as FieldsParseOutput);
+        expect(transformed).toEqual([{ key: '!id', value: SortDirection.DESC }] as FieldsParseOutput);
 
         // empty allowed
         transformed = parseQuerySort('-id', { allowed: [] });
@@ -83,8 +84,8 @@ describe('src/sort/index.ts', () => {
         const options : SortOptions<{id: number, name: string, role: {id: number}}> = {
             allowed: ['id', 'name'],
             default: {
-                id: 'DESC'
-            }
+                id: 'DESC',
+            },
         };
 
         let transformed = parseQuerySort(['id'], options);
@@ -98,7 +99,7 @@ describe('src/sort/index.ts', () => {
 
         transformed = parseQuerySort('-age', options);
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] as SortParseOutput);
-    })
+    });
 
     it('should transform sort with sort indexes', () => {
         const options : SortOptions<User> = {
@@ -127,7 +128,7 @@ describe('src/sort/index.ts', () => {
         ] as SortParseOutput);
 
         // incomplete match
-        transformed = parseQuerySort(['email', 'id'], {...options, defaultPath: 'user'});
+        transformed = parseQuerySort(['email', 'id'], { ...options, defaultPath: 'user' });
         expect(transformed).toStrictEqual([
             { key: 'id', path: 'user', value: SortDirection.ASC },
         ] as SortParseOutput);
@@ -138,7 +139,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should transform sort data with includes', () => {
-        const includes = parseQueryRelations(['profile', 'user_roles.role'], {allowed: ['profile', 'user_roles.role']});
+        const includes = parseQueryRelations(['profile', 'user_roles.role'], { allowed: ['profile', 'user_roles.role'] });
 
         const options : SortOptions = {
             allowed: ['id', 'profile.id', 'user_roles.role.id'],
@@ -165,7 +166,7 @@ describe('src/sort/index.ts', () => {
         ] as SortParseOutput);
 
         // with include & query alias
-        transformed = parseQuerySort(['id', 'profile.id'], { ...options});
+        transformed = parseQuerySort(['id', 'profile.id'], { ...options });
         expect(transformed).toEqual([
             { key: 'id', value: SortDirection.ASC },
             { path: 'profile', key: 'id', value: SortDirection.ASC },
@@ -180,105 +181,105 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on invalid input', () => {
-        let options : SortOptions = {
+        const options : SortOptions = {
             throwOnFailure: true,
         };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort(false, options);
-        }
+        };
 
-        let error = SortParseError.inputInvalid();
+        const error = SortParseError.inputInvalid();
         expect(evaluate).toThrowError(error);
-    })
+    });
 
     it('should throw on invalid key', () => {
-        let options : SortOptions = {
-            throwOnFailure: true
-        }
+        const options : SortOptions = {
+            throwOnFailure: true,
+        };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort({
-                '1foo': 'desc'
+                '1foo': 'desc',
             }, options);
-        }
-        let error = SortParseError.keyInvalid('1foo');
+        };
+        const error = SortParseError.keyInvalid('1foo');
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed relation', () => {
-        let options : SortOptions = {
+        const options : SortOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
                     key: 'user',
-                    value: 'user'
-                }
-            ]
-        }
+                    value: 'user',
+                },
+            ],
+        };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort({
-                'bar.bar': 'desc'
+                'bar.bar': 'desc',
             }, options);
-        }
+        };
 
-        let error = SortParseError.keyPathInvalid('bar');
+        const error = SortParseError.keyPathInvalid('bar');
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {
-        let options : SortOptions = {
+        const options : SortOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
                     key: 'user',
-                    value: 'user'
-                }
-            ]
-        }
+                    value: 'user',
+                },
+            ],
+        };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort({
-                'user.bar': 'desc'
+                'user.bar': 'desc',
             }, options);
-        }
+        };
 
-        let error = SortParseError.keyNotAllowed('bar');
+        const error = SortParseError.keyNotAllowed('bar');
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on invalid key value', () => {
-        let options : SortOptions = {
+        const options : SortOptions = {
             throwOnFailure: true,
-            allowed: ['foo']
-        }
+            allowed: ['foo'],
+        };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort({
-                bar: 1
+                bar: 1,
             }, options);
-        }
+        };
 
-        let error = SortParseError.keyValueInvalid('bar');
+        const error = SortParseError.keyValueInvalid('bar');
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed key', () => {
-        let options : SortOptions = {
+        const options : SortOptions = {
             throwOnFailure: true,
-            allowed: ['foo']
-        }
+            allowed: ['foo'],
+        };
 
-        let evaluate = () => {
+        const evaluate = () => {
             parseQuerySort({
-                bar: 'desc'
+                bar: 'desc',
             }, options);
-        }
+        };
 
-        let error = SortParseError.keyNotAllowed('bar');
+        const error = SortParseError.keyNotAllowed('bar');
         expect(evaluate).toThrowError(error);
     });
 });

@@ -15,15 +15,6 @@ export type PaginationBuildInput = {
 };
 
 // -----------------------------------------------------------
-// Parse
-// -----------------------------------------------------------
-
-export type PaginationParseOutput = {
-    limit?: number,
-    offset?: number
-};
-
-// -----------------------------------------------------------
 
 export type PaginationOptions = {
     maxLimit?: number

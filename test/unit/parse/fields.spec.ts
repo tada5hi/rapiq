@@ -6,16 +6,13 @@
  */
 
 import type {
-    FieldsParseOutput,
     ObjectLiteral,
 } from '../../../src';
 
 import {
-    DEFAULT_ID,
     FieldsParseError,
     FieldsParser,
     RelationsParser,
-    buildFieldDomainRecords,
     defineSchema,
 } from '../../../src';
 
@@ -24,19 +21,6 @@ describe('src/fields/index.ts', () => {
 
     beforeAll(() => {
         parser = new FieldsParser();
-    });
-
-    it('should transform allowed domain fields', () => {
-        const fields : string[] = ['id', 'name'];
-
-        let transformedFields = buildFieldDomainRecords(fields);
-        expect(transformedFields).toEqual({ [DEFAULT_ID]: fields });
-
-        transformedFields = buildFieldDomainRecords({ domain: fields });
-        expect(transformedFields).toEqual({ domain: fields });
-
-        transformedFields = buildFieldDomainRecords({});
-        expect(transformedFields).toEqual({});
     });
 
     it('should transform fields with defaultPath', () => {

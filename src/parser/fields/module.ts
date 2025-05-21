@@ -6,15 +6,16 @@
  */
 
 import { distinctArray, isObject } from 'smob';
-import type { RelationsParseOutput } from '../../parameter/relations';
 import { BaseParser } from '../module';
 import type { Schema, SchemaOptions } from '../../schema';
 import { DEFAULT_ID } from '../../constants';
 import { FieldsParseError } from '../../parameter/fields/errors';
-import { applyMapping, hasOwnProperty, isPathAllowedByRelations } from '../../utils';
-import type { FieldsInputTransformed, FieldsParseOutput } from '../../parameter/fields/types';
-import { isValidFieldName, parseFieldsInput } from '../../parameter/fields/utils';
+import {
+    applyMapping, hasOwnProperty, isPathAllowedByRelations, isPropertyNameValid,
+} from '../../utils';
 import { FieldOperator } from '../../parameter/fields/constants';
+import type { RelationsParseOutput } from '../relations';
+import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
 
 type FieldsParseOptions = {
     relations?: RelationsParseOutput,
@@ -85,15 +86,15 @@ FieldsParseOutput
             let fields : string[] = [];
 
             if (hasOwnProperty(data, path)) {
-                fields = parseFieldsInput(data[path]);
+                fields = this.parseFieldsInput(data[path]);
             } else if (
                 hasOwnProperty(container.reverseMapping, path) &&
                 hasOwnProperty(data, container.reverseMapping[path])
             ) {
-                fields = parseFieldsInput(data[container.reverseMapping[path]]);
+                fields = this.parseFieldsInput(data[container.reverseMapping[path]]);
             }
 
-            const transformed : FieldsInputTransformed = {
+            const transformed : FieldsParseInputTransformed = {
                 default: [],
                 included: [],
                 excluded: [],
@@ -121,7 +122,7 @@ FieldsParseOutput
                     if (hasOwnProperty(container.items, path)) {
                         isValid = container.items[path].indexOf(fields[j]) !== -1;
                     } else {
-                        isValid = isValidFieldName(fields[j]);
+                        isValid = isPropertyNameValid(fields[j]);
                     }
 
                     if (!isValid) {
@@ -182,6 +183,22 @@ FieldsParseOutput
                         key: transformed.default[j],
                         ...(destPath ? { path: destPath } : {}),
                     });
+                }
+            }
+        }
+
+        return output;
+    }
+
+    protected parseFieldsInput(input: unknown): string[] {
+        let output: string[] = [];
+
+        if (typeof input === 'string') {
+            output = input.split(',');
+        } else if (Array.isArray(input)) {
+            for (let i = 0; i < input.length; i++) {
+                if (typeof input[i] === 'string') {
+                    output.push(input[i]);
                 }
             }
         }

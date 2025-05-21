@@ -6,8 +6,9 @@
  */
 
 import type { ObjectLiteral } from '../../types';
-import { groupArrayByKeyPath, merge, toFlatObject } from '../../utils';
-import { flattenParseAllowedOption } from '../utils';
+import {
+    flattenParseAllowedOption, groupArrayByKeyPath, merge, toFlatObject,
+} from '../../utils';
 import type { FieldsOptions } from './types';
 import { BaseSchema } from '../../schema/base';
 

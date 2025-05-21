@@ -7,11 +7,11 @@
 
 import { isObject } from 'smob';
 import { PaginationParseError } from '../../parameter/pagination/errors';
-import type { PaginationParseOutput } from '../../parameter/pagination/types';
 import { BaseParser } from '../module';
-import type { RelationsParseOutput } from '../../parameter/relations';
 import type { Schema } from '../../schema';
 import type { PaginationSchema } from '../../parameter';
+import type { RelationsParseOutput } from '../relations';
+import type { PaginationParseOutput } from './types';
 
 type PaginationParseOptions = {
     relations?: RelationsParseOutput,

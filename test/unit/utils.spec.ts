@@ -5,27 +5,26 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption} from "../../src";
-import {applyMapping} from "../../src/utils";
-import { User } from "../data";
+import { applyMapping, flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../../src/utils';
+import type { User } from '../data';
 
 describe('src/utils/*.ts', () => {
     it('should get name by alias', () => {
         let data = applyMapping('a.b.c', {
-            'a': 'p',
-            'b.c': 'a'
+            a: 'p',
+            'b.c': 'a',
         });
         expect(data).toEqual('p.a');
 
         data = applyMapping('a.b.c', {
-            'a': 'p',
-            'c': 'a'
+            a: 'p',
+            c: 'a',
         });
         expect(data).toEqual('p.b.a');
 
         data = applyMapping('a.b.c.d.e', {
-            'a': 'z',
-            'c.d': 'y'
+            a: 'z',
+            'c.d': 'y',
         });
         expect(data).toEqual('z.b.y.e');
     });
@@ -36,13 +35,12 @@ describe('src/utils/*.ts', () => {
 
         data = flattenParseAllowedOption<User>({
             realm: ['id'],
-            items: ['realm.name']
+            items: ['realm.name'],
         });
         expect(data).toEqual([
             'realm.id',
-            'items.realm.name'
-        ])
-
+            'items.realm.name',
+        ]);
     });
 
     it('should verify if path is covered by parse options', () => {
@@ -54,10 +52,10 @@ describe('src/utils/*.ts', () => {
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseAllowedOption<User>({realm: ['id', 'name']}, 'realm.id');
+        result = isPathCoveredByParseAllowedOption<User>({ realm: ['id', 'name'] }, 'realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseAllowedOption<User>({realm: ['id', 'name']}, 'realm.description');
+        result = isPathCoveredByParseAllowedOption<User>({ realm: ['id', 'name'] }, 'realm.description');
         expect(result).toBeFalsy();
 
         // -----------------------------------------------------------
@@ -84,18 +82,18 @@ describe('src/utils/*.ts', () => {
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseAllowedOption<User>({items: ['realm.id']}, 'items.realm.id');
+        result = isPathCoveredByParseAllowedOption<User>({ items: ['realm.id'] }, 'items.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseAllowedOption<User>({items: ['realm.name']}, 'items.realm.id');
+        result = isPathCoveredByParseAllowedOption<User>({ items: ['realm.name'] }, 'items.realm.id');
         expect(result).toBeFalsy();
 
         // -----------------------------------------------------------
 
-        result = isPathCoveredByParseAllowedOption<User>({items: {realm: ['id']}}, 'items.realm.id');
+        result = isPathCoveredByParseAllowedOption<User>({ items: { realm: ['id'] } }, 'items.realm.id');
         expect(result).toBeTruthy();
 
-        result = isPathCoveredByParseAllowedOption<User>({items: {realm: ['name']}}, 'items.realm.id');
+        result = isPathCoveredByParseAllowedOption<User>({ items: { realm: ['name'] } }, 'items.realm.id');
         expect(result).toBeFalsy();
-    })
-})
+    });
+});

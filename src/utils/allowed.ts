@@ -1,17 +1,38 @@
 /*
- * Copyright (c) 2022-2022.
+ * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedKeys, NestedResourceKeys, ObjectLiteral } from '../../../types';
-import { toKeyPathArray } from '../../../utils';
-import type { ParseAllowedOption } from '../../types';
+import type {
+    Flatten, NestedKeys, NestedResourceKeys, ObjectLiteral, OnlyObject, SimpleKeys,
+} from '../types';
+import { toKeyPathArray } from './array';
+
+type OptionAllowedObject<
+    T extends ObjectLiteral = ObjectLiteral,
+> = {
+    [K in keyof T]?: T[K] extends OnlyObject<T[K]> ?
+        OptionAllowed<Flatten<T[K]>> :
+        never
+};
+
+export type OptionAllowed<T> = T extends ObjectLiteral ?
+    (
+        OptionAllowedObject<T>
+        |
+        (
+            SimpleKeys<T>[] |
+            OptionAllowedObject<T>
+        )[]
+        |
+        NestedKeys<T>[]
+    ) : string[];
 
 export function flattenParseAllowedOption<T>(
-    input?: ParseAllowedOption<T>,
-) : string[] {
+    input?: OptionAllowed<T>,
+): string[] {
     if (typeof input === 'undefined') {
         return [];
     }
@@ -20,11 +41,11 @@ export function flattenParseAllowedOption<T>(
 }
 
 export function isPathCoveredByParseAllowedOption<T extends ObjectLiteral>(
-    input: ParseAllowedOption<T> |
+    input: OptionAllowed<T> |
     NestedKeys<T>[] |
     NestedResourceKeys<T>[],
     path: string | string[],
-) : boolean {
+): boolean {
     const paths = Array.isArray(path) ? path : [path];
 
     const items = toKeyPathArray(input);

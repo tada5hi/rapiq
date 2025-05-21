@@ -9,23 +9,18 @@ import { isObject } from 'smob';
 import {
     applyMapping,
     buildKeyPath,
-    buildKeyWithPath,
+    buildKeyWithPath, flattenParseAllowedOption,
     hasOwnProperty,
-    isPathAllowedByRelations,
+    isPathAllowedByRelations, isPathCoveredByParseAllowedOption, isPropertyNameValid,
     parseKey,
 } from '../../utils';
-import { isValidFieldName } from '../../parameter/fields';
-import { flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../../parameter/utils';
 import { SortParseError } from '../../parameter/sort/errors';
 
-import type {
-    SortParseOutput,
-    SortParseOutputElement,
-} from '../../parameter/sort/types';
 import { parseSortValue } from '../../parameter/sort/utils';
-import type { RelationsParseOutput } from '../../parameter/relations';
 import type { Schema, SchemaOptions } from '../../schema';
 import { BaseParser } from '../module';
+import type { RelationsParseOutput } from '../relations';
+import type { SortParseOutput, SortParseOutputElement } from './types';
 
 type SortParseOptions = {
     relations?: RelationsParseOutput,
@@ -107,7 +102,7 @@ SortParseOutput
 
             if (
                 schema.sort.allowedIsUndefined &&
-                !isValidFieldName(fieldDetails.name)
+                !isPropertyNameValid(fieldDetails.name)
             ) {
                 if (schema.sort.throwOnFailure) {
                     throw SortParseError.keyInvalid(fieldDetails.name);

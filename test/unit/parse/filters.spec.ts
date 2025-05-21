@@ -5,17 +5,16 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { FiltersOptions } from '../../../src';
 import {
-    FiltersOptions,
-    FiltersParseOutput,
-    parseQueryFilters,
-    parseQueryRelations, FilterComparisonOperator, FiltersParseError,
+    FilterComparisonOperator,
+    FiltersParseError, parseQueryFilters, parseQueryRelations,
 } from '../../../src';
 
 describe('src/filter/index.ts', () => {
     it('should parse allowed filter', () => {
         // filter id
-        let allowedFilter = parseQueryFilters({id: 1}, {allowed: ['id']});
+        const allowedFilter = parseQueryFilters({ id: 1 }, { allowed: ['id'] });
         expect(allowedFilter).toEqual([{
             key: 'id',
             value: 1,
@@ -25,7 +24,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse filter with underscore key', () => {
         // filter with underscore key
-        const allowedFilter = parseQueryFilters({display_name: 'admin'}, {allowed: ['display_name']});
+        const allowedFilter = parseQueryFilters({ display_name: 'admin' }, { allowed: ['display_name'] });
         expect(allowedFilter).toEqual([{
             key: 'display_name',
             value: 'admin',
@@ -125,9 +124,9 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should transform fields with default path', () => {
-        const options : FiltersOptions= {
+        const options : FiltersOptions = {
             allowed: ['id', 'display_name'],
-            defaultPath: 'user'
+            defaultPath: 'user',
         };
 
         let data = parseQueryFilters({ id: 1 }, options);
@@ -138,8 +137,8 @@ describe('src/filter/index.ts', () => {
                 path: 'user',
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
-            }
-        ] satisfies FiltersParseOutput)
+            },
+        ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({ display_name: 'admin' }, options);
 
@@ -149,16 +148,16 @@ describe('src/filter/index.ts', () => {
                 path: 'user',
                 value: 'admin',
                 operator: FilterComparisonOperator.EQUAL,
-            }
-        ] satisfies FiltersParseOutput)
-    })
+            },
+        ] satisfies FiltersParseOutput);
+    });
 
     it('should transform filters with default', () => {
         const options : FiltersOptions<{id: string, age: number }> = {
             allowed: ['id', 'age'],
             default: {
-                age: '<18'
-            }
+                age: '<18',
+            },
         };
 
         let data = parseQueryFilters({ id: 1 }, options);
@@ -167,7 +166,7 @@ describe('src/filter/index.ts', () => {
                 key: 'id',
                 value: 1,
                 operator: FilterComparisonOperator.EQUAL,
-            }
+            },
         ] satisfies FiltersParseOutput);
 
         data = parseQueryFilters({ name: 'Peter' }, options);
@@ -175,18 +174,18 @@ describe('src/filter/index.ts', () => {
             {
                 key: 'age',
                 value: 18,
-                operator: FilterComparisonOperator.LESS_THAN
-            }
+                operator: FilterComparisonOperator.LESS_THAN,
+            },
         ] satisfies FiltersParseOutput);
 
-        data = parseQueryFilters({age: 20}, options);
+        data = parseQueryFilters({ age: 20 }, options);
         expect(data).toEqual([
             {
                 key: 'age',
                 value: 20,
                 operator: FilterComparisonOperator.EQUAL,
-            }
-        ] satisfies FiltersParseOutput)
+            },
+        ] satisfies FiltersParseOutput);
     });
 
     it('should transform filters with default by element', () => {
@@ -196,7 +195,7 @@ describe('src/filter/index.ts', () => {
                 id: 18,
                 age: '<18',
             },
-            defaultByElement: true
+            defaultByElement: true,
         };
 
         let data = parseQueryFilters([], options);
@@ -210,10 +209,10 @@ describe('src/filter/index.ts', () => {
                 key: 'age',
                 value: 18,
                 operator: FilterComparisonOperator.LESS_THAN,
-            }
+            },
         ] satisfies FiltersParseOutput);
 
-        data = parseQueryFilters({id: 5}, {...options, defaultPath: 'user'});
+        data = parseQueryFilters({ id: 5 }, { ...options, defaultPath: 'user' });
         expect(data).toEqual([
             {
                 key: 'id',
@@ -226,17 +225,17 @@ describe('src/filter/index.ts', () => {
                 path: 'user',
                 value: 18,
                 operator: FilterComparisonOperator.LESS_THAN,
-            }
+            },
         ] satisfies FiltersParseOutput);
 
-        data = parseQueryFilters({id: 5}, {...options, defaultByElement: false, defaultPath: 'user'});
+        data = parseQueryFilters({ id: 5 }, { ...options, defaultByElement: false, defaultPath: 'user' });
         expect(data).toEqual([
             {
                 key: 'id',
                 path: 'user',
                 value: 5,
                 operator: FilterComparisonOperator.EQUAL,
-            }
+            },
         ] satisfies FiltersParseOutput);
     });
 
@@ -246,13 +245,13 @@ describe('src/filter/index.ts', () => {
             {
                 allowed: ['id'],
                 validate: (key, value) => {
-                    if(key === 'id') {
+                    if (key === 'id') {
                         return typeof value === 'number';
                     }
 
                     return false;
-                }
-            }
+                },
+            },
         );
         expect(data).toEqual([
             {
@@ -267,19 +266,19 @@ describe('src/filter/index.ts', () => {
             {
                 allowed: ['id'],
                 validate: (key, value) => {
-                    if(key === 'id') {
+                    if (key === 'id') {
                         return typeof value === 'number' &&
                             value > 1;
                     }
 
                     return false;
-                }
-            }
+                },
+            },
         );
         expect(data).toEqual([
-            { key: 'id', value: [2, 3], operator: FilterComparisonOperator.IN, },
+            { key: 'id', value: [2, 3], operator: FilterComparisonOperator.IN },
         ] satisfies FiltersParseOutput);
-    })
+    });
 
     it('should transform filters with different operators', () => {
         // equal operator
@@ -385,7 +384,7 @@ describe('src/filter/index.ts', () => {
 
     it('should transform filters with includes', () => {
         const include = parseQueryRelations(['profile', 'user_roles.role'], {
-            allowed: ['profile', 'user_roles.role']
+            allowed: ['profile', 'user_roles.role'],
         });
 
         const options : FiltersOptions = {
@@ -443,99 +442,99 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid input shape', () => {
-        let options : FiltersOptions = {
-            throwOnFailure: true
-        }
+        const options : FiltersOptions = {
+            throwOnFailure: true,
+        };
 
-        let error = FiltersParseError.inputInvalid();
-        let evaluate = () => {
+        const error = FiltersParseError.inputInvalid();
+        const evaluate = () => {
             parseQueryFilters('foo', options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on invalid key value', () => {
-        let options : FiltersOptions = {
-            throwOnFailure: true
-        }
+        const options : FiltersOptions = {
+            throwOnFailure: true,
+        };
 
-        let error = FiltersParseError.keyValueInvalid('foo');
-        let evaluate = () => {
+        const error = FiltersParseError.keyValueInvalid('foo');
+        const evaluate = () => {
             parseQueryFilters({
                 foo: Buffer.from('foo'),
             }, options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on invalid key', () => {
-        let options : FiltersOptions = {
-            throwOnFailure: true
-        }
+        const options : FiltersOptions = {
+            throwOnFailure: true,
+        };
 
-        let error = FiltersParseError.keyInvalid('1foo');
-        let evaluate = () => {
+        const error = FiltersParseError.keyInvalid('1foo');
+        const evaluate = () => {
             parseQueryFilters({
-                '1foo': 1
+                '1foo': 1,
             }, options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed relation', () => {
-        let options : FiltersOptions = {
+        const options : FiltersOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
                     key: 'user',
-                    value: 'user'
-                }
-            ]
-        }
+                    value: 'user',
+                },
+            ],
+        };
 
-        let error = FiltersParseError.keyPathInvalid('bar');
-        let evaluate = () => {
+        const error = FiltersParseError.keyPathInvalid('bar');
+        const evaluate = () => {
             parseQueryFilters({
-                'bar.bar': 1
+                'bar.bar': 1,
             }, options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {
-        let options : FiltersOptions = {
+        const options : FiltersOptions = {
             throwOnFailure: true,
             allowed: ['user.foo'],
             relations: [
                 {
                     key: 'user',
-                    value: 'user'
-                }
-            ]
-        }
+                    value: 'user',
+                },
+            ],
+        };
 
-        let error = FiltersParseError.keyInvalid('bar');
-        let evaluate = () => {
+        const error = FiltersParseError.keyInvalid('bar');
+        const evaluate = () => {
             parseQueryFilters({
-                'user.bar': 1
+                'user.bar': 1,
             }, options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 
     it('should throw on non allowed key', () => {
-        let options : FiltersOptions = {
+        const options : FiltersOptions = {
             throwOnFailure: true,
-            allowed: ['foo']
-        }
+            allowed: ['foo'],
+        };
 
-        let error = FiltersParseError.keyInvalid('bar');
-        let evaluate = () => {
+        const error = FiltersParseError.keyInvalid('bar');
+        const evaluate = () => {
             parseQueryFilters({
-                bar: 1
+                bar: 1,
             }, options);
-        }
+        };
         expect(evaluate).toThrowError(error);
     });
 });
