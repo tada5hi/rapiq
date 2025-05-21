@@ -240,7 +240,7 @@ FiltersParseOutput
     }
 
     // ^([0-9]+(?:\.[0-9]+)*){0,1}([a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]+)*){0,1}$
-    normalizeOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
+    protected normalizeOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
         if (
             hasOwnProperty(element, 'path') &&
             (typeof element.path === 'undefined' || element.path === null)
