@@ -8,7 +8,8 @@
 
 > [!WARNING]
 > This README includes the documentation for the upcoming version 2.
-> This is the [link](https://github.com/tada5hi/typeorm-extension/tree/v1) for the v1 (and prior).
+>
+> This is the [link](https://github.com/tada5hi/rapiq/tree/v1) for the v1 (and prior).
 
 Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
 It defines a scheme for the request, but **not** for the response.
