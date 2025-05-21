@@ -15,7 +15,7 @@ import type {
     RelationsSchema,
     SortOptions,
     SortSchema,
-} from '../parameter';
+} from './parameter';
 import type { ObjectLiteral } from '../types';
 
 export type BaseSchemaOptions = {

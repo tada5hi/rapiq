@@ -17,7 +17,7 @@ import {
     definePaginationSchema,
     defineRelationsSchema,
     defineSortSchema,
-} from '../parameter';
+} from './parameter';
 import type {
     SchemaOptions,
 } from './types';

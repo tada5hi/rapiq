@@ -7,7 +7,6 @@
 
 export * from './query';
 export * from './errors';
-export * from './parameter';
 export * from './constants';
 export * from './parser';
 export * from './schema';

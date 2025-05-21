@@ -6,6 +6,7 @@
  */
 
 import type {
+    FieldsParseOutput,
     ObjectLiteral,
 } from '../../../src';
 

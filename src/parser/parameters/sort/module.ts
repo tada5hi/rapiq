@@ -1,0 +1,229 @@
+/*
+ * Copyright (c) 2021-2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
+ */
+
+import { isObject } from 'smob';
+import {
+    applyMapping,
+    buildKeyPath,
+    buildKeyWithPath,
+    flattenParseAllowedOption,
+    hasOwnProperty,
+    isPathAllowedByRelations,
+    isPathCoveredByParseAllowedOption,
+    isPropertyNameValid,
+    parseKey,
+} from '../../../utils';
+import { SortParseError } from './error';
+import type { Schema, SchemaOptions } from '../../../schema';
+import { SortDirection } from '../../../schema';
+import { BaseParser } from '../../module';
+import type { RelationsParseOutput } from '../relations';
+import type { SortParseOutput, SortParseOutputElement } from './types';
+
+type SortParseOptions = {
+    relations?: RelationsParseOutput,
+    schema?: string | Schema | SchemaOptions
+};
+
+export class SortParser extends BaseParser<
+SortParseOptions,
+SortParseOutput
+> {
+    parse(input: unknown, options: SortParseOptions = {}) : SortParseOutput {
+        const schema = this.resolveSchema(options.schema);
+
+        // If it is an empty array nothing is allowed
+        if (
+            !schema.sort.allowedIsUndefined &&
+            schema.sort.allowed.length === 0
+        ) {
+            return schema.sort.defaultOutput;
+        }
+
+        /* istanbul ignore next */
+        if (
+            typeof input !== 'string' &&
+            !Array.isArray(input) &&
+            !isObject(input)
+        ) {
+            if (schema.sort.throwOnFailure) {
+                throw SortParseError.inputInvalid();
+            }
+
+            return schema.sort.defaultOutput;
+        }
+
+        let parts : string[] = [];
+
+        if (typeof input === 'string') {
+            parts = input.split(',');
+        }
+
+        if (Array.isArray(input)) {
+            parts = input.filter((item) => typeof item === 'string');
+        }
+
+        if (isObject(input)) {
+            const keys = Object.keys(input);
+            for (let i = 0; i < keys.length; i++) {
+                /* istanbul ignore next */
+                if (
+                    !hasOwnProperty(input, keys[i]) ||
+                    typeof keys[i] !== 'string' ||
+                    typeof input[keys[i]] !== 'string'
+                ) {
+                    if (schema.sort.throwOnFailure) {
+                        throw SortParseError.keyValueInvalid(keys[i]);
+                    }
+
+                    continue;
+                }
+
+                const fieldPrefix = (input[keys[i]] as string)
+                    .toLowerCase() === 'desc' ? '-' : '';
+
+                parts.push(fieldPrefix + keys[i]);
+            }
+        }
+
+        const items : Record<string, SortParseOutputElement> = {};
+
+        let matched = false;
+
+        for (let i = 0; i < parts.length; i++) {
+            const { value, direction } = this.parseValue(parts[i]);
+            parts[i] = value;
+
+            const key: string = applyMapping(parts[i], schema.sort.mapping);
+
+            const fieldDetails = parseKey(key);
+
+            if (
+                schema.sort.allowedIsUndefined &&
+                !isPropertyNameValid(fieldDetails.name)
+            ) {
+                if (schema.sort.throwOnFailure) {
+                    throw SortParseError.keyInvalid(fieldDetails.name);
+                }
+
+                continue;
+            }
+
+            if (
+                !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
+                typeof fieldDetails.path !== 'undefined'
+            ) {
+                if (schema.sort.throwOnFailure) {
+                    throw SortParseError.keyPathInvalid(fieldDetails.path);
+                }
+
+                continue;
+            }
+
+            const keyWithAlias = buildKeyWithPath(fieldDetails);
+            if (
+                !schema.sort.allowedIsUndefined &&
+                schema.sort.allowed &&
+                !this.isMultiDimensionalArray(schema.sort.allowedRaw) &&
+                !isPathCoveredByParseAllowedOption(schema.sort.allowed, [key, keyWithAlias])
+            ) {
+                if (schema.sort.throwOnFailure) {
+                    throw SortParseError.keyNotAllowed(fieldDetails.name);
+                }
+
+                continue;
+            }
+
+            matched = true;
+
+            let path : string | undefined;
+            if (fieldDetails.path) {
+                path = fieldDetails.path;
+            } else if (schema.sort.defaultPath) {
+                path = schema.sort.defaultPath;
+            }
+
+            items[keyWithAlias] = {
+                key: fieldDetails.name,
+                ...(path ? { path } : {}),
+                value: direction,
+            };
+        }
+
+        if (!matched) {
+            return schema.sort.defaultOutput;
+        }
+
+        if (this.isMultiDimensionalArray(schema.sort.allowedRaw)) {
+            // eslint-disable-next-line no-labels,no-restricted-syntax
+            outerLoop:
+            for (let i = 0; i < schema.sort.allowed.length; i++) {
+                const temp : SortParseOutput = [];
+
+                const keyPaths = flattenParseAllowedOption(schema.sort.allowedRaw[i] as string[]);
+
+                for (let j = 0; j < keyPaths.length; j++) {
+                    let keyWithAlias : string = keyPaths[j];
+                    let key : string;
+
+                    const parts = keyWithAlias.split('.');
+                    if (parts.length > 1) {
+                        key = parts.pop() as string;
+                    } else {
+                        key = keyWithAlias;
+
+                        keyWithAlias = buildKeyPath(key, schema.sort.defaultPath);
+                    }
+
+                    if (
+                        hasOwnProperty(items, key) ||
+                            hasOwnProperty(items, keyWithAlias)
+                    ) {
+                        const item = hasOwnProperty(items, key) ?
+                            items[key] :
+                            items[keyWithAlias];
+
+                        temp.push(item);
+                    } else {
+                        // eslint-disable-next-line no-labels
+                        continue outerLoop;
+                    }
+                }
+
+                return temp;
+            }
+
+            // if we get no match, the sort data is invalid.
+            return [];
+        }
+
+        return Object.values(items);
+    }
+
+    // --------------------------------------------------
+
+    protected isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
+        if (!Array.isArray(arr)) {
+            return false;
+        }
+
+        return arr.length > 0 && Array.isArray(arr[0]);
+    }
+
+    protected parseValue(value: string) : {value: string, direction: `${SortDirection}`} {
+        let direction: SortDirection = SortDirection.ASC;
+        if (value.substring(0, 1) === '-') {
+            direction = SortDirection.DESC;
+            value = value.substring(1);
+        }
+
+        return {
+            direction,
+            value,
+        };
+    }
+}

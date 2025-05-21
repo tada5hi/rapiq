@@ -5,21 +5,17 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type {
+    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
+} from '../../builder';
 import type { BuildInput } from './types';
 import { DEFAULT_ID, Parameter, URLParameter } from '../../constants';
-import type {
-    FieldsBuildInput,
-    FiltersBuildInput,
-    PaginationBuildInput,
-    RelationsBuildInput,
-    SortBuildInput,
-} from '../../parameter';
 import {
     SortDirection,
 
     transformFiltersBuildInput,
     transformSortBuildInput,
-} from '../../parameter';
+} from '../../schema/parameter';
 import type { ObjectLiteral } from '../../types';
 import {
     groupArrayByKeyPath, merge, serializeAsURI, toKeyPathArray,
