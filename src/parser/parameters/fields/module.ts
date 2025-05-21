@@ -6,6 +6,7 @@
  */
 
 import { distinctArray, isObject } from 'smob';
+import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../module';
 import {
     FieldOperator, FieldsSchema, Schema, defineFieldsSchema,
@@ -18,18 +19,22 @@ import {
 import type { RelationsParseOutput } from '../relations';
 import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
 
-type FieldsParseOptions = {
+type FieldsParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | FieldsSchema
+    schema?: string | Schema<RECORD> | FieldsSchema<RECORD>
 };
 
 export class FieldsParser extends BaseParser<
 FieldsParseOptions,
 FieldsParseOutput
 > {
-    parse(
+    parse<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: FieldsParseOptions = {},
+        options: FieldsParseOptions<RECORD> = {},
     ) : FieldsParseOutput {
         const schema = this.resolveSchema(options.schema);
 
@@ -207,7 +212,9 @@ FieldsParseOutput
 
     // --------------------------------------------------
 
-    protected resolveSchema(input?: string | Schema | FieldsSchema) : FieldsSchema {
+    protected resolveSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | FieldsSchema<RECORD>) : FieldsSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.resolveBaseSchema(input);
             return schema.fields;

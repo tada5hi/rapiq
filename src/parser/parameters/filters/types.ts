@@ -6,7 +6,7 @@
  */
 
 import type { FilterValueSimple } from '../../../builder';
-import type { FilterComparisonOperator } from '../../../schema/parameter';
+import type { FilterComparisonOperator } from '../../../schema';
 
 export type FiltersParseOutputElement = {
     operator?: `${FilterComparisonOperator}`,

@@ -6,6 +6,7 @@
  */
 
 import { isObject } from 'smob';
+import type { ObjectLiteral } from '../../../types';
 import { PaginationParseError } from './error';
 import { BaseParser } from '../../module';
 import {
@@ -14,18 +15,22 @@ import {
 import type { RelationsParseOutput } from '../relations';
 import type { PaginationParseOutput } from './types';
 
-type PaginationParseOptions = {
+type PaginationParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema
+    schema?: string | Schema<RECORD> | PaginationSchema
 };
 
 export class PaginationParser extends BaseParser<
 PaginationParseOptions,
 PaginationParseOutput
 > {
-    parse(
+    parse<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: PaginationParseOptions = {},
+        options: PaginationParseOptions<RECORD> = {},
     ) : PaginationParseOutput {
         const schema = this.resolveSchema(options.schema);
 
@@ -93,7 +98,9 @@ PaginationParseOutput
 
     // --------------------------------------------------
 
-    protected resolveSchema(input?: string | Schema | PaginationSchema) : PaginationSchema {
+    protected resolveSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | PaginationSchema) : PaginationSchema {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.resolveBaseSchema(input);
             return schema.pagination;

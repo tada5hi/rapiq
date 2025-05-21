@@ -10,20 +10,24 @@ import type {
     FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
 } from '../../parser';
 import type { Schema, SchemaRegistry } from '../../schema';
-import type { ObjectLiteralKeys } from '../../types';
+import type { ObjectLiteral, ObjectLiteralKeys } from '../../types';
 
-export type QueryParseOptions = {
+export type QueryParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     registry?: SchemaRegistry,
     fields?: boolean,
     filters?: boolean,
     relations?: boolean,
     pagination?: boolean,
     sort?: boolean,
-    schema?: Schema | string
+    schema?: Schema<RECORD> | string
 };
 
-export type QueryParseParameterOptions = {
-    schema?: Schema | string,
+export type QueryParseParameterOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
+    schema?: Schema<RECORD> | string,
     relations?: RelationsParseOutput,
 };
 

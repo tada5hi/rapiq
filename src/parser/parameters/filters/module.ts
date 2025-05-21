@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { NestedKeys, ObjectLiteral } from '../../../types';
 import type { KeyDetails } from '../../../utils';
 import {
     applyMapping,
@@ -23,18 +24,20 @@ import {
 import type { RelationsParseOutput } from '../relations';
 import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
 
-type FiltersParseOptions = {
+type FiltersParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | FiltersSchema
+    schema?: string | Schema<RECORD> | FiltersSchema<RECORD>
 };
 
 export class FiltersParser extends BaseParser<
 FiltersParseOptions,
 FiltersParseOutput
 > {
-    parse(
+    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         data: unknown,
-        options: FiltersParseOptions = {},
+        options: FiltersParseOptions<RECORD> = {},
     ) : FiltersParseOutput {
         const schema = this.resolveSchema(options.schema);
 
@@ -126,7 +129,7 @@ FiltersParseOutput
             if (Array.isArray(filter.value)) {
                 const output : (string | number)[] = [];
                 for (let j = 0; j < filter.value.length; j++) {
-                    if (schema.validate(filter.key, filter.value[j])) {
+                    if (schema.validate(filter.key as NestedKeys<RECORD>, filter.value[j])) {
                         output.push(filter.value[j]);
                     } else if (schema.throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(fieldDetails.name);
@@ -137,7 +140,7 @@ FiltersParseOutput
                 if (filter.value.length === 0) {
                     continue;
                 }
-            } else if (!schema.validate(filter.key, filter.value)) {
+            } else if (!schema.validate(filter.key as NestedKeys<RECORD>, filter.value)) {
                 if (schema.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
@@ -179,7 +182,9 @@ FiltersParseOutput
 
     // --------------------------------------------------
 
-    protected resolveSchema(input?: string | Schema | FiltersSchema) : FiltersSchema {
+    protected resolveSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | FiltersSchema<RECORD>) : FiltersSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.resolveBaseSchema(input);
             return schema.filters;

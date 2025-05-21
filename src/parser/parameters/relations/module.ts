@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { ObjectLiteral } from '../../../types';
 import { applyMapping, hasOwnProperty, isPathCoveredByParseAllowedOption } from '../../../utils';
 import { RelationsParseError } from './error';
 
@@ -17,18 +18,22 @@ import type { RelationsParseOutput } from './types';
 
 // --------------------------------------------------
 
-type RelationsParseOptions = {
+type RelationsParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | RelationsSchema
+    schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
 };
 
 export class RelationsParser extends BaseParser<
 RelationsParseOptions,
 RelationsParseOutput
 > {
-    parse(
+    parse<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: RelationsParseOptions = {},
+        options: RelationsParseOptions<RECORD> = {},
     ) : RelationsParseOutput {
         const schema = this.resolveSchema(options.schema);
 
@@ -121,7 +126,9 @@ RelationsParseOutput
 
     // --------------------------------------------------
 
-    protected resolveSchema(input?: string | Schema | RelationsSchema) : RelationsSchema {
+    protected resolveSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.resolveBaseSchema(input);
             return schema.relations;

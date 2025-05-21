@@ -31,10 +31,11 @@ export type NestedKeys<T, Depth extends number = 4> =
     T extends ObjectLiteral ?
         (
             [Depth] extends [0] ? never :
-                {[Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any>
-                    ? (Flatten<T[Key]> extends Date ? `${Key}` : `${Key}.${NestedKeys<Flatten<T[Key]>, PrevIndex[Depth]>}`)
-                    : `${Key}`
-                }[keyof T & (string | number)]
+                {
+                    [Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any>
+                        ? (Flatten<T[Key]> extends Date ? `${Key}` : `${Key}.${NestedKeys<Flatten<T[Key]>, PrevIndex[Depth]>}`)
+                        : `${Key}`
+                }[keyof T & string]
         ) : string;
 
 export type NestedResourceKeys<T, Depth extends number = 4> =

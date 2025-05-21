@@ -17,6 +17,7 @@ import {
     RelationsParser,
     SortParser,
 } from '../../parser';
+import type { ObjectLiteral } from '../../types';
 import { isObject, isPropertySet } from '../../utils';
 import type {
     QueryParseInput, QueryParseOptions, QueryParseOutput, QueryParseParameterOptions,
@@ -51,9 +52,11 @@ QueryParseOutput
 
     // -----------------------------------------------------
 
-    parse(
+    parse<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseOptions = {},
+        options: QueryParseOptions<RECORD> = {},
     ): QueryParseOutput {
         const schema = this.resolveBaseSchema(options.schema);
 
@@ -66,7 +69,7 @@ QueryParseOutput
             return output;
         }
 
-        const parameterOptions : QueryParseParameterOptions = {
+        const parameterOptions : QueryParseParameterOptions<RECORD> = {
             schema,
         };
 
@@ -174,9 +177,11 @@ QueryParseOutput
      * @param input
      * @param options
      */
-    parseRelations(
+    parseRelations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseParameterOptions = {},
+        options: QueryParseParameterOptions<RECORD> = {},
     ): RelationsParseOutput {
         return this.relationsParser.parse(input, options);
     }
@@ -187,9 +192,11 @@ QueryParseOutput
      * @param input
      * @param options
      */
-    parseFields(
+    parseFields<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseParameterOptions = {},
+        options: QueryParseParameterOptions<RECORD> = {},
     ) : FieldsParseOutput {
         return this.fieldsParser.parse(input, options);
     }
@@ -200,9 +207,11 @@ QueryParseOutput
      * @param input
      * @param options
      */
-    parseFilters(
+    parseFilters<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseParameterOptions = {},
+        options: QueryParseParameterOptions<RECORD> = {},
     ) : FiltersParseOutput {
         return this.filtersParser.parse(input, options);
     }
@@ -213,9 +222,11 @@ QueryParseOutput
      * @param input
      * @param options
      */
-    parsePagination(
+    parsePagination<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseParameterOptions = {},
+        options: QueryParseParameterOptions<RECORD> = {},
     ) : PaginationParseOutput {
         return this.paginationParser.parse(input, options);
     }
@@ -226,9 +237,11 @@ QueryParseOutput
      * @param input
      * @param options
      */
-    parseSort(
+    parseSort<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        options: QueryParseParameterOptions = {},
+        options: QueryParseParameterOptions<RECORD> = {},
     ) : SortParseOutput {
         return this.sortParser.parse(input, options);
     }

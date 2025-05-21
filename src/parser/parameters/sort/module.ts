@@ -6,6 +6,7 @@
  */
 
 import { isObject } from 'smob';
+import type { ObjectLiteral } from '../../../types';
 import {
     applyMapping,
     buildKeyPath,
@@ -28,16 +29,20 @@ import { BaseParser } from '../../module';
 import type { RelationsParseOutput } from '../relations';
 import type { SortParseOutput, SortParseOutputElement } from './types';
 
-type SortParseOptions = {
+type SortParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | SortSchema
+    schema?: string | Schema<RECORD> | SortSchema<RECORD>
 };
 
 export class SortParser extends BaseParser<
 SortParseOptions,
 SortParseOutput
 > {
-    parse(input: unknown, options: SortParseOptions = {}) : SortParseOutput {
+    parse<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options: SortParseOptions<RECORD> = {}) : SortParseOutput {
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array nothing is allowed
@@ -233,7 +238,9 @@ SortParseOutput
 
     // --------------------------------------------------
 
-    protected resolveSchema(input?: string | Schema | SortSchema) : SortSchema {
+    protected resolveSchema<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | SortSchema<RECORD>) : SortSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.resolveBaseSchema(input);
             return schema.sort;
