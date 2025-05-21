@@ -6,8 +6,11 @@
  */
 
 import type { ObjectLiteral } from '../../../types';
+import type { OptionAllowed } from '../../../utils';
 import {
-    flattenParseAllowedOption, groupArrayByKeyPath, merge, toFlatObject,
+    flattenParseAllowedOption,
+    groupArrayByKeyPath,
+    hasOwnProperty, isPropertyNameValid,
 } from '../../../utils';
 import type { FieldsOptions } from './types';
 import { BaseSchema } from '../../base';
@@ -23,11 +26,9 @@ export class FieldsSchema<
 
     public allowed : Record<string, string[]>;
 
+    public allowedKeys : string[];
+
     public allowedIsUndefined : boolean;
-
-    public items : Record<string, string[]>;
-
-    public keys : string[];
 
     public reverseMapping : Record<string, string>;
 
@@ -37,20 +38,17 @@ export class FieldsSchema<
         super(input);
 
         this.allowed = {};
+        this.allowedKeys = [];
         this.allowedIsUndefined = true;
 
         this.default = {};
         this.defaultKeys = [];
         this.defaultIsUndefined = true;
 
-        this.items = {};
-        this.keys = [];
-
         this.reverseMapping = {};
 
-        this.initDefault();
-        this.initAllowed();
-        this.initItems();
+        this.setDefault(this.options.default);
+        this.setAllowed(this.options.allowed);
 
         this.initReverseMapping();
     }
@@ -63,8 +61,8 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    protected initDefault() {
-        if (typeof this.options.default === 'undefined') {
+    setDefault(input?: OptionAllowed<T>) {
+        if (typeof input === 'undefined') {
             this.default = {};
             this.defaultKeys = [];
             this.defaultIsUndefined = true;
@@ -72,48 +70,82 @@ export class FieldsSchema<
         }
 
         this.default = groupArrayByKeyPath(
-            flattenParseAllowedOption(this.options.default),
+            flattenParseAllowedOption(input),
+            this.defaultPath,
         );
         this.defaultKeys = Object.keys(this.default);
-
         this.defaultIsUndefined = false;
     }
 
-    protected initAllowed() {
-        if (typeof this.options.allowed === 'undefined') {
-            if (typeof this.options.default !== 'undefined') {
-                const items = toFlatObject(this.options.default, {
-                    validator(input) {
-                        if (!Array.isArray(input)) {
-                            return false;
-                        }
-
-                        return !input.some((el) => typeof el !== 'string');
-                    },
-                });
-
-                if (items.length > 0) {
-                    this.allowed = items;
-                    this.allowedIsUndefined = false;
-                    return;
-                }
-            }
-
+    setAllowed(input?: OptionAllowed<T>) {
+        if (typeof input === 'undefined') {
             this.allowed = {};
+            this.allowedKeys = [];
             this.allowedIsUndefined = true;
             return;
         }
 
         this.allowed = groupArrayByKeyPath(
-            flattenParseAllowedOption(this.options.allowed),
+            flattenParseAllowedOption(input),
+            this.defaultPath,
         );
+        this.allowedKeys = Object.keys(this.allowed);
         this.allowedIsUndefined = false;
     }
 
-    protected initItems() {
-        this.items = merge(this.default || {}, this.allowed || {});
-        this.keys = Object.keys(this.items);
+    // ---------------------------------------------------------
+
+    /**
+     * Check whether all fields are denied.
+     */
+    get allDenied() {
+        return !this.allowedIsUndefined &&
+            this.allowedKeys.length === 0 &&
+            !this.defaultIsUndefined &&
+            this.defaultKeys.length === 0;
     }
+
+    /**
+     * Check whether a name exists for a group.
+     *
+     * @param name
+     * @param group
+     */
+    isValid(
+        name: string,
+        group: string,
+    ): boolean {
+        if (
+            !this.allowedIsUndefined &&
+            hasOwnProperty(this.allowed, group)
+        ) {
+            const index = this.allowed[group].indexOf(name);
+            if (index !== -1) {
+                return true;
+            }
+        }
+
+        if (
+            !this.defaultIsUndefined &&
+            hasOwnProperty(this.default, group)
+        ) {
+            const index = this.default[group].indexOf(name);
+            if (index !== -1) {
+                return true;
+            }
+        }
+
+        if (
+            this.allowedIsUndefined &&
+            this.defaultIsUndefined
+        ) {
+            return isPropertyNameValid(name);
+        }
+
+        return false;
+    }
+
+    // ---------------------------------------------------------
 
     protected initReverseMapping() {
         if (typeof this.options.mapping === 'undefined') {

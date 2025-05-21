@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { distinctArray, isObject } from 'smob';
+import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../module';
 import {
@@ -14,7 +14,7 @@ import {
 import { DEFAULT_ID } from '../../../constants';
 import { FieldsParseError } from './error';
 import {
-    applyMapping, hasOwnProperty, isPathAllowedByRelations, isPropertyNameValid,
+    applyMapping, hasOwnProperty, isPathAllowedByRelations,
 } from '../../../utils';
 import type { RelationsParseOutput } from '../relations';
 import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
@@ -39,36 +39,48 @@ FieldsParseOutput
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array nothing is allowed
-        if (
-            (!schema.allowedIsUndefined || !schema.defaultIsUndefined) &&
-            schema.keys.length === 0
-        ) {
+        if (schema.allDenied) {
             return [];
         }
 
-        let data : Record<string, any> = {
-            [DEFAULT_ID]: [],
-        };
+        const defaultKey = schema.defaultPath || DEFAULT_ID;
+
+        let data : Record<string, any> = {};
 
         if (isObject(input)) {
+            if (
+                input[DEFAULT_ID] &&
+                DEFAULT_ID !== defaultKey
+            ) {
+                input[defaultKey] = input[DEFAULT_ID];
+                delete input[DEFAULT_ID];
+            }
+
             data = input;
-        } else if (typeof input === 'string' || Array.isArray(input)) {
-            data = { [DEFAULT_ID]: input };
+        } else if (
+            typeof input === 'string' ||
+            Array.isArray(input)
+        ) {
+            data = {
+                [defaultKey]: input,
+            };
         } else if (schema.throwOnFailure) {
             throw FieldsParseError.inputInvalid();
         }
 
-        let { keys } = schema;
+        let keys : string[];
 
         if (
-            keys.length > 0 &&
-            hasOwnProperty(data, DEFAULT_ID)
+            schema.allowedIsUndefined &&
+            schema.defaultIsUndefined
         ) {
-            data = {
-                [keys[0]]: data[DEFAULT_ID],
-            };
+            keys = Object.keys(data);
         } else {
-            keys = distinctArray([...keys, ...Object.keys(data)]);
+            keys = Array.from(new Set([
+                ...schema.allowedKeys,
+                ...schema.defaultKeys,
+                ...Object.keys(data),
+            ]));
         }
 
         const output : FieldsParseOutput = [];
@@ -77,7 +89,7 @@ FieldsParseOutput
             const path = keys[i];
 
             if (
-                path !== DEFAULT_ID &&
+                path !== defaultKey &&
                 !isPathAllowedByRelations(path, options.relations)
             ) {
                 if (schema.throwOnFailure) {
@@ -88,14 +100,13 @@ FieldsParseOutput
             }
 
             let fields : string[] = [];
-
             if (hasOwnProperty(data, path)) {
-                fields = this.parseFieldsInput(data[path]);
+                fields = this.parseInputGroup(data[path]);
             } else if (
                 hasOwnProperty(schema.reverseMapping, path) &&
                 hasOwnProperty(data, schema.reverseMapping[path])
             ) {
-                fields = this.parseFieldsInput(data[schema.reverseMapping[path]]);
+                fields = this.parseInputGroup(data[schema.reverseMapping[path]]);
             }
 
             const transformed : FieldsParseInputTransformed = {
@@ -122,14 +133,7 @@ FieldsParseOutput
 
                     fields[j] = applyMapping(fields[j], schema.mapping, true);
 
-                    let isValid : boolean;
-                    if (hasOwnProperty(schema.items, path)) {
-                        isValid = schema.items[path].indexOf(fields[j]) !== -1;
-                    } else {
-                        isValid = isPropertyNameValid(fields[j]);
-                    }
-
-                    if (!isValid) {
+                    if (!schema.isValid(fields[j], path)) {
                         if (schema.throwOnFailure) {
                             throw FieldsParseError.keyNotAllowed(fields[j]);
                         }
@@ -177,7 +181,10 @@ FieldsParseOutput
             if (transformed.default.length > 0) {
                 for (let j = 0; j < transformed.default.length; j++) {
                     let destPath : string | undefined;
-                    if (path !== DEFAULT_ID) {
+                    if (
+                        path !== DEFAULT_ID &&
+                        path !== defaultKey
+                    ) {
                         destPath = path;
                     } else if (schema.defaultPath) {
                         destPath = schema.defaultPath;
@@ -194,7 +201,7 @@ FieldsParseOutput
         return output;
     }
 
-    protected parseFieldsInput(input: unknown): string[] {
+    protected parseInputGroup(input: unknown): string[] {
         let output: string[] = [];
 
         if (typeof input === 'string') {

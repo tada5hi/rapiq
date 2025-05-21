@@ -106,7 +106,10 @@ export function toKeyPathArray(
     return output;
 }
 
-export function groupArrayByKeyPath(input: string[]): Record<string, string[]> {
+export function groupArrayByKeyPath(
+    input: string[],
+    defaultKey?: string,
+): Record<string, string[]> {
     const pathItems: Record<string, string[]> = {};
 
     for (let i = 0; i < input.length; i++) {
@@ -115,7 +118,7 @@ export function groupArrayByKeyPath(input: string[]): Record<string, string[]> {
         let key: string;
         let name: string;
         if (parts.length === 1) {
-            key = DEFAULT_ID;
+            key = defaultKey || DEFAULT_ID;
             name = input[i];
         } else {
             name = parts.pop() as string;

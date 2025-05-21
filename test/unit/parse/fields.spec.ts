@@ -9,11 +9,11 @@ import type {
     FieldsParseOutput,
     ObjectLiteral,
 } from '../../../src';
-
 import {
     FieldsParseError,
     FieldsParser,
     RelationsParser,
+    defineFieldsSchema,
     defineSchema,
 } from '../../../src';
 
@@ -24,7 +24,7 @@ describe('src/fields/index.ts', () => {
         parser = new FieldsParser();
     });
 
-    it('should transform fields with defaultPath', () => {
+    it('should parse fields with defaultPath', () => {
         const schema = defineSchema({
             fields: {
                 allowed: ['id', 'name', 'email'],
@@ -32,7 +32,7 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        let data = parser.parse([], {
+        const data = parser.parse([], {
             schema,
         });
 
@@ -50,8 +50,14 @@ describe('src/fields/index.ts', () => {
                 path: 'user',
             },
         ] as FieldsParseOutput);
+    });
 
-        data = parser.parse('+email', {
+    it('should parse fields with extra field', () => {
+        const schema = defineFieldsSchema({
+            allowed: ['id', 'name', 'email'],
+            defaultPath: 'user',
+        });
+        const data = parser.parse('+email', {
             schema,
         });
         expect(data).toEqual([
@@ -63,7 +69,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should parse with different allowed values', () => {
-        const schema = defineSchema<{
+        const schema = defineFieldsSchema<{
             id: string,
             name: string,
             email: string,
@@ -71,14 +77,12 @@ describe('src/fields/index.ts', () => {
                 extra: string
             }
         }>({
-            fields: {
-                allowed: [
-                    ['id', 'name', 'email'],
-                    {
-                        domain: ['extra'],
-                    },
-                ],
-            },
+            allowed: [
+                ['id', 'name', 'email'],
+                {
+                    domain: ['extra'],
+                },
+            ],
             defaultPath: 'user',
         });
 
@@ -212,11 +216,9 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should parse invalid input (with allowed & default)', () => {
-        const schema = defineSchema({
-            fields: {
-                allowed: ['id', 'name'],
-                default: ['id'],
-            },
+        const schema = defineFieldsSchema({
+            allowed: ['id', 'name'],
+            default: ['id'],
         });
 
         // fields undefined with default
@@ -278,6 +280,7 @@ describe('src/fields/index.ts', () => {
                     domain2: ['id', 'name'],
                 },
             },
+            defaultPath: 'domain',
         });
 
         // if multiple possibilities are available for request field, use allowed
@@ -397,11 +400,9 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should throw on non allowed relation', () => {
-        const schema = defineSchema({
-            fields: {
-                throwOnFailure: true,
-                allowed: ['user.foo'],
-            },
+        const schema = defineFieldsSchema({
+            throwOnFailure: true,
+            allowed: ['user.foo'],
         });
 
         const error = FieldsParseError.keyPathInvalid('bar');

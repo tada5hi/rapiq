@@ -11,10 +11,6 @@ import type {
 } from '../../../types';
 import type { OptionAllowed } from '../../../utils';
 
-// -----------------------------------------------------------
-
-// -----------------------------------------------------------
-
 export type FiltersOptionDefault<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
         FiltersOptionDefault<Flatten<T[K]>> :

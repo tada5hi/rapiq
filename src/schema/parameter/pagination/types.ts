@@ -5,12 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-// -----------------------------------------------------------
-// Build
-// -----------------------------------------------------------
-
-// -----------------------------------------------------------
-
 export type PaginationOptions = {
     maxLimit?: number
     throwOnFailure?: boolean

@@ -8,8 +8,6 @@
 import type { ObjectLiteral } from '../../../types';
 import { applyMapping, hasOwnProperty, isPathCoveredByParseAllowedOption } from '../../../utils';
 import { RelationsParseError } from './error';
-
-import { includeParents, isValidRelationPath } from '../../../schema/parameter/relations/utils';
 import { BaseParser } from '../../module';
 import {
     RelationsSchema, Schema, defineRelationsSchema,
@@ -77,7 +75,7 @@ RelationsParseOutput
             if (schema.allowed) {
                 isValid = isPathCoveredByParseAllowedOption(schema.allowed as string[], items[j]);
             } else {
-                isValid = isValidRelationPath(items[j]);
+                isValid = this.isValidPath(items[j]);
             }
 
             if (!isValid) {
@@ -95,9 +93,9 @@ RelationsParseOutput
                     (item) => item.includes('.') &&
                         (schema.includeParents as string[]).filter((parent) => item.startsWith(parent)).length > 0,
                 );
-                items.unshift(...includeParents(parentIncludes));
+                items.unshift(...this.includeParents(parentIncludes));
             } else {
-                items = includeParents(items);
+                items = this.includeParents(items);
             }
         }
 
@@ -122,6 +120,33 @@ RelationsParseOutput
                     value,
                 };
             });
+    }
+
+    // --------------------------------------------------
+
+    protected includeParents(
+        data: string[],
+    ) : string[] {
+        for (let i = 0; i < data.length; i++) {
+            const parts: string[] = data[i].split('.');
+
+            while (parts.length > 0) {
+                parts.pop();
+
+                if (parts.length > 0) {
+                    const value = parts.join('.');
+                    if (data.indexOf(value) === -1) {
+                        data.unshift(value);
+                    }
+                }
+            }
+        }
+
+        return data;
+    }
+
+    protected isValidPath(input: string) : boolean {
+        return /^[a-zA-Z0-9_-]+([.]*[a-zA-Z0-9_-])*$/gu.test(input);
     }
 
     // --------------------------------------------------
