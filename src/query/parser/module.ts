@@ -81,9 +81,6 @@ QueryParseOutput
                 relations = this.parseRelations(
                     input[Parameter.RELATIONS] || input[URLParameter.RELATIONS],
                 );
-            } else if (this.hasParameterOptionDefault(schema.relations)) {
-                // todo: this should be simplified
-                relations = this.parseRelations(undefined, parameterOptions);
             }
 
             if (typeof relations !== 'undefined') {
@@ -101,7 +98,7 @@ QueryParseOutput
                     input[Parameter.FIELDS] || input[URLParameter.FIELDS],
                     parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(schema.fields)) {
+            } else if (schema.fields.defaultKeys.length > 0) {
                 // todo: this should be simplified
                 fields = this.parseFields(
                     undefined,
@@ -122,7 +119,7 @@ QueryParseOutput
                     input[Parameter.FILTERS] || input[URLParameter.FILTERS],
                     parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(schema.filters)) {
+            } else if (schema.filters.defaultKeys.length > 0) {
                 // todo: this should be simplified
                 filters = this.parseFilters(undefined, parameterOptions);
             }
@@ -156,7 +153,7 @@ QueryParseOutput
                     input[Parameter.SORT] || input[URLParameter.SORT],
                     parameterOptions,
                 );
-            } else if (this.hasParameterOptionDefault(schema.sort)) {
+            } else if (schema.sort.defaultKeys.length > 0) {
                 // todo: this should be simplified
                 sort = this.parseSort(undefined, parameterOptions);
             }

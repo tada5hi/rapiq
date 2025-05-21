@@ -17,6 +17,8 @@ export class FieldsSchema<
 > extends BaseSchema<FieldsOptions<T>> {
     public default : Record<string, string[]>;
 
+    public defaultKeys : string[];
+
     public defaultIsUndefined : boolean;
 
     public allowed : Record<string, string[]>;
@@ -38,6 +40,7 @@ export class FieldsSchema<
         this.allowedIsUndefined = true;
 
         this.default = {};
+        this.defaultKeys = [];
         this.defaultIsUndefined = true;
 
         this.items = {};
@@ -63,6 +66,7 @@ export class FieldsSchema<
     protected initDefault() {
         if (typeof this.options.default === 'undefined') {
             this.default = {};
+            this.defaultKeys = [];
             this.defaultIsUndefined = true;
             return;
         }
@@ -70,6 +74,8 @@ export class FieldsSchema<
         this.default = groupArrayByKeyPath(
             flattenParseAllowedOption(this.options.default),
         );
+        this.defaultKeys = Object.keys(this.default);
+
         this.defaultIsUndefined = false;
     }
 
