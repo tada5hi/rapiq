@@ -8,7 +8,7 @@
 import type { ObjectLiteral } from '../../../types';
 import { applyMapping, hasOwnProperty, isPathCoveredByParseAllowedOption } from '../../../utils';
 import { RelationsParseError } from './error';
-import { BaseParser } from '../../module';
+import { BaseParser } from '../../base';
 import {
     RelationsSchema, Schema, defineRelationsSchema,
 } from '../../../schema';

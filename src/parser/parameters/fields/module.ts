@@ -7,7 +7,7 @@
 
 import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../../types';
-import { BaseParser } from '../../module';
+import { BaseParser } from '../../base';
 import {
     FieldOperator, FieldsSchema, Schema, defineFieldsSchema,
 } from '../../../schema';

@@ -25,7 +25,7 @@ import {
     SortSchema,
     defineSortSchema,
 } from '../../../schema';
-import { BaseParser } from '../../module';
+import { BaseParser } from '../../base';
 import type { RelationsParseOutput } from '../relations';
 import type { SortParseOutput, SortParseOutputElement } from './types';
 

@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 2025.
+ * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Parameter, URLParameter } from '../../constants';
+import type { Parameter } from '../constants';
 import type {
     FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
-} from '../../parser';
-import type { Schema, SchemaRegistry } from '../../schema';
-import type { ObjectLiteral, ObjectLiteralKeys } from '../../types';
+} from './index';
+import type { Schema, SchemaRegistry } from '../schema';
+import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
 
-export type QueryParseOptions<
+export type ParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     registry?: SchemaRegistry,
@@ -31,11 +31,7 @@ export type QueryParseParameterOptions<
     relations?: RelationsParseOutput,
 };
 
-export type QueryParseInput = {
-    [K in `${Parameter}` | `${URLParameter}`]?: unknown
-};
-
-export type QueryParseParametersOutput = ObjectLiteralKeys<{
+export type ParseParametersOutput = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsParseOutput,
     [Parameter.FILTERS]?: FiltersParseOutput,
     [Parameter.RELATIONS]?: RelationsParseOutput,
@@ -43,6 +39,6 @@ export type QueryParseParametersOutput = ObjectLiteralKeys<{
     [Parameter.SORT]?: SortParseOutput,
 }>;
 
-export type QueryParseOutput = QueryParseParametersOutput & {
+export type ParseOutput = ParseParametersOutput & {
     defaultPath?: string
 };

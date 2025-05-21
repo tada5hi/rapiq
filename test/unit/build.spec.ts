@@ -6,9 +6,20 @@
  */
 
 import {
-    DEFAULT_ID, Parameter, SortDirection, URLParameter, buildQuery,
+    DEFAULT_ID, type ObjectLiteral, Parameter, SortDirection, URLParameter,
 } from '../../src';
+import { Builder } from '../../src/builder/module';
+import type { BuildInput } from '../../src/builder/types';
 import { buildURLQueryString } from '../../src/utils';
+
+function buildQuery<T extends ObjectLiteral = ObjectLiteral>(
+    input: BuildInput<T> = {},
+) : string {
+    const builder = new Builder();
+    builder.add(input);
+
+    return builder.toString();
+}
 
 describe('src/build.ts', () => {
     type GrandChild = {

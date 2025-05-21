@@ -19,7 +19,7 @@ import {
     parseKey,
 } from '../../../utils';
 import { FiltersParseError } from './error';
-import { BaseParser } from '../../module';
+import { BaseParser } from '../../base';
 import {
     FilterComparisonOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
 } from '../../../schema';

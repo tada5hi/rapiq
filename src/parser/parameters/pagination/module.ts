@@ -8,7 +8,7 @@
 import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../../types';
 import { PaginationParseError } from './error';
-import { BaseParser } from '../../module';
+import { BaseParser } from '../../base';
 import {
     PaginationSchema, Schema, definePaginationSchema,
 } from '../../../schema';

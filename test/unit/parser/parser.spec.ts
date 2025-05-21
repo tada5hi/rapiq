@@ -5,14 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { QueryParseOutput } from '../../../src';
+import type { ParseOutput } from '../../../src';
 import {
-    QueryParser,
+    Parser,
     SchemaRegistry,
     defineSchema,
 } from '../../../src';
-
-type ParseOutput = QueryParseOutput;
 
 describe('src/parser', () => {
     it('should parse schema by name', () => {
@@ -23,7 +21,7 @@ describe('src/parser', () => {
             },
         }));
 
-        const parser = new QueryParser(registry);
+        const parser = new Parser(registry);
 
         const output = parser.parse({
             fields: ['id', 'name'],

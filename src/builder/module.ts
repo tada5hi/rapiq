@@ -7,23 +7,23 @@
 
 import type {
     FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
-} from './index';
+} from './parameters';
+import { BaseBuilder } from './base';
 import {
-    BaseBuilder,
     FieldsBuilder,
     FiltersBuilder,
     PaginationBuilder,
     RelationsBuilder,
     SortBuilder,
-} from './index';
-import type { BuildInput } from '../query';
+} from './parameters';
+import type { BuildInput } from './types';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 import {
     serializeAsURI,
 } from '../utils';
 
-export class QueryBuilder<
+export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
 > extends BaseBuilder<BuildInput<T>> {
     protected fields : FieldsBuilder<T>;
