@@ -4,8 +4,8 @@
  *  For the full copyright and license information,
  *  view the LICENSE file that was distributed with this source code.
  */
-import type { SchemaOptions } from '../schema';
-import { Schema, SchemaRegistry, defineSchema } from '../schema';
+import type { Schema } from '../schema';
+import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
 
 export abstract class BaseParser<
@@ -33,15 +33,13 @@ export abstract class BaseParser<
 
     // --------------------------------------------------
 
-    resolveSchema(input?: string | Schema | SchemaOptions) {
+    protected resolveBaseSchema(input?: string | Schema) {
         let schema : Schema;
         if (input) {
             if (typeof input === 'string') {
                 schema = this.registry.getOrFail(input);
-            } else if (input instanceof Schema) {
-                schema = input;
             } else {
-                schema = defineSchema(input);
+                schema = input;
             }
         } else {
             schema = defineSchema();

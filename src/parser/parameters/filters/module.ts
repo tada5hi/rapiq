@@ -17,13 +17,15 @@ import {
 } from '../../../utils';
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../module';
-import type { Schema, SchemaOptions } from '../../../schema';
+import {
+    FiltersSchema, Schema, defineFiltersSchema,
+} from '../../../schema';
 import type { RelationsParseOutput } from '../relations';
 import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
 
 type FiltersParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | SchemaOptions
+    schema?: string | Schema | FiltersSchema
 };
 
 export class FiltersParser extends BaseParser<
@@ -36,28 +38,26 @@ FiltersParseOutput
     ) : FiltersParseOutput {
         const schema = this.resolveSchema(options.schema);
 
-        const container = schema.filters;
-
         // If it is an empty array nothing is allowed
         if (
-            !container.allowedIsUndefined &&
-            container.allowed.length === 0
+            !schema.allowedIsUndefined &&
+            schema.allowed.length === 0
         ) {
-            return container.defaultOutput;
+            return schema.defaultOutput;
         }
 
         /* istanbul ignore next */
         if (!isObject(data)) {
-            if (container.throwOnFailure) {
+            if (schema.throwOnFailure) {
                 throw FiltersParseError.inputInvalid();
             }
 
-            return container.defaultOutput;
+            return schema.defaultOutput;
         }
 
         const { length } = Object.keys(data);
         if (length === 0) {
-            return container.defaultOutput;
+            return schema.defaultOutput;
         }
 
         const items : Record<string, FiltersParseOutputElement> = {};
@@ -75,21 +75,21 @@ FiltersParseOutput
                 value !== null &&
                 !Array.isArray(value)
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(keys[i]);
                 }
                 continue;
             }
 
-            keys[i] = applyMapping(keys[i], container.mapping);
+            keys[i] = applyMapping(keys[i], schema.mapping);
 
             const fieldDetails : KeyDetails = parseKey(keys[i]);
 
             if (
-                container.allowedIsUndefined &&
+                schema.allowedIsUndefined &&
                 !isPropertyNameValid(fieldDetails.name)
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyInvalid(fieldDetails.name);
                 }
                 continue;
@@ -99,7 +99,7 @@ FiltersParseOutput
                 typeof fieldDetails.path !== 'undefined' &&
                 !isPathAllowedByRelations(fieldDetails.path, options.relations)
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyPathInvalid(fieldDetails.path);
                 }
                 continue;
@@ -107,18 +107,18 @@ FiltersParseOutput
 
             const fullKey : string = buildKeyWithPath(fieldDetails);
             if (
-                !container.allowedIsUndefined &&
-                container.allowed &&
-                !isPathCoveredByParseAllowedOption(container.allowed, [keys[i], fullKey])
+                !schema.allowedIsUndefined &&
+                schema.allowed &&
+                !isPathCoveredByParseAllowedOption(schema.allowed, [keys[i], fullKey])
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyInvalid(fieldDetails.name);
                 }
 
                 continue;
             }
 
-            const filter = container.transformParseOutputElement({
+            const filter = schema.transformParseOutputElement({
                 key: fieldDetails.name,
                 value: value as string | boolean | number,
             });
@@ -126,9 +126,9 @@ FiltersParseOutput
             if (Array.isArray(filter.value)) {
                 const output : (string | number)[] = [];
                 for (let j = 0; j < filter.value.length; j++) {
-                    if (container.validate(filter.key, filter.value[j])) {
+                    if (schema.validate(filter.key, filter.value[j])) {
                         output.push(filter.value[j]);
-                    } else if (container.throwOnFailure) {
+                    } else if (schema.throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                     }
                 }
@@ -137,8 +137,8 @@ FiltersParseOutput
                 if (filter.value.length === 0) {
                     continue;
                 }
-            } else if (!container.validate(filter.key, filter.value)) {
-                if (container.throwOnFailure) {
+            } else if (!schema.validate(filter.key, filter.value)) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
@@ -149,7 +149,7 @@ FiltersParseOutput
                 typeof filter.value === 'string' &&
                 filter.value.length === 0
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
@@ -160,20 +160,35 @@ FiltersParseOutput
                 Array.isArray(filter.value) &&
                 filter.value.length === 0
             ) {
-                if (container.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(fieldDetails.name);
                 }
 
                 continue;
             }
 
-            if (fieldDetails.path || container.defaultPath) {
-                filter.path = fieldDetails.path || container.defaultPath;
+            if (fieldDetails.path || schema.defaultPath) {
+                filter.path = fieldDetails.path || schema.defaultPath;
             }
 
             items[fullKey] = filter;
         }
 
-        return container.buildParseOutput(items);
+        return schema.buildParseOutput(items);
+    }
+
+    // --------------------------------------------------
+
+    protected resolveSchema(input?: string | Schema | FiltersSchema) : FiltersSchema {
+        if (typeof input === 'string' || input instanceof Schema) {
+            const schema = this.resolveBaseSchema(input);
+            return schema.filters;
+        }
+
+        if (input instanceof FiltersSchema) {
+            return input;
+        }
+
+        return defineFiltersSchema();
     }
 }

@@ -55,7 +55,7 @@ QueryParseOutput
         input: unknown,
         options: QueryParseOptions = {},
     ): QueryParseOutput {
-        const schema = this.resolveSchema(options.schema);
+        const schema = this.resolveBaseSchema(options.schema);
 
         const output : QueryParseOutput = {};
         if (schema.defaultPath) {

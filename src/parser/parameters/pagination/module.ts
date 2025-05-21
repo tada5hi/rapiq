@@ -8,7 +8,9 @@
 import { isObject } from 'smob';
 import { PaginationParseError } from './error';
 import { BaseParser } from '../../module';
-import type { PaginationSchema, Schema } from '../../../schema';
+import {
+    PaginationSchema, Schema, definePaginationSchema,
+} from '../../../schema';
 import type { RelationsParseOutput } from '../relations';
 import type { PaginationParseOutput } from './types';
 
@@ -30,11 +32,11 @@ PaginationParseOutput
         const output : PaginationParseOutput = {};
 
         if (!isObject(input)) {
-            if (schema.pagination.throwOnFailure) {
+            if (schema.throwOnFailure) {
                 throw PaginationParseError.inputInvalid();
             }
 
-            return this.finalizePagination(output, schema.pagination);
+            return this.finalizePagination(output, schema);
         }
 
         let { limit, offset } = input as Record<string, any>;
@@ -44,7 +46,7 @@ PaginationParseOutput
 
             if (!Number.isNaN(limit) && limit > 0) {
                 output.limit = limit;
-            } else if (schema.pagination.throwOnFailure) {
+            } else if (schema.throwOnFailure) {
                 throw PaginationParseError.keyValueInvalid('limit');
             }
         }
@@ -54,12 +56,12 @@ PaginationParseOutput
 
             if (!Number.isNaN(offset) && offset >= 0) {
                 output.offset = offset;
-            } else if (schema.pagination.throwOnFailure) {
+            } else if (schema.throwOnFailure) {
                 throw PaginationParseError.keyValueInvalid('offset');
             }
         }
 
-        return this.finalizePagination(output, schema.pagination);
+        return this.finalizePagination(output, schema);
     }
 
     protected finalizePagination(
@@ -87,5 +89,20 @@ PaginationParseOutput
         }
 
         return data;
+    }
+
+    // --------------------------------------------------
+
+    protected resolveSchema(input?: string | Schema | PaginationSchema) : PaginationSchema {
+        if (typeof input === 'string' || input instanceof Schema) {
+            const schema = this.resolveBaseSchema(input);
+            return schema.pagination;
+        }
+
+        if (input instanceof PaginationSchema) {
+            return input;
+        }
+
+        return definePaginationSchema();
     }
 }

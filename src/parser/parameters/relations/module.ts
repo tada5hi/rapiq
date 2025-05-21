@@ -10,14 +10,16 @@ import { RelationsParseError } from './error';
 
 import { includeParents, isValidRelationPath } from '../../../schema/parameter/relations/utils';
 import { BaseParser } from '../../module';
-import type { Schema, SchemaOptions } from '../../../schema';
+import {
+    RelationsSchema, Schema, defineRelationsSchema,
+} from '../../../schema';
 import type { RelationsParseOutput } from './types';
 
 // --------------------------------------------------
 
 type RelationsParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | SchemaOptions
+    schema?: string | Schema | RelationsSchema
 };
 
 export class RelationsParser extends BaseParser<
@@ -32,8 +34,8 @@ RelationsParseOutput
 
         // If it is an empty array nothing is allowed
         if (
-            Array.isArray(schema.relations.allowed) &&
-            schema.relations.allowed.length === 0
+            Array.isArray(schema.allowed) &&
+            schema.allowed.length === 0
         ) {
             return [];
         }
@@ -50,7 +52,7 @@ RelationsParseOutput
                     throw RelationsParseError.inputInvalid();
                 }
             }
-        } else if (schema.relations.throwOnFailure) {
+        } else if (schema.throwOnFailure) {
             throw RelationsParseError.inputInvalid();
         }
 
@@ -58,23 +60,23 @@ RelationsParseOutput
             return [];
         }
 
-        const mappingKeys = Object.keys(schema.relations.mapping);
+        const mappingKeys = Object.keys(schema.mapping);
         if (mappingKeys.length > 0) {
             for (let i = 0; i < items.length; i++) {
-                items[i] = applyMapping(items[i], schema.relations.mapping);
+                items[i] = applyMapping(items[i], schema.mapping);
             }
         }
 
         for (let j = items.length - 1; j >= 0; j--) {
             let isValid : boolean;
-            if (schema.relations.allowed) {
-                isValid = isPathCoveredByParseAllowedOption(schema.relations.allowed as string[], items[j]);
+            if (schema.allowed) {
+                isValid = isPathCoveredByParseAllowedOption(schema.allowed as string[], items[j]);
             } else {
                 isValid = isValidRelationPath(items[j]);
             }
 
             if (!isValid) {
-                if (schema.relations.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw RelationsParseError.keyInvalid(items[j]);
                 }
 
@@ -82,11 +84,11 @@ RelationsParseOutput
             }
         }
 
-        if (schema.relations.includeParents) {
-            if (Array.isArray(schema.relations.includeParents)) {
+        if (schema.includeParents) {
+            if (Array.isArray(schema.includeParents)) {
                 const parentIncludes = items.filter(
                     (item) => item.includes('.') &&
-                        (schema.relations.includeParents as string[]).filter((parent) => item.startsWith(parent)).length > 0,
+                        (schema.includeParents as string[]).filter((parent) => item.startsWith(parent)).length > 0,
                 );
                 items.unshift(...includeParents(parentIncludes));
             } else {
@@ -102,10 +104,10 @@ RelationsParseOutput
 
                 let value : string;
                 if (
-                    schema.relations.pathMapping &&
-                    hasOwnProperty(schema.relations.pathMapping, key)
+                    schema.pathMapping &&
+                    hasOwnProperty(schema.pathMapping, key)
                 ) {
-                    value = schema.relations.pathMapping[key];
+                    value = schema.pathMapping[key];
                 } else {
                     value = parts.pop() as string;
                 }
@@ -115,5 +117,20 @@ RelationsParseOutput
                     value,
                 };
             });
+    }
+
+    // --------------------------------------------------
+
+    protected resolveSchema(input?: string | Schema | RelationsSchema) : RelationsSchema {
+        if (typeof input === 'string' || input instanceof Schema) {
+            const schema = this.resolveBaseSchema(input);
+            return schema.relations;
+        }
+
+        if (input instanceof RelationsSchema) {
+            return input;
+        }
+
+        return defineRelationsSchema();
     }
 }

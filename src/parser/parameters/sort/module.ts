@@ -18,15 +18,19 @@ import {
     parseKey,
 } from '../../../utils';
 import { SortParseError } from './error';
-import type { Schema, SchemaOptions } from '../../../schema';
-import { SortDirection } from '../../../schema';
+import {
+    Schema,
+    SortDirection,
+    SortSchema,
+    defineSortSchema,
+} from '../../../schema';
 import { BaseParser } from '../../module';
 import type { RelationsParseOutput } from '../relations';
 import type { SortParseOutput, SortParseOutputElement } from './types';
 
 type SortParseOptions = {
     relations?: RelationsParseOutput,
-    schema?: string | Schema | SchemaOptions
+    schema?: string | Schema | SortSchema
 };
 
 export class SortParser extends BaseParser<
@@ -38,10 +42,10 @@ SortParseOutput
 
         // If it is an empty array nothing is allowed
         if (
-            !schema.sort.allowedIsUndefined &&
-            schema.sort.allowed.length === 0
+            !schema.allowedIsUndefined &&
+            schema.allowed.length === 0
         ) {
-            return schema.sort.defaultOutput;
+            return schema.defaultOutput;
         }
 
         /* istanbul ignore next */
@@ -50,11 +54,11 @@ SortParseOutput
             !Array.isArray(input) &&
             !isObject(input)
         ) {
-            if (schema.sort.throwOnFailure) {
+            if (schema.throwOnFailure) {
                 throw SortParseError.inputInvalid();
             }
 
-            return schema.sort.defaultOutput;
+            return schema.defaultOutput;
         }
 
         let parts : string[] = [];
@@ -76,7 +80,7 @@ SortParseOutput
                     typeof keys[i] !== 'string' ||
                     typeof input[keys[i]] !== 'string'
                 ) {
-                    if (schema.sort.throwOnFailure) {
+                    if (schema.throwOnFailure) {
                         throw SortParseError.keyValueInvalid(keys[i]);
                     }
 
@@ -98,15 +102,15 @@ SortParseOutput
             const { value, direction } = this.parseValue(parts[i]);
             parts[i] = value;
 
-            const key: string = applyMapping(parts[i], schema.sort.mapping);
+            const key: string = applyMapping(parts[i], schema.mapping);
 
             const fieldDetails = parseKey(key);
 
             if (
-                schema.sort.allowedIsUndefined &&
+                schema.allowedIsUndefined &&
                 !isPropertyNameValid(fieldDetails.name)
             ) {
-                if (schema.sort.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw SortParseError.keyInvalid(fieldDetails.name);
                 }
 
@@ -117,7 +121,7 @@ SortParseOutput
                 !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
                 typeof fieldDetails.path !== 'undefined'
             ) {
-                if (schema.sort.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw SortParseError.keyPathInvalid(fieldDetails.path);
                 }
 
@@ -126,12 +130,12 @@ SortParseOutput
 
             const keyWithAlias = buildKeyWithPath(fieldDetails);
             if (
-                !schema.sort.allowedIsUndefined &&
-                schema.sort.allowed &&
-                !this.isMultiDimensionalArray(schema.sort.allowedRaw) &&
-                !isPathCoveredByParseAllowedOption(schema.sort.allowed, [key, keyWithAlias])
+                !schema.allowedIsUndefined &&
+                schema.allowed &&
+                !this.isMultiDimensionalArray(schema.allowedRaw) &&
+                !isPathCoveredByParseAllowedOption(schema.allowed, [key, keyWithAlias])
             ) {
-                if (schema.sort.throwOnFailure) {
+                if (schema.throwOnFailure) {
                     throw SortParseError.keyNotAllowed(fieldDetails.name);
                 }
 
@@ -143,8 +147,8 @@ SortParseOutput
             let path : string | undefined;
             if (fieldDetails.path) {
                 path = fieldDetails.path;
-            } else if (schema.sort.defaultPath) {
-                path = schema.sort.defaultPath;
+            } else if (schema.defaultPath) {
+                path = schema.defaultPath;
             }
 
             items[keyWithAlias] = {
@@ -155,16 +159,16 @@ SortParseOutput
         }
 
         if (!matched) {
-            return schema.sort.defaultOutput;
+            return schema.defaultOutput;
         }
 
-        if (this.isMultiDimensionalArray(schema.sort.allowedRaw)) {
+        if (this.isMultiDimensionalArray(schema.allowedRaw)) {
             // eslint-disable-next-line no-labels,no-restricted-syntax
             outerLoop:
-            for (let i = 0; i < schema.sort.allowed.length; i++) {
+            for (let i = 0; i < schema.allowed.length; i++) {
                 const temp : SortParseOutput = [];
 
-                const keyPaths = flattenParseAllowedOption(schema.sort.allowedRaw[i] as string[]);
+                const keyPaths = flattenParseAllowedOption(schema.allowedRaw[i] as string[]);
 
                 for (let j = 0; j < keyPaths.length; j++) {
                     let keyWithAlias : string = keyPaths[j];
@@ -176,7 +180,7 @@ SortParseOutput
                     } else {
                         key = keyWithAlias;
 
-                        keyWithAlias = buildKeyPath(key, schema.sort.defaultPath);
+                        keyWithAlias = buildKeyPath(key, schema.defaultPath);
                     }
 
                     if (
@@ -225,5 +229,20 @@ SortParseOutput
             direction,
             value,
         };
+    }
+
+    // --------------------------------------------------
+
+    protected resolveSchema(input?: string | Schema | SortSchema) : SortSchema {
+        if (typeof input === 'string' || input instanceof Schema) {
+            const schema = this.resolveBaseSchema(input);
+            return schema.sort;
+        }
+
+        if (input instanceof SortSchema) {
+            return input;
+        }
+
+        return defineSortSchema();
     }
 }
