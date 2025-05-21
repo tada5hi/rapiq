@@ -98,7 +98,7 @@ QueryParseOutput
                     input[Parameter.FIELDS] || input[URLParameter.FIELDS],
                     parameterOptions,
                 );
-            } else if (schema.fields.defaultKeys.length > 0) {
+            } else if (schema.fields.hasDefaults()) {
                 // todo: this should be simplified
                 fields = this.parseFields(
                     undefined,
@@ -115,13 +115,16 @@ QueryParseOutput
             let filters : FiltersParseOutput | undefined;
             if (this.hasParameterData(input, [Parameter.FILTERS, URLParameter.FILTERS])) {
                 // todo: parse parameter & url-parameter
-                output[Parameter.FILTERS] = this.parseFilters(
+                filters = this.parseFilters(
                     input[Parameter.FILTERS] || input[URLParameter.FILTERS],
                     parameterOptions,
                 );
-            } else if (schema.filters.defaultKeys.length > 0) {
-                // todo: this should be simplified
-                filters = this.parseFilters(undefined, parameterOptions);
+            } else if (schema.filters.hasDefaults()) {
+                // todo: maybe move to parser
+                filters = this.parseFilters(
+                    undefined,
+                    parameterOptions,
+                );
             }
 
             if (typeof filters !== 'undefined') {

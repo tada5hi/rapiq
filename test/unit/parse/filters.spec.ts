@@ -51,17 +51,19 @@ describe('src/filter/index.ts', () => {
         }] as FiltersParseOutput);
     });
 
-    it('should transform request filters', () => {
+    it('should parse filters (allowed: [])', () => {
         // filter none
-        let allowedFilter = parser.parse({ id: 1 }, {
+        const allowedFilter = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: [],
             }),
         });
         expect(allowedFilter).toEqual([] as FiltersParseOutput);
+    });
 
+    it('should parse filters (allowed: undefined)', () => {
         // filter
-        allowedFilter = parser.parse({ id: 1 }, {
+        const allowedFilter = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: undefined,
             }),
@@ -71,8 +73,10 @@ describe('src/filter/index.ts', () => {
             value: 1,
             operator: FilterComparisonOperator.EQUAL,
         }] as FiltersParseOutput);
+    });
 
-        allowedFilter = parser.parse({ id: 1 }, {
+    it('should parse filters with default', () => {
+        let allowedFilter = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
             }),

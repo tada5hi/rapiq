@@ -55,6 +55,16 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
+    /**
+     * Check whether all fields are denied.
+     */
+    get allDenied() {
+        return !this.allowedIsUndefined &&
+            this.allowedKeys.length === 0 &&
+            !this.defaultIsUndefined &&
+            this.defaultKeys.length === 0;
+    }
+
     get mapping() {
         return this.options.mapping;
     }
@@ -95,14 +105,8 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    /**
-     * Check whether all fields are denied.
-     */
-    get allDenied() {
-        return !this.allowedIsUndefined &&
-            this.allowedKeys.length === 0 &&
-            !this.defaultIsUndefined &&
-            this.defaultKeys.length === 0;
+    hasDefaults() {
+        return !this.defaultIsUndefined && this.defaultKeys.length > 0;
     }
 
     /**

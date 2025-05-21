@@ -5,11 +5,13 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { FilterValueSimple } from '../../../builder';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import type { KeyDetails } from '../../../utils';
 import {
     applyMapping,
     buildKeyWithPath,
+    hasOwnProperty,
     isObject,
     isPathAllowedByRelations,
     isPathCoveredByParseAllowedOption,
@@ -19,7 +21,7 @@ import {
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../module';
 import {
-    FiltersSchema, Schema, defineFiltersSchema,
+    FilterComparisonOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
 } from '../../../schema';
 import type { RelationsParseOutput } from '../relations';
 import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
@@ -46,7 +48,7 @@ FiltersParseOutput
             !schema.allowedIsUndefined &&
             schema.allowed.length === 0
         ) {
-            return schema.defaultOutput;
+            return this.toArray(undefined, options);
         }
 
         /* istanbul ignore next */
@@ -55,12 +57,12 @@ FiltersParseOutput
                 throw FiltersParseError.inputInvalid();
             }
 
-            return schema.defaultOutput;
+            return this.toArray(undefined, options);
         }
 
         const { length } = Object.keys(data);
         if (length === 0) {
-            return schema.defaultOutput;
+            return this.toArray(undefined, options);
         }
 
         const items : Record<string, FiltersParseOutputElement> = {};
@@ -121,7 +123,7 @@ FiltersParseOutput
                 continue;
             }
 
-            const filter = schema.transformParseOutputElement({
+            const filter = this.normalizeOutputElement({
                 key: fieldDetails.name,
                 value: value as string | boolean | number,
             });
@@ -177,7 +179,259 @@ FiltersParseOutput
             items[fullKey] = filter;
         }
 
-        return schema.buildParseOutput(items);
+        return this.toArray(items, options);
+    }
+
+    // ---------------------------------------------------------
+
+    protected toArray<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: Record<string, FiltersParseOutputElement> = {},
+        options: FiltersParseOptions<RECORD> = {},
+    ) : FiltersParseOutput {
+        const schema = this.resolveSchema(options.schema);
+
+        const inputKeys = Object.keys(input || {});
+
+        if (
+            !schema.defaultByElement &&
+            inputKeys.length > 0
+        ) {
+            return Object.values(input);
+        }
+
+        if (schema.defaultKeys.length > 0) {
+            const output : FiltersParseOutput = [];
+
+            for (let i = 0; i < schema.defaultKeys.length; i++) {
+                const keyDetails = parseKey(schema.defaultKeys[i]);
+
+                if (
+                    schema.defaultByElement &&
+                    inputKeys.length > 0
+                ) {
+                    const keyWithPath = buildKeyWithPath(keyDetails);
+                    if (hasOwnProperty(input, keyWithPath)) {
+                        continue;
+                    }
+                }
+
+                if (schema.defaultByElement || inputKeys.length === 0) {
+                    let path : string | undefined;
+                    if (keyDetails.path) {
+                        path = keyDetails.path;
+                    } else if (schema.defaultPath) {
+                        path = schema.defaultPath;
+                    }
+
+                    output.push(this.normalizeOutputElement({
+                        ...(path ? { path } : {}),
+                        key: keyDetails.name,
+                        value: schema.default[schema.defaultKeys[i]],
+                    }));
+                }
+            }
+
+            return input ? [...Object.values(input), ...output] : output;
+        }
+
+        return input ? Object.values(input) : [];
+    }
+
+    // ^([0-9]+(?:\.[0-9]+)*){0,1}([a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]+)*){0,1}$
+    normalizeOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
+        if (
+            hasOwnProperty(element, 'path') &&
+            (typeof element.path === 'undefined' || element.path === null)
+        ) {
+            delete element.path;
+        }
+
+        if (element.operator) {
+            return element;
+        }
+
+        if (typeof element.value === 'string') {
+            element = {
+                ...element,
+                ...this.parseValue(element.value),
+            };
+        } else {
+            element.operator = FilterComparisonOperator.EQUAL;
+        }
+
+        element.value = this.normalizeValue(element.value);
+
+        return element;
+    }
+
+    protected parseValue(input: FilterValueSimple) : {
+        operator: `${FilterComparisonOperator}`,
+        value: FilterValueSimple
+    } {
+        if (
+            typeof input === 'string' &&
+            input.includes(FilterInputOperatorValue.IN)
+        ) {
+            input = input.split(FilterInputOperatorValue.IN);
+        }
+
+        let negation = false;
+
+        let value = this.matchOperator(FilterInputOperatorValue.NEGATION, input, 'start');
+        if (typeof value !== 'undefined') {
+            negation = true;
+            input = value;
+        }
+
+        if (Array.isArray(input)) {
+            return {
+                value: input,
+                operator: negation ?
+                    FilterComparisonOperator.NOT_IN :
+                    FilterComparisonOperator.IN,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LIKE, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: negation ?
+                    FilterComparisonOperator.NOT_LIKE :
+                    FilterComparisonOperator.LIKE,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN_EQUAL, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.LESS_THAN_EQUAL,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.LESS_THAN,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN_EQUAL, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
+            };
+        }
+
+        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN, input, 'start');
+        if (typeof value !== 'undefined') {
+            return {
+                value,
+                operator: FilterComparisonOperator.GREATER_THAN,
+            };
+        }
+
+        return {
+            value: input,
+            operator: negation ?
+                FilterComparisonOperator.NOT_EQUAL :
+                FilterComparisonOperator.EQUAL,
+        };
+    }
+
+    protected matchOperator(
+        key: string,
+        value: FilterValueSimple,
+        position: 'start' | 'end' | 'global',
+    ) : FilterValueSimple | undefined {
+        if (typeof value === 'string') {
+            switch (position) {
+                case 'start': {
+                    if (value.substring(0, key.length) === key) {
+                        return value.substring(key.length);
+                    }
+                    break;
+                }
+                case 'end': {
+                    if (value.substring(0 - key.length) === key) {
+                        return value.substring(0, value.length - key.length - 1);
+                    }
+                    break;
+                }
+            }
+
+            return undefined;
+        }
+
+        if (Array.isArray(value)) {
+            let match = false;
+            for (let i = 0; i < value.length; i++) {
+                const output = this.matchOperator(key, value[i], position);
+                if (typeof output !== 'undefined') {
+                    match = true;
+                    value[i] = output as string | number;
+                }
+            }
+
+            if (match) {
+                return value;
+            }
+        }
+
+        return undefined;
+    }
+
+    protected normalizeValue(input: FilterValueSimple) : FilterValueSimple {
+        if (typeof input === 'string') {
+            input = input.trim();
+            const lower = input.toLowerCase();
+
+            if (lower === 'true') {
+                return true;
+            }
+
+            if (lower === 'false') {
+                return false;
+            }
+
+            if (lower === 'null') {
+                return null;
+            }
+
+            if (input.length === 0) {
+                return input;
+            }
+
+            const num = Number(input);
+            if (!Number.isNaN(num)) {
+                return num;
+            }
+
+            const parts = input.split(',');
+            if (parts.length > 1) {
+                return this.normalizeValue(parts);
+            }
+        }
+
+        if (Array.isArray(input)) {
+            for (let i = 0; i < input.length; i++) {
+                input[i] = this.normalizeValue(input[i]) as string | number;
+            }
+
+            return (input as unknown[])
+                .filter((n) => n === 0 || n === null || !!n) as FilterValueSimple;
+        }
+
+        if (typeof input === 'undefined' || input === null) {
+            return null;
+        }
+
+        return input;
     }
 
     // --------------------------------------------------
