@@ -8,15 +8,15 @@
 import { Parameter, URLParameter } from '../constants';
 import type {
     FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
-} from './index';
+} from './parameters';
+import { BaseParser } from './base';
 import {
-    BaseParser,
     FieldsParser,
     FiltersParser,
     PaginationParser,
     RelationsParser,
     SortParser,
-} from './index';
+} from './parameters';
 import type { ObjectLiteral } from '../types';
 import { isObject, isPropertySet } from '../utils';
 import type {
