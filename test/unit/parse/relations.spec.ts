@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { RelationsParseOutput } from '../../../src';
 import { RelationsParseError, RelationsParser, defineSchema } from '../../../src';
 
 describe('src/relations/index.ts', () => {
@@ -23,7 +24,7 @@ describe('src/relations/index.ts', () => {
         let output = parser.parse('profile', { schema });
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
 
         output = parser.parse([], { schema });
         expect(output).toEqual([]);
@@ -46,7 +47,7 @@ describe('src/relations/index.ts', () => {
         const output = parser.parse(['profile!'], { schema });
         expect(output).toEqual([
             { key: 'profile!', value: 'profile!' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
     });
 
     it('should parse with alias', () => {
@@ -79,7 +80,7 @@ describe('src/relations/index.ts', () => {
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
     });
 
     it('should parse with nested alias & not includeParents', () => {
@@ -95,7 +96,7 @@ describe('src/relations/index.ts', () => {
         const output = parser.parse(['abc.photos'], { schema });
         expect(output).toEqual([
             { key: 'profile.photos', value: 'photos' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
     });
 
     it('should parse with nested alias & explicit includeParents', () => {
@@ -113,7 +114,7 @@ describe('src/relations/index.ts', () => {
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
             { key: 'user_roles.role', value: 'role' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
     });
 
     it('should parse with array input', () => {
@@ -137,7 +138,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(output).toEqual([] as RelationsParseOutput);
+        expect(output).toEqual([] satisfies RelationsParseOutput);
     });
 
     it('should parse with undefined allowed', () => {
@@ -168,7 +169,7 @@ describe('src/relations/index.ts', () => {
         expect(output).toEqual([
             { key: 'profile', value: 'profile' },
             { key: 'profile.photos', value: 'photos' },
-        ] as RelationsParseOutput);
+        ] satisfies RelationsParseOutput);
     });
 
     it('should pare with null input', () => {
