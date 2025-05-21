@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { QueryBuilder } from './builder';
+import { QueryBuilder } from '../../builder/builder';
 import type { ObjectLiteral } from '../../types';
 import type { BuildInput } from './types';
 

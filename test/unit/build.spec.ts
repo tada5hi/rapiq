@@ -6,7 +6,7 @@
  */
 
 import {
-    Parameter, SortDirection, URLParameter, buildQuery, DEFAULT_ID,
+    DEFAULT_ID, Parameter, SortDirection, URLParameter, buildQuery,
 } from '../../src';
 import { buildURLQueryString } from '../../src/utils';
 
@@ -15,7 +15,7 @@ describe('src/build.ts', () => {
         id: string,
 
         name: string
-    }
+    };
 
     type ChildEntity = {
         id: number;
@@ -25,7 +25,7 @@ describe('src/build.ts', () => {
         age: number;
 
         child: GrandChild
-    }
+    };
 
     type Entity = {
         id: number,
@@ -38,7 +38,7 @@ describe('src/build.ts', () => {
     it('should format filter record', () => {
         let record = buildQuery<Entity>({
             filter: {
-                id: 1
+                id: 1,
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: 1 } }));
@@ -70,14 +70,16 @@ describe('src/build.ts', () => {
             filter: {
                 'child.id': 1,
                 child: {
-                    'child.id': 'abc'
+                    'child.id': 'abc',
                 },
             },
         });
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: {
-            'child.id': 1,
-            'child.child.id': 'abc'
-        } }));
+        expect(record).toEqual(buildURLQueryString({
+            [URLParameter.FILTERS]: {
+                'child.id': 1,
+                'child.child.id': 'abc',
+            },
+        }));
 
         record = buildQuery<Entity>({
             filter: {
@@ -137,7 +139,7 @@ describe('src/build.ts', () => {
         // with negation & in operator
         record = buildQuery<Entity>({
             filter: {
-                id: [null, 1,2,3],
+                id: [null, 1, 2, 3],
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: 'null,1,2,3' } }));
@@ -181,8 +183,8 @@ describe('src/build.ts', () => {
                 ['id'],
                 {
                     child: ['id', 'name'],
-                }
-            ]
+                },
+            ],
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id'], child: ['id', 'name'] } }));
@@ -193,8 +195,8 @@ describe('src/build.ts', () => {
                 ['name'],
                 {
                     child: ['id', 'name'],
-                }
-            ]
+                },
+            ],
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id', 'name'], child: ['id', 'name'] } }));
@@ -206,12 +208,11 @@ describe('src/build.ts', () => {
                 },
                 {
                     child: ['name'],
-                }
-            ]
+                },
+            ],
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: { [DEFAULT_ID]: ['id'], child: ['id', 'name'] } }));
-
     });
 
     it('should format sort record', () => {

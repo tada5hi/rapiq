@@ -6,3 +6,4 @@
  */
 
 export * from './parameters';
+export * from './base';
