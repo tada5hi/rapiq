@@ -6,6 +6,10 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/Tada5hi/rapiq/badge.svg)](https://snyk.io/test/github/Tada5hi/rapiq)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
+> [!WARNING]
+> This README includes the documentation for the upcoming version 2.
+> This is the [link](https://github.com/tada5hi/typeorm-extension/tree/v1) for the v1 (and prior).
+
 Rapiq (**R**est **Api** **Q**uery) is a library to build an efficient interface between client- & server-side applications.
 It defines a scheme for the request, but **not** for the response.
 
@@ -65,7 +69,8 @@ The `BuildInput<T>` can contain a configuration for each
 - [Relations](https://rapiq.tada5hi.net/guide/relations-api-reference.md#relationsbuildinput): `RelationsBuildInput<T>`
 - [Sort](https://rapiq.tada5hi.net/guide/sort-api-reference.md#sortbuildinput): `SortBuildInput<T>`
 
-> **NOTE**: Check out the API-Reference of each parameter for acceptable input formats and examples.
+> [!NOTE]
+> Check out the API-Reference of each parameter for acceptable input formats and examples.
 
 After building, the string can be passed to a backend application as http query string argument.
 The backend application can process the request, by [parsing](https://rapiq.tada5hi.net/guide/parse.md) the query string.
@@ -83,10 +88,7 @@ The method should perform a request to the resource API to receive a collection 
 
 ```typescript
 import axios from "axios";
-import {
-    buildQuery,
-    BuildInput
-} from "rapiq";
+import { Builder } from 'rapiq';
 
 export type Realm = {
     id: string,
@@ -118,7 +120,8 @@ type ResponsePayload = {
     }
 }
 
-const record: BuildInput<User> = {
+const builder = new Builder<User>();
+builder.add({
     pagination: {
         limit: 20,
         offset: 10
@@ -129,22 +132,21 @@ const record: BuildInput<User> = {
     fields: ['id', 'name'],
     sort: '-id',
     relations: ['realm']
-};
+});
 
-const query = buildQuery(record);
-// console.log(query);
+// console.log(builder.toString());
 // ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=realm
 
 async function getAPIUsers(
-    record: BuildInput<User>
+    builder: Builder<User>
 ): Promise<ResponsePayload> {
-    const response = await axios.get('users' + buildQuery(record));
+    const response = await axios.get(`users${builder.toString()}`);
 
     return response.data;
 }
 
 (async () => {
-    let response = await getAPIUsers(record);
+    let response = await getAPIUsers(builder);
 
     // do something with the response :)
 })();
