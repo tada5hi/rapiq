@@ -28,6 +28,13 @@ export function hasOwnProperty<
     return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+export function isPropertySet<X extends Record<string, any>, K extends keyof X>(
+    obj: X,
+    prop: K,
+) : boolean {
+    return hasOwnProperty(obj, prop);
+}
+
 type Options = {
     transformer?: (
         input: unknown,

@@ -6,7 +6,8 @@
  */
 
 import { isObject } from 'smob';
-import type { RelationsParseOutput } from '../parameter';
+
+import type { RelationsParseOutput } from '../parser';
 import type { KeyDetails } from './type';
 
 export function isPathAllowedByRelations(
