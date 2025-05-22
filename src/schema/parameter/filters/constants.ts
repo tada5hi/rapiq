@@ -5,17 +5,28 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export enum FilterComparisonOperator {
-    EQUAL = '$eq',
-    NOT_EQUAL = '$ne',
-    LIKE = '$l',
-    NOT_LIKE = '$nl',
-    LESS_THAN_EQUAL = '$lte',
-    LESS_THAN = '$lt',
-    GREATER_THAN_EQUAL = '$gte',
-    GREATER_THAN = '$gt',
-    IN = '$in',
-    NOT_IN = '$nin',
+export enum FilterFieldOperator {
+    EQUAL = 'eq',
+    NOT_EQUAL = 'ne',
+
+    LIKE = 'l',
+    NOT_LIKE = 'nl',
+
+    LESS_THAN_EQUAL = 'lte',
+    LESS_THAN = 'lt',
+
+    GREATER_THAN_EQUAL = 'gte',
+    GREATER_THAN = 'gt',
+
+    IN = 'in',
+    NOT_IN = 'nin',
+
+    REGEX = 'regex',
+}
+
+export enum FilterCompoundOperator {
+    AND = 'and',
+    OR = 'or',
 }
 
 export enum FilterInputOperatorValue {
@@ -23,7 +34,6 @@ export enum FilterInputOperatorValue {
     LIKE = '~',
     LESS_THAN_EQUAL = '<=',
     LESS_THAN = '<',
-    MORE_THAN_EQUAL = '>=',
-    MORE_THAN = '>',
-    IN = ',',
+    GREATER_THAN_EQUAL = '>=',
+    GREATER_THAN = '>',
 }

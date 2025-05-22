@@ -47,10 +47,6 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    get defaultByElement() {
-        return this.options.defaultByElement;
-    }
-
     get mapping() {
         return this.options.mapping;
     }

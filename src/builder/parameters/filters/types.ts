@@ -9,16 +9,14 @@ import type {
     Flatten, NestedKeys, OnlyScalar, TypeFromNestedKeyPath,
 } from '../../../types';
 
-type FilterValueInputPrimitive = boolean | number | string;
-type FilterValueInput = FilterValueInputPrimitive | null | undefined;
+export type FilterValuePrimitive = boolean | number | string | null | undefined;
+export type FilterValueSimple<T> = T extends any[] ? T[number] : T;
 
-export type FilterValueSimple<V extends FilterValueInput = FilterValueInput> = V extends string | number ? (V | V[]) : V;
-
-export type FilterValueWithOperator<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
+export type FilterValueWithOperator<V> = V extends string | number ?
     V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
     V extends boolean ? V | null | '!null' : never;
 
-export type FilterValue<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
+export type FilterValue<V> = V extends FilterValuePrimitive ?
     (FilterValueSimple<V> | FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>) :
     V;
 
