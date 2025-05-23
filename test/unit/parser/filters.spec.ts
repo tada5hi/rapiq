@@ -330,15 +330,35 @@ describe('src/filter/index.ts', () => {
             allowed: ['name'],
         });
 
-        // like operator
+        // like operator (start)
         let [sql, params] = parsi({ name: '~name' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
-        expect(params).toEqual(['\\/name\\/']);
+        expect(params).toEqual(['^name']);
 
-        // negation with like operator
+        // like operator (end)
+        [sql, params] = parsi({ name: 'name~' }, { schema });
+        expect(sql).toEqual('"name" ~* $1');
+        expect(params).toEqual(['name$']);
+
+        // like operator (start & end)
+        [sql, params] = parsi({ name: '~name~' }, { schema });
+        expect(sql).toEqual('"name" ~* $1');
+        expect(params).toEqual(['name']);
+
+        // negation + like operator (start)
         [sql, params] = parsi({ name: '!~name' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
-        expect(params).toEqual(['\\/^(?!name$).+\\/']);
+        expect(params).toEqual(['^(?!name).+']);
+
+        // negation + like operator (end)
+        [sql, params] = parsi({ name: '!name~' }, { schema });
+        expect(sql).toEqual('"name" ~* $1');
+        expect(params).toEqual(['^(?!.*name$).*']);
+
+        // negation + like operator (start & end)
+        [sql, params] = parsi({ name: '!~name~' }, { schema });
+        expect(sql).toEqual('"name" ~* $1');
+        expect(params).toEqual(['^(?!.*name).*']);
     });
 
     it('should transform filters with includes', () => {

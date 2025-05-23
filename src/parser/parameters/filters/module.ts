@@ -14,6 +14,7 @@ import {
     applyMapping,
     buildKeyPath,
     buildKeyWithPath,
+    escapeRegExp,
     isObject,
     isPathAllowedByRelations,
     isPathCoveredByParseAllowedOption,
@@ -23,7 +24,7 @@ import {
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../base';
 import {
-    FilterFieldOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
+    FilterCompoundOperator, FilterFieldOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
 } from '../../../schema';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
 import type { FiltersParseOptions } from './types';
@@ -226,7 +227,10 @@ Condition
             const levelItems = stack.get(node.level) || {};
 
             if (node.data) {
-                levelItems[node.id || ''] = optimizedCompoundCondition('and', node.data);
+                levelItems[node.id || ''] = optimizedCompoundCondition(
+                    FilterCompoundOperator.AND,
+                    node.data,
+                );
             } else {
                 // 1. get all children from child level (node.level + 1)
                 const children = stack.get(node.level + 1);
@@ -242,7 +246,10 @@ Condition
                 }
 
                 // 3. set for current level + current id
-                levelItems[node.id || ''] = optimizedCompoundCondition('or', conditions);
+                levelItems[node.id || ''] = optimizedCompoundCondition(
+                    FilterCompoundOperator.OR,
+                    conditions,
+                );
             }
 
             stack.set(node.level, levelItems);
@@ -257,10 +264,10 @@ Condition
                 conditions.push(out[keys[i]]);
             }
 
-            return optimizedCompoundCondition('or', conditions);
+            return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
         }
 
-        return new CompoundCondition('or', []);
+        return new CompoundCondition(FilterCompoundOperator.OR, []);
     }
 
     protected parseValue(input: unknown) : { value: unknown, operator: string } | undefined {
@@ -279,15 +286,10 @@ Condition
         if (Array.isArray(value)) {
             const [first, ...rest] = value;
             if (typeof first === 'string') {
-                const match = this.matchOperator(
-                    FilterInputOperatorValue.NEGATION,
-                    first,
-                    'start',
-                );
-
-                if (match) {
+                const parsed = this.parseStringValue(first);
+                if (parsed.operator === FilterFieldOperator.NOT_EQUAL) {
                     return {
-                        value: [this.normalizeValue(match), ...rest],
+                        value: [parsed.value, ...rest],
                         operator: FilterFieldOperator.NOT_IN,
                     };
                 }
@@ -296,126 +298,108 @@ Condition
             return { value, operator: FilterFieldOperator.IN };
         }
 
-        const parsed = this.parseStringValue(value);
+        return this.parseStringValue(value);
+    }
 
-        if (parsed.operators[FilterInputOperatorValue.LIKE]) {
-            if (parsed.operators[FilterInputOperatorValue.NEGATION]) {
-                return {
-                    value: new RegExp(`/^(?!${parsed.value}$).+/`, 'i'),
-                    operator: FilterFieldOperator.REGEX,
-                };
+    protected parseStringValue(value: string) : {
+        operator: string,
+        value: unknown
+    } {
+        let negation : boolean = false;
+
+        if (
+            value.substring(0, 1) === FilterInputOperatorValue.NEGATION
+        ) {
+            negation = true;
+            value = value.substring(1);
+        }
+
+        let startLike : boolean = false;
+        let endLike : boolean = false;
+
+        if (value.substring(0, FilterInputOperatorValue.LIKE.length) === FilterInputOperatorValue.LIKE) {
+            value = value.substring(FilterInputOperatorValue.LIKE.length);
+            startLike = true;
+        }
+
+        if (value.substring(value.length - 1) === FilterInputOperatorValue.LIKE) {
+            value = value.substring(0, value.length - FilterInputOperatorValue.LIKE.length);
+            endLike = true;
+        }
+
+        if (startLike || endLike) {
+            value = escapeRegExp(value);
+
+            let pattern : string;
+            if (negation) {
+                if (startLike && endLike) {
+                    pattern = `^(?!.*${value}).*`;
+                } else if (startLike) {
+                    pattern = `^(?!${value}).+`;
+                } else {
+                    pattern = `^(?!.*${value}$).*`;
+                }
+            } else if (startLike && endLike) {
+                pattern = `${value}`;
+            } else if (startLike) {
+                pattern = `^${value}`;
+            } else {
+                pattern = `${value}$`;
             }
 
             return {
-                value: new RegExp(`/${parsed.value}/`, 'i'),
+                value: new RegExp(pattern, 'i'),
                 operator: FilterFieldOperator.REGEX,
             };
         }
 
-        if (parsed.operators[FilterInputOperatorValue.LESS_THAN_EQUAL]) {
-            return { value: this.normalizeValue(parsed.value), operator: FilterFieldOperator.LESS_THAN_EQUAL };
+        if (
+            value.substring(0, FilterInputOperatorValue.LESS_THAN_EQUAL.length) === FilterInputOperatorValue.LESS_THAN_EQUAL
+        ) {
+            return {
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.LESS_THAN_EQUAL.length)),
+                operator: FilterFieldOperator.LESS_THAN_EQUAL,
+            };
         }
 
-        if (parsed.operators[FilterInputOperatorValue.LESS_THAN]) {
-            return { value: this.normalizeValue(parsed.value), operator: FilterFieldOperator.LESS_THAN };
+        if (
+            value.substring(0, FilterInputOperatorValue.LESS_THAN.length) === FilterInputOperatorValue.LESS_THAN
+        ) {
+            return {
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.LESS_THAN.length)),
+                operator: FilterFieldOperator.LESS_THAN,
+            };
         }
 
-        if (parsed.operators[FilterInputOperatorValue.GREATER_THAN_EQUAL]) {
-            return { value: this.normalizeValue(parsed.value), operator: FilterFieldOperator.GREATER_THAN_EQUAL };
+        if (
+            value.substring(0, FilterInputOperatorValue.GREATER_THAN_EQUAL.length) === FilterInputOperatorValue.GREATER_THAN_EQUAL
+        ) {
+            return {
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.GREATER_THAN_EQUAL.length)),
+                operator: FilterFieldOperator.GREATER_THAN_EQUAL,
+            };
         }
 
-        if (parsed.operators[FilterInputOperatorValue.GREATER_THAN]) {
-            return { value: this.normalizeValue(parsed.value), operator: FilterFieldOperator.GREATER_THAN };
+        if (
+            value.substring(0, FilterInputOperatorValue.GREATER_THAN.length) === FilterInputOperatorValue.GREATER_THAN
+        ) {
+            return {
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.GREATER_THAN.length)),
+                operator: FilterFieldOperator.GREATER_THAN,
+            };
         }
 
-        if (parsed.operators[FilterInputOperatorValue.NEGATION]) {
-            return { value: this.normalizeValue(parsed.value), operator: FilterFieldOperator.NOT_EQUAL };
+        if (negation) {
+            return {
+                value: this.normalizeValue(value),
+                operator: FilterFieldOperator.NOT_EQUAL,
+            };
         }
 
-        return { value: parsed.value, operator: FilterFieldOperator.EQUAL };
-    }
-
-    buildRegexLikeValue(value: string, negated?: boolean) {
-        if (negated) {
-            return `/^(?!${value}$).+/i`;
-        }
-
-        return `/${value}/i`;
-    }
-
-    protected parseStringValue(value: string) : {
-        operators: Record<`${FilterInputOperatorValue}`, boolean>,
-        value: string
-    } {
-        const inputOperators = Object.values(FilterInputOperatorValue);
-
-        const operators = {} as Record<`${FilterInputOperatorValue}`, boolean>;
-        for (let i = 0; i < inputOperators.length; i++) {
-            const inputOperator = inputOperators[i];
-
-            if (inputOperator in operators) {
-                continue;
-            }
-
-            if (value.substring(0, inputOperator.length) === inputOperator) {
-                value = value.substring(inputOperator.length);
-                i = 0;
-
-                operators[inputOperator] = true;
-            } else {
-                operators[inputOperator] = false;
-            }
-        }
-
-        return { operators, value };
-    }
-
-    protected matchOperator(
-        key: string,
-        value: string,
-        position: 'start' | 'end' | 'global',
-    ) : string | string[] | undefined {
-        if (Array.isArray(value)) {
-            const output : string[] = [];
-
-            let match = false;
-            for (let i = 0; i < value.length; i++) {
-                const matchOperator = this.matchOperator(key, value[i], position);
-                if (typeof matchOperator !== 'undefined') {
-                    match = true;
-                    if (Array.isArray(matchOperator)) {
-                        output.push(...matchOperator);
-                    } else {
-                        output.push(matchOperator);
-                    }
-                } else {
-                    output.push(value[i]);
-                }
-            }
-
-            if (match) {
-                return output;
-            }
-
-            return undefined;
-        }
-
-        switch (position) {
-            case 'start': {
-                if (value.substring(0, key.length) === key) {
-                    return value.substring(key.length);
-                }
-                break;
-            }
-            case 'end': {
-                if (value.substring(0 - key.length) === key) {
-                    return value.substring(0, value.length - key.length - 1);
-                }
-                break;
-            }
-        }
-
-        return undefined;
+        return {
+            value: this.normalizeValue(value),
+            operator: FilterFieldOperator.EQUAL,
+        };
     }
 
     protected normalizeValue(input: unknown) : FilterValuePrimitive | FilterValuePrimitive[] {

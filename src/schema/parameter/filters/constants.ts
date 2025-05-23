@@ -9,9 +9,6 @@ export enum FilterFieldOperator {
     EQUAL = 'eq',
     NOT_EQUAL = 'ne',
 
-    LIKE = 'l',
-    NOT_LIKE = 'nl',
-
     LESS_THAN_EQUAL = 'lte',
     LESS_THAN = 'lt',
 
