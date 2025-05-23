@@ -17,7 +17,7 @@ export type FilterValueWithOperator<V> = V extends string | number ?
         V | null | '!null' :
         never;
 
-type FilterValue<V> = V extends Array<infer Item> ?
+export type FilterValue<V> = V extends Array<infer Item> ?
     FilterValueWithOperator<Item> | Array<FilterValueWithOperator<Item>> :
     FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>;
 
