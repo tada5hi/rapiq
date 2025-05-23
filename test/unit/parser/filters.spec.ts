@@ -6,9 +6,8 @@
  */
 
 import { allInterpreters, createSqlInterpreter, pg } from '@ucast/sql';
-import type { FiltersParseOptions, FiltersParseOutput, ObjectLiteral } from '../../../src';
+import type { FiltersParseOptions, ObjectLiteral } from '../../../src';
 import {
-    FilterFieldOperator,
     FiltersParseError,
     FiltersParser,
     RelationsParser,
@@ -16,7 +15,7 @@ import {
     defineRelationsSchema,
 } from '../../../src';
 
-const interpeter = createSqlInterpreter(allInterpreters);
+const interpreter = createSqlInterpreter(allInterpreters);
 
 describe('src/filter/index.ts', () => {
     let parser : FiltersParser;
@@ -31,7 +30,7 @@ describe('src/filter/index.ts', () => {
     ) => {
         const parsed = parser.parse(input, options);
 
-        return interpeter(parsed, {
+        return interpreter(parsed, {
             ...pg,
             joinRelation: () => true,
         });
