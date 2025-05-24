@@ -46,29 +46,35 @@ describe('src/build.ts', () => {
         siblings: ChildEntity[]
     };
 
-    it('should format filter record', () => {
-        let record = buildQuery<Entity>({
+    it('should build filter with number value input', () => {
+        const record = buildQuery<Entity>({
             filter: {
                 id: 1,
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: 1 } }));
+    });
 
-        record = buildQuery<Entity>({
+    it('should build filter with null value input', () => {
+        const record = buildQuery<Entity>({
             filter: {
                 id: null,
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: null } }));
+    });
 
-        record = buildQuery<Entity>({
+    it('should build filter with undefined value input', () => {
+        const record = buildQuery<Entity>({
             filter: {
                 id: undefined,
             },
         });
         expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { id: null } }));
+    });
 
-        record = buildQuery<Entity>({
+    it('should build filter with nested input', () => {
+        let record = buildQuery<Entity>({
             filter: {
                 child: {
                     id: 1,

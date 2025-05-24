@@ -28,7 +28,7 @@ export function serializeAsURI(data: Record<string, any>, options: Options = {})
         let value = data[keys[i]];
 
         if (isObject(value)) {
-            query.push(...serializeAsURI(value, {
+            query.push(serializeAsURI(value, {
                 ...options,
                 prefixParts: [...prefixParts, keys[i]],
             }));
@@ -36,7 +36,9 @@ export function serializeAsURI(data: Record<string, any>, options: Options = {})
             continue;
         }
 
-        if (Array.isArray(value)) {
+        if (value === null || typeof value === 'undefined') {
+            value = 'null';
+        } else if (Array.isArray(value)) {
             value = value
                 .map((el) => `${el}`)
                 .filter(Boolean)

@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition } from '@ucast/core';
-import { CompoundCondition, FieldCondition, optimizedCompoundCondition } from '@ucast/core';
+import { optimizedCompoundCondition } from '@ucast/core';
+import type { Condition } from './conditions';
+import { CompoundCondition, FieldCondition } from './conditions';
 import type { FilterValuePrimitive } from '../../../builder';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import type { KeyDetails } from '../../../utils';
