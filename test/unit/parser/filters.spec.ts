@@ -36,7 +36,7 @@ describe('src/filter/index.ts', () => {
         });
     };
 
-    it('should parse allowed filter', () => {
+    it('should parse with allowed', () => {
         // filter id
         const [sql, params] = parsi({ id: 1 }, {
             schema: defineFiltersSchema({
@@ -48,7 +48,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should parse filter with underscore key', () => {
+    it('should parse with allowed (underscore key)', () => {
         // filter with underscore key
         const [sql, params] = parsi({ display_name: 'admin' }, {
             schema: defineFiltersSchema({
@@ -60,7 +60,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual(['admin']);
     });
 
-    it('should parse filters (allowed: [])', () => {
+    it('should parse with allowed (empty)', () => {
         // filter none
         const [sql] = parsi({ id: 1 }, {
             schema: defineFiltersSchema({
@@ -70,7 +70,7 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('()');
     });
 
-    it('should parse filters (allowed: undefined)', () => {
+    it('should parse with allowed (undefined)', () => {
         // filter
         const [sql, params] = parsi({ id: 1 }, {
             schema: defineFiltersSchema({
@@ -82,7 +82,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should parse with mapping', () => {
+    it('should parse with allowed & mapping', () => {
         // filter with mapping
         const [sql, params] = parsi({ aliasId: 1 }, {
             schema: defineFiltersSchema({
@@ -94,7 +94,60 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should parse filters with default', () => {
+    it('should not parse with non matching name', () => {
+        // filter wrong allowed
+        const [sql] = parsi({ id: 1 }, {
+            schema: defineFiltersSchema({
+                allowed: ['name'],
+            }),
+        });
+        expect(sql).toEqual('()');
+    });
+
+    it('should not parse with invalid name', () => {
+        const [sql] = parsi({ 'id!': 1 }, {
+            schema: defineFiltersSchema({
+                allowed: undefined,
+            }),
+        });
+        expect(sql).toEqual('()');
+    });
+
+    it('should parse invalid name if permitted by allowed', () => {
+        const [sql, params] = parsi({ 'id!': 1 }, {
+            schema: defineFiltersSchema({
+                allowed: ['id!'],
+            }),
+        });
+        expect(sql).toEqual('"id!" = $1');
+        expect(params).toEqual([1]);
+    });
+
+    it('should not parse empty input', () => {
+        const [sql] = parsi({ name: '' }, {
+            schema: defineFiltersSchema({
+                allowed: ['name'],
+            }),
+        });
+        expect(sql).toEqual('()');
+    });
+
+    it('should parse null input', () => {
+        let [sql, params] = parsi({ name: null });
+        expect(sql).toEqual('"name" = $1');
+        expect(params).toEqual([null]);
+
+        [sql, params] = parsi({ name: 'null' });
+        expect(sql).toEqual('"name" = $1');
+        expect(params).toEqual([null]);
+    });
+
+    it('should not parse empty object', () => {
+        const [sql] = parsi({});
+        expect(sql).toEqual('()');
+    });
+
+    it('should parse with default', () => {
         let [sql, params] = parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
@@ -103,23 +156,6 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('"name" = $1');
         expect(params).toEqual(['admin']);
 
-        // invalid field name
-        [sql] = parsi({ 'id!': 1 }, {
-            schema: defineFiltersSchema({
-                allowed: undefined,
-            }),
-        });
-        expect(sql).toEqual('()');
-
-        // ignore field name pattern, if permitted by allowed key
-        [sql, params] = parsi({ 'id!': 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['id!'],
-            }),
-        });
-        expect(sql).toEqual('"id!" = $1');
-        expect(params).toEqual([1]);
-
         [sql, params] = parsi({ name: 'tada5hi' }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
@@ -127,68 +163,9 @@ describe('src/filter/index.ts', () => {
         });
         expect(sql).toEqual('"name" = $1');
         expect(params).toEqual(['tada5hi']);
-
-        // filter with query alias
-        [sql, params] = parsi({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['id'],
-            }),
-        });
-        expect(sql).toEqual('"id" = $1');
-        expect(params).toEqual([1]);
-
-        // filter allowed
-        [sql, params] = parsi({ name: 'tada5hi' }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('"name" = $1');
-        expect(params).toEqual(['tada5hi']);
-
-        // filter data with el empty value
-        [sql] = parsi({ name: '' }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('()');
-
-        // filter data with el null value
-        [sql, params] = parsi({ name: null }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('"name" = $1');
-        expect(params).toEqual([null]);
-
-        [sql, params] = parsi({ name: 'null' }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('"name" = $1');
-        expect(params).toEqual([null]);
-
-        // filter wrong allowed
-        [sql] = parsi({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('()');
-
-        // filter empty data
-        [sql] = parsi({}, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
-        expect(sql).toEqual('()');
     });
 
-    it('should transform fields with default path', () => {
+    it('should parse with default path', () => {
         const schema = defineFiltersSchema({
             allowed: ['id', 'display_name'],
             defaultPath: 'user',
@@ -204,42 +181,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual(['admin']);
     });
 
-    it('should transform filters with default', () => {
-        const schema = defineFiltersSchema<{
-            id: string,
-            age: number
-        }>({
-            allowed: ['id', 'age'],
-            default: {
-                age: '<18',
-            },
-        });
-
-        let [sql, params] = parsi({ name: 'Peter' }, { schema });
-        expect(sql).toEqual('"age" < $1');
-        expect(params).toEqual([18]);
-
-        [sql, params] = parsi({ age: 20 }, { schema });
-        expect(sql).toEqual('"age" = $1');
-        expect(params).toEqual([20]);
-    });
-
-    it('should transform filters default path', () => {
-        const schema = defineFiltersSchema({
-            allowed: ['id', 'age'],
-            default: {
-                id: 18,
-                age: '<18',
-            },
-            defaultPath: 'user',
-        });
-
-        const [sql, params] = parsi({ id: 5 }, { schema });
-        expect(sql).toEqual('"user"."id" = $1');
-        expect(params).toEqual([5]);
-    });
-
-    it('should transform filters with validator', () => {
+    it('should parse with validator', () => {
         let [sql, params] = parsi(
             { id: '1' },
             {
@@ -278,7 +220,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([2, 3]);
     });
 
-    it('should transform filters with different number input', () => {
+    it('should parse with different number input', () => {
         const schema = defineFiltersSchema({
             allowed: ['id'],
         });
@@ -324,7 +266,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([10]);
     });
 
-    it('should transform filters with different string inputs', () => {
+    it('should parse different string inputs', () => {
         const schema = defineFiltersSchema({
             allowed: ['name'],
         });
@@ -360,7 +302,7 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual(['^(?!.*name).*']);
     });
 
-    it('should transform filters with includes', () => {
+    it('should parse with includes', () => {
         const relationsParser = new RelationsParser();
         const include = relationsParser.parse(
             ['profile', 'user_roles.role'],

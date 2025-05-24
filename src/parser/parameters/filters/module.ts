@@ -221,16 +221,19 @@ Condition
             graph.add(keys[i], input[keys[i]]);
         }
 
-        const stack : Map<number, Record<string, Condition>> = new Map();
+        const stack : Map<number, Record<string, Condition[]>> = new Map();
 
         breadthFirstSearchReverse(graph, (node) => {
             const levelItems = stack.get(node.level) || {};
+            const levelKey = node.id || '';
 
             if (node.data) {
-                levelItems[node.id || ''] = optimizedCompoundCondition(
-                    FilterCompoundOperator.AND,
-                    node.data,
-                );
+                levelItems[levelKey] = [
+                    optimizedCompoundCondition(
+                        FilterCompoundOperator.AND,
+                        node.data,
+                    ),
+                ];
             } else {
                 // 1. get all children from child level (node.level + 1)
                 const children = stack.get(node.level + 1);
@@ -242,14 +245,21 @@ Condition
                 const conditions: Condition[] = [];
                 const childrenKeys = Object.keys(children);
                 for (let i = 0; i < childrenKeys.length; i++) {
-                    conditions.push(children[childrenKeys[i]]);
+                    conditions.push(optimizedCompoundCondition(
+                        FilterCompoundOperator.AND,
+                        children[childrenKeys[i]],
+                    ));
                 }
 
                 // 3. set for current level + current id
-                levelItems[node.id || ''] = optimizedCompoundCondition(
+                if (!levelItems[levelKey]) {
+                    levelItems[levelKey] = [];
+                }
+
+                levelItems[levelKey].push(optimizedCompoundCondition(
                     FilterCompoundOperator.OR,
                     conditions,
-                );
+                ));
             }
 
             stack.set(node.level, levelItems);
@@ -261,7 +271,10 @@ Condition
 
             const keys = Object.keys(out);
             for (let i = 0; i < keys.length; i++) {
-                conditions.push(out[keys[i]]);
+                conditions.push(optimizedCompoundCondition(
+                    FilterCompoundOperator.AND,
+                    out[keys[i]],
+                ));
             }
 
             return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
