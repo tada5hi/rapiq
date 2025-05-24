@@ -24,7 +24,8 @@ export class FiltersBuilder<
     }
 
     add(input: FiltersBuildInput<RECORD>) {
-        this.items = merge(this.items, this.transformInput(input));
+        const transformed = this.transformInput(input);
+        this.items = merge(this.items, toFlatObject(transformed));
     }
 
     prepare(): unknown {
@@ -36,44 +37,53 @@ export class FiltersBuilder<
         return this.items;
     }
 
+    protected transformToString(input: unknown) : string | undefined {
+        if (typeof input === 'string') {
+            return input;
+        }
+
+        if (
+            typeof input === 'undefined' ||
+            input === 'null' ||
+            input === null
+        ) {
+            return 'null';
+        }
+
+        if (typeof input === 'number') {
+            return `${input}`;
+        }
+
+        if (Array.isArray(input)) {
+            return input
+                .map((el) => this.transformToString(el))
+                .filter(Boolean)
+                .join(',');
+        }
+
+        return undefined;
+    }
+
     protected transformInput(input: FiltersBuildInput<any>) {
-        return toFlatObject(input, {
-            transformer: (input, output, key) => {
-                if (typeof input === 'undefined') {
-                    output[key] = null;
+        if (isObject(input)) {
+            const output : Record<string, any> = {};
 
-                    return true;
+            const keys = Object.keys(input);
+            for (let i = 0; i < keys.length; i++) {
+                if (isObject(input[keys[i]])) {
+                    extendObject(
+                        output,
+                        this.transformInput(input[keys[i]]),
+                        keys[i],
+                    );
+                } else {
+                    output[keys[i]] = this.transformToString(input[keys[i]]);
                 }
+            }
 
-                if (Array.isArray(input)) {
-                    // preserve null values
-                    const data : string[] = [];
-                    for (let i = 0; i < input.length; i++) {
-                        if (input[i] === null) {
-                            input[i] = 'null';
-                        }
+            return output;
+        }
 
-                        if (typeof input[i] === 'number') {
-                            input[i] = `${input[i]}`;
-                        }
-
-                        if (typeof input[i] === 'string') {
-                            data.push(input[i]);
-                        }
-                    }
-
-                    output[key] = data.join(',');
-
-                    return true;
-                }
-
-                if (isObject(input)) {
-                    const tmp = this.transformInput(input as FiltersBuildInput<any>);
-                    extendObject(output, tmp);
-                }
-
-                return undefined;
-            },
-        });
+        return {};
     }
 }

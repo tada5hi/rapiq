@@ -27,7 +27,6 @@ export type FiltersOptions<
     mapping?: Record<string, string>,
     allowed?: OptionAllowed<T>,
     default?: FiltersOptionDefault<T>,
-    defaultByElement?: boolean,
     defaultPath?: string,
     throwOnFailure?: boolean,
     validate?: FiltersOptionValidator<NestedKeys<T>>

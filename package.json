@@ -61,6 +61,7 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
+        "@ucast/core": "^1.10.2",
         "smob": "^1.5.0"
     },
     "devDependencies": {
@@ -72,6 +73,7 @@
         "@tada5hi/tsconfig": "^0.6.0",
         "@types/jest": "^29.5.14",
         "@types/node": "^22.14.1",
+        "@ucast/sql": "^1.0.0-alpha.1",
         "cross-env": "^7.0.3",
         "eslint": "^8.57.0",
         "husky": "^9.1.7",

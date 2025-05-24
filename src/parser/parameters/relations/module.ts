@@ -127,6 +127,10 @@ RelationsParseOutput
     protected includeParents(
         data: string[],
     ) : string[] {
+        const output : string[] = [
+            ...data,
+        ];
+
         for (let i = 0; i < data.length; i++) {
             const parts: string[] = data[i].split('.');
 
@@ -135,14 +139,14 @@ RelationsParseOutput
 
                 if (parts.length > 0) {
                     const value = parts.join('.');
-                    if (data.indexOf(value) === -1) {
-                        data.unshift(value);
+                    if (output.indexOf(value) === -1) {
+                        output.push(value);
                     }
                 }
             }
         }
 
-        return data;
+        return output.reverse();
     }
 
     protected isValidPath(input: string) : boolean {

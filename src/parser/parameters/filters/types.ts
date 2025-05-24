@@ -5,14 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterValueSimple } from '../../../builder';
-import type { FilterComparisonOperator } from '../../../schema';
+import type { Condition } from '@ucast/core';
+import type { FiltersSchema, Schema } from '../../../schema';
+import type { ObjectLiteral } from '../../../types';
+import type { RelationsParseOutput } from '../relations';
 
-export type FiltersParseOutputElement = {
-    operator?: `${FilterComparisonOperator}`,
-    value: FilterValueSimple,
-    key: string,
-    path?: string
+export type FiltersParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
+    relations?: RelationsParseOutput,
+    schema?: string | Schema<RECORD> | FiltersSchema<RECORD>
 };
 
-export type FiltersParseOutput = FiltersParseOutputElement[];
+export type FiltersParseOutput = Condition;

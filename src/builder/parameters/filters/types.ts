@@ -9,25 +9,30 @@ import type {
     Flatten, NestedKeys, OnlyScalar, TypeFromNestedKeyPath,
 } from '../../../types';
 
-type FilterValueInputPrimitive = boolean | number | string;
-type FilterValueInput = FilterValueInputPrimitive | null | undefined;
+export type FilterValuePrimitive = boolean | number | string | null | undefined;
 
-export type FilterValueSimple<V extends FilterValueInput = FilterValueInput> = V extends string | number ? (V | V[]) : V;
-
-export type FilterValueWithOperator<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
+export type FilterValueWithOperator<V> = V extends string | number ?
     V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
-    V extends boolean ? V | null | '!null' : never;
+    V extends boolean ?
+        V | null | '!null' :
+        never;
 
-export type FilterValue<V extends FilterValueInput = FilterValueInput> = V extends string | number ?
-    (FilterValueSimple<V> | FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>) :
-    V;
+export type FilterValue<V> = V extends Array<infer Item> ?
+    FilterValueWithOperator<Item> | Array<FilterValueWithOperator<Item>> :
+    FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>;
 
-export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ? T | FilterValue<T> : never;
+export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
+    FilterValue<T> :
+    T extends Date ?
+        FilterValue<string | number> :
+        never;
 
-export type FiltersBuildInput<T extends Record<string, any>> = {
-    [K in keyof T]?: Flatten<T[K]> extends Record<string, any> ?
-        FiltersBuildInput<Flatten<T[K]>> :
-        FiltersBuildInputValue<Flatten<T[K]>>
+type FilterBuildInputSubLevel<T> = T extends Record<PropertyKey, any> ?
+    FiltersBuildInput<T> :
+    FiltersBuildInputValue<T>;
+
+export type FiltersBuildInput<T extends Record<PropertyKey, any>> = {
+    [K in keyof T]?: FilterBuildInputSubLevel<Flatten<T[K]>>
 } & {
     [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
 };

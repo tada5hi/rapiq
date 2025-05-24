@@ -13,10 +13,21 @@ export function isObject(item: unknown) : item is Record<string, any> {
     );
 }
 
-export function extendObject(target: Record<string, any>, source: Record<string, any>) {
+export function extendObject(
+    target: Record<string, any>,
+    source: Record<string, any>,
+    prefix?: string,
+) {
     const keys = Object.keys(source);
     for (let i = 0; i < keys.length; i++) {
-        target[keys[i]] = source[keys[i]];
+        let destinationKey : string;
+        if (prefix) {
+            destinationKey = `${prefix}.${keys[i]}`;
+        } else {
+            destinationKey = keys[i];
+        }
+
+        target[destinationKey] = source[keys[i]];
     }
 
     return target;
@@ -36,58 +47,52 @@ export function isPropertySet<X extends Record<string, any>, K extends keyof X>(
 }
 
 type Options = {
-    transformer?: (
-        input: unknown,
-        output: Record<string, any>,
-        key: string
-    ) => boolean | undefined,
-    validator?: (
-        input: unknown,
-        key: string
-    ) => boolean | undefined,
-    prefixParts?: string[]
+    transformer?: (input: unknown, key: string) => unknown | undefined,
+    validator?: (input: unknown, key: string) => boolean | undefined,
 };
 
 export function toFlatObject(
     data: Record<string, any>,
     options: Options = {},
 ): Record<string, any> {
-    const prefixParts = options.prefixParts || [];
-    let output: Record<string, string> = {};
+    const output: Record<string, string> = {};
 
     const keys = Object.keys(data);
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
 
         if (isObject(data[key])) {
-            output = {
-                ...output,
-                ...toFlatObject(data[key], {
-                    ...options,
-                    prefixParts: [...prefixParts, key],
-                }),
-            };
+            extendObject(
+                output,
+                toFlatObject(data[key], options),
+                key,
+            );
 
             continue;
         }
 
-        const destinationKey = [...prefixParts, key].join('.');
-
         if (options.transformer) {
-            const result = options.transformer(data[key], output, destinationKey);
-            if (result) {
+            data[key] = options.transformer(data[key], key);
+
+            if (isObject(data[key])) {
+                extendObject(
+                    output,
+                    toFlatObject(data[key], options),
+                    key,
+                );
+
                 continue;
             }
         }
 
         if (options.validator) {
-            const result = options.validator(data[key], destinationKey);
+            const result = options.validator(data[key], key);
             if (!result) {
                 continue;
             }
         }
 
-        output[destinationKey] = data[key];
+        output[key] = data[key];
     }
 
     return output;
