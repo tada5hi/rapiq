@@ -18,9 +18,10 @@ export function extendObject(
     source: Record<string, any>,
     prefix?: string,
 ) {
+    let destinationKey : string;
+
     const keys = Object.keys(source);
     for (let i = 0; i < keys.length; i++) {
-        let destinationKey : string;
         if (prefix) {
             destinationKey = `${prefix}.${keys[i]}`;
         } else {
@@ -61,28 +62,8 @@ export function toFlatObject(
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
 
-        if (isObject(data[key])) {
-            extendObject(
-                output,
-                toFlatObject(data[key], options),
-                key,
-            );
-
-            continue;
-        }
-
         if (options.transformer) {
             data[key] = options.transformer(data[key], key);
-
-            if (isObject(data[key])) {
-                extendObject(
-                    output,
-                    toFlatObject(data[key], options),
-                    key,
-                );
-
-                continue;
-            }
         }
 
         if (options.validator) {
@@ -92,7 +73,15 @@ export function toFlatObject(
             }
         }
 
-        output[key] = data[key];
+        if (isObject(data[key])) {
+            extendObject(
+                output,
+                toFlatObject(data[key], options),
+                key,
+            );
+        } else {
+            output[key] = data[key];
+        }
     }
 
     return output;

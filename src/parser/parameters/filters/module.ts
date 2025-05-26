@@ -6,8 +6,8 @@
  */
 
 import { optimizedCompoundCondition } from '@ucast/core';
-import type { Condition } from './conditions';
-import { CompoundCondition, FieldCondition } from './conditions';
+import type { Condition } from '../../../schema/parameter/filters/conditions';
+import { CompoundCondition, FieldCondition } from '../../../schema/parameter/filters/conditions';
 import type { FilterValuePrimitive } from '../../../builder';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import type { KeyDetails } from '../../../utils';

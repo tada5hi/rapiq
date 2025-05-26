@@ -8,3 +8,4 @@
 export * from './compound';
 export * from './condition';
 export * from './field';
+export * from './fields';

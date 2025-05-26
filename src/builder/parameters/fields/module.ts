@@ -5,9 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ID } from '../../../constants';
+import { DEFAULT_ID, URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
-import { groupArrayByKeyPath, merge, toKeyPathArray } from '../../../utils';
+import {
+    groupArrayByKeyPath, merge, serializeAsURI, toKeyPathArray,
+} from '../../../utils';
 import { BaseBuilder } from '../../base';
 import type { FieldsBuildInput } from './types';
 
@@ -26,7 +28,7 @@ export class FieldsBuilder<
         this.items = merge(this.items, groupArrayByKeyPath(toKeyPathArray(input)));
     }
 
-    prepare(): unknown {
+    serialize() {
         const keys = Object.keys(this.items);
         if (keys.length === 0) {
             return undefined;
@@ -36,9 +38,9 @@ export class FieldsBuilder<
             keys.length === 1 &&
             keys[0] === DEFAULT_ID
         ) {
-            return this.items[DEFAULT_ID];
+            return serializeAsURI(this.items[keys[0]], { prefixParts: [URLParameter.FIELDS] });
         }
 
-        return this.items;
+        return serializeAsURI(this.items, { prefixParts: [URLParameter.FIELDS] });
     }
 }

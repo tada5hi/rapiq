@@ -9,13 +9,13 @@ export type Realm = {
     id: number,
     name: string,
     description: string,
-}
+};
 
 export type Item = {
     id: string,
     realm: Realm,
     user: User
-}
+};
 
 export type User = {
     id: string,
@@ -24,4 +24,30 @@ export type User = {
     age: number,
     realm: Realm,
     items: Item[]
-}
+};
+
+// -----------------------------------------------------
+
+export type GrandChild = {
+    id: string,
+
+    name: string
+};
+
+export type ChildEntity = {
+    id: number;
+
+    name: string;
+
+    age: number;
+
+    child: GrandChild
+};
+
+export type Entity = {
+    id: number,
+    name: string,
+    created_at: Date,
+    child: ChildEntity,
+    siblings: ChildEntity[]
+};

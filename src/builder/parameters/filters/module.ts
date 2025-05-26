@@ -5,85 +5,55 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { URLParameter } from '../../../constants';
+import { FilterCompoundOperator } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
-import {
-    extendObject, isObject, merge, toFlatObject,
-} from '../../../utils';
+import { serializeAsURI } from '../../../utils';
 import { BaseBuilder } from '../../base';
+import { BuildCompoundCondition, BuildFieldsCondition } from './conditions';
 import type { FiltersBuildInput } from './types';
 
 export class FiltersBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > extends BaseBuilder<FiltersBuildInput<RECORD>> {
-    protected items : Record<string, any>;
+    protected value : BuildCompoundCondition;
+
+    // --------------------------------------------------
 
     constructor() {
         super();
 
-        this.items = {};
+        this.value = new BuildCompoundCondition(FilterCompoundOperator.OR, []);
     }
 
-    add(input: FiltersBuildInput<RECORD>) {
-        const transformed = this.transformInput(input);
-        this.items = merge(this.items, toFlatObject(transformed));
+    // --------------------------------------------------
+
+    /**
+     * Add multiple conditions to the builder.
+     *
+     * @param input
+     */
+    add(
+        input: FiltersBuildInput<RECORD> | BuildFieldsCondition<RECORD>,
+    ) {
+        let fields : BuildFieldsCondition<RECORD>;
+
+        if (input instanceof BuildFieldsCondition) {
+            fields = input;
+        } else {
+            fields = new BuildFieldsCondition();
+            fields.addRaw(input);
+        }
+
+        this.value.add(fields);
     }
 
-    prepare(): unknown {
-        const keys = Object.keys(this.items);
-        if (keys.length === 0) {
+    // --------------------------------------------------
+
+    serialize() {
+        if (this.value.value.length === 0) {
             return undefined;
         }
-
-        return this.items;
-    }
-
-    protected transformToString(input: unknown) : string | undefined {
-        if (typeof input === 'string') {
-            return input;
-        }
-
-        if (
-            typeof input === 'undefined' ||
-            input === 'null' ||
-            input === null
-        ) {
-            return 'null';
-        }
-
-        if (typeof input === 'number') {
-            return `${input}`;
-        }
-
-        if (Array.isArray(input)) {
-            return input
-                .map((el) => this.transformToString(el))
-                .filter(Boolean)
-                .join(',');
-        }
-
-        return undefined;
-    }
-
-    protected transformInput(input: FiltersBuildInput<any>) {
-        if (isObject(input)) {
-            const output : Record<string, any> = {};
-
-            const keys = Object.keys(input);
-            for (let i = 0; i < keys.length; i++) {
-                if (isObject(input[keys[i]])) {
-                    extendObject(
-                        output,
-                        this.transformInput(input[keys[i]]),
-                        keys[i],
-                    );
-                } else {
-                    output[keys[i]] = this.transformToString(input[keys[i]]);
-                }
-            }
-
-            return output;
-        }
-
-        return {};
+        return serializeAsURI(this.value.flatten(), { prefixParts: [URLParameter.FILTERS] });
     }
 }

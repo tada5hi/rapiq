@@ -5,9 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { URLParameter } from '../../../constants';
 import { SortDirection } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
-import { extendObject, isObject, toFlatObject } from '../../../utils';
+import {
+    extendObject, isObject, serializeAsURI, toFlatObject,
+} from '../../../utils';
 import { BaseBuilder } from '../../base';
 import type { SortBuildInput } from './types';
 
@@ -30,21 +33,6 @@ export class SortBuilder<
         for (let i = 0; i < keys.length; i++) {
             this.items[keys[i]] = record[keys[i]];
         }
-    }
-
-    prepare(): unknown {
-        const keys = Object.keys(this.items);
-        if (keys.length === 0) {
-            return undefined;
-        }
-
-        const parts : string[] = [];
-
-        for (let i = 0; i < keys.length; i++) {
-            parts.push((this.items[keys[i]] === SortDirection.DESC ? '-' : '') + keys[i]);
-        }
-
-        return parts;
     }
 
     protected transformInput(input: unknown) : Record<string, unknown> {
@@ -89,5 +77,20 @@ export class SortBuilder<
         }
 
         return {};
+    }
+
+    serialize() {
+        const keys = Object.keys(this.items);
+        if (keys.length === 0) {
+            return undefined;
+        }
+
+        const parts : string[] = [];
+
+        for (let i = 0; i < keys.length; i++) {
+            parts.push((this.items[keys[i]] === SortDirection.DESC ? '-' : '') + keys[i]);
+        }
+
+        return serializeAsURI(parts, { prefixParts: [URLParameter.SORT] });
     }
 }

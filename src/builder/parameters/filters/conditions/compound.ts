@@ -1,23 +1,57 @@
 /*
- * Copyright (c) 2025.
+ * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../../../types';
-import type { FiltersBuildInput } from '../types';
+import { URLParameter } from '../../../../constants';
+import {
+    CompoundCondition, type Condition, FilterCompoundOperator,
+} from '../../../../schema';
+import { extendObject, serializeAsURI } from '../../../../utils';
+import { BuildFieldsCondition } from './fields';
 
-export class FilterBuildCompound<T extends ObjectLiteral> {
-    public readonly operator: string;
+export class BuildCompoundCondition<
+    T extends Condition = Condition,
+> extends CompoundCondition<T> {
+    flatten() : Record<string, any> {
+        if (this.value.length === 1) {
+            const [first] = this.value;
 
-    public readonly value: FiltersBuildInput<T>[];
+            if (
+                first instanceof BuildFieldsCondition ||
+                first instanceof BuildCompoundCondition
+            ) {
+                return first.flatten();
+            }
 
-    constructor(
-        operator: string,
-        items: FiltersBuildInput<T>[],
-    ) {
-        this.operator = operator;
-        this.value = items;
+            return {} as Record<string, any>;
+        }
+
+        const output : Record<string, any> = {};
+
+        let prefix: string | undefined;
+        const input = this.flattenConditions(this.value);
+        for (let i = 0; i < input.length; i++) {
+            const child = input[i];
+
+            if (this.operator === FilterCompoundOperator.OR) {
+                prefix = `${i}`;
+            }
+
+            if (
+                child instanceof BuildFieldsCondition ||
+                child instanceof BuildCompoundCondition
+            ) {
+                extendObject(output, child.flatten(), prefix);
+            }
+        }
+
+        return output;
+    }
+
+    serialize() : string | undefined {
+        return serializeAsURI(this.flatten(), { prefixParts: [URLParameter.FILTERS] });
     }
 }

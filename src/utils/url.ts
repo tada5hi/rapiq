@@ -12,45 +12,67 @@ type Options = {
     prefixParts?: string[]
 };
 
-export function serializeAsURI(data: Record<string, any>, options: Options = {}) : string {
-    // Loop through the data object
-    const keys = Object.keys(data);
-    if (keys.length === 0) {
-        return '';
-    }
+function buildKey(parts: string[]) {
+    return parts.reduce((acc, curr) => `${acc}[${curr}]`, '');
+}
 
+export function serializeAsURI(data: unknown, options: Options = {}) : string {
     const prefixParts = options.prefixParts || [];
 
     // Create a query array to hold the key/value pairs
     const query: string[] = [];
 
-    for (let i = 0; i < keys.length; i++) {
-        let value = data[keys[i]];
-
-        if (isObject(value)) {
-            query.push(serializeAsURI(value, {
-                ...options,
-                prefixParts: [...prefixParts, keys[i]],
-            }));
-
-            continue;
+    if (Array.isArray(data)) {
+        if (prefixParts.length === 0) {
+            return '';
         }
 
-        if (value === null || typeof value === 'undefined') {
-            value = 'null';
-        } else if (Array.isArray(value)) {
-            value = value
-                .map((el) => `${el}`)
-                .filter(Boolean)
-                .join(',');
+        const key = buildKey(prefixParts);
+        const serialized = data
+            .map((el) => `${el}`)
+            .filter(Boolean)
+            .join(',');
+
+        query.push(`${encodeURIComponent(key)}=${encodeURIComponent(serialized)}`);
+    }
+
+    if (isObject(data)) {
+        // Loop through the data object
+        const keys = Object.keys(data);
+        if (keys.length === 0) {
+            return '';
         }
 
-        if (value) {
-            const destinationKey = [...prefixParts, keys[i]]
-                .reduce((acc, curr) => `${acc}[${curr}]`, '');
+        for (let i = 0; i < keys.length; i++) {
+            let value = data[keys[i]];
 
-            // Encode each key and value, concatenate them into a string, and push them to the array
-            query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
+            if (isObject(value)) {
+                query.push(serializeAsURI(value, {
+                    ...options,
+                    prefixParts: [...prefixParts, keys[i]],
+                }));
+
+                continue;
+            }
+
+            if (Array.isArray(value)) {
+                query.push(serializeAsURI(value, {
+                    ...options,
+                    prefixParts: [...prefixParts, keys[i]],
+                }));
+
+                continue;
+            }
+
+            if (value === null || typeof value === 'undefined') {
+                value = 'null';
+            }
+
+            if (value) {
+                const destinationKey = buildKey([...prefixParts, keys[i]]);
+                // Encode each key and value, concatenate them into a string, and push them to the array
+                query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
+            }
         }
     }
 

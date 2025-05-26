@@ -5,6 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+export * from './fields';
+export * from './define';
 export * from './compound';
-export * from './or';
-export * from './and';
