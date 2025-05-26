@@ -6,6 +6,7 @@
  */
 
 import { CompoundCondition as BaseCompoundCondition } from '@ucast/core';
+import type { FilterCompoundOperator } from '../constants';
 
 import type {
     Condition,
@@ -14,6 +15,11 @@ import type {
 export class CompoundCondition<
     T extends Condition = Condition,
 > extends BaseCompoundCondition<T> {
+    // eslint-disable-next-line no-useless-constructor, @typescript-eslint/no-useless-constructor
+    constructor(operator: `${FilterCompoundOperator}`, value: T[]) {
+        super(operator, value);
+    }
+
     add(child: T) {
         this.value.push(child);
     }

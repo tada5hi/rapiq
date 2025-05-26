@@ -43,6 +43,6 @@ export function or<
 
 export function defineCompoundCondition<
     T extends Condition = Condition,
->(operator: string, items: T[]) : BuildCompoundCondition<T> {
+>(operator: `${FilterCompoundOperator}`, items: T[]) : BuildCompoundCondition<T> {
     return new BuildCompoundCondition<T>(operator, items);
 }

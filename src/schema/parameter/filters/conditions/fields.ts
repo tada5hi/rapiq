@@ -5,22 +5,22 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../../../types';
+import type { NestedKeys, ObjectLiteral } from '../../../../types';
 import { Condition } from './condition';
 import type { FieldCondition } from './field';
 
 export class FieldsCondition<
     T extends ObjectLiteral = ObjectLiteral,
-> extends Condition<FieldCondition<T>[]> {
+> extends Condition<FieldCondition<unknown, NestedKeys<T>>[]> {
     constructor(items: FieldCondition<T>[] = []) {
         super('', items);
     }
 
-    addMany(child: FieldCondition<T>[]) {
+    addMany(child: FieldCondition<unknown, NestedKeys<T>>[]) {
         this.value.push(...child);
     }
 
-    add(child: FieldCondition<T>) {
+    add(child: FieldCondition<unknown, NestedKeys<T>>) {
         this.value.push(child);
     }
 

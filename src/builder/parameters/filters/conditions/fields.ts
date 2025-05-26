@@ -13,7 +13,7 @@ import type { FiltersBuildInput } from '../types';
 
 export class BuildFieldsCondition<
     T extends ObjectLiteral = ObjectLiteral,
-> extends FieldsCondition {
+> extends FieldsCondition<T> {
     addRaw(input: FiltersBuildInput<T>) {
         const object = toFlatObject(input);
         const keys = Object.keys(object);

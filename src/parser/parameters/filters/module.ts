@@ -284,7 +284,10 @@ Condition
         return new CompoundCondition(FilterCompoundOperator.OR, []);
     }
 
-    protected parseValue(input: unknown) : { value: unknown, operator: string } | undefined {
+    protected parseValue(input: unknown) : {
+        value: unknown,
+        operator: `${FilterFieldOperator}`
+    } | undefined {
         let value : FilterValuePrimitive | FilterValuePrimitive[];
 
         try {
@@ -316,7 +319,7 @@ Condition
     }
 
     protected parseStringValue(value: string) : {
-        operator: string,
+        operator: `${FilterFieldOperator}`,
         value: unknown
     } {
         let negation : boolean = false;
