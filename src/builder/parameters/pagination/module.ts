@@ -5,7 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { merge } from '../../../utils';
+import { URLParameter } from '../../../constants';
+import { merge, serializeAsURI } from '../../../utils';
 import { BaseBuilder } from '../../base';
 import type { PaginationBuildInput } from './types';
 
@@ -22,12 +23,12 @@ export class PaginationBuilder extends BaseBuilder<PaginationBuildInput> {
         this.items = merge(this.items, input);
     }
 
-    prepare(): unknown {
+    serialize() {
         const keys = Object.keys(this.items);
         if (keys.length === 0) {
             return undefined;
         }
 
-        return this.items;
+        return serializeAsURI(this.items, { prefixParts: [URLParameter.PAGINATION] });
     }
 }

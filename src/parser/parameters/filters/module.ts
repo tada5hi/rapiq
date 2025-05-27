@@ -1,17 +1,21 @@
 /*
  * Copyright (c) 2021-2025.
- *  Author Peter Placzek (tada5hi)
- *  For the full copyright and license information,
- *  view the LICENSE file that was distributed with this source code.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterValueSimple } from '../../../builder';
+import { optimizedCompoundCondition } from '@ucast/core';
+import type { Condition } from '../../../schema/parameter/filters/conditions';
+import { CompoundCondition, FieldCondition } from '../../../schema/parameter/filters/conditions';
+import type { FilterValuePrimitive } from '../../../builder';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import type { KeyDetails } from '../../../utils';
 import {
     applyMapping,
+    buildKeyPath,
     buildKeyWithPath,
-    hasOwnProperty,
+    escapeRegExp,
     isObject,
     isPathAllowedByRelations,
     isPathCoveredByParseAllowedOption,
@@ -21,26 +25,19 @@ import {
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../base';
 import {
-    FilterComparisonOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
+    FilterCompoundOperator, FilterFieldOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
 } from '../../../schema';
-import type { RelationsParseOutput } from '../relations';
-import type { FiltersParseOutput, FiltersParseOutputElement } from './types';
-
-type FiltersParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    relations?: RelationsParseOutput,
-    schema?: string | Schema<RECORD> | FiltersSchema<RECORD>
-};
+import { GraphNode, breadthFirstSearchReverse } from './graph';
+import type { FiltersParseOptions } from './types';
 
 export class FiltersParser extends BaseParser<
 FiltersParseOptions,
-FiltersParseOutput
+Condition
 > {
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         data: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : FiltersParseOutput {
+    ) : Condition {
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array nothing is allowed
@@ -48,7 +45,7 @@ FiltersParseOutput
             !schema.allowedIsUndefined &&
             schema.allowed.length === 0
         ) {
-            return this.toArray(undefined, options);
+            return this.mergeGroups(this.groupDefaults(options));
         }
 
         /* istanbul ignore next */
@@ -57,339 +54,379 @@ FiltersParseOutput
                 throw FiltersParseError.inputInvalid();
             }
 
-            return this.toArray(undefined, options);
+            return this.mergeGroups(this.groupDefaults(options));
         }
 
         const { length } = Object.keys(data);
         if (length === 0) {
-            return this.toArray(undefined, options);
+            return this.mergeGroups(this.groupDefaults(options));
         }
 
-        const items : Record<string, FiltersParseOutputElement> = {};
+        const items : Record<string, Condition[]> = {};
 
         // transform to appreciate data format & validate input
         const keys = Object.keys(data);
         for (let i = 0; i < keys.length; i++) {
-            const value : unknown = data[keys[i]];
+            const keyParsed : KeyDetails = parseKey(keys[i]);
 
-            if (
-                typeof value !== 'string' &&
-                typeof value !== 'number' &&
-                typeof value !== 'boolean' &&
-                typeof value !== 'undefined' &&
-                value !== null &&
-                !Array.isArray(value)
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(keys[i]);
-                }
-                continue;
-            }
-
-            keys[i] = applyMapping(keys[i], schema.mapping);
-
-            const fieldDetails : KeyDetails = parseKey(keys[i]);
+            // todo: path should be respected
+            keyParsed.name = applyMapping(keyParsed.name, schema.mapping);
 
             if (
                 schema.allowedIsUndefined &&
-                !isPropertyNameValid(fieldDetails.name)
+                !isPropertyNameValid(keyParsed.name)
             ) {
                 if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(fieldDetails.name);
+                    throw FiltersParseError.keyInvalid(keyParsed.name);
                 }
                 continue;
             }
 
             if (
-                typeof fieldDetails.path !== 'undefined' &&
-                !isPathAllowedByRelations(fieldDetails.path, options.relations)
+                keyParsed.path &&
+                !isPathAllowedByRelations(keyParsed.path, options.relations)
             ) {
                 if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(fieldDetails.path);
+                    throw FiltersParseError.keyPathInvalid(keyParsed.path);
                 }
                 continue;
             }
 
-            const fullKey : string = buildKeyWithPath(fieldDetails);
+            const fullKey : string = buildKeyWithPath(keyParsed);
             if (
                 !schema.allowedIsUndefined &&
                 schema.allowed &&
                 !isPathCoveredByParseAllowedOption(schema.allowed, [keys[i], fullKey])
             ) {
                 if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(fieldDetails.name);
+                    throw FiltersParseError.keyInvalid(keyParsed.name);
                 }
 
                 continue;
             }
 
-            const filter = this.normalizeOutputElement({
-                key: fieldDetails.name,
-                value: value as string | boolean | number,
-            });
+            const valueParsed = this.parseValue(data[keys[i]]);
+            if (!valueParsed) {
+                if (schema.throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(keyParsed.name);
+                }
 
-            if (Array.isArray(filter.value)) {
-                const output : (string | number)[] = [];
-                for (let j = 0; j < filter.value.length; j++) {
-                    if (schema.validate(filter.key as NestedKeys<RECORD>, filter.value[j])) {
-                        output.push(filter.value[j]);
+                continue;
+            }
+
+            if (Array.isArray(valueParsed.value)) {
+                const temp : (string | number)[] = [];
+                for (let j = 0; j < valueParsed.value.length; j++) {
+                    if (schema.validate(keyParsed.name as NestedKeys<RECORD>, valueParsed.value[j])) {
+                        temp.push(valueParsed.value[j]);
                     } else if (schema.throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
                     }
                 }
 
-                filter.value = output as string[] | number[];
-                if (filter.value.length === 0) {
+                if (temp.length === 0) {
                     continue;
                 }
-            } else if (!schema.validate(filter.key as NestedKeys<RECORD>, filter.value)) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+
+                valueParsed.value = temp;
+            } else {
+                if (
+                    typeof valueParsed.value === 'string' &&
+                    valueParsed.value.length === 0
+                ) {
+                    if (schema.throwOnFailure) {
+                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
+                    }
+
+                    continue;
                 }
 
-                continue;
-            }
+                if (!schema.validate(keyParsed.name as NestedKeys<RECORD>, valueParsed.value)) {
+                    if (schema.throwOnFailure) {
+                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
+                    }
 
-            if (
-                typeof filter.value === 'string' &&
-                filter.value.length === 0
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(fieldDetails.name);
+                    continue;
                 }
-
-                continue;
             }
 
-            if (
-                Array.isArray(filter.value) &&
-                filter.value.length === 0
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(fieldDetails.name);
-                }
-
-                continue;
+            const outputKey = keyParsed.group || '';
+            if (!items[outputKey]) {
+                items[outputKey] = [];
             }
 
-            if (fieldDetails.path || schema.defaultPath) {
-                filter.path = fieldDetails.path || schema.defaultPath;
-            }
-
-            items[fullKey] = filter;
+            items[outputKey].push(new FieldCondition(
+                valueParsed.operator,
+                buildKeyPath(keyParsed.name, keyParsed.path || schema.defaultPath),
+                valueParsed.value,
+            ));
         }
 
-        return this.toArray(items, options);
+        const itemKeys = Object.keys(items);
+        if (itemKeys.length === 0) {
+            return this.mergeGroups(this.groupDefaults(options));
+        }
+
+        return this.mergeGroups(items);
+    }
+
+    protected groupDefaults<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        options: FiltersParseOptions<RECORD> = {},
+    ) {
+        const schema = this.resolveSchema(options.schema);
+        const items : Record<string, FieldCondition[]> = {};
+
+        for (let i = 0; i < schema.defaultKeys.length; i++) {
+            const keyDetails = parseKey(schema.defaultKeys[i]);
+
+            let path : string | undefined;
+            if (keyDetails.path) {
+                path = keyDetails.path;
+            } else if (schema.defaultPath) {
+                path = schema.defaultPath;
+            }
+
+            const parsed = this.parseValue(
+                schema.default[schema.defaultKeys[i]],
+            );
+            if (!parsed) {
+                continue;
+            }
+
+            const groupKey = keyDetails.group || '';
+            if (!items[groupKey]) {
+                items[groupKey] = [];
+            }
+
+            items[groupKey].push(new FieldCondition(
+                parsed.operator,
+                buildKeyPath(keyDetails.name, path),
+                parsed.value,
+            ));
+        }
+
+        return items;
     }
 
     // ---------------------------------------------------------
 
-    protected toArray<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        input: Record<string, FiltersParseOutputElement> = {},
-        options: FiltersParseOptions<RECORD> = {},
-    ) : FiltersParseOutput {
-        const schema = this.resolveSchema(options.schema);
+    protected mergeGroups(
+        input: Record<string, Condition[]> = {},
+    ) : Condition {
+        const graph = new GraphNode<Condition[]>('');
 
-        const inputKeys = Object.keys(input || {});
-
-        if (
-            !schema.defaultByElement &&
-            inputKeys.length > 0
-        ) {
-            return Object.values(input);
+        const keys = Object.keys(input);
+        for (let i = 0; i < keys.length; i++) {
+            graph.add(keys[i], input[keys[i]]);
         }
 
-        if (schema.defaultKeys.length > 0) {
-            const output : FiltersParseOutput = [];
+        const stack : Map<number, Record<string, Condition[]>> = new Map();
 
-            for (let i = 0; i < schema.defaultKeys.length; i++) {
-                const keyDetails = parseKey(schema.defaultKeys[i]);
+        breadthFirstSearchReverse(graph, (node) => {
+            const levelItems = stack.get(node.level) || {};
+            const levelKey = node.id || '';
 
-                if (
-                    schema.defaultByElement &&
-                    inputKeys.length > 0
-                ) {
-                    const keyWithPath = buildKeyWithPath(keyDetails);
-                    if (hasOwnProperty(input, keyWithPath)) {
-                        continue;
-                    }
+            if (node.data) {
+                levelItems[levelKey] = [
+                    optimizedCompoundCondition(
+                        FilterCompoundOperator.AND,
+                        node.data,
+                    ),
+                ];
+            } else {
+                // 1. get all children from child level (node.level + 1)
+                const children = stack.get(node.level + 1);
+                if (!children) {
+                    return;
                 }
 
-                if (schema.defaultByElement || inputKeys.length === 0) {
-                    let path : string | undefined;
-                    if (keyDetails.path) {
-                        path = keyDetails.path;
-                    } else if (schema.defaultPath) {
-                        path = schema.defaultPath;
-                    }
+                // 2. children to conditions
+                const conditions: Condition[] = [];
+                const childrenKeys = Object.keys(children);
+                for (let i = 0; i < childrenKeys.length; i++) {
+                    conditions.push(optimizedCompoundCondition(
+                        FilterCompoundOperator.AND,
+                        children[childrenKeys[i]],
+                    ));
+                }
 
-                    output.push(this.normalizeOutputElement({
-                        ...(path ? { path } : {}),
-                        key: keyDetails.name,
-                        value: schema.default[schema.defaultKeys[i]],
-                    }));
+                // 3. set for current level + current id
+                if (!levelItems[levelKey]) {
+                    levelItems[levelKey] = [];
+                }
+
+                levelItems[levelKey].push(optimizedCompoundCondition(
+                    FilterCompoundOperator.OR,
+                    conditions,
+                ));
+            }
+
+            stack.set(node.level, levelItems);
+        });
+
+        const out = stack.get(0);
+        if (out) {
+            const conditions : Condition[] = [];
+
+            const keys = Object.keys(out);
+            for (let i = 0; i < keys.length; i++) {
+                conditions.push(optimizedCompoundCondition(
+                    FilterCompoundOperator.AND,
+                    out[keys[i]],
+                ));
+            }
+
+            return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
+        }
+
+        return new CompoundCondition(FilterCompoundOperator.OR, []);
+    }
+
+    protected parseValue(input: unknown) : {
+        value: unknown,
+        operator: `${FilterFieldOperator}`
+    } | undefined {
+        let value : FilterValuePrimitive | FilterValuePrimitive[];
+
+        try {
+            value = this.normalizeValue(input);
+        } catch (e) {
+            return undefined;
+        }
+
+        if (typeof value !== 'string' && !Array.isArray(value)) {
+            return { value, operator: FilterFieldOperator.EQUAL };
+        }
+
+        if (Array.isArray(value)) {
+            const [first, ...rest] = value;
+            if (typeof first === 'string') {
+                const parsed = this.parseStringValue(first);
+                if (parsed.operator === FilterFieldOperator.NOT_EQUAL) {
+                    return {
+                        value: [parsed.value, ...rest],
+                        operator: FilterFieldOperator.NOT_IN,
+                    };
                 }
             }
 
-            return input ? [...Object.values(input), ...output] : output;
+            return { value, operator: FilterFieldOperator.IN };
         }
 
-        return input ? Object.values(input) : [];
+        return this.parseStringValue(value);
     }
 
-    // ^([0-9]+(?:\.[0-9]+)*){0,1}([a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]+)*){0,1}$
-    protected normalizeOutputElement(element: FiltersParseOutputElement) : FiltersParseOutputElement {
-        if (
-            hasOwnProperty(element, 'path') &&
-            (typeof element.path === 'undefined' || element.path === null)
-        ) {
-            delete element.path;
-        }
-
-        if (element.operator) {
-            return element;
-        }
-
-        if (typeof element.value === 'string') {
-            element = {
-                ...element,
-                ...this.parseValue(element.value),
-            };
-        } else {
-            element.operator = FilterComparisonOperator.EQUAL;
-        }
-
-        element.value = this.normalizeValue(element.value);
-
-        return element;
-    }
-
-    protected parseValue(input: FilterValueSimple) : {
-        operator: `${FilterComparisonOperator}`,
-        value: FilterValueSimple
+    protected parseStringValue(value: string) : {
+        operator: `${FilterFieldOperator}`,
+        value: unknown
     } {
+        let negation : boolean = false;
+
         if (
-            typeof input === 'string' &&
-            input.includes(FilterInputOperatorValue.IN)
+            value.substring(0, 1) === FilterInputOperatorValue.NEGATION
         ) {
-            input = input.split(FilterInputOperatorValue.IN);
-        }
-
-        let negation = false;
-
-        let value = this.matchOperator(FilterInputOperatorValue.NEGATION, input, 'start');
-        if (typeof value !== 'undefined') {
             negation = true;
-            input = value;
+            value = value.substring(1);
         }
 
-        if (Array.isArray(input)) {
+        let startLike : boolean = false;
+        let endLike : boolean = false;
+
+        if (value.substring(0, FilterInputOperatorValue.LIKE.length) === FilterInputOperatorValue.LIKE) {
+            value = value.substring(FilterInputOperatorValue.LIKE.length);
+            startLike = true;
+        }
+
+        if (value.substring(value.length - 1) === FilterInputOperatorValue.LIKE) {
+            value = value.substring(0, value.length - FilterInputOperatorValue.LIKE.length);
+            endLike = true;
+        }
+
+        if (startLike || endLike) {
+            value = escapeRegExp(value);
+
+            let pattern : string;
+            if (negation) {
+                if (startLike && endLike) {
+                    pattern = `^(?!.*${value}).*`;
+                } else if (startLike) {
+                    pattern = `^(?!${value}).+`;
+                } else {
+                    pattern = `^(?!.*${value}$).*`;
+                }
+            } else if (startLike && endLike) {
+                pattern = `${value}`;
+            } else if (startLike) {
+                pattern = `^${value}`;
+            } else {
+                pattern = `${value}$`;
+            }
+
             return {
-                value: input,
-                operator: negation ?
-                    FilterComparisonOperator.NOT_IN :
-                    FilterComparisonOperator.IN,
+                value: new RegExp(pattern, 'i'),
+                operator: FilterFieldOperator.REGEX,
             };
         }
 
-        value = this.matchOperator(FilterInputOperatorValue.LIKE, input, 'start');
-        if (typeof value !== 'undefined') {
+        if (
+            value.substring(0, FilterInputOperatorValue.LESS_THAN_EQUAL.length) === FilterInputOperatorValue.LESS_THAN_EQUAL
+        ) {
             return {
-                value,
-                operator: negation ?
-                    FilterComparisonOperator.NOT_LIKE :
-                    FilterComparisonOperator.LIKE,
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.LESS_THAN_EQUAL.length)),
+                operator: FilterFieldOperator.LESS_THAN_EQUAL,
             };
         }
 
-        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN_EQUAL, input, 'start');
-        if (typeof value !== 'undefined') {
+        if (
+            value.substring(0, FilterInputOperatorValue.LESS_THAN.length) === FilterInputOperatorValue.LESS_THAN
+        ) {
             return {
-                value,
-                operator: FilterComparisonOperator.LESS_THAN_EQUAL,
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.LESS_THAN.length)),
+                operator: FilterFieldOperator.LESS_THAN,
             };
         }
 
-        value = this.matchOperator(FilterInputOperatorValue.LESS_THAN, input, 'start');
-        if (typeof value !== 'undefined') {
+        if (
+            value.substring(0, FilterInputOperatorValue.GREATER_THAN_EQUAL.length) === FilterInputOperatorValue.GREATER_THAN_EQUAL
+        ) {
             return {
-                value,
-                operator: FilterComparisonOperator.LESS_THAN,
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.GREATER_THAN_EQUAL.length)),
+                operator: FilterFieldOperator.GREATER_THAN_EQUAL,
             };
         }
 
-        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN_EQUAL, input, 'start');
-        if (typeof value !== 'undefined') {
+        if (
+            value.substring(0, FilterInputOperatorValue.GREATER_THAN.length) === FilterInputOperatorValue.GREATER_THAN
+        ) {
             return {
-                value,
-                operator: FilterComparisonOperator.GREATER_THAN_EQUAL,
+                value: this.normalizeValue(value.substring(FilterInputOperatorValue.GREATER_THAN.length)),
+                operator: FilterFieldOperator.GREATER_THAN,
             };
         }
 
-        value = this.matchOperator(FilterInputOperatorValue.MORE_THAN, input, 'start');
-        if (typeof value !== 'undefined') {
+        if (negation) {
             return {
-                value,
-                operator: FilterComparisonOperator.GREATER_THAN,
+                value: this.normalizeValue(value),
+                operator: FilterFieldOperator.NOT_EQUAL,
             };
         }
 
         return {
-            value: input,
-            operator: negation ?
-                FilterComparisonOperator.NOT_EQUAL :
-                FilterComparisonOperator.EQUAL,
+            value: this.normalizeValue(value),
+            operator: FilterFieldOperator.EQUAL,
         };
     }
 
-    protected matchOperator(
-        key: string,
-        value: FilterValueSimple,
-        position: 'start' | 'end' | 'global',
-    ) : FilterValueSimple | undefined {
-        if (typeof value === 'string') {
-            switch (position) {
-                case 'start': {
-                    if (value.substring(0, key.length) === key) {
-                        return value.substring(key.length);
-                    }
-                    break;
-                }
-                case 'end': {
-                    if (value.substring(0 - key.length) === key) {
-                        return value.substring(0, value.length - key.length - 1);
-                    }
-                    break;
-                }
-            }
-
-            return undefined;
-        }
-
-        if (Array.isArray(value)) {
-            let match = false;
-            for (let i = 0; i < value.length; i++) {
-                const output = this.matchOperator(key, value[i], position);
-                if (typeof output !== 'undefined') {
-                    match = true;
-                    value[i] = output as string | number;
-                }
-            }
-
-            if (match) {
-                return value;
-            }
-        }
-
-        return undefined;
-    }
-
-    protected normalizeValue(input: FilterValueSimple) : FilterValueSimple {
+    protected normalizeValue(input: unknown) : FilterValuePrimitive | FilterValuePrimitive[] {
         if (typeof input === 'string') {
-            input = input.trim();
-            const lower = input.toLowerCase();
+            const trimmed = input.trim();
+            if (trimmed.length === 0) {
+                return trimmed;
+            }
+
+            const lower = trimmed.toLowerCase();
 
             if (lower === 'true') {
                 return true;
@@ -403,35 +440,44 @@ FiltersParseOutput
                 return null;
             }
 
-            if (input.length === 0) {
-                return input;
-            }
-
-            const num = Number(input);
+            const num = Number(trimmed);
             if (!Number.isNaN(num)) {
                 return num;
             }
 
-            const parts = input.split(',');
+            const parts = trimmed.split(',');
             if (parts.length > 1) {
                 return this.normalizeValue(parts);
             }
+
+            return trimmed;
+        }
+
+        if (typeof input === 'number') {
+            return input;
         }
 
         if (Array.isArray(input)) {
+            const output : FilterValuePrimitive[] = [];
+
             for (let i = 0; i < input.length; i++) {
-                input[i] = this.normalizeValue(input[i]) as string | number;
+                const temp = this.normalizeValue(input[i]);
+                if (Array.isArray(temp)) {
+                    output.push(...temp);
+                } else {
+                    output.push(temp);
+                }
             }
 
-            return (input as unknown[])
-                .filter((n) => n === 0 || n === null || !!n) as FilterValueSimple;
+            return output
+                .filter((n) => n === 0 || n === null || !!n);
         }
 
         if (typeof input === 'undefined' || input === null) {
             return null;
         }
 
-        return input;
+        throw new SyntaxError('Value can not be normalized.');
     }
 
     // --------------------------------------------------

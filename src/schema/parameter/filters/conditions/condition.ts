@@ -5,7 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './conditions';
-export * from './error';
-export * from './module';
-export * from './types';
+import { Condition as BaseCondition } from '@ucast/core';
+
+export class Condition<
+    T = unknown,
+> extends BaseCondition<T> {
+
+}

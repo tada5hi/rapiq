@@ -7,15 +7,23 @@
 
 import type { KeyDetails } from './type';
 
-export function parseKey(
-    field: string,
-) : KeyDetails {
-    const parts : string[] = field.split('.');
+export const KEY_REGEX = /^(?:([0-9]+(?:\.[0-9]+)*):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
 
-    const name = parts.pop() as string;
+export function parseKey(
+    input: string,
+) : KeyDetails {
+    const matches = KEY_REGEX.exec(input);
+    if (!matches) {
+        return {
+            name: input,
+        };
+    }
+
+    const [, group, path, key] = matches;
 
     return {
-        name,
-        path: parts.length > 0 ? parts.join('.') : undefined,
+        group,
+        path: (path && path.at(-1) === '.' ? path.substring(0, path.length - 1) : path),
+        name: key,
     };
 }

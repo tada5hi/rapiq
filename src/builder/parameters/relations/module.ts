@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
-import { merge, toKeyPathArray } from '../../../utils';
+import { merge, serializeAsURI, toKeyPathArray } from '../../../utils';
 import { BaseBuilder } from '../../base';
 import type { RelationsBuildInput } from './types';
 
@@ -25,11 +26,11 @@ export class RelationsBuilder<
         this.items = merge(this.items, toKeyPathArray(input));
     }
 
-    prepare(): unknown {
+    serialize() {
         if (this.items.length === 0) {
             return undefined;
         }
 
-        return this.items;
+        return serializeAsURI(this.items, { prefixParts: [URLParameter.RELATIONS] });
     }
 }

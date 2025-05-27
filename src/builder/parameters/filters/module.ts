@@ -5,75 +5,55 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { URLParameter } from '../../../constants';
+import { FilterCompoundOperator } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
-import {
-    extendObject, isObject, merge, toFlatObject,
-} from '../../../utils';
+import { serializeAsURI } from '../../../utils';
 import { BaseBuilder } from '../../base';
+import { BuildCompoundCondition, BuildFieldsCondition } from './conditions';
 import type { FiltersBuildInput } from './types';
 
 export class FiltersBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > extends BaseBuilder<FiltersBuildInput<RECORD>> {
-    protected items : Record<string, any>;
+    protected value : BuildCompoundCondition;
+
+    // --------------------------------------------------
 
     constructor() {
         super();
 
-        this.items = {};
+        this.value = new BuildCompoundCondition(FilterCompoundOperator.OR, []);
     }
 
-    add(input: FiltersBuildInput<RECORD>) {
-        this.items = merge(this.items, this.transformInput(input));
-    }
+    // --------------------------------------------------
 
-    prepare(): unknown {
-        const keys = Object.keys(this.items);
-        if (keys.length === 0) {
-            return undefined;
+    /**
+     * Add multiple conditions to the builder.
+     *
+     * @param input
+     */
+    add(
+        input: FiltersBuildInput<RECORD> | BuildFieldsCondition<RECORD>,
+    ) {
+        let fields : BuildFieldsCondition<RECORD>;
+
+        if (input instanceof BuildFieldsCondition) {
+            fields = input;
+        } else {
+            fields = new BuildFieldsCondition();
+            fields.addRaw(input);
         }
 
-        return this.items;
+        this.value.add(fields);
     }
 
-    protected transformInput(input: FiltersBuildInput<any>) {
-        return toFlatObject(input, {
-            transformer: (input, output, key) => {
-                if (typeof input === 'undefined') {
-                    output[key] = null;
+    // --------------------------------------------------
 
-                    return true;
-                }
-
-                if (Array.isArray(input)) {
-                    // preserve null values
-                    const data : string[] = [];
-                    for (let i = 0; i < input.length; i++) {
-                        if (input[i] === null) {
-                            input[i] = 'null';
-                        }
-
-                        if (typeof input[i] === 'number') {
-                            input[i] = `${input[i]}`;
-                        }
-
-                        if (typeof input[i] === 'string') {
-                            data.push(input[i]);
-                        }
-                    }
-
-                    output[key] = data.join(',');
-
-                    return true;
-                }
-
-                if (isObject(input)) {
-                    const tmp = this.transformInput(input as FiltersBuildInput<any>);
-                    extendObject(output, tmp);
-                }
-
-                return undefined;
-            },
-        });
+    serialize() {
+        if (this.value.value.length === 0) {
+            return undefined;
+        }
+        return serializeAsURI(this.value.normalize(), { prefixParts: [URLParameter.FILTERS] });
     }
 }

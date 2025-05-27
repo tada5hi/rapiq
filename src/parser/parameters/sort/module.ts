@@ -123,8 +123,8 @@ SortParseOutput
             }
 
             if (
-                !isPathAllowedByRelations(fieldDetails.path, options.relations) &&
-                typeof fieldDetails.path !== 'undefined'
+                fieldDetails.path &&
+                !isPathAllowedByRelations(fieldDetails.path, options.relations)
             ) {
                 if (schema.throwOnFailure) {
                     throw SortParseError.keyPathInvalid(fieldDetails.path);

@@ -19,9 +19,6 @@ import {
 import type { BuildInput } from './types';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../types';
-import {
-    serializeAsURI,
-} from '../utils';
 
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
@@ -110,43 +107,22 @@ export class Builder<
     // --------------------------------------------------
 
     override toString() {
-        return this.buildAsURI();
+        return this.serialize();
     }
 
     // --------------------------------------------------
 
-    prepare() {
-        const record : Record<string, any> = {};
-        const fields = this.fields.prepare();
-        if (typeof fields !== 'undefined') {
-            record[URLParameter.FIELDS] = fields;
-        }
+    serialize() {
+        const output = [
+            this.fields.serialize(),
+            this.filters.serialize(),
+            this.pagination.serialize(),
+            this.relations.serialize(),
+            this.sort.serialize(),
+        ]
+            .filter(Boolean)
+            .join('&');
 
-        const filters = this.filters.prepare();
-        if (typeof filters !== 'undefined') {
-            record[URLParameter.FILTERS] = filters;
-        }
-
-        const pagination = this.pagination.prepare();
-        if (typeof pagination !== 'undefined') {
-            record[URLParameter.PAGINATION] = pagination;
-        }
-
-        const relations = this.relations.prepare();
-        if (typeof relations !== 'undefined') {
-            record[URLParameter.RELATIONS] = relations;
-        }
-
-        const sort = this.sort.prepare();
-        if (typeof sort !== 'undefined') {
-            record[URLParameter.SORT] = sort;
-        }
-
-        return record;
-    }
-
-    buildAsURI() {
-        const output = serializeAsURI(this.prepare());
         return output.length > 0 ?
             `?${output}` :
             '';

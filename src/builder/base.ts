@@ -10,5 +10,5 @@ export abstract class BaseBuilder<
 > {
     abstract add(input: INPUT) : void;
 
-    abstract prepare(): unknown;
+    abstract serialize() : string | undefined;
 }
