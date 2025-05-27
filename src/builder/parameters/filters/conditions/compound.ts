@@ -15,7 +15,7 @@ import { BuildFieldsCondition } from './fields';
 export class BuildCompoundCondition<
     T extends Condition = Condition,
 > extends CompoundCondition<T> {
-    flatten() : Record<string, any> {
+    normalize() : Record<string, any> {
         if (this.value.length === 1) {
             const [first] = this.value;
 
@@ -23,7 +23,7 @@ export class BuildCompoundCondition<
                 first instanceof BuildFieldsCondition ||
                 first instanceof BuildCompoundCondition
             ) {
-                return first.flatten();
+                return first.normalize();
             }
 
             return {} as Record<string, any>;
@@ -44,7 +44,7 @@ export class BuildCompoundCondition<
                 child instanceof BuildFieldsCondition ||
                 child instanceof BuildCompoundCondition
             ) {
-                extendObject(output, child.flatten(), prefix);
+                extendObject(output, child.normalize(), prefix);
             }
         }
 
@@ -52,6 +52,6 @@ export class BuildCompoundCondition<
     }
 
     serialize() : string | undefined {
-        return serializeAsURI(this.flatten(), { prefixParts: [URLParameter.FILTERS] });
+        return serializeAsURI(this.normalize(), { prefixParts: [URLParameter.FILTERS] });
     }
 }

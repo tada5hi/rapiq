@@ -137,7 +137,7 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.flatten()).toEqual({
+            expect(group.normalize()).toEqual({
                 '0.id': '1',
                 '1.name': 'foo',
             });
@@ -158,7 +158,7 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.flatten()).toEqual({
+            expect(group.normalize()).toEqual({
                 '0.id': '1',
                 '1.name': 'foo',
                 '2.child.age': '<15',
@@ -180,7 +180,7 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.flatten()).toEqual({
+            expect(group.normalize()).toEqual({
                 '0.id': '1',
                 '0.name': 'foo',
                 '1.child.age': '<15',
@@ -202,7 +202,7 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.flatten()).toEqual({
+            expect(group.normalize()).toEqual({
                 id: '1',
                 name: 'foo',
                 'child.age': '<15',
@@ -224,7 +224,7 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.flatten()).toEqual({
+            expect(group.normalize()).toEqual({
                 '0.id': '1',
                 '1.name': 'foo',
                 'child.age': '<15',

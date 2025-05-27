@@ -54,6 +54,6 @@ export class FiltersBuilder<
         if (this.value.value.length === 0) {
             return undefined;
         }
-        return serializeAsURI(this.value.flatten(), { prefixParts: [URLParameter.FILTERS] });
+        return serializeAsURI(this.value.normalize(), { prefixParts: [URLParameter.FILTERS] });
     }
 }

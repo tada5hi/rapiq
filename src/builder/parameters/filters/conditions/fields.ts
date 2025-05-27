@@ -27,7 +27,7 @@ export class BuildFieldsCondition<
         }
     }
 
-    flatten() {
+    normalize() {
         const output = {} as T;
 
         for (let i = 0; i < this.value.length; i++) {
@@ -43,7 +43,7 @@ export class BuildFieldsCondition<
             return undefined;
         }
 
-        return serializeAsURI(this.flatten(), { prefixParts: [URLParameter.FILTERS] });
+        return serializeAsURI(this.normalize(), { prefixParts: [URLParameter.FILTERS] });
     }
 
     protected normalizeValue(input: unknown) : string | undefined {
