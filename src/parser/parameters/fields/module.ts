@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { isObject } from 'smob';
+import { distinctArray, isObject } from 'smob';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 import {
@@ -14,7 +14,7 @@ import {
 import { DEFAULT_ID } from '../../../constants';
 import { FieldsParseError } from './error';
 import {
-    applyMapping, diffArray, groupArrayByKeyPath, hasOwnProperty, isPathAllowed,
+    applyMapping, groupArrayByKeyPath, hasOwnProperty, isPathAllowed,
 } from '../../../utils';
 import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
@@ -84,15 +84,11 @@ FieldsParseOutput
             throw FieldsParseError.inputInvalid();
         }
 
-        let allowedKeys = Array.from(new Set([
+        const allowedKeys = [
+            DEFAULT_ID,
             ...schema.allowedKeys,
             ...schema.defaultKeys,
-            DEFAULT_ID,
-        ]));
-
-        if (schema.defaultPath) {
-            allowedKeys = diffArray(allowedKeys, [schema.defaultPath]);
-        }
+        ];
 
         let keys = Object.keys(data);
         if (keys.length > 0) {
@@ -105,25 +101,20 @@ FieldsParseOutput
                     }
                 }
             }
-
-            if (keys.indexOf(DEFAULT_ID) === -1) {
-                keys.unshift(DEFAULT_ID);
-            }
         } else if (typeof options.relations !== 'undefined') {
-            keys = [
-                DEFAULT_ID,
-                ...options.relations,
-            ];
+            keys = options.relations;
         } else {
             keys = allowedKeys;
         }
 
+        keys = distinctArray([DEFAULT_ID, ...keys]);
+
         const output : FieldsParseOutput = [];
 
-        for (let i = 0; i < keys.length; i++) {
-            const path : string = keys[i];
+        while (keys.length > 0) {
+            const path = keys.shift();
 
-            if (path === schema.defaultPath) {
+            if (!path || path === schema.defaultPath) {
                 continue;
             }
 
@@ -157,7 +148,7 @@ FieldsParseOutput
                     }
 
                     // todo: this is risky
-                    //  extractSubRelations(keys, key);
+                    extractSubRelations(keys, key);
 
                     const subOutput = this.parse(
                         this.prepareInputForSubSchema(data, key),

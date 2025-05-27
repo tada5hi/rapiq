@@ -114,33 +114,36 @@ export function groupArrayByKeyPath(
     input: unknown[],
     defaultKey?: string,
 ): Record<string, string[]> {
-    const pathItems: Record<string, string[]> = {};
+    const output: Record<string, string[]> = {};
 
     for (let i = 0; i < input.length; i++) {
         const element = input[i];
 
-        if (typeof element !== 'string') {
+        if (
+            typeof element !== 'string' ||
+            element.length === 0
+        ) {
             continue;
         }
 
-        const parts = element.split('.');
-
         let key: string;
         let name: string;
-        if (parts.length === 1) {
+
+        const lastIndex = element.lastIndexOf('.');
+        if (lastIndex === -1) {
             key = defaultKey || DEFAULT_ID;
             name = element;
         } else {
-            name = parts.pop() as string;
-            key = parts.join('.');
+            key = element.substring(0, lastIndex);
+            name = element.substring(lastIndex + 1);
         }
 
-        if (!Object.prototype.hasOwnProperty.call(pathItems, key)) {
-            pathItems[key] = [];
+        if (!output[key]) {
+            output[key] = [];
         }
 
-        pathItems[key].push(name);
+        output[key].push(name);
     }
 
-    return pathItems;
+    return output;
 }
