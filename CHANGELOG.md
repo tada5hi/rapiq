@@ -39,6 +39,18 @@
 
 * allow throwing error on invalid parsing input ([#312](https://github.com/Tada5hi/rapiq/issues/312)) ([3afd7f2](https://github.com/Tada5hi/rapiq/commit/3afd7f218402738a57f8b2c0bf241b2399024164))
 
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/v1.0.0...v2.0.0) (2025-05-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* public api changed
+
+### Features
+
+* schema & schema registry component ([#598](https://github.com/tada5hi/rapiq/issues/598)) ([a68cd22](https://github.com/tada5hi/rapiq/commit/a68cd2230ff436beb4ffe4e36432b2e76cff823a))
+* support nested filters (or, and) ([#600](https://github.com/tada5hi/rapiq/issues/600)) ([20b9e75](https://github.com/tada5hi/rapiq/commit/20b9e755fcb2b4d353d38ae90bba67c3e0a0882a))
+
 ## [0.8.1](https://github.com/Tada5hi/rapiq/compare/v0.8.0...v0.8.1) (2023-05-29)
 
 
