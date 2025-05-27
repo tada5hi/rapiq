@@ -14,6 +14,7 @@ import {
 } from '../../../utils';
 import type { FieldsOptions } from './types';
 import { BaseSchema } from '../../base';
+import { DEFAULT_ID } from '../../../constants';
 
 export class FieldsSchema<
     T extends ObjectLiteral = ObjectLiteral,
@@ -81,7 +82,6 @@ export class FieldsSchema<
 
         this.default = groupArrayByKeyPath(
             flattenParseAllowedOption(input),
-            this.defaultPath,
         );
         this.defaultKeys = Object.keys(this.default);
         this.defaultIsUndefined = false;
@@ -97,7 +97,6 @@ export class FieldsSchema<
 
         this.allowed = groupArrayByKeyPath(
             flattenParseAllowedOption(input),
-            this.defaultPath,
         );
         this.allowedKeys = Object.keys(this.allowed);
         this.allowedIsUndefined = false;
@@ -144,6 +143,14 @@ export class FieldsSchema<
             this.defaultIsUndefined
         ) {
             return isPropertyNameValid(name);
+        }
+
+        if (
+            group === DEFAULT_ID &&
+            this.defaultPath &&
+            group !== this.defaultPath
+        ) {
+            return this.isValid(name, this.defaultPath);
         }
 
         return false;

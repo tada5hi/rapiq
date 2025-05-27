@@ -13,6 +13,38 @@ export function isObject(item: unknown) : item is Record<string, any> {
     );
 }
 
+export function renameObjectKeys(
+    target: Record<string, any>,
+    fn: (key: string) => string,
+) {
+    const output : Record<string, any> = {};
+
+    const keys = Object.keys(target);
+    for (let i = 0; i < keys.length; i++) {
+        const nextKey = fn(keys[i]);
+        output[nextKey] = target[keys[i]];
+    }
+
+    return output;
+}
+
+export function reduceObject(
+    target: Record<string, any>,
+    fn: (key: string) => boolean,
+) {
+    const output : Record<string, any> = {};
+
+    const keys = Object.keys(target);
+    for (let i = 0; i < keys.length; i++) {
+        const remove = fn(keys[i]);
+        if (!remove) {
+            output[keys[i]] = target[keys[i]];
+        }
+    }
+
+    return output;
+}
+
 export function extendObject(
     target: Record<string, any>,
     source: Record<string, any>,

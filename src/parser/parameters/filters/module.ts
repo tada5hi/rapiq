@@ -17,7 +17,7 @@ import {
     buildKeyWithPath,
     escapeRegExp,
     isObject,
-    isPathAllowedByRelations,
+    isPathAllowed,
     isPathCoveredByParseAllowedOption,
     isPropertyNameValid,
     parseKey,
@@ -84,7 +84,7 @@ Condition
 
             if (
                 keyParsed.path &&
-                !isPathAllowedByRelations(keyParsed.path, options.relations)
+                !isPathAllowed(keyParsed.path, options.relations)
             ) {
                 if (schema.throwOnFailure) {
                     throw FiltersParseError.keyPathInvalid(keyParsed.path);

@@ -35,4 +35,14 @@ export class BaseSchema<OPTIONS extends BaseSchemaOptions = BaseSchemaOptions> {
     get throwOnFailure() : boolean | undefined {
         return this.options.throwOnFailure;
     }
+
+    // ---------------------------------------------------------
+
+    mapSchema(input: string) {
+        if (this.options.schemaMapping) {
+            return this.options.schemaMapping[input] || input;
+        }
+
+        return input;
+    }
 }

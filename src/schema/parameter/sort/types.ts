@@ -8,6 +8,7 @@
 import type { Flatten, NestedKeys, OnlyObject } from '../../../types';
 import type { OptionAllowed } from '../../../utils';
 import type { SortDirection } from './constants';
+import type { BaseSchemaOptions } from '../../types';
 
 export type SortOptionDefault<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
@@ -19,10 +20,8 @@ export type SortOptionDefault<T extends Record<string, any>> = {
 
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
-> = {
+> = BaseSchemaOptions & {
     allowed?: OptionAllowed<T>,
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
-    defaultPath?: string,
-    throwOnFailure?: boolean,
 };

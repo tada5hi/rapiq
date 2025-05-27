@@ -19,8 +19,19 @@ import type {
 import type { ObjectLiteral } from '../types';
 
 export type BaseSchemaOptions = {
+    /**
+     * defaultPath for parsing field names
+     */
     defaultPath?: string,
+    /**
+     * throw error on invalid input for building or parsing
+     * input data.
+     */
     throwOnFailure?: boolean,
+    /**
+     * Map alias to schema name
+     */
+    schemaMapping?: Record<string, string>
 };
 
 export type SchemaOptionsNormalized<

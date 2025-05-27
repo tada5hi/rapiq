@@ -6,13 +6,12 @@
  */
 
 import type { OptionAllowed } from '../../../utils';
+import type { BaseSchemaOptions } from '../../types';
 
 export type FieldsOptions<
     T extends Record<string, any> = Record<string, any>,
-> = {
+> = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: OptionAllowed<T>,
     default?: OptionAllowed<T>,
-    defaultPath?: string,
-    throwOnFailure?: boolean,
 };

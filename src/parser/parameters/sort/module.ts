@@ -13,7 +13,7 @@ import {
     buildKeyWithPath,
     flattenParseAllowedOption,
     hasOwnProperty,
-    isPathAllowedByRelations,
+    isPathAllowed,
     isPathCoveredByParseAllowedOption,
     isPropertyNameValid,
     parseKey,
@@ -124,7 +124,7 @@ SortParseOutput
 
             if (
                 fieldDetails.path &&
-                !isPathAllowedByRelations(fieldDetails.path, options.relations)
+                !isPathAllowed(fieldDetails.path, options.relations)
             ) {
                 if (schema.throwOnFailure) {
                     throw SortParseError.keyPathInvalid(fieldDetails.path);

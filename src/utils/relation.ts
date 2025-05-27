@@ -7,19 +7,18 @@
 
 import { isObject } from 'smob';
 
-import type { RelationsParseOutput } from '../parser';
 import type { KeyDetails } from './type';
 
-export function isPathAllowedByRelations(
-    path?: string,
-    includes?: RelationsParseOutput,
+export function isPathAllowed(
+    path: string,
+    allowed?: string[],
 ) : boolean {
-    if (typeof path === 'undefined' || typeof includes === 'undefined') {
+    if (typeof allowed === 'undefined') {
         return true;
     }
 
-    return includes.some(
-        (include) => include.key === path,
+    return allowed.some(
+        (include) => include === path,
     );
 }
 
