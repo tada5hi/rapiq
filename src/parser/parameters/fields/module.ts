@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { distinctArray, isObject } from 'smob';
+import { isObject } from 'smob';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 import {
@@ -18,7 +18,6 @@ import {
 } from '../../../utils';
 import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
-import { RelationsParseError } from '../relations';
 
 type FieldsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -40,118 +39,79 @@ FieldsParseOutput
     ) : FieldsParseOutput {
         const schema = this.resolveSchema(options.schema);
 
-        // If it is an empty array nothing is allowed
+        // If it is an empty array, nothing is allowed
         if (schema.allDenied) {
             return [];
         }
 
-        let data : Record<string, any> = {};
-
+        const data = this.normalize(input, schema.throwOnFailure);
         if (
-            typeof input === 'string' ||
-            Array.isArray(input)
+            schema.defaultPath &&
+            data[schema.defaultPath]
         ) {
-            if (typeof input === 'string') {
-                input = groupArrayByKeyPath(input.split(','));
-            } else {
-                const parts : string[] = [];
-                for (let i = 0; i < input.length; i++) {
-                    if (typeof input[i] === 'string') {
-                        parts.push(input[i]);
-                        continue;
-                    }
-
-                    if (schema.throwOnFailure) {
-                        throw RelationsParseError.inputInvalid();
-                    }
-                }
-
-                input = groupArrayByKeyPath(parts);
-            }
-        }
-
-        if (isObject(input)) {
-            if (
-                schema.defaultPath &&
-                input[schema.defaultPath]
-            ) {
-                input[DEFAULT_ID] = input[schema.defaultPath];
-                delete input[schema.defaultPath];
-            }
-
-            data = input;
-        } else if (schema.throwOnFailure) {
-            throw FieldsParseError.inputInvalid();
+            data[DEFAULT_ID] = data[schema.defaultPath];
+            delete data[schema.defaultPath];
         }
 
         const allowedKeys = [
-            DEFAULT_ID,
             ...schema.allowedKeys,
             ...schema.defaultKeys,
         ];
 
         let keys = Object.keys(data);
         if (keys.length > 0) {
+            const temp : string[] = [];
             for (let i = 0; i < keys.length; i++) {
                 const index = allowedKeys.indexOf(keys[i]);
 
                 if (index === -1) {
+                    try {
+                        this.resolveSchema(keys[i]);
+                    } catch (e) {
+                        if (schema.throwOnFailure) {
+                            throw FieldsParseError.keyPathInvalid(keys[i]);
+                        }
+                        continue;
+                    }
+                }
+
+                if (!isPathAllowed(keys[i], options.relations)) {
                     if (schema.throwOnFailure) {
                         throw FieldsParseError.keyPathInvalid(keys[i]);
                     }
-                }
-            }
-        } else if (typeof options.relations !== 'undefined') {
-            keys = options.relations;
-        } else {
-            keys = allowedKeys;
-        }
 
-        keys = distinctArray([DEFAULT_ID, ...keys]);
+                    continue;
+                }
+
+                if (keys[i] === DEFAULT_ID) {
+                    continue;
+                }
+
+                temp.push(keys[i]);
+            }
+
+            keys = [DEFAULT_ID, ...temp];
+        } else if (typeof options.relations !== 'undefined') {
+            keys = [DEFAULT_ID, ...options.relations];
+        } else {
+            keys = [DEFAULT_ID];
+        }
 
         const output : FieldsParseOutput = [];
 
         while (keys.length > 0) {
-            const path = keys.shift();
+            const path = keys.shift() as string;
 
-            if (!path || path === schema.defaultPath) {
-                continue;
-            }
-
-            const pathValid = path === DEFAULT_ID ||
-                isPathAllowed(path, options.relations);
-
-            if (!pathValid) {
-                if (schema.throwOnFailure) {
-                    throw FieldsParseError.keyPathInvalid(path);
-                }
-
-                continue;
-            }
-
-            let key : string;
-            const index = path.indexOf('.');
-            if (index !== -1) {
-                key = path.slice(0, index);
-            } else {
-                key = path;
-            }
-
-            if (key !== DEFAULT_ID) {
-                const relationSchemaName = schema.mapSchema(key);
-                const relationSchema = this.registry.get(relationSchemaName);
-
+            if (path !== DEFAULT_ID) {
+                const relationSchema = this.resolveSchemaSafe(path);
                 if (relationSchema) {
                     let childRelations: string[] | undefined;
                     if (typeof options.relations !== 'undefined') {
-                        childRelations = extractSubRelations(options.relations, key);
+                        childRelations = extractSubRelations(options.relations, path);
                     }
 
-                    // todo: this is risky
-                    extractSubRelations(keys, key);
-
                     const subOutput = this.parse(
-                        this.prepareInputForSubSchema(data, key),
+                        this.prepareInputForSubSchema(data, path),
                         {
                             relations: childRelations,
                             schema: relationSchema,
@@ -162,22 +122,14 @@ FieldsParseOutput
                     output.push(...subOutput.map(
                         (element) => ({
                             key: element.key,
-                            path: element.path ? `${key}.${element.path}` : key,
+                            path: element.path ? `${path}.${element.path}` : path,
                         }),
                     ));
 
+                    extractSubRelations(keys, path);
+
                     continue;
                 }
-            }
-
-            let fields : string[] = [];
-            if (hasOwnProperty(data, path)) {
-                fields = this.parseInputGroup(data[path]);
-            } else if (
-                hasOwnProperty(schema.reverseMapping, path) &&
-                hasOwnProperty(data, schema.reverseMapping[path])
-            ) {
-                fields = this.parseInputGroup(data[schema.reverseMapping[path]]);
             }
 
             const transformed : FieldsParseInputTransformed = {
@@ -186,23 +138,25 @@ FieldsParseOutput
                 excluded: [],
             };
 
-            if (fields.length > 0) {
+            if (
+                data[path] &&
+                data[path].length > 0
+            ) {
+                const fields = data[path];
                 for (let j = 0; j < fields.length; j++) {
                     let operator: FieldOperator | undefined;
 
                     const character = fields[j].substring(0, 1);
+                    if (
+                        character === FieldOperator.INCLUDE ||
+                        character === FieldOperator.EXCLUDE
+                    ) {
+                        operator = character;
 
-                    if (character === FieldOperator.INCLUDE) {
-                        operator = FieldOperator.INCLUDE;
-                    } else if (character === FieldOperator.EXCLUDE) {
-                        operator = FieldOperator.EXCLUDE;
-                    }
-
-                    if (operator) {
                         fields[j] = fields[j].substring(1);
                     }
 
-                    fields[j] = applyMapping(fields[j], schema.mapping, true);
+                    fields[j] = applyMapping(fields[j], schema.mapping);
 
                     if (!schema.isValid(fields[j], path)) {
                         if (schema.throwOnFailure) {
@@ -271,23 +225,83 @@ FieldsParseOutput
 
             if (transformed.default.length > 0) {
                 for (let j = 0; j < transformed.default.length; j++) {
-                    let destPath : string | undefined;
-                    if (
-                        path !== DEFAULT_ID &&
-                        path !== schema.defaultPath
-                    ) {
-                        destPath = path;
-                    }
-
                     output.push({
                         key: transformed.default[j],
-                        ...(destPath ? { path: destPath } : {}),
+                        ...(path !== DEFAULT_ID ? { path } : {}),
                     });
                 }
             }
         }
 
         return output;
+    }
+
+    protected normalize(
+        input: unknown,
+        throwOnFailure?: boolean,
+    ) : Record<string, string[]> {
+        if (
+            typeof input === 'string' ||
+            Array.isArray(input)
+        ) {
+            let temp : unknown[] = [];
+            if (typeof input === 'string') {
+                temp = input.split(',');
+            } else {
+                temp = input;
+            }
+
+            const parts : string[] = [];
+            for (let i = 0; i < temp.length; i++) {
+                if (typeof temp[i] !== 'string') {
+                    if (throwOnFailure) {
+                        throw FieldsParseError.inputInvalid();
+                    }
+
+                    continue;
+                }
+
+                parts.push(temp[i] as string);
+            }
+
+            if (parts.length > 0) {
+                return groupArrayByKeyPath(parts);
+            }
+
+            return {};
+        }
+
+        if (isObject(input)) {
+            const output : Record<string, string[]> = {};
+
+            const keys = Object.keys(input);
+            for (let i = 0; i < keys.length; i++) {
+                const temp = this.normalize(input[keys[i]], throwOnFailure);
+                const tempKeys = Object.keys(temp);
+
+                for (let j = 0; j < tempKeys.length; j++) {
+                    let nextKey : string;
+                    if (tempKeys[j] === DEFAULT_ID) {
+                        nextKey = keys[i];
+                    } else {
+                        nextKey = `${keys[i]}.${tempKeys[j]}`;
+                    }
+                    output[nextKey] = temp[tempKeys[j]];
+                }
+            }
+
+            return output;
+        }
+
+        if (input === undefined || input === null || input === '') {
+            return {};
+        }
+
+        if (throwOnFailure) {
+            throw FieldsParseError.inputInvalid();
+        }
+
+        return {};
     }
 
     protected prepareInputForSubSchema(data: Record<string, any>, relation: string) {
@@ -302,22 +316,6 @@ FieldsParseOutput
 
             if (keys[i].substring(0, relation.length + 1) === `${relation}.`) {
                 output[keys[i].substring(relation.length + 1)] = data[keys[i]];
-            }
-        }
-
-        return output;
-    }
-
-    protected parseInputGroup(input: unknown): string[] {
-        let output: string[] = [];
-
-        if (typeof input === 'string') {
-            output = input.split(',');
-        } else if (Array.isArray(input)) {
-            for (let i = 0; i < input.length; i++) {
-                if (typeof input[i] === 'string') {
-                    output.push(input[i]);
-                }
             }
         }
 
@@ -339,5 +337,15 @@ FieldsParseOutput
         }
 
         return defineFieldsSchema();
+    }
+
+    protected resolveSchemaSafe<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input?: string | Schema<RECORD> | FieldsSchema<RECORD>) : FieldsSchema<RECORD> | undefined {
+        try {
+            return this.resolveSchema(input);
+        } catch (e) {
+            return undefined;
+        }
     }
 }
