@@ -168,7 +168,7 @@ describe('src/filter/index.ts', () => {
     it('should parse with default path', () => {
         const schema = defineFiltersSchema({
             allowed: ['id', 'display_name'],
-            defaultPath: 'user',
+            name: 'user',
         });
 
         let [sql, params] = parsi({ id: 1 }, { schema });

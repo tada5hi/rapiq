@@ -9,6 +9,7 @@ import { SchemaRegistry, defineSchema } from '../../src';
 import type { Item, Realm, User } from './type';
 
 const userSchema = defineSchema<User>({
+    name: 'user',
     fields: {
         allowed: [
             'id',
@@ -23,13 +24,13 @@ const userSchema = defineSchema<User>({
             'items',
         ],
     },
-    defaultPath: 'user',
     schemaMapping: {
         items: 'item',
     },
 });
 
 const itemSchema = defineSchema<Item>({
+    name: 'item',
     fields: {
         allowed: [
             'id',
@@ -41,10 +42,10 @@ const itemSchema = defineSchema<Item>({
             'realm',
         ],
     },
-    defaultPath: 'item',
 });
 
 const realmSchema = defineSchema<Realm>({
+    name: 'realm',
     fields: {
         allowed: [
             'id',
@@ -52,13 +53,12 @@ const realmSchema = defineSchema<Realm>({
             'description',
         ],
     },
-    defaultPath: 'realm',
 });
 
 const registry = new SchemaRegistry();
-registry.add('user', userSchema);
-registry.add('item', itemSchema);
-registry.add('realm', realmSchema);
+registry.add(userSchema);
+registry.add(itemSchema);
+registry.add(realmSchema);
 
 export {
     registry,

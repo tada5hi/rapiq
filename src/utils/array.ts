@@ -111,27 +111,19 @@ export function toKeyPathArray(
 }
 
 export function groupArrayByKeyPath(
-    input: unknown[],
-    defaultKey?: string,
+    input: string[],
 ): Record<string, string[]> {
     const output: Record<string, string[]> = {};
 
     for (let i = 0; i < input.length; i++) {
         const element = input[i];
 
-        if (
-            typeof element !== 'string' ||
-            element.length === 0
-        ) {
-            continue;
-        }
-
         let key: string;
         let name: string;
 
         const lastIndex = element.lastIndexOf('.');
         if (lastIndex === -1) {
-            key = defaultKey || DEFAULT_ID;
+            key = DEFAULT_ID;
             name = element;
         } else {
             key = element.substring(0, lastIndex);

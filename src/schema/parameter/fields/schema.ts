@@ -147,10 +147,10 @@ export class FieldsSchema<
 
         if (
             group === DEFAULT_ID &&
-            this.defaultPath &&
-            group !== this.defaultPath
+            this.name &&
+            group !== this.name
         ) {
-            return this.isValid(name, this.defaultPath);
+            return this.isValid(name, this.name);
         }
 
         return false;

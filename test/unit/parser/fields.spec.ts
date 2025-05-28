@@ -12,7 +12,6 @@ import type {
 import {
     FieldsParseError,
     FieldsParser,
-    RelationsParser,
     defineFieldsSchema,
     defineSchema,
 } from '../../../src';
@@ -24,11 +23,11 @@ describe('src/fields/index.ts', () => {
         parser = new FieldsParser();
     });
 
-    it('should parse fields with defaultPath', () => {
+    it('should parse fields with name', () => {
         const schema = defineSchema({
+            name: 'user',
             fields: {
                 allowed: ['id', 'name', 'email'],
-                defaultPath: 'user',
             },
         });
 
@@ -52,7 +51,7 @@ describe('src/fields/index.ts', () => {
     it('should parse fields with extra field', () => {
         const schema = defineFieldsSchema({
             allowed: ['id', 'name', 'email'],
-            defaultPath: 'user',
+            name: 'user',
         });
         const data = parser.parse('+email', {
             schema,
@@ -73,13 +72,13 @@ describe('src/fields/index.ts', () => {
                 extra: string
             }
         }>({
+            name: 'user',
             allowed: [
                 ['id', 'name', 'email'],
                 {
                     domain: ['extra'],
                 },
             ],
-            defaultPath: 'user',
         });
 
         let data = parser.parse('+email', {
@@ -243,10 +242,10 @@ describe('src/fields/index.ts', () => {
 
     it('should parse with single allowed domain', () => {
         const schema = defineSchema({
+            name: 'domain',
             fields: {
                 allowed: { domain: ['id'] },
             },
-            defaultPath: 'domain',
         });
 
         // if only one domain is given, try to parse request field to single domain.
@@ -256,13 +255,13 @@ describe('src/fields/index.ts', () => {
 
     it('should parse with multiple allowed domains', () => {
         const schema = defineSchema({
+            name: 'domain',
             fields: {
                 allowed: {
                     domain: ['id', 'name'],
                     domain2: ['id', 'name'],
                 },
             },
-            defaultPath: 'domain',
         });
 
         // if multiple possibilities are available for request field, use allowed
@@ -302,7 +301,7 @@ describe('src/fields/index.ts', () => {
                     domain2: ['name'],
                 },
             },
-            defaultPath: 'domain',
+            name: 'domain',
         });
 
         // if multiple possibilities are available for request field, use default
@@ -399,10 +398,10 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid key (pattern)', () => {
         const schema = defineSchema({
+            name: 'user',
             throwOnFailure: true,
             fields: {
                 allowed: ['id', 'name', 'email'],
-                defaultPath: 'user',
             },
         });
 

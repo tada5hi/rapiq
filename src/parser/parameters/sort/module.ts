@@ -152,8 +152,8 @@ SortParseOutput
             let path : string | undefined;
             if (fieldDetails.path) {
                 path = fieldDetails.path;
-            } else if (schema.defaultPath) {
-                path = schema.defaultPath;
+            } else if (schema.name) {
+                path = schema.name;
             }
 
             items[keyWithAlias] = {
@@ -185,7 +185,7 @@ SortParseOutput
                     } else {
                         key = keyWithAlias;
 
-                        keyWithAlias = buildKeyPath(key, schema.defaultPath);
+                        keyWithAlias = buildKeyPath(key, schema.name);
                     }
 
                     if (
@@ -242,7 +242,7 @@ SortParseOutput
     RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | SortSchema<RECORD>) : SortSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.sort;
         }
 

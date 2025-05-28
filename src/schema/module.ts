@@ -94,10 +94,10 @@ export class Schema<
         }
 
         if (
-            typeof this.options.defaultPath !== 'undefined' &&
-            typeof schema.defaultPath === 'undefined'
+            typeof this.options.name !== 'undefined' &&
+            typeof schema.name === 'undefined'
         ) {
-            schema.defaultPath = this.options.defaultPath;
+            schema.name = this.options.name;
         }
     }
 }

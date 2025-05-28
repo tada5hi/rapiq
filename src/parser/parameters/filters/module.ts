@@ -6,11 +6,19 @@
  */
 
 import { optimizedCompoundCondition } from '@ucast/core';
-import type { Condition } from '../../../schema/parameter/filters/conditions';
-import { CompoundCondition, FieldCondition } from '../../../schema/parameter/filters/conditions';
+import type { Condition } from '../../../schema';
+import {
+    CompoundCondition,
+    FieldCondition,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    FilterInputOperatorValue,
+    FiltersSchema,
+    Schema,
+    defineFiltersSchema,
+} from '../../../schema';
 import type { FilterValuePrimitive } from '../../../builder';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
-import type { KeyDetails } from '../../../utils';
 import {
     applyMapping,
     buildKeyPath,
@@ -24,9 +32,6 @@ import {
 } from '../../../utils';
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../base';
-import {
-    FilterCompoundOperator, FilterFieldOperator, FilterInputOperatorValue, FiltersSchema, Schema, defineFiltersSchema,
-} from '../../../schema';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
 import type { FiltersParseOptions } from './types';
 
@@ -67,7 +72,7 @@ Condition
         // transform to appreciate data format & validate input
         const keys = Object.keys(data);
         for (let i = 0; i < keys.length; i++) {
-            const keyParsed : KeyDetails = parseKey(keys[i]);
+            const keyParsed = parseKey(keys[i]);
 
             // todo: path should be respected
             keyParsed.name = applyMapping(keyParsed.name, schema.mapping);
@@ -157,7 +162,7 @@ Condition
 
             items[outputKey].push(new FieldCondition(
                 valueParsed.operator,
-                buildKeyPath(keyParsed.name, keyParsed.path || schema.defaultPath),
+                buildKeyPath(keyParsed.name, keyParsed.path || schema.name),
                 valueParsed.value,
             ));
         }
@@ -184,8 +189,8 @@ Condition
             let path : string | undefined;
             if (keyDetails.path) {
                 path = keyDetails.path;
-            } else if (schema.defaultPath) {
-                path = schema.defaultPath;
+            } else if (schema.name) {
+                path = schema.name;
             }
 
             const parsed = this.parseValue(
@@ -486,7 +491,7 @@ Condition
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | FiltersSchema<RECORD>) : FiltersSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.filters;
         }
 

@@ -159,7 +159,7 @@ RelationsParseOutput
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.relations;
         }
 

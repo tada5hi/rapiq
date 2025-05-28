@@ -104,8 +104,8 @@ export class SortSchema<
                 let path : string | undefined;
                 if (fieldDetails.path) {
                     path = fieldDetails.path;
-                } else if (this.options.defaultPath) {
-                    path = this.options.defaultPath;
+                } else if (this.options.name) {
+                    path = this.options.name;
                 }
 
                 output.push({

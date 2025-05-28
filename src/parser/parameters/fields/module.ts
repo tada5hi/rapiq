@@ -46,11 +46,11 @@ FieldsParseOutput
 
         const data = this.normalize(input, schema.throwOnFailure);
         if (
-            schema.defaultPath &&
-            data[schema.defaultPath]
+            schema.name &&
+            data[schema.name]
         ) {
-            data[DEFAULT_ID] = data[schema.defaultPath];
-            delete data[schema.defaultPath];
+            data[DEFAULT_ID] = data[schema.name];
+            delete data[schema.name];
         }
 
         const allowedKeys = [
@@ -65,9 +65,9 @@ FieldsParseOutput
                 const index = allowedKeys.indexOf(keys[i]);
 
                 if (index === -1) {
-                    try {
-                        this.resolveSchema(keys[i]);
-                    } catch (e) {
+                    // todo: also pass options.schema
+                    const keySchema = this.registry.resolve(schema.name, keys[i]);
+                    if (!keySchema) {
                         if (schema.throwOnFailure) {
                             throw FieldsParseError.keyPathInvalid(keys[i]);
                         }
@@ -103,7 +103,8 @@ FieldsParseOutput
             const path = keys.shift() as string;
 
             if (path !== DEFAULT_ID) {
-                const relationSchema = this.resolveSchemaSafe(path);
+                // todo: also pass options.schema
+                const relationSchema = this.registry.resolve(schema.name, path);
                 if (relationSchema) {
                     let childRelations: string[] | undefined;
                     if (typeof options.relations !== 'undefined') {
@@ -189,10 +190,10 @@ FieldsParseOutput
                     transformed.default = schema.default[path];
                 } else if (
                     path === DEFAULT_ID &&
-                    schema.defaultPath &&
-                    hasOwnProperty(schema.default, schema.defaultPath)
+                    schema.name &&
+                    hasOwnProperty(schema.default, schema.name)
                 ) {
-                    transformed.default = schema.default[schema.defaultPath];
+                    transformed.default = schema.default[schema.name];
                 }
             }
 
@@ -204,10 +205,10 @@ FieldsParseOutput
                     transformed.default = schema.allowed[path];
                 } else if (
                     path === DEFAULT_ID &&
-                    schema.defaultPath &&
-                    hasOwnProperty(schema.allowed, schema.defaultPath)
+                    schema.name &&
+                    hasOwnProperty(schema.allowed, schema.name)
                 ) {
-                    transformed.default = schema.allowed[schema.defaultPath];
+                    transformed.default = schema.allowed[schema.name];
                 }
             }
 
@@ -328,7 +329,7 @@ FieldsParseOutput
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | FieldsSchema<RECORD>) : FieldsSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.fields;
         }
 
@@ -337,15 +338,5 @@ FieldsParseOutput
         }
 
         return defineFieldsSchema();
-    }
-
-    protected resolveSchemaSafe<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input?: string | Schema<RECORD> | FieldsSchema<RECORD>) : FieldsSchema<RECORD> | undefined {
-        try {
-            return this.resolveSchema(input);
-        } catch (e) {
-            return undefined;
-        }
     }
 }

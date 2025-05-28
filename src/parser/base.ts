@@ -33,30 +33,14 @@ export abstract class BaseParser<
 
     // --------------------------------------------------
 
-    protected resolveBaseSchema<
+    protected getBaseSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input?: string | Schema<RECORD>) : Schema<RECORD> {
+    >(
+        input?: string | Schema<RECORD>,
+    ) : Schema<RECORD> {
         let schema : Schema<RECORD> | undefined;
         if (input) {
-            if (typeof input === 'string') {
-                const parts = input.split('.');
-                if (parts.length === 0) {
-                    return this.registry.getOrFail(input) as Schema<RECORD>;
-                }
-
-                while (parts.length > 0) {
-                    const part = parts.shift() as string;
-
-                    schema = this.registry.getOrFail(part) as Schema<RECORD>;
-                    if (parts.length > 0) {
-                        parts[0] = schema.mapSchema(parts[0]);
-                    }
-                }
-
-                return schema as Schema<RECORD>;
-            }
-
-            schema = input;
+            schema = this.registry.getOrFail(input);
         } else {
             schema = defineSchema();
         }

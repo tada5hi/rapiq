@@ -206,7 +206,7 @@ describe('src/sort/index.ts', () => {
                 ['name', 'email'],
                 ['id'],
             ],
-            defaultPath: 'user',
+            name: 'user',
         });
 
         // incomplete match
