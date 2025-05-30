@@ -18,6 +18,9 @@ const userSchema = defineSchema<User>({
             'age',
         ],
     },
+    filters: {
+        allowed: ['id', 'name', 'email'],
+    },
     relations: {
         allowed: [
             'realm',
@@ -36,6 +39,9 @@ const itemSchema = defineSchema<Item>({
             'id',
         ],
     },
+    filters: {
+        allowed: ['id'],
+    },
     relations: {
         allowed: [
             'user',
@@ -52,6 +58,10 @@ const realmSchema = defineSchema<Realm>({
             'name',
             'description',
         ],
+    },
+
+    filters: {
+        allowed: ['id', 'name'],
     },
 });
 

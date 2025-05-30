@@ -10,10 +10,9 @@ import type { FiltersParseOptions, ObjectLiteral } from '../../../src';
 import {
     FiltersParseError,
     FiltersParser,
-    RelationsParser,
     defineFiltersSchema,
-    defineRelationsSchema,
 } from '../../../src';
+import { registry } from '../../data/schema';
 
 const interpreter = createSqlInterpreter(allInterpreters);
 
@@ -21,7 +20,7 @@ describe('src/filter/index.ts', () => {
     let parser : FiltersParser;
 
     beforeAll(() => {
-        parser = new FiltersParser();
+        parser = new FiltersParser(registry);
     });
 
     const parsi = <T extends ObjectLiteral = ObjectLiteral>(
@@ -173,11 +172,11 @@ describe('src/filter/index.ts', () => {
 
         let [sql, params] = parsi({ id: 1 }, { schema });
 
-        expect(sql).toEqual('"user"."id" = $1');
+        expect(sql).toEqual('"id" = $1');
         expect(params).toEqual([1]);
 
         [sql, params] = parsi({ display_name: 'admin' }, { schema });
-        expect(sql).toEqual('"user"."display_name" = $1');
+        expect(sql).toEqual('"display_name" = $1');
         expect(params).toEqual(['admin']);
     });
 
@@ -303,41 +302,24 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse with includes', () => {
-        const relationsParser = new RelationsParser();
-        const include = relationsParser.parse(
-            ['profile', 'user_roles.role'],
-            {
-                schema: defineRelationsSchema({
-                    allowed: ['profile', 'user_roles.role'],
-                }),
-            },
-        );
-
-        const schema = defineFiltersSchema({
-            allowed: [
-                'id',
-                'profile.id',
-                'user_roles.role.id',
-            ],
-        });
-
         // simple
-        let [sql, params] = parsi({ id: 1, 'profile.id': 2 }, {
-            schema,
-            relations: include,
+        let [sql, params] = parsi({ id: 1, 'realm.id': 2 }, {
+            schema: 'user',
+            relations: ['realm'],
+            throwOnFailure: true,
         });
-        expect(sql).toEqual('("id" = $1 and "profile"."id" = $2)');
+        expect(sql).toEqual('("id" = $1 and "realm"."id" = $2)');
         expect(params).toEqual([1, 2]);
 
         // with include & query alias
-        [sql, params] = parsi({ id: 1, 'profile.id': 2 }, { schema });
-        expect(sql).toEqual('("id" = $1 and "profile"."id" = $2)');
+        [sql, params] = parsi({ id: 1, 'realm.id': 2 }, { schema: 'user' });
+        expect(sql).toEqual('("id" = $1 and "realm"."id" = $2)');
         expect(params).toEqual([1, 2]);
 
         // todo: should be "role"."id" instead of "user_roles"."role.id"
         // with deep nested include
-        [sql, params] = parsi({ id: 1, 'user_roles.role.id': 2 }, { schema });
-        expect(sql).toEqual('("id" = $1 and "user_roles"."role.id" = $2)');
+        [sql, params] = parsi({ id: 1, 'realm.item.id': 2 }, { schema: 'user' });
+        expect(sql).toEqual('("id" = $1 and "realm"."item.id" = $2)');
         expect(params).toEqual([1, 2]);
     });
 
@@ -393,35 +375,21 @@ describe('src/filter/index.ts', () => {
                 'bar.bar': 1,
             }, {
                 schema,
-                relations: [
-                    {
-                        key: 'user',
-                        value: 'user',
-                    },
-                ],
+                relations: ['user'],
             });
         };
         expect(evaluate).toThrow(error);
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {
-        const schema = defineFiltersSchema({
-            throwOnFailure: true,
-            allowed: ['user.foo'],
-        });
-
         const error = FiltersParseError.keyInvalid('bar');
         const evaluate = () => {
             parser.parse({
-                'user.bar': 1,
+                'realm.bar': 1,
             }, {
-                schema,
-                relations: [
-                    {
-                        key: 'user',
-                        value: 'user',
-                    },
-                ],
+                schema: 'user',
+                relations: ['realm'],
+                throwOnFailure: true,
             });
         };
         expect(evaluate).toThrow(error);

@@ -6,6 +6,7 @@
  */
 
 import { optimizedCompoundCondition } from '@ucast/core';
+import { DEFAULT_ID } from '../../../constants';
 import type { Condition } from '../../../schema';
 import {
     CompoundCondition,
@@ -18,15 +19,15 @@ import {
     defineFiltersSchema,
 } from '../../../schema';
 import type { FilterValuePrimitive } from '../../../builder';
+import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import {
     applyMapping,
+    buildKey,
     buildKeyPath,
-    buildKeyWithPath,
     escapeRegExp,
     isObject,
     isPathAllowed,
-    isPathCoveredByParseAllowedOption,
     isPropertyNameValid,
     parseKey,
 } from '../../../utils';
@@ -39,133 +40,228 @@ export class FiltersParser extends BaseParser<
 FiltersParseOptions,
 Condition
 > {
-    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
-        data: unknown,
+    groupByPath(input: Record<string, any>) {
+        const output : Record<string, Record<string, any>> = {};
+
+        const keys = Object.keys(input);
+        for (let i = 0; i < keys.length; i++) {
+            const key = parseKey(keys[i]);
+
+            let prefix : string;
+            if (key.path) {
+                const dotIndex = key.path.indexOf('.');
+                if (dotIndex === -1) {
+                    prefix = key.path;
+                    key.path = undefined;
+                } else {
+                    prefix = key.path.substring(0, dotIndex);
+                    key.path = key.path.substring(dotIndex + 1);
+                }
+            } else {
+                prefix = DEFAULT_ID;
+            }
+
+            if (!output[prefix]) {
+                output[prefix] = {};
+            }
+
+            const outputKey = buildKey(key);
+
+            output[prefix][outputKey] = input[keys[i]];
+        }
+
+        return output;
+    }
+
+    preParse<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition {
+    ) : Record<string, FieldCondition[]> {
         const schema = this.resolveSchema(options.schema);
+        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
         // If it is an empty array nothing is allowed
         if (
             !schema.allowedIsUndefined &&
             schema.allowed.length === 0
         ) {
-            return this.mergeGroups(this.groupDefaults(options));
+            return this.groupDefaults(options);
         }
 
         /* istanbul ignore next */
-        if (!isObject(data)) {
-            if (schema.throwOnFailure) {
+        if (!isObject(input)) {
+            if (throwOnFailure) {
                 throw FiltersParseError.inputInvalid();
             }
 
-            return this.mergeGroups(this.groupDefaults(options));
+            return this.groupDefaults(options);
         }
 
-        const { length } = Object.keys(data);
+        const { length } = Object.keys(input);
         if (length === 0) {
-            return this.mergeGroups(this.groupDefaults(options));
+            return this.groupDefaults(options);
         }
 
-        const items : Record<string, Condition[]> = {};
+        const output : Record<string, FieldCondition[]> = {};
 
-        // transform to appreciate data format & validate input
-        const keys = Object.keys(data);
-        for (let i = 0; i < keys.length; i++) {
-            const keyParsed = parseKey(keys[i]);
+        const inputGrouped = this.groupByPath(input);
+        if (
+            schema.name &&
+            inputGrouped[schema.name]
+        ) {
+            inputGrouped[DEFAULT_ID] = inputGrouped[schema.name];
+            delete inputGrouped[schema.name];
+        }
 
-            // todo: path should be respected
-            keyParsed.name = applyMapping(keyParsed.name, schema.mapping);
+        const {
+            [DEFAULT_ID]: data,
+            ...relations
+        } = inputGrouped;
 
-            if (
-                schema.allowedIsUndefined &&
-                !isPropertyNameValid(keyParsed.name)
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(keyParsed.name);
-                }
-                continue;
-            }
+        if (data) {
+            const keys = Object.keys(data);
+            for (let i = 0; i < keys.length; i++) {
+                const key = parseKey(keys[i]);
+                key.name = applyMapping(key.name, schema.mapping);
 
-            if (
-                keyParsed.path &&
-                !isPathAllowed(keyParsed.path, options.relations)
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(keyParsed.path);
-                }
-                continue;
-            }
-
-            const fullKey : string = buildKeyWithPath(keyParsed);
-            if (
-                !schema.allowedIsUndefined &&
-                schema.allowed &&
-                !isPathCoveredByParseAllowedOption(schema.allowed, [keys[i], fullKey])
-            ) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(keyParsed.name);
-                }
-
-                continue;
-            }
-
-            const valueParsed = this.parseValue(data[keys[i]]);
-            if (!valueParsed) {
-                if (schema.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(keyParsed.name);
-                }
-
-                continue;
-            }
-
-            if (Array.isArray(valueParsed.value)) {
-                const temp : (string | number)[] = [];
-                for (let j = 0; j < valueParsed.value.length; j++) {
-                    if (schema.validate(keyParsed.name as NestedKeys<RECORD>, valueParsed.value[j])) {
-                        temp.push(valueParsed.value[j]);
-                    } else if (schema.throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
-                    }
-                }
-
-                if (temp.length === 0) {
-                    continue;
-                }
-
-                valueParsed.value = temp;
-            } else {
                 if (
-                    typeof valueParsed.value === 'string' &&
-                    valueParsed.value.length === 0
+                    schema.allowedIsUndefined &&
+                    !isPropertyNameValid(key.name)
                 ) {
-                    if (schema.throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
+                    if (throwOnFailure) {
+                        throw FiltersParseError.keyInvalid(key.name);
                     }
 
                     continue;
                 }
 
-                if (!schema.validate(keyParsed.name as NestedKeys<RECORD>, valueParsed.value)) {
-                    if (schema.throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(keyParsed.name);
+                if (
+                    !schema.allowedIsUndefined &&
+                    schema.allowed.indexOf(key.name) === -1
+                ) {
+                    if (throwOnFailure) {
+                        throw FiltersParseError.keyInvalid(key.name);
                     }
 
                     continue;
                 }
-            }
 
-            const outputKey = keyParsed.group || '';
-            if (!items[outputKey]) {
-                items[outputKey] = [];
-            }
+                const valueParsed = this.parseValue(data[keys[i]]);
+                if (!valueParsed) {
+                    if (throwOnFailure) {
+                        throw FiltersParseError.keyValueInvalid(key.name);
+                    }
 
-            items[outputKey].push(new FieldCondition(
-                valueParsed.operator,
-                buildKeyPath(keyParsed.name, keyParsed.path || schema.name),
-                valueParsed.value,
-            ));
+                    continue;
+                }
+
+                if (Array.isArray(valueParsed.value)) {
+                    const temp: (string | number)[] = [];
+                    for (let j = 0; j < valueParsed.value.length; j++) {
+                        if (schema.validate(key.name as NestedKeys<RECORD>, valueParsed.value[j])) {
+                            temp.push(valueParsed.value[j]);
+                        } else if (throwOnFailure) {
+                            throw FiltersParseError.keyValueInvalid(key.name);
+                        }
+                    }
+
+                    if (temp.length === 0) {
+                        continue;
+                    }
+
+                    valueParsed.value = temp;
+                } else {
+                    if (
+                        typeof valueParsed.value === 'string' &&
+                        valueParsed.value.length === 0
+                    ) {
+                        if (throwOnFailure) {
+                            throw FiltersParseError.keyValueInvalid(key.name);
+                        }
+
+                        continue;
+                    }
+
+                    if (!schema.validate(key.name as NestedKeys<RECORD>, valueParsed.value)) {
+                        if (throwOnFailure) {
+                            throw FiltersParseError.keyValueInvalid(key.name);
+                        }
+
+                        continue;
+                    }
+                }
+
+                const outputKey = key.group || '';
+                if (!output[outputKey]) {
+                    output[outputKey] = [];
+                }
+
+                output[outputKey].push(new FieldCondition(
+                    valueParsed.operator,
+                    key.name,
+                    valueParsed.value,
+                ));
+            }
         }
+
+        const relationKeys = Object.keys(relations);
+        for (let i = 0; i < relationKeys.length; i++) {
+            if (!isPathAllowed(relationKeys[i], options.relations)) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyPathInvalid(relationKeys[i]);
+                }
+
+                continue;
+            }
+
+            // todo: also pass options.schema
+            const relationSchema = this.registry.resolve(schema.name, relationKeys[i]);
+            if (!relationSchema) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyPathInvalid(relationKeys[i]);
+                }
+
+                continue;
+            }
+
+            let childRelations: string[] | undefined;
+            if (typeof options.relations !== 'undefined') {
+                childRelations = extractSubRelations(options.relations, relationKeys[i]);
+            }
+
+            const relationItems = this.preParse(
+                relations[relationKeys[i]],
+                {
+                    schema: relationSchema,
+                    relations: childRelations,
+                    throwOnFailure: options.throwOnFailure,
+                },
+            );
+
+            const relationItemKeys = Object.keys(relationItems);
+            for (let j = 0; j < relationItemKeys.length; j++) {
+                if (!output[relationItemKeys[j]]) {
+                    output[relationItemKeys[j]] = [];
+                }
+
+                output[relationItemKeys[j]].push(...relationItems[relationItemKeys[j]].map(
+                    (condition) => new FieldCondition(
+                        condition.operator as `${FilterFieldOperator}`,
+                        buildKey({ path: relationKeys[i], name: condition.field }),
+                        condition.value,
+                    ),
+                ));
+            }
+        }
+
+        return output;
+    }
+
+    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Condition {
+        const items = this.preParse(input, options);
 
         const itemKeys = Object.keys(items);
         if (itemKeys.length === 0) {

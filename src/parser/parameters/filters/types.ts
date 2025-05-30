@@ -13,7 +13,8 @@ export type FiltersParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     relations?: string[],
-    schema?: string | Schema<RECORD> | FiltersSchema<RECORD>
+    schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
+    throwOnFailure?: boolean
 };
 
 export type FiltersParseOutput = Condition;
