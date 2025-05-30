@@ -17,7 +17,7 @@ export function extractSubRelations(
         }
 
         if (relations[i].substring(0, root.length) === root) {
-            removed.push(relations[i].substring(0, root.length + 1));
+            removed.push(relations[i].substring(root.length + 1));
             relations.splice(i, 1);
         }
     }

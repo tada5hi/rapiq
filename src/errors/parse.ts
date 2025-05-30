@@ -26,9 +26,9 @@ export class ParseError extends BaseError {
         });
     }
 
-    static keyNotAllowed(name: string) {
+    static keyNotPermitted(name: string) {
         return new this({
-            message: `The key ${name} is not covered by allowed/default options.`,
+            message: `The key ${name} is not permitted.`,
             code: ErrorCode.KEY_NOT_ALLOWED,
         });
     }

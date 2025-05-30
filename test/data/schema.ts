@@ -27,6 +27,12 @@ const userSchema = defineSchema<User>({
             'items',
         ],
     },
+    sort: {
+        allowed: ['id', 'name', 'email'],
+        default: {
+            name: 'DESC',
+        },
+    },
     schemaMapping: {
         items: 'item',
     },
@@ -48,6 +54,9 @@ const itemSchema = defineSchema<Item>({
             'realm',
         ],
     },
+    sort: {
+        allowed: ['id'],
+    },
 });
 
 const realmSchema = defineSchema<Realm>({
@@ -59,8 +68,10 @@ const realmSchema = defineSchema<Realm>({
             'description',
         ],
     },
-
     filters: {
+        allowed: ['id', 'name'],
+    },
+    sort: {
         allowed: ['id', 'name'],
     },
 });

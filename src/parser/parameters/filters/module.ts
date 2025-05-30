@@ -40,39 +40,6 @@ export class FiltersParser extends BaseParser<
 FiltersParseOptions,
 Condition
 > {
-    groupByPath(input: Record<string, any>) {
-        const output : Record<string, Record<string, any>> = {};
-
-        const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            const key = parseKey(keys[i]);
-
-            let prefix : string;
-            if (key.path) {
-                const dotIndex = key.path.indexOf('.');
-                if (dotIndex === -1) {
-                    prefix = key.path;
-                    key.path = undefined;
-                } else {
-                    prefix = key.path.substring(0, dotIndex);
-                    key.path = key.path.substring(dotIndex + 1);
-                }
-            } else {
-                prefix = DEFAULT_ID;
-            }
-
-            if (!output[prefix]) {
-                output[prefix] = {};
-            }
-
-            const outputKey = buildKey(key);
-
-            output[prefix][outputKey] = input[keys[i]];
-        }
-
-        return output;
-    }
-
     preParse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
@@ -104,7 +71,7 @@ Condition
 
         const output : Record<string, FieldCondition[]> = {};
 
-        const inputGrouped = this.groupByPath(input);
+        const inputGrouped = this.groupByBasePath(input);
         if (
             schema.name &&
             inputGrouped[schema.name]
@@ -115,9 +82,10 @@ Condition
 
         const {
             [DEFAULT_ID]: data,
-            ...relations
+            ...relationsData
         } = inputGrouped;
 
+        // todo: build defaults otherwise
         if (data) {
             const keys = Object.keys(data);
             for (let i = 0; i < keys.length; i++) {
@@ -204,21 +172,23 @@ Condition
             }
         }
 
-        const relationKeys = Object.keys(relations);
-        for (let i = 0; i < relationKeys.length; i++) {
-            if (!isPathAllowed(relationKeys[i], options.relations)) {
+        const keys = Object.keys(relationsData);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+
+            if (!isPathAllowed(key, options.relations)) {
                 if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(relationKeys[i]);
+                    throw FiltersParseError.keyPathInvalid(key);
                 }
 
                 continue;
             }
 
             // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, relationKeys[i]);
+            const relationSchema = this.registry.resolve(schema.name, key);
             if (!relationSchema) {
                 if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(relationKeys[i]);
+                    throw FiltersParseError.keyPathInvalid(key);
                 }
 
                 continue;
@@ -226,11 +196,11 @@ Condition
 
             let childRelations: string[] | undefined;
             if (typeof options.relations !== 'undefined') {
-                childRelations = extractSubRelations(options.relations, relationKeys[i]);
+                childRelations = extractSubRelations(options.relations, key);
             }
 
-            const relationItems = this.preParse(
-                relations[relationKeys[i]],
+            const relationOutput = this.preParse(
+                relationsData[key],
                 {
                     schema: relationSchema,
                     relations: childRelations,
@@ -238,16 +208,16 @@ Condition
                 },
             );
 
-            const relationItemKeys = Object.keys(relationItems);
-            for (let j = 0; j < relationItemKeys.length; j++) {
-                if (!output[relationItemKeys[j]]) {
-                    output[relationItemKeys[j]] = [];
+            const relationOutputKeys = Object.keys(relationOutput);
+            for (let j = 0; j < relationOutputKeys.length; j++) {
+                if (!output[relationOutputKeys[j]]) {
+                    output[relationOutputKeys[j]] = [];
                 }
 
-                output[relationItemKeys[j]].push(...relationItems[relationItemKeys[j]].map(
+                output[relationOutputKeys[j]].push(...relationOutput[relationOutputKeys[j]].map(
                     (condition) => new FieldCondition(
                         condition.operator as `${FilterFieldOperator}`,
-                        buildKey({ path: relationKeys[i], name: condition.field }),
+                        buildKey({ path: keys[i], name: condition.field }),
                         condition.value,
                     ),
                 ));

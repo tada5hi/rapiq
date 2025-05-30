@@ -161,7 +161,7 @@ FieldsParseOutput
 
                     if (!schema.isValid(fields[j], path)) {
                         if (schema.throwOnFailure) {
-                            throw FieldsParseError.keyNotAllowed(fields[j]);
+                            throw FieldsParseError.keyNotPermitted(fields[j]);
                         }
 
                         continue;
