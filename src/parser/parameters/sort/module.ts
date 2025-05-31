@@ -62,7 +62,7 @@ SortParseOutput
         }
 
         const normalized = this.normalize(input, throwOnFailure);
-        const grouped = this.groupByBasePath(normalized);
+        const grouped = this.groupObjectByBasePath(normalized);
         if (
             schema.name &&
             grouped[schema.name]

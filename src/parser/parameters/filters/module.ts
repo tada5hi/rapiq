@@ -71,7 +71,7 @@ Condition
 
         const output : Record<string, FieldCondition[]> = {};
 
-        const inputGrouped = this.groupByBasePath(input);
+        const inputGrouped = this.groupObjectByBasePath(input);
         if (
             schema.name &&
             inputGrouped[schema.name]

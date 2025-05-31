@@ -26,6 +26,9 @@ const userSchema = defineSchema<User>({
             'realm',
             'items',
         ],
+        mapping: {
+            abc: 'items',
+        },
     },
     sort: {
         allowed: ['id', 'name', 'email'],

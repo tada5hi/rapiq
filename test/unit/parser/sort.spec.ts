@@ -7,12 +7,9 @@
 
 import type { SortParseOutput } from '../../../src';
 import {
-    RelationsParser,
     SortDirection,
     SortParseError,
     SortParser,
-
-    defineRelationsSchema,
     defineSortSchema,
 } from '../../../src';
 import type { User } from '../../data';

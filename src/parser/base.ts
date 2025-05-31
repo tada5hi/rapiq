@@ -50,12 +50,46 @@ export abstract class BaseParser<
         return schema;
     }
 
-    protected groupByBasePath<T extends Record<string, any>>(input: T) : Record<string, T> {
+    protected groupObjectByBasePath<T extends Record<string, any>>(input: T) : Record<string, T> {
         const output : Record<string, T> = {};
 
         const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            const key = parseKey(keys[i]);
+
+        this.groupByBasePathWithFn(keys, (prefix, key, index) => {
+            if (!output[prefix]) {
+                output[prefix] = {} as T;
+
+                output[prefix][key as keyof T] = input[index] as T[keyof T];
+            }
+        });
+
+        return output;
+    }
+
+    protected groupArrayByBasePath(input: string[]) : Record<string, string[]> {
+        const output : Record<string, string[]> = {};
+
+        this.groupByBasePathWithFn(input, (prefix, key) => {
+            if (!output[prefix]) {
+                output[prefix] = [];
+            }
+
+            output[prefix].push(key);
+        });
+
+        return output;
+    }
+
+    protected groupByBasePathWithFn(
+        items: string[],
+        cb: (
+            prefix: string,
+            key: string,
+            index: number
+        ) => void,
+    ) : void {
+        for (let i = 0; i < items.length; i++) {
+            const key = parseKey(items[i]);
 
             let prefix : string;
             if (key.path) {
@@ -71,15 +105,9 @@ export abstract class BaseParser<
                 prefix = DEFAULT_ID;
             }
 
-            if (!output[prefix]) {
-                output[prefix] = {} as T;
-            }
-
             const outputKey = buildKey(key);
 
-            output[prefix][outputKey as keyof T] = input[keys[i]] as T[keyof T];
+            cb(prefix, outputKey, i);
         }
-
-        return output;
     }
 }
