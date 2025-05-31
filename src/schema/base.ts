@@ -18,12 +18,12 @@ export class BaseSchema<OPTIONS extends BaseSchemaOptions = BaseSchemaOptions> {
 
     // ---------------------------------------------------------
 
-    set defaultPath(input: string | undefined) {
-        this.options.defaultPath = input;
+    set name(input: string | undefined) {
+        this.options.name = input;
     }
 
-    get defaultPath() : string | undefined {
-        return this.options.defaultPath;
+    get name() : string | undefined {
+        return this.options.name;
     }
 
     // ---------------------------------------------------------
@@ -34,5 +34,15 @@ export class BaseSchema<OPTIONS extends BaseSchemaOptions = BaseSchemaOptions> {
 
     get throwOnFailure() : boolean | undefined {
         return this.options.throwOnFailure;
+    }
+
+    // ---------------------------------------------------------
+
+    mapSchema(input: string) {
+        if (this.options.schemaMapping) {
+            return this.options.schemaMapping[input] || input;
+        }
+
+        return input;
     }
 }

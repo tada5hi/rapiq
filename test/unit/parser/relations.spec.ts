@@ -7,12 +7,13 @@
 
 import type { RelationsParseOutput } from '../../../src';
 import { RelationsParseError, RelationsParser, defineSchema } from '../../../src';
+import { registry } from '../../data/schema';
 
 describe('src/relations/index.ts', () => {
     let parser : RelationsParser;
 
     beforeAll(() => {
-        parser = new RelationsParser();
+        parser = new RelationsParser(registry);
     });
 
     it('should parse simple relations', () => {
@@ -20,6 +21,7 @@ describe('src/relations/index.ts', () => {
             relations: {
                 allowed: ['profile'],
             },
+            throwOnFailure: true,
         });
         let output = parser.parse('profile', { schema });
         expect(output).toEqual([
@@ -43,7 +45,7 @@ describe('src/relations/index.ts', () => {
             },
         });
 
-        // ignore path pattern, if permitted by allowed key
+        // ignore path pattern, if permitted by an allowed key
         const output = parser.parse(['profile!'], { schema });
         expect(output).toEqual([
             { key: 'profile!', value: 'profile!' },
@@ -68,52 +70,11 @@ describe('src/relations/index.ts', () => {
     });
 
     it('should parse with nested alias', () => {
-        const schema = defineSchema({
-            relations: {
-                allowed: ['profile.photos'],
-                mapping: { 'abc.photos': 'profile.photos' },
-            },
-        });
-
         // with nested alias
-        const output = parser.parse(['abc.photos'], { schema });
+        const output = parser.parse(['abc.realm'], { schema: 'user' });
         expect(output).toEqual([
-            { key: 'profile', value: 'profile' },
-            { key: 'profile.photos', value: 'photos' },
-        ] satisfies RelationsParseOutput);
-    });
-
-    it('should parse with nested alias & not includeParents', () => {
-        const schema = defineSchema({
-            relations: {
-                allowed: ['profile.photos'],
-                mapping: { 'abc.photos': 'profile.photos' },
-                includeParents: false,
-            },
-        });
-
-        // with nested alias & includeParents
-        const output = parser.parse(['abc.photos'], { schema });
-        expect(output).toEqual([
-            { key: 'profile.photos', value: 'photos' },
-        ] satisfies RelationsParseOutput);
-    });
-
-    it('should parse with nested alias & explicit includeParents', () => {
-        const schema = defineSchema({
-            relations: {
-                allowed: ['profile.photos', 'user_roles.role'],
-                mapping: { 'abc.photos': 'profile.photos' },
-                includeParents: ['profile'],
-            },
-        });
-
-        // with nested alias & limited includeParents ( no user_roles rel)
-        const output = parser.parse(['abc.photos', 'user_roles.role'], { schema });
-        expect(output).toEqual([
-            { key: 'profile', value: 'profile' },
-            { key: 'profile.photos', value: 'photos' },
-            { key: 'user_roles.role', value: 'role' },
+            { key: 'items', value: 'items' },
+            { key: 'items.realm', value: 'realm' },
         ] satisfies RelationsParseOutput);
     });
 
@@ -156,19 +117,13 @@ describe('src/relations/index.ts', () => {
     it('should parse with nested allowed', () => {
         // nested data with alias
         const output = parser.parse([
-            'profile.photos',
-            'profile.photos.abc',
-            'profile.abc',
+            'items.realm',
         ], {
-            schema: defineSchema({
-                relations: {
-                    allowed: ['profile.photos'],
-                },
-            }),
+            schema: 'user',
         });
         expect(output).toEqual([
-            { key: 'profile', value: 'profile' },
-            { key: 'profile.photos', value: 'photos' },
+            { key: 'items', value: 'items' },
+            { key: 'items.realm', value: 'realm' },
         ] satisfies RelationsParseOutput);
     });
 

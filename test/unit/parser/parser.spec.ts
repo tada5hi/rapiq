@@ -15,7 +15,8 @@ import {
 describe('src/parser', () => {
     it('should parse schema by name', () => {
         const registry = new SchemaRegistry();
-        registry.add('foo', defineSchema({
+        registry.add(defineSchema({
+            name: 'foo',
             fields: {
                 allowed: ['id'],
             },

@@ -8,6 +8,10 @@
 import { DEFAULT_ID } from '../constants';
 import { isObject } from './object';
 
+export function diffArray<T = unknown>(target: T[], src: T[]): T[] {
+    return target.filter((el) => src.indexOf(el) === -1);
+}
+
 export function buildKeyPath(key: string, prefix?: string) {
     if (typeof prefix === 'string') {
         return `${prefix}.${key}`;
@@ -108,29 +112,30 @@ export function toKeyPathArray(
 
 export function groupArrayByKeyPath(
     input: string[],
-    defaultKey?: string,
 ): Record<string, string[]> {
-    const pathItems: Record<string, string[]> = {};
+    const output: Record<string, string[]> = {};
 
     for (let i = 0; i < input.length; i++) {
-        const parts = input[i].split('.');
+        const element = input[i];
 
         let key: string;
         let name: string;
-        if (parts.length === 1) {
-            key = defaultKey || DEFAULT_ID;
-            name = input[i];
+
+        const lastIndex = element.lastIndexOf('.');
+        if (lastIndex === -1) {
+            key = DEFAULT_ID;
+            name = element;
         } else {
-            name = parts.pop() as string;
-            key = parts.join('.');
+            key = element.substring(0, lastIndex);
+            name = element.substring(lastIndex + 1);
         }
 
-        if (!Object.prototype.hasOwnProperty.call(pathItems, key)) {
-            pathItems[key] = [];
+        if (!output[key]) {
+            output[key] = [];
         }
 
-        pathItems[key].push(name);
+        output[key].push(name);
     }
 
-    return pathItems;
+    return output;
 }

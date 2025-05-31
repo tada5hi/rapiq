@@ -28,7 +28,7 @@ export type QueryParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     schema?: Schema<RECORD> | string,
-    relations?: RelationsParseOutput,
+    relations?: RelationsParseOutput | string[],
 };
 
 export type ParseParametersOutput = ObjectLiteralKeys<{

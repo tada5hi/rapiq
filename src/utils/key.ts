@@ -27,3 +27,9 @@ export function parseKey(
         name: key,
     };
 }
+
+export function buildKey(
+    details: KeyDetails,
+) : string {
+    return `${details.group ? `${details.group}:` : ''}${details.path ? `${details.path}.` : ''}${details.name}`;
+}

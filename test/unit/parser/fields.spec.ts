@@ -12,7 +12,6 @@ import type {
 import {
     FieldsParseError,
     FieldsParser,
-    RelationsParser,
     defineFieldsSchema,
     defineSchema,
 } from '../../../src';
@@ -24,11 +23,11 @@ describe('src/fields/index.ts', () => {
         parser = new FieldsParser();
     });
 
-    it('should parse fields with defaultPath', () => {
+    it('should parse fields with name', () => {
         const schema = defineSchema({
+            name: 'user',
             fields: {
                 allowed: ['id', 'name', 'email'],
-                defaultPath: 'user',
             },
         });
 
@@ -39,23 +38,20 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                path: 'user',
             },
             {
                 key: 'name',
-                path: 'user',
             },
             {
                 key: 'email',
-                path: 'user',
             },
-        ] as FieldsParseOutput);
+        ] satisfies FieldsParseOutput);
     });
 
     it('should parse fields with extra field', () => {
         const schema = defineFieldsSchema({
             allowed: ['id', 'name', 'email'],
-            defaultPath: 'user',
+            name: 'user',
         });
         const data = parser.parse('+email', {
             schema,
@@ -63,7 +59,6 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'email',
-                path: 'user',
             },
         ] as FieldsParseOutput);
     });
@@ -77,13 +72,13 @@ describe('src/fields/index.ts', () => {
                 extra: string
             }
         }>({
+            name: 'user',
             allowed: [
                 ['id', 'name', 'email'],
                 {
                     domain: ['extra'],
                 },
             ],
-            defaultPath: 'user',
         });
 
         let data = parser.parse('+email', {
@@ -92,11 +87,6 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'email',
-                path: 'user',
-            },
-            {
-                key: 'extra',
-                path: 'domain',
             },
         ] as FieldsParseOutput);
 
@@ -106,19 +96,12 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                path: 'user',
             },
             {
                 key: 'name',
-                path: 'user',
             },
             {
                 key: 'email',
-                path: 'user',
-            },
-            {
-                key: 'extra',
-                path: 'domain',
             },
         ]);
 
@@ -130,15 +113,12 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'id',
-                path: 'user',
             },
             {
                 key: 'name',
-                path: 'user',
             },
             {
                 key: 'email',
-                path: 'user',
             },
             {
                 key: 'extra',
@@ -262,6 +242,7 @@ describe('src/fields/index.ts', () => {
 
     it('should parse with single allowed domain', () => {
         const schema = defineSchema({
+            name: 'domain',
             fields: {
                 allowed: { domain: ['id'] },
             },
@@ -269,26 +250,24 @@ describe('src/fields/index.ts', () => {
 
         // if only one domain is given, try to parse request field to single domain.
         const data = parser.parse(['id'], { schema });
-        expect(data).toEqual([{ path: 'domain', key: 'id' }] as FieldsParseOutput);
+        expect(data).toEqual([{ key: 'id' }] as FieldsParseOutput);
     });
 
     it('should parse with multiple allowed domains', () => {
         const schema = defineSchema({
+            name: 'domain',
             fields: {
                 allowed: {
                     domain: ['id', 'name'],
                     domain2: ['id', 'name'],
                 },
             },
-            defaultPath: 'domain',
         });
 
         // if multiple possibilities are available for request field, use allowed
         const data = parser.parse(['id'], { schema });
         expect(data).toEqual([
-            { path: 'domain', key: 'id' },
-            { path: 'domain2', key: 'id' },
-            { path: 'domain2', key: 'name' },
+            { key: 'id' },
         ] as FieldsParseOutput);
     });
 
@@ -313,16 +292,22 @@ describe('src/fields/index.ts', () => {
     it('should use default fields if default & allowed (multiple domains)', () => {
         const schema = defineSchema<ObjectLiteral>({
             fields: {
-                allowed: { domain: ['id', 'name'], domain2: ['id', 'name'] },
-                default: { domain: ['id'], domain2: ['name'] },
+                allowed: {
+                    domain: ['id', 'name'],
+                    domain2: ['id', 'name'],
+                },
+                default: {
+                    domain: ['id'],
+                    domain2: ['name'],
+                },
             },
+            name: 'domain',
         });
 
         // if multiple possibilities are available for request field, use default
         const data = parser.parse(['id'], { schema });
         expect(data).toEqual([
-            { path: 'domain', key: 'id' },
-            { path: 'domain2', key: 'name' },
+            { key: 'id' },
         ] as FieldsParseOutput);
     });
 
@@ -370,20 +355,14 @@ describe('src/fields/index.ts', () => {
                     permissions: ['id'],
                 },
             },
-            relations: {
-                allowed: ['user', 'profile'],
-            },
         });
 
-        const relationsParser = new RelationsParser();
-        const relations = relationsParser.parse(['profile', 'roles'], { schema });
-
         // simple domain match
-        let data = parser.parse({ profile: ['id'] }, { schema, relations });
+        let data = parser.parse({ profile: ['id'] }, { schema, relations: ['profile'] });
         expect(data).toEqual([{ path: 'profile', key: 'id' }] as FieldsParseOutput);
 
         // only single domain match
-        data = parser.parse({ profile: ['id'], permissions: ['id'] }, { schema, relations });
+        data = parser.parse({ profile: ['id'], permissions: ['id'] }, { schema, relations: ['profile'] });
         expect(data).toEqual([{ path: 'profile', key: 'id' }] as FieldsParseOutput);
     });
 
@@ -411,12 +390,7 @@ describe('src/fields/index.ts', () => {
                 bar: ['bar'],
             }, {
                 schema,
-                relations: [
-                    {
-                        key: 'user',
-                        value: 'user',
-                    },
-                ],
+                relations: ['user'],
             });
         };
         expect(evaluate).toThrow(error);
@@ -424,10 +398,10 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid key (pattern)', () => {
         const schema = defineSchema({
+            name: 'user',
             throwOnFailure: true,
             fields: {
                 allowed: ['id', 'name', 'email'],
-                defaultPath: 'user',
             },
         });
 

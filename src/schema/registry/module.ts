@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Schema } from '../module';
+import { Schema } from '../module';
 import type { ObjectLiteral } from '../../types';
 
 export class SchemaRegistry {
@@ -19,8 +19,12 @@ export class SchemaRegistry {
 
     // ----------------------------------------------------
 
-    add<T extends ObjectLiteral>(name: string, schema: Schema<T>) {
-        this.entities.set(name, schema);
+    add<T extends ObjectLiteral>(schema: Schema<T>) {
+        if (typeof schema.name === 'undefined') {
+            throw new Error('The schema name is not defined.');
+        }
+
+        this.entities.set(schema.name, schema);
     }
 
     drop(name: string) {
@@ -29,11 +33,19 @@ export class SchemaRegistry {
 
     // ----------------------------------------------------
 
-    get(name: string): Schema | undefined {
-        return this.entities.get(name);
+    get<
+        T extends ObjectLiteral = ObjectLiteral,
+    >(name: Schema<T> | string): Schema<T> | undefined {
+        if (typeof name === 'string') {
+            return this.entities.get(name);
+        }
+
+        return name;
     }
 
-    getOrFail(name: string): Schema {
+    getOrFail<
+        T extends ObjectLiteral = ObjectLiteral,
+    >(name: string | Schema<T>): Schema<T> {
         const schema = this.get(name);
         if (typeof schema === 'undefined') {
             throw new Error(`Cannot find schema with name "${name}".`);
@@ -44,27 +56,31 @@ export class SchemaRegistry {
 
     // ----------------------------------------------------
 
-    getFirst() : Schema | undefined {
-        const key = this.entities.keys().next().value;
-        if (!key) {
-            return undefined;
+    resolve(...input: (undefined | Schema | string)[]) : Schema | undefined {
+        const normalized : (Schema | string)[] = [];
+        for (let i = 0; i < input.length; i++) {
+            const current = input[i];
+            if (typeof current === 'string') {
+                normalized.push(...current.split('.'));
+            } else if (current instanceof Schema) {
+                normalized.push(current);
+            }
         }
 
-        return this.entities.get(key);
-    }
-
-    getFirstOrFail() : Schema {
-        const schema = this.getFirst();
-        if (typeof schema === 'undefined') {
-            throw new Error('The registry is empty.');
+        let current : Schema | undefined;
+        while (normalized.length > 0) {
+            const next = normalized.shift();
+            if (next) {
+                if (next instanceof Schema) {
+                    current = next;
+                } else if (current) {
+                    current = this.get(current.mapSchema(next));
+                } else {
+                    current = this.get(next);
+                }
+            }
         }
 
-        return schema;
-    }
-
-    // ----------------------------------------------------
-
-    get size(): number {
-        return this.entities.size;
+        return current;
     }
 }

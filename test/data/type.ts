@@ -13,6 +13,7 @@ export type Realm = {
 
 export type Item = {
     id: string,
+    name: string,
     realm: Realm,
     user: User
 };
@@ -28,7 +29,7 @@ export type User = {
 
 // -----------------------------------------------------
 
-export type GrandChild = {
+export type GrandChildEntity = {
     id: string,
 
     name: string
@@ -41,7 +42,7 @@ export type ChildEntity = {
 
     age: number;
 
-    child: GrandChild
+    child: GrandChildEntity
 };
 
 export type Entity = {

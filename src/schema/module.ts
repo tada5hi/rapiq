@@ -93,11 +93,8 @@ export class Schema<
             schema.throwOnFailure = this.options.throwOnFailure;
         }
 
-        if (
-            typeof this.options.defaultPath !== 'undefined' &&
-            typeof schema.defaultPath === 'undefined'
-        ) {
-            schema.defaultPath = this.options.defaultPath;
+        if (typeof this.options.name !== 'undefined') {
+            schema.name = this.options.name;
         }
     }
 }
