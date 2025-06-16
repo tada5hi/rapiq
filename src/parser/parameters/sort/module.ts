@@ -10,7 +10,8 @@ import { DEFAULT_ID } from '../../../constants';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
 import type { ObjectLiteral } from '../../../types';
 import {
-    applyMapping, flattenParseAllowedOption,
+    applyMapping,
+    flattenParseAllowedOption,
     isPathAllowed,
     isPropertyNameValid,
     parseKey,

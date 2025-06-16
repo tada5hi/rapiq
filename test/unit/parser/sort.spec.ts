@@ -176,7 +176,7 @@ describe('src/sort/index.ts', () => {
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
     });
 
-    it('should parse sort with sort indexes', () => {
+    it('should parse sort with sort indexes (simple)', () => {
         const schema = defineSortSchema<User>({
             allowed: [
                 ['name', 'email'],
@@ -185,11 +185,20 @@ describe('src/sort/index.ts', () => {
         });
 
         // simple
-        let transformed = parser.parse(['id'], { schema });
+        const transformed = parser.parse(['id'], { schema });
         expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] satisfies SortParseOutput);
+    });
+
+    it('should parse sort with sort indexes (tuple)', () => {
+        const schema = defineSortSchema<User>({
+            allowed: [
+                ['name', 'email'],
+                ['id'],
+            ],
+        });
 
         // correct order
-        transformed = parser.parse(['name', 'email'], { schema });
+        let transformed = parser.parse(['name', 'email'], { schema });
         expect(transformed).toStrictEqual([
             { key: 'name', value: SortDirection.ASC },
             { key: 'email', value: SortDirection.ASC },

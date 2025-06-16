@@ -20,9 +20,9 @@ describe('src/parser/filters-nested.ts', () => {
     it('should parse nested filters', () => {
         // filter id
         const output = parser.parse({
-            '01:user.id': 1,
-            '01:user.name': 'admin',
-            '02:user.age': 15,
+            '01:id': 1,
+            '01:name': 'admin',
+            '02:age': 15,
         });
 
         expect(output).toBeInstanceOf(CompoundCondition);
@@ -35,6 +35,6 @@ describe('src/parser/filters-nested.ts', () => {
 
         expect(second.operator).toBe('eq');
         expect(second.value).toBe(15);
-        expect(second.field).toEqual('user.age');
+        expect(second.field).toEqual('age');
     });
 });
