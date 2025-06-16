@@ -50,37 +50,47 @@ export abstract class BaseParser<
         return schema;
     }
 
-    protected groupObjectByBasePath<T extends Record<string, any>>(input: T) : Record<string, T> {
+    protected groupObjectByBasePath<T extends Record<string, any>>(
+        input: T,
+    ) : Record<string, T> {
         const output : Record<string, T> = {};
 
         const keys = Object.keys(input);
 
-        this.groupByBasePathWithFn(keys, (prefix, key, index) => {
-            if (!output[prefix]) {
-                output[prefix] = {} as T;
+        this.groupByFieldPathWithFn(
+            keys,
+            (prefix, key, index) => {
+                if (!output[prefix]) {
+                    output[prefix] = {} as T;
 
-                output[prefix][key as keyof T] = input[index] as T[keyof T];
-            }
-        });
+                    output[prefix][key as keyof T] = input[keys[index]] as T[keyof T];
+                }
+            },
+        );
 
         return output;
     }
 
-    protected groupArrayByBasePath(input: string[]) : Record<string, string[]> {
+    protected groupArrayByBasePath(
+        input: string[],
+    ) : Record<string, string[]> {
         const output : Record<string, string[]> = {};
 
-        this.groupByBasePathWithFn(input, (prefix, key) => {
-            if (!output[prefix]) {
-                output[prefix] = [];
-            }
+        this.groupByFieldPathWithFn(
+            input,
+            (prefix, key) => {
+                if (!output[prefix]) {
+                    output[prefix] = [];
+                }
 
-            output[prefix].push(key);
-        });
+                output[prefix].push(key);
+            },
+        );
 
         return output;
     }
 
-    protected groupByBasePathWithFn(
+    protected groupByFieldPathWithFn(
         items: string[],
         cb: (
             prefix: string,
@@ -88,6 +98,35 @@ export abstract class BaseParser<
             index: number
         ) => void,
     ) : void {
+        /*
+        const keys : KeyDetails[] = [];
+        for (let i = 0; i < items.length; i++) {
+            const key = parseKey(items[i]);
+            key.path = key.path ?? DEFAULT_ID;
+            keys.push(key);
+        }
+        const paths = keys.map((item) => item.path) as string[];
+
+        this.groupByPathWithFn(
+            paths,
+            (group, relation, index) => {
+                const key = keys[index];
+
+                if (!group || group === relation) {
+                    cb(relation, buildKey(key), index);
+                    return;
+                }
+
+                if (group === key.path) {
+                    cb(group, buildKey({ name: key.name }), index);
+
+                    return;
+                }
+
+                cb(group, `${relation}.${buildKey(key)}`, index);
+            },
+        );
+         */
         for (let i = 0; i < items.length; i++) {
             const key = parseKey(items[i]);
 
@@ -108,6 +147,31 @@ export abstract class BaseParser<
             const outputKey = buildKey(key);
 
             cb(prefix, outputKey, i);
+        }
+    }
+
+    protected groupByPathWithFn(
+        paths: string[],
+        cb: (
+            prefix: string,
+            key: string,
+            index: number
+        ) => void,
+    ) : void {
+        for (let i = 0; i < paths.length; i++) {
+            let group : string;
+            let relation : string;
+
+            const index = paths[i].indexOf('.');
+            if (index === -1) {
+                group = paths[i];
+                relation = DEFAULT_ID;
+            } else {
+                group = paths[i].substring(0, index);
+                relation = paths[i].substring(index + 1);
+            }
+
+            cb(group, relation, i);
         }
     }
 }

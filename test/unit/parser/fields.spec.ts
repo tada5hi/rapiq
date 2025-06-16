@@ -15,12 +15,13 @@ import {
     defineFieldsSchema,
     defineSchema,
 } from '../../../src';
+import { registry } from '../../data/schema';
 
 describe('src/fields/index.ts', () => {
     let parser : FieldsParser;
 
     beforeAll(() => {
-        parser = new FieldsParser();
+        parser = new FieldsParser(registry);
     });
 
     it('should parse fields with name', () => {
@@ -59,70 +60,6 @@ describe('src/fields/index.ts', () => {
         expect(data).toEqual([
             {
                 key: 'email',
-            },
-        ] as FieldsParseOutput);
-    });
-
-    it('should parse with different allowed values', () => {
-        const schema = defineFieldsSchema<{
-            id: string,
-            name: string,
-            email: string,
-            domain: {
-                extra: string
-            }
-        }>({
-            name: 'user',
-            allowed: [
-                ['id', 'name', 'email'],
-                {
-                    domain: ['extra'],
-                },
-            ],
-        });
-
-        let data = parser.parse('+email', {
-            schema,
-        });
-        expect(data).toEqual([
-            {
-                key: 'email',
-            },
-        ] as FieldsParseOutput);
-
-        data = parser.parse('+extra', {
-            schema,
-        });
-        expect(data).toEqual([
-            {
-                key: 'id',
-            },
-            {
-                key: 'name',
-            },
-            {
-                key: 'email',
-            },
-        ]);
-
-        data = parser.parse({
-            domain: '+extra',
-        }, {
-            schema,
-        });
-        expect(data).toEqual([
-            {
-                key: 'id',
-            },
-            {
-                key: 'name',
-            },
-            {
-                key: 'email',
-            },
-            {
-                key: 'extra',
-                path: 'domain',
             },
         ] as FieldsParseOutput);
     });
@@ -347,23 +284,38 @@ describe('src/fields/index.ts', () => {
         ] as FieldsParseOutput);
     });
 
-    it('should parse with includes', () => {
-        const schema = defineSchema<ObjectLiteral>({
-            fields: {
-                allowed: {
-                    profile: ['id'],
-                    permissions: ['id'],
-                },
-            },
-        });
-
+    it('should parse with valid relation', () => {
         // simple domain match
-        let data = parser.parse({ profile: ['id'] }, { schema, relations: ['profile'] });
-        expect(data).toEqual([{ path: 'profile', key: 'id' }] as FieldsParseOutput);
+        const data = parser.parse({
+            items: ['id'],
+            'items.realm': ['id'],
+        }, {
+            schema: 'user',
+            relations: ['items', 'items.realm'],
+        });
+        expect(data).toEqual([
+            { key: 'id' },
+            { key: 'name' },
+            { key: 'email' },
+            { key: 'age' },
+            { path: 'items', key: 'id' },
+            { path: 'items.realm', key: 'id' },
+        ] satisfies FieldsParseOutput);
+    });
 
+    it('should parse with valid & invalid relation', () => {
         // only single domain match
-        data = parser.parse({ profile: ['id'], permissions: ['id'] }, { schema, relations: ['profile'] });
-        expect(data).toEqual([{ path: 'profile', key: 'id' }] as FieldsParseOutput);
+        const data = parser.parse({
+            realm: ['id'],
+            permissions: ['id'],
+        }, { schema: 'user', relations: ['realm'] });
+        expect(data).toEqual([
+            { key: 'id' },
+            { key: 'name' },
+            { key: 'email' },
+            { key: 'age' },
+            { path: 'realm', key: 'id' },
+        ] satisfies FieldsParseOutput);
     });
 
     it('should throw on invalid input shape', () => {

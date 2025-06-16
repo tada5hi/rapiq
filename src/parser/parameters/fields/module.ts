@@ -44,194 +44,190 @@ FieldsParseOutput
             return [];
         }
 
-        const data = this.normalize(input, schema.throwOnFailure);
+        const normalized = this.normalize(input, schema.throwOnFailure);
         if (
             schema.name &&
-            data[schema.name]
+            normalized[schema.name]
         ) {
-            data[DEFAULT_ID] = data[schema.name];
-            delete data[schema.name];
+            normalized[DEFAULT_ID] = normalized[schema.name];
+            delete normalized[schema.name];
         }
 
-        const allowedKeys = [
-            ...schema.allowedKeys,
-            ...schema.defaultKeys,
-        ];
+        const data = normalized[DEFAULT_ID] || [];
+        delete normalized[DEFAULT_ID];
 
-        let keys = Object.keys(data);
-        if (keys.length > 0) {
-            const temp : string[] = [];
-            for (let i = 0; i < keys.length; i++) {
-                const index = allowedKeys.indexOf(keys[i]);
+        const transformed : FieldsParseInputTransformed = {
+            default: [],
+            included: [],
+            excluded: [],
+        };
 
-                if (index === -1) {
-                    // todo: also pass options.schema
-                    const keySchema = this.registry.resolve(schema.name, keys[i]);
-                    if (!keySchema) {
-                        if (schema.throwOnFailure) {
-                            throw FieldsParseError.keyPathInvalid(keys[i]);
-                        }
-                        continue;
-                    }
+        if (data.length > 0) {
+            for (let j = 0; j < data.length; j++) {
+                let operator: FieldOperator | undefined;
+
+                const character = data[j].substring(0, 1);
+                if (
+                    character === FieldOperator.INCLUDE ||
+                    character === FieldOperator.EXCLUDE
+                ) {
+                    operator = character;
+
+                    data[j] = data[j].substring(1);
                 }
 
-                if (!isPathAllowed(keys[i], options.relations)) {
+                data[j] = applyMapping(data[j], schema.mapping);
+
+                if (!schema.isValid(data[j], DEFAULT_ID)) {
                     if (schema.throwOnFailure) {
-                        throw FieldsParseError.keyPathInvalid(keys[i]);
+                        throw FieldsParseError.keyNotPermitted(data[j]);
                     }
 
                     continue;
                 }
 
-                if (keys[i] === DEFAULT_ID) {
-                    continue;
+                if (operator === FieldOperator.INCLUDE) {
+                    transformed.included.push(data[j]);
+                } else if (operator === FieldOperator.EXCLUDE) {
+                    transformed.excluded.push(data[j]);
+                } else {
+                    transformed.default.push(data[j]);
                 }
-
-                temp.push(keys[i]);
             }
+        }
 
-            keys = [DEFAULT_ID, ...temp];
-        } else if (typeof options.relations !== 'undefined') {
-            keys = [DEFAULT_ID, ...options.relations];
-        } else {
-            keys = [DEFAULT_ID];
+        if (
+            options.isChild &&
+            transformed.included.length === 0 &&
+            transformed.default.length === 0
+        ) {
+            return [];
+        }
+
+        if (transformed.default.length === 0) {
+            if (hasOwnProperty(schema.default, DEFAULT_ID)) {
+                transformed.default = schema.default[DEFAULT_ID] as string[];
+            } else if (
+                schema.name &&
+                hasOwnProperty(schema.default, schema.name)
+            ) {
+                transformed.default = schema.default[schema.name];
+            }
+        }
+
+        if (
+            transformed.included.length === 0 &&
+            transformed.default.length === 0
+        ) {
+            if (hasOwnProperty(schema.allowed, DEFAULT_ID)) {
+                transformed.default = schema.allowed[DEFAULT_ID] as string[];
+            } else if (
+                schema.name &&
+                hasOwnProperty(schema.allowed, schema.name)
+            ) {
+                transformed.default = schema.allowed[schema.name];
+            }
+        }
+
+        transformed.default = Array.from(new Set([
+            ...transformed.default,
+            ...transformed.included,
+        ]));
+
+        for (let j = 0; j < transformed.excluded.length; j++) {
+            const index = transformed.default.indexOf(transformed.excluded[j]);
+            if (index !== -1) {
+                transformed.default.splice(index, 1);
+            }
         }
 
         const output : FieldsParseOutput = [];
 
-        while (keys.length > 0) {
-            const path = keys.shift() as string;
+        if (transformed.default.length > 0) {
+            for (let j = 0; j < transformed.default.length; j++) {
+                output.push({
+                    key: transformed.default[j],
+                });
+            }
+        }
 
-            if (path !== DEFAULT_ID) {
-                // todo: also pass options.schema
-                const relationSchema = this.registry.resolve(schema.name, path);
-                if (relationSchema) {
-                    let childRelations: string[] | undefined;
-                    if (typeof options.relations !== 'undefined') {
-                        childRelations = extractSubRelations(options.relations, path);
-                    }
+        const keys = Object.keys(normalized);
 
-                    const subOutput = this.parse(
-                        this.prepareInputForSubSchema(data, path),
-                        {
-                            relations: childRelations,
-                            schema: relationSchema,
-                            isChild: true,
-                        },
-                    );
-
-                    output.push(...subOutput.map(
-                        (element) => ({
-                            key: element.key,
-                            path: element.path ? `${path}.${element.path}` : path,
-                        }),
-                    ));
-
-                    extractSubRelations(keys, path);
-
-                    continue;
+        if (options.relations) {
+            for (let i = 0; i < options.relations.length; i++) {
+                const index = keys.indexOf(options.relations[i]);
+                if (index === -1) {
+                    keys.push(options.relations[i]);
+                    normalized[options.relations[i]] = [];
                 }
             }
+        }
 
-            const transformed : FieldsParseInputTransformed = {
-                default: [],
-                included: [],
-                excluded: [],
-            };
+        const grouped : Record<string, Record<string, any>> = {};
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
 
-            if (
-                data[path] &&
-                data[path].length > 0
-            ) {
-                const fields = data[path];
-                for (let j = 0; j < fields.length; j++) {
-                    let operator: FieldOperator | undefined;
+            let group : string;
+            let relation : string;
 
-                    const character = fields[j].substring(0, 1);
-                    if (
-                        character === FieldOperator.INCLUDE ||
-                        character === FieldOperator.EXCLUDE
-                    ) {
-                        operator = character;
-
-                        fields[j] = fields[j].substring(1);
-                    }
-
-                    fields[j] = applyMapping(fields[j], schema.mapping);
-
-                    if (!schema.isValid(fields[j], path)) {
-                        if (schema.throwOnFailure) {
-                            throw FieldsParseError.keyNotPermitted(fields[j]);
-                        }
-
-                        continue;
-                    }
-
-                    if (operator === FieldOperator.INCLUDE) {
-                        transformed.included.push(fields[j]);
-                    } else if (operator === FieldOperator.EXCLUDE) {
-                        transformed.excluded.push(fields[j]);
-                    } else {
-                        transformed.default.push(fields[j]);
-                    }
-                }
+            const index = key.indexOf('.');
+            if (index === -1) {
+                group = key;
+                relation = DEFAULT_ID;
+            } else {
+                group = key.substring(0, index);
+                relation = key.substring(index + 1);
             }
 
-            if (
-                options.isChild &&
-                transformed.included.length === 0 &&
-                transformed.default.length === 0
-            ) {
+            if (!grouped[group]) {
+                grouped[group] = {};
+            }
+
+            grouped[group][relation] = normalized[key];
+        }
+
+        const groupedKeys = Object.keys(grouped);
+
+        for (let i = 0; i < groupedKeys.length; i++) {
+            const key = groupedKeys[i];
+
+            if (!isPathAllowed(key, options.relations)) {
+                if (schema.throwOnFailure) {
+                    throw FieldsParseError.keyPathInvalid(key);
+                }
+
                 continue;
             }
 
-            if (transformed.default.length === 0) {
-                if (hasOwnProperty(schema.default, path)) {
-                    transformed.default = schema.default[path];
-                } else if (
-                    path === DEFAULT_ID &&
-                    schema.name &&
-                    hasOwnProperty(schema.default, schema.name)
-                ) {
-                    transformed.default = schema.default[schema.name];
+            // todo: also pass options.schema
+            const relationSchema = this.registry.resolve(schema.name, key);
+            if (!relationSchema) {
+                if (schema.throwOnFailure) {
+                    throw FieldsParseError.keyPathInvalid(key);
                 }
+
+                continue;
             }
 
-            if (
-                transformed.included.length === 0 &&
-                transformed.default.length === 0
-            ) {
-                if (hasOwnProperty(schema.allowed, path)) {
-                    transformed.default = schema.allowed[path];
-                } else if (
-                    path === DEFAULT_ID &&
-                    schema.name &&
-                    hasOwnProperty(schema.allowed, schema.name)
-                ) {
-                    transformed.default = schema.allowed[schema.name];
-                }
+            let childRelations: string[] | undefined;
+            if (typeof options.relations !== 'undefined') {
+                childRelations = extractSubRelations(options.relations, key);
             }
 
-            transformed.default = Array.from(new Set([
-                ...transformed.default,
-                ...transformed.included,
-            ]));
+            const relationOutput = this.parse(
+                grouped[key],
+                {
+                    schema: relationSchema,
+                    relations: childRelations,
+                },
+            );
 
-            for (let j = 0; j < transformed.excluded.length; j++) {
-                const index = transformed.default.indexOf(transformed.excluded[j]);
-                if (index !== -1) {
-                    transformed.default.splice(index, 1);
-                }
-            }
-
-            if (transformed.default.length > 0) {
-                for (let j = 0; j < transformed.default.length; j++) {
-                    output.push({
-                        key: transformed.default[j],
-                        ...(path !== DEFAULT_ID ? { path } : {}),
-                    });
-                }
-            }
+            output.push(...relationOutput.map(
+                (element) => ({
+                    key: element.key,
+                    path: element.path ? `${key}.${element.path}` : key,
+                }),
+            ));
         }
 
         return output;

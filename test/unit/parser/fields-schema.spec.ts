@@ -76,6 +76,18 @@ describe('parser/fields/schema', () => {
             {
                 key: 'name',
             },
+            {
+                key: 'id',
+                path: 'realm',
+            },
+            {
+                key: 'name',
+                path: 'realm',
+            },
+            {
+                key: 'description',
+                path: 'realm',
+            },
         ] satisfies FieldsParseOutput);
     });
 
@@ -90,6 +102,10 @@ describe('parser/fields/schema', () => {
         expect(output).toEqual([
             {
                 key: 'name',
+            },
+            {
+                key: 'id',
+                path: 'item',
             },
             {
                 path: 'item.realm',
@@ -109,6 +125,22 @@ describe('parser/fields/schema', () => {
         expect(output).toEqual([
             {
                 key: 'name',
+            },
+            {
+                key: 'id',
+                path: 'item',
+            },
+            {
+                key: 'id',
+                path: 'item.realm',
+            },
+            {
+                key: 'name',
+                path: 'item.realm',
+            },
+            {
+                key: 'description',
+                path: 'item.realm',
             },
         ] satisfies FieldsParseOutput);
     });

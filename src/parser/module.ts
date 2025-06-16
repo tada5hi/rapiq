@@ -61,9 +61,6 @@ ParseOutput
         const schema = this.getBaseSchema(options.schema);
 
         const output : ParseOutput = {};
-        if (schema.name) {
-            output.defaultPath = schema.name;
-        }
 
         if (!isObject(input)) {
             return output;
