@@ -7,8 +7,7 @@
 
 export type FieldsParseOutputElement = {
     key: string,
-    path?: string,
-    value?: string
+    path?: string
 };
 export type FieldsParseOutput = FieldsParseOutputElement[];
 

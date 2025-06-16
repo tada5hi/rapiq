@@ -12,13 +12,11 @@ import { BaseParser } from '../../base';
 import {
     PaginationSchema, Schema, definePaginationSchema,
 } from '../../../schema';
-import type { RelationsParseOutput } from '../relations';
 import type { PaginationParseOutput } from './types';
 
 type PaginationParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
     schema?: string | Schema<RECORD> | PaginationSchema
 };
 

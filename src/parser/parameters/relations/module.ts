@@ -23,7 +23,6 @@ import type { RelationsParseOutput } from './types';
 type RelationsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
     throwOnFailure?: boolean,
     schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
 };
