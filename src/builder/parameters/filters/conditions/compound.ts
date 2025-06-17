@@ -9,21 +9,45 @@ import { URLParameter } from '../../../../constants';
 import {
     CompoundCondition, type Condition, FilterCompoundOperator,
 } from '../../../../schema';
-import { extendObject, serializeAsURI } from '../../../../utils';
+import { extendObject, renameObjectKeys, serializeAsURI } from '../../../../utils';
 import { BuildFieldsCondition } from './fields';
 
 export class BuildCompoundCondition<
     T extends Condition = Condition,
 > extends CompoundCondition<T> {
+    protected transform(input: T, index: number) {
+        if (input instanceof BuildFieldsCondition) {
+            return renameObjectKeys(
+                input.normalize(),
+                (key) => `${index}:${key}`,
+            );
+
+            return input.normalize();
+        }
+
+        if (input instanceof BuildCompoundCondition) {
+            return renameObjectKeys(
+                input.normalize(),
+                (key) => `${index}${key}`,
+            );
+
+            return input.normalize();
+        }
+
+        return input;
+    }
+
     normalize() : Record<string, any> {
-        if (this.value.length === 1) {
-            const [first] = this.value;
+        const input = this.flattenConditions(this.value);
+
+        if (input.length === 1) {
+            const [first] = input;
 
             if (
                 first instanceof BuildFieldsCondition ||
                 first instanceof BuildCompoundCondition
             ) {
-                return first.normalize();
+                return this.transform(first, 0);
             }
 
             return {} as Record<string, any>;
@@ -31,21 +55,11 @@ export class BuildCompoundCondition<
 
         const output : Record<string, any> = {};
 
-        let prefix: string | undefined;
-        const input = this.flattenConditions(this.value);
         for (let i = 0; i < input.length; i++) {
-            const child = input[i];
-
-            if (this.operator === FilterCompoundOperator.OR) {
-                prefix = `${i}`;
-            }
-
-            if (
-                child instanceof BuildFieldsCondition ||
-                child instanceof BuildCompoundCondition
-            ) {
-                extendObject(output, child.normalize(), prefix);
-            }
+            extendObject(
+                output,
+                this.transform(input[i], i),
+            );
         }
 
         return output;

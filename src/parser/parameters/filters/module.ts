@@ -233,6 +233,8 @@ Condition
     ) : Condition {
         const items = this.preParse(input, options);
 
+        console.log(input, items);
+
         const itemKeys = Object.keys(items);
         if (itemKeys.length === 0) {
             return this.mergeGroups(this.groupDefaults(options));

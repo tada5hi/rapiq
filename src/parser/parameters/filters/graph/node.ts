@@ -48,17 +48,16 @@ export class GraphNode<T = any> {
     // ----------------------------------------------
 
     add(path: string, data: T) {
-        const parts = path.split('.');
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         let current : GraphNode<T> = this;
 
-        for (let i = 0; i < parts.length; i++) {
-            const key = parts.slice(0, i + 1).join('.');
+        for (let i = 0; i < path.length; i++) {
+            const key = path.slice(0, i + 1);
 
             let child = current.children.find((c) => c.path === key);
 
             if (!child) {
-                if (i === (parts.length - 1)) {
+                if (i === (path.length - 1)) {
                     child = new GraphNode<T>(key, data);
                 } else {
                     child = new GraphNode<T>(key);
