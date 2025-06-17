@@ -16,16 +16,9 @@ import { BaseParser } from '../../base';
 import {
     RelationsSchema, Schema, defineRelationsSchema,
 } from '../../../schema';
-import type { RelationsParseOutput } from './types';
+import type { RelationsParseOptions, RelationsParseOutput } from './types';
 
 // --------------------------------------------------
-
-type RelationsParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    throwOnFailure?: boolean,
-    schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
-};
 
 export class RelationsParser extends BaseParser<
 RelationsParseOptions,

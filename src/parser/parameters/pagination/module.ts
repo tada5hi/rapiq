@@ -12,13 +12,7 @@ import { BaseParser } from '../../base';
 import {
     PaginationSchema, Schema, definePaginationSchema,
 } from '../../../schema';
-import type { PaginationParseOutput } from './types';
-
-type PaginationParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    schema?: string | Schema<RECORD> | PaginationSchema
-};
+import type { PaginationParseOptions, PaginationParseOutput } from './types';
 
 export class PaginationParser extends BaseParser<
 PaginationParseOptions,

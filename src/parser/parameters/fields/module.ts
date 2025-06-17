@@ -16,16 +16,8 @@ import { FieldsParseError } from './error';
 import {
     applyMapping, groupArrayByKeyPath, hasOwnProperty, isPathAllowed,
 } from '../../../utils';
-import type { FieldsParseInputTransformed, FieldsParseOutput } from './types';
+import type { FieldsParseInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
-
-type FieldsParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    relations?: string[],
-    schema?: string | Schema<RECORD> | FieldsSchema<RECORD>,
-    isChild?: boolean
-};
 
 export class FieldsParser extends BaseParser<
 FieldsParseOptions,
@@ -294,24 +286,6 @@ FieldsParseOutput
         }
 
         return {};
-    }
-
-    protected prepareInputForSubSchema(data: Record<string, any>, relation: string) {
-        const output : Record<string, any> = {};
-
-        const keys = Object.keys(data);
-        for (let i = 0; i < keys.length; i++) {
-            if (keys[i] === relation) {
-                output[DEFAULT_ID] = data[keys[i]];
-                continue;
-            }
-
-            if (keys[i].substring(0, relation.length + 1) === `${relation}.`) {
-                output[keys[i].substring(relation.length + 1)] = data[keys[i]];
-            }
-        }
-
-        return output;
     }
 
     // --------------------------------------------------

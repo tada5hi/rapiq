@@ -24,15 +24,8 @@ import {
     SortSchema, defineSortSchema,
 } from '../../../schema';
 import { BaseParser } from '../../base';
-import type { SortParseOutput } from './types';
-
-type SortParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    relations?: string[],
-    throwOnFailure?: boolean,
-    schema?: string | Schema<RECORD> | SortSchema<RECORD>
-};
+import type { SortParseOptions, SortParseOutput } from './types';
+import type { RelationsParseOutput } from '../relations';
 
 export class SortParser extends BaseParser<
 SortParseOptions,
@@ -164,7 +157,7 @@ SortParseOutput
                 continue;
             }
 
-            let childRelations: string[] | undefined;
+            let childRelations: RelationsParseOutput | undefined;
             if (typeof options.relations !== 'undefined') {
                 childRelations = extractSubRelations(options.relations, key);
             }
