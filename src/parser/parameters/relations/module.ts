@@ -79,7 +79,7 @@ RelationsParseOutput
                     continue;
                 }
 
-                output.push({ key: key.name, value: key.name });
+                output.push(key.name);
             }
         }
 
@@ -114,10 +114,7 @@ RelationsParseOutput
             );
 
             output.push(...relationOutput.map(
-                (element) => ({
-                    key: element.key ? `${key}.${element.key}` : key,
-                    value: element.value,
-                }),
+                (element) => (`${key}.${element}`),
             ));
         }
 

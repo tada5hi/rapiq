@@ -5,9 +5,4 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export type RelationsParseOutputElement = {
-    key: string,
-    value: string
-};
-
-export type RelationsParseOutput = RelationsParseOutputElement[];
+export type RelationsParseOutput = string[];
