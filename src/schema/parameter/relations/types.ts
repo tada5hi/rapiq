@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedResourceKeys } from '../../../types';
+import type { ResourceKeys } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
 export type RelationsOptions<
     T extends Record<string, any> = Record<string, any>,
 > = BaseSchemaOptions & {
-    allowed?: NestedResourceKeys<T>[],
+    allowed?: ResourceKeys<T>[],
     includeParents?: boolean | string[] | string,
     // maps input name to local name
     mapping?: Record<string, string>,

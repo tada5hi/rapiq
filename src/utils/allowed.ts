@@ -6,29 +6,11 @@
  */
 
 import type {
-    Flatten, NestedKeys, NestedResourceKeys, ObjectLiteral, OnlyObject, SimpleKeys,
+    NestedKeys, NestedResourceKeys, ObjectLiteral, SimpleKeys,
 } from '../types';
 import { toKeyPathArray } from './array';
 
-type OptionAllowedObject<
-    T extends ObjectLiteral = ObjectLiteral,
-> = {
-    [K in keyof T]?: T[K] extends OnlyObject<T[K]> ?
-        OptionAllowed<Flatten<T[K]>> :
-        never
-};
-
-export type OptionAllowed<T> = T extends ObjectLiteral ?
-    (
-        OptionAllowedObject<T>
-        |
-        (
-            SimpleKeys<T>[] |
-            OptionAllowedObject<T>
-        )[]
-        |
-        NestedKeys<T>[]
-    ) : string[];
+export type OptionAllowed<T> = T extends ObjectLiteral ? SimpleKeys<T>[] : string[];
 
 export function flattenParseAllowedOption<T>(
     input?: OptionAllowed<T>,
