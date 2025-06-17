@@ -20,14 +20,7 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(output).toEqual([
-            {
-                key: 'id',
-            },
-            {
-                key: 'name',
-            },
-        ] satisfies FieldsParseOutput);
+        expect(output).toEqual(['id', 'name'] satisfies FieldsParseOutput);
     });
 
     it('should not parse root schema', () => {
@@ -36,12 +29,8 @@ describe('parser/fields/schema', () => {
         });
 
         expect(output).toEqual([
-            {
-                key: 'id',
-            },
-            {
-                key: 'name',
-            },
+            'id',
+            'name',
         ] satisfies FieldsParseOutput);
     });
 
@@ -54,13 +43,8 @@ describe('parser/fields/schema', () => {
         );
 
         expect(output).toEqual([
-            {
-                key: 'name',
-            },
-            {
-                path: 'realm',
-                key: 'name',
-            },
+            'name',
+            'realm.name',
         ] satisfies FieldsParseOutput);
     });
 
@@ -73,21 +57,10 @@ describe('parser/fields/schema', () => {
         );
 
         expect(output).toEqual([
-            {
-                key: 'name',
-            },
-            {
-                key: 'id',
-                path: 'realm',
-            },
-            {
-                key: 'name',
-                path: 'realm',
-            },
-            {
-                key: 'description',
-                path: 'realm',
-            },
+            'name',
+            'realm.id',
+            'realm.name',
+            'realm.description',
         ] satisfies FieldsParseOutput);
     });
 
@@ -100,17 +73,9 @@ describe('parser/fields/schema', () => {
         );
 
         expect(output).toEqual([
-            {
-                key: 'name',
-            },
-            {
-                key: 'id',
-                path: 'item',
-            },
-            {
-                path: 'item.realm',
-                key: 'name',
-            },
+            'name',
+            'item.id',
+            'item.realm.name',
         ] satisfies FieldsParseOutput);
     });
 
@@ -123,25 +88,11 @@ describe('parser/fields/schema', () => {
         );
 
         expect(output).toEqual([
-            {
-                key: 'name',
-            },
-            {
-                key: 'id',
-                path: 'item',
-            },
-            {
-                key: 'id',
-                path: 'item.realm',
-            },
-            {
-                key: 'name',
-                path: 'item.realm',
-            },
-            {
-                key: 'description',
-                path: 'item.realm',
-            },
+            'name',
+            'item.id',
+            'item.realm.id',
+            'item.realm.name',
+            'item.realm.description',
         ] satisfies FieldsParseOutput);
     });
 });

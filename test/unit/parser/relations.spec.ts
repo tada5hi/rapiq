@@ -24,9 +24,7 @@ describe('src/relations/index.ts', () => {
             throwOnFailure: true,
         });
         let output = parser.parse('profile', { schema });
-        expect(output).toEqual([
-            { key: 'profile', value: 'profile' },
-        ] satisfies RelationsParseOutput);
+        expect(output).toEqual(['profile'] satisfies RelationsParseOutput);
 
         output = parser.parse([], { schema });
         expect(output).toEqual([]);
@@ -47,9 +45,7 @@ describe('src/relations/index.ts', () => {
 
         // ignore path pattern, if permitted by an allowed key
         const output = parser.parse(['profile!'], { schema });
-        expect(output).toEqual([
-            { key: 'profile!', value: 'profile!' },
-        ] satisfies RelationsParseOutput);
+        expect(output).toEqual(['profile!'] satisfies RelationsParseOutput);
     });
 
     it('should parse with alias', () => {
@@ -64,17 +60,15 @@ describe('src/relations/index.ts', () => {
 
         // with alias
         const output = parser.parse('pro', { schema });
-        expect(output).toEqual([
-            { key: 'profile', value: 'profile' },
-        ]);
+        expect(output).toEqual(['profile'] satisfies RelationsParseOutput);
     });
 
     it('should parse with nested alias', () => {
         // with nested alias
         const output = parser.parse(['abc.realm'], { schema: 'user' });
         expect(output).toEqual([
-            { key: 'items', value: 'items' },
-            { key: 'items.realm', value: 'realm' },
+            'items',
+            'items.realm',
         ] satisfies RelationsParseOutput);
     });
 
@@ -87,7 +81,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(output).toEqual([{ key: 'profile', value: 'profile' }] satisfies RelationsParseOutput);
+        expect(output).toEqual(['profile'] satisfies RelationsParseOutput);
     });
 
     it('should parse with empty allowed', () => {
@@ -111,7 +105,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(output).toEqual([{ key: 'profile', value: 'profile' }] satisfies RelationsParseOutput);
+        expect(output).toEqual(['profile'] satisfies RelationsParseOutput);
     });
 
     it('should parse with nested allowed', () => {
@@ -122,8 +116,8 @@ describe('src/relations/index.ts', () => {
             schema: 'user',
         });
         expect(output).toEqual([
-            { key: 'items', value: 'items' },
-            { key: 'items.realm', value: 'realm' },
+            'items',
+            'items.realm',
         ] satisfies RelationsParseOutput);
     });
 

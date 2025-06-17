@@ -16,16 +16,9 @@ import { BaseParser } from '../../base';
 import {
     RelationsSchema, Schema, defineRelationsSchema,
 } from '../../../schema';
-import type { RelationsParseOutput } from './types';
+import type { RelationsParseOptions, RelationsParseOutput } from './types';
 
 // --------------------------------------------------
-
-type RelationsParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    throwOnFailure?: boolean,
-    schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
-};
 
 export class RelationsParser extends BaseParser<
 RelationsParseOptions,
@@ -79,7 +72,7 @@ RelationsParseOutput
                     continue;
                 }
 
-                output.push({ key: key.name, value: key.name });
+                output.push(key.name);
             }
         }
 
@@ -114,10 +107,7 @@ RelationsParseOutput
             );
 
             output.push(...relationOutput.map(
-                (element) => ({
-                    key: element.key ? `${key}.${element.key}` : key,
-                    value: element.value,
-                }),
+                (element) => (`${key}.${element}`),
             ));
         }
 

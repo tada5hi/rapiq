@@ -37,15 +37,9 @@ describe('src/fields/index.ts', () => {
         });
 
         expect(data).toEqual([
-            {
-                key: 'id',
-            },
-            {
-                key: 'name',
-            },
-            {
-                key: 'email',
-            },
+            'id',
+            'name',
+            'email',
         ] satisfies FieldsParseOutput);
     });
 
@@ -57,11 +51,7 @@ describe('src/fields/index.ts', () => {
         const data = parser.parse('+email', {
             schema,
         });
-        expect(data).toEqual([
-            {
-                key: 'email',
-            },
-        ] satisfies FieldsParseOutput);
+        expect(data).toEqual(['email'] satisfies FieldsParseOutput);
     });
 
     it('should parse with invalid input (with default)', () => {
@@ -71,7 +61,7 @@ describe('src/fields/index.ts', () => {
         const data = parser.parse('name', {
             schema,
         });
-        expect(data).toEqual([{ key: 'id' }]);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
     });
 
     it('should parse invalid input (with allowed)', () => {
@@ -83,13 +73,13 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined
         const data = parser.parse(undefined, { schema });
-        expect(data).toEqual([{ key: 'id' }, { key: 'name' }]);
+        expect(data).toEqual(['id', 'name'] satisfies FieldsParseOutput);
     });
 
     it('should parse with no schema', () => {
         // no options
         let data = parser.parse(['id']);
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // invalid field names
         data = parser.parse(['"id', 'name!']);
@@ -104,7 +94,7 @@ describe('src/fields/index.ts', () => {
         });
 
         const data = parser.parse(['name!'], { schema });
-        expect(data).toEqual([{ key: 'name!' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['name!'] satisfies FieldsParseOutput);
     });
 
     it('should not parse with empty allowed', () => {
@@ -140,41 +130,41 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined with default
         let data = parser.parse(undefined, { schema });
-        expect(data).toEqual([{ key: 'id' }]);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // fields as array
         data = parser.parse(['id'], { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // fields as string
         data = parser.parse('id', { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // multiple fields but only one valid field
         data = parser.parse(['id', 'avatar'], { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // field as string and append fields
         data = parser.parse('+id', { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         data = parser.parse('avatar,+id', { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         data = parser.parse('-id', { schema });
         expect(data).toEqual([] satisfies FieldsParseOutput);
 
         // fields as string and append fields
         data = parser.parse('id,+name', { schema });
-        expect(data).toEqual([{ key: 'id' }, { key: 'name' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id', 'name'] satisfies FieldsParseOutput);
 
         // field not allowed
         data = parser.parse('avatar', { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         // field with invalid value
         data = parser.parse({ id: null }, { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
     });
 
     it('should parse with single allowed domain', () => {
@@ -187,7 +177,7 @@ describe('src/fields/index.ts', () => {
 
         // if only one domain is given, try to parse request field to single domain.
         const data = parser.parse(['id'], { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
     });
 
     it('should parse with multiple allowed domains', () => {
@@ -204,7 +194,7 @@ describe('src/fields/index.ts', () => {
         // if multiple possibilities are available for request field, use allowed
         const data = parser.parse(['id'], { schema });
         expect(data).toEqual([
-            { key: 'id' },
+            'id',
         ] satisfies FieldsParseOutput);
     });
 
@@ -217,13 +207,13 @@ describe('src/fields/index.ts', () => {
         });
 
         let data = parser.parse(['id'], { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         data = parser.parse(['+id'], { schema });
-        expect(data).toEqual([{ key: 'name' }, { key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['name', 'id'] satisfies FieldsParseOutput);
 
         data = parser.parse([], { schema });
-        expect(data).toEqual([{ key: 'name' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['name'] satisfies FieldsParseOutput);
     });
 
     it('should use default fields if default & allowed (multiple domains)', () => {
@@ -244,7 +234,7 @@ describe('src/fields/index.ts', () => {
         // if multiple possibilities are available for request field, use default
         const data = parser.parse(['id'], { schema });
         expect(data).toEqual([
-            { key: 'id' },
+            'id',
         ] satisfies FieldsParseOutput);
     });
 
@@ -253,13 +243,13 @@ describe('src/fields/index.ts', () => {
             fields: { default: ['id', 'name'] },
         });
         let data = parser.parse([], { schema });
-        expect(data).toEqual([{ key: 'id' }, { key: 'name' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id', 'name'] satisfies FieldsParseOutput);
 
         data = parser.parse(['id'], { schema });
-        expect(data).toEqual([{ key: 'id' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id'] satisfies FieldsParseOutput);
 
         data = parser.parse(['fake'], { schema });
-        expect(data).toEqual([{ key: 'id' }, { key: 'name' }] satisfies FieldsParseOutput);
+        expect(data).toEqual(['id', 'name'] satisfies FieldsParseOutput);
     });
 
     it('should parse fields with aliasMapping', () => {
@@ -274,13 +264,13 @@ describe('src/fields/index.ts', () => {
 
         let data = parser.parse('+foo', { schema });
         expect(data).toEqual([
-            { key: 'id' },
-            { key: 'name' },
+            'id',
+            'name',
         ] satisfies FieldsParseOutput);
 
         data = parser.parse('+alias', { schema });
         expect(data).toEqual([
-            { key: 'id' },
+            'id',
         ] satisfies FieldsParseOutput);
     });
 
@@ -294,12 +284,12 @@ describe('src/fields/index.ts', () => {
             relations: ['items', 'items.realm'],
         });
         expect(data).toEqual([
-            { key: 'id' },
-            { key: 'name' },
-            { key: 'email' },
-            { key: 'age' },
-            { path: 'items', key: 'id' },
-            { path: 'items.realm', key: 'id' },
+            'id',
+            'name',
+            'email',
+            'age',
+            'items.id',
+            'items.realm.id',
         ] satisfies FieldsParseOutput);
     });
 
@@ -310,11 +300,11 @@ describe('src/fields/index.ts', () => {
             permissions: ['id'],
         }, { schema: 'user', relations: ['realm'] });
         expect(data).toEqual([
-            { key: 'id' },
-            { key: 'name' },
-            { key: 'email' },
-            { key: 'age' },
-            { path: 'realm', key: 'id' },
+            'id',
+            'name',
+            'email',
+            'age',
+            'realm.id',
         ] satisfies FieldsParseOutput);
     });
 
