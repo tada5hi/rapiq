@@ -58,12 +58,9 @@ ParseOutput
         input: unknown,
         options: ParseOptions<RECORD> = {},
     ): ParseOutput {
-        const schema = this.resolveBaseSchema(options.schema);
+        const schema = this.getBaseSchema(options.schema);
 
         const output : ParseOutput = {};
-        if (schema.defaultPath) {
-            output.defaultPath = schema.defaultPath;
-        }
 
         if (!isObject(input)) {
             return output;

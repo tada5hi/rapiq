@@ -10,7 +10,6 @@ import { hasOwnProperty } from './object';
 export function applyMapping(
     name: string,
     map?: Record<string, string>,
-    onlyKey?: boolean,
 ) {
     if (typeof map === 'undefined') {
         return name;
@@ -24,11 +23,9 @@ export function applyMapping(
     let parts = name.split('.');
 
     const output = [];
-    let run = true;
-    while (run) {
+    while (parts.length > 0) {
         const value = parts.shift();
         if (typeof value === 'undefined') {
-            run = false;
             break;
         }
 
@@ -59,10 +56,6 @@ export function applyMapping(
                 output.push(value);
             }
         }
-    }
-
-    if (onlyKey) {
-        return output.pop() || name;
     }
 
     if (output.length === 0) {

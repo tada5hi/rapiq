@@ -12,13 +12,11 @@ import { BaseParser } from '../../base';
 import {
     PaginationSchema, Schema, definePaginationSchema,
 } from '../../../schema';
-import type { RelationsParseOutput } from '../relations';
 import type { PaginationParseOutput } from './types';
 
 type PaginationParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
     schema?: string | Schema<RECORD> | PaginationSchema
 };
 
@@ -102,7 +100,7 @@ PaginationParseOutput
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | PaginationSchema) : PaginationSchema {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.pagination;
         }
 

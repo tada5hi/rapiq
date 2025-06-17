@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { SortDirection } from '../../../schema/parameter';
+import type { SortDirection } from '../../../schema';
 
 export type SortParseOutputElement = {
     key: string,

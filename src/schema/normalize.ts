@@ -30,10 +30,10 @@ export function normalizeSchemaOptions<
         sort: input.sort || {},
     };
 
-    if (isPropertySet(input, 'defaultPath')) {
-        setIfNotDefined(output.fields, 'defaultPath', input.defaultPath);
-        setIfNotDefined(output.filters, 'defaultPath', input.defaultPath);
-        setIfNotDefined(output.sort, 'defaultPath', input.defaultPath);
+    if (isPropertySet(input, 'name')) {
+        setIfNotDefined(output.fields, 'name', input.name);
+        setIfNotDefined(output.filters, 'name', input.name);
+        setIfNotDefined(output.sort, 'name', input.name);
     }
 
     if (isPropertySet(input, 'throwOnFailure')) {

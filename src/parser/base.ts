@@ -4,9 +4,11 @@
  *  For the full copyright and license information,
  *  view the LICENSE file that was distributed with this source code.
  */
+import { DEFAULT_ID } from '../constants';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
+import { buildKey, parseKey } from '../utils';
 
 export abstract class BaseParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
@@ -33,20 +35,87 @@ export abstract class BaseParser<
 
     // --------------------------------------------------
 
-    protected resolveBaseSchema<
+    protected getBaseSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input?: string | Schema<RECORD>) {
-        let schema : Schema<RECORD>;
+    >(
+        input?: string | Schema<RECORD>,
+    ) : Schema<RECORD> {
+        let schema : Schema<RECORD> | undefined;
         if (input) {
-            if (typeof input === 'string') {
-                schema = this.registry.getOrFail(input) as Schema<RECORD>;
-            } else {
-                schema = input;
-            }
+            schema = this.registry.getOrFail(input);
         } else {
             schema = defineSchema();
         }
 
         return schema;
+    }
+
+    protected groupObjectByBasePath<T extends Record<string, any>>(
+        input: T,
+    ) : Record<string, T> {
+        const output : Record<string, T> = {};
+
+        const keys = Object.keys(input);
+
+        this.groupByFieldPathWithFn(
+            keys,
+            (prefix, key, index) => {
+                if (!output[prefix]) {
+                    output[prefix] = {} as T;
+                }
+
+                output[prefix][key as keyof T] = input[keys[index]] as T[keyof T];
+            },
+        );
+
+        return output;
+    }
+
+    protected groupArrayByBasePath(
+        input: string[],
+    ) : Record<string, string[]> {
+        const output : Record<string, string[]> = {};
+
+        this.groupByFieldPathWithFn(
+            input,
+            (prefix, key) => {
+                if (!output[prefix]) {
+                    output[prefix] = [];
+                }
+
+                output[prefix].push(key);
+            },
+        );
+
+        return output;
+    }
+
+    protected groupByFieldPathWithFn(
+        items: string[],
+        cb: (
+            prefix: string,
+            key: string,
+            index: number
+        ) => void,
+    ) : void {
+        for (let i = 0; i < items.length; i++) {
+            const key = parseKey(items[i]);
+
+            let prefix : string;
+            if (key.path) {
+                const dotIndex = key.path.indexOf('.');
+                if (dotIndex === -1) {
+                    prefix = key.path;
+                    key.path = undefined;
+                } else {
+                    prefix = key.path.substring(0, dotIndex);
+                    key.path = key.path.substring(dotIndex + 1);
+                }
+            } else {
+                prefix = DEFAULT_ID;
+            }
+
+            cb(prefix, buildKey(key), i);
+        }
     }
 }

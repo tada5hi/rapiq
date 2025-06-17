@@ -5,8 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { DEFAULT_ID } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
-import { applyMapping, hasOwnProperty, isPathCoveredByParseAllowedOption } from '../../../utils';
+import {
+    applyMapping, isObject, isPathAllowed, parseKey,
+} from '../../../utils';
+import { SortParseError } from '../sort';
 import { RelationsParseError } from './error';
 import { BaseParser } from '../../base';
 import {
@@ -19,7 +23,7 @@ import type { RelationsParseOutput } from './types';
 type RelationsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
+    throwOnFailure?: boolean,
     schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
 };
 
@@ -34,6 +38,7 @@ RelationsParseOutput
         options: RelationsParseOptions<RECORD> = {},
     ) : RelationsParseOutput {
         const schema = this.resolveSchema(options.schema);
+        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
         // If it is an empty array nothing is allowed
         if (
@@ -43,86 +48,137 @@ RelationsParseOutput
             return [];
         }
 
-        let items: string[] = [];
+        const normalized = this.includeParents(this.normalize(input, throwOnFailure));
+        const grouped = this.groupArrayByBasePath(normalized);
 
-        if (typeof input === 'string') {
-            items = input.split(',');
-        } else if (Array.isArray(input)) {
-            for (let i = 0; i < input.length; i++) {
-                if (typeof input[i] === 'string') {
-                    items.push(input[i]);
-                } else {
-                    throw RelationsParseError.inputInvalid();
-                }
-            }
-        } else if (schema.throwOnFailure) {
-            throw RelationsParseError.inputInvalid();
-        }
+        const output : RelationsParseOutput = [];
 
-        if (items.length === 0) {
-            return [];
-        }
+        const {
+            [DEFAULT_ID]: data,
+            ...relationsData
+        } = grouped;
+        if (data) {
+            for (let i = 0; i < data.length; i++) {
+                const key = parseKey(data[i]);
+                key.name = applyMapping(key.name, schema.mapping);
 
-        const mappingKeys = Object.keys(schema.mapping);
-        if (mappingKeys.length > 0) {
-            for (let i = 0; i < items.length; i++) {
-                items[i] = applyMapping(items[i], schema.mapping);
-            }
-        }
+                if (!isPathAllowed(key.name, schema.allowed)) {
+                    if (schema.throwOnFailure) {
+                        throw RelationsParseError.keyInvalid(key.name);
+                    }
 
-        for (let j = items.length - 1; j >= 0; j--) {
-            let isValid : boolean;
-            if (schema.allowed) {
-                isValid = isPathCoveredByParseAllowedOption(schema.allowed as string[], items[j]);
-            } else {
-                isValid = this.isValidPath(items[j]);
-            }
-
-            if (!isValid) {
-                if (schema.throwOnFailure) {
-                    throw RelationsParseError.keyInvalid(items[j]);
-                }
-
-                items.splice(j, 1);
-            }
-        }
-
-        if (schema.includeParents) {
-            if (Array.isArray(schema.includeParents)) {
-                const parentIncludes = items.filter(
-                    (item) => item.includes('.') &&
-                        (schema.includeParents as string[]).filter((parent) => item.startsWith(parent)).length > 0,
-                );
-                items.unshift(...this.includeParents(parentIncludes));
-            } else {
-                items = this.includeParents(items);
-            }
-        }
-
-        items = Array.from(new Set(items));
-
-        return items
-            .map((key) => {
-                const parts = key.split('.');
-
-                let value : string;
-                if (
-                    schema.pathMapping &&
-                    hasOwnProperty(schema.pathMapping, key)
+                    continue;
+                } else if (
+                    typeof schema.allowed === 'undefined' &&
+                    !this.isValidPath(key.name)
                 ) {
-                    value = schema.pathMapping[key];
-                } else {
-                    value = parts.pop() as string;
+                    if (throwOnFailure) {
+                        throw RelationsParseError.keyInvalid(key.name);
+                    }
+
+                    continue;
                 }
 
-                return {
-                    key,
-                    value,
-                };
-            });
+                output.push({ key: key.name, value: key.name });
+            }
+        }
+
+        const keys = Object.keys(relationsData);
+        for (let i = 0; i < keys.length; i++) {
+            const key = applyMapping(keys[i], schema.mapping);
+
+            if (!isPathAllowed(key, schema.allowed)) {
+                if (throwOnFailure) {
+                    throw RelationsParseError.keyPathInvalid(key);
+                }
+
+                continue;
+            }
+
+            // todo: also pass options.schema
+            const relationSchema = this.registry.resolve(schema.name, key);
+            if (!relationSchema) {
+                if (throwOnFailure) {
+                    throw RelationsParseError.keyPathInvalid(key);
+                }
+
+                continue;
+            }
+
+            const relationOutput = this.parse(
+                relationsData[keys[i]],
+                {
+                    schema: relationSchema,
+                    throwOnFailure: options.throwOnFailure,
+                },
+            );
+
+            output.push(...relationOutput.map(
+                (element) => ({
+                    key: element.key ? `${key}.${element.key}` : key,
+                    value: element.value,
+                }),
+            ));
+        }
+
+        return output;
     }
 
     // --------------------------------------------------
+
+    protected normalize(input: unknown, throwOnFailure?: boolean) : string[] {
+        const output: string[] = [];
+
+        if (
+            typeof input === 'string' ||
+            Array.isArray(input)
+        ) {
+            let temp: unknown[] = [];
+            if (typeof input === 'string') {
+                temp = input.split(',');
+            } else {
+                temp = input;
+            }
+
+            for (let i = 0; i < temp.length; i++) {
+                const key = temp[i];
+                if (typeof key !== 'string') {
+                    if (throwOnFailure) {
+                        throw SortParseError.inputInvalid();
+                    }
+
+                    continue;
+                }
+
+                output.push(key);
+            }
+
+            return output;
+        }
+
+        if (isObject(input)) {
+            const keys = Object.keys(input);
+            for (let i = 0; i < keys.length; i++) {
+                if (typeof input[keys[i]] === 'string') {
+                    const path = `${keys[i]}.${input[keys[i]]}`;
+
+                    output.push(path);
+                }
+            }
+
+            return output;
+        }
+
+        if (input === undefined || input === null || input === '') {
+            return [];
+        }
+
+        if (throwOnFailure) {
+            throw RelationsParseError.inputInvalid();
+        }
+
+        return [];
+    }
 
     protected includeParents(
         data: string[],
@@ -159,7 +215,7 @@ RelationsParseOutput
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> {
         if (typeof input === 'string' || input instanceof Schema) {
-            const schema = this.resolveBaseSchema(input);
+            const schema = this.getBaseSchema(input);
             return schema.relations;
         }
 
