@@ -145,9 +145,7 @@ FieldsParseOutput
 
         if (transformed.default.length > 0) {
             for (let j = 0; j < transformed.default.length; j++) {
-                output.push({
-                    key: transformed.default[j],
-                });
+                output.push(transformed.default[j]);
             }
         }
 
@@ -223,10 +221,7 @@ FieldsParseOutput
             );
 
             output.push(...relationOutput.map(
-                (element) => ({
-                    key: element.key,
-                    path: element.path ? `${key}.${element.path}` : key,
-                }),
+                (element) => (`${key}.${element}`),
             ));
         }
 

@@ -31,9 +31,7 @@ describe('src/parser', () => {
         });
 
         expect(output).toEqual({
-            fields: [
-                { key: 'id' },
-            ],
+            fields: ['id'],
         } as ParseOutput);
     });
 });
