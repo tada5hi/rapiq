@@ -18,7 +18,7 @@ export type SortOptionDefault<T extends Record<string, any>> = {
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
 > = BaseSchemaOptions & {
-    allowed?: SimpleKeys<T>[],
+    allowed?: SimpleKeys<T>[] | SimpleKeys<T>[][],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
 };

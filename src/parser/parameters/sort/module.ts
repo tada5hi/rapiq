@@ -116,7 +116,7 @@ SortParseOutput
 
                 if (
                     !schema.allowedIsUndefined &&
-                    !this.isMultiDimensionalArray(schema.allowedRaw) &&
+                    !this.isMultiDimensionalArray(schema.allowed) &&
                     schema.allowed &&
                     schema.allowed.indexOf(key.name) === -1
                 ) {
@@ -130,13 +130,13 @@ SortParseOutput
                 output[key.name] = data[keys[i]];
             }
 
-            if (this.isMultiDimensionalArray(schema.allowedRaw)) {
+            if (this.isMultiDimensionalArray(schema.allowed)) {
                 // eslint-disable-next-line no-labels,no-restricted-syntax
                 outerLoop:
                 for (let i = 0; i < schema.allowed.length; i++) {
                     const temp: SortParseOutput = {};
 
-                    const keyPaths = schema.allowedRaw[i] as string[];
+                    const keyPaths = schema.allowed[i];
 
                     for (let j = 0; j < keyPaths.length; j++) {
                         if (output[keyPaths[j]]) {
@@ -292,7 +292,7 @@ SortParseOutput
 
     // --------------------------------------------------
 
-    protected isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
+    protected isMultiDimensionalArray(arr: string[] | string[][]) : arr is string[][] {
         if (!Array.isArray(arr)) {
             return false;
         }

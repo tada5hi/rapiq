@@ -20,7 +20,7 @@ export class SortSchema<
 
     public defaultIsUndefined : boolean;
 
-    public allowed : string[];
+    public allowed : string[] | string[][];
 
     public allowedIsUndefined : boolean;
 
@@ -44,10 +44,6 @@ export class SortSchema<
 
     get mapping() : Record<string, string> | undefined {
         return this.options.mapping;
-    }
-
-    get allowedRaw() {
-        return this.options.allowed;
     }
 
     // ---------------------------------------------------------
