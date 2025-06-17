@@ -5,23 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Flatten, NestedKeys, OnlyObject } from '../../../types';
-import type { OptionAllowed } from '../../../utils';
+import type {
+    SimpleKeys,
+} from '../../../types';
 import type { SortDirection } from './constants';
 import type { BaseSchemaOptions } from '../../types';
 
 export type SortOptionDefault<T extends Record<string, any>> = {
-    [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-        SortOptionDefault<Flatten<T[K]>> :
-        `${SortDirection}`
-} | {
-    [K in NestedKeys<T>]?: `${SortDirection}`
+    [K in SimpleKeys<T>]?: `${SortDirection}`
 };
 
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
 > = BaseSchemaOptions & {
-    allowed?: OptionAllowed<T>,
+    allowed?: SimpleKeys<T>[] | SimpleKeys<T>[][],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
 };

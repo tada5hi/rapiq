@@ -23,13 +23,13 @@ import { extractSubRelations } from '../../../schema/parameter/relations/helpers
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import {
     applyMapping,
-    buildKey,
     buildKeyPath,
     escapeRegExp,
     isObject,
     isPathAllowed,
     isPropertyNameValid,
     parseKey,
+    stringifyKey,
 } from '../../../utils';
 import { FiltersParseError } from './error';
 import { BaseParser } from '../../base';
@@ -217,7 +217,7 @@ Condition
                 output[relationOutputKeys[j]].push(...relationOutput[relationOutputKeys[j]].map(
                     (condition) => new FieldCondition(
                         condition.operator as `${FilterFieldOperator}`,
-                        buildKey({ path: keys[i], name: condition.field }),
+                        stringifyKey({ path: keys[i], name: condition.field }),
                         condition.value,
                     ),
                 ));

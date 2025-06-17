@@ -10,8 +10,8 @@ import { DEFAULT_ID } from '../../../constants';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
 import type { ObjectLiteral } from '../../../types';
 import {
-    applyMapping, extendObject,
-    flattenParseAllowedOption,
+    applyMapping,
+    extendObject,
     isPathAllowed,
     isPropertyNameValid,
     parseKey,
@@ -38,7 +38,32 @@ SortParseOutput
     ) {
         const schema = this.resolveSchema(options.schema);
 
-        return schema.defaultOutput;
+        if (schema.default) {
+            const output : SortParseOutput = {};
+
+            const keys = Object.keys(schema.default);
+
+            for (let i = 0; i < keys.length; i++) {
+                const fieldDetails = parseKey(keys[i]);
+
+                let path : string | undefined;
+                if (fieldDetails.path) {
+                    path = fieldDetails.path;
+                } else if (schema.name) {
+                    path = schema.name;
+                }
+
+                if (path) {
+                    output[`${path}.${fieldDetails.name}`] = schema.default[keys[i]];
+                } else {
+                    output[fieldDetails.name] = schema.default[keys[i]];
+                }
+            }
+
+            return output;
+        }
+
+        return {};
     }
 
     parse<
@@ -91,7 +116,7 @@ SortParseOutput
 
                 if (
                     !schema.allowedIsUndefined &&
-                    !this.isMultiDimensionalArray(schema.allowedRaw) &&
+                    !this.isMultiDimensionalArray(schema.allowed) &&
                     schema.allowed &&
                     schema.allowed.indexOf(key.name) === -1
                 ) {
@@ -105,13 +130,13 @@ SortParseOutput
                 output[key.name] = data[keys[i]];
             }
 
-            if (this.isMultiDimensionalArray(schema.allowedRaw)) {
+            if (this.isMultiDimensionalArray(schema.allowed)) {
                 // eslint-disable-next-line no-labels,no-restricted-syntax
                 outerLoop:
                 for (let i = 0; i < schema.allowed.length; i++) {
                     const temp: SortParseOutput = {};
 
-                    const keyPaths = flattenParseAllowedOption(schema.allowedRaw[i] as string[]);
+                    const keyPaths = schema.allowed[i];
 
                     for (let j = 0; j < keyPaths.length; j++) {
                         if (output[keyPaths[j]]) {
@@ -267,7 +292,7 @@ SortParseOutput
 
     // --------------------------------------------------
 
-    protected isMultiDimensionalArray(arr: unknown) : arr is unknown[][] {
+    protected isMultiDimensionalArray(arr: string[] | string[][]) : arr is string[][] {
         if (!Array.isArray(arr)) {
             return false;
         }

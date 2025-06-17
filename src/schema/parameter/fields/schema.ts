@@ -5,29 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../../types';
-import type { OptionAllowed } from '../../../utils';
+import type { ObjectLiteral, SimpleKeys } from '../../../types';
 import {
-    flattenParseAllowedOption,
-    groupArrayByKeyPath,
-    hasOwnProperty, isPropertyNameValid,
+    isPropertyNameValid,
 } from '../../../utils';
 import type { FieldsOptions } from './types';
 import { BaseSchema } from '../../base';
-import { DEFAULT_ID } from '../../../constants';
 
 export class FieldsSchema<
     T extends ObjectLiteral = ObjectLiteral,
 > extends BaseSchema<FieldsOptions<T>> {
-    public default : Record<string, string[]>;
-
-    public defaultKeys : string[];
+    public default : string[];
 
     public defaultIsUndefined : boolean;
 
-    public allowed : Record<string, string[]>;
-
-    public allowedKeys : string[];
+    public allowed : string[];
 
     public allowedIsUndefined : boolean;
 
@@ -38,12 +30,10 @@ export class FieldsSchema<
     constructor(input: FieldsOptions<T> = {}) {
         super(input);
 
-        this.allowed = {};
-        this.allowedKeys = [];
+        this.allowed = [];
         this.allowedIsUndefined = true;
 
-        this.default = {};
-        this.defaultKeys = [];
+        this.default = [];
         this.defaultIsUndefined = true;
 
         this.reverseMapping = {};
@@ -61,9 +51,9 @@ export class FieldsSchema<
      */
     get allDenied() {
         return !this.allowedIsUndefined &&
-            this.allowedKeys.length === 0 &&
+            this.allowed.length === 0 &&
             !this.defaultIsUndefined &&
-            this.defaultKeys.length === 0;
+            this.default.length === 0;
     }
 
     get mapping() {
@@ -72,67 +62,51 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: OptionAllowed<T>) {
+    setDefault(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
-            this.default = {};
-            this.defaultKeys = [];
+            this.default = [];
             this.defaultIsUndefined = true;
             return;
         }
 
-        this.default = groupArrayByKeyPath(
-            flattenParseAllowedOption(input),
-        );
-        this.defaultKeys = Object.keys(this.default);
+        this.default = input;
         this.defaultIsUndefined = false;
     }
 
-    setAllowed(input?: OptionAllowed<T>) {
+    setAllowed(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
-            this.allowed = {};
-            this.allowedKeys = [];
+            this.allowed = [];
             this.allowedIsUndefined = true;
             return;
         }
 
-        this.allowed = groupArrayByKeyPath(
-            flattenParseAllowedOption(input),
-        );
-        this.allowedKeys = Object.keys(this.allowed);
+        this.allowed = input;
         this.allowedIsUndefined = false;
     }
 
     // ---------------------------------------------------------
 
     hasDefaults() {
-        return !this.defaultIsUndefined && this.defaultKeys.length > 0;
+        return !this.defaultIsUndefined && this.default.length > 0;
     }
 
     /**
      * Check whether a name exists for a group.
      *
      * @param name
-     * @param group
      */
     isValid(
         name: string,
-        group: string,
     ): boolean {
-        if (
-            !this.allowedIsUndefined &&
-            hasOwnProperty(this.allowed, group)
-        ) {
-            const index = this.allowed[group].indexOf(name);
+        if (!this.allowedIsUndefined) {
+            const index = this.allowed.indexOf(name);
             if (index !== -1) {
                 return true;
             }
         }
 
-        if (
-            !this.defaultIsUndefined &&
-            hasOwnProperty(this.default, group)
-        ) {
-            const index = this.default[group].indexOf(name);
+        if (!this.defaultIsUndefined) {
+            const index = this.default.indexOf(name);
             if (index !== -1) {
                 return true;
             }
@@ -143,14 +117,6 @@ export class FieldsSchema<
             this.defaultIsUndefined
         ) {
             return isPropertyNameValid(name);
-        }
-
-        if (
-            group === DEFAULT_ID &&
-            this.name &&
-            group !== this.name
-        ) {
-            return this.isValid(name, this.name);
         }
 
         return false;

@@ -171,7 +171,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             name: 'domain',
             fields: {
-                allowed: { domain: ['id'] },
+                allowed: ['id'],
             },
         });
 
@@ -184,10 +184,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             name: 'domain',
             fields: {
-                allowed: {
-                    domain: ['id', 'name'],
-                    domain2: ['id', 'name'],
-                },
+                allowed: ['id', 'name'],
             },
         });
 
@@ -219,14 +216,8 @@ describe('src/fields/index.ts', () => {
     it('should use default fields if default & allowed (multiple domains)', () => {
         const schema = defineSchema<ObjectLiteral>({
             fields: {
-                allowed: {
-                    domain: ['id', 'name'],
-                    domain2: ['id', 'name'],
-                },
-                default: {
-                    domain: ['id'],
-                    domain2: ['name'],
-                },
+                allowed: ['id', 'name'],
+                default: ['id'],
             },
             name: 'domain',
         });

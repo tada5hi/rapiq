@@ -5,10 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedKeys, ObjectLiteral } from '../../../types';
-import type { OptionAllowed } from '../../../utils';
+import type { NestedKeys, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
-    flattenParseAllowedOption, toFlatObject,
+    toFlatObject,
 } from '../../../utils';
 import type {
     FiltersOptionDefault,
@@ -80,7 +79,7 @@ export class FiltersSchema<
         this.defaultKeys = Object.keys(this.default);
     }
 
-    setAllowed(input?: OptionAllowed<T>) {
+    setAllowed(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
             if (!this.defaultIsUndefined) {
                 this.allowed = [...this.defaultKeys];
@@ -93,7 +92,7 @@ export class FiltersSchema<
             return;
         }
 
-        this.allowed = flattenParseAllowedOption(input);
+        this.allowed = input;
         this.allowedIsUndefined = false;
     }
 

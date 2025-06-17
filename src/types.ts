@@ -38,6 +38,14 @@ export type NestedKeys<T, Depth extends number = 4> =
                 }[keyof T & string]
         ) : string;
 
+export type ResourceKeys<T> =
+    T extends ObjectLiteral ?
+        {
+            [Key in keyof T & (string | number)]: Flatten<T[Key]> extends Record<string, any> ?
+                Key : never
+        }[keyof T & (string | number)]
+        : string;
+
 export type NestedResourceKeys<T, Depth extends number = 4> =
     T extends ObjectLiteral ?
         (
