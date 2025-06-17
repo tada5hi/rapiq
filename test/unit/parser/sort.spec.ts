@@ -29,7 +29,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['id'],
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.ASC } satisfies SortParseOutput);
     });
 
     it('should parse with desc prefix (-)', () => {
@@ -39,13 +39,13 @@ describe('src/sort/index.ts', () => {
                 allowed: ['id'],
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should not parse with invalid field name', () => {
         // invalid field names
         const transformed = parser.parse('-!id');
-        expect(transformed).toEqual([] satisfies SortParseOutput);
+        expect(transformed).toEqual({} satisfies SortParseOutput);
     });
 
     it('should ignore invalid field name', () => {
@@ -55,7 +55,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['!id'],
             }),
         });
-        expect(transformed).toEqual([{ key: '!id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ '!id': SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should parse with empty allowed', () => {
@@ -65,7 +65,7 @@ describe('src/sort/index.ts', () => {
                 allowed: [],
             }),
         });
-        expect(transformed).toEqual([] satisfies SortParseOutput);
+        expect(transformed).toEqual({} satisfies SortParseOutput);
     });
 
     it('should parse with undefined allowed', () => {
@@ -75,7 +75,7 @@ describe('src/sort/index.ts', () => {
                 allowed: undefined,
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should parse with only default', () => {
@@ -85,7 +85,7 @@ describe('src/sort/index.ts', () => {
                 default: { name: 'DESC' },
             }),
         });
-        expect(transformed).toEqual([{ key: 'name', value: SortDirection.ASC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ name: SortDirection.ASC }satisfies SortParseOutput);
     });
 
     it('should parse with only default and desc', () => {
@@ -95,7 +95,7 @@ describe('src/sort/index.ts', () => {
                 default: { name: 'DESC' },
             }),
         });
-        expect(transformed).toEqual([{ key: 'name', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ name: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should not parse with wrong allowed', () => {
@@ -105,7 +105,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['a'],
             }),
         });
-        expect(transformed).toEqual([] satisfies SortParseOutput);
+        expect(transformed).toEqual({} satisfies SortParseOutput);
     });
 
     it('should parse array input', () => {
@@ -115,7 +115,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['id'],
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should parse object input', () => {
@@ -125,7 +125,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['id'],
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.ASC } satisfies SortParseOutput);
     });
 
     it('should not parse invalid input data', () => {
@@ -135,7 +135,7 @@ describe('src/sort/index.ts', () => {
                 allowed: ['id'],
             }),
         });
-        expect(transformed).toEqual([] satisfies SortParseOutput);
+        expect(transformed).toEqual({} satisfies SortParseOutput);
     });
 
     it('should parse with field alias', () => {
@@ -148,7 +148,7 @@ describe('src/sort/index.ts', () => {
                 },
             }),
         });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should transform sort with default', () => {
@@ -164,16 +164,16 @@ describe('src/sort/index.ts', () => {
         });
 
         let transformed = parser.parse(['id'], { schema });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.ASC } satisfies SortParseOutput);
 
         transformed = parser.parse(undefined, { schema });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
 
         transformed = parser.parse([], { schema });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
 
         transformed = parser.parse('-age', { schema });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.DESC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.DESC } satisfies SortParseOutput);
     });
 
     it('should parse sort with sort indexes (simple)', () => {
@@ -186,7 +186,7 @@ describe('src/sort/index.ts', () => {
 
         // simple
         const transformed = parser.parse(['id'], { schema });
-        expect(transformed).toEqual([{ key: 'id', value: SortDirection.ASC }] satisfies SortParseOutput);
+        expect(transformed).toEqual({ id: SortDirection.ASC } satisfies SortParseOutput);
     });
 
     it('should parse sort with sort indexes (tuple)', () => {
@@ -199,21 +199,21 @@ describe('src/sort/index.ts', () => {
 
         // correct order
         let transformed = parser.parse(['name', 'email'], { schema });
-        expect(transformed).toStrictEqual([
-            { key: 'name', value: SortDirection.ASC },
-            { key: 'email', value: SortDirection.ASC },
-        ] satisfies SortParseOutput);
+        expect(transformed).toStrictEqual({
+            name: SortDirection.ASC,
+            email: SortDirection.ASC,
+        } satisfies SortParseOutput);
 
         // incorrect order
         transformed = parser.parse(['email', 'name'], { schema });
-        expect(transformed).toStrictEqual([
-            { key: 'name', value: SortDirection.ASC },
-            { key: 'email', value: SortDirection.ASC },
-        ] satisfies SortParseOutput);
+        expect(transformed).toStrictEqual({
+            name: SortDirection.ASC,
+            email: SortDirection.ASC,
+        } satisfies SortParseOutput);
 
         // no match
         transformed = parser.parse(['email'], { schema });
-        expect(transformed).toStrictEqual([]);
+        expect(transformed).toStrictEqual({} satisfies SortParseOutput);
     });
 
     it('should parse sort with sort indexes & default path', () => {
@@ -227,9 +227,9 @@ describe('src/sort/index.ts', () => {
 
         // incomplete match
         const transformed = parser.parse(['email', 'id'], { schema });
-        expect(transformed).toStrictEqual([
-            { key: 'id', value: SortDirection.ASC },
-        ] satisfies SortParseOutput);
+        expect(transformed).toStrictEqual({
+            id: SortDirection.ASC,
+        } satisfies SortParseOutput);
     });
 
     it('should parse with simple relation', () => {
@@ -237,10 +237,10 @@ describe('src/sort/index.ts', () => {
             schema: 'user',
             relations: ['realm'],
         });
-        expect(transformed).toEqual([
-            { key: 'id', value: SortDirection.ASC },
-            { path: 'realm', key: 'id', value: SortDirection.ASC },
-        ] satisfies SortParseOutput);
+        expect(transformed).toEqual({
+            id: SortDirection.ASC,
+            'realm.id': SortDirection.ASC,
+        } satisfies SortParseOutput);
     });
 
     it('should parse with nested relation', () => {
@@ -250,10 +250,10 @@ describe('src/sort/index.ts', () => {
             relations: ['items', 'items.realm'],
             throwOnFailure: true,
         });
-        expect(transformed).toEqual([
-            { key: 'id', value: SortDirection.ASC },
-            { path: 'items.realm', key: 'id', value: SortDirection.ASC },
-        ] satisfies SortParseOutput);
+        expect(transformed).toEqual({
+            id: SortDirection.ASC,
+            'items.realm.id': SortDirection.ASC,
+        }satisfies SortParseOutput);
     });
 
     it('should throw on invalid input', () => {

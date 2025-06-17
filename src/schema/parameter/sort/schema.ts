@@ -39,7 +39,7 @@ export class SortSchema<
 
         this.default = {};
         this.defaultKeys = [];
-        this.defaultOutput = [];
+        this.defaultOutput = {};
 
         this.buildDefaultDomainFields();
         this.buildAllowedDomainFields();
@@ -93,7 +93,7 @@ export class SortSchema<
 
     buildParseOutput() : SortParseOutput {
         if (this.default) {
-            const output : SortParseOutput = [];
+            const output : SortParseOutput = {};
 
             const flatten = toFlatObject(this.default);
             const keys = Object.keys(flatten);
@@ -108,16 +108,16 @@ export class SortSchema<
                     path = this.options.name;
                 }
 
-                output.push({
-                    key: fieldDetails.name,
-                    ...(path ? { path } : {}),
-                    value: flatten[keys[i]],
-                });
+                if (path) {
+                    output[`${path}.${fieldDetails.name}`] = flatten[keys[i]];
+                } else {
+                    output[fieldDetails.name] = flatten[keys[i]];
+                }
             }
 
             return output;
         }
 
-        return [];
+        return {};
     }
 }

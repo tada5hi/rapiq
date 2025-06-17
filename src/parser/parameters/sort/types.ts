@@ -7,10 +7,4 @@
 
 import type { SortDirection } from '../../../schema';
 
-export type SortParseOutputElement = {
-    key: string,
-    value: `${SortDirection}`,
-    path?: string
-};
-
-export type SortParseOutput = SortParseOutputElement[];
+export type SortParseOutput = Record<string, `${SortDirection}`>;

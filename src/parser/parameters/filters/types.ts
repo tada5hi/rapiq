@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition } from '@ucast/core';
-import type { FiltersSchema, Schema } from '../../../schema';
+import type { Condition, FiltersSchema, Schema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 
 export type FiltersParseOptions<

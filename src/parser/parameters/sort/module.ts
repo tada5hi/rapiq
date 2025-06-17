@@ -10,7 +10,7 @@ import { DEFAULT_ID } from '../../../constants';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
 import type { ObjectLiteral } from '../../../types';
 import {
-    applyMapping,
+    applyMapping, extendObject,
     flattenParseAllowedOption,
     isPathAllowed,
     isPropertyNameValid,
@@ -72,7 +72,7 @@ SortParseOutput
             delete grouped[schema.name];
         }
 
-        const output : SortParseOutput = [];
+        const output : SortParseOutput = {};
 
         const {
             [DEFAULT_ID]: data,
@@ -109,26 +109,20 @@ SortParseOutput
                     continue;
                 }
 
-                output.push({
-                    key: key.name,
-                    value: data[keys[i]],
-                });
+                output[key.name] = data[keys[i]];
             }
 
             if (this.isMultiDimensionalArray(schema.allowedRaw)) {
                 // eslint-disable-next-line no-labels,no-restricted-syntax
                 outerLoop:
                 for (let i = 0; i < schema.allowed.length; i++) {
-                    const temp: SortParseOutput = [];
+                    const temp: SortParseOutput = {};
 
                     const keyPaths = flattenParseAllowedOption(schema.allowedRaw[i] as string[]);
 
                     for (let j = 0; j < keyPaths.length; j++) {
-                        const index = output.findIndex(
-                            (element) => element.key === keyPaths[j],
-                        );
-                        if (index !== -1) {
-                            temp.push(output[index]);
+                        if (output[keyPaths[j]]) {
+                            temp[keyPaths[j]] = output[keyPaths[j]];
                         } else {
                             // eslint-disable-next-line no-labels
                             continue outerLoop;
@@ -139,12 +133,13 @@ SortParseOutput
                 }
 
                 // if we get no match, the sort data is invalid.
-                return [];
+                return {};
             }
         }
 
-        if (output.length === 0) {
-            output.push(...this.buildDefaults(options));
+        const outputKeys = Object.keys(output);
+        if (outputKeys.length === 0) {
+            extendObject(output, this.buildDefaults(options));
         }
 
         const keys = Object.keys(relationsData);
@@ -183,13 +178,10 @@ SortParseOutput
                 },
             );
 
-            output.push(...relationOutput.map(
-                (element) => ({
-                    key: element.key,
-                    path: element.path ? `${key}.${element.path}` : key,
-                    value: element.value,
-                }),
-            ));
+            const relationOutputKeys = Object.keys(relationOutput);
+            for (let j = 0; j < relationOutputKeys.length; j++) {
+                output[`${key}.${relationOutputKeys[j]}`] = relationOutput[relationOutputKeys[j]];
+            }
         }
 
         return output;
