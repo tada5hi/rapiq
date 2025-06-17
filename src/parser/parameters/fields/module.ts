@@ -14,7 +14,7 @@ import {
 import { DEFAULT_ID } from '../../../constants';
 import { FieldsParseError } from './error';
 import {
-    applyMapping, groupArrayByKeyPath, hasOwnProperty, isPathAllowed,
+    applyMapping, groupArrayByKeyPath, isPathAllowed,
 } from '../../../utils';
 import type { FieldsParseInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
@@ -70,7 +70,7 @@ FieldsParseOutput
 
                 data[j] = applyMapping(data[j], schema.mapping);
 
-                if (!schema.isValid(data[j], DEFAULT_ID)) {
+                if (!schema.isValid(data[j])) {
                     if (schema.throwOnFailure) {
                         throw FieldsParseError.keyNotPermitted(data[j]);
                     }
@@ -97,13 +97,8 @@ FieldsParseOutput
         }
 
         if (transformed.default.length === 0) {
-            if (hasOwnProperty(schema.default, DEFAULT_ID)) {
-                transformed.default = schema.default[DEFAULT_ID] as string[];
-            } else if (
-                schema.name &&
-                hasOwnProperty(schema.default, schema.name)
-            ) {
-                transformed.default = schema.default[schema.name];
+            if (!schema.defaultIsUndefined) {
+                transformed.default = schema.default as string[];
             }
         }
 
@@ -111,13 +106,8 @@ FieldsParseOutput
             transformed.included.length === 0 &&
             transformed.default.length === 0
         ) {
-            if (hasOwnProperty(schema.allowed, DEFAULT_ID)) {
-                transformed.default = schema.allowed[DEFAULT_ID] as string[];
-            } else if (
-                schema.name &&
-                hasOwnProperty(schema.allowed, schema.name)
-            ) {
-                transformed.default = schema.allowed[schema.name];
+            if (!schema.allowedIsUndefined) {
+                transformed.default = schema.allowed as string[];
             }
         }
 
