@@ -5,7 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { KeyDetails } from './type';
+export type KeyDetails = {
+    name: string,
+    group?: string,
+    path?: string
+};
 
 export const KEY_REGEX = /^(?:([0-9]+(?:\.[0-9]+)*):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
 
@@ -28,8 +32,8 @@ export function parseKey(
     };
 }
 
-export function buildKey(
-    details: KeyDetails,
+export function stringifyKey(
+    key: KeyDetails,
 ) : string {
-    return `${details.group ? `${details.group}:` : ''}${details.path ? `${details.path}.` : ''}${details.name}`;
+    return `${key.group ? `${key.group}:` : ''}${key.path ? `${key.path}.` : ''}${key.name}`;
 }

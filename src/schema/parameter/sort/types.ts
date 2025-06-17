@@ -8,7 +8,6 @@
 import type {
     SimpleKeys,
 } from '../../../types';
-import type { OptionAllowed } from '../../../utils';
 import type { SortDirection } from './constants';
 import type { BaseSchemaOptions } from '../../types';
 
@@ -19,7 +18,7 @@ export type SortOptionDefault<T extends Record<string, any>> = {
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
 > = BaseSchemaOptions & {
-    allowed?: OptionAllowed<T>,
+    allowed?: SimpleKeys<T>[],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
 };

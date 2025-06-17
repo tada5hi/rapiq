@@ -8,7 +8,7 @@ import { DEFAULT_ID } from '../constants';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { buildKey, parseKey } from '../utils';
+import { parseKey, stringifyKey } from '../utils';
 
 export abstract class BaseParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
@@ -115,7 +115,7 @@ export abstract class BaseParser<
                 prefix = DEFAULT_ID;
             }
 
-            cb(prefix, buildKey(key), i);
+            cb(prefix, stringifyKey(key), i);
         }
     }
 }

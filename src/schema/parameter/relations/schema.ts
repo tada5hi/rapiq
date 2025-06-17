@@ -12,14 +12,6 @@ import type { RelationsOptions } from './types';
 export class RelationsSchema<
     T extends ObjectLiteral = ObjectLiteral,
 > extends BaseSchema<RelationsOptions<T>> {
-    get pathMapping() {
-        return this.options.pathMapping || {};
-    }
-
-    get includeParents() {
-        return this.options.includeParents ?? true;
-    }
-
     get allowed() {
         return this.options.allowed;
     }

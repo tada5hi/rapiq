@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { applyMapping, flattenParseAllowedOption, isPathCoveredByParseAllowedOption } from '../../src/utils';
-import type { User } from '../data';
+import { applyMapping } from '../../src/utils';
 
 describe('src/utils/*.ts', () => {
     it('should get name by alias', () => {
@@ -27,73 +26,5 @@ describe('src/utils/*.ts', () => {
             'c.d': 'y',
         });
         expect(data).toEqual('z.b.y.e');
-    });
-
-    it('should flatten nested parse option keys', () => {
-        let data = flattenParseAllowedOption<User>(['id', 'name']);
-        expect(data).toEqual(['id', 'name']);
-
-        data = flattenParseAllowedOption<User>({
-            realm: ['id'],
-            items: ['realm.name'],
-        });
-        expect(data).toEqual([
-            'realm.id',
-            'items.realm.name',
-        ]);
-    });
-
-    it('should verify if path is covered by parse options', () => {
-        let result = isPathCoveredByParseAllowedOption<User>(['id', 'name'], 'id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>(['id', 'name'], 'description');
-        expect(result).toBeFalsy();
-
-        // -----------------------------------------------------------
-
-        result = isPathCoveredByParseAllowedOption<User>({ realm: ['id', 'name'] }, 'realm.id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>({ realm: ['id', 'name'] }, 'realm.description');
-        expect(result).toBeFalsy();
-
-        // -----------------------------------------------------------
-
-        result = isPathCoveredByParseAllowedOption<User>(['realm.id', 'realm.name'], 'realm.id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>(['realm.id', 'realm.name'], 'realm.description');
-        expect(result).toBeFalsy();
-
-        // -----------------------------------------------------------
-
-        result = isPathCoveredByParseAllowedOption<User>([['name'], { realm: ['id'] }], 'name');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>([['name'], { realm: ['id'] }], 'id');
-        expect(result).toBeFalsy();
-
-        result = isPathCoveredByParseAllowedOption<User>([['name'], { realm: ['id'] }], 'realm.id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>([['name'], { realm: ['id'] }], 'realm.name');
-        expect(result).toBeFalsy();
-
-        // -----------------------------------------------------------
-
-        result = isPathCoveredByParseAllowedOption<User>({ items: ['realm.id'] }, 'items.realm.id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>({ items: ['realm.name'] }, 'items.realm.id');
-        expect(result).toBeFalsy();
-
-        // -----------------------------------------------------------
-
-        result = isPathCoveredByParseAllowedOption<User>({ items: { realm: ['id'] } }, 'items.realm.id');
-        expect(result).toBeTruthy();
-
-        result = isPathCoveredByParseAllowedOption<User>({ items: { realm: ['name'] } }, 'items.realm.id');
-        expect(result).toBeFalsy();
     });
 });

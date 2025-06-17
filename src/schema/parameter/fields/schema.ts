@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../../../types';
-import type { OptionAllowed } from '../../../utils';
+import type { ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
@@ -63,7 +62,7 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: OptionAllowed<T>) {
+    setDefault(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
             this.default = [];
             this.defaultIsUndefined = true;
@@ -74,7 +73,7 @@ export class FieldsSchema<
         this.defaultIsUndefined = false;
     }
 
-    setAllowed(input?: OptionAllowed<T>) {
+    setAllowed(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
             this.allowed = [];
             this.allowedIsUndefined = true;
