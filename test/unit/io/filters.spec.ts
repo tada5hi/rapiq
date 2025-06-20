@@ -20,6 +20,12 @@ describe('src/filters', () => {
     });
 
     it('should build & parse', () => {
+        /**
+         * 00:id
+         * 000:name
+         * 001:name
+         * 1:id
+         */
         const group = or([
             and([
                 filters<Entity>({
@@ -40,15 +46,11 @@ describe('src/filters', () => {
             }),
         ]);
 
-        console.log(group.normalize());
-
-        /*
-        process.exit(0);
-
         const output = parser.parse(group.normalize());
 
         expect(output).toBeInstanceOf(CompoundCondition);
         expect(output.operator).toEqual(FilterCompoundOperator.OR);
+
         expect(output.value).toHaveLength(2);
 
         const children = (output as CompoundCondition).value;
@@ -62,9 +64,7 @@ describe('src/filters', () => {
 
         expect(second).toBeInstanceOf(FieldCondition);
         expect(second.operator).toEqual('eq');
-        expect(second.value).toHaveLength(15);
+        expect(second.value).toEqual(15);
         expect(second.field).toEqual('id');
-
-         */
     });
 });

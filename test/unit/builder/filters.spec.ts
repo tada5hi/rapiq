@@ -125,8 +125,8 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0:id': '1',
-                '0:name': 'foo',
+                id: '1',
+                name: 'foo',
             });
         });
 
@@ -206,9 +206,9 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0:id': '1',
-                '0:name': 'foo',
-                '0:child.age': '<15',
+                id: '1',
+                name: 'foo',
+                'child.age': '<15',
             });
         });
 
@@ -228,9 +228,9 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '00:id': '1',
-                '01:name': 'foo',
-                '0:child.age': '<15',
+                '0:id': '1',
+                '1:name': 'foo',
+                'child.age': '<15',
             });
         });
 

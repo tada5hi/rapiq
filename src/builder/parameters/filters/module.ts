@@ -23,7 +23,7 @@ export class FiltersBuilder<
     constructor() {
         super();
 
-        this.value = new BuildCompoundCondition(FilterCompoundOperator.OR, []);
+        this.value = new BuildCompoundCondition(FilterCompoundOperator.AND, []);
     }
 
     // --------------------------------------------------

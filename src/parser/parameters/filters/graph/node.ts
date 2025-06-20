@@ -28,16 +28,14 @@ export class GraphNode<T = any> {
         this.data = data;
         this.children = [];
 
-        const parts = path.split('.');
-        if (parts.length > 1) {
-            const parentId = parts.slice(parts.length - 2, parts.length - 1)
-                .join('.');
+        if (path.length >= 1) {
+            const parentId = path.slice(path.length - 2, path.length - 1);
             if (parentId) {
                 this.parentId = parentId;
             }
 
-            this.level = parts.length - 1;
-            this.id = parts.pop() as string;
+            this.level = path.length;
+            this.id = path[path.length - 1];
         } else {
             this.parentId = undefined;
             this.level = 0;
@@ -50,6 +48,17 @@ export class GraphNode<T = any> {
     add(path: string, data: T) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         let current : GraphNode<T> = this;
+
+        if (path.length === 0) {
+            let child = current.children.find((c) => c.path === '');
+            if (!child) {
+                child = new GraphNode<T>('', data);
+            }
+
+            current.children.push(child);
+
+            return;
+        }
 
         for (let i = 0; i < path.length; i++) {
             const key = path.slice(0, i + 1);
