@@ -5,31 +5,65 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { distinctArray } from 'smob';
 import { DEFAULT_ID, URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import {
-    groupArrayByKeyPath, merge, serializeAsURI, toKeyPathArray,
+    groupArrayByKeyPath, isObject,
+    serializeAsURI, toKeyPathArray,
 } from '../../../utils';
 import { BaseBuilder } from '../../base';
-import type { FieldsBuildInput } from './types';
+import type { FieldsBuildInput, FieldsBuildTupleInput } from './types';
 
 export class FieldsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<FieldsBuildInput<RECORD>> {
-    protected items : Record<string, string[]>;
+> extends BaseBuilder<FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>> {
+    public readonly value: Record<string, string[]> = {};
 
     constructor() {
         super();
 
-        this.items = {};
+        this.value = {};
     }
 
-    add(input: FieldsBuildInput<RECORD>) {
-        this.items = merge(this.items, groupArrayByKeyPath(toKeyPathArray(input)));
+    add(input: FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>) {
+        if (input instanceof FieldsBuilder) {
+            this.add(input.value as FieldsBuildInput<RECORD>);
+
+            return;
+        }
+
+        if (typeof input === 'string') {
+            this.add([input]);
+            return;
+        }
+
+        if (this.isTupleInput(input)) {
+            this.add({
+                [DEFAULT_ID]: input[0],
+                ...input[1],
+            });
+
+            return;
+        }
+
+        const normalized = groupArrayByKeyPath(toKeyPathArray(input));
+        const keys = Object.keys(normalized);
+
+        for (let i = 0; i < keys.length; i++) {
+            if (this.value[keys[i]]) {
+                this.value[keys[i]] = distinctArray([
+                    ...this.value[keys[i]],
+                    ...normalized[keys[i]],
+                ]);
+            } else {
+                this.value[keys[i]] = normalized[keys[i]];
+            }
+        }
     }
 
     serialize() {
-        const keys = Object.keys(this.items);
+        const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;
         }
@@ -38,9 +72,17 @@ export class FieldsBuilder<
             keys.length === 1 &&
             keys[0] === DEFAULT_ID
         ) {
-            return serializeAsURI(this.items[keys[0]], { prefixParts: [URLParameter.FIELDS] });
+            return serializeAsURI(this.value[DEFAULT_ID], { prefixParts: [URLParameter.FIELDS] });
         }
 
-        return serializeAsURI(this.items, { prefixParts: [URLParameter.FIELDS] });
+        return serializeAsURI(this.value, { prefixParts: [URLParameter.FIELDS] });
+    }
+
+    protected isTupleInput(input: unknown) : input is FieldsBuildTupleInput<RECORD> {
+        if (!Array.isArray(input) || input.length !== 2) {
+            return false;
+        }
+
+        return Array.isArray(input[1]) && isObject(input[2]);
     }
 }

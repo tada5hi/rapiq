@@ -10,7 +10,7 @@ import { FilterCompoundOperator } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { serializeAsURI } from '../../../utils';
 import { BaseBuilder } from '../../base';
-import { BuildCompoundCondition, BuildFieldsCondition } from './conditions';
+import { BuildCompoundCondition, BuildFieldsCondition } from './entities';
 import type { FiltersBuildInput } from './types';
 
 export class FiltersBuilder<

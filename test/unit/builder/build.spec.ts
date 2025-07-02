@@ -25,7 +25,7 @@ function buildQuery<T extends ObjectLiteral = ObjectLiteral>(
 describe('src/build.ts', () => {
     it('should format fields record', () => {
         let record = buildQuery<Entity>({
-            fields: 'id',
+            fields: ['id'],
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: 'id' }));
@@ -37,7 +37,7 @@ describe('src/build.ts', () => {
         expect(record).toEqual(buildURLQueryString({ fields: ['id', 'name', 'created_at'] }));
 
         record = buildQuery<Entity>({
-            fields: '+id',
+            fields: ['+id'],
         });
 
         expect(record).toEqual(buildURLQueryString({ fields: '+id' }));
@@ -61,8 +61,7 @@ describe('src/build.ts', () => {
 
         record = buildQuery<Entity>({
             fields: [
-                ['id'],
-                ['name'],
+                ['id', 'name'],
                 {
                     child: ['id', 'name'],
                 },
@@ -74,10 +73,7 @@ describe('src/build.ts', () => {
             fields: [
                 ['id'],
                 {
-                    child: ['id'],
-                },
-                {
-                    child: ['name'],
+                    child: ['id', 'name'],
                 },
             ],
         });
