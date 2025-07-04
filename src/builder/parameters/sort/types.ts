@@ -19,14 +19,14 @@ export type SortBuildInput<T extends Record<string, any>> =
         `${SortDirection}`
     }
     |
-    (
-        SortWithOperator<SimpleKeys<T>>[] |
+    [
+        SortWithOperator<SimpleKeys<T>>[],
         {
             [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
                 SortBuildInput<Flatten<T[K]>> :
             `${SortDirection}`
-        }
-    )[]
+        },
+    ]
     |
     SortWithOperator<NestedKeys<T>>[] |
     SortWithOperator<NestedKeys<T>>;
