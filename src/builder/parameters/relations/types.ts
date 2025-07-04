@@ -11,4 +11,6 @@ export type RelationsBuildInput<T extends Record<string, any>> = {
     [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
         RelationsBuildInput<Flatten<T[K]>> | boolean :
         never
-} | NestedResourceKeys<T>[];
+} |
+NestedResourceKeys<T>[] |
+NestedResourceKeys<T>;

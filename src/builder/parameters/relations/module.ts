@@ -7,30 +7,56 @@
 
 import { URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
-import { merge, serializeAsURI, toKeyPathArray } from '../../../utils';
+import { serializeAsURI, toKeyPathArray } from '../../../utils';
 import { BaseBuilder } from '../../base';
 import type { RelationsBuildInput } from './types';
 
 export class RelationsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > extends BaseBuilder<RelationsBuildInput<RECORD>> {
-    protected items : string[];
+    public readonly value : string[];
 
     constructor() {
         super();
 
-        this.items = [];
+        this.value = [];
     }
 
-    add(input: RelationsBuildInput<RECORD>) {
-        this.items = merge(this.items, toKeyPathArray(input));
+    add(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
+        if (input instanceof RelationsBuilder) {
+            this.add(input.value as RelationsBuildInput<RECORD>);
+            return;
+        }
+
+        const normalized = toKeyPathArray(input);
+        for (let i = 0; i < normalized.length; i++) {
+            const index = this.value.indexOf(normalized[i]);
+            if (index === -1) {
+                this.value.push(normalized[i]);
+            }
+        }
+    }
+
+    drop(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
+        if (input instanceof RelationsBuilder) {
+            this.drop(input.value as RelationsBuildInput<RECORD>);
+            return;
+        }
+
+        const normalized = toKeyPathArray(input);
+        for (let i = 0; i < normalized.length; i++) {
+            const index = this.value.indexOf(normalized[i]);
+            if (index !== -1) {
+                this.value.splice(i, 1);
+            }
+        }
     }
 
     serialize() {
-        if (this.items.length === 0) {
+        if (this.value.length === 0) {
             return undefined;
         }
 
-        return serializeAsURI(this.items, { prefixParts: [URLParameter.RELATIONS] });
+        return serializeAsURI(this.value, { prefixParts: [URLParameter.RELATIONS] });
     }
 }
