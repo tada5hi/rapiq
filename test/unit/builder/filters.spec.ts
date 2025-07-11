@@ -135,7 +135,10 @@ describe('builder/filters', () => {
                 }),
             ]);
 
-            expect(group.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: 1, name: 'foo' } }));
+            expect(group.normalize()).toEqual({
+                id: '1',
+                name: 'foo',
+            });
         });
 
         it('should build or group (level 0)', () => {
@@ -149,8 +152,8 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0.id': '1',
-                '1.name': 'foo',
+                '0:id': '1',
+                '1:name': 'foo',
             });
         });
 
@@ -170,9 +173,9 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0.id': '1',
-                '1.name': 'foo',
-                '2.child.age': '<15',
+                '0:id': '1',
+                '1:name': 'foo',
+                '2:child.age': '<15',
             });
         });
 
@@ -192,9 +195,9 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0.id': '1',
-                '0.name': 'foo',
-                '1.child.age': '<15',
+                '00:id': '1',
+                '00:name': 'foo',
+                '1:child.age': '<15',
             });
         });
 
@@ -236,9 +239,38 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '0.id': '1',
-                '1.name': 'foo',
+                '0:id': '1',
+                '1:name': 'foo',
                 'child.age': '<15',
+            });
+        });
+
+        it('should build and(or(or()),_)', () => {
+            const group = or([
+                and([
+                    filters<Entity>({
+                        id: 1,
+                    }),
+                    or([
+                        filters<Entity>({
+                            name: 'foo',
+                        }),
+                        filters<Entity>({
+                            name: 'bar',
+                        }),
+                    ]),
+                ]),
+
+                filters<Entity>({
+                    id: 15,
+                }),
+            ]);
+
+            expect(group.normalize()).toEqual({
+                '00:id': '1',
+                '000:name': 'foo',
+                '001:name': 'bar',
+                '1:id': '15',
             });
         });
     });

@@ -9,43 +9,69 @@ import { URLParameter } from '../../../../constants';
 import {
     CompoundCondition, type Condition, FilterCompoundOperator,
 } from '../../../../schema';
-import { extendObject, serializeAsURI } from '../../../../utils';
 import { FiltersConditionBuilder } from './fields';
+import { extendObject, renameObjectKeys, serializeAsURI } from '../../../../utils';
 
 export class FiltersCompoundConditionBuilder<
     T extends Condition = Condition,
 > extends CompoundCondition<T> {
-    normalize() : Record<string, any> {
-        if (this.value.length === 1) {
-            const [first] = this.value;
-
-            if (
-                first instanceof FiltersConditionBuilder ||
-                first instanceof FiltersCompoundConditionBuilder
-            ) {
-                return first.normalize();
+    protected normalizeChild<T extends Condition>(input: T, index: number) {
+        if (
+            input instanceof FiltersConditionBuilder ||
+            input instanceof FiltersCompoundConditionBuilder
+        ) {
+            let normalized : Record<string, any>;
+            if (input instanceof FiltersCompoundConditionBuilder) {
+                normalized = input.normalize(false);
+            } else {
+                normalized = input.normalize();
+            }
+            if (this.operator === FilterCompoundOperator.AND) {
+                return renameObjectKeys(
+                    normalized,
+                    (key) => `0${key}`,
+                );
             }
 
-            return {} as Record<string, any>;
+            return renameObjectKeys(
+                normalized,
+                (key) => `${index}${key}`,
+            );
         }
+
+        return input;
+    }
+
+    normalize(isRoot: boolean = true) : Record<string, any> {
+        const input = this.flattenConditions(this.value);
 
         const output : Record<string, any> = {};
 
-        let prefix: string | undefined;
-        const input = this.flattenConditions(this.value);
         for (let i = 0; i < input.length; i++) {
-            const child = input[i];
+            extendObject(
+                output,
+                this.normalizeChild(input[i], i),
+            );
+        }
 
-            if (this.operator === FilterCompoundOperator.OR) {
-                prefix = `${i}`;
-            }
+        if (isRoot) {
+            return renameObjectKeys(
+                output,
+                (key) => {
+                    const match = key.match(/^(\d+)(.*)/);
+                    if (match) {
+                        if (this.operator === FilterCompoundOperator.AND) {
+                            match[1] = match[1].substring(1);
+                            if (!match[1]) {
+                                return match[2];
+                            }
+                        }
+                        return `${match[1]}:${match[2]}`;
+                    }
 
-            if (
-                child instanceof FiltersConditionBuilder ||
-                child instanceof FiltersCompoundConditionBuilder
-            ) {
-                extendObject(output, child.normalize(), prefix);
-            }
+                    return key;
+                },
+            );
         }
 
         return output;
