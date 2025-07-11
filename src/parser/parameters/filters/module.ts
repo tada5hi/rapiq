@@ -298,40 +298,44 @@ Condition
         breadthFirstSearchReverse(graph, (node) => {
             const levelItems = stack.get(node.level) || {};
             const levelKey = node.id || '';
+            if (!levelItems[levelKey]) {
+                levelItems[levelKey] = [];
+            }
 
             if (node.data) {
-                levelItems[levelKey] = [
+                levelItems[levelKey].push(
                     optimizedCompoundCondition(
                         FilterCompoundOperator.AND,
                         node.data,
                     ),
-                ];
-            } else {
-                // 1. get all children from child level (node.level + 1)
-                const children = stack.get(node.level + 1);
-                if (!children) {
-                    return;
-                }
+                );
+            }
 
+            // 1. get all children from child level (node.level + 1)
+            const children = stack.get(node.level + 1);
+            if (children) {
                 // 2. children to conditions
                 const conditions: Condition[] = [];
                 const childrenKeys = Object.keys(children);
                 for (let i = 0; i < childrenKeys.length; i++) {
-                    conditions.push(optimizedCompoundCondition(
-                        FilterCompoundOperator.AND,
-                        children[childrenKeys[i]],
+                    if (
+                        children[childrenKeys[i]] &&
+                        children[childrenKeys[i]].length > 0
+                    ) {
+                        conditions.push(optimizedCompoundCondition(
+                            FilterCompoundOperator.AND,
+                            children[childrenKeys[i]],
+                        ));
+                    }
+                }
+
+                if (conditions.length > 0) {
+                    // 3. set for current level + current id
+                    levelItems[levelKey].push(optimizedCompoundCondition(
+                        FilterCompoundOperator.OR,
+                        conditions,
                     ));
                 }
-
-                // 3. set for current level + current id
-                if (!levelItems[levelKey]) {
-                    levelItems[levelKey] = [];
-                }
-
-                levelItems[levelKey].push(optimizedCompoundCondition(
-                    FilterCompoundOperator.OR,
-                    conditions,
-                ));
             }
 
             stack.set(node.level, levelItems);
@@ -343,10 +347,12 @@ Condition
 
             const keys = Object.keys(out);
             for (let i = 0; i < keys.length; i++) {
-                conditions.push(optimizedCompoundCondition(
-                    FilterCompoundOperator.AND,
-                    out[keys[i]],
-                ));
+                if (out[keys[i]].length > 0) {
+                    conditions.push(optimizedCompoundCondition(
+                        FilterCompoundOperator.AND,
+                        out[keys[i]],
+                    ));
+                }
             }
 
             return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
