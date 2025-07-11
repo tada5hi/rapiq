@@ -7,11 +7,13 @@
 
 import { URLParameter } from '../../../../constants';
 import { FieldCondition, FieldsCondition } from '../../../../schema';
-import type { ObjectLiteral } from '../../../../types';
+import type {
+    NestedKeys, ObjectLiteral, TypeFromNestedKeyPath,
+} from '../../../../types';
 import { serializeAsURI, toFlatObject } from '../../../../utils';
 import type { FiltersBuildInput } from '../types';
 
-export class BuildFieldsCondition<
+export class FiltersConditionBuilder<
     T extends ObjectLiteral = ObjectLiteral,
 > extends FieldsCondition<T> {
     addRaw(input: FiltersBuildInput<T>) {
@@ -24,6 +26,21 @@ export class BuildFieldsCondition<
                 const field = new FieldCondition<T>('eq', keys[i], value as T[keyof T]);
                 this.value.push(field);
             }
+        }
+    }
+
+    set<K extends NestedKeys<T>>(key: K, value: TypeFromNestedKeyPath<T, K>) {
+        const valueNormalized = this.normalizeValue(value);
+        if (typeof value !== 'undefined') {
+            const field = new FieldCondition<T>('eq', key, valueNormalized as T[keyof T]);
+            this.value.push(field);
+        }
+    }
+
+    unset(key: NestedKeys<T>) {
+        const index = this.value.findIndex((item) => item.field === key);
+        if (index !== -1) {
+            this.value.splice(index, 1);
         }
     }
 

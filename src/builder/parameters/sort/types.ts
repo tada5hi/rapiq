@@ -7,23 +7,23 @@
 
 import type { SortDirection } from '../../../schema';
 import type {
-    Flatten, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
+    ArrayItem, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
 } from '../../../types';
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
 
 export type SortBuildInput<T extends Record<string, any>> =
     {
-        [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-            SortBuildInput<Flatten<T[K]>> :
+        [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
+            SortBuildInput<ArrayItem<T[K]>> :
         `${SortDirection}`
     }
     |
     [
         SortWithOperator<SimpleKeys<T>>[],
         {
-            [K in keyof T]?: Flatten<T[K]> extends OnlyObject<T[K]> ?
-                SortBuildInput<Flatten<T[K]>> :
+            [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
+                SortBuildInput<ArrayItem<T[K]>> :
             `${SortDirection}`
         },
     ]

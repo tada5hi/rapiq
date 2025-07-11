@@ -111,6 +111,17 @@ describe('builder/filters', () => {
             });
             expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
         });
+
+        it('should work with set & unset', () => {
+            const data = filters<Entity>();
+            data.set('name', 'admin');
+            data.set('id', 1);
+            data.unset('id');
+
+            expect(data.normalize()).toEqual({
+                name: 'admin',
+            });
+        });
     });
 
     describe('grouped', () => {

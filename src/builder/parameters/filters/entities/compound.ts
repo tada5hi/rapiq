@@ -10,9 +10,9 @@ import {
     CompoundCondition, type Condition, FilterCompoundOperator,
 } from '../../../../schema';
 import { extendObject, serializeAsURI } from '../../../../utils';
-import { BuildFieldsCondition } from './fields';
+import { FiltersConditionBuilder } from './fields';
 
-export class BuildCompoundCondition<
+export class FiltersCompoundConditionBuilder<
     T extends Condition = Condition,
 > extends CompoundCondition<T> {
     normalize() : Record<string, any> {
@@ -20,8 +20,8 @@ export class BuildCompoundCondition<
             const [first] = this.value;
 
             if (
-                first instanceof BuildFieldsCondition ||
-                first instanceof BuildCompoundCondition
+                first instanceof FiltersConditionBuilder ||
+                first instanceof FiltersCompoundConditionBuilder
             ) {
                 return first.normalize();
             }
@@ -41,8 +41,8 @@ export class BuildCompoundCondition<
             }
 
             if (
-                child instanceof BuildFieldsCondition ||
-                child instanceof BuildCompoundCondition
+                child instanceof FiltersConditionBuilder ||
+                child instanceof FiltersCompoundConditionBuilder
             ) {
                 extendObject(output, child.normalize(), prefix);
             }
