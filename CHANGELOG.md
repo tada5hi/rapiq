@@ -39,6 +39,26 @@
 
 * allow throwing error on invalid parsing input ([#312](https://github.com/Tada5hi/rapiq/issues/312)) ([3afd7f2](https://github.com/Tada5hi/rapiq/commit/3afd7f218402738a57f8b2c0bf241b2399024164))
 
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/v1.0.0...v2.0.0) (2025-07-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* public api changed
+
+### Features
+
+* cleanup schema options ([#606](https://github.com/tada5hi/rapiq/issues/606)) ([2ae05f7](https://github.com/tada5hi/rapiq/commit/2ae05f785044fef8e864cc4beccbc73c8848bd06))
+* flatten parse output ([#605](https://github.com/tada5hi/rapiq/issues/605)) ([1581074](https://github.com/tada5hi/rapiq/commit/1581074f5f2e0ad081453deeb5ec832d2b3c4a4f))
+* schema & schema registry component ([#598](https://github.com/tada5hi/rapiq/issues/598)) ([a68cd22](https://github.com/tada5hi/rapiq/commit/a68cd2230ff436beb4ffe4e36432b2e76cff823a))
+* schema resolving ([#603](https://github.com/tada5hi/rapiq/issues/603)) ([cc75738](https://github.com/tada5hi/rapiq/commit/cc7573868f20a01261922aa3534bf4872d112ff8))
+* support nested filters (or, and) ([#600](https://github.com/tada5hi/rapiq/issues/600)) ([20b9e75](https://github.com/tada5hi/rapiq/commit/20b9e755fcb2b4d353d38ae90bba67c3e0a0882a))
+
+
+### Bug Fixes
+
+* build and parse filter(s) ([#608](https://github.com/tada5hi/rapiq/issues/608)) ([745ab21](https://github.com/tada5hi/rapiq/commit/745ab213fb8fe9fddeb4d3edf088823348710907))
+
 ## [0.8.1](https://github.com/Tada5hi/rapiq/compare/v0.8.0...v0.8.1) (2023-05-29)
 
 
