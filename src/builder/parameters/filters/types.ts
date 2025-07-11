@@ -6,7 +6,7 @@
  */
 
 import type {
-    Flatten, NestedKeys, OnlyScalar, TypeFromNestedKeyPath,
+    ArrayItem, IsArray, IsScalar, NestedKeys, TypeFromNestedKeyPath,
 } from '../../../types';
 
 export type FilterValuePrimitive = boolean | number | string | null | undefined;
@@ -21,18 +21,27 @@ export type FilterValue<V> = V extends Array<infer Item> ?
     FilterValueWithOperator<Item> | Array<FilterValueWithOperator<Item>> :
     FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>;
 
-export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
-    FilterValue<T> :
-    T extends Date ?
-        FilterValue<string | number> :
-        never;
+export type FiltersBuildInputValue<T> =
+    T extends IsArray<T> ?
+        FiltersBuildInputValue<ArrayItem<T>> :
+        T extends IsScalar<T> ?
+            FilterValue<T> :
+            T extends Date ?
+                FilterValue<string | number> :
+                never;
 
-type FilterBuildInputSubLevel<T> = T extends Record<PropertyKey, any> ?
-    FiltersBuildInput<T> :
-    FiltersBuildInputValue<T>;
+type FiltersBuildInputSubLevel<
+    T,
+> = T extends IsArray<T> ?
+    FiltersBuildInputSubLevel<ArrayItem<T>> :
+    T extends Record<PropertyKey, any> ?
+        FiltersBuildInput<T> :
+        FiltersBuildInputValue<T>;
 
-export type FiltersBuildInput<T extends Record<PropertyKey, any>> = {
-    [K in keyof T]?: FilterBuildInputSubLevel<Flatten<T[K]>>
+export type FiltersBuildInput<
+    T extends Record<PropertyKey, any>,
+> = {
+    [K in keyof T]?: FiltersBuildInputSubLevel<T[K]>
 } & {
     [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
 };

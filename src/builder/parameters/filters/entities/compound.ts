@@ -9,19 +9,19 @@ import { URLParameter } from '../../../../constants';
 import {
     CompoundCondition, type Condition, FilterCompoundOperator,
 } from '../../../../schema';
+import { FiltersConditionBuilder } from './fields';
 import { extendObject, renameObjectKeys, serializeAsURI } from '../../../../utils';
-import { BuildFieldsCondition } from './fields';
 
-export class BuildCompoundCondition<
+export class FiltersCompoundConditionBuilder<
     T extends Condition = Condition,
 > extends CompoundCondition<T> {
     protected normalizeChild<T extends Condition>(input: T, index: number) {
         if (
-            input instanceof BuildFieldsCondition ||
-            input instanceof BuildCompoundCondition
+            input instanceof FiltersConditionBuilder ||
+            input instanceof FiltersCompoundConditionBuilder
         ) {
             let normalized : Record<string, any>;
-            if (input instanceof BuildCompoundCondition) {
+            if (input instanceof FiltersCompoundConditionBuilder) {
                 normalized = input.normalize(false);
             } else {
                 normalized = input.normalize();
@@ -66,7 +66,6 @@ export class BuildCompoundCondition<
                                 return match[2];
                             }
                         }
-
                         return `${match[1]}:${match[2]}`;
                     }
 

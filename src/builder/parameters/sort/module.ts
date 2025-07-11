@@ -7,7 +7,7 @@
 
 import { URLParameter } from '../../../constants';
 import { SortDirection } from '../../../schema';
-import type { ObjectLiteral } from '../../../types';
+import type { NestedKeys, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     extendObject, isObject, serializeAsURI, toFlatObject,
 } from '../../../utils';
@@ -17,22 +17,35 @@ import type { SortBuildInput } from './types';
 export class SortBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > extends BaseBuilder<SortBuildInput<RECORD>> {
-    protected items : Record<string, SortDirection>;
+    public readonly value : Record<string, `${SortDirection}`>;
 
     constructor() {
         super();
 
-        this.items = {};
+        this.value = {};
     }
 
-    add(input: SortBuildInput<RECORD>) {
+    add(input: SortBuilder<RECORD> | SortBuildInput<RECORD>) {
+        if (input instanceof SortBuilder) {
+            this.add(input.value as SortBuildInput<RECORD>);
+            return;
+        }
+
         const transformed = this.transformInput(input);
 
         const record = toFlatObject(transformed);
         const keys = Object.keys(record);
         for (let i = 0; i < keys.length; i++) {
-            this.items[keys[i]] = record[keys[i]];
+            this.value[keys[i]] = record[keys[i]];
         }
+    }
+
+    set(key: SimpleKeys<RECORD> | NestedKeys<RECORD>, value: `${SortDirection}`) {
+        this.value[key] = value;
+    }
+
+    unset(key: SimpleKeys<RECORD>) {
+        delete this.value[key];
     }
 
     protected transformInput(input: unknown) : Record<string, unknown> {
@@ -80,7 +93,7 @@ export class SortBuilder<
     }
 
     serialize() {
-        const keys = Object.keys(this.items);
+        const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;
         }
@@ -88,7 +101,7 @@ export class SortBuilder<
         const parts : string[] = [];
 
         for (let i = 0; i < keys.length; i++) {
-            parts.push((this.items[keys[i]] === SortDirection.DESC ? '-' : '') + keys[i]);
+            parts.push((this.value[keys[i]] === SortDirection.DESC ? '-' : '') + keys[i]);
         }
 
         return serializeAsURI(parts, { prefixParts: [URLParameter.SORT] });

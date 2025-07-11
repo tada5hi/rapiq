@@ -29,20 +29,20 @@ export class Builder<
 
     protected pagination: PaginationBuilder;
 
-    protected relations: RelationsBuilder;
+    protected relations: RelationsBuilder<T>;
 
-    protected sort: SortBuilder;
+    protected sort: SortBuilder<T>;
 
     // --------------------------------------------------
 
     constructor() {
         super();
 
-        this.fields = new FieldsBuilder();
-        this.filters = new FiltersBuilder();
+        this.fields = new FieldsBuilder<T>();
+        this.filters = new FiltersBuilder<T>();
         this.pagination = new PaginationBuilder();
-        this.relations = new RelationsBuilder();
-        this.sort = new SortBuilder();
+        this.relations = new RelationsBuilder<T>();
+        this.sort = new SortBuilder<T>();
     }
 
     // --------------------------------------------------

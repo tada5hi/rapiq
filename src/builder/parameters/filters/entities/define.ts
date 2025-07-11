@@ -11,15 +11,15 @@ import {
 } from '../../../../schema';
 import type { ObjectLiteral } from '../../../../types';
 import type { FiltersBuildInput } from '../types';
-import { BuildCompoundCondition } from './compound';
-import { BuildFieldsCondition } from './fields';
+import { FiltersCompoundConditionBuilder } from './compound';
+import { FiltersConditionBuilder } from './fields';
 
 export function filters<
     T extends ObjectLiteral = ObjectLiteral,
 >(
-    input: FiltersBuildInput<T> | FieldCondition<T>[],
-) : BuildFieldsCondition<T> {
-    const clazz = new BuildFieldsCondition<T>();
+    input: FiltersBuildInput<T> | FieldCondition<T>[] = [],
+) : FiltersConditionBuilder<T> {
+    const clazz = new FiltersConditionBuilder<T>();
     if (Array.isArray(input)) {
         clazz.addMany(input);
     } else {
@@ -31,18 +31,18 @@ export function filters<
 
 export function and<
     T extends Condition = Condition,
->(items: T[]) : BuildCompoundCondition<T> {
+>(items: T[]) : FiltersCompoundConditionBuilder<T> {
     return defineCompoundCondition(FilterCompoundOperator.AND, items);
 }
 
 export function or<
  T extends Condition = Condition,
->(items: T[]) : BuildCompoundCondition<T> {
+>(items: T[]) : FiltersCompoundConditionBuilder<T> {
     return defineCompoundCondition(FilterCompoundOperator.OR, items);
 }
 
 export function defineCompoundCondition<
     T extends Condition = Condition,
->(operator: `${FilterCompoundOperator}`, items: T[]) : BuildCompoundCondition<T> {
-    return new BuildCompoundCondition<T>(operator, items);
+>(operator: `${FilterCompoundOperator}`, items: T[]) : FiltersCompoundConditionBuilder<T> {
+    return new FiltersCompoundConditionBuilder<T>(operator, items);
 }
