@@ -20,8 +20,8 @@ describe('src/builder/relations', () => {
 
     it('should drop element', () => {
         const data = relations<Entity>();
-        data.add('child');
-        data.add('child.child');
+        data.addRaw('child');
+        data.addRaw('child.child');
         data.drop('child');
 
         expect(data.value).toEqual(['child.child']);

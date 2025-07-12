@@ -11,12 +11,20 @@ import type {
     NestedKeys, ObjectLiteral, TypeFromNestedKeyPath,
 } from '../../../../types';
 import { serializeAsURI, toFlatObject } from '../../../../utils';
+import type { IBuilder } from '../../../base';
 import type { FiltersBuildInput } from '../types';
 
 export class FiltersConditionBuilder<
     T extends ObjectLiteral = ObjectLiteral,
-> extends FieldsCondition<T> {
-    addRaw(input: FiltersBuildInput<T>) {
+> extends FieldsCondition<T> implements IBuilder<
+FiltersBuildInput<T> | FiltersConditionBuilder<T>
+> {
+    addRaw(input: FiltersBuildInput<T> | FiltersConditionBuilder<T>) {
+        if (input instanceof FiltersConditionBuilder) {
+            this.value.push(...input.value);
+            return;
+        }
+
         const object = toFlatObject(input);
         const keys = Object.keys(object);
 

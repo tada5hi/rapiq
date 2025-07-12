@@ -7,19 +7,17 @@
 
 import { URLParameter } from '../../../constants';
 import { hasOwnProperty, serializeAsURI } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import type { IBuilder } from '../../base';
 import type { PaginationBuildInput } from './types';
 
-export class PaginationBuilder extends BaseBuilder<PaginationBuildInput> {
+export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
     public readonly value : PaginationBuildInput;
 
     constructor() {
-        super();
-
         this.value = {};
     }
 
-    add(input: PaginationBuildInput | PaginationBuilder) {
+    addRaw(input: PaginationBuildInput | PaginationBuilder) {
         if (input instanceof PaginationBuilder) {
             if (hasOwnProperty(input.value, 'offset')) {
                 this.setOffset(input.value.offset);

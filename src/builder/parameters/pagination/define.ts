@@ -14,7 +14,7 @@ export function pagination(
     const clazz = new PaginationBuilder();
 
     if (input) {
-        clazz.add(input);
+        clazz.addRaw(input);
     }
 
     return clazz;

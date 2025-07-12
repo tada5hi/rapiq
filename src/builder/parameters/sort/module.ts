@@ -11,23 +11,21 @@ import type { NestedKeys, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     extendObject, isObject, serializeAsURI, toFlatObject,
 } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import type { IBuilder } from '../../base';
 import type { SortBuildInput } from './types';
 
 export class SortBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<SortBuildInput<RECORD>> {
+> implements IBuilder<SortBuildInput<RECORD>> {
     public readonly value : Record<string, `${SortDirection}`>;
 
     constructor() {
-        super();
-
         this.value = {};
     }
 
-    add(input: SortBuilder<RECORD> | SortBuildInput<RECORD>) {
+    addRaw(input: SortBuilder<RECORD> | SortBuildInput<RECORD>) {
         if (input instanceof SortBuilder) {
-            this.add(input.value as SortBuildInput<RECORD>);
+            this.addRaw(input.value as SortBuildInput<RECORD>);
             return;
         }
 

@@ -5,27 +5,37 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { FilterCompoundOperator } from '../schema';
 import type {
-    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
+    FieldsBuildInput,
+    FiltersBuildInput,
+    PaginationBuildInput,
+    RelationsBuildInput,
+    SortBuildInput,
 } from './parameters';
-import { BaseBuilder } from './base';
 import {
     FieldsBuilder,
-    FiltersBuilder,
+    FiltersCompoundConditionBuilder,
+    FiltersConditionBuilder,
     PaginationBuilder,
     RelationsBuilder,
     SortBuilder,
 } from './parameters';
+import type { IBuilder } from './base';
 import type { BuildInput } from './types';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 
+type FilterCondition<
+    T extends ObjectLiteral,
+> = FiltersConditionBuilder<T> | FiltersCompoundConditionBuilder<FilterCondition<T>>;
+
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<BuildInput<T>> {
+> implements IBuilder<BuildInput<T>> {
     protected fields : FieldsBuilder<T>;
 
-    protected filters : FiltersBuilder<T>;
+    protected filters : FiltersCompoundConditionBuilder<FilterCondition<T>>;
 
     protected pagination: PaginationBuilder;
 
@@ -36,10 +46,8 @@ export class Builder<
     // --------------------------------------------------
 
     constructor() {
-        super();
-
         this.fields = new FieldsBuilder<T>();
-        this.filters = new FiltersBuilder<T>();
+        this.filters = new FiltersCompoundConditionBuilder<FilterCondition<T>>(FilterCompoundOperator.OR, []);
         this.pagination = new PaginationBuilder();
         this.relations = new RelationsBuilder<T>();
         this.sort = new SortBuilder<T>();
@@ -47,7 +55,7 @@ export class Builder<
 
     // --------------------------------------------------
 
-    add(input: BuildInput<T>) {
+    addRaw(input: BuildInput<T>) {
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
             this.addFields(input[Parameter.FIELDS]);
         }
@@ -85,28 +93,41 @@ export class Builder<
     }
 
     addFields(data: FieldsBuildInput<T>) {
-        this.fields.add(data);
+        this.fields.addRaw(data);
     }
 
-    addFilters(data: FiltersBuildInput<T>) {
-        this.filters.add(data);
+    addFilters(
+        data: FiltersBuildInput<T> | FilterCondition<T>,
+    ) {
+        if (
+            data instanceof FiltersCompoundConditionBuilder ||
+            data instanceof FiltersConditionBuilder
+        ) {
+            this.filters.add(data as unknown as FilterCondition<T>);
+            return;
+        }
+
+        const condition = new FiltersConditionBuilder<T>();
+        condition.addRaw(data);
+
+        this.filters.add(condition);
     }
 
     addPagination(data: PaginationBuildInput) {
-        this.pagination.add(data);
+        this.pagination.addRaw(data);
     }
 
     addRelations(data: RelationsBuildInput<T>) {
-        this.relations.add(data);
+        this.relations.addRaw(data);
     }
 
     addSort(data: SortBuildInput<T>) {
-        this.sort.add(data);
+        this.sort.addRaw(data);
     }
 
     // --------------------------------------------------
 
-    override toString() {
+    toString() {
         return this.serialize();
     }
 

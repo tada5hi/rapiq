@@ -12,34 +12,32 @@ import {
     groupArrayByKeyPath, isObject,
     serializeAsURI, toKeyPathArray,
 } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import type { IBuilder } from '../../base';
 import type { FieldsBuildInput, FieldsBuildTupleInput } from './types';
 
 export class FieldsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>> {
+> implements IBuilder<FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>> {
     public readonly value: Record<string, string[]> = {};
 
     constructor() {
-        super();
-
         this.value = {};
     }
 
-    add(input: FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>) {
+    addRaw(input: FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>) {
         if (input instanceof FieldsBuilder) {
-            this.add(input.value as FieldsBuildInput<RECORD>);
+            this.addRaw(input.value as FieldsBuildInput<RECORD>);
 
             return;
         }
 
         if (typeof input === 'string') {
-            this.add([input]);
+            this.addRaw([input]);
             return;
         }
 
         if (this.isTupleInput(input)) {
-            this.add({
+            this.addRaw({
                 [DEFAULT_ID]: input[0],
                 ...input[1],
             });

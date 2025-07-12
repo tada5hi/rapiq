@@ -5,10 +5,10 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-export abstract class BaseBuilder<
+export interface IBuilder<
     INPUT = any,
 > {
-    abstract add(input: INPUT) : void;
+    addRaw(input: INPUT) : void;
 
-    abstract serialize() : string | undefined;
+    serialize() : string | undefined;
 }

@@ -6,15 +6,21 @@
  */
 
 import { URLParameter } from '../../../../constants';
+import type { Condition } from '../../../../schema';
 import {
-    CompoundCondition, type Condition, FilterCompoundOperator,
+    CompoundCondition, FilterCompoundOperator,
 } from '../../../../schema';
+import type { IBuilder } from '../../../base';
 import { FiltersConditionBuilder } from './fields';
 import { extendObject, renameObjectKeys, serializeAsURI } from '../../../../utils';
 
 export class FiltersCompoundConditionBuilder<
     T extends Condition = Condition,
-> extends CompoundCondition<T> {
+> extends CompoundCondition<T> implements IBuilder<T> {
+    addRaw(child: T) {
+        this.value.push(child);
+    }
+
     protected normalizeChild<T extends Condition>(input: T, index: number) {
         if (
             input instanceof FiltersConditionBuilder ||

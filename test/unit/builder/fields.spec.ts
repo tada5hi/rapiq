@@ -36,8 +36,8 @@ describe('src/builder/fields', () => {
 
     it('should build with multiple operations', () => {
         const data = fields<Entity>();
-        data.add('id');
-        data.add('child.age');
+        data.addRaw('id');
+        data.addRaw('child.age');
 
         expect(data.value).toEqual({
             [DEFAULT_ID]: ['id'],

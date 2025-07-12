@@ -15,7 +15,7 @@ export function relations<T extends ObjectLiteral>(
     const clazz = new RelationsBuilder<T>();
 
     if (input) {
-        clazz.add(input);
+        clazz.addRaw(input);
     }
 
     return clazz;

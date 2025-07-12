@@ -15,7 +15,7 @@ export function fields<T extends ObjectLiteral>(
     const clazz = new FieldsBuilder<T>();
 
     if (input) {
-        clazz.add(input);
+        clazz.addRaw(input);
     }
 
     return clazz;

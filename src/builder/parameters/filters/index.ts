@@ -7,5 +7,4 @@
 
 export * from './entities';
 export * from './error';
-export * from './module';
 export * from './types';

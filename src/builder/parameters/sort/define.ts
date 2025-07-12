@@ -15,7 +15,7 @@ export function sort<T extends ObjectLiteral>(
     const clazz = new SortBuilder<T>();
 
     if (input) {
-        clazz.add(input);
+        clazz.addRaw(input);
     }
 
     return clazz;

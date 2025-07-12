@@ -16,8 +16,8 @@ import type { Entity } from '../../data';
 function buildQuery<T extends ObjectLiteral = ObjectLiteral>(
     input: BuildInput<T> = {},
 ) : string {
-    const builder = new Builder();
-    builder.add(input);
+    const builder = new Builder<T>();
+    builder.addRaw(input);
 
     return builder.toString();
 }

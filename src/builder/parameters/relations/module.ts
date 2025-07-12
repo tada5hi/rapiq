@@ -8,23 +8,21 @@
 import { URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import { serializeAsURI, toKeyPathArray } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import type { IBuilder } from '../../base';
 import type { RelationsBuildInput } from './types';
 
 export class RelationsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<RelationsBuildInput<RECORD>> {
+> implements IBuilder<RelationsBuildInput<RECORD>> {
     public readonly value : string[];
 
     constructor() {
-        super();
-
         this.value = [];
     }
 
-    add(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
+    addRaw(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
         if (input instanceof RelationsBuilder) {
-            this.add(input.value as RelationsBuildInput<RECORD>);
+            this.addRaw(input.value as RelationsBuildInput<RECORD>);
             return;
         }
 
