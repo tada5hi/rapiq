@@ -31,8 +31,8 @@ export class CompoundCondition<
     }
 
     clear() {
-        for (let i = 0; i < this.value.length; i++) {
-            delete this.value[i];
+        for (let i = this.value.length - 1; i === 0; i--) {
+            this.value.splice(i, 1);
         }
     }
 

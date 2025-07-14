@@ -7,7 +7,8 @@
 
 import { URLParameter } from '../../../constants';
 import { hasOwnProperty, serializeAsURI } from '../../../utils';
-import type { IBuilder } from '../../base';
+
+import type { IBuilder } from '../../types';
 import type { PaginationBuildInput } from './types';
 
 export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
@@ -15,6 +16,13 @@ export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
 
     constructor() {
         this.value = {};
+    }
+
+    clear() {
+        const keys = Object.keys(this.value);
+        for (let i = 0; i < keys.length; i++) {
+            delete this.value[keys[i] as keyof PaginationBuildInput];
+        }
     }
 
     addRaw(input: PaginationBuildInput | PaginationBuilder) {

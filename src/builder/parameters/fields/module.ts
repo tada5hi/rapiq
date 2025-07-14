@@ -12,7 +12,8 @@ import {
     groupArrayByKeyPath, isObject,
     serializeAsURI, toKeyPathArray,
 } from '../../../utils';
-import type { IBuilder } from '../../base';
+
+import type { IBuilder } from '../../types';
 import type { FieldsBuildInput, FieldsBuildTupleInput } from './types';
 
 export class FieldsBuilder<
@@ -22,6 +23,13 @@ export class FieldsBuilder<
 
     constructor() {
         this.value = {};
+    }
+
+    clear() {
+        const keys = Object.keys(this.value);
+        for (let i = 0; i < keys.length; i++) {
+            delete this.value[keys[i]];
+        }
     }
 
     addRaw(input: FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>) {

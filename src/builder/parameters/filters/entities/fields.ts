@@ -11,7 +11,8 @@ import type {
     NestedKeys, ObjectLiteral, TypeFromNestedKeyPath,
 } from '../../../../types';
 import { serializeAsURI, toFlatObject } from '../../../../utils';
-import type { IBuilder } from '../../../base';
+
+import type { IBuilder } from '../../../types';
 import type { FiltersBuildInput } from '../types';
 
 export class FiltersConditionBuilder<

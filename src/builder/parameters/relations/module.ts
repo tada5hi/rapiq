@@ -8,7 +8,8 @@
 import { URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import { serializeAsURI, toKeyPathArray } from '../../../utils';
-import type { IBuilder } from '../../base';
+
+import type { IBuilder } from '../../types';
 import type { RelationsBuildInput } from './types';
 
 export class RelationsBuilder<
@@ -18,6 +19,12 @@ export class RelationsBuilder<
 
     constructor() {
         this.value = [];
+    }
+
+    clear() {
+        for (let i = this.value.length - 1; i === 0; i--) {
+            this.value.splice(i, 1);
+        }
     }
 
     addRaw(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {

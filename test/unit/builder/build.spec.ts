@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { BuildInput, ObjectLiteral } from '../../../src';
 import {
-    DEFAULT_ID, type ObjectLiteral, Parameter, SortDirection, URLParameter,
+    DEFAULT_ID, Parameter, SortDirection, URLParameter,
 } from '../../../src';
 import { Builder } from '../../../src/builder/module';
-import type { BuildInput } from '../../../src/builder/types';
 import { buildURLQueryString } from '../../../src/utils';
 import type { Entity } from '../../data';
 

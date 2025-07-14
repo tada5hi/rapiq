@@ -11,7 +11,8 @@ import type { NestedKeys, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     extendObject, isObject, serializeAsURI, toFlatObject,
 } from '../../../utils';
-import type { IBuilder } from '../../base';
+
+import type { IBuilder } from '../../types';
 import type { SortBuildInput } from './types';
 
 export class SortBuilder<
@@ -21,6 +22,13 @@ export class SortBuilder<
 
     constructor() {
         this.value = {};
+    }
+
+    clear() {
+        const keys = Object.keys(this.value);
+        for (let i = 0; i < keys.length; i++) {
+            delete this.value[keys[i]];
+        }
     }
 
     addRaw(input: SortBuilder<RECORD> | SortBuildInput<RECORD>) {

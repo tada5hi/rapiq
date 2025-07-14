@@ -10,7 +10,8 @@ import type { Condition } from '../../../../schema';
 import {
     CompoundCondition, FilterCompoundOperator,
 } from '../../../../schema';
-import type { IBuilder } from '../../../base';
+
+import type { IBuilder } from '../../../types';
 import { FiltersConditionBuilder } from './fields';
 import { extendObject, renameObjectKeys, serializeAsURI } from '../../../../utils';
 

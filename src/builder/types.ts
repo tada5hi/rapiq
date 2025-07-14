@@ -5,11 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type {
-    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
-} from './index';
 import type { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
+import type {
+    FieldsBuildInput,
+    FiltersBuildInput,
+    PaginationBuildInput,
+    RelationsBuildInput,
+    SortBuildInput,
+} from './index';
 
 type BuildParametersInput<
     T extends ObjectLiteral = ObjectLiteral,
@@ -35,3 +39,13 @@ export type BuildInput<
     T extends ObjectLiteral,
 > = BuildParametersInput<T> &
 BuildURLParametersInput<T>;
+
+export interface IBuilder<
+    INPUT = any,
+> {
+    addRaw(input: INPUT): void;
+
+    clear(): void;
+
+    serialize(): string | undefined;
+}

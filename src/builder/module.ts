@@ -21,21 +21,20 @@ import {
     RelationsBuilder,
     SortBuilder,
 } from './parameters';
-import type { IBuilder } from './base';
-import type { BuildInput } from './types';
+import type { BuildInput, IBuilder } from './types';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 
-type FilterCondition<
+type FiltersCondition<
     T extends ObjectLiteral,
-> = FiltersConditionBuilder<T> | FiltersCompoundConditionBuilder<FilterCondition<T>>;
+> = FiltersConditionBuilder<T> | FiltersCompoundConditionBuilder<FiltersCondition<T>>;
 
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
 > implements IBuilder<BuildInput<T>> {
     protected fields : FieldsBuilder<T>;
 
-    protected filters : FiltersCompoundConditionBuilder<FilterCondition<T>>;
+    protected filters : FiltersCompoundConditionBuilder<FiltersCondition<T>>;
 
     protected pagination: PaginationBuilder;
 
@@ -47,13 +46,21 @@ export class Builder<
 
     constructor() {
         this.fields = new FieldsBuilder<T>();
-        this.filters = new FiltersCompoundConditionBuilder<FilterCondition<T>>(FilterCompoundOperator.OR, []);
+        this.filters = new FiltersCompoundConditionBuilder<FiltersCondition<T>>(FilterCompoundOperator.OR, []);
         this.pagination = new PaginationBuilder();
         this.relations = new RelationsBuilder<T>();
         this.sort = new SortBuilder<T>();
     }
 
     // --------------------------------------------------
+
+    clear() {
+        return this.clearFields()
+            .clearFilters()
+            .clearPagination()
+            .clearRelations()
+            .clearSort();
+    }
 
     addRaw(input: BuildInput<T>) {
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
@@ -92,37 +99,156 @@ export class Builder<
         }
     }
 
+    // --------------------------------------------------------
+
+    clearFields() {
+        this.fields.clear();
+
+        return this;
+    }
+
     addFields(data: FieldsBuildInput<T>) {
         this.fields.addRaw(data);
+
+        return this;
+    }
+
+    withFields(data: FieldsBuildInput<T>) {
+        this.clearFields().addFields(data);
+
+        return this;
+    }
+
+    setFieldsBuilder(instance: FieldsBuilder<T>) {
+        this.fields = instance;
+
+        return this;
+    }
+
+    getFieldsBuilder(): FieldsBuilder<T> {
+        return this.fields;
+    }
+
+    // --------------------------------------------------------
+
+    clearFilters() {
+        this.filters.clear();
+        return this;
     }
 
     addFilters(
-        data: FiltersBuildInput<T> | FilterCondition<T>,
+        data: FiltersBuildInput<T> | FiltersCondition<T>,
     ) {
         if (
             data instanceof FiltersCompoundConditionBuilder ||
             data instanceof FiltersConditionBuilder
         ) {
-            this.filters.add(data as unknown as FilterCondition<T>);
-            return;
+            this.filters.add(data as unknown as FiltersCondition<T>);
+            return this;
         }
 
         const condition = new FiltersConditionBuilder<T>();
         condition.addRaw(data);
 
         this.filters.add(condition);
+
+        return this;
+    }
+
+    withFilters(
+        data: FiltersBuildInput<T> | FiltersCondition<T>,
+    ) {
+        this.clearFilters().addFilters(data);
+
+        return this;
+    }
+
+    setFiltersBuilder(instance: FiltersCompoundConditionBuilder<FiltersCondition<T>>) {
+        this.filters = instance;
+
+        return this;
+    }
+
+    getFiltersBuilder(): FiltersCompoundConditionBuilder<FiltersCondition<T>> {
+        return this.filters;
+    }
+
+    // --------------------------------------------------------
+
+    clearPagination() {
+        this.pagination.clear();
+        return this;
     }
 
     addPagination(data: PaginationBuildInput) {
         this.pagination.addRaw(data);
+
+        return this;
+    }
+
+    withPagination(data: PaginationBuildInput) {
+        this.clearPagination().addPagination(data);
+        return this;
+    }
+
+    setPaginationBuilder(data: PaginationBuilder) {
+        this.pagination = data;
+        return this;
+    }
+
+    getPaginationBuilder(): PaginationBuilder {
+        return this.pagination;
+    }
+
+    // --------------------------------------------------------
+
+    clearRelations() {
+        this.relations.clear();
+        return this;
     }
 
     addRelations(data: RelationsBuildInput<T>) {
         this.relations.addRaw(data);
+        return this;
+    }
+
+    withRelations(data: RelationsBuildInput<T>) {
+        this.clearRelations().addRelations(data);
+        return this;
+    }
+
+    setRelationsBuilder(instance: RelationsBuilder<T>) {
+        this.relations = instance;
+        return this;
+    }
+
+    getRelationsBuilder(): RelationsBuilder<T> {
+        return this.relations;
+    }
+
+    // --------------------------------------------------------
+
+    clearSort() {
+        this.sort.clear();
+        return this;
     }
 
     addSort(data: SortBuildInput<T>) {
         this.sort.addRaw(data);
+        return this;
+    }
+
+    withSort(data: SortBuildInput<T>) {
+        this.clearSort().addSort(data);
+    }
+
+    setSortBuilder(instance: SortBuilder<T>) {
+        this.sort = instance;
+        return this;
+    }
+
+    getSortBuilder(): SortBuilder<T> {
+        return this.sort;
     }
 
     // --------------------------------------------------
