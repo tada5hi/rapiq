@@ -6,13 +6,7 @@
  */
 
 import { FilterCompoundOperator } from '../schema';
-import type {
-    FieldsBuildInput,
-    FiltersBuildInput, FiltersCompoundConditionBuilderArg,
-    PaginationBuildInput,
-    RelationsBuildInput,
-    SortBuildInput,
-} from './parameters';
+import type { FiltersCompoundConditionBuilderArg } from './parameters';
 import {
     FieldsBuilder,
     FiltersCompoundConditionBuilder,
@@ -28,15 +22,15 @@ import type { ObjectLiteral } from '../types';
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
 > implements IBuilder<BuildInput<T>> {
-    protected fields : FieldsBuilder<T>;
+    public fields : FieldsBuilder<T>;
 
-    protected filters : FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>;
+    public filters : FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>;
 
-    protected pagination: PaginationBuilder;
+    public pagination: PaginationBuilder;
 
-    protected relations: RelationsBuilder<T>;
+    public relations: RelationsBuilder<T>;
 
-    protected sort: SortBuilder<T>;
+    public sort: SortBuilder<T>;
 
     // --------------------------------------------------
 
@@ -44,7 +38,10 @@ export class Builder<
         this.fields = new FieldsBuilder<T>();
         this.filters = new FiltersCompoundConditionBuilder<
         FiltersCompoundConditionBuilderArg<T>
-        >(FilterCompoundOperator.OR, []);
+        >(
+            FilterCompoundOperator.OR,
+            [],
+        );
         this.pagination = new PaginationBuilder();
         this.relations = new RelationsBuilder<T>();
         this.sort = new SortBuilder<T>();
@@ -53,200 +50,56 @@ export class Builder<
     // --------------------------------------------------
 
     clear() {
-        return this.clearFields()
-            .clearFilters()
-            .clearPagination()
-            .clearRelations()
-            .clearSort();
+        this.fields.clear();
+        this.filters.clear();
+        this.pagination.clear();
+        this.relations.clear();
+        this.sort.clear();
     }
 
     addRaw(input: BuildInput<T>) {
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
-            this.addFields(input[Parameter.FIELDS]);
+            this.fields.addRaw(input[Parameter.FIELDS]);
         }
         if (typeof input[URLParameter.FIELDS] !== 'undefined') {
-            this.addFields(input[URLParameter.FIELDS]);
+            this.fields.addRaw(input[URLParameter.FIELDS]);
         }
 
-        if (typeof input[Parameter.FILTERS] !== 'undefined') {
-            this.addFilters(input[Parameter.FILTERS]);
-        }
-        if (typeof input[URLParameter.FILTERS] !== 'undefined') {
-            this.addFilters(input[URLParameter.FILTERS]);
+        if (
+            typeof input[Parameter.FILTERS] !== 'undefined' ||
+            typeof input[URLParameter.FILTERS] !== 'undefined'
+        ) {
+            const condition = new FiltersConditionBuilder<T>();
+            if (typeof input[Parameter.FILTERS] !== 'undefined') {
+                condition.addRaw(input[Parameter.FILTERS]);
+            }
+            if (typeof input[URLParameter.FILTERS] !== 'undefined') {
+                condition.addRaw(input[URLParameter.FILTERS]);
+            }
+
+            this.filters.addRaw(condition);
         }
 
         if (typeof input[Parameter.PAGINATION] !== 'undefined') {
-            this.addPagination(input[Parameter.PAGINATION]);
+            this.pagination.addRaw(input[Parameter.PAGINATION]);
         }
         if (typeof input[URLParameter.PAGINATION] !== 'undefined') {
-            this.addPagination(input[URLParameter.PAGINATION]);
+            this.pagination.addRaw(input[URLParameter.PAGINATION]);
         }
 
         if (typeof input[Parameter.RELATIONS] !== 'undefined') {
-            this.addRelations(input[Parameter.RELATIONS]);
+            this.relations.addRaw(input[Parameter.RELATIONS]);
         }
         if (typeof input[URLParameter.RELATIONS] !== 'undefined') {
-            this.addRelations(input[URLParameter.RELATIONS]);
+            this.relations.addRaw(input[URLParameter.RELATIONS]);
         }
 
         if (typeof input[Parameter.SORT] !== 'undefined') {
-            this.addSort(input[Parameter.SORT]);
+            this.sort.addRaw(input[Parameter.SORT]);
         }
         if (typeof input[URLParameter.SORT] !== 'undefined') {
-            this.addSort(input[URLParameter.SORT]);
+            this.sort.addRaw(input[URLParameter.SORT]);
         }
-    }
-
-    // --------------------------------------------------------
-
-    clearFields() {
-        this.fields.clear();
-
-        return this;
-    }
-
-    addFields(data: FieldsBuildInput<T>) {
-        this.fields.addRaw(data);
-
-        return this;
-    }
-
-    withFields(data: FieldsBuildInput<T>) {
-        this.clearFields().addFields(data);
-
-        return this;
-    }
-
-    setFieldsBuilder(instance: FieldsBuilder<T>) {
-        this.fields = instance;
-
-        return this;
-    }
-
-    getFieldsBuilder(): FieldsBuilder<T> {
-        return this.fields;
-    }
-
-    // --------------------------------------------------------
-
-    clearFilters() {
-        this.filters.clear();
-        return this;
-    }
-
-    addFilters(
-        data: FiltersBuildInput<T> | FiltersCompoundConditionBuilderArg<T>,
-    ) {
-        if (
-            data instanceof FiltersCompoundConditionBuilder ||
-            data instanceof FiltersConditionBuilder
-        ) {
-            this.filters.add(data);
-            return this;
-        }
-
-        const condition = new FiltersConditionBuilder<T>();
-        condition.addRaw(data);
-
-        this.filters.add(condition);
-
-        return this;
-    }
-
-    withFilters(
-        data: FiltersBuildInput<T> | FiltersCompoundConditionBuilderArg<T>,
-    ) {
-        this.clearFilters().addFilters(data);
-
-        return this;
-    }
-
-    setFiltersBuilder(instance: FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>) {
-        this.filters = instance;
-
-        return this;
-    }
-
-    getFiltersBuilder(): FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>> {
-        return this.filters;
-    }
-
-    // --------------------------------------------------------
-
-    clearPagination() {
-        this.pagination.clear();
-        return this;
-    }
-
-    addPagination(data: PaginationBuildInput) {
-        this.pagination.addRaw(data);
-
-        return this;
-    }
-
-    withPagination(data: PaginationBuildInput) {
-        this.clearPagination().addPagination(data);
-        return this;
-    }
-
-    setPaginationBuilder(data: PaginationBuilder) {
-        this.pagination = data;
-        return this;
-    }
-
-    getPaginationBuilder(): PaginationBuilder {
-        return this.pagination;
-    }
-
-    // --------------------------------------------------------
-
-    clearRelations() {
-        this.relations.clear();
-        return this;
-    }
-
-    addRelations(data: RelationsBuildInput<T>) {
-        this.relations.addRaw(data);
-        return this;
-    }
-
-    withRelations(data: RelationsBuildInput<T>) {
-        this.clearRelations().addRelations(data);
-        return this;
-    }
-
-    setRelationsBuilder(instance: RelationsBuilder<T>) {
-        this.relations = instance;
-        return this;
-    }
-
-    getRelationsBuilder(): RelationsBuilder<T> {
-        return this.relations;
-    }
-
-    // --------------------------------------------------------
-
-    clearSort() {
-        this.sort.clear();
-        return this;
-    }
-
-    addSort(data: SortBuildInput<T>) {
-        this.sort.addRaw(data);
-        return this;
-    }
-
-    withSort(data: SortBuildInput<T>) {
-        this.clearSort().addSort(data);
-    }
-
-    setSortBuilder(instance: SortBuilder<T>) {
-        this.sort = instance;
-        return this;
-    }
-
-    getSortBuilder(): SortBuilder<T> {
-        return this.sort;
     }
 
     // --------------------------------------------------
