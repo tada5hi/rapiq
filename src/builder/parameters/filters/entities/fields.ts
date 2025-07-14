@@ -13,7 +13,7 @@ import type {
 import { serializeAsURI, toFlatObject } from '../../../../utils';
 
 import type { IBuilder } from '../../../types';
-import type { FiltersBuildInput } from '../types';
+import type { FiltersBuildInput, FiltersBuildInputValue } from '../types';
 
 export class FiltersConditionBuilder<
     T extends ObjectLiteral = ObjectLiteral,
@@ -25,18 +25,22 @@ FiltersBuildInput<T>
         const keys = Object.keys(object);
 
         for (let i = 0; i < keys.length; i++) {
-            const value = this.normalizeValue(object[keys[i]]);
-            if (typeof value !== 'undefined') {
-                const field = new FieldCondition<T>('eq', keys[i], value as T[keyof T]);
-                this.value.push(field);
-            }
+            this.set(
+                keys[i] as NestedKeys<T>,
+                object[keys[i]] as T[keyof T],
+            );
         }
     }
 
-    set<K extends NestedKeys<T>>(key: K, value: TypeFromNestedKeyPath<T, K>) {
+    set<K extends NestedKeys<T>>(key: K, value: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>) {
         const valueNormalized = this.normalizeValue(value);
-        if (typeof value !== 'undefined') {
-            const field = new FieldCondition<T>('eq', key, valueNormalized as T[keyof T]);
+        if (typeof valueNormalized !== 'undefined') {
+            const field = new FieldCondition<T>(
+                'eq',
+                key,
+                valueNormalized as T[keyof T],
+            );
+
             this.value.push(field);
         }
     }
@@ -59,8 +63,7 @@ FiltersBuildInput<T>
     }
 
     build() : string | undefined {
-        const keys = Object.keys(this.value);
-        if (keys.length === 0) {
+        if (this.value.length === 0) {
             return undefined;
         }
 

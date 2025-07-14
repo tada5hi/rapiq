@@ -28,9 +28,12 @@ export type FilterValue<V> = V extends Array<infer Item> ?
     FilterValueWithOperator<Item> | Array<FilterValueWithOperator<Item>> :
     FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>;
 
-export type FiltersBuildInputValue<T> =
+export type FiltersBuildInputValue<
+    T,
+    INDEX extends number = 4,
+> = [INDEX] extends [0] ? never :
     T extends IsArray<T> ?
-        FiltersBuildInputValue<ArrayItem<T>> :
+        FiltersBuildInputValue<T[number], PrevIndex[INDEX]> :
         T extends IsScalar<T> ?
             FilterValue<T> :
             T extends Date ?

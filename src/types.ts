@@ -62,12 +62,15 @@ export type NestedResourceKeys<T, Depth extends number = 4> =
 export type TypeFromNestedKeyPath<
     T,
     Path extends string,
-> = T extends ObjectLiteral ? {
-    [K in Path]: K extends keyof T
-        ? ArrayItem<T[K]>
-        : K extends `${infer P}.${infer S}`
-            ? ArrayItem<T[P]> extends Record<string, any>
-                ? TypeFromNestedKeyPath<ArrayItem<T[P]>, S>
-                : never
-            : never;
-}[Path] : never;
+    Depth extends number = 4,
+> = T extends ObjectLiteral ?
+    [Depth] extends [0] ? never :
+        {
+            [K in Path]: K extends keyof T
+                ? ArrayItem<T[K]>
+                : K extends `${infer P}.${infer S}`
+                    ? ArrayItem<T[P]> extends Record<string, any>
+                        ? TypeFromNestedKeyPath<ArrayItem<T[P]>, S>
+                        : never
+                    : never;
+        }[Path] : never;
