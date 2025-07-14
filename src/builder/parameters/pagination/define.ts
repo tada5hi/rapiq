@@ -9,7 +9,7 @@ import { PaginationBuilder } from './module';
 import type { PaginationBuildInput } from './types';
 
 export function pagination(
-    input?: PaginationBuildInput | PaginationBuilder,
+    input?: PaginationBuildInput,
 ) : PaginationBuilder {
     const clazz = new PaginationBuilder();
 

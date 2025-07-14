@@ -252,18 +252,18 @@ export class Builder<
     // --------------------------------------------------
 
     toString() {
-        return this.serialize();
+        return this.build();
     }
 
     // --------------------------------------------------
 
-    serialize() {
+    build() {
         const output = [
-            this.fields.serialize(),
-            this.filters.serialize(),
-            this.pagination.serialize(),
-            this.relations.serialize(),
-            this.sort.serialize(),
+            this.fields.build(),
+            this.filters.build(),
+            this.pagination.build(),
+            this.relations.build(),
+            this.sort.build(),
         ]
             .filter(Boolean)
             .join('&');

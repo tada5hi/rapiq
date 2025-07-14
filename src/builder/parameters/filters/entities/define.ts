@@ -21,7 +21,7 @@ export function filters<
 ) : FiltersConditionBuilder<T> {
     const clazz = new FiltersConditionBuilder<T>();
     if (Array.isArray(input)) {
-        clazz.addMany(input);
+        clazz.add(input);
     } else {
         clazz.addRaw(input);
     }

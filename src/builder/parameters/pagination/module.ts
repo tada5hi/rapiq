@@ -25,19 +25,7 @@ export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
         }
     }
 
-    addRaw(input: PaginationBuildInput | PaginationBuilder) {
-        if (input instanceof PaginationBuilder) {
-            if (hasOwnProperty(input.value, 'offset')) {
-                this.setOffset(input.value.offset);
-            }
-
-            if (hasOwnProperty(input.value, 'limit')) {
-                this.setLimit(input.value.limit);
-            }
-
-            return;
-        }
-
+    addRaw(input: PaginationBuildInput) {
         if (hasOwnProperty(input, 'offset')) {
             this.setOffset(input.offset);
         }
@@ -55,12 +43,11 @@ export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
         this.value.offset = input;
     }
 
-    serialize() {
+    build() {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;
         }
-
         return serializeAsURI(this.value, { prefixParts: [URLParameter.PAGINATION] });
     }
 }

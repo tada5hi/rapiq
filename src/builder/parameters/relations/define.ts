@@ -10,7 +10,7 @@ import { RelationsBuilder } from './module';
 import type { RelationsBuildInput } from './types';
 
 export function relations<T extends ObjectLiteral>(
-    input?: RelationsBuildInput<T> | RelationsBuilder<T>,
+    input?: RelationsBuildInput<T>,
 ) : RelationsBuilder<T> {
     const clazz = new RelationsBuilder<T>();
 

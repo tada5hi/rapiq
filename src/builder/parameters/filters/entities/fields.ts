@@ -18,14 +18,9 @@ import type { FiltersBuildInput } from '../types';
 export class FiltersConditionBuilder<
     T extends ObjectLiteral = ObjectLiteral,
 > extends FieldsCondition<T> implements IBuilder<
-FiltersBuildInput<T> | FiltersConditionBuilder<T>
+FiltersBuildInput<T>
 > {
-    addRaw(input: FiltersBuildInput<T> | FiltersConditionBuilder<T>) {
-        if (input instanceof FiltersConditionBuilder) {
-            this.value.push(...input.value);
-            return;
-        }
-
+    addRaw(input: FiltersBuildInput<T>) {
         const object = toFlatObject(input);
         const keys = Object.keys(object);
 
@@ -53,7 +48,7 @@ FiltersBuildInput<T> | FiltersConditionBuilder<T>
         }
     }
 
-    normalize() {
+    normalize() : Record<string, any> {
         const output = {} as T;
 
         for (let i = 0; i < this.value.length; i++) {
@@ -63,13 +58,14 @@ FiltersBuildInput<T> | FiltersConditionBuilder<T>
         return output;
     }
 
-    serialize() {
+    build() : string | undefined {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;
         }
 
-        return serializeAsURI(this.normalize(), { prefixParts: [URLParameter.FILTERS] });
+        const normalized = this.normalize();
+        return serializeAsURI(normalized, { prefixParts: [URLParameter.FILTERS] });
     }
 
     protected normalizeValue(input: unknown) : string | undefined {

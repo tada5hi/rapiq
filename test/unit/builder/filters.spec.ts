@@ -17,21 +17,21 @@ describe('builder/filters', () => {
             const record = filters<Entity>({
                 id: 1,
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: 1 } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: 1 } }));
         });
 
         it('should build filter with null value input', () => {
             const record = filters<Entity>({
                 id: null,
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: null } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: null } }));
         });
 
         it('should build filter with undefined value input', () => {
             const record = filters<Entity>({
                 id: undefined,
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: null } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: null } }));
         });
 
         it('should build filter with nested input', () => {
@@ -40,7 +40,7 @@ describe('builder/filters', () => {
                     id: 1,
                 },
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { 'child.id': 1 } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { 'child.id': 1 } }));
 
             record = filters<Entity>({
                 'child.id': 1,
@@ -48,7 +48,7 @@ describe('builder/filters', () => {
                     'child.id': 'abc',
                 },
             });
-            expect(record.serialize()).toEqual(serializeAsURI({
+            expect(record.build()).toEqual(serializeAsURI({
                 [URLParameter.FILTERS]: {
                     'child.id': 1,
                     'child.child.id': 'abc',
@@ -60,56 +60,56 @@ describe('builder/filters', () => {
                     id: 1,
                 },
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { 'siblings.id': 1 } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { 'siblings.id': 1 } }));
         });
 
         it('should filter with value operator', () => {
             let record = filters<Entity>({
                 id: '!1',
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!1' } }));
 
             record = filters<Entity>({
                 id: '~1',
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '~1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '~1' } }));
 
             // with lessThan
             record = filters<Entity>({
                 id: '<1',
 
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '<1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '<1' } }));
 
             // with lessThanEqual
             record = filters<Entity>({
                 id: '<=1',
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '<=1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '<=1' } }));
 
             // with moreThan
             record = filters<Entity>({
                 id: '>1',
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '>1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '>1' } }));
 
             // with moreThanEqual
             record = filters<Entity>({
                 id: '>=1',
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '>=1' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '>=1' } }));
 
             // with negation & in operator
             record = filters<Entity>({
                 id: [null, 1, 2, 3],
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: 'null,1,2,3' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: 'null,1,2,3' } }));
 
             // with negation & like operator
             record = filters<Entity>({
                 id: ['!~1', 2, 3],
             });
-            expect(record.serialize()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
+            expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
         });
 
         it('should work with set & unset', () => {

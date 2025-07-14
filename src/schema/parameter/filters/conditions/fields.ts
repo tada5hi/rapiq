@@ -16,12 +16,13 @@ export class FieldsCondition<
         super('', items);
     }
 
-    addMany(child: FieldCondition<unknown, NestedKeys<T>>[]) {
-        this.value.push(...child);
-    }
+    add(child: FieldCondition<unknown, NestedKeys<T>> | FieldCondition<unknown, NestedKeys<T>>[]) {
+        if (!Array.isArray(child)) {
+            this.value.push(child);
+            return;
+        }
 
-    add(child: FieldCondition<unknown, NestedKeys<T>>) {
-        this.value.push(child);
+        this.value.push(...child);
     }
 
     clear() {

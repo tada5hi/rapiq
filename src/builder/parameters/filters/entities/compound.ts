@@ -84,7 +84,13 @@ export class FiltersCompoundConditionBuilder<
         return output;
     }
 
-    serialize() : string | undefined {
-        return serializeAsURI(this.normalize(), { prefixParts: [URLParameter.FILTERS] });
+    build() : string | undefined {
+        const output = this.normalize();
+        const keys = Object.keys(output);
+        if (keys.length === 0) {
+            return undefined;
+        }
+
+        return serializeAsURI(output, { prefixParts: [URLParameter.FILTERS] });
     }
 }

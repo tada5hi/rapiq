@@ -31,12 +31,7 @@ export class SortBuilder<
         }
     }
 
-    addRaw(input: SortBuilder<RECORD> | SortBuildInput<RECORD>) {
-        if (input instanceof SortBuilder) {
-            this.addRaw(input.value as SortBuildInput<RECORD>);
-            return;
-        }
-
+    addRaw(input: SortBuildInput<RECORD>) {
         const transformed = this.transformInput(input);
 
         const record = toFlatObject(transformed);
@@ -98,7 +93,7 @@ export class SortBuilder<
         return {};
     }
 
-    serialize() {
+    build() : string | undefined {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;

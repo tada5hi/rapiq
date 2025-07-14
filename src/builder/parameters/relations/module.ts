@@ -27,12 +27,7 @@ export class RelationsBuilder<
         }
     }
 
-    addRaw(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
-        if (input instanceof RelationsBuilder) {
-            this.addRaw(input.value as RelationsBuildInput<RECORD>);
-            return;
-        }
-
+    addRaw(input: RelationsBuildInput<RECORD>) {
         const normalized = toKeyPathArray(input);
         for (let i = 0; i < normalized.length; i++) {
             const index = this.value.indexOf(normalized[i]);
@@ -57,7 +52,7 @@ export class RelationsBuilder<
         }
     }
 
-    serialize() {
+    build(): string | undefined {
         if (this.value.length === 0) {
             return undefined;
         }

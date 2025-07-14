@@ -10,7 +10,7 @@ import type { FieldsBuildInput } from './types';
 import type { ObjectLiteral } from '../../../types';
 
 export function fields<T extends ObjectLiteral>(
-    input?: FieldsBuildInput<T> | FieldsBuilder<T>,
+    input?: FieldsBuildInput<T>,
 ) : FieldsBuilder<T> {
     const clazz = new FieldsBuilder<T>();
 

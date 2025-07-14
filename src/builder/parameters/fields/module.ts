@@ -18,7 +18,7 @@ import type { FieldsBuildInput, FieldsBuildTupleInput } from './types';
 
 export class FieldsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> implements IBuilder<FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>> {
+> implements IBuilder<FieldsBuildInput<RECORD>> {
     public readonly value: Record<string, string[]> = {};
 
     constructor() {
@@ -32,13 +32,7 @@ export class FieldsBuilder<
         }
     }
 
-    addRaw(input: FieldsBuildInput<RECORD> | FieldsBuilder<RECORD>) {
-        if (input instanceof FieldsBuilder) {
-            this.addRaw(input.value as FieldsBuildInput<RECORD>);
-
-            return;
-        }
-
+    addRaw(input: FieldsBuildInput<RECORD>) {
         if (typeof input === 'string') {
             this.addRaw([input]);
             return;
@@ -68,7 +62,7 @@ export class FieldsBuilder<
         }
     }
 
-    serialize() {
+    build(): string | undefined {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;

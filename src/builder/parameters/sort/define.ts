@@ -10,7 +10,7 @@ import { SortBuilder } from './module';
 import type { SortBuildInput } from './types';
 
 export function sort<T extends ObjectLiteral>(
-    input?: SortBuildInput<T> | SortBuilder<T>,
+    input?: SortBuildInput<T>,
 ) : SortBuilder<T> {
     const clazz = new SortBuilder<T>();
 

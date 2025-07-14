@@ -41,11 +41,11 @@ export type BuildInput<
 BuildURLParametersInput<T>;
 
 export interface IBuilder<
-    INPUT = any,
+    INPUT = unknown,
 > {
     addRaw(input: INPUT): void;
 
     clear(): void;
 
-    serialize(): string | undefined;
+    build(): string | undefined;
 }
