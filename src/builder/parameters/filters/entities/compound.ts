@@ -51,6 +51,16 @@ export class FiltersCompoundConditionBuilder<
 
     normalize(isRoot: boolean = true) : Record<string, any> {
         const input = this.flattenConditions(this.value);
+        if (input.length === 1) {
+            const first = input[0];
+
+            if (
+                first instanceof FiltersConditionBuilder ||
+                first instanceof FiltersCompoundConditionBuilder
+            ) {
+                return first.normalize();
+            }
+        }
 
         const output : Record<string, any> = {};
 

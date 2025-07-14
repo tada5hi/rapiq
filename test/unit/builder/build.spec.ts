@@ -11,6 +11,7 @@ import {
 } from '../../../src';
 import { buildURLQueryString } from '../../../src/utils';
 import type { Entity } from '../../data';
+import type { Builder } from '../../../src/builder/module';
 
 describe('src/build.ts', () => {
     it('should format fields record', () => {
@@ -128,10 +129,8 @@ describe('src/build.ts', () => {
     });
 
     it('should build query from different sources', () => {
-        let record;
+        let record : Builder<Entity>;
 
-        // todo: reenable test suite
-        /*
         record = builder<Entity>({
             [Parameter.FILTERS]: {
                 child: {
@@ -141,8 +140,7 @@ describe('src/build.ts', () => {
             },
         });
 
-        expect(record).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { 'child.id': 1, id: 2 } }));
-        */
+        expect(record.build()).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { 'child.id': 1, id: 2 } }));
 
         record = builder<Entity>({
             [Parameter.PAGINATION]: {
