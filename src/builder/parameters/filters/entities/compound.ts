@@ -22,6 +22,16 @@ export class FiltersCompoundConditionBuilder<
         this.value.push(child);
     }
 
+    mergeWith(builder: FiltersCompoundConditionBuilder<T>) {
+        if (this.operator !== builder.operator) {
+            throw new SyntaxError(`The operators must be equal (${this.operator} != ${builder.operator})`);
+        }
+
+        for (let i = 0; i < builder.value.length; i++) {
+            this.value.push(builder.value[i]);
+        }
+    }
+
     protected normalizeChild(input: Condition, index: number) {
         if (
             input instanceof FiltersConditionBuilder ||

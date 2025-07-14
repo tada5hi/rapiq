@@ -39,7 +39,7 @@ export class Builder<
         this.filters = new FiltersCompoundConditionBuilder<
         FiltersCompoundConditionBuilderArg<T>
         >(
-            FilterCompoundOperator.OR,
+            FilterCompoundOperator.AND,
             [],
         );
         this.pagination = new PaginationBuilder();
@@ -100,6 +100,14 @@ export class Builder<
         if (typeof input[URLParameter.SORT] !== 'undefined') {
             this.sort.addRaw(input[URLParameter.SORT]);
         }
+    }
+
+    mergeWith(builder: Builder<T>) {
+        this.fields.mergeWith(builder.fields);
+        this.filters.mergeWith(builder.filters);
+        this.pagination.mergeWith(builder.pagination);
+        this.relations.mergeWith(builder.relations);
+        this.sort.mergeWith(builder.sort);
     }
 
     // --------------------------------------------------

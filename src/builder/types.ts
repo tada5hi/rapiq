@@ -14,6 +14,7 @@ import type {
     RelationsBuildInput,
     SortBuildInput,
 } from './index';
+import type { Builder } from './module';
 
 type BuildParametersInput<
     T extends ObjectLiteral = ObjectLiteral,
@@ -46,6 +47,8 @@ export interface IBuilder<
     addRaw(input: INPUT): void;
 
     clear(): void;
+
+    mergeWith(builder: this) : void;
 
     build(): string | undefined;
 }

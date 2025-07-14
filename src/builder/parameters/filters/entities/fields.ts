@@ -32,6 +32,12 @@ FiltersBuildInput<T>
         }
     }
 
+    mergeWith(builder: FiltersConditionBuilder<T>) {
+        for (let i = 0; i < builder.value.length; i++) {
+            this.value.push(builder.value[i]);
+        }
+    }
+
     set<K extends NestedKeys<T>>(key: K, value: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>) {
         const valueNormalized = this.normalizeValue(value);
         if (typeof valueNormalized !== 'undefined') {

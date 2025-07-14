@@ -62,6 +62,20 @@ export class FieldsBuilder<
         }
     }
 
+    mergeWith(builder: FieldsBuilder<RECORD>) {
+        const keys = Object.keys(builder.value);
+        for (let i = 0; i < keys.length; i++) {
+            if (this.value[keys[i]]) {
+                this.value[keys[i]] = distinctArray([
+                    ...this.value[keys[i]],
+                    ...builder.value[keys[i]],
+                ]);
+            } else {
+                this.value[keys[i]] = builder.value[keys[i]];
+            }
+        }
+    }
+
     build(): string | undefined {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {

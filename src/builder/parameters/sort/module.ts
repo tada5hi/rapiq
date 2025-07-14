@@ -41,6 +41,13 @@ export class SortBuilder<
         }
     }
 
+    mergeWith(builder: SortBuilder<RECORD>) {
+        const keys = Object.keys(builder.value);
+        for (let i = 0; i < keys.length; i++) {
+            this.value[keys[i]] = builder.value[keys[i]];
+        }
+    }
+
     set(key: SimpleKeys<RECORD> | NestedKeys<RECORD>, value: `${SortDirection}`) {
         this.value[key] = value;
     }

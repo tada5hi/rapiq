@@ -37,6 +37,15 @@ export class RelationsBuilder<
         }
     }
 
+    mergeWith(builder: RelationsBuilder) {
+        for (let i = 0; i < builder.value.length; i++) {
+            const index = this.value.indexOf(builder.value[i]);
+            if (index === -1) {
+                this.value.push(builder.value[i]);
+            }
+        }
+    }
+
     drop(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
         if (input instanceof RelationsBuilder) {
             this.drop(input.value as RelationsBuildInput<RECORD>);

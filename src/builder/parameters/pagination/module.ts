@@ -35,6 +35,10 @@ export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
         }
     }
 
+    mergeWith(builder: PaginationBuilder) {
+        this.addRaw(builder.value);
+    }
+
     setLimit(input?: number) {
         this.value.limit = input;
     }

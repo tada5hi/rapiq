@@ -7,13 +7,39 @@
 
 import {
     DEFAULT_ID,
-    Parameter, SortDirection, URLParameter, builder,
+    Parameter, SortDirection, URLParameter, builder, filters,
 } from '../../../src';
 import { buildURLQueryString } from '../../../src/utils';
 import type { Entity } from '../../data';
 import type { Builder } from '../../../src/builder/module';
 
 describe('src/build.ts', () => {
+    it('should merge builder', () => {
+        const builderA = builder<Entity>({
+            fields: ['id'],
+            filters: {
+                id: 1,
+            },
+        });
+
+        const builderB = builder<Entity>({
+            fields: ['name'],
+            filters: {
+                name: 'foo',
+            },
+        });
+
+        builderA.mergeWith(builderB);
+
+        expect(builderA.build()).toEqual(buildURLQueryString({
+            fields: ['id', 'name'],
+            filter: {
+                id: 1,
+                name: 'foo',
+            },
+        }));
+    });
+
     it('should format fields record', () => {
         let record = builder<Entity>({
             fields: ['id'],
