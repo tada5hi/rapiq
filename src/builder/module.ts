@@ -8,7 +8,7 @@
 import { FilterCompoundOperator } from '../schema';
 import type {
     FieldsBuildInput,
-    FiltersBuildInput,
+    FiltersBuildInput, FiltersCompoundConditionBuilderArg,
     PaginationBuildInput,
     RelationsBuildInput,
     SortBuildInput,
@@ -25,16 +25,12 @@ import type { BuildInput, IBuilder } from './types';
 import { Parameter, URLParameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 
-type FiltersCondition<
-    T extends ObjectLiteral,
-> = FiltersConditionBuilder<T> | FiltersCompoundConditionBuilder<FiltersCondition<T>>;
-
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
 > implements IBuilder<BuildInput<T>> {
     protected fields : FieldsBuilder<T>;
 
-    protected filters : FiltersCompoundConditionBuilder<FiltersCondition<T>>;
+    protected filters : FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>;
 
     protected pagination: PaginationBuilder;
 
@@ -46,7 +42,9 @@ export class Builder<
 
     constructor() {
         this.fields = new FieldsBuilder<T>();
-        this.filters = new FiltersCompoundConditionBuilder<FiltersCondition<T>>(FilterCompoundOperator.OR, []);
+        this.filters = new FiltersCompoundConditionBuilder<
+        FiltersCompoundConditionBuilderArg<T>
+        >(FilterCompoundOperator.OR, []);
         this.pagination = new PaginationBuilder();
         this.relations = new RelationsBuilder<T>();
         this.sort = new SortBuilder<T>();
@@ -137,13 +135,13 @@ export class Builder<
     }
 
     addFilters(
-        data: FiltersBuildInput<T> | FiltersCondition<T>,
+        data: FiltersBuildInput<T> | FiltersCompoundConditionBuilderArg<T>,
     ) {
         if (
             data instanceof FiltersCompoundConditionBuilder ||
             data instanceof FiltersConditionBuilder
         ) {
-            this.filters.add(data as unknown as FiltersCondition<T>);
+            this.filters.add(data);
             return this;
         }
 
@@ -156,20 +154,20 @@ export class Builder<
     }
 
     withFilters(
-        data: FiltersBuildInput<T> | FiltersCondition<T>,
+        data: FiltersBuildInput<T> | FiltersCompoundConditionBuilderArg<T>,
     ) {
         this.clearFilters().addFilters(data);
 
         return this;
     }
 
-    setFiltersBuilder(instance: FiltersCompoundConditionBuilder<FiltersCondition<T>>) {
+    setFiltersBuilder(instance: FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>) {
         this.filters = instance;
 
         return this;
     }
 
-    getFiltersBuilder(): FiltersCompoundConditionBuilder<FiltersCondition<T>> {
+    getFiltersBuilder(): FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>> {
         return this.filters;
     }
 

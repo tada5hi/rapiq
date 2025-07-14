@@ -6,8 +6,15 @@
  */
 
 import type {
-    ArrayItem, IsArray, IsScalar, NestedKeys, TypeFromNestedKeyPath,
+    ArrayItem,
+    IsArray,
+    IsScalar,
+    NestedKeys,
+    ObjectLiteral,
+    PrevIndex,
+    TypeFromNestedKeyPath,
 } from '../../../types';
+import type { FiltersCompoundConditionBuilder, FiltersConditionBuilder } from './entities';
 
 export type FilterValuePrimitive = boolean | number | string | null | undefined;
 
@@ -45,3 +52,11 @@ export type FiltersBuildInput<
 } & {
     [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
 };
+
+export type FiltersCompoundConditionBuilderArg<
+    T extends ObjectLiteral = ObjectLiteral,
+    INDEX extends number = 4,
+> = [INDEX] extends [0] ?
+    FiltersConditionBuilder<T> :
+    FiltersConditionBuilder<T> |
+    FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T, PrevIndex[INDEX]>>;

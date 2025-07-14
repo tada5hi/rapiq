@@ -22,7 +22,7 @@ export class FiltersCompoundConditionBuilder<
         this.value.push(child);
     }
 
-    protected normalizeChild<T extends Condition>(input: T, index: number) {
+    protected normalizeChild(input: Condition, index: number) {
         if (
             input instanceof FiltersConditionBuilder ||
             input instanceof FiltersCompoundConditionBuilder
