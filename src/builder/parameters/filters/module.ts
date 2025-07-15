@@ -12,7 +12,7 @@ import {
     FilterCompoundOperator,
     flattenConditions,
 } from '../../../schema';
-import type { ObjectLiteral } from '../../../types';
+import type { NestedKeys, ObjectLiteral } from '../../../types';
 
 import type { IBuilder } from '../../types';
 import {
@@ -22,7 +22,7 @@ import type { FiltersBuildInput } from './types';
 
 export class FiltersBuilder<
     T extends ObjectLiteral = ObjectLiteral,
-> extends CompoundCondition implements IBuilder<FiltersBuildInput<T>> {
+> extends CompoundCondition<FiltersBuilder<T> | FieldCondition<string, NestedKeys<T>>> implements IBuilder<FiltersBuildInput<T>> {
     addRaw(input: FiltersBuildInput<T>) {
         const object = toFlatObject(input);
 
@@ -31,10 +31,10 @@ export class FiltersBuilder<
         for (let i = 0; i < keys.length; i++) {
             const valueNormalized = this.normalizeValue(object[keys[i]]);
             if (typeof valueNormalized !== 'undefined') {
-                const field = new FieldCondition<T>(
+                const field = new FieldCondition<string, NestedKeys<T>>(
                     'eq',
-                    keys[i],
-                    valueNormalized as T[keyof T],
+                    keys[i] as NestedKeys<T>,
+                    valueNormalized,
                 );
 
                 this.value.push(field);
@@ -72,29 +72,27 @@ export class FiltersBuilder<
                 continue;
             }
 
-            if (item instanceof FiltersBuilder) {
-                const normalized = item.normalize(false);
+            const normalized = item.normalize(false);
 
-                if (this.operator === FilterCompoundOperator.AND) {
-                    extendObject(
-                        output,
-                        renameObjectKeys(
-                            normalized,
-                            (key) => `0${key}`,
-                        ),
-                    );
-
-                    continue;
-                }
-
+            if (this.operator === FilterCompoundOperator.AND) {
                 extendObject(
                     output,
                     renameObjectKeys(
                         normalized,
-                        (key) => `${i}${key}`,
+                        (key) => `0${key}`,
                     ),
                 );
+
+                continue;
             }
+
+            extendObject(
+                output,
+                renameObjectKeys(
+                    normalized,
+                    (key) => `${i}${key}`,
+                ),
+            );
         }
 
         if (isRoot) {

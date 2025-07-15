@@ -18,12 +18,6 @@ export class CompoundCondition<
         this.value.push(child);
     }
 
-    addMany(child: T[]) {
-        for (let i = 0; i < child.length; i++) {
-            this.add(child[i]);
-        }
-    }
-
     clear() {
         for (let i = this.value.length - 1; i === 0; i--) {
             this.value.splice(i, 1);
