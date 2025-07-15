@@ -346,7 +346,7 @@ describe('src/filter/index.ts', () => {
                 foo: Buffer.from('foo'),
             }, { schema });
         };
-        expect(evaluate).toThrowError(error);
+        expect(evaluate).toThrow(error);
     });
 
     it('should throw on invalid key', () => {

@@ -156,7 +156,7 @@ describe('src/build.ts', () => {
         expect(record.build()).toEqual(buildURLQueryString({ [URLParameter.RELATIONS]: ['child', 'siblings.child'] }));
     });
 
-    fit('should build query from different sources', () => {
+    it('should build query from different sources', () => {
         let record : Builder<Entity>;
 
         record = builder<Entity>({

@@ -295,7 +295,7 @@ describe('src/sort/index.ts', () => {
         };
 
         const error = SortParseError.keyPathInvalid('bar');
-        expect(evaluate).toThrow(error);
+        expect(evaluate).toThrow(error.message);
     });
 
     it('should throw on non allowed key which is not covered by a relation', () => {

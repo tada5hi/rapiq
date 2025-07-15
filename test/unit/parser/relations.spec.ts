@@ -137,7 +137,7 @@ describe('src/relations/index.ts', () => {
         let evaluate = () => {
             parser.parse(['foo', true], { schema });
         };
-        expect(evaluate).toThrow(error);
+        expect(evaluate).toThrow(error.message);
 
         evaluate = () => {
             parser.parse(false, { schema });
