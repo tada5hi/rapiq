@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { FilterCompoundOperator } from '../../../schema';
 import type {
     ArrayItem,
     IsArray,
@@ -30,10 +31,10 @@ export type FilterValue<V> = V extends Array<infer Item> ?
 
 export type FiltersBuildInputValue<
     T,
-    INDEX extends number = 4,
-> = [INDEX] extends [0] ? never :
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never :
     T extends IsArray<T> ?
-        FiltersBuildInputValue<T[number], PrevIndex[INDEX]> :
+        FiltersBuildInputValue<T[number], PrevIndex[DEPTH]> :
         T extends IsScalar<T> ?
             FilterValue<T> :
             T extends Date ?
@@ -42,24 +43,40 @@ export type FiltersBuildInputValue<
 
 type FiltersBuildInputSubLevel<
     T,
-> = T extends IsArray<T> ?
-    FiltersBuildInputSubLevel<ArrayItem<T>> :
-    T extends Record<PropertyKey, any> ?
-        FiltersBuildInput<T> :
-        FiltersBuildInputValue<T>;
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ?
+    never :
+    T extends IsArray<T> ?
+        FiltersBuildInputSubLevel<ArrayItem<T>, DEPTH> :
+        T extends Record<PropertyKey, any> ?
+            FiltersBuildInput<T, PrevIndex[DEPTH]> :
+            FiltersBuildInputValue<T>;
+
+export type FiltersBuildCompoundInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ?
+    never :
+    {
+        operator: `${FilterCompoundOperator}`,
+        value: FiltersBuildInput<T, PrevIndex[DEPTH]> | FiltersBuildInput<T, PrevIndex[DEPTH]>[]
+    };
 
 export type FiltersBuildInput<
     T extends Record<PropertyKey, any>,
-> = {
-    [K in keyof T]?: FiltersBuildInputSubLevel<T[K]>
-} & {
-    [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
-};
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ?
+    never :
+    {
+        [K in keyof T]?: FiltersBuildInputSubLevel<T[K], PrevIndex[DEPTH]>
+    } & {
+        [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
+    };
 
 export type FiltersCompoundConditionBuilderArg<
     T extends ObjectLiteral = ObjectLiteral,
-    INDEX extends number = 4,
-> = [INDEX] extends [0] ?
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ?
     FiltersConditionBuilder<T> :
     FiltersConditionBuilder<T> |
-    FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T, PrevIndex[INDEX]>>;
+    FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T, PrevIndex[DEPTH]>>;

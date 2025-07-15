@@ -77,7 +77,6 @@ describe('builder/filters', () => {
             // with lessThan
             record = filters<Entity>({
                 id: '<1',
-
             });
             expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '<1' } }));
 
