@@ -13,8 +13,7 @@ import type {
     PaginationBuildInput,
     RelationsBuildInput,
     SortBuildInput,
-} from './index';
-import type { Builder } from './module';
+} from './parameters';
 
 type BuildParametersInput<
     T extends ObjectLiteral = ObjectLiteral,
