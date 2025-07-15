@@ -110,17 +110,6 @@ describe('builder/filters', () => {
             });
             expect(record.build()).toEqual(serializeAsURI({ [URLParameter.FILTERS]: { id: '!~1,2,3' } }));
         });
-
-        it('should work with set & unset', () => {
-            const data = filters<Entity>();
-            data.set('name', 'admin');
-            data.set('id', 1);
-            data.unset('id');
-
-            expect(data.normalize()).toEqual({
-                name: 'admin',
-            });
-        });
     });
 
     describe('grouped', () => {
@@ -194,8 +183,8 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '00:id': '1',
-                '00:name': 'foo',
+                '0:id': '1',
+                '0:name': 'foo',
                 '1:child.age': '<15',
             });
         });
@@ -266,7 +255,7 @@ describe('builder/filters', () => {
             ]);
 
             expect(group.normalize()).toEqual({
-                '00:id': '1',
+                '0:id': '1',
                 '000:name': 'foo',
                 '001:name': 'bar',
                 '1:id': '15',

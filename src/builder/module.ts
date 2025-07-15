@@ -6,11 +6,9 @@
  */
 
 import { FilterCompoundOperator } from '../schema';
-import type { FiltersCompoundConditionBuilderArg } from './parameters';
 import {
     FieldsBuilder,
-    FiltersCompoundConditionBuilder,
-    FiltersConditionBuilder,
+    FiltersBuilder,
     PaginationBuilder,
     RelationsBuilder,
     SortBuilder,
@@ -24,7 +22,7 @@ export class Builder<
 > implements IBuilder<BuildInput<T>> {
     public fields : FieldsBuilder<T>;
 
-    public filters : FiltersCompoundConditionBuilder<FiltersCompoundConditionBuilderArg<T>>;
+    public filters : FiltersBuilder<T>;
 
     public pagination: PaginationBuilder;
 
@@ -36,9 +34,7 @@ export class Builder<
 
     constructor() {
         this.fields = new FieldsBuilder<T>();
-        this.filters = new FiltersCompoundConditionBuilder<
-        FiltersCompoundConditionBuilderArg<T>
-        >(
+        this.filters = new FiltersBuilder<T>(
             FilterCompoundOperator.AND,
             [],
         );
@@ -65,19 +61,11 @@ export class Builder<
             this.fields.addRaw(input[URLParameter.FIELDS]);
         }
 
-        if (
-            typeof input[Parameter.FILTERS] !== 'undefined' ||
-            typeof input[URLParameter.FILTERS] !== 'undefined'
-        ) {
-            const condition = new FiltersConditionBuilder<T>();
-            if (typeof input[Parameter.FILTERS] !== 'undefined') {
-                condition.addRaw(input[Parameter.FILTERS]);
-            }
-            if (typeof input[URLParameter.FILTERS] !== 'undefined') {
-                condition.addRaw(input[URLParameter.FILTERS]);
-            }
-
-            this.filters.addRaw(condition);
+        if (typeof input[Parameter.FILTERS] !== 'undefined') {
+            this.filters.addRaw(input[Parameter.FILTERS]);
+        }
+        if (typeof input[URLParameter.FILTERS] !== 'undefined') {
+            this.filters.addRaw(input[URLParameter.FILTERS]);
         }
 
         if (typeof input[Parameter.PAGINATION] !== 'undefined') {
