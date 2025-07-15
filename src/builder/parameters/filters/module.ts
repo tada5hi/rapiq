@@ -26,6 +26,7 @@ export class FiltersBuilder<
 > extends CompoundCondition implements IBuilder<FiltersBuildInput<T>> {
     addRaw(input: FiltersBuildInput<T>) {
         const object = toFlatObject(input);
+
         const keys = Object.keys(object);
 
         for (let i = 0; i < keys.length; i++) {

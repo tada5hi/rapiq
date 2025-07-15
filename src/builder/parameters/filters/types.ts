@@ -7,13 +7,9 @@
 
 import type { FilterCompoundOperator } from '../../../schema';
 import type {
-    ArrayItem,
-    IsArray,
-    IsScalar,
-    NestedKeys,
-    PrevIndex,
-    TypeFromNestedKeyPath,
+    ArrayItem, IsArray, IsScalar, NestedKeys, PrevIndex, TypeFromNestedKeyPath,
 } from '../../../types';
+import type { FiltersBuilder } from './module';
 
 export type FilterValuePrimitive = boolean | number | string | null | undefined;
 
@@ -57,7 +53,7 @@ export type FiltersBuildCompoundInput<
     never :
     {
         operator: `${FilterCompoundOperator}`,
-        value: FiltersBuildInput<T, PrevIndex[DEPTH]> | FiltersBuildInput<T, PrevIndex[DEPTH]>[]
+        value: FiltersBuildInput<T, PrevIndex[DEPTH]>[]
     };
 
 export type FiltersBuildInput<
@@ -69,4 +65,6 @@ export type FiltersBuildInput<
         [K in keyof T]?: FiltersBuildInputSubLevel<T[K], PrevIndex[DEPTH]>
     } & {
         [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>, PrevIndex[DEPTH]>
-    };
+    } | FiltersBuildCompoundInput<T>;
+
+export type FiltersBuilderArg<T> = T extends FiltersBuilder<infer U> ? U : never;

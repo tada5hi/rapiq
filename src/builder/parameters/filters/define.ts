@@ -6,44 +6,59 @@
  */
 import { FilterCompoundOperator } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
-import type { FiltersBuildInput } from './types';
+import { isFiltersBuildCompoundInput } from './helpers';
 import { FiltersBuilder } from './module';
+import type { FiltersBuildInput, FiltersBuilderArg } from './types';
 
 export function filters<
     T extends ObjectLiteral = ObjectLiteral,
 >(
     input?: FiltersBuildInput<T>,
 ) : FiltersBuilder<T> {
-    const clazz = new FiltersBuilder<T>(
+    if (!input) {
+        return new FiltersBuilder<T>(FilterCompoundOperator.AND, []);
+    }
+
+    let clazz : FiltersBuilder<T>;
+    if (isFiltersBuildCompoundInput<T>(input)) {
+        clazz = new FiltersBuilder<T>(
+            input.operator,
+            [],
+        );
+
+        for (let i = 0; i < input.value.length; i++) {
+            clazz.add(filters(input.value[i]));
+        }
+
+        return clazz;
+    }
+
+    clazz = new FiltersBuilder<T>(
         FilterCompoundOperator.AND,
         [],
     );
 
-    if (input) {
-        clazz.addRaw(input);
-    }
+    clazz.addRaw(input);
 
     return clazz;
 }
 
-type BuilderArg<T> = T extends FiltersBuilder<infer U> ? U : never;
-
 export function and<
     T extends FiltersBuilder = FiltersBuilder,
->(items: T[]) : FiltersBuilder<BuilderArg<T>> {
+>(items: T[]) : FiltersBuilder<FiltersBuilderArg<T>> {
     return defineCompoundCondition(FilterCompoundOperator.AND, items);
 }
 
 export function or<
  T extends FiltersBuilder = FiltersBuilder,
->(items: T[]) : FiltersBuilder<BuilderArg<T>> {
+>(items: T[]) : FiltersBuilder<FiltersBuilderArg<T>> {
     return defineCompoundCondition(FilterCompoundOperator.OR, items);
 }
 
 export function defineCompoundCondition<
     T extends FiltersBuilder = FiltersBuilder,
->(operator: `${FilterCompoundOperator}`, items: T[]) : FiltersBuilder<BuilderArg<T>> {
-    return new FiltersBuilder<BuilderArg<T>>(
+>(operator: `${FilterCompoundOperator}`, items: T[]) : FiltersBuilder<FiltersBuilderArg<T>> {
+    return new FiltersBuilder<FiltersBuilderArg<T>>(
         operator,
         items,
     );

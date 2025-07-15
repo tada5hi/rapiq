@@ -112,6 +112,73 @@ describe('builder/filters', () => {
         });
     });
 
+    describe('compound', () => {
+        it('should work with compound and input', () => {
+            const data = filters<Entity>({
+                operator: 'and',
+                value: [
+                    {
+                        id: 1,
+                    },
+                    {
+                        name: 'foo',
+                    },
+                ],
+            });
+
+            expect(data.normalize()).toEqual({
+                id: '1',
+                name: 'foo',
+            });
+        });
+
+        it('should work with compound and input', () => {
+            const data = filters<Entity>({
+                operator: 'or',
+                value: [
+                    {
+                        id: 1,
+                    },
+                    {
+                        name: 'foo',
+                    },
+                ],
+            });
+
+            expect(data.normalize()).toEqual({
+                '0:id': '1',
+                '1:name': 'foo',
+            });
+        });
+
+        it('should work with nested compound input', () => {
+            const data = filters<Entity>({
+                operator: 'or',
+                value: [
+                    {
+                        operator: 'and',
+                        value: [
+                            {
+                                id: 1,
+                            }, {
+                                name: 'foo',
+                            },
+                        ],
+                    },
+                    {
+                        name: 'bar',
+                    },
+                ],
+            });
+
+            expect(data.normalize()).toEqual({
+                '0:id': '1',
+                '0:name': 'foo',
+                '1:name': 'bar',
+            });
+        });
+    });
+
     describe('grouped', () => {
         it('should build simple and group', () => {
             const group = and([
