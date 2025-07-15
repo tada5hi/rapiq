@@ -7,11 +7,13 @@
 
 import {
     DEFAULT_ID,
-    Parameter, SortDirection, URLParameter, builder, filters,
+    SortDirection,
+    URLParameter,
+    builder,
 } from '../../../src';
 import { buildURLQueryString } from '../../../src/utils';
 import type { Entity } from '../../data';
-import type { Builder } from '../../../src/builder/module';
+import type { Builder } from '../../../src';
 
 describe('src/build.ts', () => {
     it('should merge builder', () => {
@@ -132,7 +134,7 @@ describe('src/build.ts', () => {
 
     it('should format page record', () => {
         const record = builder<Entity>({
-            [Parameter.PAGINATION]: {
+            pagination: {
                 limit: 10,
                 offset: 0,
             },
@@ -143,7 +145,7 @@ describe('src/build.ts', () => {
 
     it('should format include record', () => {
         const record = builder<Entity>({
-            [Parameter.RELATIONS]: {
+            relations: {
                 child: true,
                 siblings: {
                     child: true,
@@ -158,7 +160,7 @@ describe('src/build.ts', () => {
         let record : Builder<Entity>;
 
         record = builder<Entity>({
-            [Parameter.FILTERS]: {
+            filters: {
                 child: {
                     id: 1,
                 },
@@ -169,10 +171,8 @@ describe('src/build.ts', () => {
         expect(record.build()).toEqual(buildURLQueryString({ [URLParameter.FILTERS]: { 'child.id': 1, id: 2 } }));
 
         record = builder<Entity>({
-            [Parameter.PAGINATION]: {
+            pagination: {
                 limit: 10,
-            },
-            [URLParameter.PAGINATION]: {
                 offset: 0,
             },
         });
@@ -180,8 +180,10 @@ describe('src/build.ts', () => {
         expect(record.build()).toEqual(buildURLQueryString({ [URLParameter.PAGINATION]: { limit: 10, offset: 0 } }));
 
         record = builder<Entity>({
-            [Parameter.RELATIONS]: ['child', 'child.child'],
-            [URLParameter.RELATIONS]: {
+            relations: {
+                child: {
+                    child: true,
+                },
                 siblings: {
                     child: true,
                 },

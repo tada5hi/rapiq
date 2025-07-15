@@ -89,7 +89,7 @@ The method should perform a request to the resource API to receive a collection 
 
 ```typescript
 import axios from "axios";
-import { Builder } from 'rapiq';
+import { builder } from 'rapiq';
 
 export type Realm = {
     id: string,
@@ -121,8 +121,7 @@ type ResponsePayload = {
     }
 }
 
-const builder = new Builder<User>();
-builder.add({
+const data = builder<User>({
     pagination: {
         limit: 20,
         offset: 10
@@ -141,13 +140,13 @@ builder.add({
 async function getAPIUsers(
     builder: Builder<User>
 ): Promise<ResponsePayload> {
-    const response = await axios.get(`users${builder.toString()}`);
+    const response = await axios.get(`users${data.toString()}`);
 
     return response.data;
 }
 
 (async () => {
-    let response = await getAPIUsers(builder);
+    let response = await getAPIUsers(data);
 
     // do something with the response :)
 })();

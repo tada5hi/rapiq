@@ -14,7 +14,7 @@ import {
     SortBuilder,
 } from './parameters';
 import type { BuildInput, IBuilder } from './types';
-import { Parameter, URLParameter } from '../constants';
+import { Parameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 
 export class Builder<
@@ -57,36 +57,21 @@ export class Builder<
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
             this.fields.addRaw(input[Parameter.FIELDS]);
         }
-        if (typeof input[URLParameter.FIELDS] !== 'undefined') {
-            this.fields.addRaw(input[URLParameter.FIELDS]);
-        }
 
         if (typeof input[Parameter.FILTERS] !== 'undefined') {
             this.filters.addRaw(input[Parameter.FILTERS]);
-        }
-        if (typeof input[URLParameter.FILTERS] !== 'undefined') {
-            this.filters.addRaw(input[URLParameter.FILTERS]);
         }
 
         if (typeof input[Parameter.PAGINATION] !== 'undefined') {
             this.pagination.addRaw(input[Parameter.PAGINATION]);
         }
-        if (typeof input[URLParameter.PAGINATION] !== 'undefined') {
-            this.pagination.addRaw(input[URLParameter.PAGINATION]);
-        }
 
         if (typeof input[Parameter.RELATIONS] !== 'undefined') {
             this.relations.addRaw(input[Parameter.RELATIONS]);
         }
-        if (typeof input[URLParameter.RELATIONS] !== 'undefined') {
-            this.relations.addRaw(input[URLParameter.RELATIONS]);
-        }
 
         if (typeof input[Parameter.SORT] !== 'undefined') {
             this.sort.addRaw(input[Parameter.SORT]);
-        }
-        if (typeof input[URLParameter.SORT] !== 'undefined') {
-            this.sort.addRaw(input[URLParameter.SORT]);
         }
     }
 
