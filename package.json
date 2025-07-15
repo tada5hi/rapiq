@@ -72,7 +72,7 @@
         "@tada5hi/eslint-config-typescript": "^1.2.17",
         "@tada5hi/tsconfig": "^0.6.0",
         "@types/jest": "^30.0.0",
-        "@types/node": "^22.16.4",
+        "@types/node": "^24.0.14",
         "@ucast/sql": "^1.0.0-alpha.12",
         "cross-env": "^7.0.3",
         "eslint": "^8.57.1",
