@@ -8,7 +8,9 @@
 import { URLParameter } from '../../../../constants';
 import type { Condition } from '../../../../schema';
 import {
-    CompoundCondition, FilterCompoundOperator,
+    CompoundCondition,
+    FilterCompoundOperator,
+    flattenConditions,
 } from '../../../../schema';
 
 import type { IBuilder } from '../../../types';
@@ -60,7 +62,7 @@ export class FiltersCompoundConditionBuilder<
     }
 
     normalize(isRoot: boolean = true) : Record<string, any> {
-        const input = this.flattenConditions(this.value);
+        const input = flattenConditions(this.value, this.operator);
         if (input.length === 1) {
             const first = input[0];
 
