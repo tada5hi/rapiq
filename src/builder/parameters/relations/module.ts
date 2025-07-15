@@ -7,30 +7,65 @@
 
 import { URLParameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
-import { merge, serializeAsURI, toKeyPathArray } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import { serializeAsURI, toKeyPathArray } from '../../../utils';
+
+import type { IBuilder } from '../../types';
 import type { RelationsBuildInput } from './types';
 
 export class RelationsBuilder<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<RelationsBuildInput<RECORD>> {
-    protected items : string[];
+> implements IBuilder<RelationsBuildInput<RECORD>> {
+    public readonly value : string[];
 
     constructor() {
-        super();
-
-        this.items = [];
+        this.value = [];
     }
 
-    add(input: RelationsBuildInput<RECORD>) {
-        this.items = merge(this.items, toKeyPathArray(input));
+    clear() {
+        for (let i = this.value.length - 1; i === 0; i--) {
+            this.value.splice(i, 1);
+        }
     }
 
-    serialize() {
-        if (this.items.length === 0) {
+    addRaw(input: RelationsBuildInput<RECORD>) {
+        const normalized = toKeyPathArray(input);
+        for (let i = 0; i < normalized.length; i++) {
+            const index = this.value.indexOf(normalized[i]);
+            if (index === -1) {
+                this.value.push(normalized[i]);
+            }
+        }
+    }
+
+    mergeWith(builder: RelationsBuilder) {
+        for (let i = 0; i < builder.value.length; i++) {
+            const index = this.value.indexOf(builder.value[i]);
+            if (index === -1) {
+                this.value.push(builder.value[i]);
+            }
+        }
+    }
+
+    drop(input: RelationsBuildInput<RECORD> | RelationsBuilder<RECORD>) {
+        if (input instanceof RelationsBuilder) {
+            this.drop(input.value as RelationsBuildInput<RECORD>);
+            return;
+        }
+
+        const normalized = toKeyPathArray(input);
+        for (let i = 0; i < normalized.length; i++) {
+            const index = this.value.indexOf(normalized[i]);
+            if (index !== -1) {
+                this.value.splice(i, 1);
+            }
+        }
+    }
+
+    build(): string | undefined {
+        if (this.value.length === 0) {
             return undefined;
         }
 
-        return serializeAsURI(this.items, { prefixParts: [URLParameter.RELATIONS] });
+        return serializeAsURI(this.value, { prefixParts: [URLParameter.RELATIONS] });
     }
 }

@@ -5,10 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type {
-    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
-} from './parameters';
-import { BaseBuilder } from './base';
+import { FilterCompoundOperator } from '../schema';
 import {
     FieldsBuilder,
     FiltersBuilder,
@@ -16,109 +13,91 @@ import {
     RelationsBuilder,
     SortBuilder,
 } from './parameters';
-import type { BuildInput } from './types';
-import { Parameter, URLParameter } from '../constants';
+import type { BuildInput, IBuilder } from './types';
+import { Parameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
-> extends BaseBuilder<BuildInput<T>> {
-    protected fields : FieldsBuilder<T>;
+> implements IBuilder<BuildInput<T>> {
+    public fields : FieldsBuilder<T>;
 
-    protected filters : FiltersBuilder<T>;
+    public filters : FiltersBuilder<T>;
 
-    protected pagination: PaginationBuilder;
+    public pagination: PaginationBuilder;
 
-    protected relations: RelationsBuilder;
+    public relations: RelationsBuilder<T>;
 
-    protected sort: SortBuilder;
+    public sort: SortBuilder<T>;
 
     // --------------------------------------------------
 
     constructor() {
-        super();
-
-        this.fields = new FieldsBuilder();
-        this.filters = new FiltersBuilder();
+        this.fields = new FieldsBuilder<T>();
+        this.filters = new FiltersBuilder<T>(
+            FilterCompoundOperator.AND,
+            [],
+        );
         this.pagination = new PaginationBuilder();
-        this.relations = new RelationsBuilder();
-        this.sort = new SortBuilder();
+        this.relations = new RelationsBuilder<T>();
+        this.sort = new SortBuilder<T>();
     }
 
     // --------------------------------------------------
 
-    add(input: BuildInput<T>) {
+    clear() {
+        this.fields.clear();
+        this.filters.clear();
+        this.pagination.clear();
+        this.relations.clear();
+        this.sort.clear();
+    }
+
+    addRaw(input: BuildInput<T>) {
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
-            this.addFields(input[Parameter.FIELDS]);
-        }
-        if (typeof input[URLParameter.FIELDS] !== 'undefined') {
-            this.addFields(input[URLParameter.FIELDS]);
+            this.fields.addRaw(input[Parameter.FIELDS]);
         }
 
         if (typeof input[Parameter.FILTERS] !== 'undefined') {
-            this.addFilters(input[Parameter.FILTERS]);
-        }
-        if (typeof input[URLParameter.FILTERS] !== 'undefined') {
-            this.addFilters(input[URLParameter.FILTERS]);
+            this.filters.addRaw(input[Parameter.FILTERS]);
         }
 
         if (typeof input[Parameter.PAGINATION] !== 'undefined') {
-            this.addPagination(input[Parameter.PAGINATION]);
-        }
-        if (typeof input[URLParameter.PAGINATION] !== 'undefined') {
-            this.addPagination(input[URLParameter.PAGINATION]);
+            this.pagination.addRaw(input[Parameter.PAGINATION]);
         }
 
         if (typeof input[Parameter.RELATIONS] !== 'undefined') {
-            this.addRelations(input[Parameter.RELATIONS]);
-        }
-        if (typeof input[URLParameter.RELATIONS] !== 'undefined') {
-            this.addRelations(input[URLParameter.RELATIONS]);
+            this.relations.addRaw(input[Parameter.RELATIONS]);
         }
 
         if (typeof input[Parameter.SORT] !== 'undefined') {
-            this.addSort(input[Parameter.SORT]);
-        }
-        if (typeof input[URLParameter.SORT] !== 'undefined') {
-            this.addSort(input[URLParameter.SORT]);
+            this.sort.addRaw(input[Parameter.SORT]);
         }
     }
 
-    addFields(data: FieldsBuildInput<T>) {
-        this.fields.add(data);
-    }
-
-    addFilters(data: FiltersBuildInput<T>) {
-        this.filters.add(data);
-    }
-
-    addPagination(data: PaginationBuildInput) {
-        this.pagination.add(data);
-    }
-
-    addRelations(data: RelationsBuildInput<T>) {
-        this.relations.add(data);
-    }
-
-    addSort(data: SortBuildInput<T>) {
-        this.sort.add(data);
+    mergeWith(builder: Builder<T>) {
+        this.fields.mergeWith(builder.fields);
+        this.filters.mergeWith(builder.filters);
+        this.pagination.mergeWith(builder.pagination);
+        this.relations.mergeWith(builder.relations);
+        this.sort.mergeWith(builder.sort);
     }
 
     // --------------------------------------------------
 
-    override toString() {
-        return this.serialize();
+    toString() {
+        return this.build();
     }
 
     // --------------------------------------------------
 
-    serialize() {
+    build() {
         const output = [
-            this.fields.serialize(),
-            this.filters.serialize(),
-            this.pagination.serialize(),
-            this.relations.serialize(),
-            this.sort.serialize(),
+            this.fields.build(),
+            this.filters.build(),
+            this.pagination.build(),
+            this.relations.build(),
+            this.sort.build(),
         ]
             .filter(Boolean)
             .join('&');

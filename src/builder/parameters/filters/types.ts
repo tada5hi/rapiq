@@ -5,9 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { FilterCompoundOperator } from '../../../schema';
 import type {
-    Flatten, NestedKeys, OnlyScalar, TypeFromNestedKeyPath,
+    ArrayItem, IsArray, IsScalar, NestedKeys, PrevIndex, TypeFromNestedKeyPath,
 } from '../../../types';
+import type { FiltersBuilder } from './module';
 
 export type FilterValuePrimitive = boolean | number | string | null | undefined;
 
@@ -21,18 +23,48 @@ export type FilterValue<V> = V extends Array<infer Item> ?
     FilterValueWithOperator<Item> | Array<FilterValueWithOperator<Item>> :
     FilterValueWithOperator<V> | Array<FilterValueWithOperator<V>>;
 
-export type FiltersBuildInputValue<T> = T extends OnlyScalar<T> ?
-    FilterValue<T> :
-    T extends Date ?
-        FilterValue<string | number> :
-        never;
+export type FiltersBuildInputValue<
+    T,
+    DEPTH extends number = 10,
+> = [DEPTH] extends [0] ? never :
+    T extends IsArray<T> ?
+        FiltersBuildInputValue<ArrayItem<T>, PrevIndex[DEPTH]> :
+        T extends IsScalar<T> ?
+            FilterValue<T> :
+            T extends Date ?
+                FilterValue<string | number> :
+                never;
 
-type FilterBuildInputSubLevel<T> = T extends Record<PropertyKey, any> ?
-    FiltersBuildInput<T> :
-    FiltersBuildInputValue<T>;
+type FiltersBuildInputSubLevel<
+    T,
+    DEPTH extends number = 10,
+> = [DEPTH] extends [0] ?
+    never :
+    T extends IsArray<T> ?
+        FiltersBuildInputSubLevel<ArrayItem<T>, PrevIndex[DEPTH]> :
+        T extends Record<PropertyKey, any> ?
+            FiltersBuildInput<T, PrevIndex[DEPTH]> :
+            FiltersBuildInputValue<T, PrevIndex[DEPTH]>;
 
-export type FiltersBuildInput<T extends Record<PropertyKey, any>> = {
-    [K in keyof T]?: FilterBuildInputSubLevel<Flatten<T[K]>>
-} & {
-    [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>>
-};
+export type FiltersBuildCompoundInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 10,
+> = [DEPTH] extends [0] ?
+    never :
+    {
+        operator: `${FilterCompoundOperator}`,
+        value: FiltersBuildInput<T, PrevIndex[DEPTH]>[]
+    };
+
+export type FiltersBuildInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 10,
+> = [DEPTH] extends [0] ?
+    never :
+    {
+        [K in keyof T]?: FiltersBuildInputSubLevel<T[K], PrevIndex[DEPTH]>
+    } & {
+        [K in NestedKeys<T>]?: FiltersBuildInputValue<TypeFromNestedKeyPath<T, K>, PrevIndex[DEPTH]>
+    } | FiltersBuildCompoundInput<T>;
+
+export type FiltersBuilderArg<T> = T extends FiltersBuilder<infer U> ? U : never;

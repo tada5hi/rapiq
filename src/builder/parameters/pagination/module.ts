@@ -6,29 +6,52 @@
  */
 
 import { URLParameter } from '../../../constants';
-import { merge, serializeAsURI } from '../../../utils';
-import { BaseBuilder } from '../../base';
+import { hasOwnProperty, serializeAsURI } from '../../../utils';
+
+import type { IBuilder } from '../../types';
 import type { PaginationBuildInput } from './types';
 
-export class PaginationBuilder extends BaseBuilder<PaginationBuildInput> {
-    protected items : PaginationBuildInput;
+export class PaginationBuilder implements IBuilder<PaginationBuildInput> {
+    public readonly value : PaginationBuildInput;
 
     constructor() {
-        super();
-
-        this.items = {};
+        this.value = {};
     }
 
-    add(input: PaginationBuildInput) {
-        this.items = merge(this.items, input);
+    clear() {
+        const keys = Object.keys(this.value);
+        for (let i = 0; i < keys.length; i++) {
+            delete this.value[keys[i] as keyof PaginationBuildInput];
+        }
     }
 
-    serialize() {
-        const keys = Object.keys(this.items);
+    addRaw(input: PaginationBuildInput) {
+        if (hasOwnProperty(input, 'offset')) {
+            this.setOffset(input.offset);
+        }
+
+        if (hasOwnProperty(input, 'limit')) {
+            this.setLimit(input.limit);
+        }
+    }
+
+    mergeWith(builder: PaginationBuilder) {
+        this.addRaw(builder.value);
+    }
+
+    setLimit(input?: number) {
+        this.value.limit = input;
+    }
+
+    setOffset(input?: number) {
+        this.value.offset = input;
+    }
+
+    build() {
+        const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return undefined;
         }
-
-        return serializeAsURI(this.items, { prefixParts: [URLParameter.PAGINATION] });
+        return serializeAsURI(this.value, { prefixParts: [URLParameter.PAGINATION] });
     }
 }

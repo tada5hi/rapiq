@@ -5,9 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { optimizedCompoundCondition } from '@ucast/core';
-import { DEFAULT_ID } from '../../../constants';
-import type { Condition } from '../../../schema';
 import {
     CompoundCondition,
     FieldCondition,
@@ -17,7 +14,10 @@ import {
     FiltersSchema,
     Schema,
     defineFiltersSchema,
+    optimizedCompoundCondition,
 } from '../../../schema';
+import { DEFAULT_ID } from '../../../constants';
+import type { Condition } from '../../../schema';
 import type { FilterValuePrimitive } from '../../../builder';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
 import type { NestedKeys, ObjectLiteral } from '../../../types';

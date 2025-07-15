@@ -5,14 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type {
-    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
-} from './index';
-import type { Parameter, URLParameter } from '../constants';
+import type { Parameter } from '../constants';
 import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
+import type {
+    FieldsBuildInput,
+    FiltersBuildInput,
+    PaginationBuildInput,
+    RelationsBuildInput,
+    SortBuildInput,
+} from './parameters';
 
-type BuildParametersInput<
-    T extends ObjectLiteral = ObjectLiteral,
+export type BuildInput<
+    T extends ObjectLiteral,
 > = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsBuildInput<T>,
     [Parameter.FILTERS]?: FiltersBuildInput<T>,
@@ -21,17 +25,14 @@ type BuildParametersInput<
     [Parameter.SORT]?: SortBuildInput<T>,
 }>;
 
-export type BuildURLParametersInput<
-    T extends ObjectLiteral = ObjectLiteral,
-> = ObjectLiteralKeys<{
-    [URLParameter.FIELDS]?: FieldsBuildInput<T>,
-    [URLParameter.FILTERS]?: FiltersBuildInput<T>,
-    [URLParameter.RELATIONS]?: RelationsBuildInput<T>,
-    [URLParameter.PAGINATION]?: PaginationBuildInput,
-    [URLParameter.SORT]?: SortBuildInput<T>,
-}>;
+export interface IBuilder<
+    INPUT = unknown,
+> {
+    addRaw(input: INPUT): void;
 
-export type BuildInput<
-    T extends ObjectLiteral,
-> = BuildParametersInput<T> &
-BuildURLParametersInput<T>;
+    clear(): void;
+
+    mergeWith(builder: this) : void;
+
+    build(): string | undefined;
+}

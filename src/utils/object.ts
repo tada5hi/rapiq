@@ -106,6 +106,8 @@ export function toFlatObject(
         }
 
         if (isObject(data[key])) {
+            console.log(Object.getPrototypeOf(data[key]), data[key]);
+
             extendObject(
                 output,
                 toFlatObject(data[key], options),

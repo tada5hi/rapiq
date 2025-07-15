@@ -5,7 +5,8 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { CompoundCondition, FieldCondition } from '@ucast/core';
+import type { FieldCondition } from '@ucast/core';
+import { CompoundCondition } from '@ucast/core';
 import {
     FilterCompoundOperator, FiltersParser, and, filters, or,
 } from '../../../src';
@@ -62,9 +63,12 @@ describe('src/filters', () => {
         ];
         expect(first).toBeInstanceOf(CompoundCondition);
 
-        expect(second).toBeInstanceOf(FieldCondition);
-        expect(second.operator).toEqual('eq');
-        expect(second.value).toEqual(15);
-        expect(second.field).toEqual('id');
+        expect(second).toBeInstanceOf(CompoundCondition);
+
+        const [secondFirst] = (second as CompoundCondition).value as [FieldCondition];
+
+        expect(secondFirst.operator).toEqual('eq');
+        expect(secondFirst.value).toEqual(15);
+        expect(secondFirst.field).toEqual('id');
     });
 });
