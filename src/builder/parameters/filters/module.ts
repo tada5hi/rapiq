@@ -6,7 +6,6 @@
  */
 
 import { URLParameter } from '../../../constants';
-import type { Condition } from '../../../schema';
 import {
     CompoundCondition,
     FieldCondition,
@@ -53,49 +52,49 @@ export class FiltersBuilder<
         }
     }
 
-    protected normalizeChild(input: Condition, index: number) {
-        if (input instanceof FiltersBuilder) {
-            const normalized = input.normalize(false);
-
-            if (this.operator === FilterCompoundOperator.AND) {
-                return renameObjectKeys(
-                    normalized,
-                    (key) => `0${key}`,
-                );
-            }
-
-            return renameObjectKeys(
-                normalized,
-                (key) => `${index}${key}`,
-            );
-        }
-
-        if (input instanceof FieldCondition) {
-            return {
-                [input.field]: input.value,
-            };
-        }
-
-        return input;
-    }
-
     normalize(isRoot: boolean = true) : Record<string, any> {
         const input = flattenConditions(this.value, this.operator);
         if (input.length === 1) {
             const first = input[0];
 
             if (first instanceof FiltersBuilder) {
-                return first.normalize();
+                return first.normalize(isRoot);
             }
         }
 
         const output : Record<string, any> = {};
 
         for (let i = 0; i < input.length; i++) {
-            extendObject(
-                output,
-                this.normalizeChild(input[i], i),
-            );
+            const item = input[i];
+
+            if (item instanceof FieldCondition) {
+                output[item.field] = item.value;
+                continue;
+            }
+
+            if (item instanceof FiltersBuilder) {
+                const normalized = item.normalize(false);
+
+                if (this.operator === FilterCompoundOperator.AND) {
+                    extendObject(
+                        output,
+                        renameObjectKeys(
+                            normalized,
+                            (key) => `0${key}`,
+                        ),
+                    );
+
+                    continue;
+                }
+
+                extendObject(
+                    output,
+                    renameObjectKeys(
+                        normalized,
+                        (key) => `${i}${key}`,
+                    ),
+                );
+            }
         }
 
         if (isRoot) {
