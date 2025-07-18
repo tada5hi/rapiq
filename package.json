@@ -66,7 +66,7 @@
     },
     "devDependencies": {
         "@rollup/plugin-node-resolve": "^16.0.1",
-        "@swc/core": "^1.12.14",
+        "@swc/core": "^1.13.0",
         "@swc/jest": "^0.2.39",
         "@tada5hi/commitlint-config": "^1.2.6",
         "@tada5hi/eslint-config-typescript": "^1.2.17",
