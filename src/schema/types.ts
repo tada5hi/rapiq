@@ -37,13 +37,21 @@ export type BaseSchemaOptions = {
     schemaMapping?: Record<string, string>
 };
 
+export type VerifyFn<
+    VALUE = unknown,
+    CONTEXT extends Record<PropertyKey, any> = Record<string, any>,
+> = (
+    value: VALUE,
+    context: CONTEXT
+) => Promise<VALUE>;
+
 export type SchemaOptionsNormalized<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = BaseSchemaOptions & {
     fields: FieldsOptions<RECORD> | FieldsSchema<RECORD>,
     filters: FiltersOptions<RECORD> | FiltersSchema<RECORD>,
     relations: RelationsOptions<RECORD> | RelationsSchema<RECORD>,
-    pagination: PaginationOptions | PaginationSchema,
+    pagination: PaginationOptions | PaginationSchema
     sort : SortOptions<RECORD> | SortSchema<RECORD>,
 };
 

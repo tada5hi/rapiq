@@ -18,12 +18,12 @@ export class PaginationParser extends BaseParser<
 PaginationParseOptions,
 PaginationParseOutput
 > {
-    parse<
+    async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
-    ) : PaginationParseOutput {
+    ) : Promise<PaginationParseOutput> {
         const schema = this.resolveSchema(options.schema);
 
         const output : PaginationParseOutput = {};

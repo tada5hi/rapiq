@@ -16,31 +16,31 @@ describe('src/pagination/index.ts', () => {
         parser = new PaginationParser();
     });
 
-    it('should parse with no schema & invalid value', () => {
-        const output = parser.parse(undefined);
+    it('should parse with no schema & invalid value', async () => {
+        const output = await parser.parse(undefined);
         expect(output).toEqual({});
     });
 
-    it('should parse pagination', () => {
+    it('should parse pagination', async () => {
         const schema = defineSchema({
             pagination: {
                 maxLimit: 50,
             },
         });
-        let pagination = parser.parse(undefined, { schema });
+        let pagination = await parser.parse(undefined, { schema });
         expect(pagination).toEqual({ offset: 0, limit: 50 });
 
-        pagination = parser.parse({ limit: 100 }, { schema });
+        pagination = await parser.parse({ limit: 100 }, { schema });
         expect(pagination).toEqual({ offset: 0, limit: 50 });
 
-        pagination = parser.parse({ limit: 50 }, { schema });
+        pagination = await parser.parse({ limit: 50 }, { schema });
         expect(pagination).toEqual({ offset: 0, limit: 50 });
 
-        pagination = parser.parse({ offset: 20, limit: 20 }, { schema });
+        pagination = await parser.parse({ offset: 20, limit: 20 }, { schema });
         expect(pagination).toEqual({ offset: 20, limit: 20 });
     });
 
-    it('should throw on exceeded limit', () => {
+    it('should throw on exceeded limit', async () => {
         const schema = defineSchema({
             pagination: {
                 throwOnFailure: true,
@@ -48,56 +48,42 @@ describe('src/pagination/index.ts', () => {
             },
         });
 
-        const evaluate = () => {
-            parser.parse({ limit: 100 }, { schema });
-        };
-
         const error = PaginationParseError.limitExceeded(50);
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({ limit: 100 }, { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on invalid input', () => {
+    it('should throw on invalid input', async () => {
         const schema = defineSchema({
             pagination: {
                 throwOnFailure: true,
             },
         });
-
-        const evaluate = () => {
-            parser.parse(false, { schema });
-        };
 
         const error = PaginationParseError.inputInvalid();
-        expect(evaluate).toThrow(error);
+        await expect(parser.parse(false, { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on invalid limit', () => {
+    it('should throw on invalid limit', async () => {
         const schema = defineSchema({
             pagination: {
                 throwOnFailure: true,
             },
         });
-
-        const evaluate = () => {
-            parser.parse({ limit: false }, { schema });
-        };
 
         const error = PaginationParseError.keyValueInvalid('limit');
-        expect(evaluate).toThrow(error);
+        await expect(parser.parse({ limit: false }, { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on invalid offset', () => {
+    it('should throw on invalid offset', async () => {
         const schema = defineSchema({
             pagination: {
                 throwOnFailure: true,
             },
         });
 
-        const evaluate = () => {
-            parser.parse({ offset: false }, { schema });
-        };
-
         const error = PaginationParseError.keyValueInvalid('offset');
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({ offset: false }, { schema })).rejects.toThrow(error);
     });
 });

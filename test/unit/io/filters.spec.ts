@@ -20,7 +20,7 @@ describe('src/filters', () => {
         parser = new FiltersParser(registry);
     });
 
-    it('should build & parse', () => {
+    it('should build & parse', async () => {
         /**
          * 00:id
          * 000:name
@@ -47,7 +47,7 @@ describe('src/filters', () => {
             }),
         ]);
 
-        const output = parser.parse(group.normalize());
+        const output = await parser.parse(group.normalize());
 
         expect(output).toBeInstanceOf(CompoundCondition);
         expect(output.operator).toEqual(FilterCompoundOperator.OR);

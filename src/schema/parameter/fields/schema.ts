@@ -13,8 +13,9 @@ import type { FieldsOptions } from './types';
 import { BaseSchema } from '../../base';
 
 export class FieldsSchema<
-    T extends ObjectLiteral = ObjectLiteral,
-> extends BaseSchema<FieldsOptions<T>> {
+    RECORD extends ObjectLiteral = ObjectLiteral,
+    CONTEXT extends ObjectLiteral = ObjectLiteral,
+> extends BaseSchema<FieldsOptions<RECORD, CONTEXT>> {
     public default : string[];
 
     public defaultIsUndefined : boolean;
@@ -27,7 +28,7 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    constructor(input: FieldsOptions<T> = {}) {
+    constructor(input: FieldsOptions<RECORD, CONTEXT> = {}) {
         super(input);
 
         this.allowed = [];
@@ -62,7 +63,7 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: SimpleKeys<T>[]) {
+    setDefault(input?: SimpleKeys<RECORD>[]) {
         if (typeof input === 'undefined') {
             this.default = [];
             this.defaultIsUndefined = true;
@@ -73,7 +74,7 @@ export class FieldsSchema<
         this.defaultIsUndefined = false;
     }
 
-    setAllowed(input?: SimpleKeys<T>[]) {
+    setAllowed(input?: SimpleKeys<RECORD>[]) {
         if (typeof input === 'undefined') {
             this.allowed = [];
             this.allowedIsUndefined = true;
