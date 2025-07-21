@@ -17,9 +17,9 @@ describe('src/parser/filters-nested.ts', () => {
         parser = new FiltersParser();
     });
 
-    it('should parse nested filters', () => {
+    it('should parse nested filters', async () => {
         // filter id
-        const output = parser.parse({
+        const output = await parser.parse({
             '01:id': 1,
             '01:name': 'admin',
             '02:age': 15,

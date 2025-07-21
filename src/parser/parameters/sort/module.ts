@@ -66,9 +66,9 @@ SortParseOutput
         return {};
     }
 
-    parse<
+    async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: SortParseOptions<RECORD> = {}) : SortParseOutput {
+    >(input: unknown, options: SortParseOptions<RECORD> = {}) : Promise<SortParseOutput> {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -187,7 +187,7 @@ SortParseOutput
                 childRelations = extractSubRelations(options.relations, key);
             }
 
-            const relationOutput = this.parse(
+            const relationOutput = await this.parse(
                 relationsData[key],
                 {
                     schema: relationSchema,

@@ -52,12 +52,12 @@ ParseOutput
 
     // -----------------------------------------------------
 
-    parse<
+    async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: ParseOptions<RECORD> = {},
-    ): ParseOutput {
+    ): Promise<ParseOutput> {
         const schema = this.getBaseSchema(options.schema);
 
         const output : ParseOutput = {};
@@ -75,7 +75,7 @@ ParseOutput
 
             if (this.hasParameterData(input, [Parameter.RELATIONS, URLParameter.RELATIONS])) {
                 // todo: parse parameter & url-parameter
-                relations = this.parseRelations(
+                relations = await this.parseRelations(
                     input[Parameter.RELATIONS] || input[URLParameter.RELATIONS],
                 );
             }
@@ -91,13 +91,13 @@ ParseOutput
 
             if (this.hasParameterData(input, [Parameter.FIELDS, URLParameter.FIELDS])) {
                 // todo: parse parameter & url-parameter
-                fields = this.parseFields(
+                fields = await this.parseFields(
                     input[Parameter.FIELDS] || input[URLParameter.FIELDS],
                     parameterOptions,
                 );
             } else if (schema.fields.hasDefaults()) {
                 // todo: this should be simplified
-                fields = this.parseFields(
+                fields = await this.parseFields(
                     undefined,
                     parameterOptions,
                 );
@@ -112,13 +112,13 @@ ParseOutput
             let filters : FiltersParseOutput | undefined;
             if (this.hasParameterData(input, [Parameter.FILTERS, URLParameter.FILTERS])) {
                 // todo: parse parameter & url-parameter
-                filters = this.parseFilters(
+                filters = await this.parseFilters(
                     input[Parameter.FILTERS] || input[URLParameter.FILTERS],
                     parameterOptions,
                 );
             } else if (schema.filters.hasDefaults()) {
                 // todo: maybe move to parser
-                filters = this.parseFilters(
+                filters = await this.parseFilters(
                     undefined,
                     parameterOptions,
                 );
@@ -134,7 +134,7 @@ ParseOutput
 
             if (this.hasParameterData(input, [Parameter.PAGINATION, URLParameter.PAGINATION])) {
                 // todo: parse parameter & url-parameter
-                pagination = this.parsePagination(
+                pagination = await this.parsePagination(
                     input[Parameter.PAGINATION] || input[URLParameter.PAGINATION],
                 );
             }
@@ -149,13 +149,13 @@ ParseOutput
 
             if (this.hasParameterData(input, [Parameter.SORT, URLParameter.SORT])) {
                 // todo: parse parameter & url-parameter
-                sort = this.parseSort(
+                sort = await this.parseSort(
                     input[Parameter.SORT] || input[URLParameter.SORT],
                     parameterOptions,
                 );
             } else if (schema.sort.defaultKeys.length > 0) {
                 // todo: this should be simplified
-                sort = this.parseSort(undefined, parameterOptions);
+                sort = await this.parseSort(undefined, parameterOptions);
             }
 
             if (typeof sort !== 'undefined') {
@@ -174,12 +174,12 @@ ParseOutput
      * @param input
      * @param options
      */
-    parseRelations<
+    async parseRelations<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: QueryParseParameterOptions<RECORD> = {},
-    ): RelationsParseOutput {
+    ): Promise<RelationsParseOutput> {
         return this.relationsParser.parse(input, options);
     }
 
@@ -189,12 +189,12 @@ ParseOutput
      * @param input
      * @param options
      */
-    parseFields<
+    async parseFields<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: QueryParseParameterOptions<RECORD> = {},
-    ) : FieldsParseOutput {
+    ) : Promise<FieldsParseOutput> {
         return this.fieldsParser.parse(input, options);
     }
 
@@ -204,12 +204,12 @@ ParseOutput
      * @param input
      * @param options
      */
-    parseFilters<
+    async parseFilters<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: QueryParseParameterOptions<RECORD> = {},
-    ) : FiltersParseOutput {
+    ) : Promise<FiltersParseOutput> {
         return this.filtersParser.parse(input, options);
     }
 
@@ -219,12 +219,12 @@ ParseOutput
      * @param input
      * @param options
      */
-    parsePagination<
+    async parsePagination<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: QueryParseParameterOptions<RECORD> = {},
-    ) : PaginationParseOutput {
+    ) : Promise<PaginationParseOutput> {
         return this.paginationParser.parse(input, options);
     }
 
@@ -234,12 +234,12 @@ ParseOutput
      * @param input
      * @param options
      */
-    parseSort<
+    async parseSort<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: QueryParseParameterOptions<RECORD> = {},
-    ) : SortParseOutput {
+    ) : Promise<SortParseOutput> {
         return this.sortParser.parse(input, options);
     }
 

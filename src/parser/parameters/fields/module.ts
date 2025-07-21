@@ -23,12 +23,12 @@ export class FieldsParser extends BaseParser<
 FieldsParseOptions,
 FieldsParseOutput
 > {
-    parse<
+    async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: FieldsParseOptions<RECORD> = {},
-    ) : FieldsParseOutput {
+    ) : Promise<FieldsParseOutput> {
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array, nothing is allowed
@@ -194,7 +194,7 @@ FieldsParseOutput
                 childRelations = extractSubRelations(options.relations, key);
             }
 
-            const relationOutput = this.parse(
+            const relationOutput = await this.parse(
                 grouped[key],
                 {
                     schema: relationSchema,

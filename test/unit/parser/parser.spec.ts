@@ -13,7 +13,7 @@ import {
 } from '../../../src';
 
 describe('src/parser', () => {
-    it('should parse schema by name', () => {
+    it('should parse schema by name', async () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
             name: 'foo',
@@ -24,7 +24,7 @@ describe('src/parser', () => {
 
         const parser = new Parser(registry);
 
-        const output = parser.parse({
+        const output = await parser.parse({
             fields: ['id', 'name'],
         }, {
             schema: 'foo',

@@ -24,12 +24,12 @@ export class RelationsParser extends BaseParser<
 RelationsParseOptions,
 RelationsParseOutput
 > {
-    parse<
+    async parse<
     RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
-    ) : RelationsParseOutput {
+    ) : Promise<RelationsParseOutput> {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -98,7 +98,7 @@ RelationsParseOutput
                 continue;
             }
 
-            const relationOutput = this.parse(
+            const relationOutput = await this.parse(
                 relationsData[keys[i]],
                 {
                     schema: relationSchema,

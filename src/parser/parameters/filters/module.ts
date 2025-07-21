@@ -227,10 +227,10 @@ Condition
         return output;
     }
 
-    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
+    async parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition {
+    ) : Promise<Condition> {
         const items = this.preParse(input, options);
 
         const itemKeys = Object.keys(items);

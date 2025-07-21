@@ -31,7 +31,7 @@ export abstract class BaseParser<
 
     // --------------------------------------------------
 
-    abstract parse(input: unknown, options: OPTIONS) : OUTPUT;
+    abstract parse(input: unknown, options: OPTIONS) : Promise<OUTPUT>;
 
     // --------------------------------------------------
 

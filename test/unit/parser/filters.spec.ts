@@ -23,11 +23,11 @@ describe('src/filter/index.ts', () => {
         parser = new FiltersParser(registry);
     });
 
-    const parsi = <T extends ObjectLiteral = ObjectLiteral>(
+    const parsi = async <T extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options?: FiltersParseOptions<T>,
     ) => {
-        const parsed = parser.parse(input, options);
+        const parsed = await parser.parse(input, options);
 
         return interpreter(parsed, {
             ...pg,
@@ -35,9 +35,9 @@ describe('src/filter/index.ts', () => {
         });
     };
 
-    it('should parse with allowed', () => {
+    it('should parse with allowed', async () => {
         // filter id
-        const [sql, params] = parsi({ id: 1 }, {
+        const [sql, params] = await parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['id'],
             }),
@@ -47,9 +47,9 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should parse with allowed (underscore key)', () => {
+    it('should parse with allowed (underscore key)', async () => {
         // filter with underscore key
-        const [sql, params] = parsi({ display_name: 'admin' }, {
+        const [sql, params] = await parsi({ display_name: 'admin' }, {
             schema: defineFiltersSchema({
                 allowed: ['display_name'],
             }),
@@ -59,9 +59,9 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual(['admin']);
     });
 
-    it('should parse with allowed (empty)', () => {
+    it('should parse with allowed (empty)', async () => {
         // filter none
-        const [sql] = parsi({ id: 1 }, {
+        const [sql] = await parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: [],
             }),
@@ -69,9 +69,9 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('()');
     });
 
-    it('should parse with allowed (undefined)', () => {
+    it('should parse with allowed (undefined)', async () => {
         // filter
-        const [sql, params] = parsi({ id: 1 }, {
+        const [sql, params] = await parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: undefined,
             }),
@@ -81,9 +81,9 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should parse with allowed & mapping', () => {
+    it('should parse with allowed & mapping', async () => {
         // filter with mapping
-        const [sql, params] = parsi({ aliasId: 1 }, {
+        const [sql, params] = await parsi({ aliasId: 1 }, {
             schema: defineFiltersSchema({
                 mapping: { aliasId: 'id' },
                 allowed: ['id'],
@@ -93,9 +93,9 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should not parse with non matching name', () => {
+    it('should not parse with non matching name', async () => {
         // filter wrong allowed
-        const [sql] = parsi({ id: 1 }, {
+        const [sql] = await parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['name'],
             }),
@@ -103,8 +103,8 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('()');
     });
 
-    it('should not parse with invalid name', () => {
-        const [sql] = parsi({ 'id!': 1 }, {
+    it('should not parse with invalid name', async () => {
+        const [sql] = await parsi({ 'id!': 1 }, {
             schema: defineFiltersSchema({
                 allowed: undefined,
             }),
@@ -112,8 +112,8 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('()');
     });
 
-    it('should parse invalid name if permitted by allowed', () => {
-        const [sql, params] = parsi({ 'id!': 1 }, {
+    it('should parse invalid name if permitted by allowed', async () => {
+        const [sql, params] = await parsi({ 'id!': 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['id!'],
             }),
@@ -122,8 +122,8 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1]);
     });
 
-    it('should not parse empty input', () => {
-        const [sql] = parsi({ name: '' }, {
+    it('should not parse empty input', async () => {
+        const [sql] = await parsi({ name: '' }, {
             schema: defineFiltersSchema({
                 allowed: ['name'],
             }),
@@ -131,23 +131,23 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('()');
     });
 
-    it('should parse null input', () => {
-        let [sql, params] = parsi({ name: null });
+    it('should parse null input', async () => {
+        let [sql, params] = await parsi({ name: null });
         expect(sql).toEqual('"name" = $1');
         expect(params).toEqual([null]);
 
-        [sql, params] = parsi({ name: 'null' });
+        [sql, params] = await parsi({ name: 'null' });
         expect(sql).toEqual('"name" = $1');
         expect(params).toEqual([null]);
     });
 
-    it('should not parse empty object', () => {
-        const [sql] = parsi({});
+    it('should not parse empty object', async () => {
+        const [sql] = await parsi({});
         expect(sql).toEqual('()');
     });
 
-    it('should parse with default', () => {
-        let [sql, params] = parsi({ id: 1 }, {
+    it('should parse with default', async () => {
+        let [sql, params] = await parsi({ id: 1 }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
             }),
@@ -155,7 +155,7 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('"name" = $1');
         expect(params).toEqual(['admin']);
 
-        [sql, params] = parsi({ name: 'tada5hi' }, {
+        [sql, params] = await parsi({ name: 'tada5hi' }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
             }),
@@ -164,24 +164,24 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual(['tada5hi']);
     });
 
-    it('should parse with default path', () => {
+    it('should parse with default path', async () => {
         const schema = defineFiltersSchema({
             allowed: ['id', 'display_name'],
             name: 'user',
         });
 
-        let [sql, params] = parsi({ id: 1 }, { schema });
+        let [sql, params] = await parsi({ id: 1 }, { schema });
 
         expect(sql).toEqual('"id" = $1');
         expect(params).toEqual([1]);
 
-        [sql, params] = parsi({ display_name: 'admin' }, { schema });
+        [sql, params] = await parsi({ display_name: 'admin' }, { schema });
         expect(sql).toEqual('"display_name" = $1');
         expect(params).toEqual(['admin']);
     });
 
-    it('should parse with validator', () => {
-        let [sql, params] = parsi(
+    it('should parse with validator', async () => {
+        let [sql, params] = await parsi(
             { id: '1' },
             {
                 schema: defineFiltersSchema({
@@ -199,7 +199,7 @@ describe('src/filter/index.ts', () => {
         expect(sql).toEqual('"id" = $1');
         expect(params).toEqual([1]);
 
-        [sql, params] = parsi(
+        [sql, params] = await parsi(
             { id: '1,2,3' },
             {
                 schema: defineFiltersSchema({
@@ -219,91 +219,91 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([2, 3]);
     });
 
-    it('should parse with different number input', () => {
+    it('should parse with different number input', async () => {
         const schema = defineFiltersSchema({
             allowed: ['id'],
         });
 
         // equal operator
-        let [sql, params] = parsi({ id: '1' }, { schema });
+        let [sql, params] = await parsi({ id: '1' }, { schema });
         expect(sql).toEqual('"id" = $1');
         expect(params).toEqual([1]);
 
         // negation with equal operator
-        [sql, params] = parsi({ id: '!1' }, { schema });
+        [sql, params] = await parsi({ id: '!1' }, { schema });
         expect(sql).toEqual('"id" <> $1');
         expect(params).toEqual([1]);
 
         // in operator
-        [sql, params] = parsi({ id: 'null,0,1,2,3' }, { schema });
+        [sql, params] = await parsi({ id: 'null,0,1,2,3' }, { schema });
         expect(sql).toEqual('"id" in($1, $2, $3, $4, $5)');
         expect(params).toEqual([null, 0, 1, 2, 3]);
 
         // negation with in operator
-        [sql, params] = parsi({ id: '!1,2,3' }, { schema });
+        [sql, params] = await parsi({ id: '!1,2,3' }, { schema });
         expect(sql).toEqual('"id" not in($1, $2, $3)');
         expect(params).toEqual([1, 2, 3]);
 
         // less than operator
-        [sql, params] = parsi({ id: '<10' }, { schema });
+        [sql, params] = await parsi({ id: '<10' }, { schema });
         expect(sql).toEqual('"id" < $1');
         expect(params).toEqual([10]);
 
         // less than equal operator
-        [sql, params] = parsi({ id: '<=10' }, { schema });
+        [sql, params] = await parsi({ id: '<=10' }, { schema });
         expect(sql).toEqual('"id" <= $1');
         expect(params).toEqual([10]);
 
         // more than operator
-        [sql, params] = parsi({ id: '>10' }, { schema });
+        [sql, params] = await parsi({ id: '>10' }, { schema });
         expect(sql).toEqual('"id" > $1');
         expect(params).toEqual([10]);
 
         // more than equal operator
-        [sql, params] = parsi({ id: '>=10' }, { schema });
+        [sql, params] = await parsi({ id: '>=10' }, { schema });
         expect(sql).toEqual('"id" >= $1');
         expect(params).toEqual([10]);
     });
 
-    it('should parse different string inputs', () => {
+    it('should parse different string inputs', async () => {
         const schema = defineFiltersSchema({
             allowed: ['name'],
         });
 
         // like operator (start)
-        let [sql, params] = parsi({ name: '~name' }, { schema });
+        let [sql, params] = await parsi({ name: '~name' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['^name']);
 
         // like operator (end)
-        [sql, params] = parsi({ name: 'name~' }, { schema });
+        [sql, params] = await parsi({ name: 'name~' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['name$']);
 
         // like operator (start & end)
-        [sql, params] = parsi({ name: '~name~' }, { schema });
+        [sql, params] = await parsi({ name: '~name~' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['name']);
 
         // negation + like operator (start)
-        [sql, params] = parsi({ name: '!~name' }, { schema });
+        [sql, params] = await parsi({ name: '!~name' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['^(?!name).+']);
 
         // negation + like operator (end)
-        [sql, params] = parsi({ name: '!name~' }, { schema });
+        [sql, params] = await parsi({ name: '!name~' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['^(?!.*name$).*']);
 
         // negation + like operator (start & end)
-        [sql, params] = parsi({ name: '!~name~' }, { schema });
+        [sql, params] = await parsi({ name: '!~name~' }, { schema });
         expect(sql).toEqual('"name" ~* $1');
         expect(params).toEqual(['^(?!.*name).*']);
     });
 
-    it('should parse with includes', () => {
+    it('should parse with includes', async () => {
         // simple
-        let [sql, params] = parsi({ id: 1, 'realm.id': 2 }, {
+        let [sql, params] = await parsi({ id: 1, 'realm.id': 2 }, {
             schema: 'user',
             relations: ['realm'],
             throwOnFailure: true,
@@ -312,101 +312,89 @@ describe('src/filter/index.ts', () => {
         expect(params).toEqual([1, 2]);
 
         // with include & query alias
-        [sql, params] = parsi({ id: 1, 'realm.id': 2 }, { schema: 'user' });
+        [sql, params] = await parsi({ id: 1, 'realm.id': 2 }, { schema: 'user' });
         expect(sql).toEqual('("id" = $1 and "realm"."id" = $2)');
         expect(params).toEqual([1, 2]);
 
         // todo: should be "role"."id" instead of "user_roles"."role.id"
         // with deep nested include
-        [sql, params] = parsi({ id: 1, 'realm.item.id': 2 }, { schema: 'user' });
+        [sql, params] = await parsi({ id: 1, 'realm.item.id': 2 }, { schema: 'user' });
         expect(sql).toEqual('("id" = $1 and "realm"."item.id" = $2)');
         expect(params).toEqual([1, 2]);
     });
 
-    it('should throw on invalid input shape', () => {
+    it('should throw on invalid input shape', async () => {
         const schema = defineFiltersSchema({
             throwOnFailure: true,
         });
 
         const error = FiltersParseError.inputInvalid();
-        const evaluate = () => {
-            parser.parse('foo', { schema });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse('foo', { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on invalid key value', () => {
+    it('should throw on invalid key value', async () => {
         const schema = defineFiltersSchema({
             throwOnFailure: true,
         });
 
         const error = FiltersParseError.keyValueInvalid('foo');
-        const evaluate = () => {
-            parser.parse({
-                foo: Buffer.from('foo'),
-            }, { schema });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({
+            foo: Buffer.from('foo'),
+        }, { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on invalid key', () => {
+    it('should throw on invalid key', async () => {
         const schema = defineFiltersSchema({
             throwOnFailure: true,
         });
 
         const error = FiltersParseError.keyInvalid('1foo');
-        const evaluate = () => {
-            parser.parse({
-                '1foo': 1,
-            }, { schema });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({
+            '1foo': 1,
+        }, { schema })).rejects.toThrow(error);
     });
 
-    it('should throw on non allowed relation', () => {
+    it('should throw on non allowed relation', async () => {
         const schema = defineFiltersSchema({
             throwOnFailure: true,
             allowed: ['user.foo'],
         });
 
         const error = FiltersParseError.keyPathInvalid('bar');
-        const evaluate = () => {
-            parser.parse({
-                'bar.bar': 1,
-            }, {
-                schema,
-                relations: ['user'],
-            });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({
+            'bar.bar': 1,
+        }, {
+            schema,
+            relations: ['user'],
+        })).rejects.toThrow(error);
     });
 
-    it('should throw on non allowed key which is not covered by a relation', () => {
+    it('should throw on non allowed key which is not covered by a relation', async () => {
         const error = FiltersParseError.keyInvalid('bar');
-        const evaluate = () => {
-            parser.parse({
-                'realm.bar': 1,
-            }, {
-                schema: 'user',
-                relations: ['realm'],
-                throwOnFailure: true,
-            });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({
+            'realm.bar': 1,
+        }, {
+            schema: 'user',
+            relations: ['realm'],
+            throwOnFailure: true,
+        })).rejects.toThrow(error);
     });
 
-    it('should throw on non allowed key', () => {
+    it('should throw on non allowed key', async () => {
         const schema = defineFiltersSchema({
             throwOnFailure: true,
             allowed: ['foo'],
         });
 
         const error = FiltersParseError.keyInvalid('bar');
-        const evaluate = () => {
-            parser.parse({
-                bar: 1,
-            }, { schema });
-        };
-        expect(evaluate).toThrow(error);
+
+        await expect(parser.parse({
+            bar: 1,
+        }, { schema })).rejects.toThrow(error);
     });
 });

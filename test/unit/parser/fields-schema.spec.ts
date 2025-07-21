@@ -15,16 +15,16 @@ describe('parser/fields/schema', () => {
         parser = new FieldsParser(registry);
     });
 
-    it('should parse root schema', () => {
-        const output = parser.parse('id,name', {
+    it('should parse root schema', async () => {
+        const output = await parser.parse('id,name', {
             schema: 'user',
         });
 
         expect(output).toEqual(['id', 'name'] satisfies FieldsParseOutput);
     });
 
-    it('should not parse root schema', () => {
-        const output = parser.parse('id,name,foo', {
+    it('should not parse root schema', async () => {
+        const output = await parser.parse('id,name,foo', {
             schema: 'user',
         });
 
@@ -34,8 +34,8 @@ describe('parser/fields/schema', () => {
         ] satisfies FieldsParseOutput);
     });
 
-    it('should parse with valid sub schema field', () => {
-        const output = parser.parse(
+    it('should parse with valid sub schema field', async () => {
+        const output = await parser.parse(
             'user.name,realm.name',
             {
                 schema: 'user',
@@ -48,8 +48,8 @@ describe('parser/fields/schema', () => {
         ] satisfies FieldsParseOutput);
     });
 
-    it('should parse with invalid sub schema field', () => {
-        const output = parser.parse(
+    it('should parse with invalid sub schema field', async () => {
+        const output = await parser.parse(
             'user.name,realm.foo',
             {
                 schema: 'user',
@@ -64,8 +64,8 @@ describe('parser/fields/schema', () => {
         ] satisfies FieldsParseOutput);
     });
 
-    it('should parse with valid sub sub schema field', () => {
-        const output = parser.parse(
+    it('should parse with valid sub sub schema field', async () => {
+        const output = await parser.parse(
             'user.name,item.realm.name',
             {
                 schema: 'user',
@@ -79,8 +79,8 @@ describe('parser/fields/schema', () => {
         ] satisfies FieldsParseOutput);
     });
 
-    it('should parse with invalid sub sub schema field', () => {
-        const output = parser.parse(
+    it('should parse with invalid sub sub schema field', async () => {
+        const output = await parser.parse(
             'user.name,item.realm.foo',
             {
                 schema: 'user',
