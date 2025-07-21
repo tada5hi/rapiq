@@ -6,18 +6,16 @@
  */
 
 import { isObject } from 'smob';
-import type { ObjectLiteral } from '../../../types';
-import { BaseParser } from '../../base';
-import {
-    FieldOperator, FieldsSchema, Schema, defineFieldsSchema,
-} from '../../../schema';
 import { DEFAULT_ID } from '../../../constants';
-import { FieldsParseError } from './error';
 import {
-    applyMapping, groupArrayByKeyPath, isPathAllowed,
-} from '../../../utils';
-import type { FieldsParseInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
+    FieldOperator, FieldsHookName, FieldsSchema, Schema, defineFieldsSchema,
+} from '../../../schema';
 import { extractSubRelations } from '../../../schema/parameter/relations/helpers';
+import type { ObjectLiteral } from '../../../types';
+import { applyMapping, groupArrayByKeyPath, isPathAllowed } from '../../../utils';
+import { BaseParser } from '../../base';
+import { FieldsParseError } from './error';
+import type { FieldsParseInputTransformed, FieldsParseOptions, FieldsParseOutput } from './types';
 
 export class FieldsParser extends BaseParser<
 FieldsParseOptions,
@@ -44,6 +42,8 @@ FieldsParseOutput
             normalized[DEFAULT_ID] = normalized[schema.name];
             delete normalized[schema.name];
         }
+
+        await schema.hooks.callHook(FieldsHookName.PARSE_NORMALIZED, normalized, options.context || {});
 
         const data = normalized[DEFAULT_ID] || [];
         delete normalized[DEFAULT_ID];
@@ -131,21 +131,25 @@ FieldsParseOutput
             }
         }
 
-        const keys = Object.keys(normalized);
+        await schema.hooks.callHook(FieldsHookName.PARSE_AFTER, output, options.context || {});
+
+        const normalizedKeys = Object.keys(normalized);
 
         if (options.relations) {
+            await schema.hooks.callHook(FieldsHookName.PARSE_RELATIONS, options.relations, options.context || {});
+
             for (let i = 0; i < options.relations.length; i++) {
-                const index = keys.indexOf(options.relations[i]);
+                const index = normalizedKeys.indexOf(options.relations[i]);
                 if (index === -1) {
-                    keys.push(options.relations[i]);
+                    normalizedKeys.push(options.relations[i]);
                     normalized[options.relations[i]] = [];
                 }
             }
         }
 
         const grouped : Record<string, Record<string, any>> = {};
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
+        for (let i = 0; i < normalizedKeys.length; i++) {
+            const key = normalizedKeys[i];
 
             let group : string;
             let relation : string;

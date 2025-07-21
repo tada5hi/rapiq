@@ -9,3 +9,9 @@ export enum FieldOperator {
     INCLUDE = '+',
     EXCLUDE = '-',
 }
+
+export enum FieldsHookName {
+    PARSE_NORMALIZED = 'parse:normalized',
+    PARSE_AFTER = 'parse:after',
+    PARSE_RELATIONS = 'parse:relations',
+}

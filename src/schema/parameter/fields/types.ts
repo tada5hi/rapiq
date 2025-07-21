@@ -5,15 +5,31 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { BaseSchemaOptions, VerifyFn } from '../../types';
-import type { ObjectLiteral, SimpleKeys } from '../../../types';
+import type { BaseSchemaOptions } from '../../types';
+import type { ObjectLiteral, ObjectLiteralKeys, SimpleKeys } from '../../../types';
+import type { FieldsHookName } from './constants';
 
 export type FieldsOptions<
     T extends Record<string, any> = Record<string, any>,
-    CONTEXT extends ObjectLiteral = ObjectLiteral,
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
-    default?: SimpleKeys<T>[],
-    verify?: VerifyFn<string[], CONTEXT>
+    default?: SimpleKeys<T>[]
 };
+
+export type FieldsHooks = ObjectLiteralKeys<{
+    [FieldsHookName.PARSE_NORMALIZED]: (
+        value: Record<string, string[]>,
+        context: ObjectLiteral
+    ) => Promise<void> | void;
+
+    [FieldsHookName.PARSE_AFTER]: (
+        value: string[],
+        context: ObjectLiteral
+    ) => Promise<void> | void,
+
+    [FieldsHookName.PARSE_RELATIONS]: (
+        value: string[],
+        context: ObjectLiteral
+    ) => Promise<void> | void,
+}>;

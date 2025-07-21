@@ -85,7 +85,7 @@ export class Schema<
         this.extendSchemaOptions(this.sort);
     }
 
-    private extendSchemaOptions(schema: BaseSchema<any>) {
+    private extendSchemaOptions(schema: BaseSchema<any, any>) {
         if (
             typeof this.options.throwOnFailure !== 'undefined' &&
             typeof schema.throwOnFailure === 'undefined'
