@@ -4,6 +4,7 @@
  *  For the full copyright and license information,
  *  view the LICENSE file that was distributed with this source code.
  */
+
 import { DEFAULT_ID } from '../constants';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
