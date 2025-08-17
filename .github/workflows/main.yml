@@ -84,7 +84,22 @@ jobs:
                 run: |
                     npm run test
 
-            -   name: Preview Package
+    preview:
+        name: Test Package
+        needs: [build]
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v4
+
+            -   name: Install
+                uses: ./.github/actions/install
+                with:
+                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+            -   name: Build
+                uses: ./.github/actions/build
+
+            -   name: Publish
                 run: |
                     npm run publish:preview
-
