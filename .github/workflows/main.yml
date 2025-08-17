@@ -85,7 +85,7 @@ jobs:
                     npm run test
 
     preview:
-        name: Test Package
+        name: Preview Package
         needs: [build]
         runs-on: ubuntu-latest
         steps:
