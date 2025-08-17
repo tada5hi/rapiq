@@ -29,7 +29,8 @@
         "docs:build": "vitepress build docs --temp .temp",
         "docs:help": "vitepress --help",
         "prepare": "npx husky install",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build",
+        "publish:preview": "npx pkg-pr-new publish"
     },
     "author": {
         "name": "Peter Placzek",
@@ -78,6 +79,7 @@
         "eslint": "^8.57.1",
         "husky": "^9.1.7",
         "jest": "^30.0.5",
+        "pkg-pr-new": "^0.0.55",
         "rimraf": "^6.0.1",
         "rollup": "^4.46.2",
         "typescript": "^5.9.2",
