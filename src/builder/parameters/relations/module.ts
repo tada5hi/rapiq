@@ -37,7 +37,7 @@ export class RelationsBuilder<
         }
     }
 
-    mergeWith(builder: RelationsBuilder) {
+    mergeWith(builder: RelationsBuilder<RECORD>) {
         for (let i = 0; i < builder.value.length; i++) {
             const index = this.value.indexOf(builder.value[i]);
             if (index === -1) {

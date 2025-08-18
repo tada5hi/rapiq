@@ -5,12 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ArrayItem, NestedResourceKeys, OnlyObject } from '../../../types';
+import type { NestedResourceKeys } from '../../../types';
 
 export type RelationsBuildInput<T extends Record<PropertyKey, any>> = {
-    [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
-        RelationsBuildInput<ArrayItem<T[K]>> | boolean :
-        never
+    [K in keyof T]?: T[K] extends Array<infer ELEMENT> ?
+        (
+            ELEMENT extends Record<PropertyKey, any> ?
+                RelationsBuildInput<ELEMENT> | boolean :
+                never
+        ) :
+        T[K] extends Record<PropertyKey, any> ?
+            RelationsBuildInput<T[K]> | boolean :
+            never
 } |
 NestedResourceKeys<T>[] |
 NestedResourceKeys<T>;
