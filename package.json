@@ -76,7 +76,7 @@
         "@types/node": "^24.2.0",
         "@ucast/sql": "^1.0.0-alpha.12",
         "cross-env": "^7.0.3",
-        "eslint": "^8.57.1",
+        "eslint": "^9.33.0",
         "husky": "^9.1.7",
         "jest": "^30.0.5",
         "pkg-pr-new": "^0.0.55",
