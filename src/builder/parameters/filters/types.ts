@@ -27,8 +27,8 @@ export type FiltersBuildInputValue<
     T,
     DEPTH extends number = 10,
 > = [DEPTH] extends [0] ? never :
-    T extends IsArray<T> ?
-        FiltersBuildInputValue<ArrayItem<T>, PrevIndex[DEPTH]> :
+    T extends Array<infer ELEMENT> ?
+        FiltersBuildInputValue<ELEMENT, PrevIndex[DEPTH]> :
         T extends IsScalar<T> ?
             FilterValue<T> :
             T extends Date ?
