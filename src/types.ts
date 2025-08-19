@@ -6,8 +6,8 @@
  */
 
 export type ObjectLiteral = Record<string, any>;
-export type ObjectLiteralKeys<T extends ObjectLiteral> = {
-    [K in keyof T as `${K & (string | number)}`]: T[K];
+export type ObjectLiteralKeys<T extends Record<PropertyKey, any>> = {
+    [K in keyof T as `${K & string}`]: T[K];
 };
 
 export type ArrayItem<Type> = Type extends Array<infer Item> ? Item : Type;
@@ -16,8 +16,6 @@ export type IsArray<Type> = Type extends Array<any> ? Type : never;
 export type Scalar = string | number | boolean | undefined | null;
 export type IsScalar<T> = T extends string | number | boolean | undefined | null ? T : never;
 
-export type OnlySingleObject<T> = T extends { [key: string]: any } ? T : never;
-export type OnlyObject<T> = ArrayItem<T> extends OnlySingleObject<ArrayItem<T>> ? T | ArrayItem<T> : never;
 export type KeyWithOptionalPrefix<T, O extends string> = T extends string ? (`${O}${T}` | T) : never;
 
 export type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
