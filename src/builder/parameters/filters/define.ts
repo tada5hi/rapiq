@@ -57,9 +57,10 @@ export function or<
 
 export function defineCompoundCondition<
     T extends FiltersBuilder = FiltersBuilder,
->(operator: `${FilterCompoundOperator}`, items: T[]) : FiltersBuilder<FiltersBuilderArg<T>> {
-    return new FiltersBuilder<FiltersBuilderArg<T>>(
+    A extends FiltersBuilderArg<T> = FiltersBuilderArg<T>,
+>(operator: `${FilterCompoundOperator}`, items: T[]) : FiltersBuilder<A> {
+    return new FiltersBuilder<A>(
         operator,
-        items,
+        items as FiltersBuilder<A>[],
     );
 }

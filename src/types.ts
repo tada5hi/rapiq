@@ -82,8 +82,8 @@ export type NestedResourceKeys<
 export type TypeFromNestedKeyPath<
     T extends Record<PropertyKey, any>,
     Path extends string,
-    Depth extends number = 4,
-> = [Depth] extends [0] ? never :
+    DEPTH extends number = 4,
+> = [DEPTH] extends [0] ? never :
     {
         [Key in Path & string]: Key extends keyof T
             ? (
@@ -93,17 +93,17 @@ export type TypeFromNestedKeyPath<
             )
             : Key extends `${infer P}.${infer S}` ?
                 (P extends keyof T ?
-                    T[P] extends Array<infer ELEMENT> ?
-                        (
-                            ELEMENT extends Record<PropertyKey, any> ?
-                                TypeFromNestedKeyPath<ELEMENT, S, PrevIndex[Depth]> :
-                                ELEMENT
-                        ) :
-                        (
+                    (
+                        T[P] extends Array<infer ELEMENT> ?
+                            (
+                                ELEMENT extends Record<PropertyKey, any> ?
+                                    TypeFromNestedKeyPath<ELEMENT, S, PrevIndex[DEPTH]> :
+                                    never
+                            ) :
                             T[P] extends Record<PropertyKey, any>
-                                ? TypeFromNestedKeyPath<T[P], S, PrevIndex[Depth]>
-                                : T[P]
-                        )
+                                ? TypeFromNestedKeyPath<T[P], S, PrevIndex[DEPTH]>
+                                : never
+                    )
                     : never
                 ) :
                 never;
