@@ -1,0 +1,13 @@
+{
+    "name": "@rapiq/docs",
+    "version": "1.0.0",
+    "private": true,
+    "dependencies": {
+        "vitepress": "^1.6.4"
+    },
+    "scripts": {
+        "dev": "vitepress dev . --temp .temp",
+        "build": "vitepress build . --temp .temp",
+        "help": "vitepress --help"
+    }
+}

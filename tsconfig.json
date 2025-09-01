@@ -1,17 +1,7 @@
 {
-    "extends": "@tada5hi/tsconfig",
+    "extends": "./tsconfig.build.json",
     "compilerOptions": {
-        "outDir": "dist",
-        "declarationMap": true,
-
-        "lib": ["ESNext"],
-        "module": "ESNext",
-        "target": "ESNext"
-    },
-    "include": [
-        "src/**/*.ts"
-    ],
-    "exclude": [
-        "node_modules/**/*"
-    ]
+        "baseUrl": ".",
+        "noEmit": true
+    }
 }

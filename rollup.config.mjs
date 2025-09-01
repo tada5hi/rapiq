@@ -7,22 +7,33 @@
 
 import resolve from '@rollup/plugin-node-resolve';
 import { transform } from '@swc/core';
-import pkg from './package.json' with { type: 'json' };
+import { builtinModules } from 'node:module';
 
 const extensions = [
     '.js', '.cjs', '.mjs', '.jsx', '.ts', '.tsx',
 ];
 
-export default [
+export function createConfig(
     {
+        pkg,
+        pluginsPre = [],
+        pluginsPost = [],
+        external = [],
+        defaultExport = false,
+        swc = {},
+    },
+) {
+    external = Object.keys(pkg.dependencies || {})
+        .concat(Object.keys(pkg.peerDependencies || {}))
+        .concat(builtinModules)
+        .concat(external);
+
+    return {
         input: './src/index.ts',
 
         // Specify here external modules which you don't want to include in your bundle (for instance: 'lodash', 'moment' etc.)
         // https://rollupjs.org/guide/en/#external
-        external: [
-            ...Object.keys(pkg.dependencies || {}),
-            ...Object.keys(pkg.peerDependencies || {}),
-        ],
+        external,
 
         plugins: [
             // Allows node_modules resolution
@@ -56,5 +67,5 @@ export default [
                 sourcemap: true,
             },
         ],
-    },
-];
+    };
+}

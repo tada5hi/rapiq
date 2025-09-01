@@ -1,0 +1,67 @@
+{
+    "name": "rapiq",
+    "version": "1.0.0",
+    "description": "A tiny library which provides utility types/functions for request and response query handling.",
+    "main": "dist/index.cjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build:types": "tsc --emitDeclarationOnly",
+        "build:js": "rollup -c",
+        "build": "rimraf dist && npm run build:types && npm run build:js",
+        "commit": "npx git-cz",
+        "test": "cross-env NODE_ENV=test jest --config ./test/jest.config.js",
+        "test:coverage": "cross-env NODE_ENV=test jest --config ./test/jest.config.js --coverage",
+        "lint": "eslint --ext .js,.ts ./src",
+        "lint:fix": "npm run lint -- --fix",
+        "prepare": "npx husky install",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "api-utils",
+        "include",
+        "pagination",
+        "sort",
+        "fields",
+        "filter",
+        "relations",
+        "typescript"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme",
+    "dependencies": {
+        "@ucast/core": "^1.10.2",
+        "smob": "^1.5.0"
+    },
+    "devDependencies": {
+        "@ucast/sql": "^1.0.0-alpha.12"
+    }
+}

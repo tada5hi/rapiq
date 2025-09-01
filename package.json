@@ -1,72 +1,19 @@
 {
-    "name": "rapiq",
-    "version": "1.0.0",
-    "description": "A tiny library which provides utility types/functions for request and response query handling.",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
-    "exports": {
-        "./package.json": "./package.json",
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.cjs"
-        }
-    },
-    "files": [
-        "dist/"
-    ],
-    "scripts": {
-        "build:types": "tsc --emitDeclarationOnly",
-        "build:js": "rollup -c",
-        "build": "rimraf dist && npm run build:types && npm run build:js",
-        "commit": "npx git-cz",
-        "test": "cross-env NODE_ENV=test jest --config ./test/jest.config.js",
-        "test:coverage": "cross-env NODE_ENV=test jest --config ./test/jest.config.js --coverage",
-        "lint": "eslint --ext .js,.ts ./src",
-        "lint:fix": "npm run lint -- --fix",
-        "docs:dev": "vitepress dev docs --temp .temp",
-        "docs:build": "vitepress build docs --temp .temp",
-        "docs:help": "vitepress --help",
-        "prepare": "npx husky install",
-        "prepublishOnly": "npm run build",
-        "publish:preview": "npx pkg-pr-new publish"
-    },
+    "name": "@rapiq/root",
+    "private": true,
     "author": {
         "name": "Peter Placzek",
         "email": "contact@tada5hi.net",
-        "url": "https://github.com/tada5hi"
+        "url": "https://tada5hi.net"
     },
-    "license": "MIT",
-    "keywords": [
-        "query",
-        "json",
-        "json-api",
-        "api",
-        "rest",
-        "api-utils",
-        "include",
-        "pagination",
-        "sort",
-        "fields",
-        "filter",
-        "relations",
-        "typescript"
+    "license": "Apache-2.0",
+    "version": "1.0.0",
+    "description": "This package contains all rapiq related packages.",
+    "workspaces": [
+        "packages/*"
     ],
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/Tada5hi/rapiq.git"
-    },
-    "bugs": {
-        "url": "https://github.com/Tada5hi/rapiq/issues"
-    },
-    "homepage": "https://github.com/Tada5hi/rapiq#readme",
-    "dependencies": {
-        "@ucast/core": "^1.10.2",
-        "smob": "^1.5.0"
-    },
     "devDependencies": {
-        "@rollup/plugin-node-resolve": "^16.0.1",
+        "@rollup/plugin-node-resolve": "^16.0.0",
         "@swc/core": "^1.13.5",
         "@swc/jest": "^0.2.39",
         "@tada5hi/commitlint-config": "^1.2.6",
@@ -74,15 +21,30 @@
         "@tada5hi/tsconfig": "^0.6.0",
         "@types/jest": "^30.0.0",
         "@types/node": "^24.3.0",
-        "@ucast/sql": "^1.0.0-alpha.12",
         "cross-env": "^10.0.0",
-        "eslint": "^8.57.1",
+        "eslint": "^8.57.0",
         "husky": "^9.1.7",
-        "jest": "^30.1.0",
+        "jest": "^30.1.1",
+        "jest-serial-runner": "^1.2.2",
+        "lint-staged": "^16.1.5",
+        "nx": "^21.4.1",
         "pkg-pr-new": "^0.0.57",
         "rimraf": "^6.0.1",
         "rollup": "^4.49.0",
-        "typescript": "^5.9.2",
-        "vitepress": "^1.6.4"
+        "ts-jest": "^29.4.0",
+        "typescript": "5.9.2",
+        "workspaces-publish": "^1.4.5"
+    },
+    "scripts": {
+        "commit": "npx git-cz",
+        "build": "npx nx run-many -t build",
+        "test": "npx nx run-many -t test",
+        "lint": "eslint ./packages/**/*.{ts,vue}",
+        "lint:fix": "npm run lint -- --fix",
+        "prepare": "husky",
+        "publish:preview": "npx pkg-pr-new publish './packages/*'"
+    },
+    "lint-staged": {
+        "*.{vue,js,ts}": "npm run lint:fix"
     }
 }

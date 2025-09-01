@@ -6,7 +6,16 @@
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
     "packages": {
-        ".": { "component": "root" }
+        ".": { "component": "root" },
+        "packages/rapiq": { "component":  "root" }
     },
+    "plugins": [
+        {
+            "type": "node-workspace",
+            "updatePeerDependencies": true,
+            "merge": false,
+            "updateAllPackages": true
+        }
+    ],
     "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
 }
