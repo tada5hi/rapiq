@@ -37,14 +37,6 @@ export type BaseSchemaOptions = {
     schemaMapping?: Record<string, string>
 };
 
-export type VerifyFn<
-    VALUE = unknown,
-    CONTEXT extends Record<PropertyKey, any> = Record<string, any>,
-> = (
-    value: VALUE,
-    context: CONTEXT
-) => Promise<VALUE>;
-
 export type SchemaOptionsNormalized<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = BaseSchemaOptions & {

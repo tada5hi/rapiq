@@ -22,5 +22,6 @@ export type FieldsParseOptions<
 > = {
     relations?: RelationsParseOutput,
     schema?: string | Schema<RECORD> | FieldsSchema<RECORD>,
-    isChild?: boolean
+    isChild?: boolean,
+    context?: Record<string, any>
 };

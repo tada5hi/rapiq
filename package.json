@@ -63,6 +63,7 @@
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
         "@ucast/core": "^1.10.2",
+        "hookable": "^5.5.3",
         "smob": "^1.5.0"
     },
     "devDependencies": {

@@ -9,13 +9,12 @@ import type { ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
-import type { FieldsOptions } from './types';
+import type { FieldsHooks, FieldsOptions } from './types';
 import { BaseSchema } from '../../base';
 
 export class FieldsSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
-    CONTEXT extends ObjectLiteral = ObjectLiteral,
-> extends BaseSchema<FieldsOptions<RECORD, CONTEXT>> {
+> extends BaseSchema<FieldsOptions<RECORD>, FieldsHooks> {
     public default : string[];
 
     public defaultIsUndefined : boolean;
@@ -28,7 +27,7 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    constructor(input: FieldsOptions<RECORD, CONTEXT> = {}) {
+    constructor(input: FieldsOptions<RECORD> = {}) {
         super(input);
 
         this.allowed = [];
