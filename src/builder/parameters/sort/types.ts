@@ -7,25 +7,33 @@
 
 import type { SortDirection } from '../../../schema';
 import type {
-    ArrayItem, KeyWithOptionalPrefix, NestedKeys, OnlyObject, SimpleKeys,
+    KeyWithOptionalPrefix, NestedKeys, PrevIndex, SimpleKeys,
 } from '../../../types';
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
 
-export type SortBuildInput<T extends Record<string, any>> =
-    {
-        [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
-            SortBuildInput<ArrayItem<T[K]>> :
-        `${SortDirection}`
-    }
-    |
+type SortBuildRecordInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never : {
+    [K in keyof T & string]?: T[K] extends Array<infer ELEMENT> ?
+        (
+            ELEMENT extends Record<PropertyKey, any> ?
+                SortBuildInput<ELEMENT, PrevIndex[DEPTH]> :
+                `${SortDirection}`
+        ) :
+        T[K] extends Record<PropertyKey, any> ?
+            SortBuildInput<T[K], PrevIndex[DEPTH]> :
+            `${SortDirection}`
+};
+export type SortBuildInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never :
+    SortBuildRecordInput<T, PrevIndex[DEPTH]> |
     [
         SortWithOperator<SimpleKeys<T>>[],
-        {
-            [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
-                SortBuildInput<ArrayItem<T[K]>> :
-            `${SortDirection}`
-        },
+        SortBuildRecordInput<T, PrevIndex[DEPTH]>,
     ]
     |
     SortWithOperator<NestedKeys<T>>[] |

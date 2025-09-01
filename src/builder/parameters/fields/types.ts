@@ -7,7 +7,7 @@
 
 import type { FieldOperator } from '../../../schema';
 import type {
-    ArrayItem, KeyWithOptionalPrefix, NestedKeys, ObjectLiteral, OnlyObject, SimpleKeys,
+    KeyWithOptionalPrefix, NestedKeys, ObjectLiteral, PrevIndex, SimpleKeys,
 } from '../../../types';
 
 type FieldWithOperator<T extends string> = KeyWithOptionalPrefix<T, FieldOperator>;
@@ -15,18 +15,33 @@ type FieldWithOperator<T extends string> = KeyWithOptionalPrefix<T, FieldOperato
 export type FieldsBuildSimpleKeyInput<T extends ObjectLiteral = ObjectLiteral> = FieldWithOperator<SimpleKeys<T>>;
 export type FieldsBuildNestedKeyInput<T extends ObjectLiteral = ObjectLiteral> = FieldWithOperator<NestedKeys<T>>;
 
-export type FieldsBuildRecordInput<T extends ObjectLiteral = ObjectLiteral> = {
-    [K in keyof T]?: ArrayItem<T[K]> extends OnlyObject<T[K]> ?
-        FieldsBuildInput<ArrayItem<T[K]>> :
-        never
+export type FieldsBuildRecordInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never : {
+    [K in keyof T & string]?: T[K] extends Array<infer ELEMENT> ?
+        (ELEMENT extends Record<PropertyKey, any> ?
+            FieldsBuildInput<ELEMENT, PrevIndex[DEPTH]> :
+            never
+        ) :
+        T[K] extends Record<PropertyKey, any> ?
+            FieldsBuildInput<T[K], PrevIndex[DEPTH]> :
+            never
 };
 
-export type FieldsBuildTupleInput<T extends ObjectLiteral = ObjectLiteral> = [
+export type FieldsBuildTupleInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never : [
     FieldsBuildSimpleKeyInput<T>[],
-    FieldsBuildRecordInput<T>,
+    FieldsBuildRecordInput<T, PrevIndex[DEPTH]>,
 ];
 
-export type FieldsBuildInput<T extends ObjectLiteral> = FieldsBuildRecordInput<T> |
-FieldsBuildTupleInput<T> |
-FieldsBuildNestedKeyInput<T>[] |
-FieldsBuildNestedKeyInput<T>;
+export type FieldsBuildInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never :
+    FieldsBuildRecordInput<T, PrevIndex[DEPTH]> |
+    FieldsBuildTupleInput<T, PrevIndex[DEPTH]> |
+    FieldsBuildNestedKeyInput<T>[] |
+    FieldsBuildNestedKeyInput<T>;

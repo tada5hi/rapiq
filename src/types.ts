@@ -6,71 +6,103 @@
  */
 
 export type ObjectLiteral = Record<string, any>;
-export type ObjectLiteralKeys<T extends ObjectLiteral> = {
-    [K in keyof T as `${K & (string | number)}`]: T[K];
+export type ObjectLiteralKeys<T extends Record<PropertyKey, any>> = {
+    [K in keyof T as `${K & string}`]: T[K];
 };
 
 export type ArrayItem<Type> = Type extends Array<infer Item> ? Item : Type;
 
 export type IsArray<Type> = Type extends Array<any> ? Type : never;
+export type Scalar = string | number | boolean | undefined | null;
 export type IsScalar<T> = T extends string | number | boolean | undefined | null ? T : never;
 
-export type OnlySingleObject<T> = T extends { [key: string]: any } ? T : never;
-export type OnlyObject<T> = ArrayItem<T> extends OnlySingleObject<ArrayItem<T>> ? T | ArrayItem<T> : never;
 export type KeyWithOptionalPrefix<T, O extends string> = T extends string ? (`${O}${T}` | T) : never;
 
 export type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-export type SimpleKeys<T> =
-    T extends ObjectLiteral ?
-        (
-            {[Key in keyof T & (string | number)]: ArrayItem<T[Key]> extends Record<string, any>
-                ? (ArrayItem<T[Key]> extends Date ? `${Key}` : never)
-                : `${Key}`
-            }[keyof T & (string | number)]
-        ) : string;
+export type SimpleKeys<
+    T extends Record<PropertyKey, any>,
+> = {
+    [Key in keyof T & string]: T[Key] extends Scalar | Date ? `${Key}` : never;
+}[keyof T & string];
 
-export type NestedKeys<T, Depth extends number = 4> =
-    T extends ObjectLiteral ?
-        (
-            [Depth] extends [0] ? never :
-                {
-                    [Key in keyof T & (string | number)]: ArrayItem<T[Key]> extends Record<string, any>
-                        ? (ArrayItem<T[Key]> extends Date ? `${Key}` : `${Key}.${NestedKeys<ArrayItem<T[Key]>, PrevIndex[Depth]>}`)
-                        : `${Key}`
-                }[keyof T & string]
-        ) : string;
+type IsRecursiveKeyValue<T> = T extends Date ?
+    never :
+    T extends Record<PropertyKey, any> ?
+        T :
+        never;
 
-export type ResourceKeys<T> =
-    T extends ObjectLiteral ?
-        {
-            [Key in keyof T & (string | number)]: ArrayItem<T[Key]> extends Record<string, any> ?
-                Key : never
-        }[keyof T & (string | number)]
-        : string;
+export type NestedKeys<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 4,
+> = [DEPTH] extends [0] ? never :
+    {
+        [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
+            (
+                ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
+                    `${Key}.${NestedKeys<ELEMENT, PrevIndex[DEPTH]>}` :
+                    `${Key}`
+            ) :
+            T[Key] extends IsRecursiveKeyValue<T[Key]> ?
+                `${Key}.${NestedKeys<T[Key], PrevIndex[DEPTH]>}` :
+                `${Key}`
+    }[keyof T & string];
 
-export type NestedResourceKeys<T, Depth extends number = 4> =
-    T extends ObjectLiteral ?
+export type SimpleResourceKeys<
+    T extends Record<PropertyKey, any>,
+> = {
+    [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
         (
-            [Depth] extends [0] ? never :
-                {[Key in keyof T & (string | number)]: ArrayItem<T[Key]> extends Record<string, any>
-                    ? Key | `${Key}.${NestedResourceKeys<ArrayItem<T[Key]>, PrevIndex[Depth]>}`
-                    : never
-                }[keyof T & (string | number)]
-        ) : string;
+            ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
+                Key :
+                never
+        ) :
+        T[Key] extends IsRecursiveKeyValue<T[Key]> ?
+            Key :
+            never
+}[keyof T & string];
+
+export type NestedResourceKeys<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 4,
+> = [DEPTH] extends [0] ? never :
+    {
+        [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
+            (
+                ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
+                    Key | `${Key}.${NestedResourceKeys<ELEMENT, PrevIndex[DEPTH]>}` :
+                    never
+            ) : T[Key] extends IsRecursiveKeyValue<T[Key]>
+                ? Key | `${Key}.${NestedResourceKeys<ArrayItem<T[Key]>, PrevIndex[DEPTH]>}`
+                : never
+    }[keyof T & string];
 
 export type TypeFromNestedKeyPath<
-    T,
+    T extends Record<PropertyKey, any>,
     Path extends string,
-    Depth extends number = 4,
-> = T extends ObjectLiteral ?
-    [Depth] extends [0] ? never :
-        {
-            [K in Path]: K extends keyof T
-                ? ArrayItem<T[K]>
-                : K extends `${infer P}.${infer S}`
-                    ? ArrayItem<T[P]> extends Record<string, any>
-                        ? TypeFromNestedKeyPath<ArrayItem<T[P]>, S>
-                        : never
-                    : never;
-        }[Path] : never;
+    DEPTH extends number = 4,
+> = [DEPTH] extends [0] ? never :
+    {
+        [Key in Path & string]: Key extends keyof T
+            ? (
+                T[Key] extends Array<infer ELEMENT> ?
+                    ELEMENT :
+                    T[Key]
+            )
+            : Key extends `${infer P}.${infer S}` ?
+                (P extends keyof T ?
+                    (
+                        T[P] extends Array<infer ELEMENT> ?
+                            (
+                                ELEMENT extends Record<PropertyKey, any> ?
+                                    TypeFromNestedKeyPath<ELEMENT, S, PrevIndex[DEPTH]> :
+                                    never
+                            ) :
+                            T[P] extends Record<PropertyKey, any>
+                                ? TypeFromNestedKeyPath<T[P], S, PrevIndex[DEPTH]>
+                                : never
+                    )
+                    : never
+                ) :
+                never;
+    }[Path];

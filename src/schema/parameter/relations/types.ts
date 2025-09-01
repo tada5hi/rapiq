@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ResourceKeys } from '../../../types';
+import type { SimpleResourceKeys } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
 export type RelationsOptions<
     T extends Record<string, any> = Record<string, any>,
 > = BaseSchemaOptions & {
-    allowed?: ResourceKeys<T>[],
+    allowed?: SimpleResourceKeys<T>[],
     includeParents?: boolean | string[] | string,
     // maps input name to local name
     mapping?: Record<string, string>,
