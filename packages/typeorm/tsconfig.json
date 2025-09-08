@@ -1,0 +1,9 @@
+{
+    "extends": "../../tsconfig.build.json",
+    "compilerOptions": {
+        "paths": {
+            "rapiq": ["./packages/rapiq/src"],
+            "@rapiq/sql": ["./packages/sql/src"]
+        }
+    }
+}

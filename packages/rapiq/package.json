@@ -17,7 +17,7 @@
         "dist/"
     ],
     "scripts": {
-        "build:types": "tsc --emitDeclarationOnly",
+        "build:types": "tsc --emitDeclarationOnly -p tsconfig.build.json",
         "build:js": "rollup -c",
         "build": "rimraf dist && npm run build:types && npm run build:js",
         "commit": "npx git-cz",

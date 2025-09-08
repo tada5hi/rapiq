@@ -19,6 +19,12 @@ export enum FilterFieldOperator {
     NOT_IN = 'nin',
 
     REGEX = 'regex',
+
+    // todo: new
+    MOD = 'mod',
+    EXISTS = 'exists',
+    WITHIN = 'within',
+    ELEM_MATCH = 'elemMatch',
 }
 
 export enum FilterCompoundOperator {
