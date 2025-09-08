@@ -1,7 +1,7 @@
 {
-    "name": "rapiq",
+    "name": "@rapiq/sql",
     "version": "1.0.0",
-    "description": "A tiny library which provides utility types/functions for request and response query handling.",
+    "description": "A SQL extension for rapiq.",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
@@ -16,6 +16,14 @@
     "files": [
         "dist/"
     ],
+    "devDependencies": {
+        "rapiq": "^1.0.0",
+        "@ucast/core": "^1.10.2"
+    },
+    "peerDependencies": {
+        "rapiq": "^1.0.0",
+        "@ucast/core": "^1.10.2"
+    },
     "scripts": {
         "build:types": "tsc --emitDeclarationOnly -p tsconfig.build.json",
         "build:js": "rollup -c",
@@ -25,7 +33,6 @@
         "test:coverage": "cross-env NODE_ENV=test jest --config ./test/jest.config.js --coverage",
         "lint": "eslint --ext .js,.ts ./src",
         "lint:fix": "npm run lint -- --fix",
-        "prepare": "npx husky install",
         "prepublishOnly": "npm run build"
     },
     "author": {
@@ -51,17 +58,11 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Tada5hi/rapiq.git"
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/sql"
     },
     "bugs": {
         "url": "https://github.com/Tada5hi/rapiq/issues"
     },
-    "homepage": "https://github.com/Tada5hi/rapiq#readme",
-    "dependencies": {
-        "@ucast/core": "^1.10.2",
-        "smob": "^1.5.0"
-    },
-    "devDependencies": {
-        "@ucast/sql": "^1.0.0-alpha.12"
-    }
+    "homepage": "https://github.com/Tada5hi/rapiq#readme"
 }
