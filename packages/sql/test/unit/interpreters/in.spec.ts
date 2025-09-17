@@ -7,21 +7,31 @@
 
 import { CompoundCondition, FieldCondition } from 'rapiq';
 import {
-    type FiltersContainerOptions, and, createSqlInterpreter, eq, nin, pg, within,
+    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, nin, pg, within,
 } from '../../../src';
+import { FiltersInterpreter } from '../../../src/interpreter';
 
 const options: FiltersContainerOptions = {
     ...pg,
 };
 
 describe('in (within, nin)', () => {
-    const interpret = createSqlInterpreter({
-        within, nin, and, eq,
+    const relationsAdapter = new RelationsAdapter();
+    const adapter = new FiltersAdapter(
+        relationsAdapter,
+        options,
+    );
+    const interpreter = new FiltersInterpreter({
+        interpreters: {
+            within, nin, and, eq,
+        },
     });
 
     it('generates a separate placeholder for every element in the array', () => {
         const condition = new FieldCondition('within', 'age', [1, 2]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual(`${options.escapeField(condition.field)} in($1, $2)`);
         expect(params).toStrictEqual(condition.value);
@@ -32,7 +42,9 @@ describe('in (within, nin)', () => {
             new FieldCondition('eq', 'name', 'John'),
             new FieldCondition('within', 'age', [1, 2]),
         ]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('("name" = $1 and "age" in($2, $3))');
         expect(params).toStrictEqual(['John', 1, 2]);
@@ -40,7 +52,9 @@ describe('in (within, nin)', () => {
 
     it('generates `not in` operator for "nin', () => {
         const condition = new FieldCondition('nin', 'age', [1, 2]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual(`${options.escapeField(condition.field)} not in($1, $2)`);
         expect(params).toStrictEqual(condition.value);

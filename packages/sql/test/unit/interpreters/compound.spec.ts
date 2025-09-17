@@ -7,16 +7,25 @@
 
 import { CompoundCondition, FieldCondition } from 'rapiq';
 import {
-    type FiltersContainerOptions, and, createSqlInterpreter, eq, gt, lt, nor, not, or, pg,
+    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, gt, lt, nor, not, or,
+    pg,
 } from '../../../src';
+import { FiltersInterpreter } from '../../../src';
 
 const options: FiltersContainerOptions = {
     ...pg,
 };
 
 describe('compound operators', () => {
-    const interpret = createSqlInterpreter({
-        or, nor, not, and, eq, lt, gt,
+    const relationsAdapter = new RelationsAdapter();
+    const adapter = new FiltersAdapter(
+        relationsAdapter,
+        options,
+    );
+    const interpreter = new FiltersInterpreter({
+        interpreters: {
+            or, nor, not, and, eq, lt, gt,
+        },
     });
 
     it('generates query with inverted condition for "not"', () => {
@@ -26,18 +35,25 @@ describe('compound operators', () => {
                 new FieldCondition('eq', 'age', 13),
             ]),
         ]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('not ("age" = $1 or "age" = $2)');
         expect([12, 13]).toStrictEqual(params);
     });
 
     it('generates query combined by logical `and` for "and"', () => {
-        const condition = new CompoundCondition('and', [
-            new FieldCondition('eq', 'age', 1),
-            new FieldCondition('eq', 'active', true),
-        ]);
-        const [sql, params] = interpret(condition, options);
+        const condition = new CompoundCondition(
+            'and',
+            [
+                new FieldCondition('eq', 'age', 1),
+                new FieldCondition('eq', 'active', true),
+            ],
+        );
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('("age" = $1 and "active" = $2)');
         expect(params).toStrictEqual([1, true]);
@@ -48,7 +64,9 @@ describe('compound operators', () => {
             new FieldCondition('eq', 'age', 1),
             new FieldCondition('eq', 'active', true),
         ]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('("age" = $1 or "active" = $2)');
         expect(params).toStrictEqual([1, true]);
@@ -59,7 +77,9 @@ describe('compound operators', () => {
             new FieldCondition('eq', 'age', 1),
             new FieldCondition('eq', 'active', true),
         ]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('not ("age" = $1 or "active" = $2)');
         expect(params).toStrictEqual([1, true]);
@@ -84,7 +104,9 @@ describe('compound operators', () => {
                 new FieldCondition('gt', 'age', 18),
             ])]),
         ]);
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual([
             '("age" = $1 or "age" = $2)',

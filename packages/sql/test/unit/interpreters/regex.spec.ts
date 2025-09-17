@@ -7,20 +7,32 @@
 
 import { FieldCondition } from 'rapiq';
 import {
-    createSqlInterpreter,
+    FiltersAdapter,
+    RelationsAdapter,
     mssql,
     mysql,
     oracle,
-    pg,
-    regex,
+    pg, regex,
 } from '../../../src';
+import { FiltersInterpreter } from '../../../src/interpreter';
 
 describe('regex', () => {
-    const interpret = createSqlInterpreter({ regex });
+    const relationsAdapter = new RelationsAdapter();
+
+    const interpreter = new FiltersInterpreter({
+        interpreters: { regex },
+    });
 
     it('generates posix operator for PostgresSQL', () => {
         const condition = new FieldCondition('regex', 'email', /@/);
-        const [sql, params] = interpret(condition, { ...pg });
+        const adapter = new FiltersAdapter(
+            relationsAdapter,
+            pg,
+        );
+
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('"email" ~ $1');
         expect(params).toStrictEqual([condition.value.source]);
@@ -28,7 +40,14 @@ describe('regex', () => {
 
     it('generates posix operator for Oracle', () => {
         const condition = new FieldCondition('regex', 'email', /@/);
-        const [sql, params] = interpret(condition, { ...oracle });
+        const adapter = new FiltersAdapter(
+            relationsAdapter,
+            oracle,
+        );
+
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('"email" ~ $1');
         expect(params).toStrictEqual([condition.value.source]);
@@ -36,7 +55,14 @@ describe('regex', () => {
 
     it('generates call to `REGEXP` function for MySQL', () => {
         const condition = new FieldCondition('regex', 'email', /@/);
-        const [sql, params] = interpret(condition, { ...mysql });
+        const adapter = new FiltersAdapter(
+            relationsAdapter,
+            mysql,
+        );
+
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('`email` regexp ? = 1');
         expect(params).toStrictEqual([condition.value.source]);
@@ -44,8 +70,13 @@ describe('regex', () => {
 
     it('throws exception for MSSQL as it does not support REGEXP', () => {
         const condition = new FieldCondition('regex', 'email', /@/);
+        const adapter = new FiltersAdapter(
+            relationsAdapter,
+            mssql,
+        );
+
         expect(() => {
-            interpret(condition, { ...mssql });
+            interpreter.interpret(condition, adapter, {});
         }).toThrow(/"regexp" operator is not supported in MSSQL/);
     });
 });

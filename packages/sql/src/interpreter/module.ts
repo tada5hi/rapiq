@@ -1,39 +1,88 @@
 /*
- * Copyright (c) 2025.
+ * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition } from 'rapiq';
-import type { FiltersContainerOptions } from '../container';
-import { FiltersContainer, RelationsContainer } from '../container';
-import type { FilterInterpreterWithContext } from '../interpeter';
-import { FiltersInterpreter } from '../interpeter';
+import type { ParseOutput } from 'rapiq';
+import type { IRootAdapter } from '../adapter';
+import { FieldsInterpreter } from './fields';
+import { RelationsInterpreter } from './relations';
+import type { FiltersInterpreterOptions } from './filters';
+import { FiltersInterpreter } from './filters';
+import { PaginationInterpreter } from './pagination';
 
-export function createSqlInterpreter(
-    operators: Record<string, FilterInterpreterWithContext<any>>,
-) {
-    const interpreter = new FiltersInterpreter(operators);
+export type InterpreterInterpretOptions = {
+    rootAlias?: string
+};
 
-    return (
-        condition: Condition,
-        options: FiltersContainerOptions,
-        targetQuery?: Record<string, any>,
-    ) => {
-        const relationsContainer = new RelationsContainer({
-            join: () => true
-        });
+export type InterpreterOptions = {
+    filters?: FiltersInterpreterOptions
+};
 
-        relationsContainer.withQuery(targetQuery);
+export class Interpreter {
+    protected fields : FieldsInterpreter;
 
-        const container = new FiltersContainer(relationsContainer, options);
-        container.withQuery(targetQuery);
+    protected filters : FiltersInterpreter;
 
-        return interpreter.interpret(
-            condition,
-            container,
-            {},
-        ).getQueryAndParameters();
-    };
+    protected relations : RelationsInterpreter;
+
+    protected pagination : PaginationInterpreter;
+
+    // -----------------------------------------------------------
+
+    constructor(options: InterpreterOptions = {}) {
+        this.fields = new FieldsInterpreter();
+        this.relations = new RelationsInterpreter();
+        this.filters = new FiltersInterpreter(options.filters);
+        this.pagination = new PaginationInterpreter();
+    }
+
+    // -----------------------------------------------------------
+
+    interpret(
+        input: ParseOutput,
+        container: IRootAdapter,
+        options: InterpreterInterpretOptions = {},
+    ) {
+        if (input.relations) {
+            this.relations.interpret(
+                input.relations,
+                container.relations,
+                {
+                    rootAlias: options.rootAlias,
+                },
+            );
+        }
+
+        if (input.fields) {
+            this.fields.interpret(
+                input.fields,
+                container.fields,
+                {
+                    rootAlias: options.rootAlias,
+                },
+            );
+        }
+
+        if (input.filters) {
+            this.filters.interpret(
+                input.filters,
+                container.filters,
+                {
+                    rootAlias: options.rootAlias,
+                },
+            );
+        }
+
+        if (input.pagination) {
+            this.pagination.interpret(
+                input.pagination,
+                container.pagination,
+            );
+        }
+
+        container.execute(options.rootAlias);
+    }
 }

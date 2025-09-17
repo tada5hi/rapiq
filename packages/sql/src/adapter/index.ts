@@ -11,3 +11,4 @@ export * from './module';
 export * from './pagination';
 export * from './relations';
 export * from './sort';
+export * from './types';

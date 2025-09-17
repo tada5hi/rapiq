@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './container';
+export * from './adapter';
 export * from './dialect';
 export * from './helpers';
 export * from './interpreter';

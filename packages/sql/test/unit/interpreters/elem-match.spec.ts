@@ -8,8 +8,10 @@
 import { CompoundCondition, FieldCondition } from 'rapiq';
 import type { FiltersContainerOptions } from '../../../src';
 import {
+    FiltersAdapter,
+    FiltersInterpreter,
+    RelationsAdapter,
     and,
-    createSqlInterpreter,
     elemMatch,
     eq,
     gt,
@@ -23,8 +25,15 @@ const options: FiltersContainerOptions = {
 };
 
 describe('elemMatch', () => {
-    const interpret = createSqlInterpreter({
-        elemMatch, eq, or, and, lt, gt,
+    const relationsAdapter = new RelationsAdapter();
+    const adapter = new FiltersAdapter(
+        relationsAdapter,
+        options,
+    );
+    const interpreter = new FiltersInterpreter({
+        interpreters: {
+            elemMatch, eq, or, and, lt, gt,
+        },
     });
 
     it('generates query from a field condition based on relation', () => {
@@ -34,7 +43,9 @@ describe('elemMatch', () => {
             new FieldCondition('eq', 'active', true),
         );
 
-        const [sql, params] = interpret(condition, options);
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('"projects"."active" = $1');
         expect(params).toStrictEqual([true]);
@@ -49,7 +60,10 @@ describe('elemMatch', () => {
                 new FieldCondition('lt', 'count', 10),
             ]),
         );
-        const [sql, params] = interpret(condition, options);
+
+        interpreter.interpret(condition, adapter, {});
+
+        const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('("projects"."count" > $1 and "projects"."count" < $2)');
         expect(params).toStrictEqual([5, 10]);

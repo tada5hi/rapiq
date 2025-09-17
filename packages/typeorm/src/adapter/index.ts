@@ -5,7 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './field';
-export * from './name-split';
-export * from './param-placeholder-indexer';
-export * from './root-alias';
+export * from './fields';
+export * from './filters';
+export * from './module';
+export * from './relations';
+export * from './sort';

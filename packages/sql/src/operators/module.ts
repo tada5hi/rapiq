@@ -7,7 +7,7 @@
 
 import type { Comparable } from '@ucast/core';
 import type { CompoundCondition, Condition, FieldCondition } from 'rapiq';
-import type { FilterInterpreterWithContext } from '../interpeter';
+import type { FilterInterpreterWithContext } from '../interpreter';
 
 export const eq: FilterInterpreterWithContext<FieldCondition> = (
     condition,
