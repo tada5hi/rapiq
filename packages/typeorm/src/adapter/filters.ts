@@ -11,7 +11,7 @@ import type { RelationsAdapter } from './relations';
 
 export class FiltersAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FiltersBaseAdapter<QUERY> {
+> extends FiltersBaseAdapter<QUERY, RelationsAdapter<QUERY>> {
     constructor(relations: RelationsAdapter<QUERY>) {
         super(relations);
     }

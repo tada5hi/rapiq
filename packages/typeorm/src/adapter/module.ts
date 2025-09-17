@@ -46,6 +46,14 @@ export class TypeormAdapter<
         this.sort.withQuery(query);
     }
 
+    clear() {
+        this.relations.clear();
+        this.fields.clear();
+        this.filters.clear();
+        this.pagination.clear();
+        this.sort.clear();
+    }
+
     execute() {
 
     }

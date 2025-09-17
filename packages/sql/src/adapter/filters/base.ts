@@ -6,11 +6,12 @@
  */
 
 import { ParamPlaceholderIndexer, parseField } from '../../helpers';
-import type { RelationsBaseAdapter } from '../relations';
+import type { IRelationsAdapter } from '../relations';
 import type { IFiltersAdapter } from './types';
 
 export abstract class FiltersBaseAdapter<
     QUERY extends Record<string, any> = Record<string, any>,
+    RelationsAdapter extends IRelationsAdapter<QUERY> = IRelationsAdapter<QUERY>,
 > implements IFiltersAdapter<QUERY> {
     /**
      * where conditions
@@ -21,7 +22,7 @@ export abstract class FiltersBaseAdapter<
 
     params : unknown[];
 
-    protected relations: RelationsBaseAdapter<QUERY>;
+    protected relations: RelationsAdapter;
 
     protected paramPlaceholderIndexer : ParamPlaceholderIndexer;
 
@@ -32,7 +33,7 @@ export abstract class FiltersBaseAdapter<
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<QUERY>,
+        relations: RelationsAdapter,
     ) {
         this.conditions = [];
         this.params = [];
