@@ -1,10 +1,10 @@
 {
     "extends": "./tsconfig.build.json",
     "include": [
-        "src/**/*",
-        "test/**/*.ts",
-        "test/**/*.js",
-        "test/**/*.spec.ts",
+        "packages/*/src/**/*",
+        "packages/*/test/**/*.ts",
+        "packages/*/test/**/*.js",
+        "packages/*/test/**/*.spec.ts",
         "commitlint.config.js",
         "release.config.js",
         "rollup.config.mjs"
