@@ -7,17 +7,24 @@
 
 import type { PaginationParseOutput } from 'rapiq';
 import type { IPaginationAdapter } from '../adapter';
+import type { InterpreterInterpretOptions } from './types';
+
+export type PaginationInterpreterOptions = InterpreterInterpretOptions;
 
 export class PaginationInterpreter {
     interpret(
-        adapter: PaginationParseOutput,
-        data: IPaginationAdapter,
+        input: PaginationParseOutput,
+        adapter: IPaginationAdapter,
+        options: PaginationInterpreterOptions = {},
     ) {
-        data.clear();
+        adapter.clear();
 
-        data.setLimit(adapter.limit);
-        data.setOffset(adapter.offset);
+        adapter.setLimit(input.limit);
+        adapter.setOffset(input.offset);
 
-        data.execute();
+        const execute = options.execute ?? true;
+        if (execute) {
+            adapter.execute();
+        }
     }
 }

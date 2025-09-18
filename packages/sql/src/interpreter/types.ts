@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-describe('src', () => {
-    it('should work', () => {
-        expect(true).toBeTruthy();
-    });
-});
+export type InterpreterInterpretOptions = {
+    rootAlias?: string,
+    execute?: boolean,
+};

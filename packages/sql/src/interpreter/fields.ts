@@ -7,10 +7,9 @@
 
 import type { FieldsParseOutput } from 'rapiq';
 import type { IFieldsAdapter } from '../adapter';
+import type { InterpreterInterpretOptions } from './types';
 
-export type FieldsInterpreterOptions = {
-    rootAlias?: string
-};
+export type FieldsInterpreterOptions = InterpreterInterpretOptions;
 
 export class FieldsInterpreter {
     interpret(
@@ -24,6 +23,9 @@ export class FieldsInterpreter {
             adapter.add(input[i], options.rootAlias);
         }
 
-        adapter.execute();
+        const execute = options.execute ?? true;
+        if (execute) {
+            adapter.execute();
+        }
     }
 }

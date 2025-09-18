@@ -36,13 +36,20 @@ export class RelationsAdapter<
         let meta = this.query.expressionMap.mainAlias!.metadata;
         let { alias } = this.query;
 
+        const { joinAttributes } = this.query.expressionMap;
+
         while (relationFullName) {
             let relationName : string;
             [relationName, relationFullName] = splitFirst(relationFullName);
 
             const relation = meta.findRelationWithPropertyPath(relationName);
             if (relation) {
-                this.query.innerJoin(`${alias}.${relationName}`, relationName);
+                const joined = joinAttributes.findIndex(
+                    (joinAttribute) => joinAttribute.alias.name === relationName,
+                );
+                if (joined === -1) {
+                    this.query.innerJoin(`${alias}.${relationName}`, relationName);
+                }
 
                 meta = relation.entityMetadata;
                 alias = relationName;

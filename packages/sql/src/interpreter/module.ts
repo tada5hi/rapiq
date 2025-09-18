@@ -12,10 +12,7 @@ import { RelationsInterpreter } from './relations';
 import type { FiltersInterpreterOptions } from './filters';
 import { FiltersInterpreter } from './filters';
 import { PaginationInterpreter } from './pagination';
-
-export type InterpreterInterpretOptions = {
-    rootAlias?: string
-};
+import type { InterpreterInterpretOptions } from './types';
 
 export type InterpreterOptions = {
     filters?: FiltersInterpreterOptions
@@ -51,7 +48,8 @@ export class Interpreter {
                 input.relations,
                 container.relations,
                 {
-                    rootAlias: options.rootAlias,
+                    ...options,
+                    execute: false,
                 },
             );
         }
@@ -61,7 +59,8 @@ export class Interpreter {
                 input.fields,
                 container.fields,
                 {
-                    rootAlias: options.rootAlias,
+                    ...options,
+                    execute: false,
                 },
             );
         }
@@ -71,7 +70,8 @@ export class Interpreter {
                 input.filters,
                 container.filters,
                 {
-                    rootAlias: options.rootAlias,
+                    ...options,
+                    execute: false,
                 },
             );
         }
@@ -80,6 +80,10 @@ export class Interpreter {
             this.pagination.interpret(
                 input.pagination,
                 container.pagination,
+                {
+                    ...options,
+                    execute: false,
+                },
             );
         }
 

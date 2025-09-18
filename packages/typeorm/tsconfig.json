@@ -4,6 +4,9 @@
         "paths": {
             "rapiq": ["./packages/rapiq/src"],
             "@rapiq/sql": ["./packages/sql/src"]
-        }
+        },
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "strictPropertyInitialization": false
     }
 }

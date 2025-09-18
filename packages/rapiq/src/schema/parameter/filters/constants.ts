@@ -16,6 +16,7 @@ export enum FilterFieldOperator {
     GREATER_THAN = 'gt',
 
     IN = 'in',
+    WITHIN = 'within', // todo: new
     NOT_IN = 'nin',
 
     REGEX = 'regex',
@@ -23,7 +24,6 @@ export enum FilterFieldOperator {
     // todo: new
     MOD = 'mod',
     EXISTS = 'exists',
-    WITHIN = 'within',
     ELEM_MATCH = 'elemMatch',
 }
 

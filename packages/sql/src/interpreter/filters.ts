@@ -9,12 +9,11 @@ import type { Condition, InterpretationContext } from '@ucast/core';
 import type { FiltersParseOutput } from 'rapiq';
 import { allInterpreters } from '../operators';
 import type { IFiltersAdapter } from '../adapter';
+import type { InterpreterInterpretOptions } from './types';
 
 export type FilterInterpreterInterpretOptions = InterpretationContext<
 FiltersInterpreter['interpret']
-> & {
-    rootAlias?: string
-};
+> & InterpreterInterpretOptions;
 
 export type FilterInterpreterWithContext<
     C extends Condition = Condition,
@@ -50,7 +49,10 @@ export class FiltersInterpreter {
             options,
         );
 
-        output.execute();
+        const execute = options.execute ?? true;
+        if (execute) {
+            output.execute();
+        }
 
         return output;
     }

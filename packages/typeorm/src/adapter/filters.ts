@@ -27,6 +27,9 @@ export class FiltersAdapter<
     }
 
     escapeField(field: string) {
+        if (this.query) {
+            return this.query.escape(field);
+        }
         return pg.escapeField(field);
     }
 
@@ -48,6 +51,10 @@ export class FiltersAdapter<
     }
 
     execute() {
+        const [sql, params] = this.getQueryAndParameters();
 
+        if (this.query) {
+            this.query.where(sql, params);
+        }
     }
 }

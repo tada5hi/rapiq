@@ -7,10 +7,9 @@
 
 import type { RelationsParseOutput } from 'rapiq';
 import type { IRelationsAdapter } from '../adapter';
+import type { InterpreterInterpretOptions } from './types';
 
-export type RelationInterpreterOptions = {
-    rootAlias?: string
-};
+export type RelationInterpreterOptions = InterpreterInterpretOptions;
 
 export class RelationsInterpreter {
     interpret(
@@ -24,6 +23,9 @@ export class RelationsInterpreter {
             adapter.add(input[i], options.rootAlias);
         }
 
-        adapter.execute(options.rootAlias);
+        const execute = options.execute ?? true;
+        if (execute) {
+            adapter.execute(options.rootAlias);
+        }
     }
 }

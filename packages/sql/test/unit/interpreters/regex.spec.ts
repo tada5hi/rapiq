@@ -8,13 +8,13 @@
 import { FieldCondition } from 'rapiq';
 import {
     FiltersAdapter,
+    FiltersInterpreter,
     RelationsAdapter,
     mssql,
     mysql,
-    oracle,
-    pg, regex,
+    oracle, pg,
+    regex,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src/interpreter';
 
 describe('regex', () => {
     const relationsAdapter = new RelationsAdapter();

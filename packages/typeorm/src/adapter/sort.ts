@@ -25,6 +25,9 @@ export class SortAdapter<
     }
 
     escapeField(field: string) {
+        if (this.query) {
+            return this.query.escape(field);
+        }
         return pg.escapeField(field);
     }
 

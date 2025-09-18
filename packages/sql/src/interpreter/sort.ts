@@ -7,10 +7,9 @@
 
 import type { SortParseOutput } from 'rapiq';
 import type { ISortAdapter } from '../adapter';
+import type { InterpreterInterpretOptions } from './types';
 
-export type SortInterpreterOptions = {
-    rootAlias?: string
-};
+export type SortInterpreterOptions = InterpreterInterpretOptions;
 
 export class SortInterpreter {
     interpret(
@@ -25,6 +24,9 @@ export class SortInterpreter {
             adapter.add(keys[i], input[keys[i]], options.rootAlias);
         }
 
-        adapter.execute(options.rootAlias);
+        const execute = options.execute ?? true;
+        if (execute) {
+            adapter.execute(options.rootAlias);
+        }
     }
 }

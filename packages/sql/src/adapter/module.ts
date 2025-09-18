@@ -67,17 +67,22 @@ export class Adapter<
     // -----------------------------------------------------------
 
     clear() {
-        this.relations.clear();
         this.fields.clear();
         this.filters.clear();
         this.pagination.clear();
         this.sort.clear();
+        this.relations.clear();
     }
 
     // -----------------------------------------------------------
 
     // todo: apply all container results to query
     execute() {
+        this.fields.execute();
+        this.filters.execute();
+        this.pagination.execute();
+        this.sort.execute();
+        this.relations.execute();
         // todo: exclude already applied containers
     }
 }

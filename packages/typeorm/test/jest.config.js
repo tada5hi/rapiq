@@ -8,7 +8,7 @@
 module.exports = {
     testEnvironment: 'node',
     transform: {
-        '^.+\\.tsx?$': '@swc/jest',
+        '^.+\\.tsx?$': 'ts-jest',
     },
     moduleFileExtensions: [
         'ts',

@@ -25,11 +25,17 @@ QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
     }
 
     escapeField(field: string) {
+        if (this.query) {
+            return this.query.escape(field);
+        }
         return pg.escapeField(field);
     }
 
     execute() {
-        if (this.query) {
+        if (
+            this.query &&
+            this.value.length > 0
+        ) {
             this.query.select(this.value);
         }
     }

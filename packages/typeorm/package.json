@@ -19,6 +19,9 @@
     "devDependencies": {
         "@rapiq/sql": "^1.0.0",
         "rapiq": "^1.0.0",
+        "better-sqlite3": "^12.2.0",
+        "reflect-metadata": "^0.2.2",
+        "ansis": "^4.1.0",
         "typeorm": "^0.3.26"
     },
     "peerDependencies": {
