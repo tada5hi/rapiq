@@ -9,7 +9,9 @@ import {
     Interpreter,
 } from '@rapiq/sql';
 import type { FiltersParseOutput } from 'rapiq';
-import { CompoundCondition, FieldCondition, FilterFieldOperator } from 'rapiq';
+import {
+    CompoundCondition, FieldCondition, FilterCompoundOperator, FilterFieldOperator,
+} from 'rapiq';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
@@ -221,10 +223,13 @@ describe('src', () => {
     });
 
     it('work with compound and (eq + within)', async () => {
-        const condition = new CompoundCondition('and', [
-            new FieldCondition('eq', 'first_name', 'Caleb'),
-            new FieldCondition('within', 'age', [18, 20]),
-        ]);
+        const condition = new CompoundCondition(
+            FilterCompoundOperator.AND,
+            [
+                new FieldCondition(FilterFieldOperator.EQUAL, 'first_name', 'Caleb'),
+                new FieldCondition(FilterFieldOperator.WITHIN, 'age', [18, 20]),
+            ],
+        );
 
         const queryBuilder = createQueryBuilder(condition);
         const data = await queryBuilder.getMany();
@@ -235,11 +240,14 @@ describe('src', () => {
         expect(user.first_name).toEqual('Caleb');
     });
 
-    it('should work with compound or (eq + eq)', async () => {
-        const condition = new CompoundCondition('or', [
-            new FieldCondition('eq', 'address', 'Hogwarts'),
-            new FieldCondition('within', 'age', [60]),
-        ]);
+    it('should work with compound or (eq + within)', async () => {
+        const condition = new CompoundCondition(
+            FilterCompoundOperator.OR,
+            [
+                new FieldCondition(FilterFieldOperator.EQUAL, 'address', 'Hogwarts'),
+                new FieldCondition(FilterFieldOperator.WITHIN, 'age', [60]),
+            ],
+        );
 
         const queryBuilder = createQueryBuilder(condition);
         const data = await queryBuilder.getMany();
