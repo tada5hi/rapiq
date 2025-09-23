@@ -30,7 +30,7 @@
         "nx": "^21.4.1",
         "pkg-pr-new": "^0.0.57",
         "rimraf": "^6.0.1",
-        "rollup": "^4.49.0",
+        "rollup": "^4.52.1",
         "ts-jest": "^29.4.0",
         "typescript": "5.9.2",
         "workspaces-publish": "^1.4.5"
