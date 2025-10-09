@@ -5,7 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { PaginationBaseAdapter } from '@rapiq/sql';
 import type { IRootAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import { RelationsAdapter } from './relations';
@@ -13,6 +12,7 @@ import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { SortAdapter } from './sort';
 import type { TypeormAdapterOptions } from './types';
+import { PaginationAdapter } from './pagination';
 
 export class TypeormAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
@@ -23,7 +23,7 @@ export class TypeormAdapter<
 
     public readonly filters : FiltersAdapter<QUERY>;
 
-    public readonly pagination : PaginationBaseAdapter<QUERY>;
+    public readonly pagination : PaginationAdapter<QUERY>;
 
     public readonly sort : SortAdapter<QUERY>;
 
@@ -33,7 +33,7 @@ export class TypeormAdapter<
         this.relations = new RelationsAdapter<QUERY>(options.relations);
         this.fields = new FieldsAdapter<QUERY>(this.relations);
         this.filters = new FiltersAdapter<QUERY>(this.relations);
-        this.pagination = new PaginationBaseAdapter<QUERY>();
+        this.pagination = new PaginationAdapter<QUERY>();
         this.sort = new SortAdapter<QUERY>(this.relations);
     }
 

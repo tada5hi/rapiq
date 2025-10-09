@@ -1,0 +1,82 @@
+/*
+ * Copyright (c) 2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
+ */
+
+import type { DataSource, Repository } from 'typeorm';
+import { Interpreter } from '@rapiq/sql';
+import type { PaginationParseOutput } from 'rapiq';
+import { createDataSource } from '../data/factory';
+import { createRealmSeed } from '../data/seeder/realm';
+import { createRoleSeed } from '../data/seeder/role';
+import { Role } from '../data/entity/role';
+import { createUserSeed } from '../data/seeder/user';
+import { User } from '../data/entity/user';
+import { TypeormAdapter } from '../../src';
+
+describe('src/pagination', () => {
+    let dataSource: DataSource;
+    let userRepository : Repository<User>;
+
+    beforeAll(async () => {
+        dataSource = createDataSource();
+        await dataSource.initialize();
+        await dataSource.synchronize();
+
+        const [master] = await createRealmSeed(dataSource);
+
+        const [admin] = await createRoleSeed(dataSource);
+        const roleRepository = dataSource.getRepository(Role);
+        admin.realm = master;
+        await roleRepository.save(admin);
+
+        const [, aston] = await createUserSeed(dataSource);
+        userRepository = dataSource.getRepository(User);
+        aston.role = admin;
+        aston.realm = master;
+
+        await userRepository.save(aston);
+    });
+
+    const adapter = new TypeormAdapter();
+    const interpreter = new Interpreter();
+
+    const createQueryBuilder = (pagination: PaginationParseOutput) => {
+        const repository = dataSource.getRepository(User);
+        const queryBuilder = repository.createQueryBuilder('user');
+
+        adapter.withQuery(queryBuilder);
+
+        interpreter.interpret({ pagination }, adapter, {});
+
+        return queryBuilder;
+    };
+
+    it('should work with limit', async () => {
+        const query = createQueryBuilder({
+            limit: 1,
+        });
+
+        const users = await query.getMany();
+        expect(users.length).toEqual(1);
+    });
+
+    it('should work with limit & offset', async () => {
+        const queryOne = createQueryBuilder({
+            limit: 1,
+        });
+
+        const [queryOneEntity] = await queryOne.getMany();
+
+        const queryTwo = createQueryBuilder({
+            limit: 1,
+            offset: 1,
+        });
+
+        const [queryTwoEntity] = await queryTwo.getMany();
+
+        expect(queryOneEntity).not.toEqual(queryTwoEntity);
+    });
+});

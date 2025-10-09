@@ -9,7 +9,7 @@ import type { DialectOptions } from '../dialect';
 import type { IRootAdapter } from './types';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
-import { PaginationBaseAdapter } from './pagination';
+import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortAdapter } from './sort';
 
@@ -24,7 +24,7 @@ export class Adapter<
 
     public readonly filters : FiltersAdapter<QUERY>;
 
-    public readonly pagination : PaginationBaseAdapter<QUERY>;
+    public readonly pagination : PaginationAdapter<QUERY>;
 
     public readonly sort : SortAdapter<QUERY>;
 
@@ -45,7 +45,7 @@ export class Adapter<
             escapeField: options.escapeField,
         });
 
-        this.pagination = new PaginationBaseAdapter<QUERY>();
+        this.pagination = new PaginationAdapter<QUERY>();
 
         this.sort = new SortAdapter(this.relations, {
             escapeField: options.escapeField,
