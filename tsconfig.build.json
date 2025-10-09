@@ -1,7 +1,6 @@
 {
     "extends": "@tada5hi/tsconfig",
     "compilerOptions": {
-        "outDir": "dist",
         "declarationMap": true,
 
         "lib": ["ESNext"],
