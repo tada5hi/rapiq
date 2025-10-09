@@ -12,6 +12,7 @@ import { RelationsAdapter } from './relations';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { SortAdapter } from './sort';
+import type { TypeormAdapterOptions } from './types';
 
 export class TypeormAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
@@ -28,8 +29,8 @@ export class TypeormAdapter<
 
     protected query : QUERY | undefined;
 
-    constructor() {
-        this.relations = new RelationsAdapter<QUERY>();
+    constructor(options: TypeormAdapterOptions = {}) {
+        this.relations = new RelationsAdapter<QUERY>(options.relations);
         this.fields = new FieldsAdapter<QUERY>(this.relations);
         this.filters = new FiltersAdapter<QUERY>(this.relations);
         this.pagination = new PaginationBaseAdapter<QUERY>();

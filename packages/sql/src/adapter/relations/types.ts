@@ -12,3 +12,25 @@ QUERY extends Record<string, any> = Record<string, any>,
 > extends IAdapter<QUERY> {
     add(input: string, rootAlias?: string): void;
 }
+
+export type JoinRelationFn<
+    QUERY extends Record<string, any> = Record<string, any>,
+> = (
+    relation: string,
+    alias?: string,
+    query?: QUERY
+) => boolean;
+
+export type RelationsAdapterBaseOptions = {
+    /**
+     * Join and select relations.
+     */
+    joinAndSelect?: boolean
+};
+
+export type RelationsAdapterOptions<
+    QUERY extends Record<string, any> = Record<string, any>,
+> = RelationsAdapterBaseOptions & {
+    join?: JoinRelationFn<QUERY>,
+
+};

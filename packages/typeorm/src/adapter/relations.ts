@@ -5,14 +5,19 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { RelationsAdapterBaseOptions } from '@rapiq/sql';
 import { RelationsBaseAdapter, splitFirst } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 export class RelationsAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
 > extends RelationsBaseAdapter<QUERY> {
-    constructor() {
+    protected options : RelationsAdapterBaseOptions;
+
+    constructor(options: RelationsAdapterBaseOptions = {}) {
         super();
+
+        this.options = options;
     }
 
     execute() : void {
@@ -43,12 +48,18 @@ export class RelationsAdapter<
             [relationName, relationFullName] = splitFirst(relationFullName);
 
             const relation = meta.findRelationWithPropertyPath(relationName);
+
             if (relation) {
                 const joined = joinAttributes.findIndex(
                     (joinAttribute) => joinAttribute.alias.name === relationName,
                 );
+
                 if (joined === -1) {
-                    this.query.innerJoin(`${alias}.${relationName}`, relationName);
+                    if (this.options.joinAndSelect) {
+                        this.query.innerJoinAndSelect(`${alias}.${relationName}`, relationName);
+                    } else {
+                        this.query.innerJoin(`${alias}.${relationName}`, relationName);
+                    }
                 }
 
                 meta = relation.entityMetadata;

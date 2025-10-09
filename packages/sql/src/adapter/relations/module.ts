@@ -6,29 +6,16 @@
  */
 
 import { RelationsBaseAdapter } from './base';
-
-export type JoinRelationFn<
-    QUERY extends Record<string, any> = Record<string, any>,
-> = (
-    relation: string,
-    alias?: string,
-    query?: QUERY
-) => boolean;
-
-export type QueryRelationsOptions<
-    QUERY extends Record<string, any> = Record<string, any>,
-> = {
-    join?: JoinRelationFn<QUERY>
-};
+import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter<
     QUERY extends Record<string, any> = Record<string, any>,
 > extends RelationsBaseAdapter<QUERY> {
-    protected options : QueryRelationsOptions<QUERY>;
+    protected options : RelationsAdapterOptions<QUERY>;
 
     // -----------------------------------------------------------
 
-    constructor(options: QueryRelationsOptions<QUERY> = {}) {
+    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
         super();
 
         this.options = options;
