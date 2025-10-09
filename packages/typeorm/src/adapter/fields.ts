@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldsBaseAdapter, pg } from '@rapiq/sql';
+import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
@@ -25,10 +25,7 @@ QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
     }
 
     escapeField(field: string) {
-        if (this.query) {
-            return this.query.escape(field);
-        }
-        return pg.escapeField(field);
+        return field;
     }
 
     execute() {

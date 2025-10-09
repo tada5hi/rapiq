@@ -21,7 +21,7 @@ import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
 import { createUserSeed } from '../data/seeder/user';
 
-describe('src', () => {
+describe('src/filters', () => {
     let dataSource : DataSource;
 
     beforeAll(async () => {
