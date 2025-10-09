@@ -6,7 +6,7 @@
  */
 
 import { PaginationBaseAdapter } from '@rapiq/sql';
-import type { IRootAdapter } from '@rapiq/sql/src';
+import type { IRootAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import { RelationsAdapter } from './relations';
 import { FieldsAdapter } from './fields';

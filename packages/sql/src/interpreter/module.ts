@@ -13,6 +13,7 @@ import type { FiltersInterpreterOptions } from './filters';
 import { FiltersInterpreter } from './filters';
 import { PaginationInterpreter } from './pagination';
 import type { InterpreterInterpretOptions } from './types';
+import { SortInterpreter } from './sort';
 
 export type InterpreterOptions = {
     filters?: FiltersInterpreterOptions
@@ -27,6 +28,8 @@ export class Interpreter {
 
     protected pagination : PaginationInterpreter;
 
+    protected sort : SortInterpreter;
+
     // -----------------------------------------------------------
 
     constructor(options: InterpreterOptions = {}) {
@@ -34,6 +37,7 @@ export class Interpreter {
         this.relations = new RelationsInterpreter();
         this.filters = new FiltersInterpreter(options.filters);
         this.pagination = new PaginationInterpreter();
+        this.sort = new SortInterpreter();
     }
 
     // -----------------------------------------------------------
@@ -80,6 +84,17 @@ export class Interpreter {
             this.pagination.interpret(
                 input.pagination,
                 container.pagination,
+                {
+                    ...options,
+                    execute: false,
+                },
+            );
+        }
+
+        if (input.sort) {
+            this.sort.interpret(
+                input.sort,
+                container.sort,
                 {
                     ...options,
                     execute: false,
