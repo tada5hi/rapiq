@@ -7,19 +7,19 @@
 
 import type { SortParseOutput } from '../../../src';
 import {
+    DecoderSortParser,
     SortDirection,
     SortParseError,
-    SortParser,
     defineSortSchema,
 } from '../../../src';
 import type { User } from '../../data';
 import { registry } from '../../data/schema';
 
 describe('src/sort/index.ts', () => {
-    let parser : SortParser;
+    let parser : DecoderSortParser;
 
     beforeAll(() => {
-        parser = new SortParser(registry);
+        parser = new DecoderSortParser(registry);
     });
 
     it('should parse sort data', async () => {

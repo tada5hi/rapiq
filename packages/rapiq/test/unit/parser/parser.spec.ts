@@ -5,9 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ParseOutput } from '../../../src';
+import type { Query } from '../../../src';
 import {
-    Parser,
+    DecoderParser,
     SchemaRegistry,
     defineSchema,
 } from '../../../src';
@@ -22,7 +22,7 @@ describe('src/parser', () => {
             },
         }));
 
-        const parser = new Parser(registry);
+        const parser = new DecoderParser(registry);
 
         const output = await parser.parse({
             fields: ['id', 'name'],
@@ -32,6 +32,6 @@ describe('src/parser', () => {
 
         expect(output).toEqual({
             fields: ['id'],
-        } as ParseOutput);
+        } as Query);
     });
 });

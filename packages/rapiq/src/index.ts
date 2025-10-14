@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './builder';
+export * from './encoder';
 export * from './errors';
 export * from './constants';
-export * from './parser';
+export * from './decoder/parser';
 export * from './schema';
 export * from './types';

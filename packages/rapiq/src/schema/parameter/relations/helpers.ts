@@ -5,10 +5,16 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { Relations } from '../../../parameter';
+
 export function extractSubRelations(
-    relations: string[],
+    relations: Relations | string[],
     root: string,
 ): string[] {
+    if (!Array.isArray(relations)) {
+        return extractSubRelations(relations.value.map((relation) => relation.name), root);
+    }
+
     const removed : string[] = [];
     for (let i = relations.length - 1; i >= 0; i--) {
         if (relations[i] === root) {

@@ -6,14 +6,14 @@
  */
 
 import type { RelationsParseOutput } from '../../../src';
-import { RelationsParseError, RelationsParser, defineSchema } from '../../../src';
+import { DecoderRelationsParser, RelationsParseError, defineSchema } from '../../../src';
 import { registry } from '../../data/schema';
 
 describe('src/relations/index.ts', () => {
-    let parser : RelationsParser;
+    let parser : DecoderRelationsParser;
 
     beforeAll(() => {
-        parser = new RelationsParser(registry);
+        parser = new DecoderRelationsParser(registry);
     });
 
     it('should parse simple relations', async () => {

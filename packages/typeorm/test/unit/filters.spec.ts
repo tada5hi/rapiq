@@ -10,7 +10,7 @@ import {
 } from '@rapiq/sql';
 import type { FiltersParseOutput } from 'rapiq';
 import {
-    CompoundCondition, FieldCondition, FilterCompoundOperator, FilterFieldOperator,
+    Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
 } from 'rapiq';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
@@ -59,7 +59,7 @@ describe('src/filters', () => {
     };
 
     it('should work with eq', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.EQUAL,
             'first_name',
             'Aston',
@@ -76,7 +76,7 @@ describe('src/filters', () => {
     });
 
     it('should work with not eq', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.NOT_EQUAL,
             'first_name',
             'Aston',
@@ -93,7 +93,7 @@ describe('src/filters', () => {
     });
 
     it('should work with greaterThan', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.GREATER_THAN,
             'age',
             18,
@@ -110,7 +110,7 @@ describe('src/filters', () => {
     });
 
     it('should work with greaterThanEqual', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.GREATER_THAN_EQUAL,
             'age',
             18,
@@ -123,7 +123,7 @@ describe('src/filters', () => {
     });
 
     it('should work with lessThan', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.LESS_THAN,
             'age',
             60,
@@ -136,7 +136,7 @@ describe('src/filters', () => {
     });
 
     it('should work with lessThanEqual', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.LESS_THAN_EQUAL,
             'age',
             60,
@@ -149,7 +149,7 @@ describe('src/filters', () => {
     });
 
     it('should work with mod', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.MOD,
             'age',
             [20, 0],
@@ -162,7 +162,7 @@ describe('src/filters', () => {
     });
 
     it('should work with exists', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.EXISTS,
             'address',
             true,
@@ -178,7 +178,7 @@ describe('src/filters', () => {
     });
 
     it('should work with not exists', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.EXISTS,
             'address',
             false,
@@ -194,7 +194,7 @@ describe('src/filters', () => {
     });
 
     it('should work with in', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.IN,
             'age',
             [20, 60],
@@ -207,7 +207,7 @@ describe('src/filters', () => {
     });
 
     it('should work with nin', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.NOT_IN,
             'age',
             [20, 60],
@@ -223,11 +223,11 @@ describe('src/filters', () => {
     });
 
     it('work with compound and (eq + within)', async () => {
-        const condition = new CompoundCondition(
+        const condition = new Filters(
             FilterCompoundOperator.AND,
             [
-                new FieldCondition(FilterFieldOperator.EQUAL, 'first_name', 'Caleb'),
-                new FieldCondition(FilterFieldOperator.WITHIN, 'age', [18, 20]),
+                new Filter(FilterFieldOperator.EQUAL, 'first_name', 'Caleb'),
+                new Filter(FilterFieldOperator.WITHIN, 'age', [18, 20]),
             ],
         );
 
@@ -241,11 +241,11 @@ describe('src/filters', () => {
     });
 
     it('should work with compound or (eq + within)', async () => {
-        const condition = new CompoundCondition(
+        const condition = new Filters(
             FilterCompoundOperator.OR,
             [
-                new FieldCondition(FilterFieldOperator.EQUAL, 'address', 'Hogwarts'),
-                new FieldCondition(FilterFieldOperator.WITHIN, 'age', [60]),
+                new Filter(FilterFieldOperator.EQUAL, 'address', 'Hogwarts'),
+                new Filter(FilterFieldOperator.WITHIN, 'age', [60]),
             ],
         );
 
@@ -256,10 +256,10 @@ describe('src/filters', () => {
     });
 
     it('should work with elemMatch', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.ELEM_MATCH,
             'role',
-            new FieldCondition(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
         );
 
         const queryBuilder = createQueryBuilder(condition);
@@ -269,7 +269,7 @@ describe('src/filters', () => {
     });
 
     it('should work with deep relation', async () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             FilterFieldOperator.EQUAL,
             'role.realm.name',
             'master',

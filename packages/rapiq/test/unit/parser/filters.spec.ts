@@ -8,8 +8,8 @@
 import { allInterpreters, createSqlInterpreter, pg } from '@ucast/sql';
 import type { FiltersParseOptions, ObjectLiteral } from '../../../src';
 import {
+    DecoderFiltersParser,
     FiltersParseError,
-    FiltersParser,
     defineFiltersSchema,
 } from '../../../src';
 import { registry } from '../../data/schema';
@@ -17,10 +17,10 @@ import { registry } from '../../data/schema';
 const interpreter = createSqlInterpreter(allInterpreters);
 
 describe('src/filter/index.ts', () => {
-    let parser : FiltersParser;
+    let parser : DecoderFiltersParser;
 
     beforeAll(() => {
-        parser = new FiltersParser(registry);
+        parser = new DecoderFiltersParser(registry);
     });
 
     const parsi = async <T extends ObjectLiteral = ObjectLiteral>(

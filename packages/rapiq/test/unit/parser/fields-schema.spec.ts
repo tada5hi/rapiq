@@ -5,14 +5,14 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { type FieldsParseOutput, FieldsParser } from '../../../src';
+import { DecoderFieldsParser, type FieldsParseOutput } from '../../../src';
 import { registry } from '../../data/schema';
 
 describe('parser/fields/schema', () => {
-    let parser: FieldsParser;
+    let parser: DecoderFieldsParser;
 
     beforeAll(() => {
-        parser = new FieldsParser(registry);
+        parser = new DecoderFieldsParser(registry);
     });
 
     it('should parse root schema', async () => {

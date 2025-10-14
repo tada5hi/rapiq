@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterValue } from '../../../builder';
+import type { FilterValue } from '../../../encoder';
 import type {
     NestedKeys, ObjectLiteral, SimpleKeys, TypeFromNestedKeyPath,
 } from '../../../types';

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldCondition } from 'rapiq';
+import { Filter } from 'rapiq';
 import {
     FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, eq, pg,
 } from '../../../src';
@@ -29,7 +29,7 @@ describe('auto join', () => {
     const interpreter = new FiltersInterpreter({
         interpreters: { eq },
     });
-    const condition = new FieldCondition('eq', 'projects.user.name', 'test');
+    const condition = new Filter('eq', 'projects.user.name', 'test');
 
     beforeEach(() => {
         spy.on(options, 'escapeField');

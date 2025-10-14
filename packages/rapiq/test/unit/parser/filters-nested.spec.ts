@@ -7,14 +7,14 @@
 import type { FieldCondition } from '@ucast/core';
 import { CompoundCondition } from '@ucast/core';
 import {
-    FiltersParser,
+    DecoderFiltersParser,
 } from '../../../src';
 
 describe('src/parser/filters-nested.ts', () => {
-    let parser: FiltersParser;
+    let parser: DecoderFiltersParser;
 
     beforeAll(() => {
-        parser = new FiltersParser();
+        parser = new DecoderFiltersParser();
     });
 
     it('should parse nested filters', async () => {

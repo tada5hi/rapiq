@@ -6,14 +6,14 @@
  */
 
 import {
-    PaginationParseError, PaginationParser, defineSchema,
+    DecoderPaginationParser, PaginationParseError, defineSchema,
 } from '../../../src';
 
 describe('src/pagination/index.ts', () => {
-    let parser : PaginationParser;
+    let parser : DecoderPaginationParser;
 
     beforeAll(() => {
-        parser = new PaginationParser();
+        parser = new DecoderPaginationParser();
     });
 
     it('should parse with no schema & invalid value', async () => {

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { CompoundCondition, FieldCondition } from 'rapiq';
+import { Filter, Filters } from 'rapiq';
 import type { FiltersContainerOptions } from '../../../src';
 import {
     FiltersAdapter,
@@ -37,10 +37,10 @@ describe('elemMatch', () => {
     });
 
     it('generates query from a field condition based on relation', () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             'elemMatch',
             'projects',
-            new FieldCondition('eq', 'active', true),
+            new Filter('eq', 'active', true),
         );
 
         interpreter.interpret(condition, adapter, {});
@@ -52,12 +52,12 @@ describe('elemMatch', () => {
     });
 
     it('generates query from a compound condition based on relation', () => {
-        const condition = new FieldCondition(
+        const condition = new Filter(
             'elemMatch',
             'projects',
-            new CompoundCondition('and', [
-                new FieldCondition('gt', 'count', 5),
-                new FieldCondition('lt', 'count', 10),
+            new Filters('and', [
+                new Filter('gt', 'count', 5),
+                new Filter('lt', 'count', 10),
             ]),
         );
 
