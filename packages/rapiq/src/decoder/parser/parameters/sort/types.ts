@@ -5,16 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { Relations } from '../../../../parameter';
 import type { Schema, SortDirection, SortSchema } from '../../../../schema';
 import type { ObjectLiteral } from '../../../../types';
-import type { RelationsParseOutput } from '../relations';
 
 export type SortParseOutput = Record<string, `${SortDirection}`>;
 
 export type SortParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
+    relations?: Relations,
     throwOnFailure?: boolean,
     schema?: string | Schema<RECORD> | SortSchema<RECORD>
 };

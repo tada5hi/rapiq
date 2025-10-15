@@ -6,27 +6,28 @@
  */
 
 import { isObject } from 'smob';
+import { Pagination } from '../../../../parameter';
 import type { ObjectLiteral } from '../../../../types';
 import { PaginationParseError } from './error';
 import { BaseParser } from '../../base';
 import {
     PaginationSchema, Schema, definePaginationSchema,
 } from '../../../../schema';
-import type { PaginationParseOptions, PaginationParseOutput } from './types';
+import type { PaginationParseOptions } from './types';
 
 export class DecoderPaginationParser extends BaseParser<
 PaginationParseOptions,
-PaginationParseOutput
+Pagination
 > {
     async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
-    ) : Promise<PaginationParseOutput> {
+    ) : Promise<Pagination> {
         const schema = this.resolveSchema(options.schema);
 
-        const output : PaginationParseOutput = {};
+        const output = new Pagination();
 
         if (!isObject(input)) {
             if (schema.throwOnFailure) {
@@ -62,9 +63,9 @@ PaginationParseOutput
     }
 
     protected finalizePagination(
-        data: PaginationParseOutput,
+        data: Pagination,
         options: PaginationSchema,
-    ) : PaginationParseOutput {
+    ) : Pagination {
         if (typeof options.maxLimit !== 'undefined') {
             if (
                 typeof data.limit === 'undefined' ||

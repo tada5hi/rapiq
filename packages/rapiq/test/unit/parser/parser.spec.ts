@@ -5,12 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { Query } from '../../../src';
 import {
     DecoderParser,
     SchemaRegistry,
     defineSchema,
 } from '../../../src';
+import { Field, Fields } from '../../../src/parameter';
 
 describe('src/parser', () => {
     it('should parse schema by name', async () => {
@@ -30,8 +30,8 @@ describe('src/parser', () => {
             schema: 'foo',
         });
 
-        expect(output).toEqual({
-            fields: ['id'],
-        } as Query);
+        expect(output.fields).toEqual(new Fields([
+            new Field('id'),
+        ]));
     });
 });

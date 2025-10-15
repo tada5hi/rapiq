@@ -46,10 +46,14 @@ export function flattenConditions<T extends Condition>(
 export function optimizedCompoundCondition<T extends Condition>(
     operator: string,
     conditions: T[],
-) {
+): Filters<T> {
     if (conditions.length === 1) {
-        return conditions[0];
+        const [first] = conditions;
+        if (isCompoundCondition(first)) {
+            return first.flatten() as Filters<T>;
+        }
     }
 
-    return new Filters(operator, flattenConditions(conditions, operator));
+    const filters = new Filters(operator, conditions);
+    return filters.flatten();
 }

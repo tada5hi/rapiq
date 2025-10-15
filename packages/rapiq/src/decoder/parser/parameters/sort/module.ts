@@ -7,7 +7,6 @@
 
 import { isObject } from 'smob';
 import { DEFAULT_ID } from '../../../../constants';
-import { extractSubRelations } from '../../../../schema/parameter/relations/helpers';
 import type { ObjectLiteral } from '../../../../types';
 import {
     applyMapping,
@@ -24,7 +23,7 @@ import {
 } from '../../../../schema';
 import { BaseParser } from '../../base';
 import type { SortParseOptions } from './types';
-import type { RelationsParseOutput } from '../relations';
+import type { Relations } from '../../../../parameter';
 import { Sort, Sorts } from '../../../../parameter';
 
 export class DecoderSortParser extends BaseParser<
@@ -186,9 +185,9 @@ Sorts
                 continue;
             }
 
-            let childRelations: RelationsParseOutput | undefined;
+            let childRelations: Relations | undefined;
             if (typeof options.relations !== 'undefined') {
-                childRelations = extractSubRelations(options.relations, key);
+                childRelations = options.relations.extract(key);
             }
 
             const relationOutput = await this.parse(

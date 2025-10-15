@@ -9,3 +9,4 @@ export * from './filters';
 export * from './condition';
 export * from './filter';
 export * from './helpers';
+export * from './regex';

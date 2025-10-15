@@ -5,6 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { DEFAULT_ID } from '../../../../constants';
+import type { FilterValuePrimitive } from '../../../../encoder';
+import type { Relations } from '../../../../parameter';
+import { FilterRegexFlag, createFilterRegex } from '../../../../parameter';
+import type { Condition } from '../../../../schema';
 import {
     Filter,
     FilterCompoundOperator,
@@ -16,10 +21,6 @@ import {
     defineFiltersSchema,
     optimizedCompoundCondition,
 } from '../../../../schema';
-import { DEFAULT_ID } from '../../../../constants';
-import type { Condition } from '../../../../schema';
-import type { FilterValuePrimitive } from '../../../../encoder';
-import { extractSubRelations } from '../../../../schema/parameter/relations/helpers';
 import type { NestedKeys, ObjectLiteral } from '../../../../types';
 import {
     applyMapping,
@@ -31,8 +32,8 @@ import {
     parseKey,
     stringifyKey,
 } from '../../../../utils';
-import { FiltersParseError } from './error';
 import { BaseParser } from '../../base';
+import { FiltersParseError } from './error';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
 import type { FiltersParseOptions } from './types';
 
@@ -194,9 +195,9 @@ Condition
                 continue;
             }
 
-            let childRelations: string[] | undefined;
+            let childRelations: Relations | undefined;
             if (typeof options.relations !== 'undefined') {
-                childRelations = extractSubRelations(options.relations, key);
+                childRelations = options.relations.extract(key);
             }
 
             const relationOutput = this.preParse(
@@ -230,7 +231,7 @@ Condition
     async parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Promise<Condition> {
+    ) : Promise<Filters> {
         const items = this.preParse(input, options);
 
         const itemKeys = Object.keys(items);
@@ -285,7 +286,7 @@ Condition
 
     protected mergeGroups(
         input: Record<string, Condition[]> = {},
-    ) : Condition {
+    ) : Filters {
         const graph = new GraphNode<Condition[]>('');
 
         const keys = Object.keys(input);
@@ -343,7 +344,7 @@ Condition
 
         const out = stack.get(0);
         if (out) {
-            const conditions : Condition[] = [];
+            const conditions : Filters[] = [];
 
             const keys = Object.keys(out);
             for (let i = 0; i < keys.length; i++) {
@@ -355,10 +356,18 @@ Condition
                 }
             }
 
+            if (conditions.length === 1) {
+                return conditions[0];
+            }
+
+            if (conditions.length === 0) {
+                return new Filters(FilterCompoundOperator.AND, []);
+            }
+
             return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
         }
 
-        return new Filters(FilterCompoundOperator.OR, []);
+        return new Filters(FilterCompoundOperator.AND, []);
     }
 
     protected parseValue(input: unknown) : {
@@ -399,50 +408,34 @@ Condition
         operator: `${FilterFieldOperator}`,
         value: unknown
     } {
-        let negation : boolean = false;
+        let flag : number = 0;
 
         if (
             value.substring(0, 1) === FilterInputOperatorValue.NEGATION
         ) {
-            negation = true;
             value = value.substring(1);
+            flag |= FilterRegexFlag.NEGATION;
         }
-
-        let startLike : boolean = false;
-        let endLike : boolean = false;
 
         if (value.substring(0, FilterInputOperatorValue.LIKE.length) === FilterInputOperatorValue.LIKE) {
             value = value.substring(FilterInputOperatorValue.LIKE.length);
-            startLike = true;
+            flag |= FilterRegexFlag.STARTS_WITH;
         }
 
         if (value.substring(value.length - 1) === FilterInputOperatorValue.LIKE) {
             value = value.substring(0, value.length - FilterInputOperatorValue.LIKE.length);
-            endLike = true;
+            flag |= FilterRegexFlag.ENDS_WITH;
         }
 
-        if (startLike || endLike) {
-            value = escapeRegExp(value);
-
-            let pattern : string;
-            if (negation) {
-                if (startLike && endLike) {
-                    pattern = `^(?!.*${value}).*`;
-                } else if (startLike) {
-                    pattern = `^(?!${value}).+`;
-                } else {
-                    pattern = `^(?!.*${value}$).*`;
-                }
-            } else if (startLike && endLike) {
-                pattern = `${value}`;
-            } else if (startLike) {
-                pattern = `^${value}`;
-            } else {
-                pattern = `${value}$`;
-            }
-
+        if (
+            (flag & FilterRegexFlag.STARTS_WITH) ||
+            (flag & FilterRegexFlag.ENDS_WITH)
+        ) {
             return {
-                value: new RegExp(pattern, 'i'),
+                value: createFilterRegex(
+                    escapeRegExp(value),
+                    flag,
+                ),
                 operator: FilterFieldOperator.REGEX,
             };
         }
@@ -483,7 +476,7 @@ Condition
             };
         }
 
-        if (negation) {
+        if (flag & FilterRegexFlag.NEGATION) {
             return {
                 value: this.normalizeValue(value),
                 operator: FilterFieldOperator.NOT_EQUAL,

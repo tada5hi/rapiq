@@ -6,9 +6,9 @@
  */
 
 export class Pagination {
-    readonly limit : number | undefined;
+    limit : number | undefined;
 
-    readonly offset : number | undefined;
+    offset : number | undefined;
 
     constructor(limit?: number, offset?: number) {
         this.limit = limit;

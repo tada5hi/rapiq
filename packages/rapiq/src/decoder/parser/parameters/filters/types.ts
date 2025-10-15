@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { Relations } from '../../../../parameter';
 import type { Condition, FiltersSchema, Schema } from '../../../../schema';
 import type { ObjectLiteral } from '../../../../types';
-import type { RelationsParseOutput } from '../relations';
 
 export type FiltersParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    relations?: RelationsParseOutput,
+    relations?: Relations,
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
     throwOnFailure?: boolean
 };

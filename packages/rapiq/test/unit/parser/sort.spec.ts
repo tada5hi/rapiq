@@ -16,6 +16,7 @@ import type { User } from '../../data';
 import { registry } from '../../data/schema';
 import type { IInterpreter } from '../../../src/interpreter';
 import type { Sorts } from '../../../src/parameter';
+import { Relation, Relations } from '../../../src/parameter';
 
 class SortSimpleInterpreter implements IInterpreter<Sorts, Record<string, `${SortDirection}`>> {
     interpret(input: Sorts): Record<string, `${SortDirection}`> {
@@ -253,7 +254,9 @@ describe('src/sort/index.ts', () => {
     it('should parse with simple relation', async () => {
         const transformed = await parser.parse(['id', 'realm.id'], {
             schema: 'user',
-            relations: ['realm'],
+            relations: new Relations([
+                new Relation('realm'),
+            ]),
         });
         expect(interpreter.interpret(transformed)).toEqual({
             id: SortDirection.ASC,
@@ -265,7 +268,10 @@ describe('src/sort/index.ts', () => {
         // with deep nested include
         const transformed = await parser.parse(['id', 'items.realm.id'], {
             schema: 'user',
-            relations: ['items', 'items.realm'],
+            relations: new Relations([
+                new Relation('items'),
+                new Relation('items.realm'),
+            ]),
             throwOnFailure: true,
         });
         expect(interpreter.interpret(transformed)).toEqual({
@@ -302,7 +308,9 @@ describe('src/sort/index.ts', () => {
             'bar.bar': 'desc',
         }, {
             schema: 'user',
-            relations: ['realm'],
+            relations: new Relations([
+                new Relation('realm'),
+            ]),
             throwOnFailure: true,
         })).rejects.toThrow(error.message);
     });
@@ -314,7 +322,9 @@ describe('src/sort/index.ts', () => {
             'realm.description': 'desc',
         }, {
             schema: 'user',
-            relations: ['realm'],
+            relations: new Relations([
+                new Relation('realm'),
+            ]),
             throwOnFailure: true,
         })).rejects.toThrow(error);
     });

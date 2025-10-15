@@ -7,9 +7,8 @@
 
 import { CompoundCondition as BaseCompoundCondition } from '@ucast/core';
 
-import type {
-    Condition,
-} from './condition';
+import type { Condition } from './condition';
+import { isCompoundCondition } from './helpers';
 
 export class Filters<
     T extends Condition = Condition,
@@ -22,5 +21,34 @@ export class Filters<
         for (let i = this.value.length - 1; i === 0; i--) {
             this.value.splice(i, 1);
         }
+    }
+
+    flatten(aggregatedResult?: T[]) : Filters<T> {
+        // this.value.splice(0, this.value.length, ...next);
+
+        return new Filters(
+            this.operator,
+            this.flattenInternal(this.value, this.operator, aggregatedResult),
+        );
+    }
+
+    protected flattenInternal<F extends Condition>(
+        conditions: F[],
+        operator: string,
+        aggregatedResult?: F[],
+    ) {
+        const flatConditions: F[] = aggregatedResult || [];
+
+        for (let i = 0, { length } = conditions; i < length; i++) {
+            const currentNode = conditions[i];
+
+            if (isCompoundCondition(currentNode, operator)) {
+                currentNode.flatten(flatConditions);
+            } else {
+                flatConditions.push(currentNode);
+            }
+        }
+
+        return flatConditions;
     }
 }
