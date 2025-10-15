@@ -11,7 +11,6 @@ import { extractSubRelations } from '../../../../schema/parameter/relations/help
 import type { ObjectLiteral } from '../../../../types';
 import {
     applyMapping,
-    extendObject,
     isPathAllowed,
     isPropertyNameValid,
     parseKey,
@@ -24,23 +23,23 @@ import {
     SortSchema, defineSortSchema,
 } from '../../../../schema';
 import { BaseParser } from '../../base';
-import type { SortParseOptions, SortParseOutput } from './types';
+import type { SortParseOptions } from './types';
 import type { RelationsParseOutput } from '../relations';
+import { Sort, Sorts } from '../../../../parameter';
 
 export class DecoderSortParser extends BaseParser<
 SortParseOptions,
-SortParseOutput
+Sorts
 > {
     protected buildDefaults<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         options: SortParseOptions<RECORD> = {},
     ) {
+        const output = new Sorts();
+
         const schema = this.resolveSchema(options.schema);
-
         if (schema.default) {
-            const output : SortParseOutput = {};
-
             const keys = Object.keys(schema.default);
 
             for (let i = 0; i < keys.length; i++) {
@@ -53,22 +52,25 @@ SortParseOutput
                     path = schema.name;
                 }
 
+                let key : string;
                 if (path) {
-                    output[`${path}.${fieldDetails.name}`] = schema.default[keys[i]];
+                    key = `${path}.${fieldDetails.name}`;
                 } else {
-                    output[fieldDetails.name] = schema.default[keys[i]];
+                    key = fieldDetails.name;
                 }
+
+                output.value.push(new Sort(key, schema.default[keys[i]]));
             }
 
             return output;
         }
 
-        return {};
+        return output;
     }
 
     async parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: SortParseOptions<RECORD> = {}) : Promise<SortParseOutput> {
+    >(input: unknown, options: SortParseOptions<RECORD> = {}) : Promise<Sorts> {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -90,7 +92,7 @@ SortParseOutput
             delete grouped[schema.name];
         }
 
-        const output : SortParseOutput = {};
+        const output = new Sorts();
 
         const {
             [DEFAULT_ID]: data,
@@ -127,20 +129,23 @@ SortParseOutput
                     continue;
                 }
 
-                output[key.name] = data[keys[i]];
+                output.value.push(new Sort(key.name, data[keys[i]]));
             }
 
             if (this.isMultiDimensionalArray(schema.allowed)) {
                 // eslint-disable-next-line no-labels,no-restricted-syntax
                 outerLoop:
                 for (let i = 0; i < schema.allowed.length; i++) {
-                    const temp: SortParseOutput = {};
+                    const temp = new Sorts();
 
                     const keyPaths = schema.allowed[i];
 
+                    let index : number;
+
                     for (let j = 0; j < keyPaths.length; j++) {
-                        if (output[keyPaths[j]]) {
-                            temp[keyPaths[j]] = output[keyPaths[j]];
+                        index = output.value.findIndex((el) => el.name === keyPaths[j]);
+                        if (index !== -1) {
+                            temp.value.push(output.value[index]);
                         } else {
                             // eslint-disable-next-line no-labels
                             continue outerLoop;
@@ -151,13 +156,12 @@ SortParseOutput
                 }
 
                 // if we get no match, the sort data is invalid.
-                return {};
+                return new Sorts();
             }
         }
 
-        const outputKeys = Object.keys(output);
-        if (outputKeys.length === 0) {
-            extendObject(output, this.buildDefaults(options));
+        if (output.value.length === 0) {
+            output.value.push(...this.buildDefaults(options).value);
         }
 
         const keys = Object.keys(relationsData);
@@ -196,9 +200,10 @@ SortParseOutput
                 },
             );
 
-            const relationOutputKeys = Object.keys(relationOutput);
-            for (let j = 0; j < relationOutputKeys.length; j++) {
-                output[`${key}.${relationOutputKeys[j]}`] = relationOutput[relationOutputKeys[j]];
+            for (let j = 0; j < relationOutput.value.length; j++) {
+                output.value.push(
+                    new Sort(`${key}.${relationOutput.value[j].name}`, relationOutput.value[j].operator),
+                );
             }
         }
 
