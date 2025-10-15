@@ -28,7 +28,6 @@ class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
 
 describe('src/fields/index.ts', () => {
     let parser : DecoderFieldsParser;
-
     let interpreter : FieldsSimpleInterpreter;
 
     beforeAll(() => {

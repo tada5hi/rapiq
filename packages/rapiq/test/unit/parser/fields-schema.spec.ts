@@ -7,12 +7,22 @@
 
 import { DecoderFieldsParser, type FieldsParseOutput } from '../../../src';
 import { registry } from '../../data/schema';
+import type { IInterpreter } from '../../../src/interpreter';
+import type { Fields } from '../../../src/parameter';
+
+class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
+    interpret(input: Fields): string[] {
+        return input.value.map((input) => input.name);
+    }
+}
 
 describe('parser/fields/schema', () => {
     let parser: DecoderFieldsParser;
+    let interpreter : FieldsSimpleInterpreter;
 
     beforeAll(() => {
         parser = new DecoderFieldsParser(registry);
+        interpreter = new FieldsSimpleInterpreter();
     });
 
     it('should parse root schema', async () => {
@@ -20,7 +30,7 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(output).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
     });
 
     it('should not parse root schema', async () => {
@@ -28,7 +38,7 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'id',
             'name',
         ] satisfies FieldsParseOutput);
@@ -42,7 +52,7 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'realm.name',
         ] satisfies FieldsParseOutput);
@@ -56,7 +66,7 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'realm.id',
             'realm.name',
@@ -72,7 +82,7 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'item.id',
             'item.realm.name',
@@ -87,7 +97,7 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'item.id',
             'item.realm.id',
