@@ -16,35 +16,36 @@ import { BaseParser } from '../../base';
 import {
     RelationsSchema, Schema, defineRelationsSchema,
 } from '../../../../schema';
-import type { RelationsParseOptions, RelationsParseOutput } from './types';
+import type { RelationsParseOptions } from './types';
+import { Relation, Relations } from '../../../../parameter';
 
 // --------------------------------------------------
 
 export class DecoderRelationsParser extends BaseParser<
 RelationsParseOptions,
-RelationsParseOutput
+Relations
 > {
     async parse<
     RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
-    ) : Promise<RelationsParseOutput> {
+    ) : Promise<Relations> {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
+
+        const output = new Relations();
 
         // If it is an empty array nothing is allowed
         if (
             Array.isArray(schema.allowed) &&
             schema.allowed.length === 0
         ) {
-            return [];
+            return output;
         }
 
         const normalized = this.includeParents(this.normalize(input, throwOnFailure));
         const grouped = this.groupArrayByBasePath(normalized);
-
-        const output : RelationsParseOutput = [];
 
         const {
             [DEFAULT_ID]: data,
@@ -72,7 +73,7 @@ RelationsParseOutput
                     continue;
                 }
 
-                output.push(key.name);
+                output.value.push(new Relation(key.name));
             }
         }
 
@@ -106,9 +107,11 @@ RelationsParseOutput
                 },
             );
 
-            output.push(...relationOutput.map(
-                (element) => (`${key}.${element}`),
-            ));
+            for (let j = 0; j < relationOutput.value.length; j++) {
+                output.value.push(
+                    new Relation(`${key}.${relationOutput.value[j].name}`),
+                );
+            }
         }
 
         return output;
