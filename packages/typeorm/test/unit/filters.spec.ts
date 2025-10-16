@@ -8,9 +8,11 @@
 import {
     Interpreter,
 } from '@rapiq/sql';
-import type { FiltersParseOutput } from 'rapiq';
 import {
-    Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
 } from 'rapiq';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
@@ -47,7 +49,7 @@ describe('src/filters', () => {
     const adapter = new TypeormAdapter();
     const interpreter = new Interpreter();
 
-    const createQueryBuilder = (condition: FiltersParseOutput) => {
+    const createQueryBuilder = (condition: Filters) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 

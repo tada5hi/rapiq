@@ -5,13 +5,15 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { SortDirection } from '../../schema';
+
 export class Sort {
     readonly name: string;
 
-    readonly operator: string | undefined;
+    readonly operator: `${SortDirection}`;
 
-    constructor(name: string, operator?: string) {
+    constructor(name: string, operator?: `${SortDirection}`) {
         this.name = name;
-        this.operator = operator;
+        this.operator = operator || SortDirection.ASC;
     }
 }

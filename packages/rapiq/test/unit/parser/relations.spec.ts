@@ -5,11 +5,10 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { RelationsParseOutput } from '../../../src';
 import { DecoderRelationsParser, RelationsParseError, defineSchema } from '../../../src';
 import { registry } from '../../data/schema';
 import type { IInterpreter } from '../../../src/interpreter';
-import type { Relations } from '../../../src/parameter';
+import type { Relations } from '../../../src';
 
 class RelationsSimpleInterpreter implements IInterpreter<Relations, string[]> {
     interpret(input: Relations): string[] {
@@ -34,7 +33,7 @@ describe('src/relations/index.ts', () => {
             throwOnFailure: true,
         });
         let output = await parser.parse('profile', { schema });
-        expect(interpreter.interpret(output)).toEqual(['profile'] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['profile']);
 
         output = await parser.parse([], { schema });
         expect(interpreter.interpret(output)).toEqual([]);
@@ -55,7 +54,7 @@ describe('src/relations/index.ts', () => {
 
         // ignore path pattern, if permitted by an allowed key
         const output = await parser.parse(['profile!'], { schema });
-        expect(interpreter.interpret(output)).toEqual(['profile!'] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['profile!']);
     });
 
     it('should parse with alias', async () => {
@@ -70,7 +69,7 @@ describe('src/relations/index.ts', () => {
 
         // with alias
         const output = await parser.parse('pro', { schema });
-        expect(interpreter.interpret(output)).toEqual(['profile'] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with nested alias', async () => {
@@ -79,7 +78,7 @@ describe('src/relations/index.ts', () => {
         expect(interpreter.interpret(output)).toEqual([
             'items',
             'items.realm',
-        ] satisfies RelationsParseOutput);
+        ]);
     });
 
     it('should parse with array input', async () => {
@@ -91,7 +90,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(interpreter.interpret(output)).toEqual(['profile'] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with empty allowed', async () => {
@@ -103,7 +102,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(interpreter.interpret(output)).toEqual([] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual([]);
     });
 
     it('should parse with undefined allowed', async () => {
@@ -115,7 +114,7 @@ describe('src/relations/index.ts', () => {
                 },
             }),
         });
-        expect(interpreter.interpret(output)).toEqual(['profile'] satisfies RelationsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with nested allowed', async () => {
@@ -128,7 +127,7 @@ describe('src/relations/index.ts', () => {
         expect(interpreter.interpret(output)).toEqual([
             'items',
             'items.realm',
-        ] satisfies RelationsParseOutput);
+        ]);
     });
 
     it('should pare with null input', async () => {

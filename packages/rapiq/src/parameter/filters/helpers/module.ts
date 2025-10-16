@@ -1,27 +1,12 @@
 /*
- * Copyright (c) 2025.
+ * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Filters } from './filters';
-import type { Condition } from './condition';
-
-export function isCompoundCondition(
-    condition: Condition,
-    operator?: string,
-): condition is Filters {
-    if (!(condition instanceof Filters)) {
-        return false;
-    }
-
-    if (operator) {
-        return operator === condition.operator;
-    }
-
-    return true;
-}
+import { Filters } from '../collection';
+import type { Condition } from '../condition';
 
 export function flattenConditions<T extends Condition>(
     conditions: T[],
@@ -33,7 +18,7 @@ export function flattenConditions<T extends Condition>(
     for (let i = 0, { length } = conditions; i < length; i++) {
         const currentNode = conditions[i];
 
-        if (isCompoundCondition(currentNode, operator)) {
+        if (Filters.check(currentNode, operator)) {
             flattenConditions(currentNode.value as T[], operator, flatConditions);
         } else {
             flatConditions.push(currentNode);
@@ -49,7 +34,7 @@ export function optimizedCompoundCondition<T extends Condition>(
 ): Filters<T> {
     if (conditions.length === 1) {
         const [first] = conditions;
-        if (isCompoundCondition(first)) {
+        if (Filters.check(first)) {
             return first.flatten() as Filters<T>;
         }
     }

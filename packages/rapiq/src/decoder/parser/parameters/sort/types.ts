@@ -6,10 +6,8 @@
  */
 
 import type { Relations } from '../../../../parameter';
-import type { Schema, SortDirection, SortSchema } from '../../../../schema';
+import type { Schema, SortSchema } from '../../../../schema';
 import type { ObjectLiteral } from '../../../../types';
-
-export type SortParseOutput = Record<string, `${SortDirection}`>;
 
 export type SortParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,

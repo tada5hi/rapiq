@@ -6,7 +6,7 @@
  */
 
 import type { Relations } from '../../../../parameter';
-import type { Condition, FiltersSchema, Schema } from '../../../../schema';
+import type { FiltersSchema, Schema } from '../../../../schema';
 import type { ObjectLiteral } from '../../../../types';
 
 export type FiltersParseOptions<
@@ -16,5 +16,3 @@ export type FiltersParseOptions<
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
     throwOnFailure?: boolean
 };
-
-export type FiltersParseOutput = Condition;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025.
+ * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
@@ -7,8 +7,7 @@
 
 import { CompoundCondition as BaseCompoundCondition } from '@ucast/core';
 
-import type { Condition } from './condition';
-import { isCompoundCondition } from './helpers';
+import type { Condition } from '../condition';
 
 export class Filters<
     T extends Condition = Condition,
@@ -42,7 +41,7 @@ export class Filters<
         for (let i = 0, { length } = conditions; i < length; i++) {
             const currentNode = conditions[i];
 
-            if (isCompoundCondition(currentNode, operator)) {
+            if (Filters.check(currentNode, operator)) {
                 currentNode.flatten(flatConditions);
             } else {
                 flatConditions.push(currentNode);
@@ -50,5 +49,20 @@ export class Filters<
         }
 
         return flatConditions;
+    }
+
+    static check(
+        condition: Condition,
+        operator?: string,
+    ) : condition is Filters {
+        if (!(condition instanceof Filters)) {
+            return false;
+        }
+
+        if (operator) {
+            return operator === condition.operator;
+        }
+
+        return true;
     }
 }

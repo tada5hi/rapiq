@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { RelationsParseOutput } from 'rapiq';
+import type { Relations } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -47,7 +47,7 @@ describe('src/relations', () => {
     });
     const interpreter = new Interpreter();
 
-    const createQueryBuilder = (relations: RelationsParseOutput) => {
+    const createQueryBuilder = (relations: Relations) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 

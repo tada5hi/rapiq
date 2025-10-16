@@ -6,7 +6,7 @@
  */
 
 import type { Condition, InterpretationContext } from '@ucast/core';
-import type { FiltersParseOutput } from 'rapiq';
+import type { Filters } from 'rapiq';
 import { allInterpreters } from '../operators';
 import type { IFiltersAdapter } from '../adapter';
 import type { InterpreterInterpretOptions } from './types';
@@ -37,7 +37,7 @@ export class FiltersInterpreter {
     }
 
     interpret(
-        input: FiltersParseOutput,
+        input: Filters,
         adapter: IFiltersAdapter,
         options: Omit<FilterInterpreterInterpretOptions, 'interpret'>,
     ) {
@@ -58,7 +58,7 @@ export class FiltersInterpreter {
     }
 
     protected interpretInternal(
-        input: FiltersParseOutput,
+        input: Filters,
         adapter: IFiltersAdapter,
         options: Omit<FilterInterpreterInterpretOptions, 'interpret'>,
     ) {

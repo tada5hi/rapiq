@@ -8,9 +8,11 @@
 import { URLParameter } from '../../../constants';
 import {
     Filter,
-    FilterCompoundOperator,
     Filters,
     flattenConditions,
+} from '../../../parameter';
+import {
+    FilterCompoundOperator,
 } from '../../../schema';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 

@@ -7,19 +7,17 @@
 
 import { DEFAULT_ID } from '../../../../constants';
 import type { FilterValuePrimitive } from '../../../../encoder';
-import type { Relations } from '../../../../parameter';
-import { FilterRegexFlag, createFilterRegex } from '../../../../parameter';
-import type { Condition } from '../../../../schema';
+import type { Condition, Relations } from '../../../../parameter';
 import {
-    Filter,
+    Filter, FilterRegexFlag, Filters, createFilterRegex, optimizedCompoundCondition,
+} from '../../../../parameter';
+import {
     FilterCompoundOperator,
     FilterFieldOperator,
     FilterInputOperatorValue,
-    Filters,
     FiltersSchema,
     Schema,
     defineFiltersSchema,
-    optimizedCompoundCondition,
 } from '../../../../schema';
 import type { NestedKeys, ObjectLiteral } from '../../../../types';
 import {

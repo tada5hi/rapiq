@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { RelationsParseOutput } from 'rapiq';
+import type { Relations } from 'rapiq';
 import type { IRelationsAdapter } from '../adapter';
 import type { InterpreterInterpretOptions } from './types';
 
@@ -13,14 +13,14 @@ export type RelationInterpreterOptions = InterpreterInterpretOptions;
 
 export class RelationsInterpreter {
     interpret(
-        input: RelationsParseOutput,
+        input: Relations,
         adapter: IRelationsAdapter,
         options: RelationInterpreterOptions = {},
     ) {
         adapter.clear();
 
-        for (let i = 0; i < input.length; i++) {
-            adapter.add(input[i], options.rootAlias);
+        for (let i = 0; i < input.value.length; i++) {
+            adapter.add(input.value[i].name, options.rootAlias);
         }
 
         const execute = options.execute ?? true;
