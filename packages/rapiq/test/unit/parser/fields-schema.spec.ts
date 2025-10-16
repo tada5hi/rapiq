@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { DecoderFieldsParser, type FieldsParseOutput } from '../../../src';
+import { SimpleFieldsParser } from '../../../src';
 import { registry } from '../../data/schema';
 import type { IInterpreter } from '../../../src/interpreter';
 import type { Fields } from '../../../src/parameter';
@@ -17,11 +17,11 @@ class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
 }
 
 describe('parser/fields/schema', () => {
-    let parser: DecoderFieldsParser;
+    let parser: SimpleFieldsParser;
     let interpreter : FieldsSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new DecoderFieldsParser(registry);
+        parser = new SimpleFieldsParser(registry);
         interpreter = new FieldsSimpleInterpreter();
     });
 
@@ -30,7 +30,7 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(interpreter.interpret(output)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['id', 'name']);
     });
 
     it('should not parse root schema', async () => {
@@ -41,7 +41,7 @@ describe('parser/fields/schema', () => {
         expect(interpreter.interpret(output)).toEqual([
             'id',
             'name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid sub schema field', async () => {
@@ -55,7 +55,7 @@ describe('parser/fields/schema', () => {
         expect(interpreter.interpret(output)).toEqual([
             'name',
             'realm.name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with invalid sub schema field', async () => {
@@ -71,7 +71,7 @@ describe('parser/fields/schema', () => {
             'realm.id',
             'realm.name',
             'realm.description',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid sub sub schema field', async () => {
@@ -86,7 +86,7 @@ describe('parser/fields/schema', () => {
             'name',
             'item.id',
             'item.realm.name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with invalid sub sub schema field', async () => {
@@ -103,6 +103,6 @@ describe('parser/fields/schema', () => {
             'item.realm.id',
             'item.realm.name',
             'item.realm.description',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 });

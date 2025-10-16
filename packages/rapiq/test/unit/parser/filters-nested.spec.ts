@@ -6,18 +6,18 @@
  */
 
 import {
-    DecoderFiltersParser,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    SimpleFiltersParser,
 } from '../../../src';
 
 describe('src/parser/filters-nested.ts', () => {
-    let parser: DecoderFiltersParser;
+    let parser: SimpleFiltersParser;
 
     beforeAll(() => {
-        parser = new DecoderFiltersParser();
+        parser = new SimpleFiltersParser();
     });
 
     it('should parse nested filters', async () => {

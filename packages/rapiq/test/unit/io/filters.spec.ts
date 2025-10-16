@@ -8,16 +8,16 @@
 import type { FieldCondition } from '@ucast/core';
 import { CompoundCondition } from '@ucast/core';
 import {
-    DecoderFiltersParser, FilterCompoundOperator, and, filters, or,
+    FilterCompoundOperator, SimpleFiltersParser, and, filters, or,
 } from '../../../src';
 import { registry } from '../../data/schema';
 import type { Entity } from '../../data';
 
 describe('src/filters', () => {
-    let parser : DecoderFiltersParser;
+    let parser : SimpleFiltersParser;
 
     beforeAll(() => {
-        parser = new DecoderFiltersParser(registry);
+        parser = new SimpleFiltersParser(registry);
     });
 
     it('should build & parse', async () => {

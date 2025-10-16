@@ -8,7 +8,6 @@
 export * from './encoder';
 export * from './errors';
 export * from './constants';
-export * from './decoder';
 export * from './interpreter';
 export * from './parameter';
 export * from './parser';

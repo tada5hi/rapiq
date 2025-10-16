@@ -6,18 +6,18 @@
  */
 
 import {
-    DecoderFiltersParser, Filter, FilterCompoundOperator, FilterFieldOperator, FilterRegexFlag,
+    Filter, FilterCompoundOperator, FilterFieldOperator, FilterRegexFlag, Filters,
 
-    Filters, FiltersParseError, createFilterRegex, defineFiltersSchema,
+    FiltersParseError, SimpleFiltersParser, createFilterRegex, defineFiltersSchema,
 } from '../../../src';
 import { Relation, Relations } from '../../../src/parameter';
 import { registry } from '../../data/schema';
 
 describe('src/filter/index.ts', () => {
-    let parser : DecoderFiltersParser;
+    let parser : SimpleFiltersParser;
 
     beforeAll(() => {
-        parser = new DecoderFiltersParser(registry);
+        parser = new SimpleFiltersParser(registry);
     });
 
     it('should parse with allowed', async () => {

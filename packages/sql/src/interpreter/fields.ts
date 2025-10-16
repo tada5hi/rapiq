@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FieldsParseOutput } from 'rapiq';
+import type { Fields } from 'rapiq';
 import type { IFieldsAdapter } from '../adapter';
 import type { InterpreterInterpretOptions } from './types';
 
@@ -13,14 +13,15 @@ export type FieldsInterpreterOptions = InterpreterInterpretOptions;
 
 export class FieldsInterpreter {
     interpret(
-        input: FieldsParseOutput,
+        input: Fields,
         adapter: IFieldsAdapter,
         options: FieldsInterpreterOptions = {},
     ) {
         adapter.clear();
 
-        for (let i = 0; i < input.length; i++) {
-            adapter.add(input[i], options.rootAlias);
+        for (let i = 0; i < input.value.length; i++) {
+            // todo: operator missing
+            adapter.add(input.value[i].name, options.rootAlias);
         }
 
         const execute = options.execute ?? true;

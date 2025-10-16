@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { DecoderRelationsParser, RelationsParseError, defineSchema } from '../../../src';
+import { RelationsParseError, SimpleRelationsParser, defineSchema } from '../../../src';
 import { registry } from '../../data/schema';
 import type { IInterpreter } from '../../../src/interpreter';
 import type { Relations } from '../../../src';
@@ -17,11 +17,11 @@ class RelationsSimpleInterpreter implements IInterpreter<Relations, string[]> {
 }
 
 describe('src/relations/index.ts', () => {
-    let parser : DecoderRelationsParser;
+    let parser : SimpleRelationsParser;
     let interpreter : RelationsSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new DecoderRelationsParser(registry);
+        parser = new SimpleRelationsParser(registry);
         interpreter = new RelationsSimpleInterpreter();
     });
 

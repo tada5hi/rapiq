@@ -7,9 +7,9 @@
 
 import type { IInterpreter, Sorts } from '../../../src';
 import {
-    DecoderSortParser,
     Relation,
     Relations,
+    SimpleSortParser,
     SortDirection,
     SortParseError, defineSortSchema,
 } from '../../../src';
@@ -29,11 +29,11 @@ class SortSimpleInterpreter implements IInterpreter<Sorts, Record<string, `${Sor
 }
 
 describe('src/sort/index.ts', () => {
-    let parser : DecoderSortParser;
+    let parser : SimpleSortParser;
     let interpreter : SortSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new DecoderSortParser(registry);
+        parser = new SimpleSortParser(registry);
         interpreter = new SortSimpleInterpreter();
     });
 

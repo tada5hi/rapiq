@@ -5,10 +5,10 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-export type IInterpreter<
+export interface IInterpreter<
     Input = any,
-    Container = any,
+    Output = any,
     Options extends Record<PropertyKey, any> = Record<PropertyKey, any>,
-> = {
-    interpret(input: Input, options?: Options) : Container;
-};
+> {
+    interpret(input: Input, options?: Options) : Output;
+}

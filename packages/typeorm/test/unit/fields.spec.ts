@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { FieldsParseOutput } from 'rapiq';
+import type { Fields } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -52,7 +52,7 @@ describe('src/fields', () => {
     const adapter = new TypeormAdapter();
     const interpreter = new Interpreter();
 
-    const createQueryBuilder = (fields: FieldsParseOutput) => {
+    const createQueryBuilder = (fields: Fields) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 

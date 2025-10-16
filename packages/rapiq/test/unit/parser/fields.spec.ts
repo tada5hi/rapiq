@@ -6,12 +6,11 @@
  */
 
 import type {
-    FieldsParseOutput,
     ObjectLiteral,
 } from '../../../src';
 import {
-    DecoderFieldsParser,
     FieldsParseError,
+    SimpleFieldsParser,
     defineFieldsSchema,
     defineSchema,
 } from '../../../src';
@@ -27,11 +26,11 @@ class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
 }
 
 describe('src/fields/index.ts', () => {
-    let parser : DecoderFieldsParser;
+    let parser : SimpleFieldsParser;
     let interpreter : FieldsSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new DecoderFieldsParser(registry);
+        parser = new SimpleFieldsParser(registry);
         interpreter = new FieldsSimpleInterpreter();
     });
 
@@ -51,7 +50,7 @@ describe('src/fields/index.ts', () => {
             'id',
             'name',
             'email',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse fields with extra field', async () => {
@@ -63,7 +62,7 @@ describe('src/fields/index.ts', () => {
         const data = await parser.parse('+email', {
             schema,
         });
-        expect(interpreter.interpret(data)).toEqual(['email'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['email']);
     });
 
     it('should parse with invalid input (with default)', async () => {
@@ -73,7 +72,7 @@ describe('src/fields/index.ts', () => {
         const data = await parser.parse('name', {
             schema,
         });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
     it('should parse invalid input (with allowed)', async () => {
@@ -85,17 +84,17 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined
         const data = await parser.parse(undefined, { schema });
-        expect(interpreter.interpret(data)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id', 'name']);
     });
 
     it('should parse with no schema', async () => {
         // no options
         let data = await parser.parse(['id']);
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // invalid field names
         data = await parser.parse(['"id', 'name!']);
-        expect(interpreter.interpret(data)).toEqual([] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual([]);
     });
 
     it('should parse with invalid field pattern, if permitted by allowed', async () => {
@@ -106,7 +105,7 @@ describe('src/fields/index.ts', () => {
         });
 
         const data = await parser.parse(['name!'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['name!'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['name!']);
     });
 
     it('should not parse with empty allowed', async () => {
@@ -117,10 +116,10 @@ describe('src/fields/index.ts', () => {
         });
 
         let data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual([] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual([]);
 
         data = await parser.parse('id', { schema });
-        expect(interpreter.interpret(data)).toEqual([] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual([]);
     });
 
     it('should not parse with empty default', async () => {
@@ -131,7 +130,7 @@ describe('src/fields/index.ts', () => {
         });
 
         const data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual([] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual([]);
     });
 
     it('should parse invalid input (with allowed & default)', async () => {
@@ -142,41 +141,41 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined with default
         let data = await parser.parse(undefined, { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // fields as array
         data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // fields as string
         data = await parser.parse('id', { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // multiple fields but only one valid field
         data = await parser.parse(['id', 'avatar'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // field as string and append fields
         data = await parser.parse('+id', { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         data = await parser.parse('avatar,+id', { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         data = await parser.parse('-id', { schema });
-        expect(interpreter.interpret(data)).toEqual([] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual([]);
 
         // fields as string and append fields
         data = await parser.parse('id,+name', { schema });
-        expect(interpreter.interpret(data)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
         // field not allowed
         data = await parser.parse('avatar', { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         // field with invalid value
         data = await parser.parse({ id: null }, { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
     it('should parse with single allowed domain', async () => {
@@ -189,7 +188,7 @@ describe('src/fields/index.ts', () => {
 
         // if only one domain is given, try to parse request field to single domain.
         const data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
     it('should parse with multiple allowed domains', async () => {
@@ -204,7 +203,7 @@ describe('src/fields/index.ts', () => {
         const data = await parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should use default fields if default & allowed', async () => {
@@ -216,13 +215,13 @@ describe('src/fields/index.ts', () => {
         });
 
         let data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         data = await parser.parse(['+id'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['name', 'id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['name', 'id']);
 
         data = await parser.parse([], { schema });
-        expect(interpreter.interpret(data)).toEqual(['name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['name']);
     });
 
     it('should use default fields if default & allowed (multiple domains)', async () => {
@@ -238,7 +237,7 @@ describe('src/fields/index.ts', () => {
         const data = await parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with defaults', async () => {
@@ -246,13 +245,13 @@ describe('src/fields/index.ts', () => {
             fields: { default: ['id', 'name'] },
         });
         let data = await parser.parse([], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
         data = await parser.parse(['id'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id']);
 
         data = await parser.parse(['fake'], { schema });
-        expect(interpreter.interpret(data)).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(data)).toEqual(['id', 'name']);
     });
 
     it('should parse fields with aliasMapping', async () => {
@@ -269,12 +268,12 @@ describe('src/fields/index.ts', () => {
         expect(interpreter.interpret(data)).toEqual([
             'id',
             'name',
-        ] satisfies FieldsParseOutput);
+        ]);
 
         data = await parser.parse('+alias', { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid relation', async () => {
@@ -296,7 +295,7 @@ describe('src/fields/index.ts', () => {
             'age',
             'items.id',
             'items.realm.id',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid & invalid relation', async () => {
@@ -316,7 +315,7 @@ describe('src/fields/index.ts', () => {
             'email',
             'age',
             'realm.id',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should throw on invalid input shape', async () => {

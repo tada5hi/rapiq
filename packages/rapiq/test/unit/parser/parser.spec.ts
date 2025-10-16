@@ -6,8 +6,8 @@
  */
 
 import {
-    DecoderParser,
     SchemaRegistry,
+    SimpleParser,
     defineSchema,
 } from '../../../src';
 import { Field, Fields } from '../../../src/parameter';
@@ -22,7 +22,7 @@ describe('src/parser', () => {
             },
         }));
 
-        const parser = new DecoderParser(registry);
+        const parser = new SimpleParser(registry);
 
         const output = await parser.parse({
             fields: ['id', 'name'],

@@ -6,7 +6,7 @@
  */
 
 import {
-    DecoderPaginationParser, PaginationParseError, defineSchema,
+    PaginationParseError, SimplePaginationParser, defineSchema,
 } from '../../../src';
 import type { IInterpreter } from '../../../src/interpreter';
 import type { Pagination } from '../../../src/parameter';
@@ -30,11 +30,11 @@ class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: 
     }
 }
 describe('src/pagination/index.ts', () => {
-    let parser : DecoderPaginationParser;
+    let parser : SimplePaginationParser;
     let interpreter: PaginationSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new DecoderPaginationParser();
+        parser = new SimplePaginationParser();
         interpreter = new PaginationSimpleInterpreter();
     });
 
