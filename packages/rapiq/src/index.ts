@@ -13,3 +13,6 @@ export * from './parameter';
 export * from './parser';
 export * from './schema';
 export * from './types';
+
+// todo: remove this, temporarily exposed
+export * from './utils';
