@@ -9,14 +9,15 @@ import { DEFAULT_ID } from '../../../constants';
 import type { FilterValuePrimitive } from '../../../encoder';
 import type { Condition, Relations } from '../../../parameter';
 import {
-    Filter, FilterRegexFlag, Filters, createFilterRegex, optimizedCompoundCondition,
+    Filter,
+    FilterRegexFlag, Filters, createFilterRegex, optimizedCompoundCondition,
 } from '../../../parameter';
 import {
     FilterCompoundOperator,
     FilterFieldOperator,
     FilterInputOperatorValue,
 } from '../../../schema';
-import type { NestedKeys, ObjectLiteral } from '../../../types';
+import type { MaybeAsync, ObjectLiteral } from '../../../types';
 import {
     applyMapping,
     buildKeyPath,
@@ -27,6 +28,7 @@ import {
     parseKey,
     stringifyKey,
 } from '../../../utils';
+import { LinkedList, LinkedListNode } from '../../../utils/linked-list';
 import { BaseFiltersParser } from './base';
 import { FiltersParseError } from './error';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
@@ -38,7 +40,7 @@ FiltersParseOptions
     preParse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Record<string, Filter[]> {
+    ) : MaybeAsync<Record<string, Filter[]>> {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -64,9 +66,9 @@ FiltersParseOptions
             return this.groupDefaults(options);
         }
 
-        const output : Record<string, Filter[]> = {};
-
         const inputGrouped = this.groupObjectByBasePath(input);
+        console.log(this.groupObject(this.expandObject(input)));
+
         if (
             schema.name &&
             inputGrouped[schema.name]
@@ -80,153 +82,250 @@ FiltersParseOptions
             ...relationsData
         } = inputGrouped;
 
-        // todo: build defaults otherwise
-        if (data) {
-            const keys = Object.keys(data);
-            for (let i = 0; i < keys.length; i++) {
-                const key = parseKey(keys[i]);
-                key.name = applyMapping(key.name, schema.mapping);
+        const list = new LinkedList<string>();
 
-                if (
-                    schema.allowedIsUndefined &&
-                    !isPropertyNameValid(key.name)
-                ) {
-                    if (throwOnFailure) {
-                        throw FiltersParseError.keyInvalid(key.name);
-                    }
+        list.addNode(new LinkedListNode(DEFAULT_ID));
 
-                    continue;
+        const keys = Object.keys(relationsData);
+        for (let i = 0; i < keys.length; i++) {
+            list.addNode(new LinkedListNode(keys[i]));
+        }
+
+        return this.processList(
+            list.iterator(),
+            inputGrouped,
+            options,
+        );
+    }
+
+    processList<RECORD extends ObjectLiteral>(
+        iterator: Iterator<string, null>,
+        data: Record<string, any>,
+        options: FiltersParseOptions<RECORD> = {},
+    ): MaybeAsync<Record<string, Filter[]>> {
+        const schema = this.resolveSchema(options.schema);
+        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
+
+        const currentKey = iterator.next();
+        if (currentKey.done) {
+            return {};
+        }
+
+        let relations : Relations | undefined;
+
+        // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
+
+        if (currentKey.value !== DEFAULT_ID) {
+            if (!isPathAllowed(currentKey.value, options.relations)) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyPathInvalid(currentKey.value);
                 }
 
-                if (
-                    !schema.allowedIsUndefined &&
-                    schema.allowed.indexOf(key.name) === -1
-                ) {
-                    if (throwOnFailure) {
-                        throw FiltersParseError.keyInvalid(key.name);
-                    }
+                return {};
+            }
 
-                    continue;
+            // todo: also pass options.schema
+            const relationSchema = this.registry.resolve(schema.name, currentKey.value);
+            if (!relationSchema) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyPathInvalid(currentKey.value);
                 }
 
-                const valueParsed = this.parseValue(data[keys[i]]);
-                if (!valueParsed) {
+                return {};
+            }
+
+            if (typeof options.relations !== 'undefined') {
+                relations = options.relations.extract(currentKey.value);
+            }
+        }
+
+        const currentKeyData = data[currentKey.value] || data;
+        if (!currentKeyData) {
+            return {};
+        }
+
+        const output : Record<string, Filter[]> = {};
+
+        let maybeAsync : Promise<unknown> | undefined;
+
+        const keys = Object.keys(currentKeyData);
+        for (let i = 0; i < keys.length; i++) {
+            const key = parseKey(keys[i]);
+            key.name = applyMapping(key.name, schema.mapping);
+
+            if (
+                schema.allowedIsUndefined &&
+                !isPropertyNameValid(key.name)
+            ) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyInvalid(key.name);
+                }
+
+                continue;
+            }
+
+            if (
+                !schema.allowedIsUndefined &&
+                schema.allowed.indexOf(key.name) === -1
+            ) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyInvalid(key.name);
+                }
+
+                continue;
+            }
+
+            const valueParsed = this.parseValue(currentKeyData[keys[i]]);
+            if (!valueParsed) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(key.name);
+                }
+
+                continue;
+            }
+
+            if (!Array.isArray(valueParsed.value)) {
+                if (
+                    typeof valueParsed.value === 'string' &&
+                    valueParsed.value.length === 0
+                ) {
                     if (throwOnFailure) {
                         throw FiltersParseError.keyValueInvalid(key.name);
                     }
 
                     continue;
                 }
-
-                if (Array.isArray(valueParsed.value)) {
-                    const temp: (string | number)[] = [];
-                    for (let j = 0; j < valueParsed.value.length; j++) {
-                        if (schema.validate(key.name as NestedKeys<RECORD>, valueParsed.value[j])) {
-                            temp.push(valueParsed.value[j]);
-                        } else if (throwOnFailure) {
-                            throw FiltersParseError.keyValueInvalid(key.name);
-                        }
-                    }
-
-                    if (temp.length === 0) {
-                        continue;
-                    }
-
-                    valueParsed.value = temp;
-                } else {
-                    if (
-                        typeof valueParsed.value === 'string' &&
-                        valueParsed.value.length === 0
-                    ) {
-                        if (throwOnFailure) {
-                            throw FiltersParseError.keyValueInvalid(key.name);
-                        }
-
-                        continue;
-                    }
-
-                    if (!schema.validate(key.name as NestedKeys<RECORD>, valueParsed.value)) {
-                        if (throwOnFailure) {
-                            throw FiltersParseError.keyValueInvalid(key.name);
-                        }
-
-                        continue;
-                    }
-                }
-
-                const outputKey = key.group || '';
-                if (!output[outputKey]) {
-                    output[outputKey] = [];
-                }
-
-                output[outputKey].push(new Filter(
-                    valueParsed.operator,
-                    key.name,
-                    valueParsed.value,
-                ));
-            }
-        }
-
-        const keys = Object.keys(relationsData);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-
-            if (!isPathAllowed(key, options.relations)) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
-                continue;
             }
 
-            // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, key);
-            if (!relationSchema) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
-                continue;
-            }
-
-            let childRelations: Relations | undefined;
-            if (typeof options.relations !== 'undefined') {
-                childRelations = options.relations.extract(key);
-            }
-
-            const relationOutput = this.preParse(
-                relationsData[key],
-                {
-                    schema: relationSchema,
-                    relations: childRelations,
-                    throwOnFailure: options.throwOnFailure,
-                },
+            const filter = new Filter(
+                valueParsed.operator,
+                currentKey.value === DEFAULT_ID ?
+                    key.name :
+                    stringifyKey({ path: currentKey.value, name: key.name }),
+                valueParsed.value,
             );
 
-            const relationOutputKeys = Object.keys(relationOutput);
-            for (let j = 0; j < relationOutputKeys.length; j++) {
-                if (!output[relationOutputKeys[j]]) {
-                    output[relationOutputKeys[j]] = [];
-                }
+            const groupKey = key.group || '';
+            if (!output[groupKey]) {
+                output[groupKey] = [];
+            }
 
-                output[relationOutputKeys[j]].push(...relationOutput[relationOutputKeys[j]].map(
-                    (condition) => new Filter(
-                        condition.operator as `${FilterFieldOperator}`,
-                        stringifyKey({ path: keys[i], name: condition.field }),
-                        condition.value,
-                    ),
-                ));
+            try {
+                const validationResult = schema.validate(filter);
+
+                if (maybeAsync || validationResult instanceof Promise) {
+                    maybeAsync = (maybeAsync ?? Promise.resolve())
+                        .then(async () => {
+                            const result = await validationResult;
+                            output[groupKey].push(result || filter);
+                        })
+                        .catch(() => {
+                            if (throwOnFailure) {
+                                throw FiltersParseError.keyValueInvalid(filter.field);
+                            }
+                        });
+                } else {
+                    output[groupKey].push(validationResult || filter);
+                }
+            } catch (e) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(filter.field);
+                }
             }
         }
 
-        return output;
+        const mergeGroups = (groups: Record<string, Filter[]>) => {
+            const groupKeys = Object.keys(groups);
+            for (let i = 0; i < groupKeys.length; i++) {
+                const children = groups[groupKeys[i]];
+
+                output[groupKeys[i]] ||= [];
+
+                if (currentKey.value === DEFAULT_ID) {
+                    output[groupKeys[i]].push(...children);
+                } else {
+                    output[groupKeys[i]].push(
+                        ...children.map((child) => new Filter(
+                            child.operator as `${FilterFieldOperator}`,
+                            stringifyKey({ path: currentKey.value, name: child.field }),
+                            child.value,
+                        )),
+                    );
+                }
+            }
+
+            return output;
+        };
+
+        if (maybeAsync) {
+            if (!options.async) {
+                // todo: throw async error
+                throw Error();
+            }
+
+            return maybeAsync
+                .then(() => this.processList(
+                    iterator,
+                    currentKeyData,
+                    {
+                        ...options,
+                        relations,
+                    },
+                ))
+                .then((groups) => mergeGroups(groups));
+        }
+
+        const child = this.processList(
+            iterator,
+            currentKeyData,
+            {
+                ...options,
+                relations,
+            },
+        );
+
+        if (child instanceof Promise) {
+            if (!options.async) {
+                // todo: throw async error
+                throw Error();
+            }
+
+            return child.then((groups) => mergeGroups(groups));
+        }
+
+        return mergeGroups(child);
     }
 
-    async parse<RECORD extends ObjectLiteral = ObjectLiteral>(
+    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Filters {
+        const items = this.preParse(input, {
+            ...options,
+            async: false,
+        });
+
+        if (items instanceof Promise) {
+            // todo: throw async error
+            throw Error();
+        }
+
+        const itemKeys = Object.keys(items);
+        if (itemKeys.length === 0) {
+            return this.mergeGroups(this.groupDefaults(options));
+        }
+
+        return this.mergeGroups(items);
+    }
+
+    async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<Filters> {
-        const items = this.preParse(input, options);
+        const items = await this.preParse(input, {
+            ...options,
+            async: true,
+        });
 
         const itemKeys = Object.keys(items);
         if (itemKeys.length === 0) {

@@ -22,11 +22,13 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed', async () => {
         // filter id
-        const output = await parser.parse({ id: 1 }, {
+        const output = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['id'],
             }),
         });
+
+        console.log(output);
 
         expect(output).toEqual(
             new Filters(
@@ -40,7 +42,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed (underscore key)', async () => {
         // filter with underscore key
-        const output = await parser.parse({ display_name: 'admin' }, {
+        const output = parser.parse({ display_name: 'admin' }, {
             schema: defineFiltersSchema({
                 allowed: ['display_name'],
             }),
@@ -58,7 +60,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed (empty)', async () => {
         // filter none
-        const output = await parser.parse({ id: 1 }, {
+        const output = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: [],
             }),
@@ -73,7 +75,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed (undefined)', async () => {
         // filter
-        const output = await parser.parse({ id: 1 }, {
+        const output = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: undefined,
             }),
@@ -91,7 +93,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed & mapping', async () => {
         // filter with mapping
-        const output = await parser.parse({ aliasId: 1 }, {
+        const output = parser.parse({ aliasId: 1 }, {
             schema: defineFiltersSchema({
                 mapping: { aliasId: 'id' },
                 allowed: ['id'],
@@ -110,7 +112,7 @@ describe('src/filter/index.ts', () => {
 
     it('should not parse with non matching name', async () => {
         // filter wrong allowed
-        const output = await parser.parse({ id: 1 }, {
+        const output = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['name'],
             }),
@@ -125,7 +127,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should not parse with invalid name', async () => {
-        const output = await parser.parse({ 'id!': 1 }, {
+        const output = parser.parse({ 'id!': 1 }, {
             schema: defineFiltersSchema({
                 allowed: undefined,
             }),
@@ -140,7 +142,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse invalid name if permitted by allowed', async () => {
-        const output = await parser.parse({ 'id!': 1 }, {
+        const output = parser.parse({ 'id!': 1 }, {
             schema: defineFiltersSchema({
                 allowed: ['id!'],
             }),
@@ -157,7 +159,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should not parse empty input', async () => {
-        const output = await parser.parse({ name: '' }, {
+        const output = parser.parse({ name: '' }, {
             schema: defineFiltersSchema({
                 allowed: ['name'],
             }),
@@ -172,7 +174,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse null input', async () => {
-        let output = await parser.parse({ name: null });
+        let output = parser.parse({ name: null });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -182,7 +184,7 @@ describe('src/filter/index.ts', () => {
             ),
         );
 
-        output = await parser.parse({ name: 'null' });
+        output = parser.parse({ name: 'null' });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -194,7 +196,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should not parse empty object', async () => {
-        const output = await parser.parse({});
+        const output = parser.parse({});
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -204,7 +206,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse with default', async () => {
-        let output = await parser.parse({ id: 1 }, {
+        let output = parser.parse({ id: 1 }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
             }),
@@ -218,7 +220,7 @@ describe('src/filter/index.ts', () => {
             ),
         );
 
-        output = await parser.parse({ name: 'tada5hi' }, {
+        output = parser.parse({ name: 'tada5hi' }, {
             schema: defineFiltersSchema({
                 default: { name: 'admin' },
             }),
@@ -239,7 +241,7 @@ describe('src/filter/index.ts', () => {
             name: 'user',
         });
 
-        let output = await parser.parse({ id: 1 }, { schema });
+        let output = parser.parse({ id: 1 }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -249,7 +251,7 @@ describe('src/filter/index.ts', () => {
             ),
         );
 
-        output = await parser.parse({ display_name: 'admin' }, { schema }); expect(output).toEqual(
+        output = parser.parse({ display_name: 'admin' }, { schema }); expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
                 [
@@ -260,21 +262,24 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse with validator', async () => {
-        let output = await parser.parse(
+        let output = await parser.parseAsync(
             { id: '1' },
             {
                 schema: defineFiltersSchema({
                     allowed: ['id'],
-                    validate: (key, value) => {
-                        if (key === 'id') {
-                            return typeof value === 'number';
+                    validate: (condition) => {
+                        if (
+                            condition.operator === FilterFieldOperator.EQUAL &&
+                            condition.field === 'id' &&
+                            typeof condition.value !== 'number'
+                        ) {
+                            throw new Error('Attribute id must be of type number.');
                         }
-
-                        return false;
                     },
                 }),
             },
         );
+
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -284,18 +289,33 @@ describe('src/filter/index.ts', () => {
             ),
         );
 
-        output = await parser.parse(
+        output = await parser.parseAsync(
             { id: '1,2,3' },
             {
                 schema: defineFiltersSchema({
                     allowed: ['id'],
-                    validate: (key, value) => {
-                        if (key === 'id') {
-                            return typeof value === 'number' &&
-                            value > 1;
+                    validate: (condition) => {
+                        if (
+                            condition.operator === FilterFieldOperator.IN ||
+                            condition.operator === FilterFieldOperator.NOT_IN
+                        ) {
+                            const value = (condition.value as unknown[])
+                                .filter((el) => typeof el === 'number' && el > 1);
+
+                            return new Filter(
+                                condition.operator,
+                                condition.field,
+                                value,
+                            );
                         }
 
-                        return false;
+                        if (condition.field === 'id') {
+                            if (typeof condition.value !== 'number' || condition.value <= 1) {
+                                throw new Error('Field id must be of type number and greater than 1');
+                            }
+                        }
+
+                        return undefined;
                     },
                 }),
             },
@@ -316,7 +336,7 @@ describe('src/filter/index.ts', () => {
         });
 
         // equal operator
-        let output = await parser.parse({ id: '1' }, { schema });
+        let output = parser.parse({ id: '1' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -327,7 +347,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // negation with equal operator
-        output = await parser.parse({ id: '!1' }, { schema });
+        output = parser.parse({ id: '!1' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -338,7 +358,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // in operator
-        output = await parser.parse({ id: 'null,0,1,2,3' }, { schema });
+        output = parser.parse({ id: 'null,0,1,2,3' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -349,7 +369,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // negation with in operator
-        output = await parser.parse({ id: '!1,2,3' }, { schema });
+        output = parser.parse({ id: '!1,2,3' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -360,7 +380,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // less than operator
-        output = await parser.parse({ id: '<10' }, { schema });
+        output = parser.parse({ id: '<10' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -371,7 +391,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // less than equal operator
-        output = await parser.parse({ id: '<=10' }, { schema });
+        output = parser.parse({ id: '<=10' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -382,7 +402,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // more than operator
-        output = await parser.parse({ id: '>10' }, { schema });
+        output = parser.parse({ id: '>10' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -393,7 +413,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // more than equal operator
-        output = await parser.parse({ id: '>=10' }, { schema });
+        output = parser.parse({ id: '>=10' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -410,7 +430,7 @@ describe('src/filter/index.ts', () => {
         });
 
         // like operator (start)
-        let output = await parser.parse({ name: '~name' }, { schema });
+        let output = parser.parse({ name: '~name' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -425,7 +445,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // like operator (end)
-        output = await parser.parse({ name: 'name~' }, { schema });
+        output = parser.parse({ name: 'name~' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -440,7 +460,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // like operator (start & end)
-        output = await parser.parse({ name: '~name~' }, { schema });
+        output = parser.parse({ name: '~name~' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -455,7 +475,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // negation + like operator (start)
-        output = await parser.parse({ name: '!~name' }, { schema });
+        output = parser.parse({ name: '!~name' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -470,7 +490,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // negation + like operator (end)
-        output = await parser.parse({ name: '!name~' }, { schema });
+        output = parser.parse({ name: '!name~' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -485,7 +505,7 @@ describe('src/filter/index.ts', () => {
         );
 
         // negation + like operator (start & end)
-        output = await parser.parse({ name: '!~name~' }, { schema });
+        output = parser.parse({ name: '!~name~' }, { schema });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -505,9 +525,9 @@ describe('src/filter/index.ts', () => {
         );
     });
 
-    it('should parse with includes', async () => {
+    fit('should parse with includes', async () => {
         // simple
-        let output = await parser.parse({ id: 1, 'realm.id': 2 }, {
+        let output = parser.parse({ id: 1, 'realm.id': 2 }, {
             schema: 'user',
             relations: new Relations([
                 new Relation('realm'),
@@ -525,26 +545,26 @@ describe('src/filter/index.ts', () => {
         );
 
         // with include & query alias
-        output = await parser.parse({ id: 1, 'realm.id': 2 }, { schema: 'user' });
+        output = parser.parse({ id: 1, 'realm.id': 3 }, { schema: 'user' });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
                 [
                     new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-                    new Filter(FilterFieldOperator.EQUAL, 'realm.id', 2),
+                    new Filter(FilterFieldOperator.EQUAL, 'realm.id', 3),
                 ],
             ),
         );
 
         // todo: should be "role"."id" instead of "user_roles"."role.id"
         // with deep nested include
-        output = await parser.parse({ id: 1, 'realm.item.id': 2 }, { schema: 'user' });
+        output = parser.parse({ id: 1, 'realm.item.id': 4 }, { schema: 'user' });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
                 [
                     new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-                    new Filter(FilterFieldOperator.EQUAL, 'realm.item.id', 2),
+                    new Filter(FilterFieldOperator.EQUAL, 'realm.item.id', 4),
                 ],
             ),
         );

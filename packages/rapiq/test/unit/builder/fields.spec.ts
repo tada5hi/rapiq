@@ -5,43 +5,34 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ID, fields } from '../../../src';
+import { Field, fields } from '../../../src';
 import type { Entity } from '../../data';
 
 describe('src/builder/fields', () => {
-    it('should build with simple input', () => {
-        const data = fields<Entity>([
+    it('should build with simple input', async () => {
+        const data = await fields<Entity>([
             'id',
             'name',
         ]);
 
-        expect(data.value).toEqual({
-            [DEFAULT_ID]: ['id', 'name'],
-        });
+        expect(data.value).toEqual([
+            new Field('id'),
+            new Field('name'),
+        ]);
     });
 
-    it('should build with tuple input', () => {
-        const data = fields<Entity>([
+    it('should build with tuple input', async () => {
+        const data = await fields<Entity>([
             ['id', 'name'],
             {
                 child: ['age'],
             },
         ]);
 
-        expect(data.value).toEqual({
-            [DEFAULT_ID]: ['id', 'name'],
-            child: ['age'],
-        });
-    });
-
-    it('should build with multiple operations', () => {
-        const data = fields<Entity>();
-        data.addRaw('id');
-        data.addRaw('child.age');
-
-        expect(data.value).toEqual({
-            [DEFAULT_ID]: ['id'],
-            child: ['age'],
-        });
+        expect(data.value).toEqual([
+            new Field('id'),
+            new Field('name'),
+            new Field('child.age'),
+        ]);
     });
 });

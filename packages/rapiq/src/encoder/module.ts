@@ -5,13 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { Fields } from '../parameter';
 import { FilterCompoundOperator } from '../schema';
 import {
-    FieldsBuilder,
     FiltersBuilder,
     PaginationBuilder,
     RelationsBuilder,
     SortBuilder,
+    fields,
 } from './parameters';
 import type { BuildInput, IBuilder } from './types';
 import { Parameter } from '../constants';
@@ -20,7 +21,7 @@ import type { ObjectLiteral } from '../types';
 export class Builder<
     T extends ObjectLiteral = ObjectLiteral,
 > implements IBuilder<BuildInput<T>> {
-    public fields : FieldsBuilder<T>;
+    public fields : Fields;
 
     public filters : FiltersBuilder<T>;
 
@@ -33,7 +34,8 @@ export class Builder<
     // --------------------------------------------------
 
     constructor() {
-        this.fields = new FieldsBuilder<T>();
+        this.fields = new Fields();
+
         this.filters = new FiltersBuilder<T>(
             FilterCompoundOperator.AND,
             [],
@@ -46,16 +48,16 @@ export class Builder<
     // --------------------------------------------------
 
     clear() {
-        this.fields.clear();
         this.filters.clear();
         this.pagination.clear();
         this.relations.clear();
         this.sort.clear();
     }
 
-    addRaw(input: BuildInput<T>) {
+    async addRaw(input: BuildInput<T>) {
         if (typeof input[Parameter.FIELDS] !== 'undefined') {
-            this.fields.addRaw(input[Parameter.FIELDS]);
+            const parsed = await fields(input[Parameter.FIELDS]);
+            this.fields.mergeWith(parsed);
         }
 
         if (typeof input[Parameter.FILTERS] !== 'undefined') {

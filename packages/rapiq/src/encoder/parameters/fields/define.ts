@@ -5,18 +5,19 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldsBuilder } from './module';
+import { Fields } from '../../../parameter';
+import { SimpleFieldsParser } from '../../../parser';
 import type { FieldsBuildInput } from './types';
 import type { ObjectLiteral } from '../../../types';
 
-export function fields<T extends ObjectLiteral>(
+export async function fields<T extends ObjectLiteral>(
     input?: FieldsBuildInput<T>,
-) : FieldsBuilder<T> {
-    const clazz = new FieldsBuilder<T>();
+) : Promise<Fields> {
+    const clazz = new SimpleFieldsParser();
 
     if (input) {
-        clazz.addRaw(input);
+        return clazz.parse(input);
     }
 
-    return clazz;
+    return new Fields();
 }

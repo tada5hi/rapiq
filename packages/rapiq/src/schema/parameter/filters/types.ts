@@ -6,8 +6,10 @@
  */
 
 import type { FilterValue } from '../../../encoder';
+import type { Filter } from '../../../parameter';
 import type {
-    NestedKeys, ObjectLiteral, SimpleKeys, TypeFromNestedKeyPath,
+    MaybeAsync,
+    ObjectLiteral, SimpleKeys, TypeFromNestedKeyPath,
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
@@ -15,7 +17,7 @@ export type FiltersOptionDefault<T extends Record<string, any>> = {
     [K in SimpleKeys<T>]?: FilterValue<TypeFromNestedKeyPath<T, K>>
 };
 
-export type FiltersOptionValidator<K extends string> = (key: K, value: unknown) => boolean;
+export type Validator = (input: Filter) => MaybeAsync<Filter | undefined | void>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,
@@ -23,5 +25,5 @@ export type FiltersOptions<
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
     default?: FiltersOptionDefault<T>,
-    validate?: FiltersOptionValidator<NestedKeys<T>>
+    validate?: Validator
 };

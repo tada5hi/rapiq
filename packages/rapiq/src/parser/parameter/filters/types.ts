@@ -8,10 +8,11 @@
 import type { Relations } from '../../../parameter';
 import type { FiltersSchema, Schema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
+import type { IParserOptions } from '../../types';
 
 export type FiltersParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
+> = IParserOptions & {
     relations?: Relations,
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
     throwOnFailure?: boolean

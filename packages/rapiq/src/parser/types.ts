@@ -23,15 +23,22 @@ export type ParseOptions<
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
+> = IParserOptions & {
     schema?: Schema<RECORD> | string,
+    schemaRequired?: boolean,
     relations?: Relations,
+};
+
+export type IParserOptions = {
+    async?: boolean
 };
 
 export interface IParser<
 Input = any,
 Output = any,
-Options extends Record<PropertyKey, any> = Record<PropertyKey, any>,
+Options extends IParserOptions = IParserOptions,
 > {
-    parse(input: Input, options?: Options): Promise<Output>
+    parse(input: Input, options?: Options): Output;
+
+    parseAsync(input: Input, options?: Options) : Promise<Output>;
 }

@@ -20,6 +20,18 @@ export class Fields {
         this.value = value;
     }
 
+    mergeWith(input: Fields | Field) {
+        if (input instanceof Field) {
+            this.value.push(input);
+        }
+
+        if (input instanceof Fields) {
+            for (let i = 0; i < input.value.length; i++) {
+                this.value.push(input.value[i]);
+            }
+        }
+    }
+
     /**
      * Extract field set, with includes and excludes.
      *

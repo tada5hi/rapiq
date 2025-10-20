@@ -7,12 +7,11 @@
 
 import type { ObjectLiteral } from '../../../types';
 import type { FieldsSchema, Schema } from '../../../schema';
-import type { Relations } from '../../../parameter';
+import type { ParseParameterOptions } from '../../types';
 
 export type FieldsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    relations?: Relations,
+> = Omit<ParseParameterOptions<RECORD>, 'schema'> & {
     schema?: string | Schema<RECORD> | FieldsSchema<RECORD>,
     isChild?: boolean
 };

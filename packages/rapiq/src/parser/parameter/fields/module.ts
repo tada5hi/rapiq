@@ -35,6 +35,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
         }
 
         const normalized = this.normalize(input, schema.throwOnFailure);
+
         if (
             schema.name &&
             normalized[schema.name]
@@ -136,7 +137,9 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
                     throw FieldsParseError.keyPathInvalid(key);
                 }
 
-                continue;
+                if (options.schemaRequired) {
+                    continue;
+                }
             }
 
             let childRelations : Relations | undefined;
@@ -167,6 +170,13 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
         input: unknown,
         throwOnFailure?: boolean,
     ) : Record<string, string[]> {
+        if (this.isTupleInput(input)) {
+            return this.normalize({
+                [DEFAULT_ID]: input[0],
+                ...input[1],
+            });
+        }
+
         if (
             typeof input === 'string' ||
             Array.isArray(input)
@@ -229,5 +239,13 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
         }
 
         return {};
+    }
+
+    protected isTupleInput(input: unknown) : input is [string[], Record<string, any>] {
+        if (!Array.isArray(input) || input.length !== 2) {
+            return false;
+        }
+
+        return Array.isArray(input[0]) && isObject(input[1]);
     }
 }

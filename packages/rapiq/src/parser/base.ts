@@ -5,12 +5,18 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { setPathValue } from 'pathtrace';
 import { DEFAULT_ID } from '../constants';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { parseKey, stringifyKey } from '../utils';
+import { isObject, parseKey, stringifyKey } from '../utils';
 import type { IParser } from './types';
+
+type TempType = {
+    attributes: Record<string, any>,
+    relations: Record<string, TempType>
+};
 
 export abstract class BaseParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
@@ -33,7 +39,9 @@ export abstract class BaseParser<
 
     // --------------------------------------------------
 
-    abstract parse(input: unknown, options?: OPTIONS): Promise<OUTPUT>;
+    abstract parse(input: unknown, options?: OPTIONS): OUTPUT;
+
+    abstract parseAsync(input: unknown, options?: OPTIONS): Promise<OUTPUT>;
 
     // --------------------------------------------------
 
@@ -50,6 +58,42 @@ export abstract class BaseParser<
         }
 
         return schema;
+    }
+
+    protected expandObject(
+        input: Record<string, any>,
+        aggregated: Record<string, any> = {},
+    ) {
+        const output : Record<string, any> = aggregated || {};
+
+        const keys = Object.keys(input);
+        for (let i = 0; i < keys.length; i++) {
+            if (isObject(input[keys[i]])) {
+                setPathValue(output, keys[i], this.expandObject(input[keys[i]], output));
+            } else {
+                setPathValue(output, keys[i], input[keys[i]]);
+            }
+        }
+
+        return output;
+    }
+
+    protected groupObject(input: Record<string, any>) {
+        const output : TempType = {
+            attributes: {},
+            relations: {},
+        };
+
+        const keys = Object.keys(input);
+        for (let i = 0; i < keys.length; i++) {
+            if (isObject(input[keys[i]])) {
+                output.relations[keys[i]] = this.groupObject(input[keys[i]]);
+            } else {
+                output.attributes[keys[i]] = input[keys[i]];
+            }
+        }
+
+        return output;
     }
 
     protected groupObjectByBasePath<T extends Record<string, any>>(

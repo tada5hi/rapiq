@@ -5,17 +5,20 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { Query } from '../parameter';
 import type { ObjectLiteral } from '../types';
 import type { BuildInput } from './types';
 import { Builder } from './module';
 
-export function builder<T extends ObjectLiteral = ObjectLiteral>(
+export async function builder<T extends ObjectLiteral = ObjectLiteral>(
     input?: BuildInput<T>,
-) : Builder<T> {
+) : Promise<Query> {
     const builder = new Builder<T>();
     if (input) {
-        builder.addRaw(input);
+        await builder.addRaw(input);
     }
 
-    return builder;
+    return {
+        fields: builder.fields,
+    };
 }

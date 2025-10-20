@@ -5,7 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedKeys, ObjectLiteral, SimpleKeys } from '../../../types';
+import type { Filter } from '../../../parameter';
+import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     toFlatObject,
 } from '../../../utils';
@@ -56,12 +57,12 @@ export class FiltersSchema<
         return !this.defaultIsUndefined && this.defaultKeys.length > 0;
     }
 
-    validate(key: NestedKeys<T>, value: unknown) {
+    validate(input: Filter) : MaybeAsync<Filter | undefined> {
         if (typeof this.options.validate === 'undefined') {
-            return true;
+            return input;
         }
 
-        return this.options.validate(key, value);
+        return this.options.validate(input);
     }
 
     // ---------------------------------------------------------
