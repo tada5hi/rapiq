@@ -41,7 +41,9 @@ export abstract class BaseParser<
 
     abstract parse(input: unknown, options?: OPTIONS): OUTPUT;
 
-    abstract parseAsync(input: unknown, options?: OPTIONS): Promise<OUTPUT>;
+    async parseAsync(input: unknown, options?: OPTIONS): Promise<OUTPUT> {
+        return this.parse(input, options);
+    }
 
     // --------------------------------------------------
 

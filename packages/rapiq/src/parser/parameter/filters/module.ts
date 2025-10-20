@@ -67,7 +67,6 @@ FiltersParseOptions
         }
 
         const inputGrouped = this.groupObjectByBasePath(input);
-        console.log(this.groupObject(this.expandObject(input)));
 
         if (
             schema.name &&
@@ -318,7 +317,7 @@ FiltersParseOptions
         return this.mergeGroups(items);
     }
 
-    async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<Filters> {

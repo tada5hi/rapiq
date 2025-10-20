@@ -21,12 +21,12 @@ import type { Relations } from '../../../parameter';
 import { Field, Fields } from '../../../parameter';
 
 export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
-    async parse<
+    parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: FieldsParseOptions<RECORD> = {},
-    ) : Promise<Fields> {
+    ) : Fields {
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array, nothing is allowed
@@ -136,10 +136,6 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
                 if (schema.throwOnFailure) {
                     throw FieldsParseError.keyPathInvalid(key);
                 }
-
-                if (options.schemaRequired) {
-                    continue;
-                }
             }
 
             let childRelations : Relations | undefined;
@@ -147,7 +143,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<FieldsParseOptions> {
                 childRelations = options.relations.extract(key);
             }
 
-            const relationOutput = await this.parse(
+            const relationOutput = this.parse(
                 grouped[key],
                 {
                     schema: relationSchema,
