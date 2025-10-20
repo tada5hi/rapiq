@@ -5,14 +5,24 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { type FieldsParseOutput, FieldsParser } from '../../../src';
+import { SimpleFieldsParser } from '../../../src';
 import { registry } from '../../data/schema';
+import type { IInterpreter } from '../../../src/interpreter';
+import type { Fields } from '../../../src/parameter';
+
+class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
+    interpret(input: Fields): string[] {
+        return input.value.map((input) => input.name);
+    }
+}
 
 describe('parser/fields/schema', () => {
-    let parser: FieldsParser;
+    let parser: SimpleFieldsParser;
+    let interpreter : FieldsSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new FieldsParser(registry);
+        parser = new SimpleFieldsParser(registry);
+        interpreter = new FieldsSimpleInterpreter();
     });
 
     it('should parse root schema', async () => {
@@ -20,7 +30,7 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(output).toEqual(['id', 'name'] satisfies FieldsParseOutput);
+        expect(interpreter.interpret(output)).toEqual(['id', 'name']);
     });
 
     it('should not parse root schema', async () => {
@@ -28,10 +38,10 @@ describe('parser/fields/schema', () => {
             schema: 'user',
         });
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'id',
             'name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid sub schema field', async () => {
@@ -42,10 +52,10 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'realm.name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with invalid sub schema field', async () => {
@@ -56,12 +66,12 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'realm.id',
             'realm.name',
             'realm.description',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with valid sub sub schema field', async () => {
@@ -72,11 +82,11 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'item.id',
             'item.realm.name',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 
     it('should parse with invalid sub sub schema field', async () => {
@@ -87,12 +97,12 @@ describe('parser/fields/schema', () => {
             },
         );
 
-        expect(output).toEqual([
+        expect(interpreter.interpret(output)).toEqual([
             'name',
             'item.id',
             'item.realm.id',
             'item.realm.name',
             'item.realm.description',
-        ] satisfies FieldsParseOutput);
+        ]);
     });
 });

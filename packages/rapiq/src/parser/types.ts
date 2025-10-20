@@ -1,16 +1,13 @@
 /*
- * Copyright (c) 2025-2025.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2025.
+ *  Author Peter Placzek (tada5hi)
+ *  For the full copyright and license information,
+ *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { Parameter } from '../constants';
-import type {
-    FieldsParseOutput, FiltersParseOutput, PaginationParseOutput, RelationsParseOutput, SortParseOutput,
-} from './index';
+import type { Relations } from '../parameter';
 import type { Schema, SchemaRegistry } from '../schema';
-import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
+import type { ObjectLiteral } from '../types';
 
 export type ParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -24,21 +21,24 @@ export type ParseOptions<
     schema?: Schema<RECORD> | string
 };
 
-export type QueryParseParameterOptions<
+export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
+> = IParserOptions & {
     schema?: Schema<RECORD> | string,
-    relations?: string[],
+    schemaRequired?: boolean,
+    relations?: Relations,
 };
 
-export type ParseParametersOutput = ObjectLiteralKeys<{
-    [Parameter.FIELDS]?: FieldsParseOutput,
-    [Parameter.FILTERS]?: FiltersParseOutput,
-    [Parameter.RELATIONS]?: RelationsParseOutput,
-    [Parameter.PAGINATION]?: PaginationParseOutput,
-    [Parameter.SORT]?: SortParseOutput,
-}>;
-
-export type ParseOutput = ParseParametersOutput & {
-    defaultPath?: string
+export type IParserOptions = {
+    async?: boolean
 };
+
+export interface IParser<
+Input = any,
+Output = any,
+Options extends IParserOptions = IParserOptions,
+> {
+    parse(input: Input, options?: Options): Output;
+
+    parseAsync(input: Input, options?: Options) : Promise<Output>;
+}

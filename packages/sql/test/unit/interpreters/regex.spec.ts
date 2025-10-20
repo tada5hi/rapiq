@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldCondition } from 'rapiq';
+import { Filter } from 'rapiq';
 import {
     FiltersAdapter,
     FiltersInterpreter,
@@ -24,7 +24,7 @@ describe('regex', () => {
     });
 
     it('generates posix operator for PostgresSQL', () => {
-        const condition = new FieldCondition('regex', 'email', /@/);
+        const condition = new Filter('regex', 'email', /@/);
         const adapter = new FiltersAdapter(
             relationsAdapter,
             pg,
@@ -39,7 +39,7 @@ describe('regex', () => {
     });
 
     it('generates posix operator for Oracle', () => {
-        const condition = new FieldCondition('regex', 'email', /@/);
+        const condition = new Filter('regex', 'email', /@/);
         const adapter = new FiltersAdapter(
             relationsAdapter,
             oracle,
@@ -54,7 +54,7 @@ describe('regex', () => {
     });
 
     it('generates call to `REGEXP` function for MySQL', () => {
-        const condition = new FieldCondition('regex', 'email', /@/);
+        const condition = new Filter('regex', 'email', /@/);
         const adapter = new FiltersAdapter(
             relationsAdapter,
             mysql,
@@ -69,7 +69,7 @@ describe('regex', () => {
     });
 
     it('throws exception for MSSQL as it does not support REGEXP', () => {
-        const condition = new FieldCondition('regex', 'email', /@/);
+        const condition = new Filter('regex', 'email', /@/);
         const adapter = new FiltersAdapter(
             relationsAdapter,
             mssql,

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ParseOutput } from 'rapiq';
+import type { Query } from 'rapiq';
 import type { IRootAdapter } from '../adapter';
 import { FieldsInterpreter } from './fields';
 import { RelationsInterpreter } from './relations';
@@ -43,7 +43,7 @@ export class Interpreter {
     // -----------------------------------------------------------
 
     interpret(
-        input: ParseOutput,
+        input: Query,
         container: IRootAdapter,
         options: InterpreterInterpretOptions = {},
     ) {

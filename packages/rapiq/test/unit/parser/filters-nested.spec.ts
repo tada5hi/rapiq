@@ -4,17 +4,20 @@
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
-import type { FieldCondition } from '@ucast/core';
-import { CompoundCondition } from '@ucast/core';
+
 import {
-    FiltersParser,
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
+    SimpleFiltersParser,
 } from '../../../src';
 
 describe('src/parser/filters-nested.ts', () => {
-    let parser: FiltersParser;
+    let parser: SimpleFiltersParser;
 
     beforeAll(() => {
-        parser = new FiltersParser();
+        parser = new SimpleFiltersParser();
     });
 
     it('should parse nested filters', async () => {
@@ -25,16 +28,16 @@ describe('src/parser/filters-nested.ts', () => {
             '02:age': 15,
         });
 
-        expect(output).toBeInstanceOf(CompoundCondition);
-        expect(output.operator).toBe('or');
-        expect(output.value).toHaveLength(2);
-
-        const [first, second] = output.value as [CompoundCondition, FieldCondition];
-        expect(first.operator).toBe('and');
-        expect(first.value).toHaveLength(2);
-
-        expect(second.operator).toBe('eq');
-        expect(second.value).toBe(15);
-        expect(second.field).toEqual('age');
+        expect(output).toEqual(
+            new Filters(FilterCompoundOperator.OR, [
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                    new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+                ]),
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'age', 15),
+                ]),
+            ]),
+        );
     });
 });

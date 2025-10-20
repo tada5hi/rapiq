@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldCondition } from 'rapiq';
+import { Filter } from 'rapiq';
 import {
     FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, exists, pg,
 } from '../../../src';
@@ -26,7 +26,7 @@ describe('exists', () => {
     });
 
     it('generates query with `is not null` operator when value equals `true`', () => {
-        const condition = new FieldCondition('exists', 'address', true);
+        const condition = new Filter('exists', 'address', true);
 
         interpreter.interpret(condition, adapter, {});
 
@@ -37,7 +37,7 @@ describe('exists', () => {
     });
 
     it('generates query with `is null` operator when value equals `false`', () => {
-        const condition = new FieldCondition('exists', 'address', false);
+        const condition = new Filter('exists', 'address', false);
 
         interpreter.interpret(condition, adapter, {});
 

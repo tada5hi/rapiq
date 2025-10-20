@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { CompoundCondition, FieldCondition } from 'rapiq';
+import { Filter, Filters } from 'rapiq';
 import {
     FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, gt, lt, nor, not, or,
     pg,
@@ -29,10 +29,10 @@ describe('compound operators', () => {
     });
 
     it('generates query with inverted condition for "not"', () => {
-        const condition = new CompoundCondition('not', [
-            new CompoundCondition('or', [
-                new FieldCondition('eq', 'age', 12),
-                new FieldCondition('eq', 'age', 13),
+        const condition = new Filters('not', [
+            new Filters('or', [
+                new Filter('eq', 'age', 12),
+                new Filter('eq', 'age', 13),
             ]),
         ]);
         interpreter.interpret(condition, adapter, {});
@@ -44,11 +44,11 @@ describe('compound operators', () => {
     });
 
     it('generates query combined by logical `and` for "and"', () => {
-        const condition = new CompoundCondition(
+        const condition = new Filters(
             'and',
             [
-                new FieldCondition('eq', 'age', 1),
-                new FieldCondition('eq', 'active', true),
+                new Filter('eq', 'age', 1),
+                new Filter('eq', 'active', true),
             ],
         );
         interpreter.interpret(condition, adapter, {});
@@ -60,9 +60,9 @@ describe('compound operators', () => {
     });
 
     it('generates query combined by logical `or` for "or"', () => {
-        const condition = new CompoundCondition('or', [
-            new FieldCondition('eq', 'age', 1),
-            new FieldCondition('eq', 'active', true),
+        const condition = new Filters('or', [
+            new Filter('eq', 'age', 1),
+            new Filter('eq', 'active', true),
         ]);
         interpreter.interpret(condition, adapter, {});
 
@@ -73,9 +73,9 @@ describe('compound operators', () => {
     });
 
     it('generates inverted query combined by logical `or` for "nor"', () => {
-        const condition = new CompoundCondition('nor', [
-            new FieldCondition('eq', 'age', 1),
-            new FieldCondition('eq', 'active', true),
+        const condition = new Filters('nor', [
+            new Filter('eq', 'age', 1),
+            new Filter('eq', 'active', true),
         ]);
         interpreter.interpret(condition, adapter, {});
 
@@ -86,22 +86,22 @@ describe('compound operators', () => {
     });
 
     it('properly adds brackets for complex compound condition', () => {
-        const condition = new CompoundCondition('or', [
-            new CompoundCondition('or', [
-                new FieldCondition('eq', 'age', 1),
-                new FieldCondition('eq', 'age', 2),
+        const condition = new Filters('or', [
+            new Filters('or', [
+                new Filter('eq', 'age', 1),
+                new Filter('eq', 'age', 2),
             ]),
-            new CompoundCondition('and', [
-                new FieldCondition('gt', 'qty', 1),
-                new FieldCondition('lt', 'qty', 20),
+            new Filters('and', [
+                new Filter('gt', 'qty', 1),
+                new Filter('lt', 'qty', 20),
             ]),
-            new CompoundCondition('nor', [
-                new FieldCondition('gt', 'qty', 10),
-                new FieldCondition('lt', 'qty', 20),
+            new Filters('nor', [
+                new Filter('gt', 'qty', 10),
+                new Filter('lt', 'qty', 20),
             ]),
-            new CompoundCondition('not', [new CompoundCondition('and', [
-                new FieldCondition('eq', 'active', false),
-                new FieldCondition('gt', 'age', 18),
+            new Filters('not', [new Filters('and', [
+                new Filter('eq', 'active', false),
+                new Filter('gt', 'age', 18),
             ])]),
         ]);
         interpreter.interpret(condition, adapter, {});

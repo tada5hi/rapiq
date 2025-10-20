@@ -5,15 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { Relations } from '../parameter';
+
 export function isPathAllowed(
     path: string,
-    allowed?: string[],
+    allowed?: Relations | string[],
 ) : boolean {
     if (typeof allowed === 'undefined') {
         return true;
     }
 
-    return allowed.some(
-        (include) => include === path,
-    );
+    if (Array.isArray(allowed)) {
+        return allowed.some(
+            (include) => include === path,
+        );
+    }
+
+    return allowed.value.some((include) => include.name === path);
 }

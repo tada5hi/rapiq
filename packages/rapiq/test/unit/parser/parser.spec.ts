@@ -5,12 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ParseOutput } from '../../../src';
 import {
-    Parser,
     SchemaRegistry,
+    SimpleParser,
     defineSchema,
 } from '../../../src';
+import { Field, Fields } from '../../../src/parameter';
 
 describe('src/parser', () => {
     it('should parse schema by name', async () => {
@@ -22,7 +22,7 @@ describe('src/parser', () => {
             },
         }));
 
-        const parser = new Parser(registry);
+        const parser = new SimpleParser(registry);
 
         const output = await parser.parse({
             fields: ['id', 'name'],
@@ -30,8 +30,8 @@ describe('src/parser', () => {
             schema: 'foo',
         });
 
-        expect(output).toEqual({
-            fields: ['id'],
-        } as ParseOutput);
+        expect(output.fields).toEqual(new Fields([
+            new Field('id'),
+        ]));
     });
 });

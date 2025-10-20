@@ -10,6 +10,8 @@ export type ObjectLiteralKeys<T extends Record<PropertyKey, any>> = {
     [K in keyof T as `${K & string}`]: T[K];
 };
 
+export type MaybeAsync<T> = T | Promise<T>;
+
 export type ArrayItem<Type> = Type extends Array<infer Item> ? Item : Type;
 
 export type IsArray<Type> = Type extends Array<any> ? Type : never;

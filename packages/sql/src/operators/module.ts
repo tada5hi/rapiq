@@ -6,10 +6,10 @@
  */
 
 import type { Comparable } from '@ucast/core';
-import type { CompoundCondition, Condition, FieldCondition } from 'rapiq';
+import type { Condition, Filter, Filters } from 'rapiq';
 import type { FilterInterpreterWithContext } from '../interpreter';
 
-export const eq: FilterInterpreterWithContext<FieldCondition> = (
+export const eq: FilterInterpreterWithContext<Filter> = (
     condition,
     query,
 ) => query.where(condition.field, '=', condition.value);
@@ -19,32 +19,32 @@ export const ne: typeof eq = (
     query,
 ) => query.where(condition.field, '<>', condition.value);
 
-export const lt: FilterInterpreterWithContext<FieldCondition<Comparable>> = (
+export const lt: FilterInterpreterWithContext<Filter<Comparable>> = (
     condition,
     query,
 ) => query.where(condition.field, '<', condition.value);
 
-export const lte: FilterInterpreterWithContext<FieldCondition<Comparable>> = (
+export const lte: FilterInterpreterWithContext<Filter<Comparable>> = (
     condition,
     query,
 ) => query.where(condition.field, '<=', condition.value);
 
-export const gt: FilterInterpreterWithContext<FieldCondition<Comparable>> = (
+export const gt: FilterInterpreterWithContext<Filter<Comparable>> = (
     condition,
     query,
 ) => query.where(condition.field, '>', condition.value);
 
-export const gte: FilterInterpreterWithContext<FieldCondition<Comparable>> = (
+export const gte: FilterInterpreterWithContext<Filter<Comparable>> = (
     condition,
     query,
 ) => query.where(condition.field, '>=', condition.value);
 
-export const exists: FilterInterpreterWithContext<FieldCondition<Comparable>> = (
+export const exists: FilterInterpreterWithContext<Filter<Comparable>> = (
     condition,
     query,
 ) => query.whereRaw(`${query.buildField(condition.field)} is ${condition.value ? 'not ' : ''}null`);
 
-function manyParamsOperator(name: string): FilterInterpreterWithContext<FieldCondition<unknown[]>> {
+function manyParamsOperator(name: string): FilterInterpreterWithContext<Filter<unknown[]>> {
     return (
         condition,
         query,
@@ -58,7 +58,7 @@ function manyParamsOperator(name: string): FilterInterpreterWithContext<FieldCon
 export const within = manyParamsOperator('in');
 export const nin = manyParamsOperator('not in');
 
-export const mod: FilterInterpreterWithContext<FieldCondition<[number, number]>> = (
+export const mod: FilterInterpreterWithContext<Filter<[number, number]>> = (
     condition,
     query,
 ) => {
@@ -67,7 +67,7 @@ export const mod: FilterInterpreterWithContext<FieldCondition<[number, number]>>
     return query.whereRaw(sql, ...condition.value);
 };
 
-type IElemMatch = FilterInterpreterWithContext<FieldCondition<Condition>>;
+type IElemMatch = FilterInterpreterWithContext<Filter<Condition>>;
 export const elemMatch: IElemMatch = (
     condition,
     query,
@@ -83,7 +83,7 @@ export const elemMatch: IElemMatch = (
     return query;
 };
 
-export const regex: FilterInterpreterWithContext<FieldCondition<RegExp>> = (
+export const regex: FilterInterpreterWithContext<Filter<RegExp>> = (
     condition,
     query,
 ) => {
@@ -110,7 +110,7 @@ function compoundOperator(
                 (condition) => interpret(condition, childQuery),
             );
             return query.merge(childQuery, combinator, isInverted);
-        }) as FilterInterpreterWithContext<CompoundCondition>;
+        }) as FilterInterpreterWithContext<Filters>;
 }
 
 export const not = compoundOperator('and', true);

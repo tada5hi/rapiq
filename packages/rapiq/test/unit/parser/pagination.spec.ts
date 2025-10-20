@@ -6,19 +6,41 @@
  */
 
 import {
-    PaginationParseError, PaginationParser, defineSchema,
+    PaginationParseError, SimplePaginationParser, defineSchema,
 } from '../../../src';
+import type { IInterpreter } from '../../../src/interpreter';
+import type { Pagination } from '../../../src/parameter';
 
+class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number}> {
+    interpret(input: Pagination): { limit?: number; offset?: number } {
+        const output : {
+            limit?: number,
+            offset?: number
+        } = {};
+
+        if (typeof input.limit !== 'undefined') {
+            output.limit = input.limit;
+        }
+
+        if (typeof input.offset !== 'undefined') {
+            output.offset = input.offset;
+        }
+
+        return output;
+    }
+}
 describe('src/pagination/index.ts', () => {
-    let parser : PaginationParser;
+    let parser : SimplePaginationParser;
+    let interpreter: PaginationSimpleInterpreter;
 
     beforeAll(() => {
-        parser = new PaginationParser();
+        parser = new SimplePaginationParser();
+        interpreter = new PaginationSimpleInterpreter();
     });
 
     it('should parse with no schema & invalid value', async () => {
         const output = await parser.parse(undefined);
-        expect(output).toEqual({});
+        expect(interpreter.interpret(output)).toEqual({});
     });
 
     it('should parse pagination', async () => {
@@ -27,17 +49,17 @@ describe('src/pagination/index.ts', () => {
                 maxLimit: 50,
             },
         });
-        let pagination = await parser.parse(undefined, { schema });
-        expect(pagination).toEqual({ offset: 0, limit: 50 });
+        let output = await parser.parse(undefined, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
 
-        pagination = await parser.parse({ limit: 100 }, { schema });
-        expect(pagination).toEqual({ offset: 0, limit: 50 });
+        output = await parser.parse({ limit: 100 }, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
 
-        pagination = await parser.parse({ limit: 50 }, { schema });
-        expect(pagination).toEqual({ offset: 0, limit: 50 });
+        output = await parser.parse({ limit: 50 }, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
 
-        pagination = await parser.parse({ offset: 20, limit: 20 }, { schema });
-        expect(pagination).toEqual({ offset: 20, limit: 20 });
+        output = await parser.parse({ offset: 20, limit: 20 }, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 20, limit: 20 });
     });
 
     it('should throw on exceeded limit', async () => {

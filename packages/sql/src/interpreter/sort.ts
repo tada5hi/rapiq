@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { SortParseOutput } from 'rapiq';
+import type { Sorts } from 'rapiq';
 import type { ISortAdapter } from '../adapter';
 import type { InterpreterInterpretOptions } from './types';
 
@@ -13,15 +13,14 @@ export type SortInterpreterOptions = InterpreterInterpretOptions;
 
 export class SortInterpreter {
     interpret(
-        input: SortParseOutput,
+        input: Sorts,
         adapter: ISortAdapter,
         options: SortInterpreterOptions = {},
     ) {
         adapter.clear();
 
-        const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            adapter.add(keys[i], input[keys[i]], options.rootAlias);
+        for (let i = 0; i < input.value.length; i++) {
+            adapter.add(input.value[i].name, input.value[i].operator, options.rootAlias);
         }
 
         const execute = options.execute ?? true;

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { CompoundCondition, FieldCondition } from 'rapiq';
+import { Filter, Filters } from 'rapiq';
 import {
     FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, nin, pg, within,
 } from '../../../src';
@@ -28,7 +28,7 @@ describe('in (within, nin)', () => {
     });
 
     it('generates a separate placeholder for every element in the array', () => {
-        const condition = new FieldCondition('within', 'age', [1, 2]);
+        const condition = new Filter('within', 'age', [1, 2]);
         interpreter.interpret(condition, adapter, {});
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -38,9 +38,9 @@ describe('in (within, nin)', () => {
     });
 
     it('correctly generates placeholders when combined with other operators', () => {
-        const condition = new CompoundCondition('and', [
-            new FieldCondition('eq', 'name', 'John'),
-            new FieldCondition('within', 'age', [1, 2]),
+        const condition = new Filters('and', [
+            new Filter('eq', 'name', 'John'),
+            new Filter('within', 'age', [1, 2]),
         ]);
         interpreter.interpret(condition, adapter, {});
 
@@ -51,7 +51,7 @@ describe('in (within, nin)', () => {
     });
 
     it('generates `not in` operator for "nin', () => {
-        const condition = new FieldCondition('nin', 'age', [1, 2]);
+        const condition = new Filter('nin', 'age', [1, 2]);
         interpreter.interpret(condition, adapter, {});
 
         const [sql, params] = adapter.getQueryAndParameters();
