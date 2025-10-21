@@ -19,7 +19,7 @@ export class URLDecoder {
         this.filters = new SimpleFiltersParser();
     }
 
-    async decode(input: string) : Promise<Query | null> {
+    decode(input: string) : Query | null {
         const parsed = parse(input);
         if (!isObject(parsed)) {
             return null;
@@ -28,13 +28,13 @@ export class URLDecoder {
         const output : Query = {};
 
         if (parsed[URLParameter.FILTERS]) {
-            output.filters = await this.filters.parse(output);
+            output.filters = this.filters.parse(output);
         }
 
         return output;
     }
 
-    async decodeFilters(input: string) : Promise<Condition | null> {
+    decodeFilters(input: string) : Condition | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;

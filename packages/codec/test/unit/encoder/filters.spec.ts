@@ -8,8 +8,7 @@
 import {
     Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
 } from 'rapiq';
-import { URLEncoder } from '../../../src';
-import { URLDecoder } from '../../../src/url/decoder';
+import { URLDecoder, URLEncoder } from '../../../src';
 
 describe('encoder/filters', () => {
     let encoder : URLEncoder;
@@ -28,7 +27,7 @@ describe('encoder/filters', () => {
         );
 
         const encoded = encoder.encodeFilters(filter);
-        const decoded = await decoder.decodeFilters(encoded);
+        const decoded = decoder.decodeFilters(encoded!);
 
         expect(new Filters(
             FilterCompoundOperator.AND,
