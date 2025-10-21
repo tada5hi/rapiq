@@ -6,7 +6,6 @@
  */
 
 import { DEFAULT_ID } from '../../../constants';
-import type { FilterValuePrimitive } from '../../../encoder';
 import type { Condition, Relations } from '../../../parameter';
 import {
     Filter,
@@ -20,7 +19,6 @@ import {
 import type { ObjectLiteral } from '../../../types';
 import {
     applyMapping,
-    buildKeyPath,
     escapeRegExp,
     isObject,
     isPathAllowed,
@@ -32,7 +30,7 @@ import type { TempType } from '../../base';
 import { BaseFiltersParser } from './base';
 import { FiltersParseError } from './error';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
-import type { FiltersParseOptions } from './types';
+import type { FilterValuePrimitive, FiltersParseOptions } from './types';
 
 export class SimpleFiltersParser extends BaseFiltersParser<
 FiltersParseOptions
@@ -216,7 +214,7 @@ FiltersParseOptions
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition {
+    ) : Filters {
         let items = this.preParse(input, {
             ...options,
             async: false,
@@ -224,10 +222,6 @@ FiltersParseOptions
 
         if (items.length === 0) {
             items = this.buildDefaults(options);
-        }
-
-        if (items.length === 1) {
-            return items[0];
         }
 
         return new Filters(FilterCompoundOperator.AND, items);
@@ -239,33 +233,15 @@ FiltersParseOptions
         options: FiltersParseOptions<RECORD> = {},
     ) : Condition[] {
         const schema = this.resolveSchema(options.schema);
-        const output : Condition[] = [];
-
-        for (let i = 0; i < schema.defaultKeys.length; i++) {
-            const keyDetails = parseKey(schema.defaultKeys[i]);
-
-            let path : string | undefined;
-            if (keyDetails.path) {
-                path = keyDetails.path;
-            } else if (schema.name) {
-                path = schema.name;
-            }
-
-            const parsed = this.parseValue(
-                schema.default[schema.defaultKeys[i]],
-            );
-            if (!parsed) {
-                continue;
-            }
-
-            output.push(new Filter(
-                parsed.operator,
-                buildKeyPath(keyDetails.name, path),
-                parsed.value,
-            ));
+        if (!schema.default) {
+            return [];
         }
 
-        return output;
+        if (Array.isArray(schema.default)) {
+            return schema.default;
+        }
+
+        return [schema.default];
     }
 
     // ---------------------------------------------------------

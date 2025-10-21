@@ -5,17 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterValue } from '../../../encoder';
-import type { Filter } from '../../../parameter';
+import type { Condition, Filter } from '../../../parameter';
 import type {
     MaybeAsync,
-    ObjectLiteral, SimpleKeys, TypeFromNestedKeyPath,
+    ObjectLiteral, SimpleKeys,
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
-
-export type FiltersOptionDefault<T extends Record<string, any>> = {
-    [K in SimpleKeys<T>]?: FilterValue<TypeFromNestedKeyPath<T, K>>
-};
 
 export type Validator = (input: Filter) => MaybeAsync<Filter | undefined | void>;
 
@@ -24,6 +19,6 @@ export type FiltersOptions<
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
-    default?: FiltersOptionDefault<T>,
+    default?: Condition,
     validate?: Validator
 };

@@ -41,10 +41,6 @@ export abstract class BaseParser<
 
     abstract parse(input: unknown, options?: OPTIONS): OUTPUT;
 
-    async parseAsync(input: unknown, options?: OPTIONS): Promise<OUTPUT> {
-        return this.parse(input, options);
-    }
-
     // --------------------------------------------------
 
     protected getBaseSchema<

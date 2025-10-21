@@ -5,14 +5,13 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterValuePrimitive } from '../../../../encoder';
 import type { Condition } from '../../../../parameter';
 import {
     Filter, FilterRegexFlag, Filters, createFilterRegex,
 } from '../../../../parameter';
 import { BaseFiltersParser } from '../base';
 import { FiltersParseError } from '../error';
-import type { FiltersParseOptions } from '../types';
+import type { FilterValuePrimitive, FiltersParseOptions } from '../types';
 import { FilterTokenType } from './constants';
 import type { FilterExpressionParseOptions, FilterToken } from './types';
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../../schema';

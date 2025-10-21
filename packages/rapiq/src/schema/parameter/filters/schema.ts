@@ -5,13 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Filter } from '../../../parameter';
+import type { Condition, Filter } from '../../../parameter';
 import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
-import {
-    toFlatObject,
-} from '../../../utils';
 import type {
-    FiltersOptionDefault,
     FiltersOptions,
 } from './types';
 import { BaseSchema } from '../../base';
@@ -19,11 +15,9 @@ import { BaseSchema } from '../../base';
 export class FiltersSchema<
     T extends ObjectLiteral = ObjectLiteral,
 > extends BaseSchema<FiltersOptions<T>> {
-    public default : Record<string, any>;
+    public default : Condition | undefined;
 
     public defaultIsUndefined : boolean;
-
-    public defaultKeys : string[];
 
     public allowed : string[];
 
@@ -37,9 +31,8 @@ export class FiltersSchema<
         this.allowed = [];
         this.allowedIsUndefined = true;
 
-        this.default = {};
+        this.default = undefined;
         this.defaultIsUndefined = true;
-        this.defaultKeys = [];
 
         this.setDefault(this.options.default);
         this.setAllowed(this.options.allowed);
@@ -54,10 +47,12 @@ export class FiltersSchema<
     // ---------------------------------------------------------
 
     hasDefaults() {
-        return !this.defaultIsUndefined && this.defaultKeys.length > 0;
+        return !this.defaultIsUndefined;
     }
 
-    validate(input: Filter) : MaybeAsync<Filter | undefined> {
+    // ---------------------------------------------------------
+
+    validate(input: Filter) : MaybeAsync<Filter | undefined | void> {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }
@@ -67,27 +62,13 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: FiltersOptionDefault<T>) {
-        if (!input) {
-            this.default = {};
-            this.defaultIsUndefined = true;
-            this.defaultKeys = [];
-            return;
-        }
-
-        this.default = toFlatObject(input);
-        this.defaultIsUndefined = false;
-        this.defaultKeys = Object.keys(this.default);
+    setDefault(input?: Condition) {
+        this.default = input;
+        this.defaultIsUndefined = !input;
     }
 
     setAllowed(input?: SimpleKeys<T>[]) {
         if (typeof input === 'undefined') {
-            if (!this.defaultIsUndefined) {
-                this.allowed = [...this.defaultKeys];
-                this.allowedIsUndefined = false;
-                return;
-            }
-
             this.allowed = [];
             this.allowedIsUndefined = true;
             return;

@@ -21,12 +21,12 @@ import { Relation, Relations } from '../../../parameter';
 export class SimpleRelationsParser extends BaseRelationsParser<
 RelationsParseOptions
 > {
-    async parse<
+    parse<
     RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
-    ) : Promise<Relations> {
+    ) : Relations {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -95,7 +95,7 @@ RelationsParseOptions
                 continue;
             }
 
-            const relationOutput = await this.parse(
+            const relationOutput = this.parse(
                 relationsData[keys[i]],
                 {
                     schema: relationSchema,

@@ -60,9 +60,9 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
         return output;
     }
 
-    async parse<
+    parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: SortParseOptions<RECORD> = {}) : Promise<Sorts> {
+    >(input: unknown, options: SortParseOptions<RECORD> = {}) : Sorts {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -183,7 +183,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                 childRelations = options.relations.extract(key);
             }
 
-            const relationOutput = await this.parse(
+            const relationOutput = this.parse(
                 relationsData[key],
                 {
                     schema: relationSchema,

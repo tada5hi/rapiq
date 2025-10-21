@@ -14,12 +14,12 @@ import type { PaginationSchema } from '../../../schema';
 import type { PaginationParseOptions } from './types';
 
 export class SimplePaginationParser extends BasePaginationParser<PaginationParseOptions> {
-    async parse<
+    parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
-    ) : Promise<Pagination> {
+    ) : Pagination {
         const schema = this.resolveSchema(options.schema);
 
         const output = new Pagination();

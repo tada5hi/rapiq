@@ -5,9 +5,13 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
 import type { Schema, SchemaRegistry } from '../schema';
-import type { ObjectLiteral } from '../types';
+import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
+import type {
+    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
+} from './parameter';
 
 export type ParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -38,6 +42,14 @@ Output = any,
 Options extends IParserOptions = IParserOptions,
 > {
     parse(input: Input, options?: Options): Output;
-
-    parseAsync(input: Input, options?: Options) : Promise<Output>;
 }
+
+export type ParserInput<
+    T extends ObjectLiteral,
+> = ObjectLiteralKeys<{
+    [Parameter.FIELDS]?: FieldsBuildInput<T>,
+    [Parameter.FILTERS]?: FiltersBuildInput<T>,
+    [Parameter.RELATIONS]?: RelationsBuildInput<T>,
+    [Parameter.PAGINATION]?: PaginationBuildInput,
+    [Parameter.SORT]?: SortBuildInput<T>,
+}>;
