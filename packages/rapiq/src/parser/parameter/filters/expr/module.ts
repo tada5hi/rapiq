@@ -88,6 +88,7 @@ FiltersParseOptions
                 case 'startsWith': tokens.push({ type: FilterTokenType.STARTS_WITH }); break;
                 case 'endsWith': tokens.push({ type: FilterTokenType.ENDS_WITH }); break;
                 case 'in': tokens.push({ type: FilterTokenType.IN }); break;
+                case 'nin': tokens.push({ type: FilterTokenType.NIN }); break;
                 case 'null': tokens.push({ type: FilterTokenType.NULL }); break;
                 case '(': tokens.push({ type: FilterTokenType.LPAREN }); break;
                 case ')': tokens.push({ type: FilterTokenType.RPAREN }); break;
@@ -108,7 +109,10 @@ FiltersParseOptions
         return tokens;
     }
 
-    private parseFilterExpression(options: FiltersParseOptions = {}, negation: boolean = false): Condition {
+    private parseFilterExpression(
+        options: FiltersParseOptions = {},
+        negation: boolean = false,
+    ): Condition {
         const token = this.peek();
         switch (token.type) {
             case FilterTokenType.NOT:
@@ -127,6 +131,7 @@ FiltersParseOptions
             case FilterTokenType.ENDS_WITH:
                 return this.parseMatchExpression(options, negation);
             case FilterTokenType.IN:
+            case FilterTokenType.NIN:
                 return this.parseInExpression(options, negation);
             default:
                 throw new Error(`Unexpected token in filterExpression: ${token.type}`);
@@ -297,7 +302,13 @@ FiltersParseOptions
     }
 
     private parseInExpression(options: FiltersParseOptions = {}, negation: boolean = false): Condition {
-        this.consume(FilterTokenType.IN);
+        const token = this.peek();
+        if (token.type === FilterTokenType.NIN) {
+            this.consume(FilterTokenType.NIN);
+        } else {
+            this.consume(FilterTokenType.IN);
+        }
+
         this.consume(FilterTokenType.LPAREN);
 
         const field = this.parseExpressionFieldChain(options);
@@ -310,7 +321,10 @@ FiltersParseOptions
         }
         this.consume(FilterTokenType.RPAREN);
 
-        if (negation) {
+        const notIn = (token.type === FilterTokenType.NIN && !negation) ||
+            (token.type === FilterTokenType.IN && negation);
+
+        if (notIn) {
             return new Filter(
                 FilterFieldOperator.NOT_IN,
                 field,

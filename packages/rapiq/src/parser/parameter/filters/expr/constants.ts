@@ -20,6 +20,7 @@ export enum FilterTokenType {
     STARTS_WITH = 'startsWith',
     ENDS_WITH = 'endsWith',
     IN = 'in',
+    NIN = 'nin',
 
     FIELD = 'FIELD',
     ESCAPED_TEXT = 'ESCAPED_TEXT',

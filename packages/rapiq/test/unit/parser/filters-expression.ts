@@ -114,6 +114,32 @@ describe('filters/expr-parser', () => {
         ));
     });
 
+    it('should parse nin expression', () => {
+        const output = parser.parse('nin(name, \'Peter\', \'Hans\')');
+
+        expect(output).toEqual(new Filter(
+            FilterFieldOperator.NOT_IN,
+            'name',
+            [
+                'Peter',
+                'Hans',
+            ],
+        ));
+    });
+
+    it('should parse negated nin expression', () => {
+        const output = parser.parse('not(nin(name, \'Peter\', \'Hans\'))');
+
+        expect(output).toEqual(new Filter(
+            FilterFieldOperator.IN,
+            'name',
+            [
+                'Peter',
+                'Hans',
+            ],
+        ));
+    });
+
     it('should parse nested expression', () => {
         const output = parser.parse('and(eq(user.friends, \'5\'), like(user.name, \'Bob\'))');
 
