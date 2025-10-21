@@ -13,7 +13,7 @@ import type { ObjectLiteral } from '../types';
 import { isObject, parseKey, stringifyKey } from '../utils';
 import type { IParser } from './types';
 
-type TempType = {
+export type TempType = {
     attributes: Record<string, any>,
     relations: Record<string, TempType>
 };

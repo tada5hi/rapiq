@@ -17,7 +17,7 @@ import {
     FilterFieldOperator,
     FilterInputOperatorValue,
 } from '../../../schema';
-import type { MaybeAsync, ObjectLiteral } from '../../../types';
+import type { ObjectLiteral } from '../../../types';
 import {
     applyMapping,
     buildKeyPath,
@@ -28,7 +28,7 @@ import {
     parseKey,
     stringifyKey,
 } from '../../../utils';
-import { LinkedList, LinkedListNode } from '../../../utils/linked-list';
+import type { TempType } from '../../base';
 import { BaseFiltersParser } from './base';
 import { FiltersParseError } from './error';
 import { GraphNode, breadthFirstSearchReverse } from './graph';
@@ -40,7 +40,7 @@ FiltersParseOptions
     preParse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : MaybeAsync<Record<string, Filter[]>> {
+    ) : Condition[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -49,7 +49,7 @@ FiltersParseOptions
             !schema.allowedIsUndefined &&
             schema.allowed.length === 0
         ) {
-            return this.groupDefaults(options);
+            return [];
         }
 
         /* istanbul ignore next */
@@ -58,96 +58,54 @@ FiltersParseOptions
                 throw FiltersParseError.inputInvalid();
             }
 
-            return this.groupDefaults(options);
+            return [];
         }
 
         const { length } = Object.keys(input);
         if (length === 0) {
-            return this.groupDefaults(options);
+            return [];
         }
 
-        const inputGrouped = this.groupObjectByBasePath(input);
+        const normalized = this.groupObject(this.expandObject(input));
 
         if (
             schema.name &&
-            inputGrouped[schema.name]
+            normalized.relations[schema.name]
         ) {
-            inputGrouped[DEFAULT_ID] = inputGrouped[schema.name];
-            delete inputGrouped[schema.name];
-        }
+            normalized.attributes = {
+                ...(normalized.attributes || {}),
+                ...normalized.relations[schema.name].attributes,
+            };
+            normalized.relations = {
+                ...(normalized.relations || {}),
+                ...normalized.relations[schema.name].relations,
+            };
 
-        const {
-            [DEFAULT_ID]: data,
-            ...relationsData
-        } = inputGrouped;
-
-        const list = new LinkedList<string>();
-
-        list.addNode(new LinkedListNode(DEFAULT_ID));
-
-        const keys = Object.keys(relationsData);
-        for (let i = 0; i < keys.length; i++) {
-            list.addNode(new LinkedListNode(keys[i]));
+            delete normalized.relations[schema.name];
         }
 
         return this.processList(
-            list.iterator(),
-            inputGrouped,
+            DEFAULT_ID,
+            normalized,
             options,
         );
     }
 
     processList<RECORD extends ObjectLiteral>(
-        iterator: Iterator<string, null>,
-        data: Record<string, any>,
+        currentKey: string,
+        data: TempType,
         options: FiltersParseOptions<RECORD> = {},
-    ): MaybeAsync<Record<string, Filter[]>> {
+    ) : Filter[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
-
-        const currentKey = iterator.next();
-        if (currentKey.done) {
-            return {};
-        }
 
         let relations : Relations | undefined;
 
         // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
 
-        if (currentKey.value !== DEFAULT_ID) {
-            if (!isPathAllowed(currentKey.value, options.relations)) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(currentKey.value);
-                }
+        const output : Filter[] = [];
 
-                return {};
-            }
-
-            // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, currentKey.value);
-            if (!relationSchema) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(currentKey.value);
-                }
-
-                return {};
-            }
-
-            if (typeof options.relations !== 'undefined') {
-                relations = options.relations.extract(currentKey.value);
-            }
-        }
-
-        const currentKeyData = data[currentKey.value] || data;
-        if (!currentKeyData) {
-            return {};
-        }
-
-        const output : Record<string, Filter[]> = {};
-
-        let maybeAsync : Promise<unknown> | undefined;
-
-        const keys = Object.keys(currentKeyData);
+        let keys = Object.keys(data.attributes);
         for (let i = 0; i < keys.length; i++) {
             const key = parseKey(keys[i]);
             key.name = applyMapping(key.name, schema.mapping);
@@ -174,7 +132,7 @@ FiltersParseOptions
                 continue;
             }
 
-            const valueParsed = this.parseValue(currentKeyData[keys[i]]);
+            const valueParsed = this.parseValue(data.attributes[keys[i]]);
             if (!valueParsed) {
                 if (throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(key.name);
@@ -198,149 +156,90 @@ FiltersParseOptions
 
             const filter = new Filter(
                 valueParsed.operator,
-                currentKey.value === DEFAULT_ID ?
+                currentKey === DEFAULT_ID ?
                     key.name :
-                    stringifyKey({ path: currentKey.value, name: key.name }),
+                    stringifyKey({ path: currentKey, name: key.name }),
                 valueParsed.value,
             );
 
-            const groupKey = key.group || '';
-            if (!output[groupKey]) {
-                output[groupKey] = [];
-            }
+            output.push(filter);
+        }
 
-            try {
-                const validationResult = schema.validate(filter);
-
-                if (maybeAsync || validationResult instanceof Promise) {
-                    maybeAsync = (maybeAsync ?? Promise.resolve())
-                        .then(async () => {
-                            const result = await validationResult;
-                            output[groupKey].push(result || filter);
-                        })
-                        .catch(() => {
-                            if (throwOnFailure) {
-                                throw FiltersParseError.keyValueInvalid(filter.field);
-                            }
-                        });
-                } else {
-                    output[groupKey].push(validationResult || filter);
-                }
-            } catch (e) {
+        keys = Object.keys(data.relations);
+        for (let i = 0; i < keys.length; i++) {
+            if (!isPathAllowed(keys[i], options.relations)) {
                 if (throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(filter.field);
+                    throw FiltersParseError.keyPathInvalid(keys[i]);
                 }
+
+                continue;
             }
-        }
 
-        const mergeGroups = (groups: Record<string, Filter[]>) => {
-            const groupKeys = Object.keys(groups);
-            for (let i = 0; i < groupKeys.length; i++) {
-                const children = groups[groupKeys[i]];
-
-                output[groupKeys[i]] ||= [];
-
-                if (currentKey.value === DEFAULT_ID) {
-                    output[groupKeys[i]].push(...children);
-                } else {
-                    output[groupKeys[i]].push(
-                        ...children.map((child) => new Filter(
-                            child.operator as `${FilterFieldOperator}`,
-                            stringifyKey({ path: currentKey.value, name: child.field }),
-                            child.value,
-                        )),
-                    );
+            // todo: also pass options.schema
+            const relationSchema = this.registry.resolve(schema.name, keys[i]);
+            if (!relationSchema) {
+                if (throwOnFailure) {
+                    throw FiltersParseError.keyPathInvalid(keys[i]);
                 }
+
+                continue;
             }
 
-            return output;
-        };
-
-        if (maybeAsync) {
-            if (!options.async) {
-                // todo: throw async error
-                throw Error();
+            if (typeof options.relations !== 'undefined') {
+                relations = options.relations.extract(keys[i]);
             }
 
-            return maybeAsync
-                .then(() => this.processList(
-                    iterator,
-                    currentKeyData,
-                    {
-                        ...options,
-                        relations,
-                    },
-                ))
-                .then((groups) => mergeGroups(groups));
+            const children = this.processList(
+                keys[i],
+                data.relations[keys[i]],
+                {
+                    ...options,
+                    relations,
+                    schema: relationSchema,
+                },
+            );
+
+            if (currentKey === DEFAULT_ID) {
+                output.push(...children);
+            } else {
+                output.push(...children.map((child) => new Filter(
+                    child.operator as `${FilterFieldOperator}`,
+                    stringifyKey({ path: currentKey, name: child.field }),
+                    child.value,
+                )));
+            }
         }
 
-        const child = this.processList(
-            iterator,
-            currentKeyData,
-            {
-                ...options,
-                relations,
-            },
-        );
-
-        if (child instanceof Promise) {
-            if (!options.async) {
-                // todo: throw async error
-                throw Error();
-            }
-
-            return child.then((groups) => mergeGroups(groups));
-        }
-
-        return mergeGroups(child);
+        return output;
     }
 
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters {
-        const items = this.preParse(input, {
+    ) : Condition {
+        let items = this.preParse(input, {
             ...options,
             async: false,
         });
 
-        if (items instanceof Promise) {
-            // todo: throw async error
-            throw Error();
+        if (items.length === 0) {
+            items = this.buildDefaults(options);
         }
 
-        const itemKeys = Object.keys(items);
-        if (itemKeys.length === 0) {
-            return this.mergeGroups(this.groupDefaults(options));
+        if (items.length === 1) {
+            return items[0];
         }
 
-        return this.mergeGroups(items);
+        return new Filters(FilterCompoundOperator.AND, items);
     }
 
-    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
-        input: unknown,
-        options: FiltersParseOptions<RECORD> = {},
-    ) : Promise<Filters> {
-        const items = await this.preParse(input, {
-            ...options,
-            async: true,
-        });
-
-        const itemKeys = Object.keys(items);
-        if (itemKeys.length === 0) {
-            return this.mergeGroups(this.groupDefaults(options));
-        }
-
-        return this.mergeGroups(items);
-    }
-
-    protected groupDefaults<
+    protected buildDefaults<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         options: FiltersParseOptions<RECORD> = {},
-    ) {
+    ) : Condition[] {
         const schema = this.resolveSchema(options.schema);
-        const items : Record<string, Filter[]> = {};
+        const output : Condition[] = [];
 
         for (let i = 0; i < schema.defaultKeys.length; i++) {
             const keyDetails = parseKey(schema.defaultKeys[i]);
@@ -359,19 +258,14 @@ FiltersParseOptions
                 continue;
             }
 
-            const groupKey = keyDetails.group || '';
-            if (!items[groupKey]) {
-                items[groupKey] = [];
-            }
-
-            items[groupKey].push(new Filter(
+            output.push(new Filter(
                 parsed.operator,
                 buildKeyPath(keyDetails.name, path),
                 parsed.value,
             ));
         }
 
-        return items;
+        return output;
     }
 
     // ---------------------------------------------------------

@@ -6,18 +6,17 @@
  */
 
 import type {
-    ObjectLiteral,
+    Fields,
+    IInterpreter, ObjectLiteral,
 } from '../../../src';
 import {
     FieldsParseError,
+    Relation,
+    Relations,
     SimpleFieldsParser,
-    defineFieldsSchema,
-    defineSchema,
+    defineFieldsSchema, defineSchema,
 } from '../../../src';
 import { registry } from '../../data/schema';
-import type { IInterpreter } from '../../../src/interpreter';
-import type { Fields } from '../../../src/parameter';
-import { Relation, Relations } from '../../../src/parameter';
 
 class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
     interpret(input: Fields): string[] {
@@ -42,7 +41,7 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        const data = await parser.parse([], {
+        const data = parser.parse([], {
             schema,
         });
 
@@ -59,7 +58,7 @@ describe('src/fields/index.ts', () => {
             name: 'user',
         });
 
-        const data = await parser.parse('+email', {
+        const data = parser.parse('+email', {
             schema,
         });
         expect(interpreter.interpret(data)).toEqual(['email']);
@@ -69,7 +68,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             fields: { default: ['id'] },
         });
-        const data = await parser.parse('name', {
+        const data = parser.parse('name', {
             schema,
         });
         expect(interpreter.interpret(data)).toEqual(['id']);
@@ -83,17 +82,17 @@ describe('src/fields/index.ts', () => {
         });
 
         // fields undefined
-        const data = await parser.parse(undefined, { schema });
+        const data = parser.parse(undefined, { schema });
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
     });
 
     it('should parse with no schema', async () => {
         // no options
-        let data = await parser.parse(['id']);
+        let data = parser.parse(['id']);
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // invalid field names
-        data = await parser.parse(['"id', 'name!']);
+        data = parser.parse(['"id', 'name!']);
         expect(interpreter.interpret(data)).toEqual([]);
     });
 
@@ -104,7 +103,7 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        const data = await parser.parse(['name!'], { schema });
+        const data = parser.parse(['name!'], { schema });
         expect(interpreter.interpret(data)).toEqual(['name!']);
     });
 
@@ -115,10 +114,10 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        let data = await parser.parse(['id'], { schema });
+        let data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([]);
 
-        data = await parser.parse('id', { schema });
+        data = parser.parse('id', { schema });
         expect(interpreter.interpret(data)).toEqual([]);
     });
 
@@ -129,7 +128,7 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        const data = await parser.parse(['id'], { schema });
+        const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([]);
     });
 
@@ -140,41 +139,41 @@ describe('src/fields/index.ts', () => {
         });
 
         // fields undefined with default
-        let data = await parser.parse(undefined, { schema });
+        let data = parser.parse(undefined, { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // fields as array
-        data = await parser.parse(['id'], { schema });
+        data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // fields as string
-        data = await parser.parse('id', { schema });
+        data = parser.parse('id', { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // multiple fields but only one valid field
-        data = await parser.parse(['id', 'avatar'], { schema });
+        data = parser.parse(['id', 'avatar'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // field as string and append fields
-        data = await parser.parse('+id', { schema });
+        data = parser.parse('+id', { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
-        data = await parser.parse('avatar,+id', { schema });
+        data = parser.parse('avatar,+id', { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
-        data = await parser.parse('-id', { schema });
+        data = parser.parse('-id', { schema });
         expect(interpreter.interpret(data)).toEqual([]);
 
         // fields as string and append fields
-        data = await parser.parse('id,+name', { schema });
+        data = parser.parse('id,+name', { schema });
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
         // field not allowed
-        data = await parser.parse('avatar', { schema });
+        data = parser.parse('avatar', { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // field with invalid value
-        data = await parser.parse({ id: null }, { schema });
+        data = parser.parse({ id: null }, { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
@@ -187,7 +186,7 @@ describe('src/fields/index.ts', () => {
         });
 
         // if only one domain is given, try to parse request field to single domain.
-        const data = await parser.parse(['id'], { schema });
+        const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
@@ -200,7 +199,7 @@ describe('src/fields/index.ts', () => {
         });
 
         // if multiple possibilities are available for request field, use allowed
-        const data = await parser.parse(['id'], { schema });
+        const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
         ]);
@@ -214,13 +213,13 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        let data = await parser.parse(['id'], { schema });
+        let data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
-        data = await parser.parse(['+id'], { schema });
+        data = parser.parse(['+id'], { schema });
         expect(interpreter.interpret(data)).toEqual(['name', 'id']);
 
-        data = await parser.parse([], { schema });
+        data = parser.parse([], { schema });
         expect(interpreter.interpret(data)).toEqual(['name']);
     });
 
@@ -234,7 +233,7 @@ describe('src/fields/index.ts', () => {
         });
 
         // if multiple possibilities are available for request field, use default
-        const data = await parser.parse(['id'], { schema });
+        const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
         ]);
@@ -244,13 +243,13 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             fields: { default: ['id', 'name'] },
         });
-        let data = await parser.parse([], { schema });
+        let data = parser.parse([], { schema });
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
-        data = await parser.parse(['id'], { schema });
+        data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
 
-        data = await parser.parse(['fake'], { schema });
+        data = parser.parse(['fake'], { schema });
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
     });
 
@@ -264,13 +263,13 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        let data = await parser.parse('+foo', { schema });
+        let data = parser.parse('+foo', { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
             'name',
         ]);
 
-        data = await parser.parse('+alias', { schema });
+        data = parser.parse('+alias', { schema });
         expect(interpreter.interpret(data)).toEqual([
             'id',
         ]);
@@ -278,7 +277,7 @@ describe('src/fields/index.ts', () => {
 
     it('should parse with valid relation', async () => {
         // simple domain match
-        const data = await parser.parse({
+        const data = parser.parse({
             items: ['id'],
             'items.realm': ['id'],
         }, {
@@ -300,7 +299,7 @@ describe('src/fields/index.ts', () => {
 
     it('should parse with valid & invalid relation', async () => {
         // only single domain match
-        const data = await parser.parse({
+        const data = parser.parse({
             realm: ['id'],
             permissions: ['id'],
         }, {
@@ -320,11 +319,11 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid input shape', async () => {
         const error = FieldsParseError.inputInvalid();
-        await expect(parser.parse(false, {
+        expect(() => parser.parse(false, {
             schema: defineSchema({
                 throwOnFailure: true,
             }),
-        })).rejects.toThrow(error);
+        })).toThrow(error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -335,14 +334,14 @@ describe('src/fields/index.ts', () => {
 
         const error = FieldsParseError.keyPathInvalid('bar');
 
-        await expect(parser.parse({
+        expect(() => parser.parse({
             bar: ['bar'],
         }, {
             schema,
             relations: new Relations([
                 new Relation('user'),
             ]),
-        })).rejects.toThrow(error);
+        })).toThrow(error);
     });
 
     it('should throw on invalid key (pattern)', async () => {
@@ -354,7 +353,7 @@ describe('src/fields/index.ts', () => {
             },
         });
 
-        await expect(parser.parse(['baz'], { schema })).rejects.toThrow(FieldsParseError);
+        expect(() => parser.parse(['baz'], { schema })).toThrow(FieldsParseError);
     });
 
     it('should throw on invalid key (pattern)', async () => {
@@ -362,6 +361,6 @@ describe('src/fields/index.ts', () => {
             throwOnFailure: true,
         });
 
-        await expect(parser.parse(['!.bar'], { schema })).rejects.toThrow(FieldsParseError);
+        expect(() => parser.parse(['!.bar'], { schema })).toThrow(FieldsParseError);
     });
 });
