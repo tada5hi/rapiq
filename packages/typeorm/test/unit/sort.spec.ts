@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { Sorts } from 'rapiq';
+import { Sort, Sorts } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -55,16 +55,16 @@ describe('src/sort', () => {
     };
 
     it('should sort by last name', async () => {
-        const queryOne = createQueryBuilder({
-            last_name: 'ASC',
-        });
+        const queryOne = createQueryBuilder(new Sorts([
+            new Sort('last_name', 'ASC'),
+        ]));
 
         const [queryOneFirst] = await queryOne.getMany();
         expect(queryOneFirst).toBeDefined();
 
-        const queryTwo = createQueryBuilder({
-            last_name: 'DESC',
-        });
+        const queryTwo = createQueryBuilder(new Sorts([
+            new Sort('last_name', 'DESC'),
+        ]));
 
         const [queryTwoFirst] = await queryTwo.getMany();
         expect(queryTwoFirst).toBeDefined();

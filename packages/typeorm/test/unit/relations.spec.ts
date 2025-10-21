@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { Relations } from 'rapiq';
+import { Relation, Relations } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -59,9 +59,9 @@ describe('src/relations', () => {
     };
 
     it('should include relation', async () => {
-        const queryOne = createQueryBuilder([
-            'role',
-        ]);
+        const queryOne = createQueryBuilder(new Relations([
+            new Relation('role'),
+        ]));
 
         const user = await queryOne.getOneOrFail();
 
@@ -70,10 +70,10 @@ describe('src/relations', () => {
     });
 
     it('should include multiple relations', async () => {
-        const queryOne = createQueryBuilder([
-            'realm',
-            'role',
-        ]);
+        const queryOne = createQueryBuilder(new Relations([
+            new Relation('realm'),
+            new Relation('role'),
+        ]));
 
         const user = await queryOne.getOneOrFail();
 

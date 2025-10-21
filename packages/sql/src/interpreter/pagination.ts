@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { PaginationParseOutput } from 'rapiq';
+import type { Pagination } from 'rapiq';
 import type { IPaginationAdapter } from '../adapter';
 import type { InterpreterInterpretOptions } from './types';
 
@@ -13,7 +13,7 @@ export type PaginationInterpreterOptions = InterpreterInterpretOptions;
 
 export class PaginationInterpreter {
     interpret(
-        input: PaginationParseOutput,
+        input: Pagination,
         adapter: IPaginationAdapter,
         options: PaginationInterpreterOptions = {},
     ) {

@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { PaginationParseOutput } from 'rapiq';
+import { Pagination } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -43,7 +43,7 @@ describe('src/pagination', () => {
     const adapter = new TypeormAdapter();
     const interpreter = new Interpreter();
 
-    const createQueryBuilder = (pagination: PaginationParseOutput) => {
+    const createQueryBuilder = (pagination: Pagination) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
@@ -55,25 +55,18 @@ describe('src/pagination', () => {
     };
 
     it('should work with limit', async () => {
-        const query = createQueryBuilder({
-            limit: 1,
-        });
+        const query = createQueryBuilder(new Pagination(1));
 
         const users = await query.getMany();
         expect(users.length).toEqual(1);
     });
 
     it('should work with limit & offset', async () => {
-        const queryOne = createQueryBuilder({
-            limit: 1,
-        });
+        const queryOne = createQueryBuilder(new Pagination(1));
 
         const [queryOneEntity] = await queryOne.getMany();
 
-        const queryTwo = createQueryBuilder({
-            limit: 1,
-            offset: 1,
-        });
+        const queryTwo = createQueryBuilder(new Pagination(1, 1));
 
         const [queryTwoEntity] = await queryTwo.getMany();
 

@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { Interpreter } from '@rapiq/sql';
-import type { Fields } from 'rapiq';
+import { Field, Fields } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -64,11 +64,13 @@ describe('src/fields', () => {
     };
 
     it('should select sparse fieldset', async () => {
-        const queryBuilder = createQueryBuilder([
-            'id',
-            'first_name',
-            'last_name',
-        ]);
+        const queryBuilder = createQueryBuilder(
+            new Fields([
+                new Field('id'),
+                new Field('first_name'),
+                new Field('last_name'),
+            ]),
+        );
 
         const entities = await queryBuilder.getMany();
 

@@ -8,6 +8,7 @@
 import {
     Interpreter,
 } from '@rapiq/sql';
+import type { Condition } from 'rapiq';
 import {
     Filter,
     FilterCompoundOperator,
@@ -49,7 +50,7 @@ describe('src/filters', () => {
     const adapter = new TypeormAdapter();
     const interpreter = new Interpreter();
 
-    const createQueryBuilder = (condition: Filters) => {
+    const createQueryBuilder = (condition: Condition) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
