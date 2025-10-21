@@ -10,7 +10,7 @@ import type { Relations } from '../parameter';
 import type { Schema, SchemaRegistry } from '../schema';
 import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
 import type {
-    FieldsBuildInput, FiltersBuildInput, PaginationBuildInput, RelationsBuildInput, SortBuildInput,
+    FieldsBuildInput, PaginationBuildInput, RelationsBuildInput, SimpleFiltersParserInput, SortBuildInput,
 } from './parameter';
 
 export type ParseOptions<
@@ -48,7 +48,7 @@ export type ParserInput<
     T extends ObjectLiteral,
 > = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: FieldsBuildInput<T>,
-    [Parameter.FILTERS]?: FiltersBuildInput<T>,
+    [Parameter.FILTERS]?: SimpleFiltersParserInput<T>,
     [Parameter.RELATIONS]?: RelationsBuildInput<T>,
     [Parameter.PAGINATION]?: PaginationBuildInput,
     [Parameter.SORT]?: SortBuildInput<T>,

@@ -9,9 +9,10 @@ import type { Condition } from '../../../../parameter';
 import {
     Filter, FilterRegexFlag, Filters, createFilterRegex,
 } from '../../../../parameter';
+import type { Scalar } from '../../../../types';
 import { BaseFiltersParser } from '../base';
 import { FiltersParseError } from '../error';
-import type { FilterValuePrimitive, FiltersParseOptions } from '../types';
+import type { FiltersParseOptions } from '../types';
 import { FilterTokenType } from './constants';
 import type { FilterExpressionParseOptions, FilterToken } from './types';
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../../schema';
@@ -338,7 +339,7 @@ FiltersParseOptions
         );
     }
 
-    private parseExpressionValue(): FilterValuePrimitive {
+    private parseExpressionValue(): Scalar {
         const token = this.consume();
 
         if (
@@ -413,7 +414,7 @@ FiltersParseOptions
 
     // ---------------------------------------------------------
 
-    protected normalizeValue(input: unknown) : FilterValuePrimitive {
+    protected normalizeValue(input: unknown) : Scalar {
         if (typeof input === 'string') {
             const trimmed = input.trim();
             if (trimmed.length === 0) {

@@ -72,7 +72,7 @@ describe('src/pagination/index.ts', () => {
 
         const error = PaginationParseError.limitExceeded(50);
 
-        await expect(parser.parse({ limit: 100 }, { schema })).rejects.toThrow(error);
+        expect(() => parser.parse({ limit: 100 }, { schema })).toThrow(error);
     });
 
     it('should throw on invalid input', async () => {
@@ -83,7 +83,7 @@ describe('src/pagination/index.ts', () => {
         });
 
         const error = PaginationParseError.inputInvalid();
-        await expect(parser.parse(false, { schema })).rejects.toThrow(error);
+        expect(() => parser.parse(false, { schema })).toThrow(error);
     });
 
     it('should throw on invalid limit', async () => {
@@ -94,7 +94,7 @@ describe('src/pagination/index.ts', () => {
         });
 
         const error = PaginationParseError.keyValueInvalid('limit');
-        await expect(parser.parse({ limit: false }, { schema })).rejects.toThrow(error);
+        expect(() => parser.parse({ limit: false }, { schema })).toThrow(error);
     });
 
     it('should throw on invalid offset', async () => {
@@ -106,6 +106,6 @@ describe('src/pagination/index.ts', () => {
 
         const error = PaginationParseError.keyValueInvalid('offset');
 
-        await expect(parser.parse({ offset: false }, { schema })).rejects.toThrow(error);
+        expect(() => parser.parse({ offset: false }, { schema })).toThrow(error);
     });
 });

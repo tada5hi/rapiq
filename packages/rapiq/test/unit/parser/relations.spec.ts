@@ -7,8 +7,7 @@
 
 import { RelationsParseError, SimpleRelationsParser, defineSchema } from '../../../src';
 import { registry } from '../../data/schema';
-import type { IInterpreter } from '../../../src/interpreter';
-import type { Relations } from '../../../src';
+import type { IInterpreter, Relations } from '../../../src';
 
 class RelationsSimpleInterpreter implements IInterpreter<Relations, string[]> {
     interpret(input: Relations): string[] {
@@ -32,16 +31,16 @@ describe('src/relations/index.ts', () => {
             },
             throwOnFailure: true,
         });
-        let output = await parser.parse('profile', { schema });
+        let output = parser.parse('profile', { schema });
         expect(interpreter.interpret(output)).toEqual(['profile']);
 
-        output = await parser.parse([], { schema });
+        output = parser.parse([], { schema });
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
     it('should parse with invalid pattern', async () => {
         // invalid path
-        const output = await parser.parse(['profile!']);
+        const output = parser.parse(['profile!']);
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
@@ -53,7 +52,7 @@ describe('src/relations/index.ts', () => {
         });
 
         // ignore path pattern, if permitted by an allowed key
-        const output = await parser.parse(['profile!'], { schema });
+        const output = parser.parse(['profile!'], { schema });
         expect(interpreter.interpret(output)).toEqual(['profile!']);
     });
 
@@ -68,13 +67,13 @@ describe('src/relations/index.ts', () => {
         });
 
         // with alias
-        const output = await parser.parse('pro', { schema });
+        const output = parser.parse('pro', { schema });
         expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with nested alias', async () => {
         // with nested alias
-        const output = await parser.parse(['abc.realm'], { schema: 'user' });
+        const output = parser.parse(['abc.realm'], { schema: 'user' });
         expect(interpreter.interpret(output)).toEqual([
             'items',
             'items.realm',
@@ -83,7 +82,7 @@ describe('src/relations/index.ts', () => {
 
     it('should parse with array input', async () => {
         // multiple data matching
-        const output = await parser.parse(['profile', 'abc'], {
+        const output = parser.parse(['profile', 'abc'], {
             schema: defineSchema({
                 relations: {
                     allowed: ['profile'],
@@ -95,7 +94,7 @@ describe('src/relations/index.ts', () => {
 
     it('should parse with empty allowed', async () => {
         // no allowed
-        const output = await parser.parse(['profile'], {
+        const output = parser.parse(['profile'], {
             schema: defineSchema({
                 relations: {
                     allowed: [],
@@ -107,7 +106,7 @@ describe('src/relations/index.ts', () => {
 
     it('should parse with undefined allowed', async () => {
         // non array, permit everything
-        const output = await parser.parse(['profile'], {
+        const output = parser.parse(['profile'], {
             schema: defineSchema({
                 relations: {
                     allowed: undefined,
@@ -119,7 +118,7 @@ describe('src/relations/index.ts', () => {
 
     it('should parse with nested allowed', async () => {
         // nested data with alias
-        const output = await parser.parse([
+        const output = parser.parse([
             'items.realm',
         ], {
             schema: 'user',
@@ -132,7 +131,7 @@ describe('src/relations/index.ts', () => {
 
     it('should pare with null input', async () => {
         // null data
-        const output = await parser.parse(null);
+        const output = parser.parse(null);
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
@@ -143,9 +142,8 @@ describe('src/relations/index.ts', () => {
 
         const error = RelationsParseError.inputInvalid();
 
-        await expect(parser.parse(['foo', true], { schema })).rejects.toThrow(error.message);
-
-        await expect(parser.parse(false, { schema })).rejects.toThrow(error);
+        expect(() => parser.parse(['foo', true], { schema })).toThrow(error.message);
+        expect(() => parser.parse(false, { schema })).toThrow(error);
     });
 
     it('should throw on non allowed key', async () => {
@@ -157,8 +155,7 @@ describe('src/relations/index.ts', () => {
         });
 
         const error = RelationsParseError.keyInvalid('bar');
-
-        await expect(parser.parse(['foo', 'bar'], { schema })).rejects.toThrow(error);
+        expect(() => parser.parse(['foo', 'bar'], { schema })).toThrow(error);
     });
 
     it('should throw on invalid key', async () => {
@@ -167,7 +164,6 @@ describe('src/relations/index.ts', () => {
         });
 
         const error = RelationsParseError.keyInvalid(',foo');
-
-        await expect(parser.parse([',foo'], { schema })).rejects.toThrow(error);
+        expect(() => parser.parse([',foo'], { schema })).toThrow(error);
     });
 });

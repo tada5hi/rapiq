@@ -5,18 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ID } from '../../../constants';
-import type { Condition, Relations } from '../../../parameter';
+import { DEFAULT_ID } from '../../../../constants';
+import type { Condition, Relations } from '../../../../parameter';
 import {
     Filter,
-    FilterRegexFlag, Filters, createFilterRegex, optimizedCompoundCondition,
-} from '../../../parameter';
+    FilterRegexFlag, Filters, createFilterRegex,
+} from '../../../../parameter';
 import {
     FilterCompoundOperator,
     FilterFieldOperator,
     FilterInputOperatorValue,
-} from '../../../schema';
-import type { ObjectLiteral } from '../../../types';
+} from '../../../../schema';
+import type { ObjectLiteral, Scalar } from '../../../../types';
 import {
     applyMapping,
     escapeRegExp,
@@ -25,17 +25,17 @@ import {
     isPropertyNameValid,
     parseKey,
     stringifyKey,
-} from '../../../utils';
-import type { TempType } from '../../base';
-import { BaseFiltersParser } from './base';
-import { FiltersParseError } from './error';
-import { GraphNode, breadthFirstSearchReverse } from './graph';
-import type { FilterValuePrimitive, FiltersParseOptions } from './types';
+} from '../../../../utils';
+import type { TempType } from '../../../base';
+import { BaseFiltersParser } from '../base';
+import { FiltersParseError } from '../error';
+import type { FiltersParseOptions } from '../types';
+import type { SimpleFiltersParserInput } from './types';
 
 export class SimpleFiltersParser extends BaseFiltersParser<
 FiltersParseOptions
 > {
-    preParse<RECORD extends ObjectLiteral = ObjectLiteral>(
+    protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Condition[] {
@@ -82,14 +82,14 @@ FiltersParseOptions
             delete normalized.relations[schema.name];
         }
 
-        return this.processList(
+        return this.runFor(
             DEFAULT_ID,
             normalized,
             options,
         );
     }
 
-    processList<RECORD extends ObjectLiteral>(
+    protected runFor<RECORD extends ObjectLiteral>(
         currentKey: string,
         data: TempType,
         options: FiltersParseOptions<RECORD> = {},
@@ -187,7 +187,7 @@ FiltersParseOptions
                 relations = options.relations.extract(keys[i]);
             }
 
-            const children = this.processList(
+            const children = this.runFor(
                 keys[i],
                 data.relations[keys[i]],
                 {
@@ -215,7 +215,7 @@ FiltersParseOptions
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Filters {
-        let items = this.preParse(input, {
+        let items = this.run(input, {
             ...options,
             async: false,
         });
@@ -225,6 +225,13 @@ FiltersParseOptions
         }
 
         return new Filters(FilterCompoundOperator.AND, items);
+    }
+
+    parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: SimpleFiltersParserInput<RECORD>,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Filters {
+        return this.parse(input, options);
     }
 
     protected buildDefaults<
@@ -246,97 +253,11 @@ FiltersParseOptions
 
     // ---------------------------------------------------------
 
-    protected mergeGroups(
-        input: Record<string, Condition[]> = {},
-    ) : Filters {
-        const graph = new GraphNode<Condition[]>('');
-
-        const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            graph.add(keys[i], input[keys[i]]);
-        }
-
-        const stack : Map<number, Record<string, Condition[]>> = new Map();
-
-        breadthFirstSearchReverse(graph, (node) => {
-            const levelItems = stack.get(node.level) || {};
-            const levelKey = node.id || '';
-            if (!levelItems[levelKey]) {
-                levelItems[levelKey] = [];
-            }
-
-            if (node.data) {
-                levelItems[levelKey].push(
-                    optimizedCompoundCondition(
-                        FilterCompoundOperator.AND,
-                        node.data,
-                    ),
-                );
-            }
-
-            // 1. get all children from child level (node.level + 1)
-            const children = stack.get(node.level + 1);
-            if (children) {
-                // 2. children to conditions
-                const conditions: Condition[] = [];
-                const childrenKeys = Object.keys(children);
-                for (let i = 0; i < childrenKeys.length; i++) {
-                    if (
-                        children[childrenKeys[i]] &&
-                        children[childrenKeys[i]].length > 0
-                    ) {
-                        conditions.push(optimizedCompoundCondition(
-                            FilterCompoundOperator.AND,
-                            children[childrenKeys[i]],
-                        ));
-                    }
-                }
-
-                if (conditions.length > 0) {
-                    // 3. set for current level + current id
-                    levelItems[levelKey].push(optimizedCompoundCondition(
-                        FilterCompoundOperator.OR,
-                        conditions,
-                    ));
-                }
-            }
-
-            stack.set(node.level, levelItems);
-        });
-
-        const out = stack.get(0);
-        if (out) {
-            const conditions : Filters[] = [];
-
-            const keys = Object.keys(out);
-            for (let i = 0; i < keys.length; i++) {
-                if (out[keys[i]].length > 0) {
-                    conditions.push(optimizedCompoundCondition(
-                        FilterCompoundOperator.AND,
-                        out[keys[i]],
-                    ));
-                }
-            }
-
-            if (conditions.length === 1) {
-                return conditions[0];
-            }
-
-            if (conditions.length === 0) {
-                return new Filters(FilterCompoundOperator.AND, []);
-            }
-
-            return optimizedCompoundCondition(FilterCompoundOperator.OR, conditions);
-        }
-
-        return new Filters(FilterCompoundOperator.AND, []);
-    }
-
     protected parseValue(input: unknown) : {
         value: unknown,
         operator: `${FilterFieldOperator}`
     } | undefined {
-        let value : FilterValuePrimitive | FilterValuePrimitive[];
+        let value : Scalar | Scalar[];
 
         try {
             value = this.normalizeValue(input);
@@ -451,7 +372,7 @@ FiltersParseOptions
         };
     }
 
-    protected normalizeValue(input: unknown) : FilterValuePrimitive | FilterValuePrimitive[] {
+    protected normalizeValue(input: unknown) : Scalar | Scalar[] {
         if (typeof input === 'string') {
             const trimmed = input.trim();
             if (trimmed.length === 0) {
@@ -490,7 +411,7 @@ FiltersParseOptions
         }
 
         if (Array.isArray(input)) {
-            const output : FilterValuePrimitive[] = [];
+            const output : Scalar[] = [];
 
             for (let i = 0; i < input.length; i++) {
                 const temp = this.normalizeValue(input[i]);
