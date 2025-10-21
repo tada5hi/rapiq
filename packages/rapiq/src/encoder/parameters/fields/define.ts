@@ -12,7 +12,7 @@ import type { ObjectLiteral } from '../../../types';
 
 export async function fields<T extends ObjectLiteral>(
     input?: FieldsBuildInput<T>,
-) : Promise<Fields> {
+) : Fields {
     const clazz = new SimpleFieldsParser();
 
     if (input) {

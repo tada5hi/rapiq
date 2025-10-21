@@ -25,12 +25,11 @@ export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = IParserOptions & {
     schema?: Schema<RECORD> | string,
-    schemaRequired?: boolean,
     relations?: Relations,
 };
 
 export type IParserOptions = {
-    async?: boolean
+    async?: boolean,
 };
 
 export interface IParser<

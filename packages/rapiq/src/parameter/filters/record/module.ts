@@ -12,8 +12,14 @@ export class Filter<
     VALUE = unknown,
     KEY extends string = string,
 > extends BaseFieldCondition<VALUE> {
+    public readonly raw: unknown;
+
     // eslint-disable-next-line no-useless-constructor,@typescript-eslint/no-useless-constructor
-    constructor(operator: `${FilterFieldOperator}`, key: KEY, value: VALUE) {
+    constructor(
+        operator: `${FilterFieldOperator}`,
+        key: KEY,
+        value: VALUE,
+    ) {
         super(operator, key, value);
     }
 }
