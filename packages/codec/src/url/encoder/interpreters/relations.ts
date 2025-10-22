@@ -7,9 +7,11 @@
 
 import type { IInterpreter } from 'rapiq';
 import {
-    Relation, Relations, URLParameter,
-    serializeAsURI,
+    Relation, Relations,
 } from 'rapiq';
+
+import { URLParameter } from '../../constants';
+import { serializeAsURI } from '../../utils';
 
 export class RelationsInterpreter implements IInterpreter<Relations | Relation, string | null> {
     interpret(input: Relations | Relation): string | null {

@@ -7,7 +7,7 @@
 
 import type { Condition, Query } from 'rapiq';
 import type { IEncoder } from '../../types';
-import { Interpreter } from './interpreters/module';
+import { Interpreter } from './interpreters';
 
 export class URLEncoder implements IEncoder<string> {
     protected interpreter : Interpreter;

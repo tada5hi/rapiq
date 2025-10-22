@@ -6,10 +6,9 @@
  */
 
 import type { IInterpreter, Pagination } from 'rapiq';
-import {
-    URLParameter,
-    serializeAsURI,
-} from 'rapiq';
+
+import { URLParameter } from '../../constants';
+import { serializeAsURI } from '../../utils';
 
 export class PaginationInterpreter implements IInterpreter<Pagination, string | null> {
     interpret(input: Pagination): string | null {

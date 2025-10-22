@@ -5,7 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './decoder';
-export * from './encoder';
-
-export * from './constants';
+export enum URLParameter {
+    FILTERS = 'filter',
+    FIELDS = 'fields',
+    PAGINATION = 'page',
+    RELATIONS = 'include',
+    SORT = 'sort',
+}

@@ -8,9 +8,14 @@
 import type { Condition, IInterpreter } from 'rapiq';
 import {
     Filter,
-    FilterCompoundOperator, FilterFieldOperator, Filters, URLParameter,
-    renameObjectKeys, serializeAsURI,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
+    renameObjectKeys,
 } from 'rapiq';
+
+import { URLParameter } from '../../constants';
+import { serializeAsURI } from '../../utils';
 
 export class FiltersInterpreter implements IInterpreter<Condition, string> {
     interpret(input: Condition): string {

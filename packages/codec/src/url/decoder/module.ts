@@ -10,7 +10,8 @@ import type {
     Condition,
     Query,
 } from 'rapiq';
-import { SimpleFiltersParser, URLParameter, isObject } from 'rapiq';
+import { SimpleFiltersParser, isObject } from 'rapiq';
+import { URLParameter } from '../constants';
 
 export class URLDecoder {
     protected filters : SimpleFiltersParser;

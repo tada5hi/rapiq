@@ -10,9 +10,10 @@ import {
     Sort,
     SortDirection,
     Sorts,
-    URLParameter,
-    serializeAsURI,
 } from 'rapiq';
+
+import { URLParameter } from '../../constants';
+import { serializeAsURI } from '../../utils';
 
 export class SortsInterpreter implements IInterpreter<Sorts | Sort, string | null> {
     interpret(input: Sorts | Sort): string | null {
@@ -21,7 +22,7 @@ export class SortsInterpreter implements IInterpreter<Sorts | Sort, string | nul
         return serializeAsURI(
             output,
             {
-                prefixParts: [URLParameter.FIELDS],
+                prefixParts: [URLParameter.SORT],
             },
         );
     }

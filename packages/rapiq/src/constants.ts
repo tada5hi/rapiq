@@ -5,8 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-// -----------------------------------------------------------
-
 export enum Parameter {
     FILTERS = 'filters',
     FIELDS = 'fields',
@@ -14,17 +12,6 @@ export enum Parameter {
     RELATIONS = 'relations',
     SORT = 'sort',
 }
-
-// -----------------------------------------------------------
-
-export enum URLParameter {
-    FILTERS = 'filter',
-    FIELDS = 'fields',
-    PAGINATION = 'page',
-    RELATIONS = 'include',
-    SORT = 'sort',
-}
-
 // -----------------------------------------------------------
 
 export const DEFAULT_ID = '__DEFAULT__';

@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter, URLParameter } from '../constants';
+import { Parameter } from '../constants';
 import type {
     Fields, Filters, Pagination, Query, Relations,
     Sorts,
@@ -74,10 +74,10 @@ Query
         if (!this.skipParameter(options.relations)) {
             let relations: Relations | undefined;
 
-            if (this.hasParameterData(input, [Parameter.RELATIONS, URLParameter.RELATIONS])) {
+            if (isPropertySet(input, Parameter.RELATIONS)) {
                 // todo: parse parameter & url-parameter
                 relations = this.parseRelations(
-                    input[Parameter.RELATIONS] || input[URLParameter.RELATIONS],
+                    input[Parameter.RELATIONS],
                 );
             }
 
@@ -90,10 +90,10 @@ Query
         if (!this.skipParameter(options.fields)) {
             let fields : Fields | undefined;
 
-            if (this.hasParameterData(input, [Parameter.FIELDS, URLParameter.FIELDS])) {
+            if (isPropertySet(input, Parameter.FIELDS)) {
                 // todo: parse parameter & url-parameter
                 fields = this.parseFields(
-                    input[Parameter.FIELDS] || input[URLParameter.FIELDS],
+                    input[Parameter.FIELDS],
                     parameterOptions,
                 );
             } else if (schema.fields.hasDefaults()) {
@@ -111,10 +111,10 @@ Query
 
         if (!this.skipParameter(options.filters)) {
             let filters : Filters | undefined;
-            if (this.hasParameterData(input, [Parameter.FILTERS, URLParameter.FILTERS])) {
+            if (isPropertySet(input, Parameter.FILTERS)) {
                 // todo: parse parameter & url-parameter
                 filters = this.parseFilters(
-                    input[Parameter.FILTERS] || input[URLParameter.FILTERS],
+                    input[Parameter.FILTERS],
                     parameterOptions,
                 );
             } else if (schema.filters.hasDefaults()) {
@@ -133,10 +133,10 @@ Query
         if (!this.skipParameter(options.pagination)) {
             let pagination : Pagination | undefined;
 
-            if (this.hasParameterData(input, [Parameter.PAGINATION, URLParameter.PAGINATION])) {
+            if (isPropertySet(input, Parameter.PAGINATION)) {
                 // todo: parse parameter & url-parameter
                 pagination = this.parsePagination(
-                    input[Parameter.PAGINATION] || input[URLParameter.PAGINATION],
+                    input[Parameter.PAGINATION],
                 );
             }
 
@@ -148,10 +148,10 @@ Query
         if (!this.skipParameter(options.sort)) {
             let sort : Sorts | undefined;
 
-            if (this.hasParameterData(input, [Parameter.SORT, URLParameter.SORT])) {
+            if (isPropertySet(input, Parameter.SORT)) {
                 // todo: parse parameter & url-parameter
                 sort = this.parseSort(
-                    input[Parameter.SORT] || input[URLParameter.SORT],
+                    input[Parameter.SORT],
                     parameterOptions,
                 );
             } else if (schema.sort.defaultKeys.length > 0) {
@@ -248,22 +248,5 @@ Query
 
     protected skipParameter(input?: boolean) : boolean {
         return typeof input === 'boolean' && !input;
-    }
-
-    protected hasParameterData(
-        input: Record<string, any>,
-        keys: string[],
-    ): boolean {
-        for (let i = 0; i < keys.length; i++) {
-            if (isPropertySet(input, keys[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    protected hasParameterOptionDefault(input: Record<string, any>) : boolean {
-        return typeof input.default !== 'undefined';
     }
 }

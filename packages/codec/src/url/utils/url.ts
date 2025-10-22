@@ -5,10 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { isObject } from 'smob';
+import { isObject } from 'rapiq';
 
 type Options = {
-    withoutQuestionMark?: boolean,
     prefixParts?: string[]
 };
 
@@ -77,19 +76,4 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
     }
 
     return query.join('&');
-}
-
-export function buildURLQueryString(data?: string | Record<string, any>, options: Options = {}) {
-    if (typeof data === 'undefined' || data === null) return '';
-
-    // If the data is already a string, return it as-is
-    if (typeof data === 'string') return data;
-
-    const output = serializeAsURI(data);
-    if (output.length === 0) {
-        return '';
-    }
-
-    // Join each item in the array with a `&` and return the resulting string
-    return (options.withoutQuestionMark ? '' : '?') + output;
 }

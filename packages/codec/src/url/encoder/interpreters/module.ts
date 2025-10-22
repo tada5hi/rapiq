@@ -8,13 +8,16 @@
 import type {
     Condition,
     Fields,
-    IInterpreter, Pagination,
-    Query, Relations,
+    IInterpreter,
+    Pagination,
+    Query,
+    Relations, Sort, Sorts,
 } from 'rapiq';
 import { FieldsInterpreter } from './fields';
 import { FiltersInterpreter } from './filters';
 import { PaginationInterpreter } from './pagination';
 import { RelationsInterpreter } from './relations';
+import { SortsInterpreter } from './sort';
 
 export class Interpreter implements IInterpreter<Query, string> {
     protected fields: FieldsInterpreter;
@@ -25,11 +28,14 @@ export class Interpreter implements IInterpreter<Query, string> {
 
     protected relations: RelationsInterpreter;
 
+    protected sort : SortsInterpreter;
+
     constructor() {
         this.fields = new FieldsInterpreter();
         this.filters = new FiltersInterpreter();
         this.pagination = new PaginationInterpreter();
         this.relations = new RelationsInterpreter();
+        this.sort = new SortsInterpreter();
     }
 
     interpret(input: Query): string {
@@ -48,6 +54,10 @@ export class Interpreter implements IInterpreter<Query, string> {
 
         if (input.relations) {
             output[3] = this.interpretRelations(input.relations);
+        }
+
+        if (input.sort) {
+            output[4] = this.interpretSort(input.sort);
         }
 
         const normalized = output
@@ -73,5 +83,9 @@ export class Interpreter implements IInterpreter<Query, string> {
 
     interpretRelations(input: Relations) : string | null {
         return this.relations.interpret(input);
+    }
+
+    interpretSort(input: Sorts | Sort) : string | null {
+        return this.sort.interpret(input);
     }
 }

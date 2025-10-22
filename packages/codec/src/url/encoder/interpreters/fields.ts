@@ -7,9 +7,11 @@
 
 import type { IInterpreter } from 'rapiq';
 import {
-    DEFAULT_ID, Field, Fields, URLParameter, parseKey,
-    serializeAsURI,
+    DEFAULT_ID, Field, Fields, parseKey,
 } from 'rapiq';
+
+import { URLParameter } from '../../constants';
+import { serializeAsURI } from '../../utils';
 
 export class FieldsInterpreter implements IInterpreter<Fields | Field, string | null> {
     interpret(input: Fields | Field): string | null {
