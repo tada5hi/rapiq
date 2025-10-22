@@ -6,25 +6,46 @@
  */
 
 import { FieldCondition as BaseFieldCondition } from '@ucast/core';
-import type { FilterFieldOperator } from '../../../schema';
+import { FilterFieldOperator } from '../../../schema';
 import type { IFilterVisitor } from './types';
 
 export class Filter<
+    OPERATOR extends string = `${FilterFieldOperator}`,
     VALUE = unknown,
-    KEY extends string = string,
 > extends BaseFieldCondition<VALUE> {
     public readonly raw: unknown;
 
     // eslint-disable-next-line no-useless-constructor,@typescript-eslint/no-useless-constructor
     constructor(
-        operator: `${FilterFieldOperator}`,
-        key: KEY,
+        operator: OPERATOR,
+        key: string,
         value: VALUE,
     ) {
         super(operator, key, value);
     }
 
     accept<R>(visitor: IFilterVisitor<R>) : R {
+        if (
+            this.operator === FilterFieldOperator.EQUAL &&
+            visitor.visitFilterEqual
+        ) {
+            return visitor.visitFilterEqual(this);
+        }
+
+        if (
+            this.operator === FilterFieldOperator.NOT_EQUAL &&
+            visitor.visitFilterNotEqual
+        ) {
+            return visitor.visitFilterNotEqual(this);
+        }
+
+        if (
+            this.operator === FilterFieldOperator.REGEX &&
+            visitor.visitFilterRegex
+        ) {
+            return visitor.visitFilterRegex(this as Filter<FilterFieldOperator.REGEX, RegExp>);
+        }
+
         return visitor.visitFilter(this);
     }
 }
