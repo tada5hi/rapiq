@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) 2025.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+import type {
+    FieldOperator,
+    FieldsParseOptions,
+    KeyWithOptionalPrefix,
+    NestedKeys,
+    ObjectLiteral,
+    PrevIndex,
+    SimpleKeys,
+} from 'rapiq';
+
+export type SimpleFieldsParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = FieldsParseOptions<RECORD>;
+
+type FieldWithOperator<T extends string> = KeyWithOptionalPrefix<T, FieldOperator>;
+
+export type FieldsBuildSimpleKeyInput<
+    T extends ObjectLiteral = ObjectLiteral,
+> = FieldWithOperator<SimpleKeys<T>>;
+
+export type FieldsBuildNestedKeyInput<
+    T extends ObjectLiteral = ObjectLiteral,
+> = FieldWithOperator<NestedKeys<T>>;
+
+export type FieldsBuildRecordInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never : {
+    [K in keyof T & string]?: T[K] extends Array<infer ELEMENT> ?
+        (ELEMENT extends Record<PropertyKey, any> ?
+            FieldsBuildInput<ELEMENT, PrevIndex[DEPTH]> :
+            never
+        ) :
+        T[K] extends Record<PropertyKey, any> ?
+            FieldsBuildInput<T[K], PrevIndex[DEPTH]> :
+            never
+};
+
+export type FieldsBuildTupleInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never : [
+    FieldsBuildSimpleKeyInput<T>[],
+    FieldsBuildRecordInput<T, PrevIndex[DEPTH]>,
+];
+
+export type FieldsBuildInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never :
+    FieldsBuildRecordInput<T, PrevIndex[DEPTH]> |
+    FieldsBuildTupleInput<T, PrevIndex[DEPTH]> |
+    FieldsBuildNestedKeyInput<T>[] |
+    FieldsBuildNestedKeyInput<T>;

@@ -31,12 +31,3 @@ export enum FilterCompoundOperator {
     AND = 'and',
     OR = 'or',
 }
-
-export enum FilterInputOperatorValue {
-    NEGATION = '!',
-    LIKE = '~',
-    LESS_THAN_EQUAL = '<=',
-    LESS_THAN = '<',
-    GREATER_THAN_EQUAL = '>=',
-    GREATER_THAN = '>',
-}

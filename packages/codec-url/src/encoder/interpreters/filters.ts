@@ -5,13 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { URLFilterOperator } from '@rapiq/parser-simple';
 import type { Condition, IInterpreter } from 'rapiq';
 import {
     Filter,
-    FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
-    renameObjectKeys,
 } from 'rapiq';
 
 import { URLParameter } from '../../constants';
@@ -24,60 +23,75 @@ export class FiltersInterpreter implements IInterpreter<Condition, string> {
         return serializeAsURI(output, { prefixParts: [URLParameter.FILTERS] });
     }
 
-    protected visit(input: Condition, isRoot = true) {
+    protected visit(input: Condition) {
         const output : Record<string, any> = {};
 
         if (input instanceof Filters) {
             for (let i = 0; i < input.value.length; i++) {
-                let prefix : string;
-                if (input.operator === FilterCompoundOperator.AND) {
-                    prefix = '0';
-                } else {
-                    prefix = `${i}`;
-                }
-
-                const child = this.visit(input.value[i], false);
+                const child = this.visit(input.value[i]);
                 const keys = Object.keys(child);
                 for (let i = 0; i < keys.length; i++) {
-                    output[prefix + keys[i]] = child[keys[i]];
+                    output[keys[i]] = child[keys[i]];
                 }
-            }
-
-            if (isRoot) {
-                return renameObjectKeys(
-                    output,
-                    (key) => {
-                        const match = key.match(/^(\d+)(.*)/);
-                        if (match) {
-                            if (input.operator === FilterCompoundOperator.AND) {
-                                match[1] = match[1].substring(1);
-                                if (!match[1]) {
-                                    return match[2];
-                                }
-                            }
-                            return `${match[1]}:${match[2]}`;
-                        }
-
-                        return key;
-                    },
-                );
             }
         }
 
         if (input instanceof Filter) {
-            const value = this.normalizeValue(input.value);
+            const [key, value] = this.visitFilter(input);
 
-            if (input.operator === FilterFieldOperator.EQUAL) {
-                output[input.field] = value;
-            } else {
-                output[input.field] = input.operator + value;
-            }
+            output[key] = value;
         }
 
         return output;
     }
 
-    protected normalizeValue(input: unknown) : string | undefined {
+    protected visitFilter(filter: Filter): [string, string] {
+        const normalized = this.normalizeValue(filter.value);
+
+        if (
+            filter.operator === FilterFieldOperator.NOT_EQUAL ||
+            filter.operator === FilterFieldOperator.NOT_IN
+        ) {
+            return [
+                filter.field,
+                URLFilterOperator.NEGATION + normalized,
+            ];
+        }
+
+        if (filter.operator === FilterFieldOperator.LESS_THAN) {
+            return [
+                filter.field,
+                URLFilterOperator.LESS_THAN + normalized,
+            ];
+        }
+
+        if (filter.operator === FilterFieldOperator.LESS_THAN_EQUAL) {
+            return [
+                filter.field,
+                URLFilterOperator.LESS_THAN_EQUAL + normalized,
+            ];
+        }
+
+        if (filter.operator === FilterFieldOperator.GREATER_THAN) {
+            return [
+                filter.field,
+                URLFilterOperator.GREATER_THAN + normalized,
+            ];
+        }
+
+        if (filter.operator === FilterFieldOperator.GREATER_THAN_EQUAL) {
+            return [
+                filter.field,
+                URLFilterOperator.GREATER_THAN_EQUAL + normalized,
+            ];
+        }
+
+        // todo: like missing
+
+        return [filter.field, normalized];
+    }
+
+    protected normalizeValue(input: unknown) : string {
         if (typeof input === 'string') {
             return input;
         }
@@ -109,6 +123,6 @@ export class FiltersInterpreter implements IInterpreter<Condition, string> {
                 .join(',');
         }
 
-        return undefined;
+        throw new Error('Value can not be normalized');
     }
 }

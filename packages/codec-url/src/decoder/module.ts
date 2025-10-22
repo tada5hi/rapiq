@@ -5,12 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { SimpleFiltersParser } from '@rapiq/parser-simple';
 import { parse } from 'qs';
 import type {
     Condition,
     Query,
 } from 'rapiq';
-import { SimpleFiltersParser, isObject } from 'rapiq';
+import { isObject } from 'rapiq';
 import { URLParameter } from '../constants';
 
 export class URLDecoder {
