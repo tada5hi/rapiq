@@ -1,12 +1,13 @@
 /*
- * Copyright (c) 2025.
- *  Author Peter Placzek (tada5hi)
- *  For the full copyright and license information,
- *  view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2025-2025.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
  */
 
-import { Field } from './field';
-import { FieldOperator } from '../../schema';
+import { Field } from '../record';
+import { FieldOperator } from '../../../schema';
+import type { IFieldsVisitor } from './types';
 
 type FieldsExecuteOptions = {
     default: string[],
@@ -18,6 +19,10 @@ export class Fields {
 
     constructor(value : Field[] = []) {
         this.value = value;
+    }
+
+    accept<R>(visitor: IFieldsVisitor<R>): R {
+        return visitor.visitFields(this);
     }
 
     mergeWith(input: Fields | Field) {

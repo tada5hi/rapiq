@@ -5,5 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './module';
-export * from './types';
+import type { Sorts } from './module';
+
+export interface ISortsVisitor<R> {
+    visitSorts(expr: Sorts): R;
+}

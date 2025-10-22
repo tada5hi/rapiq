@@ -7,6 +7,7 @@
 
 import { FieldCondition as BaseFieldCondition } from '@ucast/core';
 import type { FilterFieldOperator } from '../../../schema';
+import type { IFilterVisitor } from './types';
 
 export class Filter<
     VALUE = unknown,
@@ -21,5 +22,9 @@ export class Filter<
         value: VALUE,
     ) {
         super(operator, key, value);
+    }
+
+    accept<R>(visitor: IFilterVisitor<R>) : R {
+        return visitor.visitFilter(this);
     }
 }

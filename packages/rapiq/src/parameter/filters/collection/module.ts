@@ -8,10 +8,15 @@
 import { CompoundCondition as BaseCompoundCondition } from '@ucast/core';
 
 import type { Condition } from '../condition';
+import type { IFiltersVisitor } from './types';
 
 export class Filters<
     T extends Condition = Condition,
 > extends BaseCompoundCondition<T> {
+    accept<R>(visitor: IFiltersVisitor<R>) : R {
+        return visitor.visitFilters(this);
+    }
+
     add(child: T) {
         this.value.push(child);
     }

@@ -1,17 +1,22 @@
 /*
- * Copyright (c) 2025.
- *  Author Peter Placzek (tada5hi)
- *  For the full copyright and license information,
- *  view the LICENSE file that was distributed with this source code.
+ * Copyright (c) 2025-2025.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
  */
 
-import { Relation } from './relation';
+import { Relation } from '../record';
+import type { IRelationsVisitor } from './types';
 
 export class Relations {
     readonly value: Relation[];
 
     constructor(value: Relation[] = []) {
         this.value = value;
+    }
+
+    accept<R>(visitor: IRelationsVisitor<R>) : R {
+        return visitor.visitRelations(this);
     }
 
     extract(root: string): Relations {

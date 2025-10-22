@@ -11,7 +11,7 @@ import type { Fields } from './fields';
 import type { Condition } from './filters';
 import type { Relations } from './relations';
 import type { Pagination } from './pagination';
-import type { Sorts } from './sort';
+import type { Sorts } from './sorts';
 
 export type Query = ObjectLiteralKeys<{
     [Parameter.FIELDS]?: Fields,
