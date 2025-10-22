@@ -6,7 +6,7 @@
  */
 
 import type { Condition, Query } from 'rapiq';
-import type { IEncoder } from '../../types';
+import type { IEncoder } from '../types';
 import { Interpreter } from './interpreters';
 
 export class URLEncoder implements IEncoder<string> {

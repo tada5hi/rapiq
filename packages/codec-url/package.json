@@ -1,7 +1,7 @@
 {
-    "name": "@rapiq/codec",
+    "name": "@rapiq/codec-url",
     "version": "1.0.0",
-    "description": "A package containing encoder & decoder",
+    "description": "A package containing an url encoder & decoder",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
     "types": "dist/index.d.ts",
