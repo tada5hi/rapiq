@@ -6,7 +6,7 @@
  */
 
 import type { RelationsSchema, Schema } from '../../../schema';
-import type { NestedResourceKeys, ObjectLiteral, PrevIndex } from '../../../types';
+import type { ObjectLiteral } from '../../../types';
 
 export type RelationsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -14,21 +14,3 @@ export type RelationsParseOptions<
     throwOnFailure?: boolean,
     schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
 };
-
-export type RelationsBuildInput<
-    T extends Record<PropertyKey, any>,
-    DEPTH extends number = 5,
-> = [DEPTH] extends [0] ?
-    never : {
-        [K in keyof T & string]?: T[K] extends Array<infer ELEMENT> ?
-            (
-                ELEMENT extends Record<PropertyKey, any> ?
-                    RelationsBuildInput<ELEMENT, PrevIndex[DEPTH]> | boolean :
-                    never
-            ) :
-            T[K] extends Record<PropertyKey, any> ?
-                RelationsBuildInput<T[K], PrevIndex[DEPTH]> | boolean :
-                never
-    } |
-    NestedResourceKeys<T>[] |
-    NestedResourceKeys<T>;

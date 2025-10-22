@@ -5,25 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
-import type { Schema, SchemaRegistry } from '../schema';
-import type { ObjectLiteral, ObjectLiteralKeys } from '../types';
-import type {
-    FieldsBuildInput, PaginationBuildInput, RelationsBuildInput, SimpleFiltersParserInput, SortBuildInput,
-} from './parameter';
-
-export type ParseOptions<
-    RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
-    registry?: SchemaRegistry,
-    fields?: boolean,
-    filters?: boolean,
-    relations?: boolean,
-    pagination?: boolean,
-    sort?: boolean,
-    schema?: Schema<RECORD> | string
-};
+import type { Schema } from '../schema';
+import type { ObjectLiteral } from '../types';
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -43,13 +27,3 @@ Options extends IParserOptions = IParserOptions,
 > {
     parse(input: Input, options?: Options): Output;
 }
-
-export type ParserInput<
-    T extends ObjectLiteral,
-> = ObjectLiteralKeys<{
-    [Parameter.FIELDS]?: FieldsBuildInput<T>,
-    [Parameter.FILTERS]?: SimpleFiltersParserInput<T>,
-    [Parameter.RELATIONS]?: RelationsBuildInput<T>,
-    [Parameter.PAGINATION]?: PaginationBuildInput,
-    [Parameter.SORT]?: SortBuildInput<T>,
-}>;

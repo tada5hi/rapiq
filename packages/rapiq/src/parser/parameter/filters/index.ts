@@ -6,7 +6,5 @@
  */
 
 export * from './base';
-export * from './expr';
 export * from './error';
-export * from './simple';
 export * from './types';

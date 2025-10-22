@@ -13,8 +13,3 @@ export type PaginationParseOptions<
 > = {
     schema?: string | Schema<RECORD> | PaginationSchema
 };
-
-export type PaginationBuildInput = {
-    limit?: number,
-    offset?: number
-};

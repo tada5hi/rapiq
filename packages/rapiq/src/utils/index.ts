@@ -13,4 +13,3 @@ export * from './relation';
 export * from './regexp';
 export * from './object';
 export * from './property-name';
-export * from './url';

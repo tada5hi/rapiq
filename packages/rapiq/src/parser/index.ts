@@ -8,5 +8,4 @@
 export * from './parameter';
 
 export * from './base';
-export * from './module';
 export * from './types';
