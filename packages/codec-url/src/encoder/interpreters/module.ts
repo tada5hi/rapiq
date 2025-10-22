@@ -39,28 +39,13 @@ export class Interpreter implements IInterpreter<Query, string> {
     }
 
     interpret(input: Query): string {
-        const output = new Array<string | null>(4);
-        if (input.fields) {
-            output[0] = this.interpretFields(input.fields);
-        }
-
-        if (input.filters) {
-            output[1] = this.interpretFilters(input.filters);
-        }
-
-        if (input.pagination) {
-            output[2] = this.interpretPagination(input.pagination);
-        }
-
-        if (input.relations) {
-            output[3] = this.interpretRelations(input.relations);
-        }
-
-        if (input.sort) {
-            output[4] = this.interpretSort(input.sort);
-        }
-
-        const normalized = output
+        const normalized = [
+            input.fields && this.interpretFields(input.fields),
+            input.filters && this.interpretFilters(input.filters),
+            input.pagination && this.interpretPagination(input.pagination),
+            input.relations && this.interpretRelations(input.relations),
+            input.sort && this.interpretSort(input.sort),
+        ]
             .filter(Boolean)
             .join('&');
 

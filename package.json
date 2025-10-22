@@ -41,8 +41,7 @@
         "test": "npx nx run-many -t test",
         "lint": "eslint ./packages/**/*.{ts,vue}",
         "lint:fix": "npm run lint -- --fix",
-        "prepare": "husky",
-        "publish:preview": "npx pkg-pr-new publish './packages/*'"
+        "prepare": "husky"
     },
     "lint-staged": {
         "*.{vue,js,ts}": "npm run lint:fix"

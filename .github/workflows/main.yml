@@ -101,5 +101,4 @@ jobs:
                 uses: ./.github/actions/build
 
             -   name: Publish
-                run: |
-                    npm run publish:preview
+                run: npx pkg-pr-new publish './packages/*'
