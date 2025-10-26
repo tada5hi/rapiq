@@ -5,9 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import * as interpreters from './module';
-
-export const allInterpreters = {
-    ...interpreters,
-    in: interpreters.within,
-};
+export interface ISerializer<T = any> {
+    serialize() : T;
+}

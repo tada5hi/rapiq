@@ -7,25 +7,25 @@
 
 import { Filter, Filters } from 'rapiq';
 import {
-    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, gt, lt, nor, not, or,
-    pg,
+    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src';
 
 const options: FiltersContainerOptions = {
     ...pg,
 };
 
 describe('compound operators', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: {
-            or, nor, not, and, eq, lt, gt,
-        },
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
+
+    beforeEach(() => {
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
+
+        visitor = new FiltersVisitor(adapter);
     });
 
     it('generates query with inverted condition for "not"', () => {
@@ -35,7 +35,7 @@ describe('compound operators', () => {
                 new Filter('eq', 'age', 13),
             ]),
         ]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -51,7 +51,7 @@ describe('compound operators', () => {
                 new Filter('eq', 'active', true),
             ],
         );
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -64,7 +64,7 @@ describe('compound operators', () => {
             new Filter('eq', 'age', 1),
             new Filter('eq', 'active', true),
         ]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -77,7 +77,7 @@ describe('compound operators', () => {
             new Filter('eq', 'age', 1),
             new Filter('eq', 'active', true),
         ]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -104,7 +104,7 @@ describe('compound operators', () => {
                 new Filter('gt', 'age', 18),
             ])]),
         ]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 

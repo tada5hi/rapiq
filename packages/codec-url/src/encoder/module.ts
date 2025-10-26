@@ -5,22 +5,45 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition, Query } from 'rapiq';
+import type {
+    Field,
+    Fields,
+    Filter,
+    Filters,
+    Query,
+} from 'rapiq';
 import type { IEncoder } from '../types';
-import { Interpreter } from './interpreters';
+import type { ISerializer } from './serializer';
+import { QueryVisitor } from './visitors';
 
-export class URLEncoder implements IEncoder<string> {
-    protected interpreter : Interpreter;
+export class URLEncoder implements IEncoder<string | null> {
+    protected visitor : QueryVisitor;
 
     constructor() {
-        this.interpreter = new Interpreter();
+        this.visitor = new QueryVisitor();
     }
 
-    encode(input: Query): any {
-        return this.interpreter.interpret(input);
+    encode(input: Query): string | null {
+        return this.runSerializer(this.visitor.visitQuery(input));
     }
 
-    encodeFilters(input: Condition) {
-        return this.interpreter.interpretFilters(input);
+    encodeFields(input: Fields) {
+        return this.runSerializer(this.visitor.visitFields(input));
+    }
+
+    encodeField(input: Field) {
+        return this.runSerializer(this.visitor.visitField(input));
+    }
+
+    encodeFilters(input: Filters) {
+        return this.runSerializer(this.visitor.visitFilters(input));
+    }
+
+    encodeFilter(input: Filter) {
+        return this.runSerializer(this.visitor.visitFilter(input));
+    }
+
+    protected runSerializer<T>(serializer: ISerializer<T>) : T {
+        return serializer.serialize();
     }
 }

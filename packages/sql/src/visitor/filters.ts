@@ -8,17 +8,17 @@
 import type { FilterFieldOperator, IFilterVisitor, IFiltersVisitor } from 'rapiq';
 import { Filter, Filters } from 'rapiq';
 import type { IFiltersAdapter } from '../adapter';
-import type { FilterInterpreterInterpretOptions } from './filters';
+import type { VisitorOptions } from './types';
 
 export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     IFilterVisitor<IFiltersAdapter> {
     protected adapter : IFiltersAdapter;
 
-    protected options : Omit<FilterInterpreterInterpretOptions, 'interpret'>;
+    protected options : VisitorOptions;
 
     constructor(
         adapter: IFiltersAdapter,
-        options: Omit<FilterInterpreterInterpretOptions, 'interpret'> = {},
+        options: VisitorOptions = {},
     ) {
         this.adapter = adapter;
         this.options = options;

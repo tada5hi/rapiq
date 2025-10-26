@@ -6,9 +6,8 @@
  */
 
 import {
-    Interpreter,
+    FiltersVisitor,
 } from '@rapiq/sql';
-import type { Condition } from 'rapiq';
 import {
     Filter,
     FilterCompoundOperator,
@@ -47,16 +46,16 @@ describe('src/filters', () => {
         await userRepository.save(aston);
     });
 
-    const adapter = new TypeormAdapter();
-    const interpreter = new Interpreter();
-
-    const createQueryBuilder = (condition: Condition) => {
+    const createQueryBuilder = (condition: Filter | Filters) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
+        const adapter = new TypeormAdapter();
         adapter.withQuery(queryBuilder);
+        const visitor = new FiltersVisitor(adapter.filters);
+        condition.accept(visitor);
 
-        interpreter.interpret({ filters: condition }, adapter, {});
+        adapter.execute();
 
         return queryBuilder;
     };
@@ -225,12 +224,12 @@ describe('src/filters', () => {
         expect(user.first_name).toEqual('Caleb');
     });
 
-    it('work with compound and (eq + within)', async () => {
+    it('work with compound and (eq + in)', async () => {
         const condition = new Filters(
             FilterCompoundOperator.AND,
             [
                 new Filter(FilterFieldOperator.EQUAL, 'first_name', 'Caleb'),
-                new Filter(FilterFieldOperator.WITHIN, 'age', [18, 20]),
+                new Filter(FilterFieldOperator.IN, 'age', [18, 20]),
             ],
         );
 
@@ -243,12 +242,12 @@ describe('src/filters', () => {
         expect(user.first_name).toEqual('Caleb');
     });
 
-    it('should work with compound or (eq + within)', async () => {
+    it('should work with compound or (eq + in)', async () => {
         const condition = new Filters(
             FilterCompoundOperator.OR,
             [
                 new Filter(FilterFieldOperator.EQUAL, 'address', 'Hogwarts'),
-                new Filter(FilterFieldOperator.WITHIN, 'age', [60]),
+                new Filter(FilterFieldOperator.IN, 'age', [60]),
             ],
         );
 

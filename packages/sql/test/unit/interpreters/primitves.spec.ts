@@ -7,30 +7,30 @@
 
 import { Filter } from 'rapiq';
 import {
-    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, eq, gt, gte, lt, lte, mod, ne,
-    pg,
+    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src/interpreter';
 
 const options: FiltersContainerOptions = {
     ...pg,
 };
 
 describe('primitive operators', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: {
-            eq, ne, lt, lte, gt, gte, mod,
-        },
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
+
+    beforeEach(() => {
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
+
+        visitor = new FiltersVisitor(adapter);
     });
 
     it('generates query with `=` operator for "eq"', () => {
         const condition = new Filter('eq', 'name', 'test');
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -40,7 +40,7 @@ describe('primitive operators', () => {
 
     it('generates query with `<>` operator for "ne"', () => {
         const condition = new Filter('ne', 'name', 'test');
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -50,7 +50,7 @@ describe('primitive operators', () => {
 
     it('generates query with `<` operator for "lt"', () => {
         const condition = new Filter('lt', 'age', 10);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -60,7 +60,7 @@ describe('primitive operators', () => {
 
     it('generates query with `<=` operator for "lte"', () => {
         const condition = new Filter('lte', 'age', 10);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -70,7 +70,7 @@ describe('primitive operators', () => {
 
     it('generates query with `>` operator for "gt"', () => {
         const condition = new Filter('gt', 'age', 10);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -80,7 +80,7 @@ describe('primitive operators', () => {
 
     it('generates query with `>=` operator for "gte"', () => {
         const condition = new Filter('gte', 'age', 10);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -90,7 +90,7 @@ describe('primitive operators', () => {
 
     it('generates call to `MOD` function for "mod"', () => {
         const condition = new Filter('mod', 'qty', [4, 0]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 

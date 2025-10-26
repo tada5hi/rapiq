@@ -7,9 +7,8 @@
 
 import { Filter } from 'rapiq';
 import {
-    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, eq, pg,
+    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src/interpreter';
 
 const spy = {
     on: jest.spyOn,
@@ -21,17 +20,18 @@ const options: FiltersContainerOptions = {
 };
 
 describe('auto join', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: { eq },
-    });
-    const condition = new Filter('eq', 'projects.name', 'test');
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
 
     beforeEach(() => {
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
+
+        visitor = new FiltersVisitor(adapter);
+
         spy.on(options, 'escapeField');
     });
 
@@ -40,7 +40,9 @@ describe('auto join', () => {
     });
 
     it('escapes relation name with `options.escapeField`', () => {
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('eq', 'projects.name', 'test');
+        condition.accept(visitor);
+
         const [sql] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('"projects"."name" = $1');

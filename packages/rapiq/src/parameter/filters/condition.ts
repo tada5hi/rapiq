@@ -10,5 +10,4 @@ import { Condition as BaseCondition } from '@ucast/core';
 export class Condition<
     T = unknown,
 > extends BaseCondition<T> {
-
 }

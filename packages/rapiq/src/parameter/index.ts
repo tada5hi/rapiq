@@ -10,4 +10,6 @@ export * from './filters';
 export * from './pagination';
 export * from './relations';
 export * from './sorts';
+
+export * from './module';
 export * from './types';

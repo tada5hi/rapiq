@@ -5,19 +5,22 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import {
-    BaseParser, Parameter, isObject, isPropertySet,
-} from 'rapiq';
 import type {
-    Condition,
     Fields,
+    Filter,
+    Filters,
     ObjectLiteral,
     Pagination,
     ParseParameterOptions,
-    Query,
     Relations,
     SchemaRegistry,
     Sorts,
+} from 'rapiq';
+import {
+    BaseParser,
+    Parameter,
+    Query, isObject,
+    isPropertySet,
 } from 'rapiq';
 import {
     ExpressionFieldsParser,
@@ -65,7 +68,7 @@ Query
     ): Query {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output : Query = {};
+        const output : Query = new Query();
 
         if (!isObject(input)) {
             return output;
@@ -114,7 +117,7 @@ Query
         }
 
         if (!this.skipParameter(options.filters)) {
-            let filters : Condition | undefined;
+            let filters : Filters | Filter | undefined;
             if (isPropertySet(input, Parameter.FILTERS)) {
                 // todo: parse parameter & url-parameter
                 filters = this.parseFilters(
@@ -164,7 +167,7 @@ Query
             }
 
             if (typeof sort !== 'undefined') {
-                output[Parameter.SORT] = sort;
+                output.sorts = sort;
             }
         }
 
@@ -214,7 +217,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Condition {
+    ) : Filters | Filter {
         return this.filtersParser.parse(input, options);
     }
 

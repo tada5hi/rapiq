@@ -5,19 +5,20 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import {
-    BaseParser, Parameter, isObject, isPropertySet,
-} from 'rapiq';
 import type {
+
     Fields,
     Filters,
     ObjectLiteral,
     Pagination,
     ParseParameterOptions,
-    Query,
     Relations,
     SchemaRegistry,
     Sorts,
+} from 'rapiq';
+import {
+    BaseParser, Parameter, Query, isObject,
+    isPropertySet,
 } from 'rapiq';
 import {
     SimpleFieldsParser,
@@ -65,7 +66,7 @@ Query
     ): Query {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output : Query = {};
+        const output = new Query();
 
         if (!isObject(input)) {
             return output;
@@ -164,7 +165,7 @@ Query
             }
 
             if (typeof sort !== 'undefined') {
-                output[Parameter.SORT] = sort;
+                output.sorts = sort;
             }
         }
 

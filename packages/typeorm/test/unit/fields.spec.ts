@@ -6,7 +6,7 @@
  */
 
 import type { DataSource, Repository } from 'typeorm';
-import { Interpreter } from '@rapiq/sql';
+import { FieldsVisitor } from '@rapiq/sql';
 import { Field, Fields } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
@@ -49,16 +49,16 @@ describe('src/fields', () => {
         await userRepository.save(aston);
     });
 
-    const adapter = new TypeormAdapter();
-    const interpreter = new Interpreter();
-
     const createQueryBuilder = (fields: Fields) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
+        const adapter = new TypeormAdapter();
         adapter.withQuery(queryBuilder);
+        const visitor = new FieldsVisitor(adapter.fields);
+        fields.accept(visitor);
 
-        interpreter.interpret({ fields }, adapter, {});
+        adapter.execute();
 
         return queryBuilder;
     };

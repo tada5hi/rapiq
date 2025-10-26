@@ -5,18 +5,31 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteralKeys } from '../types';
-import type { Parameter } from '../constants';
-import type { Fields } from './fields';
-import type { Condition } from './filters';
-import type { Relations } from './relations';
+import type {
+    Field, Fields,
+} from './fields';
+import type {
+    Filter,
+    Filters,
+} from './filters';
+import type { Query } from './module';
+import type {
+    Relation,
+    Relations,
+} from './relations';
 import type { Pagination } from './pagination';
-import type { Sorts } from './sorts';
+import type {
+    Sort, Sorts,
+} from './sorts';
 
-export type Query = ObjectLiteralKeys<{
-    [Parameter.FIELDS]?: Fields,
-    [Parameter.FILTERS]?: Condition,
-    [Parameter.RELATIONS]?: Relations,
-    [Parameter.PAGINATION]?: Pagination,
-    [Parameter.SORT]?: Sorts,
-}>;
+export type QueryOptions = {
+    fields?: Fields | Field,
+    filters?: Filters | Filter,
+    relations?: Relations | Relation,
+    pagination?: Pagination,
+    sorts?: Sorts | Sort
+};
+
+export interface IQueryVisitor<R> {
+    visitQuery(expr: Query) : R;
+}
