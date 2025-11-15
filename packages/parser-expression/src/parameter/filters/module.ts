@@ -6,7 +6,6 @@
  */
 
 import type {
-    Condition,
     FiltersParseOptions, FiltersSchema, ObjectLiteral, Scalar,
 } from 'rapiq';
 import {
@@ -41,7 +40,7 @@ FiltersParseOptions
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition {
+    ) : Filters | Filter {
         if (typeof input !== 'string') {
             throw FiltersParseError.inputInvalid();
         }
@@ -119,7 +118,7 @@ FiltersParseOptions
     private parseFilterExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ) : Filters | Filter {
         const token = this.peek();
         switch (token.type) {
             case FilterTokenType.NOT:
@@ -148,7 +147,7 @@ FiltersParseOptions
     private parseNotExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ): Filters | Filter {
         this.consume(FilterTokenType.NOT);
         this.consume(FilterTokenType.LPAREN);
         const expr = this.parseFilterExpression(options, !negation);
@@ -160,14 +159,14 @@ FiltersParseOptions
     private parseLogicalExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ): Filters | Filter {
         let op = this.consume().type; // AND / OR
         if (op !== FilterTokenType.AND && op !== FilterTokenType.OR) {
             throw new Error('Expected AND or OR token type.');
         }
 
         this.consume(FilterTokenType.LPAREN);
-        const expressions: Condition[] = [this.parseFilterExpression(options, negation)];
+        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(options, negation)];
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
             expressions.push(this.parseFilterExpression(options, negation));
@@ -195,7 +194,7 @@ FiltersParseOptions
     private parseComparisonExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
         const left = this.parseExpressionFieldChain(options);
@@ -283,7 +282,7 @@ FiltersParseOptions
     private parseMatchExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
         const field = this.parseExpressionFieldChain(options);
@@ -323,7 +322,7 @@ FiltersParseOptions
     private parseInExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD> = {},
         negation: boolean = false,
-    ): Condition {
+    ): Filters | Filter {
         const token = this.peek();
         if (token.type === FilterTokenType.NIN) {
             this.consume(FilterTokenType.NIN);

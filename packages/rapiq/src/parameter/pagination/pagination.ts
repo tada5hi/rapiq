@@ -5,6 +5,8 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { IPaginationVisitor } from './types';
+
 export class Pagination {
     limit : number | undefined;
 
@@ -13,5 +15,9 @@ export class Pagination {
     constructor(limit?: number, offset?: number) {
         this.limit = limit;
         this.offset = offset;
+    }
+
+    accept<R>(visitor: IPaginationVisitor<R>) : R {
+        return visitor.visitPagination(this);
     }
 }

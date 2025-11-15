@@ -7,11 +7,11 @@
 
 import { SimpleFiltersParser } from '@rapiq/parser-simple';
 import { parse } from 'qs';
-import type {
-    Condition,
+import type { Condition } from 'rapiq';
+import {
     Query,
+    isObject,
 } from 'rapiq';
-import { isObject } from 'rapiq';
 import { URLParameter } from '../constants';
 
 export class URLDecoder {
@@ -27,7 +27,7 @@ export class URLDecoder {
             return null;
         }
 
-        const output : Query = {};
+        const output = new Query();
 
         if (parsed[URLParameter.FILTERS]) {
             output.filters = this.filters.parse(output);

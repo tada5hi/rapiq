@@ -84,21 +84,21 @@ jobs:
                 run: |
                     npm run test
 
-    preview:
-        name: Preview Package
-        needs: [build]
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v5
-
-            -   name: Install
-                uses: ./.github/actions/install
-                with:
-                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
-
-            -   name: Build
-                uses: ./.github/actions/build
-
-            -   name: Publish
-                run: npx pkg-pr-new publish './packages/*'
+#    preview:
+#        name: Preview Package
+#        needs: [build]
+#        runs-on: ubuntu-latest
+#        steps:
+#            -   name: Checkout
+#                uses: actions/checkout@v5
+#
+#            -   name: Install
+#                uses: ./.github/actions/install
+#                with:
+#                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+#
+#            -   name: Build
+#                uses: ./.github/actions/build
+#
+#            -   name: Publish
+#                run: npx pkg-pr-new publish './packages/*'

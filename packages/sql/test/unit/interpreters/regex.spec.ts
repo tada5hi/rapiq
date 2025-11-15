@@ -8,29 +8,25 @@
 import { Filter } from 'rapiq';
 import {
     FiltersAdapter,
-    FiltersInterpreter,
+    FiltersVisitor,
     RelationsAdapter,
     mssql,
     mysql,
-    oracle, pg,
-    regex,
+    oracle,
+    pg,
 } from '../../../src';
 
 describe('regex', () => {
-    const relationsAdapter = new RelationsAdapter();
-
-    const interpreter = new FiltersInterpreter({
-        interpreters: { regex },
-    });
-
     it('generates posix operator for PostgresSQL', () => {
-        const condition = new Filter('regex', 'email', /@/);
+        const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
             pg,
         );
+        const visitor = new FiltersVisitor(adapter);
 
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('regex', 'email', /@/);
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -39,13 +35,15 @@ describe('regex', () => {
     });
 
     it('generates posix operator for Oracle', () => {
-        const condition = new Filter('regex', 'email', /@/);
+        const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
             oracle,
         );
+        const visitor = new FiltersVisitor(adapter);
 
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('regex', 'email', /@/);
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -54,13 +52,15 @@ describe('regex', () => {
     });
 
     it('generates call to `REGEXP` function for MySQL', () => {
-        const condition = new Filter('regex', 'email', /@/);
+        const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
             mysql,
         );
+        const visitor = new FiltersVisitor(adapter);
 
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('regex', 'email', /@/);
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -69,14 +69,17 @@ describe('regex', () => {
     });
 
     it('throws exception for MSSQL as it does not support REGEXP', () => {
-        const condition = new Filter('regex', 'email', /@/);
+        const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
             mssql,
         );
+        const visitor = new FiltersVisitor(adapter);
+
+        const condition = new Filter('regex', 'email', /@/);
 
         expect(() => {
-            interpreter.interpret(condition, adapter, {});
+            condition.accept(visitor);
         }).toThrow(/"regexp" operator is not supported in MSSQL/);
     });
 });

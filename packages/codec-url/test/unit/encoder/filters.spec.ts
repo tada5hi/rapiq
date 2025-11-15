@@ -26,7 +26,7 @@ describe('encoder/filters', () => {
             1,
         );
 
-        const encoded = encoder.encodeFilters(filter);
+        const encoded = encoder.encodeFilter(filter);
         const decoded = decoder.decodeFilters(encoded!);
 
         expect(new Filters(

@@ -7,9 +7,8 @@
 
 import { Filter } from 'rapiq';
 import {
-    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, eq, pg,
+    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src/interpreter';
 
 const spy = {
     on: jest.spyOn,
@@ -21,32 +20,30 @@ const options: FiltersContainerOptions = {
 };
 
 describe('auto join', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: { eq },
-    });
-    const condition = new Filter('eq', 'projects.user.name', 'test');
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
 
     beforeEach(() => {
-        spy.on(options, 'escapeField');
-    });
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
 
-    afterEach(() => {
-        spy.restore(options, 'escapeField');
+        visitor = new FiltersVisitor(adapter);
     });
 
     it('calls `joinRelation` function passing relation name when using dot notation', () => {
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('eq', 'projects.user.name', 'test');
+        condition.accept(visitor);
     });
 
     it('escapes relation name with `options.escapeField`', () => {
         spy.on(options, 'escapeField');
 
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('eq', 'projects.user.name', 'test');
+        condition.accept(visitor);
+
         const [sql] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual('"user"."name" = $1');

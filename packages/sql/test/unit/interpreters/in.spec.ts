@@ -7,29 +7,30 @@
 
 import { Filter, Filters } from 'rapiq';
 import {
-    FiltersAdapter, type FiltersContainerOptions, RelationsAdapter, and, eq, nin, pg, within,
+    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';
-import { FiltersInterpreter } from '../../../src/interpreter';
 
 const options: FiltersContainerOptions = {
     ...pg,
 };
 
 describe('in (within, nin)', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: {
-            within, nin, and, eq,
-        },
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
+
+    beforeEach(() => {
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
+
+        visitor = new FiltersVisitor(adapter);
     });
 
     it('generates a separate placeholder for every element in the array', () => {
-        const condition = new Filter('within', 'age', [1, 2]);
-        interpreter.interpret(condition, adapter, {});
+        const condition = new Filter('in', 'age', [1, 2]);
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -40,9 +41,9 @@ describe('in (within, nin)', () => {
     it('correctly generates placeholders when combined with other operators', () => {
         const condition = new Filters('and', [
             new Filter('eq', 'name', 'John'),
-            new Filter('within', 'age', [1, 2]),
+            new Filter('in', 'age', [1, 2]),
         ]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -52,7 +53,7 @@ describe('in (within, nin)', () => {
 
     it('generates `not in` operator for "nin', () => {
         const condition = new Filter('nin', 'age', [1, 2]);
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 

@@ -6,4 +6,4 @@
  */
 
 export * from './module';
-export * from './interpreters/module';
+export * from './visitors/module';

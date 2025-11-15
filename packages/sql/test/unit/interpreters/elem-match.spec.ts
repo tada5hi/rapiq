@@ -9,14 +9,8 @@ import { Filter, Filters } from 'rapiq';
 import type { FiltersContainerOptions } from '../../../src';
 import {
     FiltersAdapter,
-    FiltersInterpreter,
+    FiltersVisitor,
     RelationsAdapter,
-    and,
-    elemMatch,
-    eq,
-    gt,
-    lt,
-    or,
     pg,
 } from '../../../src';
 
@@ -25,15 +19,17 @@ const options: FiltersContainerOptions = {
 };
 
 describe('elemMatch', () => {
-    const relationsAdapter = new RelationsAdapter();
-    const adapter = new FiltersAdapter(
-        relationsAdapter,
-        options,
-    );
-    const interpreter = new FiltersInterpreter({
-        interpreters: {
-            elemMatch, eq, or, and, lt, gt,
-        },
+    let adapter : FiltersAdapter;
+    let visitor : FiltersVisitor;
+
+    beforeEach(() => {
+        const relationsAdapter = new RelationsAdapter();
+        adapter = new FiltersAdapter(
+            relationsAdapter,
+            options,
+        );
+
+        visitor = new FiltersVisitor(adapter);
     });
 
     it('generates query from a field condition based on relation', () => {
@@ -42,8 +38,7 @@ describe('elemMatch', () => {
             'projects',
             new Filter('eq', 'active', true),
         );
-
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
@@ -60,8 +55,7 @@ describe('elemMatch', () => {
                 new Filter('lt', 'count', 10),
             ]),
         );
-
-        interpreter.interpret(condition, adapter, {});
+        condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 

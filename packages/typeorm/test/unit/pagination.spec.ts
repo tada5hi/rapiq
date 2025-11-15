@@ -6,7 +6,7 @@
  */
 
 import type { DataSource, Repository } from 'typeorm';
-import { Interpreter } from '@rapiq/sql';
+import { PaginationVisitor } from '@rapiq/sql';
 import { Pagination } from 'rapiq';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
@@ -40,16 +40,16 @@ describe('src/pagination', () => {
         await userRepository.save(aston);
     });
 
-    const adapter = new TypeormAdapter();
-    const interpreter = new Interpreter();
-
     const createQueryBuilder = (pagination: Pagination) => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
+        const adapter = new TypeormAdapter();
         adapter.withQuery(queryBuilder);
+        const visitor = new PaginationVisitor(adapter.pagination);
+        pagination.accept(visitor);
 
-        interpreter.interpret({ pagination }, adapter, {});
+        adapter.execute();
 
         return queryBuilder;
     };

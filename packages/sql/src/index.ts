@@ -8,5 +8,4 @@
 export * from './adapter';
 export * from './dialect';
 export * from './helpers';
-export * from './interpreter';
-export * from './operators';
+export * from './visitor';
