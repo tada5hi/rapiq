@@ -51,14 +51,14 @@ export abstract class SortBaseAdapter<
 
     // -----------------------------------------------------------
 
-    add(input: string, value: `${SortDirection}`, rootAlias?: string) {
-        const name = this.normalizeField(input, rootAlias);
+    add(input: string, value: `${SortDirection}`) {
+        const name = this.normalizeField(input);
 
         this.value[name] = value;
     }
 
-    protected normalizeField(input: string, rootAlias?: string) {
-        const output = parseField(input, rootAlias || this.rootAlias());
+    protected normalizeField(input: string) {
+        const output = parseField(input, this.rootAlias());
         if (output.relation) {
             this.relations.add(output.relation);
         }

@@ -110,7 +110,7 @@ export abstract class FiltersBaseAdapter<
 
     // -----------------------------------------------------------
 
-    buildField(input: string, rootAlias?: string) : string {
+    buildField(input: string) : string {
         let inputNormalized : string;
 
         if (this.fieldPrefix) {
@@ -119,9 +119,7 @@ export abstract class FiltersBaseAdapter<
             inputNormalized = input;
         }
 
-        rootAlias ??= this.rootAlias();
-
-        const output = parseField(inputNormalized, rootAlias);
+        const output = parseField(inputNormalized, this.rootAlias());
         if (output.relation) {
             this.relations.add(output.relation);
         }

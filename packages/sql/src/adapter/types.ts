@@ -15,7 +15,7 @@ export interface IAdapter<
     QUERY extends Record<string, any> = Record<string, any>,
 > {
     withQuery(query?: QUERY): void;
-    execute(rootAlias?: string) : void;
+    execute() : void;
     clear() : void;
 }
 

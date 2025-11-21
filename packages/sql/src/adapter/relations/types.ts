@@ -10,7 +10,7 @@ import type { IAdapter } from '../types';
 export interface IRelationsAdapter<
 QUERY extends Record<string, any> = Record<string, any>,
 > extends IAdapter<QUERY> {
-    add(input: string, rootAlias?: string): void;
+    add(input: string): void;
 }
 
 export type JoinRelationFn<

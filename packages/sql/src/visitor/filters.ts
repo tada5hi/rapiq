@@ -56,7 +56,6 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         return this.adapter.whereRaw(
             `${this.adapter.buildField(
                 expr.field,
-                this.options.rootAlias,
             )} in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
             ...expr.value,
         );
@@ -66,7 +65,6 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         return this.adapter.whereRaw(
             `${this.adapter.buildField(
                 expr.field,
-                this.options.rootAlias,
             )} not in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
             ...expr.value,
         );

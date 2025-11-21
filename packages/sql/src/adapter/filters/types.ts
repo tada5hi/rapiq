@@ -17,7 +17,7 @@ QUERY extends Record<string, any> = Record<string, any>,
     where(field: string, operator: string, value?: unknown) : this;
     whereRaw(sql: string, ...values: unknown[]) : this;
 
-    buildField(input: string, rootAlias?: string) : string;
+    buildField(input: string) : string;
 
     buildParamPlaceholder() : string;
     buildParamsPlaceholders(input: unknown[]) : string[];

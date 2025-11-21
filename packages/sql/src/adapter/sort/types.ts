@@ -11,5 +11,5 @@ import type { IAdapter } from '../types';
 export interface ISortAdapter<
 QUERY extends Record<string, any> = Record<string, any>,
 > extends IAdapter<QUERY> {
-    add(input: string, value: `${SortDirection}`, rootAlias?: string) : void;
+    add(input: string, value: `${SortDirection}`) : void;
 }
