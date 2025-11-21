@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { FieldOperator } from 'rapiq';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { IFieldsAdapter } from './types';
@@ -19,7 +20,7 @@ export abstract class FieldsBaseAdapter<
      *
      * e.g. ['name', 'project.id']
      */
-    protected value : string[];
+    protected value : { name: string, operator?: `${FieldOperator}` }[];
 
     protected query : QUERY | undefined;
 
@@ -55,14 +56,14 @@ export abstract class FieldsBaseAdapter<
 
     // -----------------------------------------------------------
 
-    add(input: string, rootAlias?: string) {
-        const name = this.buildField(input, rootAlias);
+    add(input: string, operator?: `${FieldOperator}`) {
+        const name = this.buildField(input);
 
-        this.value.push(name);
+        this.value.push({ name, operator });
     }
 
-    buildField(input: string, rootAlias?: string) {
-        rootAlias ??= this.rootAlias();
+    buildField(input: string) {
+        const rootAlias = this.rootAlias();
 
         const output = parseField(input, rootAlias);
         if (output.relation) {

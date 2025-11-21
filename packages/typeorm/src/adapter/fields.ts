@@ -7,6 +7,7 @@
 
 import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
+import { FieldOperator } from 'rapiq';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter<
@@ -29,11 +30,19 @@ QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
     }
 
     execute() {
-        if (
-            this.query &&
-            this.value.length > 0
-        ) {
-            this.query.select(this.value);
+        if (!this.query || this.value.length === 0) {
+            return;
+        }
+
+        const names = this.value
+            .filter(
+                (el) => !el.operator ||
+                    el.operator === FieldOperator.INCLUDE,
+            )
+            .map((el) => el.name);
+
+        if (names.length > 0) {
+            this.query.select(names);
         }
     }
 }

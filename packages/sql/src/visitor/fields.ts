@@ -6,7 +6,7 @@
  */
 
 import type {
-    Field, Fields, IFieldVisitor, IFieldsVisitor,
+    Field, FieldOperator, Fields, IFieldVisitor, IFieldsVisitor,
 } from 'rapiq';
 import type { IFieldsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
@@ -28,7 +28,7 @@ IFieldVisitor<IFieldsAdapter> {
     }
 
     visitField(expr: Field): IFieldsAdapter {
-        this.adapter.add(expr.name, this.options.rootAlias);
+        this.adapter.add(expr.name, expr.operator as FieldOperator);
 
         return this.adapter;
     }
