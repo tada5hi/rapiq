@@ -5,8 +5,17 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FilterFieldOperator, IFilterVisitor, IFiltersVisitor } from 'rapiq';
-import { Filter, Filters } from 'rapiq';
+import type {
+    IFilterVisitor,
+    IFiltersVisitor,
+} from 'rapiq';
+import {
+    Filter, FilterFieldOperator,
+
+    FilterRegexFlag,
+    Filters,
+    createFilterRegex,
+} from 'rapiq';
 import type { IFiltersAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 
@@ -86,6 +95,40 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         this.adapter.setFieldPrefix(oldPrefix);
 
         return this.adapter;
+    }
+
+    visitFilterStartsWith(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    }
+
+    visitFilterNotStartsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    }
+
+    visitFilterEndsWith(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    }
+
+    visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    }
+
+    visitFilterContains(_expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        // todo: implement (refactor: createFilterRegex)
+        throw new Error('Not implemented');
+    }
+
+    visitFilterNotContains(_expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        // todo: implement (refactor: createFilterRegex)
+        throw new Error('Not implemented');
     }
 
     visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp>): IFiltersAdapter {
