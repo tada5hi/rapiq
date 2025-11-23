@@ -16,12 +16,19 @@ export enum FilterFieldOperator {
     GREATER_THAN = 'gt',
 
     IN = 'in',
-    WITHIN = 'within', // todo: new
     NOT_IN = 'nin',
+
+    STARTS_WITH = 'startsWith',
+    NOT_STARTS_WITH = 'notStartsWith',
+
+    ENDS_WITH = 'endsWith',
+    NOT_ENDS_WITH = 'notEndsWith',
+
+    CONTAINS = 'contains',
+    NOT_CONTAINS = 'notContains',
 
     REGEX = 'regex',
 
-    // todo: new
     MOD = 'mod',
     EXISTS = 'exists',
     ELEM_MATCH = 'elemMatch',
