@@ -121,14 +121,16 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
-    visitFilterContains(_expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        // todo: implement (refactor: createFilterRegex)
-        throw new Error('Not implemented');
+    visitFilterContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
-    visitFilterNotContains(_expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        // todo: implement (refactor: createFilterRegex)
-        throw new Error('Not implemented');
+    visitFilterNotContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp>): IFiltersAdapter {
