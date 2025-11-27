@@ -8,7 +8,8 @@
 export enum FilterRegexFlag {
     STARTS_WITH = 1 << 0,
     ENDS_WITH = 1 << 1,
-    NEGATION = 1 << 2,
+    CONTAINS = 1 << 2,
+    NEGATION = 1 << 3,
 }
 
 export function createFilterRegex(
@@ -26,10 +27,7 @@ export function createFilterRegexPattern(
 ) : string {
     let pattern : string;
     if (flag & FilterRegexFlag.NEGATION) {
-        if (
-            (flag & FilterRegexFlag.STARTS_WITH) &&
-            (flag & FilterRegexFlag.ENDS_WITH)
-        ) {
+        if (flag & FilterRegexFlag.CONTAINS) {
             pattern = `^(?!.*${input}).*`;
         } else if (flag & FilterRegexFlag.STARTS_WITH) {
             pattern = `^(?!${input}).+`;
@@ -40,10 +38,7 @@ export function createFilterRegexPattern(
         return pattern;
     }
 
-    if (
-        (flag & FilterRegexFlag.STARTS_WITH) &&
-        (flag & FilterRegexFlag.ENDS_WITH)
-    ) {
+    if (flag && FilterRegexFlag.CONTAINS) {
         pattern = `${input}`;
     } else if (flag & FilterRegexFlag.STARTS_WITH) {
         pattern = `^${input}`;

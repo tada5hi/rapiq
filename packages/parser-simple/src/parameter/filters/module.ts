@@ -11,12 +11,9 @@ import {
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
-    FilterRegexFlag,
     Filters,
     FiltersParseError,
     applyMapping,
-    createFilterRegex,
-    escapeRegExp,
     isObject,
     isPathAllowed,
     isPropertyNameValid,
@@ -295,35 +292,57 @@ FiltersParseOptions
         operator: `${FilterFieldOperator}`,
         value: unknown
     } {
-        let flag : number = 0;
+        let hasNegation = false;
 
         if (
             value.substring(0, 1) === URLFilterOperator.NEGATION
         ) {
             value = value.substring(1);
-            flag |= FilterRegexFlag.NEGATION;
+            hasNegation = true;
         }
 
-        if (value.substring(0, URLFilterOperator.LIKE.length) === URLFilterOperator.LIKE) {
-            value = value.substring(URLFilterOperator.LIKE.length);
-            flag |= FilterRegexFlag.STARTS_WITH;
-        }
+        const hasLikeStart = value.substring(0, URLFilterOperator.LIKE.length) === URLFilterOperator.LIKE;
+        const hasLikeEnd = value.substring(value.length - URLFilterOperator.LIKE.length) === URLFilterOperator.LIKE;
 
-        if (value.substring(value.length - 1) === URLFilterOperator.LIKE) {
-            value = value.substring(0, value.length - URLFilterOperator.LIKE.length);
-            flag |= FilterRegexFlag.ENDS_WITH;
-        }
+        if (hasLikeStart && hasLikeEnd) {
+            if (hasNegation) {
+                return {
+                    value: value.substring(URLFilterOperator.LIKE.length, value.length - URLFilterOperator.LIKE.length),
+                    operator: FilterFieldOperator.NOT_CONTAINS,
+                };
+            }
 
-        if (
-            (flag & FilterRegexFlag.STARTS_WITH) ||
-            (flag & FilterRegexFlag.ENDS_WITH)
-        ) {
             return {
-                value: createFilterRegex(
-                    escapeRegExp(value),
-                    flag,
-                ),
-                operator: FilterFieldOperator.REGEX,
+                value: value.substring(URLFilterOperator.LIKE.length, value.length - URLFilterOperator.LIKE.length),
+                operator: FilterFieldOperator.CONTAINS,
+            };
+        }
+
+        if (hasLikeStart) {
+            if (hasNegation) {
+                return {
+                    value: value.substring(URLFilterOperator.LIKE.length),
+                    operator: FilterFieldOperator.NOT_ENDS_WITH,
+                };
+            }
+
+            return {
+                value: value.substring(URLFilterOperator.LIKE.length),
+                operator: FilterFieldOperator.ENDS_WITH,
+            };
+        }
+
+        if (hasLikeEnd) {
+            if (hasNegation) {
+                return {
+                    value: value.substring(0, value.length - URLFilterOperator.LIKE.length),
+                    operator: FilterFieldOperator.NOT_STARTS_WITH,
+                };
+            }
+
+            return {
+                value: value.substring(0, value.length - URLFilterOperator.LIKE.length),
+                operator: FilterFieldOperator.STARTS_WITH,
             };
         }
 
@@ -363,7 +382,7 @@ FiltersParseOptions
             };
         }
 
-        if (flag & FilterRegexFlag.NEGATION) {
+        if (hasNegation) {
             return {
                 value: this.normalizeValue(value),
                 operator: FilterFieldOperator.NOT_EQUAL,

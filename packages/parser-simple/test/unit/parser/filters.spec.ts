@@ -10,12 +10,10 @@ import {
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
-    FilterRegexFlag,
     Filters,
     FiltersParseError,
     Relation,
     Relations,
-    createFilterRegex,
     defineFiltersSchema,
 } from 'rapiq';
 import { SimpleFiltersParser } from '../../../src';
@@ -275,73 +273,68 @@ describe('src/filter/index.ts', () => {
         );
     });
 
-    it('should parse different string inputs', async () => {
+    it('should parse different string match inputs', async () => {
         const schema = defineFiltersSchema({
             allowed: ['name'],
         });
 
-        // like operator (start)
-        let output = parseFlat({ name: '~name' }, { schema });
+        // startsWith
+        let output = parseFlat({ name: 'name~' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.STARTS_WITH,
                 'name',
-                createFilterRegex('name', FilterRegexFlag.STARTS_WITH),
+                'name',
             ),
         );
 
-        // like operator (end)
-        output = parseFlat({ name: 'name~' }, { schema });
+        // endsWith
+        output = parseFlat({ name: '~name' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.ENDS_WITH,
                 'name',
-                createFilterRegex('name', FilterRegexFlag.ENDS_WITH),
+                'name',
             ),
         );
 
-        // like operator (start & end)
+        // contains
         output = parseFlat({ name: '~name~' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.CONTAINS,
                 'name',
-                createFilterRegex('name', FilterRegexFlag.STARTS_WITH | FilterRegexFlag.ENDS_WITH),
+                'name',
             ),
         );
 
-        // negation + like operator (start)
+        // not endsWith
         output = parseFlat({ name: '!~name' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.NOT_ENDS_WITH,
                 'name',
-                createFilterRegex('name', FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION),
+                'name',
             ),
         );
 
-        // negation + like operator (end)
+        // not startsWith
         output = parseFlat({ name: '!name~' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.NOT_STARTS_WITH,
                 'name',
-                createFilterRegex('name', FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION),
+                'name',
             ),
         );
 
-        // negation + like operator (start & end)
+        // not contains
         output = parseFlat({ name: '!~name~' }, { schema });
         expect(output).toEqual(
             new Filter(
-                FilterFieldOperator.REGEX,
+                FilterFieldOperator.NOT_CONTAINS,
                 'name',
-                createFilterRegex(
-                    'name',
-                    FilterRegexFlag.STARTS_WITH |
-                    FilterRegexFlag.ENDS_WITH |
-                    FilterRegexFlag.NEGATION,
-                ),
+                'name',
             ),
         );
     });

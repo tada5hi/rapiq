@@ -9,9 +9,7 @@ import {
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
-    FilterRegexFlag,
     Filters,
-    createFilterRegex,
 } from 'rapiq';
 import { ExpressionFiltersParser } from '../../../src';
 
@@ -63,13 +61,13 @@ describe('filters/expr-parser', () => {
         expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, 'age', 18));
     });
 
-    it('should parse like expression', () => {
-        const output = parser.parse('like(name, \'Peter\')');
+    it('should parse contains expression', () => {
+        const output = parser.parse('contains(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
-            FilterFieldOperator.REGEX,
+            FilterFieldOperator.CONTAINS,
             'name',
-            createFilterRegex('Peter', FilterRegexFlag.STARTS_WITH | FilterRegexFlag.ENDS_WITH),
+            'Peter',
         ));
     });
 
@@ -77,9 +75,9 @@ describe('filters/expr-parser', () => {
         const output = parser.parse('startsWith(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
-            FilterFieldOperator.REGEX,
+            FilterFieldOperator.STARTS_WITH,
             'name',
-            createFilterRegex('Peter', FilterRegexFlag.STARTS_WITH),
+            'Peter',
         ));
     });
 
@@ -87,9 +85,9 @@ describe('filters/expr-parser', () => {
         const output = parser.parse('endsWith(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
-            FilterFieldOperator.REGEX,
+            FilterFieldOperator.ENDS_WITH,
             'name',
-            createFilterRegex('Peter', FilterRegexFlag.ENDS_WITH),
+            'Peter',
         ));
     });
 
@@ -146,7 +144,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse nested expression', () => {
-        const output = parser.parse('and(eq(user.friends, \'5\'), like(user.name, \'Bob\'))');
+        const output = parser.parse('and(eq(user.friends, \'5\'), contains(user.name, \'Bob\'))');
 
         expect(output).toEqual(new Filters(
             FilterCompoundOperator.AND,
@@ -157,9 +155,9 @@ describe('filters/expr-parser', () => {
                     5,
                 ),
                 new Filter(
-                    FilterFieldOperator.REGEX,
+                    FilterFieldOperator.CONTAINS,
                     'user.name',
-                    createFilterRegex('Bob', FilterRegexFlag.STARTS_WITH | FilterRegexFlag.ENDS_WITH),
+                    'Bob',
                 ),
             ],
         ));

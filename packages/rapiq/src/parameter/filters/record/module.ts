@@ -69,6 +69,30 @@ export class Filter<
             return this.acceptWithFallback(visitor, 'visitFilterElemMatch');
         }
 
+        if (this.operator === FilterFieldOperator.CONTAINS) {
+            return this.acceptWithFallback(visitor, 'visitFilterContains');
+        }
+
+        if (this.operator === FilterFieldOperator.NOT_CONTAINS) {
+            return this.acceptWithFallback(visitor, 'visitFilterNotContains');
+        }
+
+        if (this.operator === FilterFieldOperator.STARTS_WITH) {
+            return this.acceptWithFallback(visitor, 'visitFilterStartsWith');
+        }
+
+        if (this.operator === FilterFieldOperator.NOT_STARTS_WITH) {
+            return this.acceptWithFallback(visitor, 'visitFilterNotStartsWith');
+        }
+
+        if (this.operator === FilterFieldOperator.ENDS_WITH) {
+            return this.acceptWithFallback(visitor, 'visitFilterEndsWith');
+        }
+
+        if (this.operator === FilterFieldOperator.NOT_ENDS_WITH) {
+            return this.acceptWithFallback(visitor, 'visitFilterNotEndsWith');
+        }
+
         if (this.operator === FilterFieldOperator.REGEX) {
             return this.acceptWithFallback(visitor, 'visitFilterRegex');
         }
