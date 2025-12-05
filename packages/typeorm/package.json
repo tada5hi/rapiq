@@ -19,15 +19,15 @@
     "devDependencies": {
         "@rapiq/sql": "^1.0.0",
         "rapiq": "^1.0.0",
-        "better-sqlite3": "^12.4.1",
+        "better-sqlite3": "^12.5.0",
         "reflect-metadata": "^0.2.2",
         "ansis": "^4.2.0",
-        "typeorm": "^0.3.27"
+        "typeorm": "^0.3.28"
     },
     "peerDependencies": {
         "@rapiq/sql": "^1.0.0",
         "rapiq": "^1.0.0",
-        "typeorm": "^0.3.27"
+        "typeorm": "^0.3.28"
     },
     "scripts": {
         "build:types": "tsc --emitDeclarationOnly -p tsconfig.build.json",
