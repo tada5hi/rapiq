@@ -14,11 +14,8 @@ import {
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
-    FilterRegexFlag,
     Filters,
     FiltersParseError,
-    createFilterRegex,
-    escapeRegExp,
     isPathAllowed,
     isPropertyNameValid,
 } from 'rapiq';
@@ -73,7 +70,7 @@ FiltersParseOptions
 
     private tokenize(input: string): FilterToken[] {
         const tokens: FilterToken[] = [];
-        const regex = /\s+|and|or|eq|ne|gte|gt|lte|lt|like|startsWith|endsWith|nin|in|null|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
+        const regex = /\s+|and|or|eq|ne|gte|gt|lte|lt|contains|startsWith|endsWith|nin|in|null|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
 
         let match: RegExpExecArray | null;
         // eslint-disable-next-line no-cond-assign
@@ -90,7 +87,7 @@ FiltersParseOptions
                 case 'gte': tokens.push({ type: FilterTokenType.GREATER_OR_EQUAL }); break;
                 case 'lt': tokens.push({ type: FilterTokenType.LESS_THAN }); break;
                 case 'lte': tokens.push({ type: FilterTokenType.LESS_OR_EQUAL }); break;
-                case 'like': tokens.push({ type: FilterTokenType.CONTAINS }); break;
+                case 'contains': tokens.push({ type: FilterTokenType.CONTAINS }); break;
                 case 'startsWith': tokens.push({ type: FilterTokenType.STARTS_WITH }); break;
                 case 'endsWith': tokens.push({ type: FilterTokenType.ENDS_WITH }); break;
                 case 'in': tokens.push({ type: FilterTokenType.IN }); break;
@@ -295,28 +292,40 @@ FiltersParseOptions
             throw new Error(`String expected for type ${op}.`);
         }
 
-        let flag : number = 0;
-
         if (negation) {
-            flag |= FilterRegexFlag.NEGATION;
+            // todo: decide if Not(Expr()) or Expr() aka negation constructor parameter
+            throw new FiltersParseError('Negation of match expression is not supported.');
         }
 
-        if (op === FilterTokenType.CONTAINS || op === FilterTokenType.STARTS_WITH) {
-            flag |= FilterRegexFlag.STARTS_WITH;
+        switch (op) {
+            case FilterTokenType.CONTAINS: {
+                return new Filter(
+                    negation ?
+                        FilterFieldOperator.NOT_CONTAINS :
+                        FilterFieldOperator.CONTAINS,
+                    field,
+                    normalized,
+                );
+            }
+            case FilterTokenType.ENDS_WITH: {
+                return new Filter(
+                    negation ?
+                        FilterFieldOperator.NOT_ENDS_WITH :
+                        FilterFieldOperator.ENDS_WITH,
+                    field,
+                    normalized,
+                );
+            }
+            default: {
+                return new Filter(
+                    negation ?
+                        FilterFieldOperator.NOT_STARTS_WITH :
+                        FilterFieldOperator.STARTS_WITH,
+                    field,
+                    normalized,
+                );
+            }
         }
-
-        if (op === FilterTokenType.CONTAINS || op === FilterTokenType.ENDS_WITH) {
-            flag |= FilterRegexFlag.ENDS_WITH;
-        }
-
-        return new Filter(
-            FilterFieldOperator.REGEX,
-            field,
-            createFilterRegex(
-                escapeRegExp(normalized),
-                flag,
-            ),
-        );
     }
 
     private parseInExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -389,7 +398,7 @@ FiltersParseOptions
 
         if (options.schema) {
             let { relations } = options;
-            let schema : FiltersSchema<ObjectLiteral> = this.resolveSchema(options.schema);
+            let schema : FiltersSchema = this.resolveSchema(options.schema);
 
             // [ 'id' ]
             for (let i = 0; i < parts.length - 1; i++) {
