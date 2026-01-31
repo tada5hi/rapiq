@@ -9,7 +9,7 @@ import type {
     IRelationVisitor, IRelationsVisitor,
     Relation,
     Relations,
-} from 'rapiq';
+} from '@rapiq/core';
 
 import { URLParameter } from '../../constants';
 import { ArraySerializer } from '../serializer';

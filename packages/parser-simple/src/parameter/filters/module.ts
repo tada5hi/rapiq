@@ -19,7 +19,7 @@ import {
     isPropertyNameValid,
     parseKey,
     stringifyKey,
-} from 'rapiq';
+} from '@rapiq/core';
 
 import type {
     Condition,
@@ -28,7 +28,7 @@ import type {
     Relations,
     Scalar,
     TempType,
-} from 'rapiq';
+} from '@rapiq/core';
 
 import { URLFilterOperator } from './constants';
 import type { SimpleFiltersParserInput } from './types';

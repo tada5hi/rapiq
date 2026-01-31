@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { NestedResourceKeys, PrevIndex } from 'rapiq';
+import type { NestedResourceKeys, PrevIndex } from '@rapiq/core';
 
 export type RelationsBuildInput<
     T extends Record<PropertyKey, any>,

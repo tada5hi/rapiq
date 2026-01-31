@@ -17,16 +17,16 @@
         "dist/"
     ],
     "devDependencies": {
+        "@rapiq/core": "^1.0.0",
         "@rapiq/sql": "^1.0.0",
-        "rapiq": "^1.0.0",
         "better-sqlite3": "^12.6.0",
         "reflect-metadata": "^0.2.2",
         "ansis": "^4.2.0",
         "typeorm": "^0.3.28"
     },
     "peerDependencies": {
+        "@rapiq/core": "^1.0.0",
         "@rapiq/sql": "^1.0.0",
-        "rapiq": "^1.0.0",
         "typeorm": "^0.3.28"
     },
     "scripts": {

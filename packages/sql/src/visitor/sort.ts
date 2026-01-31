@@ -7,7 +7,7 @@
 
 import type {
     ISortVisitor, ISortsVisitor, Sort, Sorts,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { ISortAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 

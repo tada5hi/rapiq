@@ -9,7 +9,7 @@ import {
     Field,
     Fields,
     SchemaRegistry, defineSchema,
-} from 'rapiq';
+} from '@rapiq/core';
 import { SimpleParser } from '../../../src';
 
 describe('src/parser', () => {

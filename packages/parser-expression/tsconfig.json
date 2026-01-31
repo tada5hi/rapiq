@@ -2,7 +2,7 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "paths": {
-            "rapiq": ["./packages/rapiq/src"],
+            "@rapiq/core": ["./packages/core/src"],
             "@rapiq/parser-simple": ["./packages/parser-simple/src"],
         }
     }

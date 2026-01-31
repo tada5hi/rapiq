@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IPaginationVisitor, Pagination } from 'rapiq';
+import type { IPaginationVisitor, Pagination } from '@rapiq/core';
 
 import { URLParameter } from '../../constants';
 import { RecordSerializer } from '../serializer';

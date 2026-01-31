@@ -7,7 +7,7 @@
 
 import type {
     Field, FieldOperator, Fields, IFieldVisitor, IFieldsVisitor,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { IFieldsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 

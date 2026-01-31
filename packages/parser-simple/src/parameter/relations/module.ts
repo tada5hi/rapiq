@@ -16,8 +16,8 @@ import {
     isObject,
     isPathAllowed,
     parseKey,
-} from 'rapiq';
-import type { ObjectLiteral, RelationsParseOptions } from 'rapiq';
+} from '@rapiq/core';
+import type { ObjectLiteral, RelationsParseOptions } from '@rapiq/core';
 
 // --------------------------------------------------
 

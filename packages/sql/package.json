@@ -17,11 +17,11 @@
         "dist/"
     ],
     "devDependencies": {
-        "rapiq": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
         "@ucast/core": "^1.10.2"
     },
     "peerDependencies": {
-        "rapiq": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
         "@ucast/core": "^1.10.2"
     },
     "scripts": {

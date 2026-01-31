@@ -8,14 +8,14 @@
 import type {
     IFilterVisitor,
     IFiltersVisitor,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     Filter, FilterFieldOperator,
 
     FilterRegexFlag,
     Filters,
     createFilterRegex,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { IFiltersAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 

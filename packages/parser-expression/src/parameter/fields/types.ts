@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 import type { SimpleFieldsParseOptions } from '@rapiq/parser-simple';
-import type { ObjectLiteral } from 'rapiq';
+import type { ObjectLiteral } from '@rapiq/core';
 
 export type ExpressionFieldsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,

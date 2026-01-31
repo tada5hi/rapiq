@@ -11,7 +11,7 @@ import type {
     Filter,
     Filters,
     Query,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { IEncoder } from '../types';
 import type { ISerializer } from './serializer';
 import { QueryVisitor } from './visitors';

@@ -7,7 +7,7 @@
 
 import type {
     FiltersParseOptions, FiltersSchema, ObjectLiteral, Scalar,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     BaseFiltersParser,
     DEFAULT_ID,
@@ -18,7 +18,7 @@ import {
     FiltersParseError,
     isPathAllowed,
     isPropertyNameValid,
-} from 'rapiq';
+} from '@rapiq/core';
 import { FilterTokenType } from './constants';
 import type { FilterExpressionParseOptions, FilterToken } from './types';
 

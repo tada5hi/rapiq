@@ -7,7 +7,7 @@
 
 import type {
     IRelationVisitor, IRelationsVisitor, Relation, Relations,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { IRelationsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 

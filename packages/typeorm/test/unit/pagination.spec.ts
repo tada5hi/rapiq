@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { PaginationVisitor } from '@rapiq/sql';
-import { Pagination } from 'rapiq';
+import { Pagination } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';

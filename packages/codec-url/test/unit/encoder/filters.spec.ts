@@ -7,7 +7,7 @@
 
 import {
     Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
-} from 'rapiq';
+} from '@rapiq/core';
 import { URLDecoder, URLEncoder } from '../../../src';
 
 describe('encoder/filters', () => {

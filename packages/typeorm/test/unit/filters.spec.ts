@@ -13,7 +13,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';

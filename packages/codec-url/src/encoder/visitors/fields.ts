@@ -11,10 +11,10 @@ import type {
     IFieldVisitor,
 
     IFieldsVisitor,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     DEFAULT_ID, parseKey,
-} from 'rapiq';
+} from '@rapiq/core';
 import { URLParameter } from '../../constants';
 import { RecordArraySerializer } from '../serializer';
 

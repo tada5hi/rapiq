@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from 'rapiq';
+import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import type { Item, Realm, User } from './type';
 
 const userSchema = defineSchema<User>({

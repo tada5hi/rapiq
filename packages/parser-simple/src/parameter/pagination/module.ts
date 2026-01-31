@@ -7,8 +7,8 @@
 
 import {
     BasePaginationParser, Pagination, PaginationParseError, isObject,
-} from 'rapiq';
-import type { ObjectLiteral, PaginationParseOptions, PaginationSchema } from 'rapiq';
+} from '@rapiq/core';
+import type { ObjectLiteral, PaginationParseOptions, PaginationSchema } from '@rapiq/core';
 
 export class SimplePaginationParser<
     OPTIONS extends PaginationParseOptions = PaginationParseOptions,

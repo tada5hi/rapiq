@@ -8,14 +8,14 @@
 import type {
     Fields,
     IInterpreter, ObjectLiteral,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     FieldsParseError,
     Relation,
     Relations,
     defineFieldsSchema,
     defineSchema,
-} from 'rapiq';
+} from '@rapiq/core';
 import { SimpleFieldsParser } from '../../../src';
 import { registry } from '../../data';
 

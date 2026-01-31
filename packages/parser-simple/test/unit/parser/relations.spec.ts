@@ -5,8 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseError, defineSchema } from 'rapiq';
-import type { IInterpreter, Relations } from 'rapiq';
+import { RelationsParseError, defineSchema } from '@rapiq/core';
+import type { IInterpreter, Relations } from '@rapiq/core';
 import { registry } from '../../data';
 import { SimpleRelationsParser } from '../../../src';
 

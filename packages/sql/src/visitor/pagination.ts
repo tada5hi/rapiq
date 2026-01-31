@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IPaginationVisitor, Pagination } from 'rapiq';
+import type { IPaginationVisitor, Pagination } from '@rapiq/core';
 import type { IPaginationAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 

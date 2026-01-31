@@ -7,7 +7,7 @@
 
 import type {
     KeyWithOptionalPrefix, NestedKeys, PrevIndex, SimpleKeys, SortDirection,
-} from 'rapiq';
+} from '@rapiq/core';
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
 type SortBuildRecordInput<

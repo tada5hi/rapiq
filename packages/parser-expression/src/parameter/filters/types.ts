@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FiltersParseOptions, ObjectLiteral } from 'rapiq';
+import type { FiltersParseOptions, ObjectLiteral } from '@rapiq/core';
 import type { FilterTokenType } from './constants';
 
 export type FilterToken = {

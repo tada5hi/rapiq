@@ -7,8 +7,8 @@
 
 import {
     PaginationParseError, defineSchema,
-} from 'rapiq';
-import type { IInterpreter, Pagination } from 'rapiq';
+} from '@rapiq/core';
+import type { IInterpreter, Pagination } from '@rapiq/core';
 import { SimplePaginationParser } from '../../../src';
 
 class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number}> {
