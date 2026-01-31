@@ -7,7 +7,7 @@
 
 import type {
     ArrayItem, IsArray, IsScalar, NestedKeys, PrevIndex, TypeFromNestedKeyPath,
-} from 'rapiq';
+} from '@rapiq/core';
 
 type ValueWithOperator<V> = V extends string | number ?
     V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :

@@ -9,8 +9,8 @@ import type {
     ISortVisitor, ISortsVisitor,
     Sort,
     Sorts,
-} from 'rapiq';
-import { SortDirection } from 'rapiq';
+} from '@rapiq/core';
+import { SortDirection } from '@rapiq/core';
 
 import { URLParameter } from '../../constants';
 import { ArraySerializer } from '../serializer';

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Fields, IInterpreter } from 'rapiq';
+import type { Fields, IInterpreter } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { SimpleFieldsParser } from '../../../src';
 

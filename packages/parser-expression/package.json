@@ -17,11 +17,11 @@
         "dist/"
     ],
     "devDependencies": {
-        "rapiq": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
         "@rapiq/parser-simple": "^1.0.0"
     },
     "peerDependencies": {
-        "rapiq": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
         "@rapiq/parser-simple": "^1.0.0"
     },
     "scripts": {

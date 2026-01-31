@@ -6,12 +6,12 @@
  */
 
 import { URLFilterOperator } from '@rapiq/parser-simple';
-import type { IFilterVisitor, IFiltersVisitor } from 'rapiq';
+import type { IFilterVisitor, IFiltersVisitor } from '@rapiq/core';
 import {
     Filter,
     FilterFieldOperator,
     Filters,
-} from 'rapiq';
+} from '@rapiq/core';
 
 import { URLParameter } from '../../constants';
 import { RecordSerializer } from '../serializer';

@@ -19,8 +19,8 @@ import {
     isPathAllowed,
     isPropertyNameValid,
     parseKey,
-} from 'rapiq';
-import type { ObjectLiteral, Relations, SortParseOptions } from 'rapiq';
+} from '@rapiq/core';
+import type { ObjectLiteral, Relations, SortParseOptions } from '@rapiq/core';
 
 export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
     protected buildDefaults<

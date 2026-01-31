@@ -10,7 +10,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
-} from 'rapiq';
+} from '@rapiq/core';
 import { ExpressionFiltersParser } from '../../../src';
 
 describe('filters/expr-parser', () => {

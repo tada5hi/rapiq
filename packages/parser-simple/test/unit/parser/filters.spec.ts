@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FiltersParseOptions } from 'rapiq';
+import type { FiltersParseOptions } from '@rapiq/core';
 import {
     Filter,
     FilterCompoundOperator,
@@ -15,7 +15,7 @@ import {
     Relation,
     Relations,
     defineFiltersSchema,
-} from 'rapiq';
+} from '@rapiq/core';
 import { SimpleFiltersParser } from '../../../src';
 import { registry } from '../../data/schema';
 

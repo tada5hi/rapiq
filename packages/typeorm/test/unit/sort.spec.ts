@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { SortsVisitor } from '@rapiq/sql';
-import { Sort, Sorts } from 'rapiq';
+import { Sort, Sorts } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';

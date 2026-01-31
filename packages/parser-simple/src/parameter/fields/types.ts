@@ -13,7 +13,7 @@ import type {
     ObjectLiteral,
     PrevIndex,
     SimpleKeys,
-} from 'rapiq';
+} from '@rapiq/core';
 
 export type SimpleFieldsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,

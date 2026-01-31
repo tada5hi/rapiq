@@ -5,6 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { PaginationParseOptions } from 'rapiq';
+import type { PaginationParseOptions } from '@rapiq/core';
 
 export type ExpressionPaginationParseOptions = PaginationParseOptions;

@@ -20,9 +20,9 @@
         "qs": "^6.14.1"
     },
     "devDependencies": {
+        "@rapiq/core": "^1.0.0",
         "@rapiq/parser-simple": "^1.0.0",
-        "@types/qs": "^6.14.0",
-        "rapiq": "^1.0.0"
+        "@types/qs": "^6.14.0"
     },
     "peerDependencies": {
         "@rapiq/parser-simple": "^1.0.0",

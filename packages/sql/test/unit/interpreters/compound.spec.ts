@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Filter, Filters } from 'rapiq';
+import { Filter, Filters } from '@rapiq/core';
 import {
     FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
 } from '../../../src';

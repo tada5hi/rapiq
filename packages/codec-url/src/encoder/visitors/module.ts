@@ -25,7 +25,7 @@ import type {
     Relation,
     Relations,
     Sort, Sorts,
-} from 'rapiq';
+} from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
 import { FieldsVisitor } from './fields';

@@ -2,7 +2,7 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "paths": {
-            "rapiq": ["./packages/rapiq/src"],
+            "@rapiq/core": ["./packages/rapiq/src"],
             "@rapiq/sql": ["./packages/sql/src"]
         },
         "experimentalDecorators": true,

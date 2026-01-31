@@ -7,11 +7,11 @@
 
 import { SimpleFiltersParser } from '@rapiq/parser-simple';
 import { parse } from 'qs';
-import type { Condition } from 'rapiq';
+import type { Condition } from '@rapiq/core';
 import {
     Query,
     isObject,
-} from 'rapiq';
+} from '@rapiq/core';
 import { URLParameter } from '../constants';
 
 export class URLDecoder {

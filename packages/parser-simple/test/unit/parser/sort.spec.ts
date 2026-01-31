@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IInterpreter, Sorts } from 'rapiq';
+import type { IInterpreter, Sorts } from '@rapiq/core';
 import {
     Relation,
     Relations,
     SortDirection,
     SortParseError,
     defineSortSchema,
-} from 'rapiq';
+} from '@rapiq/core';
 import { registry } from '../../data';
 import type { User } from '../../data';
 

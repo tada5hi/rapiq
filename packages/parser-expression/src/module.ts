@@ -15,13 +15,13 @@ import type {
     Relations,
     SchemaRegistry,
     Sorts,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     BaseParser,
     Parameter,
     Query, isObject,
     isPropertySet,
-} from 'rapiq';
+} from '@rapiq/core';
 import {
     ExpressionFieldsParser,
     ExpressionFiltersParser,

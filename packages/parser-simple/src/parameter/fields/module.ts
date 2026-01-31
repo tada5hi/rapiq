@@ -16,8 +16,8 @@ import {
     groupArrayByKeyPath,
     isObject,
     isPathAllowed,
-} from 'rapiq';
-import type { ObjectLiteral, Relations } from 'rapiq';
+} from '@rapiq/core';
+import type { ObjectLiteral, Relations } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
 
 export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOptions> {

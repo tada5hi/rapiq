@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FieldOperator } from 'rapiq';
+import type { FieldOperator } from '@rapiq/core';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { IFieldsAdapter } from './types';

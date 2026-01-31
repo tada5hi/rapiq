@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ID } from 'rapiq';
+import { DEFAULT_ID } from '@rapiq/core';
 import { serializeAsURI } from '../../utils';
 import type { ISerializer } from './types';
 

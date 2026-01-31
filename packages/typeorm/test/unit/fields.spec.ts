@@ -7,7 +7,7 @@
 
 import type { DataSource, Repository } from 'typeorm';
 import { FieldsVisitor } from '@rapiq/sql';
-import { Field, Fields } from 'rapiq';
+import { Field, Fields } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';

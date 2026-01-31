@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral, Schema, SchemaRegistry } from 'rapiq';
+import type { ObjectLiteral, Schema, SchemaRegistry } from '@rapiq/core';
 
 export type ParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,

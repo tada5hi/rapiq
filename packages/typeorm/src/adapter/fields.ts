@@ -7,7 +7,7 @@
 
 import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
-import { FieldOperator } from 'rapiq';
+import { FieldOperator } from '@rapiq/core';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter<
