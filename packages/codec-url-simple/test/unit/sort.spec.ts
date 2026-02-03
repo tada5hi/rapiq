@@ -10,7 +10,7 @@ import {
 } from '@rapiq/core';
 import { URLDecoder, URLEncoder } from '../../src';
 
-describe('relations', () => {
+describe('sort', () => {
     let encoder : URLEncoder;
     let decoder : URLDecoder;
 
