@@ -20,49 +20,49 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse eq expression', () => {
-        const output = parser.parse('eq(name, \'admin\')');
+        const output = parser.parseExact('eq(name, \'admin\')');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
     });
 
     it('should parse not eq expression', () => {
-        const output = parser.parse('not(eq(name, \'admin\'))');
+        const output = parser.parseExact('not(eq(name, \'admin\'))');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.NOT_EQUAL, 'name', 'admin'));
     });
 
     it('should parse not not eq expression', () => {
-        const output = parser.parse('not(not(eq(name, \'admin\')))');
+        const output = parser.parseExact('not(not(eq(name, \'admin\')))');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
     });
 
     it('should parse lt expression', () => {
-        const output = parser.parse('lt(age, \'18\')');
+        const output = parser.parseExact('lt(age, \'18\')');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.LESS_THAN, 'age', 18));
     });
 
     it('should parse lte expression', () => {
-        const output = parser.parse('lte(age, \'18\')');
+        const output = parser.parseExact('lte(age, \'18\')');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.LESS_THAN_EQUAL, 'age', 18));
     });
 
     it('should parse gt expression', () => {
-        const output = parser.parse('gt(age, \'18\')');
+        const output = parser.parseExact('gt(age, \'18\')');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18));
     });
 
     it('should parse gte expression', () => {
-        const output = parser.parse('gte(age, \'18\')');
+        const output = parser.parseExact('gte(age, \'18\')');
 
         expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, 'age', 18));
     });
 
     it('should parse contains expression', () => {
-        const output = parser.parse('contains(name, \'Peter\')');
+        const output = parser.parseExact('contains(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.CONTAINS,
@@ -72,7 +72,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse startsWith expression', () => {
-        const output = parser.parse('startsWith(name, \'Peter\')');
+        const output = parser.parseExact('startsWith(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.STARTS_WITH,
@@ -82,7 +82,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse endsWith expression', () => {
-        const output = parser.parse('endsWith(name, \'Peter\')');
+        const output = parser.parseExact('endsWith(name, \'Peter\')');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.ENDS_WITH,
@@ -92,7 +92,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse in expression', () => {
-        const output = parser.parse('in(name, \'Peter\', \'Hans\')');
+        const output = parser.parseExact('in(name, \'Peter\', \'Hans\')');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.IN,
@@ -105,7 +105,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse negated in expression', () => {
-        const output = parser.parse('not(in(name, \'Peter\', \'Hans\'))');
+        const output = parser.parseExact('not(in(name, \'Peter\', \'Hans\'))');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.NOT_IN,
@@ -118,7 +118,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse nin expression', () => {
-        const output = parser.parse('nin(name, \'Peter\', \'Hans\')');
+        const output = parser.parseExact('nin(name, \'Peter\', \'Hans\')');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.NOT_IN,
@@ -131,7 +131,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse negated nin expression', () => {
-        const output = parser.parse('not(nin(name, \'Peter\', \'Hans\'))');
+        const output = parser.parseExact('not(nin(name, \'Peter\', \'Hans\'))');
 
         expect(output).toEqual(new Filter(
             FilterFieldOperator.IN,
@@ -144,7 +144,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should parse nested expression', () => {
-        const output = parser.parse('and(eq(user.friends, \'5\'), contains(user.name, \'Bob\'))');
+        const output = parser.parseExact('and(eq(user.friends, \'5\'), contains(user.name, \'Bob\'))');
 
         expect(output).toEqual(new Filters(
             FilterCompoundOperator.AND,
@@ -164,7 +164,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should negated nested expression', () => {
-        const output = parser.parse('not(and(eq(name, \'foo\'), lt(age, \'15\')))');
+        const output = parser.parseExact('not(and(eq(name, \'foo\'), lt(age, \'15\')))');
 
         expect(output).toEqual(new Filters(
             FilterCompoundOperator.OR,

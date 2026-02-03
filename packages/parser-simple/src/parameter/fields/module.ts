@@ -13,11 +13,12 @@ import {
     Fields,
     FieldsParseError,
     applyMapping,
-    groupArrayByKeyPath,
-    isObject,
-    isPathAllowed,
+    groupArrayByKeyPath, isObject, isPathAllowed,
 } from '@rapiq/core';
-import type { ObjectLiteral, Relations } from '@rapiq/core';
+import type {
+    IFields, ObjectLiteral,
+    Relations,
+} from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
 
 export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOptions> {
@@ -26,7 +27,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
     >(
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD> = {},
-    ) : Fields {
+    ) : IFields {
         const schema = this.resolveSchema(options.schema);
 
         // If it is an empty array, nothing is allowed
@@ -152,10 +153,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             );
 
             output.value.push(...relationOutput.value.map(
-                (element) => {
-                    element.name = `${key}.${element.name}`;
-                    return element;
-                },
+                (element) => new Field(`${key}.${element.name}`, element.operator),
             ));
         }
 

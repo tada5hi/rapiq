@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Sort } from '../record';
-import type { ISortsVisitor } from './types';
+import type { ISort } from '../record';
+import type { ISorts, ISortsVisitor } from './types';
 
-export class Sorts {
-    readonly value: Sort[];
+export class Sorts implements ISorts {
+    readonly value: ISort[];
 
-    constructor(value: Sort[] = []) {
+    constructor(value: ISort[] = []) {
         this.value = value;
     }
 

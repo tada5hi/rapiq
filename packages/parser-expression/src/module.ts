@@ -6,15 +6,16 @@
  */
 
 import type {
-    Fields,
-    Filter,
-    Filters,
+    IFields,
+    IFilter,
+    IFilters,
+    IPagination,
+    IQuery,
+    IRelations,
+    ISorts,
     ObjectLiteral,
-    Pagination,
     ParseParameterOptions,
-    Relations,
     SchemaRegistry,
-    Sorts,
 } from '@rapiq/core';
 import {
     BaseParser,
@@ -34,7 +35,7 @@ import type { ParseOptions } from './types';
 
 export class ExpressionParser extends BaseParser<
 ParseOptions,
-Query
+IQuery
 > {
     protected fieldsParser : ExpressionFieldsParser;
 
@@ -65,10 +66,10 @@ Query
     >(
         input: unknown,
         options: ParseOptions<RECORD> = {},
-    ): Query {
+    ): IQuery {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output : Query = new Query();
+        const output = new Query();
 
         if (!isObject(input)) {
             return output;
@@ -79,7 +80,7 @@ Query
         };
 
         if (!this.skipParameter(options.relations)) {
-            let relations: Relations | undefined;
+            let relations: IRelations | undefined;
 
             if (isPropertySet(input, Parameter.RELATIONS)) {
                 // todo: parse parameter & url-parameter
@@ -95,7 +96,7 @@ Query
         }
 
         if (!this.skipParameter(options.fields)) {
-            let fields : Fields | undefined;
+            let fields : IFields | undefined;
 
             if (isPropertySet(input, Parameter.FIELDS)) {
                 // todo: parse parameter & url-parameter
@@ -117,7 +118,7 @@ Query
         }
 
         if (!this.skipParameter(options.filters)) {
-            let filters : Filters | Filter | undefined;
+            let filters : IFilters | IFilter | undefined;
             if (isPropertySet(input, Parameter.FILTERS)) {
                 // todo: parse parameter & url-parameter
                 filters = this.parseFilters(
@@ -138,7 +139,7 @@ Query
         }
 
         if (!this.skipParameter(options.pagination)) {
-            let pagination : Pagination | undefined;
+            let pagination : IPagination | undefined;
 
             if (isPropertySet(input, Parameter.PAGINATION)) {
                 // todo: parse parameter & url-parameter
@@ -153,7 +154,7 @@ Query
         }
 
         if (!this.skipParameter(options.sort)) {
-            let sort : Sorts | undefined;
+            let sort : ISorts | undefined;
 
             if (isPropertySet(input, Parameter.SORT)) {
                 // todo: parse parameter & url-parameter
@@ -187,7 +188,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ): Relations {
+    ): IRelations {
         return this.relationsParser.parse(input, options);
     }
 
@@ -202,7 +203,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Fields {
+    ) : IFields {
         return this.fieldsParser.parse(input, options);
     }
 
@@ -217,8 +218,8 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Filters | Filter {
-        return this.filtersParser.parse(input, options);
+    ) : IFilters | IFilter {
+        return this.filtersParser.parseExact(input, options);
     }
 
     /**
@@ -232,7 +233,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Pagination {
+    ) : IPagination {
         return this.paginationParser.parse(input, options);
     }
 
@@ -247,7 +248,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Sorts {
+    ) : ISorts {
         return this.sortParser.parse(input, options);
     }
 

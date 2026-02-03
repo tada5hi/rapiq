@@ -6,9 +6,9 @@
  */
 
 import { SortDirection } from '../../../schema';
-import type { ISortVisitor } from './types';
+import type { ISort, ISortVisitor } from './types';
 
-export class Sort {
+export class Sort implements ISort {
     readonly name: string;
 
     readonly operator: `${SortDirection}`;

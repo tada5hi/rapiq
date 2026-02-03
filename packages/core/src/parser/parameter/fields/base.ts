@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Fields } from '../../../parameter';
+import type { IFields } from '../../../parameter';
 import { FieldsSchema, Schema, defineFieldsSchema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
 export abstract class BaseFieldsParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
-> extends BaseParser<OPTIONS, Fields> {
+> extends BaseParser<OPTIONS, IFields> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | FieldsSchema<RECORD>) : FieldsSchema<RECORD> {

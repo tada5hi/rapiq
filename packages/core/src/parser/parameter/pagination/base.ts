@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Pagination } from '../../../parameter';
+import type { IPagination } from '../../../parameter';
 import { PaginationSchema, Schema, definePaginationSchema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
 export abstract class BasePaginationParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
-> extends BaseParser<OPTIONS, Pagination> {
+> extends BaseParser<OPTIONS, IPagination> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | PaginationSchema) : PaginationSchema {

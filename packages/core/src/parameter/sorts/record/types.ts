@@ -5,8 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Sort } from './module';
+import type { SortDirection } from '../../../schema';
 
 export interface ISortVisitor<R> {
-    visitSort(expr: Sort): R;
+    visitSort(expr: ISort): R;
+}
+
+export interface ISort {
+    readonly name: string;
+
+    readonly operator: `${SortDirection}`;
+
+    accept<R>(visitor: ISortVisitor<R>) : R;
 }

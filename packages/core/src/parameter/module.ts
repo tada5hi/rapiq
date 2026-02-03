@@ -5,25 +5,33 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Field, Fields } from './fields';
-import type { Filter, Filters } from './filters';
-import type { Pagination } from './pagination';
-import type { Relation, Relations } from './relations';
-import type { Sort, Sorts } from './sorts';
-import type { IQueryVisitor, QueryOptions } from './types';
+import type {
+    IField, IFields,
+} from './fields';
+import type {
+    IFilter, IFilters,
+} from './filters';
+import type { IPagination } from './pagination';
+import type {
+    IRelation, IRelations,
+} from './relations';
+import type {
+    ISort, ISorts,
+} from './sorts';
+import type { IQuery, IQueryVisitor, QueryContext } from './types';
 
-export class Query {
-    public fields : Fields | Field | undefined;
+export class Query implements IQuery {
+    public fields : IFields | IField | undefined;
 
-    public filters : Filters | Filter | undefined;
+    public filters : IFilters | IFilter | undefined;
 
-    public relations : Relations | Relation | undefined;
+    public relations : IRelations | IRelation | undefined;
 
-    public pagination : Pagination | undefined;
+    public pagination : IPagination | undefined;
 
-    public sorts : Sorts | Sort | undefined;
+    public sorts : ISorts | ISort | undefined;
 
-    constructor(options: QueryOptions = {}) {
+    constructor(options: QueryContext = {}) {
         this.fields = options.fields;
         this.filters = options.filters;
         this.relations = options.relations;

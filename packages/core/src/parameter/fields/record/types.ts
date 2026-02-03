@@ -10,3 +10,11 @@ import type { Field } from './module';
 export interface IFieldVisitor<R> {
     visitField(expr: Field): R;
 }
+
+export interface IField {
+    readonly name: string;
+
+    readonly operator: string | undefined;
+
+    accept<R>(visitor: IFieldVisitor<R>): R;
+}

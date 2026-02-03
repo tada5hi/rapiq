@@ -5,20 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition, Filter } from '../../../parameter';
+import type { ICondition, IFilter } from '../../../parameter';
 import type {
     MaybeAsync,
     ObjectLiteral, SimpleKeys,
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
-export type Validator = (input: Filter) => MaybeAsync<Filter | undefined | void>;
+export type Validator = (input: IFilter) => MaybeAsync<IFilter | undefined | void>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
-    default?: Condition,
+    default?: ICondition,
     validate?: Validator
 };

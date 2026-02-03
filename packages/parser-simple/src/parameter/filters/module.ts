@@ -15,18 +15,18 @@ import {
     FiltersParseError,
     applyMapping,
     isObject,
-    isPathAllowed,
-    isPropertyNameValid,
-    parseKey,
-    stringifyKey,
+    isPathAllowed, isPropertyNameValid, parseKey, stringifyKey,
 } from '@rapiq/core';
 
 import type {
-    Condition,
     FiltersParseOptions,
+    ICondition,
+    IFilter,
+    IFilters,
     ObjectLiteral,
     Relations,
     Scalar,
+
     TempType,
 } from '@rapiq/core';
 
@@ -39,7 +39,7 @@ FiltersParseOptions
     protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition[] {
+    ) : IFilter[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -94,7 +94,7 @@ FiltersParseOptions
         currentKey: string,
         data: TempType,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filter[] {
+    ) : IFilter[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -102,7 +102,7 @@ FiltersParseOptions
 
         // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
 
-        const output : Filter[] = [];
+        const output : IFilter[] = [];
 
         let keys = Object.keys(data.attributes);
         for (let i = 0; i < keys.length; i++) {
@@ -215,8 +215,8 @@ FiltersParseOptions
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters {
-        let items = this.run(input, {
+    ) : IFilters {
+        let items: ICondition[] = this.run(input, {
             ...options,
             async: false,
         });
@@ -231,7 +231,7 @@ FiltersParseOptions
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: SimpleFiltersParserInput<RECORD>,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters {
+    ) : IFilters {
         return this.parse(input, options);
     }
 
@@ -239,7 +239,7 @@ FiltersParseOptions
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition[] {
+    ) : ICondition[] {
         const schema = this.resolveSchema(options.schema);
         if (!schema.default) {
             return [];

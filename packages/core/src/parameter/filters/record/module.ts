@@ -5,23 +5,23 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { FieldCondition as BaseFieldCondition } from '@ucast/core';
 import { FilterFieldOperator } from '../../../schema';
-import type { IFilterVisitor } from './types';
+import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
     OPERATOR extends string = `${FilterFieldOperator}`,
     VALUE = unknown,
-> extends BaseFieldCondition<VALUE> {
-    public readonly raw: unknown;
+> implements IFilter<OPERATOR, VALUE> {
+    readonly operator: string;
 
-    // eslint-disable-next-line no-useless-constructor,@typescript-eslint/no-useless-constructor
-    constructor(
-        operator: OPERATOR,
-        key: string,
-        value: VALUE,
-    ) {
-        super(operator, key, value);
+    readonly value: VALUE;
+
+    readonly field: string;
+
+    constructor(operator: string, field: string, value: VALUE) {
+        this.operator = operator;
+        this.field = field;
+        this.value = value;
     }
 
     accept<R>(visitor: IFilterVisitor<R>) : R {

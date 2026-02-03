@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Sorts } from '../../../parameter';
+import type { ISorts } from '../../../parameter';
 import { Schema, SortSchema, defineSortSchema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
 export abstract class BaseSortParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
-> extends BaseParser<OPTIONS, Sorts> {
+> extends BaseParser<OPTIONS, ISorts> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | SortSchema<RECORD>) : SortSchema<RECORD> {

@@ -6,40 +6,52 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { Filters } from '../collection';
-import type { Filter } from './module';
+import type { IFilters } from '../collection';
 
 export interface IFilterVisitor<R> {
-    visitFilter(expr: Filter): R;
+    visitFilter(expr: IFilter): R;
 
-    visitFilterEqual?(expr: Filter<FilterFieldOperator.EQUAL>) : R;
-    visitFilterNotEqual?(expr: Filter<FilterFieldOperator.NOT_EQUAL>) : R;
+    visitFilterEqual?(expr: IFilter<FilterFieldOperator.EQUAL>) : R;
+    visitFilterNotEqual?(expr: IFilter<FilterFieldOperator.NOT_EQUAL>) : R;
 
-    visitFilterLessThan?(expr: Filter<FilterFieldOperator.LESS_THAN>) : R;
+    visitFilterLessThan?(expr: IFilter<FilterFieldOperator.LESS_THAN>) : R;
 
-    visitFilterLessThanEqual?(expr: Filter<FilterFieldOperator.LESS_THAN_EQUAL>) : R;
+    visitFilterLessThanEqual?(expr: IFilter<FilterFieldOperator.LESS_THAN_EQUAL>) : R;
 
-    visitFilterGreaterThan?(expr: Filter<FilterFieldOperator.GREATER_THAN>) : R;
+    visitFilterGreaterThan?(expr: IFilter<FilterFieldOperator.GREATER_THAN>) : R;
 
-    visitFilterGreaterThanEqual?(expr: Filter<FilterFieldOperator.GREATER_THAN_EQUAL>) : R;
+    visitFilterGreaterThanEqual?(expr: IFilter<FilterFieldOperator.GREATER_THAN_EQUAL>) : R;
 
-    visitFilterExists?(expr: Filter<FilterFieldOperator.EXISTS, boolean>) : R;
+    visitFilterExists?(expr: IFilter<FilterFieldOperator.EXISTS, boolean>) : R;
 
-    visitFilterIn?(expr: Filter<FilterFieldOperator.IN, unknown[]>) : R;
-    visitFilterNotIn?(expr: Filter<FilterFieldOperator.NOT_IN, unknown[]>) : R;
+    visitFilterIn?(expr: IFilter<FilterFieldOperator.IN, unknown[]>) : R;
+    visitFilterNotIn?(expr: IFilter<FilterFieldOperator.NOT_IN, unknown[]>) : R;
 
-    visitFilterMod?(expr: Filter<FilterFieldOperator.MOD, [number, number]>) : R;
+    visitFilterMod?(expr: IFilter<FilterFieldOperator.MOD, [number, number]>) : R;
 
-    visitFilterElemMatch?(expr: Filter<FilterFieldOperator.ELEM_MATCH, Filter | Filters>) : R;
+    visitFilterElemMatch?(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : R;
 
-    visitFilterContains?(expr: Filter<FilterFieldOperator.CONTAINS, unknown>) : R;
-    visitFilterNotContains?(expr: Filter<FilterFieldOperator.NOT_CONTAINS, unknown>) : R;
+    visitFilterContains?(expr: IFilter<FilterFieldOperator.CONTAINS, unknown>) : R;
+    visitFilterNotContains?(expr: IFilter<FilterFieldOperator.NOT_CONTAINS, unknown>) : R;
 
-    visitFilterStartsWith?(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>) : R;
-    visitFilterNotStartsWith?(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>) : R;
+    visitFilterStartsWith?(expr: IFilter<FilterFieldOperator.STARTS_WITH, unknown>) : R;
+    visitFilterNotStartsWith?(expr: IFilter<FilterFieldOperator.NOT_STARTS_WITH, unknown>) : R;
 
-    visitFilterEndsWith?(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>) : R;
-    visitFilterNotEndsWith?(expr: Filter<FilterFieldOperator.NOT_ENDS_WITH, unknown>) : R;
+    visitFilterEndsWith?(expr: IFilter<FilterFieldOperator.ENDS_WITH, unknown>) : R;
+    visitFilterNotEndsWith?(expr: IFilter<FilterFieldOperator.NOT_ENDS_WITH, unknown>) : R;
 
-    visitFilterRegex?(expr: Filter<FilterFieldOperator.REGEX, RegExp>) : R;
+    visitFilterRegex?(expr: IFilter<FilterFieldOperator.REGEX, RegExp>) : R;
+}
+
+export interface IFilter<
+    OPERATOR extends string = `${FilterFieldOperator}`,
+    VALUE = unknown,
+> {
+    readonly field : string;
+
+    readonly operator : string | OPERATOR;
+
+    readonly value: VALUE;
+
+    accept<R>(visitor: IFilterVisitor<R>) : R;
 }

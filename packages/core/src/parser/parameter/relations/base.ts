@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Relations } from '../../../parameter';
+import type { IRelations } from '../../../parameter';
 import { RelationsSchema, Schema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
 export abstract class BaseRelationsParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
-> extends BaseParser<OPTIONS, Relations> {
+> extends BaseParser<OPTIONS, IRelations> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> | undefined {

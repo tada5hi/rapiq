@@ -5,10 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFieldVisitor } from './types';
+import type { IField, IFieldVisitor } from './types';
 
-export class Field {
-    name: string;
+export class Field implements IField {
+    readonly name: string;
 
     readonly operator: string | undefined;
 

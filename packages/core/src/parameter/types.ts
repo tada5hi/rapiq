@@ -6,30 +6,44 @@
  */
 
 import type {
-    Field, Fields,
+    IField, IFields,
 } from './fields';
 import type {
-    Filter,
-    Filters,
+    IFilter,
+    IFilters,
 } from './filters';
-import type { Query } from './module';
 import type {
-    Relation,
-    Relations,
+    IRelation,
+    IRelations,
 } from './relations';
-import type { Pagination } from './pagination';
+import type { IPagination } from './pagination';
 import type {
-    Sort, Sorts,
+    ISort,
+    ISorts,
 } from './sorts';
 
-export type QueryOptions = {
-    fields?: Fields | Field,
-    filters?: Filters | Filter,
-    relations?: Relations | Relation,
-    pagination?: Pagination,
-    sorts?: Sorts | Sort
+export type QueryContext = {
+    fields?: IFields | IField,
+    filters?: IFilters | IFilter,
+    relations?: IRelations | IRelation,
+    pagination?: IPagination,
+    sorts?: ISorts | ISort
 };
 
 export interface IQueryVisitor<R> {
-    visitQuery(expr: Query) : R;
+    visitQuery(expr: IQuery) : R;
+}
+
+export interface IQuery {
+    fields?: IFields | IField,
+
+    filters?: IFilters | IFilter,
+
+    relations?: IRelations | IRelation,
+
+    pagination?: IPagination,
+
+    sorts?: ISorts | ISort
+
+    accept<R>(visitor: IQueryVisitor<R>) : R;
 }

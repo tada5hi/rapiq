@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral, Query } from '@rapiq/core';
+import type { IQuery, ObjectLiteral } from '@rapiq/core';
 
 export interface IEncoder<
     OUTPUT = any,
     OPTIONS extends ObjectLiteral = ObjectLiteral,
 > {
-    encode(input: Query, options?: Partial<OPTIONS>) : OUTPUT
+    encode(input: IQuery, options?: Partial<OPTIONS>) : OUTPUT
 }

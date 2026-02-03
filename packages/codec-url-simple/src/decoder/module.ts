@@ -13,11 +13,12 @@ import {
 } from '@rapiq/parser-simple';
 import { parse } from 'qs';
 import type {
-    Condition,
-    Fields,
-    Pagination,
-    Relations,
-    Sorts,
+    IFields,
+    IFilters,
+    IPagination,
+    IQuery,
+    IRelations,
+    ISorts,
 } from '@rapiq/core';
 import {
     Query,
@@ -44,7 +45,7 @@ export class URLDecoder {
         this.sort = new SimpleSortParser();
     }
 
-    decode(input: string) : Query | null {
+    decode(input: string) : IQuery | null {
         const parsed = parse(input);
         if (!isObject(parsed)) {
             return null;
@@ -75,7 +76,7 @@ export class URLDecoder {
         return output;
     }
 
-    decodeFields(input: string) : Fields | null {
+    decodeFields(input: string) : IFields | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
@@ -88,41 +89,33 @@ export class URLDecoder {
         return this.fields.parse(output);
     }
 
-    decodeFilters(input: string) : Condition | null {
+    decodeFilters(input: string) : IFilters | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.FILTERS]) {
-            if (isObject(output[URLParameter.FILTERS])) {
-                return this.filters.parse(output[URLParameter.FILTERS]);
-            }
-
-            return null;
+            return this.filters.parse(output[URLParameter.FILTERS]);
         }
 
         return this.filters.parse(output);
     }
 
-    decodePagination(input: string) : Pagination | null {
+    decodePagination(input: string) : IPagination | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.PAGINATION]) {
-            if (isObject(output[URLParameter.PAGINATION])) {
-                return this.pagination.parse(output[URLParameter.PAGINATION]);
-            }
-
-            return null;
+            return this.pagination.parse(output[URLParameter.PAGINATION]);
         }
 
         return this.pagination.parse(output);
     }
 
-    decodeRelations(input: string) : Relations | null {
+    decodeRelations(input: string) : IRelations | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
@@ -135,7 +128,7 @@ export class URLDecoder {
         return this.relations.parse(output);
     }
 
-    decodeSort(input: string) : Sorts | null {
+    decodeSort(input: string) : ISorts | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;

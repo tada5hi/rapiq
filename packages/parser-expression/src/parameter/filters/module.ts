@@ -6,7 +6,12 @@
  */
 
 import type {
-    FiltersParseOptions, FiltersSchema, ObjectLiteral, Scalar,
+    FiltersParseOptions,
+    FiltersSchema,
+    IFilter,
+    IFilters,
+    ObjectLiteral,
+    Scalar,
 } from '@rapiq/core';
 import {
     BaseFiltersParser,
@@ -16,6 +21,7 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    isFilters,
     isPathAllowed,
     isPropertyNameValid,
 } from '@rapiq/core';
@@ -37,7 +43,22 @@ FiltersParseOptions
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters | Filter {
+    ) : IFilters {
+        const expr = this.parseExact(input, options);
+        if (
+            isFilters(expr, FilterCompoundOperator.AND) ||
+            isFilters(expr, FilterCompoundOperator.OR)
+        ) {
+            return expr;
+        }
+
+        return new Filters(FilterCompoundOperator.AND, [expr]);
+    }
+
+    parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : IFilters | IFilter {
         if (typeof input !== 'string') {
             throw FiltersParseError.inputInvalid();
         }

@@ -6,25 +6,26 @@
  */
 
 import type {
-    Field,
-    Fields,
-    Filter,
-    Filters,
+    IField,
     IFieldVisitor,
+    IFields,
     IFieldsVisitor,
+    IFilter,
     IFilterVisitor,
+    IFilters,
     IFiltersVisitor,
+    IPagination,
     IPaginationVisitor,
+    IQuery,
     IQueryVisitor,
+    IRelation,
     IRelationVisitor,
+    IRelations,
     IRelationsVisitor,
+    ISort,
     ISortVisitor,
+    ISorts,
     ISortsVisitor,
-    Pagination,
-    Query,
-    Relation,
-    Relations,
-    Sort, Sorts,
 } from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
@@ -68,7 +69,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.sort = new SortsVisitor(serializer.sort);
     }
 
-    visitQuery(expr: Query): QuerySerializer {
+    visitQuery(expr: IQuery): QuerySerializer {
         if (expr.fields) {
             expr.fields.accept(this.fields);
         }
@@ -92,39 +93,39 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         return this.serializer;
     }
 
-    visitFields(expr: Fields): RecordArraySerializer {
+    visitFields(expr: IFields): RecordArraySerializer {
         return expr.accept(this.fields);
     }
 
-    visitField(expr: Field): RecordArraySerializer {
+    visitField(expr: IField): RecordArraySerializer {
         return expr.accept(this.fields);
     }
 
-    visitFilter(expr: Filter): RecordSerializer {
+    visitFilter(expr: IFilter): RecordSerializer {
         return expr.accept(this.filters);
     }
 
-    visitFilters(expr: Filters): RecordSerializer {
+    visitFilters(expr: IFilters): RecordSerializer {
         return expr.accept(this.filters);
     }
 
-    visitPagination(expr: Pagination): RecordSerializer {
+    visitPagination(expr: IPagination): RecordSerializer {
         return expr.accept(this.pagination);
     }
 
-    visitRelation(expr: Relation): ArraySerializer {
+    visitRelation(expr: IRelation): ArraySerializer {
         return expr.accept(this.relations);
     }
 
-    visitRelations(expr: Relations): ArraySerializer {
+    visitRelations(expr: IRelations): ArraySerializer {
         return expr.accept(this.relations);
     }
 
-    visitSort(expr: Sort): ArraySerializer {
+    visitSort(expr: ISort): ArraySerializer {
         return expr.accept(this.sort);
     }
 
-    visitSorts(expr: Sorts): ArraySerializer {
+    visitSorts(expr: ISorts): ArraySerializer {
         return expr.accept(this.sort);
     }
 }

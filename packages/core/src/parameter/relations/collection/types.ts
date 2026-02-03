@@ -5,8 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Relations } from './module';
+import type { IRelation } from '../record';
 
 export interface IRelationsVisitor<R> {
-    visitRelations(expr: Relations): R;
+    visitRelations(expr: IRelations): R;
+}
+
+export interface IRelations {
+    readonly value: IRelation[];
+
+    accept<R>(visitor: IRelationsVisitor<R>) : R;
+
+    extract(root: string): IRelations;
 }
