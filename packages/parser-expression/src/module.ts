@@ -69,7 +69,7 @@ IQuery
     ): IQuery {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output : Query = new Query();
+        const output = new Query();
 
         if (!isObject(input)) {
             return output;

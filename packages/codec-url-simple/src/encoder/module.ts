@@ -6,11 +6,14 @@
  */
 
 import type {
-    Field,
-    Fields,
-    Filter,
-    Filters, Pagination,
-    Query, Relations, Sorts,
+    IField,
+    IFields,
+    IFilter,
+    IFilters,
+    IPagination,
+    IQuery,
+    IRelations,
+    ISorts,
 } from '@rapiq/core';
 import type { IEncoder } from '../types';
 import type { ISerializer } from './serializer';
@@ -23,35 +26,35 @@ export class URLEncoder implements IEncoder<string | null> {
         this.visitor = new QueryVisitor();
     }
 
-    encode(input: Query): string | null {
+    encode(input: IQuery): string | null {
         return this.runSerializer(this.visitor.visitQuery(input));
     }
 
-    encodeFields(input: Fields) {
+    encodeFields(input: IFields) {
         return this.runSerializer(this.visitor.visitFields(input));
     }
 
-    encodeField(input: Field) {
+    encodeField(input: IField) {
         return this.runSerializer(this.visitor.visitField(input));
     }
 
-    encodeFilters(input: Filters) {
+    encodeFilters(input: IFilters) {
         return this.runSerializer(this.visitor.visitFilters(input));
     }
 
-    encodeFilter(input: Filter) {
+    encodeFilter(input: IFilter) {
         return this.runSerializer(this.visitor.visitFilter(input));
     }
 
-    encodePagination(input: Pagination) {
+    encodePagination(input: IPagination) {
         return this.runSerializer(this.visitor.visitPagination(input));
     }
 
-    encodeRelations(input: Relations) {
+    encodeRelations(input: IRelations) {
         return this.runSerializer(this.visitor.visitRelations(input));
     }
 
-    encodeSort(input: Sorts) {
+    encodeSort(input: ISorts) {
         return this.runSerializer(this.visitor.visitSorts(input));
     }
 
