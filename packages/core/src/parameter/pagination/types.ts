@@ -5,8 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Pagination } from './pagination';
-
 export interface IPaginationVisitor<R> {
-    visitPagination(expr: Pagination): R;
+    visitPagination(expr: IPagination): R;
+}
+
+export interface IPagination {
+    limit?: number,
+
+    offset?: number
+
+    accept<R>(visitor: IPaginationVisitor<R>) : R;
 }

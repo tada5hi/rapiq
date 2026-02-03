@@ -16,14 +16,14 @@ import {
     applyMapping,
     isObject,
     isPathAllowed,
-    isPropertyNameValid,
-    parseKey,
-    stringifyKey,
+    isPropertyNameValid, parseKey, stringifyKey,
 } from '@rapiq/core';
 
 import type {
     Condition,
     FiltersParseOptions,
+    IFilter,
+    IFilters,
     ObjectLiteral,
     Relations,
     Scalar,
@@ -39,7 +39,7 @@ FiltersParseOptions
     protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition[] {
+    ) : IFilter[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -94,7 +94,7 @@ FiltersParseOptions
         currentKey: string,
         data: TempType,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filter[] {
+    ) : IFilter[] {
         const schema = this.resolveSchema(options.schema);
         const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
 
@@ -102,7 +102,7 @@ FiltersParseOptions
 
         // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
 
-        const output : Filter[] = [];
+        const output : IFilter[] = [];
 
         let keys = Object.keys(data.attributes);
         for (let i = 0; i < keys.length; i++) {
@@ -215,23 +215,23 @@ FiltersParseOptions
     parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters {
+    ) : IFilters {
         let items = this.run(input, {
             ...options,
             async: false,
-        });
+        }) as unknown as Condition[];
 
         if (items.length === 0) {
             items = this.buildDefaults(options);
         }
 
-        return new Filters(FilterCompoundOperator.AND, items);
+        return new Filters(FilterCompoundOperator.AND, items as unknown as Condition[]);
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: SimpleFiltersParserInput<RECORD>,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Filters {
+    ) : IFilters {
         return this.parse(input, options);
     }
 

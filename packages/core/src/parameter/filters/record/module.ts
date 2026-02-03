@@ -7,14 +7,12 @@
 
 import { FieldCondition as BaseFieldCondition } from '@ucast/core';
 import { FilterFieldOperator } from '../../../schema';
-import type { IFilterVisitor } from './types';
+import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
     OPERATOR extends string = `${FilterFieldOperator}`,
     VALUE = unknown,
-> extends BaseFieldCondition<VALUE> {
-    public readonly raw: unknown;
-
+> extends BaseFieldCondition<VALUE> implements IFilter<OPERATOR, VALUE> {
     // eslint-disable-next-line no-useless-constructor,@typescript-eslint/no-useless-constructor
     constructor(
         operator: OPERATOR,

@@ -5,8 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Sorts } from './module';
+import type { ISort } from '../record';
 
 export interface ISortsVisitor<R> {
-    visitSorts(expr: Sorts): R;
+    visitSorts(expr: ISorts): R;
+}
+
+export interface ISorts {
+    readonly value: ISort[];
+
+    accept<R>(visitor: ISortsVisitor<R>) : R;
 }

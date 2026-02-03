@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IRelationVisitor } from './types';
+import type { IRelation, IRelationVisitor } from './types';
 
-export class Relation {
+export class Relation implements IRelation {
     readonly name: string;
 
     constructor(name: string) {

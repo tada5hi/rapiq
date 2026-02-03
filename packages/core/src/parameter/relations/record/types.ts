@@ -5,8 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Relation } from './module';
-
 export interface IRelationVisitor<R> {
-    visitRelation(expr: Relation): R;
+    visitRelation(expr: IRelation): R;
+}
+
+export interface IRelation {
+    readonly name: string;
+
+    accept<R>(visitor: IRelationVisitor<R>) : R;
 }

@@ -5,19 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IField } from '../record';
 import { Field } from '../record';
 import { FieldOperator } from '../../../schema';
-import type { IFieldsVisitor } from './types';
+import type { IFields, IFieldsVisitor } from './types';
 
 type FieldsExecuteOptions = {
     default: string[],
     allowed: string[],
 };
 
-export class Fields {
-    readonly value : Field[];
+export class Fields implements IFields {
+    readonly value : IField[];
 
-    constructor(value : Field[] = []) {
+    constructor(value : IField[] = []) {
         this.value = value;
     }
 
@@ -25,24 +26,12 @@ export class Fields {
         return visitor.visitFields(this);
     }
 
-    mergeWith(input: Fields | Field) {
-        if (input instanceof Field) {
-            this.value.push(input);
-        }
-
-        if (input instanceof Fields) {
-            for (let i = 0; i < input.value.length; i++) {
-                this.value.push(input.value[i]);
-            }
-        }
-    }
-
     /**
      * Extract field set, with includes and excludes.
      *
      * @param options
      */
-    execute(options: FieldsExecuteOptions) : Fields {
+    execute(options: FieldsExecuteOptions) : IFields {
         const includes : string[] = [];
         const excludes : string[] = [];
         const explicates : string[] = [];

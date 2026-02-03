@@ -6,15 +6,14 @@
  */
 
 import type {
-
-    Fields,
-    Filters,
+    IFields,
+    IFilters,
+    IPagination,
+    IRelations,
+    ISorts,
     ObjectLiteral,
-    Pagination,
     ParseParameterOptions,
-    Relations,
     SchemaRegistry,
-    Sorts,
 } from '@rapiq/core';
 import {
     BaseParser, Parameter, Query, isObject,
@@ -77,7 +76,7 @@ Query
         };
 
         if (!this.skipParameter(options.relations)) {
-            let relations: Relations | undefined;
+            let relations: IRelations | undefined;
 
             if (isPropertySet(input, Parameter.RELATIONS)) {
                 // todo: parse parameter & url-parameter
@@ -93,7 +92,7 @@ Query
         }
 
         if (!this.skipParameter(options.fields)) {
-            let fields : Fields | undefined;
+            let fields : IFields | undefined;
 
             if (isPropertySet(input, Parameter.FIELDS)) {
                 // todo: parse parameter & url-parameter
@@ -115,7 +114,7 @@ Query
         }
 
         if (!this.skipParameter(options.filters)) {
-            let filters : Filters | undefined;
+            let filters : IFilters | undefined;
             if (isPropertySet(input, Parameter.FILTERS)) {
                 // todo: parse parameter & url-parameter
                 filters = this.parseFilters(
@@ -136,7 +135,7 @@ Query
         }
 
         if (!this.skipParameter(options.pagination)) {
-            let pagination : Pagination | undefined;
+            let pagination : IPagination | undefined;
 
             if (isPropertySet(input, Parameter.PAGINATION)) {
                 // todo: parse parameter & url-parameter
@@ -151,21 +150,21 @@ Query
         }
 
         if (!this.skipParameter(options.sort)) {
-            let sort : Sorts | undefined;
+            let sorts : ISorts | undefined;
 
             if (isPropertySet(input, Parameter.SORT)) {
                 // todo: parse parameter & url-parameter
-                sort = this.parseSort(
+                sorts = this.parseSort(
                     input[Parameter.SORT],
                     parameterOptions,
                 );
             } else if (schema.sort.defaultKeys.length > 0) {
                 // todo: this should be simplified
-                sort = this.parseSort(undefined, parameterOptions);
+                sorts = this.parseSort(undefined, parameterOptions);
             }
 
-            if (typeof sort !== 'undefined') {
-                output.sorts = sort;
+            if (typeof sorts !== 'undefined') {
+                output.sorts = sorts;
             }
         }
 
@@ -185,7 +184,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ): Relations {
+    ): IRelations {
         return this.relationsParser.parse(input, options);
     }
 
@@ -200,7 +199,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Fields {
+    ) : IFields {
         return this.fieldsParser.parse(input, options);
     }
 
@@ -215,7 +214,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Filters {
+    ) : IFilters {
         return this.filtersParser.parse(input, options);
     }
 
@@ -230,7 +229,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Pagination {
+    ) : IPagination {
         return this.paginationParser.parse(input, options);
     }
 
@@ -245,7 +244,7 @@ Query
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : Sorts {
+    ) : ISorts {
         return this.sortParser.parse(input, options);
     }
 

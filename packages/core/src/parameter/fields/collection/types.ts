@@ -5,8 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Fields } from './module';
+import type { IField } from '../record';
 
 export interface IFieldsVisitor<R> {
-    visitFields(expr: Fields): R;
+    visitFields(expr: IFields): R;
+}
+
+export interface IFields {
+    readonly value: IField[]
+
+    accept<R>(visitor: IFieldsVisitor<R>): R;
 }

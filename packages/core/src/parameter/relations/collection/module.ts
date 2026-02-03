@@ -5,13 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IRelation } from '../record';
 import { Relation } from '../record';
-import type { IRelationsVisitor } from './types';
+import type { IRelations, IRelationsVisitor } from './types';
 
-export class Relations {
-    readonly value: Relation[];
+export class Relations implements IRelations {
+    readonly value: IRelation[];
 
-    constructor(value: Relation[] = []) {
+    constructor(value: IRelation[] = []) {
         this.value = value;
     }
 
@@ -19,7 +20,7 @@ export class Relations {
         return visitor.visitRelations(this);
     }
 
-    extract(root: string): Relations {
+    extract(root: string): IRelations {
         const removed: Relations = new Relations();
 
         for (let i = this.value.length - 1; i >= 0; i--) {

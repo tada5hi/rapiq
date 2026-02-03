@@ -5,14 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition } from '../../../parameter';
+import type { IFilters } from '../../../parameter';
 import { FiltersSchema, Schema, defineFiltersSchema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
 export abstract class BaseFiltersParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
-> extends BaseParser<OPTIONS, Condition> {
+> extends BaseParser<OPTIONS, IFilters> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input?: string | Schema<RECORD> | FiltersSchema<RECORD>) : FiltersSchema<RECORD> {

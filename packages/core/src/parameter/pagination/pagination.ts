@@ -5,9 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IPaginationVisitor } from './types';
+import type { IPagination, IPaginationVisitor } from './types';
 
-export class Pagination {
+export class Pagination implements IPagination {
     limit : number | undefined;
 
     offset : number | undefined;
