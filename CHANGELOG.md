@@ -39,6 +39,55 @@
 
 * allow throwing error on invalid parsing input ([#312](https://github.com/Tada5hi/rapiq/issues/312)) ([3afd7f2](https://github.com/Tada5hi/rapiq/commit/3afd7f218402738a57f8b2c0bf241b2399024164))
 
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/v1.0.0...v2.0.0) (2026-02-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* package rapiq renamed
+* public api changed
+
+### Features
+
+* add missing encoder/decoder capabilities + missing tests ([#699](https://github.com/tada5hi/rapiq/issues/699)) ([9f2e69f](https://github.com/tada5hi/rapiq/commit/9f2e69f71cd5a26a0e313f62077dc229bf72463b))
+* cleanup schema options ([#606](https://github.com/tada5hi/rapiq/issues/606)) ([2ae05f7](https://github.com/tada5hi/rapiq/commit/2ae05f785044fef8e864cc4beccbc73c8848bd06))
+* codec package & intermediate representations (IR) ([#659](https://github.com/tada5hi/rapiq/issues/659)) ([b384624](https://github.com/tada5hi/rapiq/commit/b384624957f9861fa0959ef44b3522d06c4f8c20))
+* enhance key types ([#627](https://github.com/tada5hi/rapiq/issues/627)) ([eede751](https://github.com/tada5hi/rapiq/commit/eede7517ab777fda46845e52906bc91172a878bc))
+* enhance typing with interfaces and lesser coupling ([#700](https://github.com/tada5hi/rapiq/issues/700)) ([60f00b5](https://github.com/tada5hi/rapiq/commit/60f00b5b229ec129b788458ea04f7b9b4896e0bc))
+* filters expression parser ([#660](https://github.com/tada5hi/rapiq/issues/660)) ([a38718f](https://github.com/tada5hi/rapiq/commit/a38718fc9d8c46f891abd18c6489f847c441fa89))
+* flatten parse output ([#605](https://github.com/tada5hi/rapiq/issues/605)) ([1581074](https://github.com/tada5hi/rapiq/commit/1581074f5f2e0ad081453deeb5ec832d2b3c4a4f))
+* introduce helpers and redesigned building structure ([#609](https://github.com/tada5hi/rapiq/issues/609)) ([149fe2e](https://github.com/tada5hi/rapiq/commit/149fe2ecdd184f42847b35882c2ea6e4e1771b28))
+* make parse api async ([#617](https://github.com/tada5hi/rapiq/issues/617)) ([bec4ca7](https://github.com/tada5hi/rapiq/commit/bec4ca796f749919ae33a74d730719c347d397dc))
+* replace interpreter with visitor pattern ([#668](https://github.com/tada5hi/rapiq/issues/668)) ([a9c4ae5](https://github.com/tada5hi/rapiq/commit/a9c4ae5f56de8e87da22176711bbc45ef8addb24))
+* schema & schema registry component ([#598](https://github.com/tada5hi/rapiq/issues/598)) ([a68cd22](https://github.com/tada5hi/rapiq/commit/a68cd2230ff436beb4ffe4e36432b2e76cff823a))
+* schema resolving ([#603](https://github.com/tada5hi/rapiq/issues/603)) ([cc75738](https://github.com/tada5hi/rapiq/commit/cc7573868f20a01261922aa3534bf4872d112ff8))
+* simplify simple filters parser ([eaad312](https://github.com/tada5hi/rapiq/commit/eaad312359fcebd0d7fa052bfc5d65341dd268ab))
+* split in codec-url, parser-simple & parser-expression package ([#663](https://github.com/tada5hi/rapiq/issues/663)) ([4be53ad](https://github.com/tada5hi/rapiq/commit/4be53adfa653bb31ef40a2f0fddb1b70f494f91e))
+* sql & typeorm package ([#638](https://github.com/tada5hi/rapiq/issues/638)) ([e461073](https://github.com/tada5hi/rapiq/commit/e4610737c03ff59807ad588aecf618b7af390dfc))
+* startsWith, endsWith & contains operator ([#675](https://github.com/tada5hi/rapiq/issues/675)) ([40bf127](https://github.com/tada5hi/rapiq/commit/40bf1278b7901f5a82f0516900bcca2eccc405dc))
+* support nested filters (or, and) ([#600](https://github.com/tada5hi/rapiq/issues/600)) ([20b9e75](https://github.com/tada5hi/rapiq/commit/20b9e755fcb2b4d353d38ae90bba67c3e0a0882a))
+
+
+### Bug Fixes
+
+* build and parse filter(s) ([#608](https://github.com/tada5hi/rapiq/issues/608)) ([745ab21](https://github.com/tada5hi/rapiq/commit/745ab213fb8fe9fddeb4d3edf088823348710907))
+* cleanup simple parser types & test suite ([7bf2e12](https://github.com/tada5hi/rapiq/commit/7bf2e1204edb62cbb84601568dad6789299a1b08))
+* codec decoder signature ([cd28d33](https://github.com/tada5hi/rapiq/commit/cd28d3312db54ea290696358cf0757f31d1433e0))
+* **deps:** bump the minorandpatch group across 1 directory with 9 updates ([#689](https://github.com/tada5hi/rapiq/issues/689)) ([bcd7721](https://github.com/tada5hi/rapiq/commit/bcd7721ab8ab8afa3b319d8e6dfaa963194412d9))
+* make query properties non optional ([8115b8f](https://github.com/tada5hi/rapiq/commit/8115b8f2fe4db46ed5c380f2b0179a624fe7fafb))
+* make query properties readonly ([42c6ba5](https://github.com/tada5hi/rapiq/commit/42c6ba56d5baaa1091ad406d9cfd8fb3195ecb4d))
+* minor enhancement to url-codec encoder ([6640ceb](https://github.com/tada5hi/rapiq/commit/6640ceb58fc1af76cd7b9b17e2b53fd4068aa31c))
+* remove builder modules ([858dc6e](https://github.com/tada5hi/rapiq/commit/858dc6e1d259727f0b0dcb688e0bfab9b53289c9))
+* remove relation container ([183f3d9](https://github.com/tada5hi/rapiq/commit/183f3d9edb1ef79cd6e00ce8d071b64b831d9a35))
+* remove rootAlia param in buildField fn ([85e6fff](https://github.com/tada5hi/rapiq/commit/85e6fffd7283a7dcf83d65a655d287f20af78437))
+* respect field operator in visitor ([3d32458](https://github.com/tada5hi/rapiq/commit/3d324588d81e367a3a7e944050bb54518e8526ce))
+* typing & test suite ([5f7b2e7](https://github.com/tada5hi/rapiq/commit/5f7b2e78cf9825cbffb0a548b54e519f67a623be))
+
+
+### Code Refactoring
+
+* rename rapiq package to @rapiq/core ([#694](https://github.com/tada5hi/rapiq/issues/694)) ([89ffc31](https://github.com/tada5hi/rapiq/commit/89ffc31b8a31286213de5a890199d88fbe160313))
+
 ## [0.8.1](https://github.com/Tada5hi/rapiq/compare/v0.8.0...v0.8.1) (2023-05-29)
 
 
