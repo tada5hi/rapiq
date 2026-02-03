@@ -21,7 +21,7 @@ import type {
     ISorts,
 } from '@rapiq/core';
 import {
-    Query,
+    QueryBuilder,
     isObject,
 } from '@rapiq/core';
 import { URLParameter } from '../constants';
@@ -51,7 +51,7 @@ export class URLDecoder {
             return null;
         }
 
-        const output = new Query();
+        const output = new QueryBuilder();
 
         if (parsed[URLParameter.FIELDS]) {
             output.fields = this.fields.parse(parsed[URLParameter.FIELDS]);
@@ -73,7 +73,7 @@ export class URLDecoder {
             output.sorts = this.sort.parse(parsed[URLParameter.SORT]);
         }
 
-        return output;
+        return output.build();
     }
 
     decodeFields(input: string) : IFields | null {

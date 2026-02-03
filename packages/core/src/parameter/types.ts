@@ -32,15 +32,15 @@ export interface IQueryVisitor<R> {
 }
 
 export interface IQuery {
-    fields: IFields,
+    readonly fields: IFields,
 
-    filters: IFilters,
+    readonly filters: IFilters,
 
-    relations: IRelations,
+    readonly relations: IRelations,
 
-    pagination: IPagination,
+    readonly pagination: IPagination,
 
-    sorts: ISorts,
+    readonly sorts: ISorts,
 
     accept<R>(visitor: IQueryVisitor<R>) : R;
 }

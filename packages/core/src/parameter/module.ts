@@ -25,15 +25,15 @@ import type { IQuery, IQueryVisitor, QueryContext } from './types';
 import { FilterCompoundOperator } from '../schema';
 
 export class Query implements IQuery {
-    public fields : IFields;
+    readonly fields : IFields;
 
-    public filters : IFilters;
+    readonly filters : IFilters;
 
-    public relations : IRelations;
+    readonly relations : IRelations;
 
-    public pagination : IPagination;
+    readonly pagination : IPagination;
 
-    public sorts : ISorts;
+    readonly sorts : ISorts;
 
     constructor(options: QueryContext = {}) {
         this.fields = options.fields || new Fields();

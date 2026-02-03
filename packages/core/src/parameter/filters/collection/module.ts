@@ -25,16 +25,6 @@ export class Filters<
         return visitor.visitFilters(this);
     }
 
-    add(child: T) {
-        this.value.push(child);
-    }
-
-    clear() {
-        for (let i = this.value.length - 1; i === 0; i--) {
-            this.value.splice(i, 1);
-        }
-    }
-
     flatten(aggregatedResult?: T[]) : IFilters<T> {
         // this.value.splice(0, this.value.length, ...next);
 

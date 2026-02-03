@@ -20,9 +20,5 @@ export interface IFilters<
 
     accept<R>(visitor: IFiltersVisitor<R>) : R;
 
-    add(child: T) : void;
-
-    clear() : void;
-
     flatten(items?: T[]) : IFilters<T>;
 }

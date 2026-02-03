@@ -13,10 +13,14 @@ import type {
     ISorts,
     ObjectLiteral,
     ParseParameterOptions,
+    Query,
     SchemaRegistry,
 } from '@rapiq/core';
 import {
-    BaseParser, Parameter, Query, isObject,
+    BaseParser,
+    Parameter,
+    QueryBuilder,
+    isObject,
     isPropertySet,
 } from '@rapiq/core';
 import {
@@ -65,10 +69,10 @@ Query
     ): Query {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output = new Query();
+        const output = new QueryBuilder();
 
         if (!isObject(input)) {
-            return output;
+            return output.build();
         }
 
         const parameterOptions : ParseParameterOptions<RECORD> = {
@@ -86,7 +90,7 @@ Query
             }
 
             if (typeof relations !== 'undefined') {
-                output[Parameter.RELATIONS] = relations;
+                output.relations = relations;
                 parameterOptions.relations = relations;
             }
         }
@@ -109,7 +113,7 @@ Query
             }
 
             if (typeof fields !== 'undefined') {
-                output[Parameter.FIELDS] = fields;
+                output.fields = fields;
             }
         }
 
@@ -130,7 +134,7 @@ Query
             }
 
             if (typeof filters !== 'undefined') {
-                output[Parameter.FILTERS] = filters;
+                output.filters = filters;
             }
         }
 
@@ -145,7 +149,7 @@ Query
             }
 
             if (typeof pagination !== 'undefined') {
-                output[Parameter.PAGINATION] = pagination;
+                output.pagination = pagination;
             }
         }
 
@@ -168,7 +172,7 @@ Query
             }
         }
 
-        return output;
+        return output.build();
     }
 
     // -----------------------------------------------------

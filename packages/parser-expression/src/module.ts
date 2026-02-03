@@ -19,7 +19,8 @@ import type {
 import {
     BaseParser,
     Parameter,
-    Query, isObject,
+    QueryBuilder,
+    isObject,
     isPropertySet,
 } from '@rapiq/core';
 import {
@@ -68,10 +69,10 @@ IQuery
     ): IQuery {
         const schema = this.getBaseSchema<RECORD>(options.schema);
 
-        const output = new Query();
+        const output = new QueryBuilder();
 
         if (!isObject(input)) {
-            return output;
+            return output.build();
         }
 
         const parameterOptions : ParseParameterOptions<RECORD> = {
@@ -89,7 +90,7 @@ IQuery
             }
 
             if (typeof relations !== 'undefined') {
-                output[Parameter.RELATIONS] = relations;
+                output.relations = relations;
                 parameterOptions.relations = relations;
             }
         }
@@ -133,7 +134,7 @@ IQuery
             }
 
             if (typeof filters !== 'undefined') {
-                output[Parameter.FILTERS] = filters;
+                output.filters = filters;
             }
         }
 
@@ -148,7 +149,7 @@ IQuery
             }
 
             if (typeof pagination !== 'undefined') {
-                output[Parameter.PAGINATION] = pagination;
+                output.pagination = pagination;
             }
         }
 
@@ -171,7 +172,7 @@ IQuery
             }
         }
 
-        return output;
+        return output.build();
     }
 
     // -----------------------------------------------------
