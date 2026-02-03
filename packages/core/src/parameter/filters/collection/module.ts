@@ -5,14 +5,22 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { CompoundCondition as BaseCompoundCondition } from '@ucast/core';
-
-import type { Condition } from '../condition';
+import type { Condition, ICondition } from '../condition';
 import type { IFilters, IFiltersVisitor } from './types';
+import { isFilters } from './check';
 
 export class Filters<
     T extends Condition = Condition,
-> extends BaseCompoundCondition<T> implements IFilters<T> {
+> implements IFilters<T> {
+    readonly value: T[];
+
+    readonly operator: string;
+
+    constructor(operator: string, conditions: T[]) {
+        this.operator = operator;
+        this.value = conditions;
+    }
+
     accept<R>(visitor: IFiltersVisitor<R>) : R {
         return visitor.visitFilters(this);
     }
@@ -36,7 +44,7 @@ export class Filters<
         );
     }
 
-    protected flattenInternal<F extends Condition>(
+    protected flattenInternal<F extends ICondition>(
         conditions: F[],
         operator: string,
         aggregatedResult?: F[],
@@ -46,7 +54,7 @@ export class Filters<
         for (let i = 0, { length } = conditions; i < length; i++) {
             const currentNode = conditions[i];
 
-            if (Filters.check(currentNode, operator)) {
+            if (isFilters(currentNode, operator)) {
                 currentNode.flatten(flatConditions);
             } else {
                 flatConditions.push(currentNode);
@@ -54,20 +62,5 @@ export class Filters<
         }
 
         return flatConditions;
-    }
-
-    static check(
-        condition: Condition,
-        operator?: string,
-    ) : condition is Filters {
-        if (!(condition instanceof Filters)) {
-            return false;
-        }
-
-        if (operator) {
-            return operator === condition.operator;
-        }
-
-        return true;
     }
 }

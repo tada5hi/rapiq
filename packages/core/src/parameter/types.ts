@@ -12,7 +12,6 @@ import type {
     IFilter,
     IFilters,
 } from './filters';
-import type { Query } from './module';
 import type {
     IRelation,
     IRelations,
@@ -32,7 +31,7 @@ export type QueryContext = {
 };
 
 export interface IQueryVisitor<R> {
-    visitQuery(expr: Query) : R;
+    visitQuery(expr: IQuery) : R;
 }
 
 export interface IQuery {

@@ -15,18 +15,18 @@ import {
     FiltersParseError,
     applyMapping,
     isObject,
-    isPathAllowed,
-    isPropertyNameValid, parseKey, stringifyKey,
+    isPathAllowed, isPropertyNameValid, parseKey, stringifyKey,
 } from '@rapiq/core';
 
 import type {
-    Condition,
     FiltersParseOptions,
+    ICondition,
     IFilter,
     IFilters,
     ObjectLiteral,
     Relations,
     Scalar,
+
     TempType,
 } from '@rapiq/core';
 
@@ -216,16 +216,16 @@ FiltersParseOptions
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
-        let items = this.run(input, {
+        let items: ICondition[] = this.run(input, {
             ...options,
             async: false,
-        }) as unknown as Condition[];
+        });
 
         if (items.length === 0) {
             items = this.buildDefaults(options);
         }
 
-        return new Filters(FilterCompoundOperator.AND, items as unknown as Condition[]);
+        return new Filters(FilterCompoundOperator.AND, items);
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -239,7 +239,7 @@ FiltersParseOptions
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         options: FiltersParseOptions<RECORD> = {},
-    ) : Condition[] {
+    ) : ICondition[] {
         const schema = this.resolveSchema(options.schema);
         if (!schema.default) {
             return [];

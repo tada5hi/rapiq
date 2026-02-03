@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Condition, Filter } from '../../../parameter';
+import type { ICondition, IFilter } from '../../../parameter';
 import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
 import type {
     FiltersOptions,
@@ -15,7 +15,7 @@ import { BaseSchema } from '../../base';
 export class FiltersSchema<
     T extends ObjectLiteral = ObjectLiteral,
 > extends BaseSchema<FiltersOptions<T>> {
-    public default : Condition | undefined;
+    public default : ICondition | undefined;
 
     public defaultIsUndefined : boolean;
 
@@ -52,7 +52,7 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    validate(input: Filter) : MaybeAsync<Filter | undefined | void> {
+    validate(input: IFilter) : MaybeAsync<IFilter | undefined | void> {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }
@@ -62,7 +62,7 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: Condition) {
+    setDefault(input?: ICondition) {
         this.default = input;
         this.defaultIsUndefined = !input;
     }

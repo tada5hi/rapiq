@@ -6,7 +6,6 @@
  */
 
 import type {
-    Condition,
     FiltersParseOptions,
     FiltersSchema,
     IFilter,
@@ -22,6 +21,7 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    isFilters,
     isPathAllowed,
     isPropertyNameValid,
 } from '@rapiq/core';
@@ -45,11 +45,14 @@ FiltersParseOptions
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const expr = this.parseExact(input, options);
-        if (expr instanceof Filters) {
+        if (
+            isFilters(expr, FilterCompoundOperator.AND) ||
+            isFilters(expr, FilterCompoundOperator.OR)
+        ) {
             return expr;
         }
 
-        return new Filters(FilterCompoundOperator.AND, [expr as unknown as Condition]);
+        return new Filters(FilterCompoundOperator.AND, [expr]);
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
