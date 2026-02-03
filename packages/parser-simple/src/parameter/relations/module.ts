@@ -14,10 +14,12 @@ import {
     SortParseError,
     applyMapping,
     isObject,
-    isPathAllowed,
-    parseKey,
+    isPathAllowed, parseKey,
 } from '@rapiq/core';
-import type { ObjectLiteral, RelationsParseOptions } from '@rapiq/core';
+import type {
+    ObjectLiteral, RelationsParseOptions,
+    Schema,
+} from '@rapiq/core';
 
 // --------------------------------------------------
 
@@ -31,12 +33,13 @@ RelationsParseOptions
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const schema = this.resolveSchema(options.schema);
-        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
+        const throwOnFailure = options.throwOnFailure ?? schema?.throwOnFailure;
 
         const output = new Relations();
 
         // If it is an empty array nothing is allowed
         if (
+            schema &&
             Array.isArray(schema.allowed) &&
             schema.allowed.length === 0
         ) {
@@ -50,21 +53,30 @@ RelationsParseOptions
             [DEFAULT_ID]: data,
             ...relationsData
         } = grouped;
+
         if (data) {
             for (let i = 0; i < data.length; i++) {
                 const key = parseKey(data[i]);
-                key.name = applyMapping(key.name, schema.mapping);
+                if (schema) {
+                    key.name = applyMapping(key.name, schema.mapping);
 
-                if (!isPathAllowed(key.name, schema.allowed)) {
-                    if (schema.throwOnFailure) {
-                        throw RelationsParseError.keyInvalid(key.name);
+                    if (!isPathAllowed(key.name, schema.allowed)) {
+                        if (schema.throwOnFailure) {
+                            throw RelationsParseError.keyInvalid(key.name);
+                        }
+
+                        continue;
+                    } else if (
+                        typeof schema.allowed === 'undefined' &&
+                        !this.isValidPath(key.name)
+                    ) {
+                        if (throwOnFailure) {
+                            throw RelationsParseError.keyInvalid(key.name);
+                        }
+
+                        continue;
                     }
-
-                    continue;
-                } else if (
-                    typeof schema.allowed === 'undefined' &&
-                    !this.isValidPath(key.name)
-                ) {
+                } else if (!this.isValidPath(key.name)) {
                     if (throwOnFailure) {
                         throw RelationsParseError.keyInvalid(key.name);
                     }
@@ -78,25 +90,26 @@ RelationsParseOptions
 
         const keys = Object.keys(relationsData);
         for (let i = 0; i < keys.length; i++) {
-            const key = applyMapping(keys[i], schema.mapping);
+            let key : string;
+            let relationSchema : string | Schema | undefined;
 
-            if (!isPathAllowed(key, schema.allowed)) {
-                if (throwOnFailure) {
-                    throw RelationsParseError.keyPathInvalid(key);
+            if (schema) {
+                key = applyMapping(keys[i], schema.mapping);
+
+                if (!isPathAllowed(key, schema.allowed)) {
+                    if (throwOnFailure) {
+                        throw RelationsParseError.keyPathInvalid(key);
+                    }
+
+                    continue;
                 }
 
-                continue;
+                relationSchema = this.registry.resolve(schema.name, key);
+            } else {
+                key = keys[i];
             }
 
             // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, key);
-            if (!relationSchema) {
-                if (throwOnFailure) {
-                    throw RelationsParseError.keyPathInvalid(key);
-                }
-
-                continue;
-            }
 
             const relationOutput = this.parse(
                 relationsData[keys[i]],
@@ -175,9 +188,7 @@ RelationsParseOptions
     protected includeParents(
         data: string[],
     ) : string[] {
-        const output : string[] = [
-            ...data,
-        ];
+        const output : string[] = [...data].reverse();
 
         for (let i = 0; i < data.length; i++) {
             const parts: string[] = data[i].split('.');

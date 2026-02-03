@@ -9,8 +9,8 @@ import type {
     Field,
     Fields,
     Filter,
-    Filters,
-    Query,
+    Filters, Pagination,
+    Query, Relations, Sorts,
 } from '@rapiq/core';
 import type { IEncoder } from '../types';
 import type { ISerializer } from './serializer';
@@ -43,7 +43,22 @@ export class URLEncoder implements IEncoder<string | null> {
         return this.runSerializer(this.visitor.visitFilter(input));
     }
 
+    encodePagination(input: Pagination) {
+        return this.runSerializer(this.visitor.visitPagination(input));
+    }
+
+    encodeRelations(input: Relations) {
+        return this.runSerializer(this.visitor.visitRelations(input));
+    }
+
+    encodeSort(input: Sorts) {
+        return this.runSerializer(this.visitor.visitSorts(input));
+    }
+
     protected runSerializer<T>(serializer: ISerializer<T>) : T {
-        return serializer.serialize();
+        const output = serializer.serialize();
+        serializer.reset();
+
+        return output;
     }
 }

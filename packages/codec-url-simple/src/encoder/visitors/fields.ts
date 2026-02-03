@@ -39,7 +39,12 @@ IFieldVisitor<RecordArraySerializer> {
     visitField(expr: Field): RecordArraySerializer {
         const key = parseKey(expr.name);
 
-        this.serializer.add(key.path || DEFAULT_ID, expr.operator + key.name);
+        this.serializer.add(
+            key.path || DEFAULT_ID,
+            expr.operator ?
+                expr.operator + key.name :
+                key.name,
+        );
 
         return this.serializer;
     }

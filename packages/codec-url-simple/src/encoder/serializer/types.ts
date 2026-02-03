@@ -6,5 +6,6 @@
  */
 
 export interface ISerializer<T = any> {
+    reset() : void;
     serialize() : T;
 }
