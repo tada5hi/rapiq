@@ -5,48 +5,33 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { DEFAULT_ID } from '@rapiq/core';
 import { serializeAsURI } from '../../utils';
 import type { ISerializer } from './types';
 
-export class RecordArraySerializer<
-    ItemType = string,
+export class RecordSerializer<
+    ItemType = any,
 > implements ISerializer<string | null> {
     protected prefix : string | undefined;
 
-    public readonly value : Record<string, ItemType[]>;
+    protected value : Record<string, ItemType>;
 
     constructor(prefix?: string) {
         this.prefix = prefix;
         this.value = {};
     }
 
-    add(key: string, value: ItemType) {
-        if (!this.value[key]) {
-            this.value[key] = [];
-        }
+    reset() {
+        this.value = {};
+    }
 
-        this.value[key].push(value);
+    set(key: string, value: ItemType) {
+        this.value[key] = value;
     }
 
     serialize(): string | null {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {
             return null;
-        }
-
-        if (
-            keys.length === 1 &&
-            keys[0] === DEFAULT_ID
-        ) {
-            return serializeAsURI(
-                this.value[DEFAULT_ID],
-                {
-                    prefixParts: [
-                        ...(this.prefix ? [this.prefix] : []),
-                    ],
-                },
-            );
         }
 
         return serializeAsURI(

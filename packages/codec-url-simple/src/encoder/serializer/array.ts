@@ -13,10 +13,14 @@ export class ArraySerializer<
 > implements ISerializer<string | null> {
     protected prefix : string | undefined;
 
-    public readonly value : ItemType[];
+    protected value : ItemType[];
 
     constructor(prefix?: string) {
         this.prefix = prefix;
+        this.value = [];
+    }
+
+    reset() {
         this.value = [];
     }
 

@@ -40,6 +40,14 @@ export class QuerySerializer implements ISerializer<string | null> {
         );
     }
 
+    reset() : void {
+        this.fields.reset();
+        this.filters.reset();
+        this.pagination.reset();
+        this.relations.reset();
+        this.sort.reset();
+    }
+
     serialize(): string | null {
         const normalized = [
             this.fields.serialize(),

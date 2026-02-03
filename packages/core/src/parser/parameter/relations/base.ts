@@ -6,7 +6,7 @@
  */
 
 import type { Relations } from '../../../parameter';
-import { RelationsSchema, Schema, defineRelationsSchema } from '../../../schema';
+import { RelationsSchema, Schema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { BaseParser } from '../../base';
 
@@ -15,7 +15,7 @@ export abstract class BaseRelationsParser<
 > extends BaseParser<OPTIONS, Relations> {
     protected resolveSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> {
+    >(input?: string | Schema<RECORD> | RelationsSchema<RECORD>) : RelationsSchema<RECORD> | undefined {
         if (typeof input === 'string' || input instanceof Schema) {
             const schema = this.getBaseSchema(input);
             return schema.relations;
@@ -25,6 +25,6 @@ export abstract class BaseRelationsParser<
             return input;
         }
 
-        return defineRelationsSchema();
+        return undefined;
     }
 }
