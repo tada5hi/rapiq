@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/core",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "A tiny library which provides utility types/functions for request and response query handling.",
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
