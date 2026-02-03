@@ -78,25 +78,11 @@ export class QueryVisitor implements IQueryVisitor<IRootAdapter>,
     // -----------------------------------------------------------
 
     visitQuery(input: Query): IRootAdapter {
-        if (input.relations) {
-            input.relations.accept(this.relations);
-        }
-
-        if (input.fields) {
-            input.fields.accept(this.fields);
-        }
-
-        if (input.filters) {
-            input.filters.accept(this.filters);
-        }
-
-        if (input.pagination) {
-            input.pagination.accept(this.pagination);
-        }
-
-        if (input.sorts) {
-            input.sorts.accept(this.sorts);
-        }
+        input.relations.accept(this.relations);
+        input.fields.accept(this.fields);
+        input.filters.accept(this.filters);
+        input.pagination.accept(this.pagination);
+        input.sorts.accept(this.sorts);
 
         return this.container;
     }

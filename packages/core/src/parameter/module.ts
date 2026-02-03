@@ -5,38 +5,42 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type {
-    IField, IFields,
+import type { IFields } from './fields';
+import {
+    Fields,
 } from './fields';
-import type {
-    IFilter, IFilters,
+import type { IFilters } from './filters';
+import {
+    Filters,
 } from './filters';
 import type { IPagination } from './pagination';
-import type {
-    IRelation, IRelations,
-} from './relations';
-import type {
-    ISort, ISorts,
+import { Pagination } from './pagination';
+import type { IRelations } from './relations';
+import { Relations } from './relations';
+import type { ISorts } from './sorts';
+import {
+    Sorts,
 } from './sorts';
 import type { IQuery, IQueryVisitor, QueryContext } from './types';
+import { FilterCompoundOperator } from '../schema';
 
 export class Query implements IQuery {
-    public fields : IFields | IField | undefined;
+    public fields : IFields;
 
-    public filters : IFilters | IFilter | undefined;
+    public filters : IFilters;
 
-    public relations : IRelations | IRelation | undefined;
+    public relations : IRelations;
 
-    public pagination : IPagination | undefined;
+    public pagination : IPagination;
 
-    public sorts : ISorts | ISort | undefined;
+    public sorts : ISorts;
 
     constructor(options: QueryContext = {}) {
-        this.fields = options.fields;
-        this.filters = options.filters;
-        this.relations = options.relations;
-        this.pagination = options.pagination;
-        this.sorts = options.sorts;
+        this.fields = options.fields || new Fields();
+        this.filters = options.filters || new Filters(FilterCompoundOperator.AND, []);
+        this.relations = options.relations || new Relations();
+        this.pagination = options.pagination || new Pagination();
+        this.sorts = options.sorts || new Sorts();
     }
 
     accept<R>(visitor: IQueryVisitor<R>) : R {

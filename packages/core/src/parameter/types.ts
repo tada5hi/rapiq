@@ -6,28 +6,25 @@
  */
 
 import type {
-    IField, IFields,
+    IFields,
 } from './fields';
 import type {
-    IFilter,
     IFilters,
 } from './filters';
 import type {
-    IRelation,
     IRelations,
 } from './relations';
 import type { IPagination } from './pagination';
 import type {
-    ISort,
     ISorts,
 } from './sorts';
 
 export type QueryContext = {
-    fields?: IFields | IField,
-    filters?: IFilters | IFilter,
-    relations?: IRelations | IRelation,
+    fields?: IFields,
+    filters?: IFilters,
+    relations?: IRelations,
     pagination?: IPagination,
-    sorts?: ISorts | ISort
+    sorts?: ISorts
 };
 
 export interface IQueryVisitor<R> {
@@ -35,15 +32,15 @@ export interface IQueryVisitor<R> {
 }
 
 export interface IQuery {
-    fields?: IFields | IField,
+    fields: IFields,
 
-    filters?: IFilters | IFilter,
+    filters: IFilters,
 
-    relations?: IRelations | IRelation,
+    relations: IRelations,
 
-    pagination?: IPagination,
+    pagination: IPagination,
 
-    sorts?: ISorts | ISort
+    sorts: ISorts,
 
     accept<R>(visitor: IQueryVisitor<R>) : R;
 }

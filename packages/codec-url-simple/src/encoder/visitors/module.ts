@@ -70,25 +70,11 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     }
 
     visitQuery(expr: IQuery): QuerySerializer {
-        if (expr.fields) {
-            expr.fields.accept(this.fields);
-        }
-
-        if (expr.filters) {
-            expr.filters.accept(this.filters);
-        }
-
-        if (expr.pagination) {
-            expr.pagination.accept(this.pagination);
-        }
-
-        if (expr.relations) {
-            expr.relations.accept(this.relations);
-        }
-
-        if (expr.sorts) {
-            expr.sorts.accept(this.sort);
-        }
+        expr.fields.accept(this.fields);
+        expr.filters.accept(this.filters);
+        expr.pagination.accept(this.pagination);
+        expr.relations.accept(this.relations);
+        expr.sorts.accept(this.sort);
 
         return this.serializer;
     }

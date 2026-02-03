@@ -8,7 +8,9 @@
 import {
     BasePaginationParser, Pagination, PaginationParseError, isObject,
 } from '@rapiq/core';
-import type { ObjectLiteral, PaginationParseOptions, PaginationSchema } from '@rapiq/core';
+import type {
+    IPagination, ObjectLiteral, PaginationParseOptions, PaginationSchema,
+} from '@rapiq/core';
 
 export class SimplePaginationParser<
     OPTIONS extends PaginationParseOptions = PaginationParseOptions,
@@ -18,7 +20,7 @@ export class SimplePaginationParser<
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
-    ) : Pagination {
+    ) : IPagination {
         const schema = this.resolveSchema(options.schema);
 
         const output = new Pagination();

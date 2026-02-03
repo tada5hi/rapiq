@@ -7,7 +7,6 @@
 
 import type {
     IFields,
-    IFilter,
     IFilters,
     IPagination,
     IQuery,
@@ -118,7 +117,7 @@ IQuery
         }
 
         if (!this.skipParameter(options.filters)) {
-            let filters : IFilters | IFilter | undefined;
+            let filters : IFilters | undefined;
             if (isPropertySet(input, Parameter.FILTERS)) {
                 // todo: parse parameter & url-parameter
                 filters = this.parseFilters(
@@ -218,8 +217,8 @@ IQuery
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
-    ) : IFilters | IFilter {
-        return this.filtersParser.parseExact(input, options);
+    ) : IFilters {
+        return this.filtersParser.parse(input, options);
     }
 
     /**
