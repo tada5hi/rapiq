@@ -1,0 +1,97 @@
+# Conventions
+
+## Tooling
+
+| Tool            | Purpose                                                              |
+|-----------------|----------------------------------------------------------------------|
+| Nx 22           | Task orchestration & caching (`build`, `test`, `lint`; build depends on `^build`) |
+| Rollup 4        | JS bundling per package (`dist/index.mjs` + `dist/index.cjs`), shared root `rollup.config.mjs` |
+| tsc             | Declaration-only emit (`tsconfig.build.json` per package)            |
+| ESLint 8        | `@tada5hi/eslint-config-typescript` (root `.eslintrc`)               |
+| Jest 30         | Tests (see [testing.md](testing.md))                                 |
+| husky + lint-staged | Pre-commit `eslint --fix` on staged `*.{vue,js,ts}`; `commit-msg` runs commitlint |
+| release-please  | Automated versioning/changelogs (workspaces plugin, updates peer deps) |
+| pkg-pr-new      | Preview package publishing for PRs                                   |
+
+## Workflow
+
+- After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
+- When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url-simple) — they peer-depend on it.
+- User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.MD`.
+
+## Code Style
+
+- **Module format**: ESM source; dual CJS/ESM build output.
+- **Indentation**: 4 spaces.
+- **Linting**: `@tada5hi/eslint-config-typescript`; locally disabled rules: `class-methods-use-this`, `no-continue`, `no-shadow`, `no-use-before-define`, `no-useless-constructor`.
+- Every source file starts with the copyright header block (copy it from a neighboring file).
+
+## Naming Conventions
+
+| Pattern | When to use | Examples |
+|---------|-------------|----------|
+| `I*` interface prefix | Behavioral contracts implemented by classes | `IQuery`, `IFilterVisitor`, `IRootAdapter` |
+| Plural/singular class pairs | Collection node vs single record node | `Filters`/`Filter`, `Sorts`/`Sort`, `Fields`/`Field` |
+| `define*` factories | Public construction helpers returning class instances | `defineSchema`, `defineFieldsSchema` |
+| `Base*` | Abstract shared base classes | `BaseParser`, `BaseSchema`, `BaseError` |
+| Dialect/backend prefix | Per-package implementations of core interfaces | `SimpleFiltersParser`, `ExpressionParser`, `TypeormAdapter` |
+| UPPER_SNAKE const objects | Enum-like constants (`as const` objects + derived types) | `FilterFieldOperator`, `SortDirection`, `Parameter`, `URLParameter` |
+
+## File Organization
+
+- Exported **types** (interfaces, type aliases) live in a `types.ts` next to the implementation; constants in `constants.ts`; main implementation in `module.ts`.
+- Barrel `index.ts` files re-export from `types.ts`, `constants.ts`, and `module.ts`; the package's public API is whatever `src/index.ts` re-exports.
+- Per-parameter code is split into `{fields,filters,pagination,relations,sorts}/` directories — keep new parameter logic in the matching directory across all packages.
+
+## Pre-commit Hooks
+
+Husky runs on every commit:
+
+1. **lint-staged** — `npm run lint:fix` on staged `*.{vue,js,ts}` files
+2. **commitlint** (`commit-msg` hook) — validates Conventional Commits format via `@tada5hi/commitlint-config`
+
+## Commit Convention
+
+Commits follow **Conventional Commits** (angular preset):
+
+```
+feat(core): add elemMatch filter operator
+fix: make query properties readonly
+chore: update release-please configuration
+```
+
+No AI-attribution trailers in commits, issues, or PRs (see AGENTS.md).
+
+## TypeScript
+
+- Base config from `@tada5hi/tsconfig`; per-package `tsconfig.build.json` for declaration emit.
+- Heavy use of recursive conditional types for typed key paths (`NestedKeys<T>`, depth-limited to avoid infinite recursion) — be careful when touching `packages/core/src/types.ts`; small changes can explode type-check time.
+- TypeScript 5.9 pinned at the root.
+
+## Build Output
+
+- Each package builds to `dist/`: `index.mjs` (ESM), `index.cjs` (CJS), `index.d.ts` (types) — wired via the `exports` map in each `package.json`.
+- `npm run build` (root) = `npx nx run-many -t build`; `prepublishOnly` rebuilds per package.
+
+## Release Process
+
+- **release-please** (`release-please-config.json`, manifest-driven) manages versions and changelogs across workspaces; currently in `prerelease: true` mode with `alpha` versioning, and it bumps internal peer dependency ranges automatically.
+- Release workflow: `.github/workflows/release.yml`; CI runs on `develop`, `master`, `next`, `beta`, `alpha`.
+- Do not bump versions or edit `CHANGELOG.md` manually.
+
+## References
+
+External project references live in `.agents/references/` — one Markdown file per external project (e.g. `.agents/references/typeorm.md`). When looking up source code in a referenced project (TypeORM, qs, pathtrace, smob), update the corresponding reference file with:
+
+- The source file path / function name in the external project
+- The corresponding file path / function name in this project
+- Any behavioral differences between the implementations
+
+This builds a cumulative mapping over time so future work can quickly find corresponding code without re-searching.
+
+## Documentation Site
+
+| Change | Docs to update |
+|--------|----------------|
+| Parameter syntax/semantics (fields, filters, sort, …) | `packages/docs/guide/` API reference pages |
+| New package or export | `packages/docs/guide/` + root `README.MD` |
