@@ -97,15 +97,15 @@ Both parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-
   ```typescript
   parser.parse({
       fields: ['id', 'name'],
-      filters: { name: 'John', age: { $gte: 18 } },
+      filters: { name: 'John', age: '>=18' },
       pagination: { limit: 10, offset: 0 },
       relations: ['realm', 'items'],
       sort: { name: 'DESC' },
   }, { registry, schema: 'user' });
   ```
-- **`ExpressionParser`** (`packages/parser-expression/src/module.ts`) — infix string expressions, tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
+- **`ExpressionParser`** (`packages/parser-expression/src/module.ts`) — function-call filter expressions (values always single-quoted), tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
   ```
-  name eq 'John' and age gte 18 or status in (active,pending)
+  or(and(eq(name, 'John'), gte(age, '18')), in(status, 'active', 'pending'))
   ```
 
 ### Backend adapters

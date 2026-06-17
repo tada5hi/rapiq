@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+    <defs>
+        <linearGradient id="rq-grad" x1="4" y1="44" x2="44" y2="4" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#7c3aed"/>
+            <stop offset="1" stop-color="#06b6d4"/>
+        </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="44" height="44" rx="10" fill="url(#rq-grad)"/>
+    <!-- magnifier circle: querying -->
+    <circle cx="21" cy="21" r="9.5" stroke="#fff" stroke-width="3.5"/>
+    <path d="M28 28 L37 37" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- filter lines inside the lens -->
+    <path d="M16.5 18.5h9M18 22h6M19.5 25.5h3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>

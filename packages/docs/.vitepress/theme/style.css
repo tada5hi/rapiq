@@ -1,0 +1,40 @@
+/*
+ * Design tokens for the marketing components (--rq-*).
+ *
+ * Every color used by the landing-page components resolves through
+ * these custom properties, which are bound to VitePress's own theme
+ * variables — so light/dark mode works without per-component variants.
+ */
+
+:root {
+    /* brand — violet → cyan, echoing the rapiq 🌈 rainbow */
+    --vp-c-brand-1: #7c3aed;
+    --vp-c-brand-2: #8b5cf6;
+    --vp-c-brand-3: #8b5cf6;
+    --vp-c-brand-soft: rgba(139, 92, 246, 0.14);
+
+    --rq-color-bg: var(--vp-c-bg);
+    --rq-color-bg-muted: var(--vp-c-bg-soft);
+    --rq-color-bg-elevated: var(--vp-c-bg-alt);
+    --rq-color-fg: var(--vp-c-text-1);
+    --rq-color-fg-muted: var(--vp-c-text-2);
+    --rq-color-border: var(--vp-c-divider);
+    --rq-color-border-muted: var(--vp-c-gutter);
+
+    --rq-color-primary: var(--vp-c-brand-1);
+    --rq-color-primary-strong: #6d28d9;
+    --rq-color-accent: #06b6d4;
+    --rq-color-success: #10b981;
+    --rq-color-warning: #f59e0b;
+    --rq-color-error: #ef4444;
+}
+
+.dark {
+    --vp-c-brand-1: #a78bfa;
+    --vp-c-brand-2: #8b5cf6;
+    --vp-c-brand-3: #7c3aed;
+    --vp-c-brand-soft: rgba(139, 92, 246, 0.18);
+
+    --rq-color-primary-strong: #8b5cf6;
+    --rq-color-accent: #22d3ee;
+}

@@ -10,4 +10,7 @@ coverage
 npm-debug.log*
 .idea
 reports
-docs/.vitepress/cache
+packages/docs/.vitepress/cache
+packages/docs/.temp
+.agents/plans
+.claude

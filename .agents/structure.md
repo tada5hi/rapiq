@@ -8,7 +8,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 |-----------------------------------------------------------|----------|-----------------------------------------------------------------------------|
 | [@rapiq/core](../packages/core)                           | Library  | Query AST (fields/filters/pagination/relations/sorts), visitor interfaces, schema system + registry, parser base classes, errors |
 | [@rapiq/parser-simple](../packages/parser-simple)         | Library  | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
-| [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses an infix expression language (e.g. `age gte 18 and name eq 'John'`) into a `Query` |
+| [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/codec-url-simple](../packages/codec-url-simple)   | Library  | URL query-string encoder (`URLEncoder`) & decoder (`URLDecoder`) for the simple dialect; uses `qs` |
 | [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
