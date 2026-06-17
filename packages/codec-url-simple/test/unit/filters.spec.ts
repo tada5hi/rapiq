@@ -34,4 +34,30 @@ describe('filters', () => {
             [filter],
         )).toEqual(decoded);
     });
+
+    it.each([
+        [FilterFieldOperator.NOT_EQUAL, 'id', 1, '!1'],
+        [FilterFieldOperator.LESS_THAN, 'age', 18, '<18'],
+        [FilterFieldOperator.LESS_THAN_EQUAL, 'age', 18, '<=18'],
+        [FilterFieldOperator.GREATER_THAN, 'age', 18, '>18'],
+        [FilterFieldOperator.GREATER_THAN_EQUAL, 'age', 18, '>=18'],
+        [FilterFieldOperator.CONTAINS, 'name', 'foo', '~foo~'],
+        [FilterFieldOperator.NOT_CONTAINS, 'name', 'foo', '!~foo~'],
+        [FilterFieldOperator.STARTS_WITH, 'name', 'foo', 'foo~'],
+        [FilterFieldOperator.NOT_STARTS_WITH, 'name', 'foo', '!foo~'],
+        [FilterFieldOperator.ENDS_WITH, 'name', 'foo', '~foo'],
+        [FilterFieldOperator.NOT_ENDS_WITH, 'name', 'foo', '!~foo'],
+    ])('should encode & decode %s filter', async (operator, field, value, expected) => {
+        const filter = new Filter(operator, field, value);
+
+        const encoded = encoder.encodeFilter(filter);
+        expect(decodeURIComponent(encoded!)).toEqual(`filter[${field}]=${expected}`);
+
+        const decoded = decoder.decodeFilters(encoded!);
+
+        expect(new Filters(
+            FilterCompoundOperator.AND,
+            [filter],
+        )).toEqual(decoded);
+    });
 });
