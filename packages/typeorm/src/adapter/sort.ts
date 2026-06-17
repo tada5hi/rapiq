@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SortBaseAdapter, pg } from '@rapiq/sql';
+import { SortBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
@@ -25,10 +25,10 @@ export class SortAdapter<
     }
 
     escapeField(field: string) {
-        if (this.query) {
-            return this.query.escape(field);
-        }
-        return pg.escapeField(field);
+        // order-by keys must stay `alias.property` — TypeORM resolves
+        // them against its alias map and escapes on its own; pre-escaped
+        // names break entity hydration as soon as a join is present.
+        return field;
     }
 
     execute() {
