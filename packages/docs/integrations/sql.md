@@ -25,7 +25,7 @@ import { mysql, pg } from '@rapiq/sql';
 ```
 
 ::: warning
-The `mssql` preset throws for `regexp` — SQL Server has no regex operator. The `contains` / `startsWith` / `endsWith` filter operators lower to regex conditions, so they are unavailable with that preset.
+The `mssql` preset throws for `regexp` — SQL Server has no regexp operator. The `contains` / `startsWith` / `endsWith` filter operators lower to regexp conditions, so they are unavailable with that preset.
 :::
 
 ## Rendering filters

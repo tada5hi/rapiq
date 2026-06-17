@@ -60,11 +60,13 @@ const urlOutput = computed(() => {
         return '/users';
     }
 
-    try {
-        return `/users?${decodeURIComponent(encoded)}`;
-    } catch {
-        return `/users?${encoded}`;
-    }
+    // Decode only the structural delimiters (`[`, `]`, `,`) for readability —
+    // never the value content, so encoded separators inside a value (`%26`,
+    // `%3D`) stay encoded and the displayed URL keeps its real wire format.
+    return `/users?${encoded
+        .replace(/%5B/g, '[')
+        .replace(/%5D/g, ']')
+        .replace(/%2C/g, ',')}`;
 });
 
 const sqlOutput = computed(() => {

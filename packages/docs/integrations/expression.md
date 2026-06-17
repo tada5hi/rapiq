@@ -10,7 +10,7 @@ npm install @rapiq/core @rapiq/parser-simple @rapiq/parser-expression
 
 Conditions are function-call expressions; `and` / `or` / `not` compose them:
 
-```
+```txt
 and(eq(name, 'John'), gte(age, '18'))
 or(in(status, 'active', 'pending'), gt(age, '65'))
 not(eq(name, 'foo'))
