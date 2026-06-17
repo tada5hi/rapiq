@@ -8,6 +8,8 @@
 import {
     Field,
     Fields,
+    Relation,
+    Relations,
     SchemaRegistry, defineSchema,
 } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
@@ -32,6 +34,43 @@ describe('src/parser', () => {
 
         expect(output.fields).toEqual(new Fields([
             new Field('id'),
+        ]));
+    });
+
+    it('should keep relations when other parameters are parsed', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'realm',
+            fields: {
+                allowed: ['id', 'name'],
+            },
+        }));
+        registry.add(defineSchema({
+            name: 'user',
+            schemaMapping: { realm: 'realm' },
+            fields: {
+                allowed: ['id', 'name', 'age'],
+            },
+            relations: {
+                allowed: ['realm'],
+            },
+            sort: {
+                allowed: ['id', 'age'],
+            },
+        }));
+
+        const parser = new SimpleParser(registry);
+
+        const output = parser.parse({
+            fields: ['id', 'name'],
+            relations: ['realm'],
+            sort: '-age',
+        }, {
+            schema: 'user',
+        });
+
+        expect(output.relations).toEqual(new Relations([
+            new Relation('realm'),
         ]));
     });
 });

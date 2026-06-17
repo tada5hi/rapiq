@@ -20,21 +20,24 @@ export class Relations implements IRelations {
         return visitor.visitRelations(this);
     }
 
+    /**
+     * Collect the child relations below a given root
+     * (e.g. root "items" yields "realm" for "items.realm").
+     *
+     * The collection itself is left untouched — parsers share one
+     * relations instance across all parameters, so consuming entries
+     * here would corrupt the parsed query.
+     */
     extract(root: string): IRelations {
-        const removed: Relations = new Relations();
+        const children: Relations = new Relations();
 
-        for (let i = this.value.length - 1; i >= 0; i--) {
-            if (this.value[i].name === root) {
-                this.value.splice(i, 1);
-                continue;
-            }
-
-            if (this.value[i].name.substring(0, root.length) === root) {
-                removed.value.push(new Relation(this.value[i].name.substring(root.length + 1)));
-                this.value.splice(i, 1);
+        const prefix = `${root}.`;
+        for (let i = 0; i < this.value.length; i++) {
+            if (this.value[i].name.substring(0, prefix.length) === prefix) {
+                children.value.push(new Relation(this.value[i].name.substring(prefix.length)));
             }
         }
 
-        return removed;
+        return children;
     }
 }
