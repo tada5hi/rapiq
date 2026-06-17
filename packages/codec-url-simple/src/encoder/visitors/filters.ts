@@ -79,6 +79,8 @@ IFilterVisitor<RecordSerializer> {
                 expr.field,
                 URLFilterOperator.GREATER_THAN + normalized,
             );
+
+            return this.serializer;
         }
 
         if (expr.operator === FilterFieldOperator.GREATER_THAN_EQUAL) {
@@ -86,9 +88,63 @@ IFilterVisitor<RecordSerializer> {
                 expr.field,
                 URLFilterOperator.GREATER_THAN_EQUAL + normalized,
             );
+
+            return this.serializer;
         }
 
-        // todo: like missing
+        if (expr.operator === FilterFieldOperator.CONTAINS) {
+            this.serializer.set(
+                expr.field,
+                URLFilterOperator.LIKE + normalized + URLFilterOperator.LIKE,
+            );
+
+            return this.serializer;
+        }
+
+        if (expr.operator === FilterFieldOperator.NOT_CONTAINS) {
+            this.serializer.set(
+                expr.field,
+                URLFilterOperator.NEGATION + URLFilterOperator.LIKE + normalized + URLFilterOperator.LIKE,
+            );
+
+            return this.serializer;
+        }
+
+        if (expr.operator === FilterFieldOperator.STARTS_WITH) {
+            this.serializer.set(
+                expr.field,
+                normalized + URLFilterOperator.LIKE,
+            );
+
+            return this.serializer;
+        }
+
+        if (expr.operator === FilterFieldOperator.NOT_STARTS_WITH) {
+            this.serializer.set(
+                expr.field,
+                URLFilterOperator.NEGATION + normalized + URLFilterOperator.LIKE,
+            );
+
+            return this.serializer;
+        }
+
+        if (expr.operator === FilterFieldOperator.ENDS_WITH) {
+            this.serializer.set(
+                expr.field,
+                URLFilterOperator.LIKE + normalized,
+            );
+
+            return this.serializer;
+        }
+
+        if (expr.operator === FilterFieldOperator.NOT_ENDS_WITH) {
+            this.serializer.set(
+                expr.field,
+                URLFilterOperator.NEGATION + URLFilterOperator.LIKE + normalized,
+            );
+
+            return this.serializer;
+        }
 
         this.serializer.set(expr.field, normalized);
 

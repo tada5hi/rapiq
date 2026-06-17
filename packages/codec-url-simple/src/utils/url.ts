@@ -12,7 +12,7 @@ type Options = {
 };
 
 function buildKey(parts: string[]) {
-    return parts.reduce((acc, curr) => `${acc}[${curr}]`, '');
+    return parts.reduce((acc, curr) => (acc === '' ? curr : `${acc}[${curr}]`), '');
 }
 
 export function serializeAsURI(data: unknown, options: Options = {}) : string {
