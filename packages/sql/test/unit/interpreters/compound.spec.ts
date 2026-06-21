@@ -7,12 +7,14 @@
 
 import { Filter, Filters } from '@rapiq/core';
 import {
-    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
+    FiltersAdapter, 
+    type FiltersContainerOptions, 
+    FiltersVisitor, 
+    RelationsAdapter, 
+    pg,
 } from '../../../src';
 
-const options: FiltersContainerOptions = {
-    ...pg,
-};
+const options: FiltersContainerOptions = { ...pg };
 
 describe('compound operators', () => {
     let adapter : FiltersAdapter;

@@ -6,7 +6,8 @@
  */
 
 import type {
-    ISortVisitor, ISortsVisitor,
+    ISortVisitor, 
+    ISortsVisitor,
     Sort,
     Sorts,
 } from '@rapiq/core';

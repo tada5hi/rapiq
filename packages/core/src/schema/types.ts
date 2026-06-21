@@ -11,7 +11,8 @@ import type {
     FiltersOptions,
     FiltersSchema,
     PaginationOptions,
-    PaginationSchema, RelationsOptions,
+    PaginationSchema, 
+    RelationsOptions,
     RelationsSchema,
     SortOptions,
     SortSchema,
@@ -42,7 +43,7 @@ export type VerifyFn<
     CONTEXT extends Record<PropertyKey, any> = Record<string, any>,
 > = (
     value: VALUE,
-    context: CONTEXT
+    context: CONTEXT,
 ) => Promise<VALUE>;
 
 export type SchemaOptionsNormalized<

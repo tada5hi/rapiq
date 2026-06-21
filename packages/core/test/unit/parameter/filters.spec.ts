@@ -125,9 +125,7 @@ describe('src/parameter/filters/record/*.ts', () => {
 
         it('should fall back to visitFilter when the operator method is absent', () => {
             // Only the mandatory method is implemented — every operator must route to it.
-            const visitor : IFilterVisitor<string> = {
-                visitFilter: () => 'fallback',
-            };
+            const visitor : IFilterVisitor<string> = { visitFilter: () => 'fallback' };
             OPERATOR_METHOD.forEach(([operator]) => {
                 expect(new Filter(operator, 'field', 1).accept(visitor)).toBe('fallback');
             });

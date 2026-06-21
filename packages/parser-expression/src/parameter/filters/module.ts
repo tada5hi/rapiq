@@ -32,7 +32,7 @@ import type { FilterExpressionParseOptions, FilterToken } from './types';
  * @see https://www.jsonapi.net/usage/reading/filtering.html
  */
 export class ExpressionFiltersParser extends BaseFiltersParser<
-FiltersParseOptions
+    FiltersParseOptions
 > {
     private tokens: FilterToken[] = [];
 
@@ -94,7 +94,7 @@ FiltersParseOptions
         const regex = /\s+|and|or|eq|ne|gte|gt|lte|lt|contains|startsWith|endsWith|nin|in|null|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
 
         let match: RegExpExecArray | null;
-        // eslint-disable-next-line no-cond-assign
+         
         while ((match = regex.exec(input))) {
             const value = match[0];
             if (/^\s+$/.test(value)) continue;
@@ -456,7 +456,7 @@ FiltersParseOptions
 
             if (
                 !schema.allowedIsUndefined &&
-                schema.allowed.indexOf(key) === -1
+                !schema.allowed.includes(key)
             ) {
                 throw FiltersParseError.keyInvalid(key);
             }

@@ -32,12 +32,8 @@ export class Adapter<
     // -----------------------------------------------------------
 
     constructor(options: AdapterOptions) {
-        this.relations = new RelationsAdapter<QUERY>({
-            join: () => true,
-        });
-        this.fields = new FieldsAdapter(this.relations, {
-            escapeField: options.escapeField,
-        });
+        this.relations = new RelationsAdapter<QUERY>({ join: () => true });
+        this.fields = new FieldsAdapter(this.relations, { escapeField: options.escapeField });
 
         this.filters = new FiltersAdapter(this.relations, {
             paramPlaceholder: options.paramPlaceholder,
@@ -47,9 +43,7 @@ export class Adapter<
 
         this.pagination = new PaginationAdapter<QUERY>();
 
-        this.sort = new SortAdapter(this.relations, {
-            escapeField: options.escapeField,
-        });
+        this.sort = new SortAdapter(this.relations, { escapeField: options.escapeField });
     }
 
     // -----------------------------------------------------------

@@ -12,11 +12,7 @@ export async function createRoleSeed(dataSource: DataSource) : Promise<Role[]> {
     const repository = dataSource.getRepository(Role);
 
     return repository.save([
-        {
-            name: 'admin',
-        },
-        {
-            name: 'moderator',
-        },
+        { name: 'admin' },
+        { name: 'moderator' },
     ]);
 }

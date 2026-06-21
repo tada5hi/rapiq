@@ -9,8 +9,6 @@ import { ParseError } from '../../../errors';
 
 export class PaginationParseError extends ParseError {
     static limitExceeded(limit: number) {
-        return new this({
-            message: `The pagination limit must not exceed the value of ${limit}.`,
-        });
+        return new this({ message: `The pagination limit must not exceed the value of ${limit}.` });
     }
 }

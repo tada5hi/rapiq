@@ -5,11 +5,11 @@
 | Tool            | Purpose                                                              |
 |-----------------|----------------------------------------------------------------------|
 | Nx 22           | Task orchestration & caching (`build`, `test`, `lint`; build depends on `^build`) |
-| Rollup 4        | JS bundling per package (`dist/index.mjs` + `dist/index.cjs`), shared root `rollup.config.mjs` |
-| tsc             | Declaration-only emit (`tsconfig.build.json` per package)            |
-| ESLint 8        | `@tada5hi/eslint-config-typescript` (root `.eslintrc`)               |
-| Jest 30         | Tests (see [testing.md](testing.md))                                 |
-| husky + lint-staged | Pre-commit `eslint --fix` on staged `*.{vue,js,ts}`; `commit-msg` runs commitlint |
+| tsdown 0.22     | Bundle + dts per package (`build:js`); ESM-only `dist/index.mjs` + `dist/index.d.mts`; per-package `tsdown.config.ts` |
+| tsc 6           | Type-check only (`--noEmit`, `build:types`, src-scoped `tsconfig.build.json` per package) |
+| ESLint 10       | Flat config (`eslint.config.mjs`) via `@tada5hi/eslint-config` + `typescript-eslint` |
+| Vitest 4        | Tests (see [testing.md](testing.md))                                 |
+| husky           | `commit-msg` hook runs commitlint                                   |
 | release-please  | Automated versioning/changelogs (workspaces plugin, updates peer deps) |
 | pkg-pr-new      | Preview package publishing for PRs                                   |
 
@@ -21,9 +21,9 @@
 
 ## Code Style
 
-- **Module format**: ESM source; dual CJS/ESM build output.
+- **Module format**: ESM source; ESM-only build output (`"type": "module"`, no CJS).
 - **Indentation**: 4 spaces.
-- **Linting**: `@tada5hi/eslint-config-typescript`; locally disabled rules: `class-methods-use-this`, `no-continue`, `no-shadow`, `no-use-before-define`, `no-useless-constructor`.
+- **Linting**: `@tada5hi/eslint-config` (flat); locally disabled rules: `class-methods-use-this`, `no-continue`, `no-shadow`, `no-use-before-define`, `no-useless-constructor` (see root `eslint.config.mjs`).
 - Every source file starts with the copyright header block (copy it from a neighboring file).
 
 ## Naming Conventions
@@ -43,12 +43,11 @@
 - Barrel `index.ts` files re-export from `types.ts`, `constants.ts`, and `module.ts`; the package's public API is whatever `src/index.ts` re-exports.
 - Per-parameter code is split into `{fields,filters,pagination,relations,sorts}/` directories — keep new parameter logic in the matching directory across all packages.
 
-## Pre-commit Hooks
+## Git Hooks
 
-Husky runs on every commit:
+Husky runs a single hook:
 
-1. **lint-staged** — `npm run lint:fix` on staged `*.{vue,js,ts}` files
-2. **commitlint** (`commit-msg` hook) — validates Conventional Commits format via `@tada5hi/commitlint-config`
+- **commitlint** (`commit-msg` hook) — validates Conventional Commits format via `@tada5hi/commitlint-config` (`commitlint.config.mjs`)
 
 ## Commit Convention
 
@@ -64,14 +63,14 @@ No AI-attribution trailers in commits, issues, or PRs (see AGENTS.md).
 
 ## TypeScript
 
-- Base config from `@tada5hi/tsconfig`; per-package `tsconfig.build.json` for declaration emit.
+- Base config from `@tada5hi/tsconfig`. Per package: `tsconfig.json` (src + test, includes `vitest/globals` types — for editor & ESLint) and `tsconfig.build.json` (src-only — used by `build:types`' `tsc --noEmit` and by tsdown).
 - Heavy use of recursive conditional types for typed key paths (`NestedKeys<T>`, depth-limited to avoid infinite recursion) — be careful when touching `packages/core/src/types.ts`; small changes can explode type-check time.
-- TypeScript 5.9 pinned at the root.
+- TypeScript 6 at the root.
 
 ## Build Output
 
-- Each package builds to `dist/`: `index.mjs` (ESM), `index.cjs` (CJS), `index.d.ts` (types) — wired via the `exports` map in each `package.json`.
-- `npm run build` (root) = `npx nx run-many -t build`; `prepublishOnly` rebuilds per package.
+- Each package builds to `dist/`: `index.mjs` (ESM) + `index.d.mts` (types) — ESM-only, wired via the `exports` map (`import` + `types` conditions) in each `package.json`.
+- Per package, `build` = `build:types` (`tsc --noEmit`) then `build:js` (`tsdown`). `npm run build` (root) = `npx nx run-many -t build`; `prepublishOnly` rebuilds per package.
 
 ## Release Process
 

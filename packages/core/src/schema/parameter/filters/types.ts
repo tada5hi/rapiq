@@ -8,7 +8,8 @@
 import type { ICondition, IFilter } from '../../../parameter';
 import type {
     MaybeAsync,
-    ObjectLiteral, SimpleKeys,
+    ObjectLiteral, 
+    SimpleKeys,
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 

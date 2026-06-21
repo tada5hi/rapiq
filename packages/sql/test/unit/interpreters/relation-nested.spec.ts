@@ -7,17 +7,19 @@
 
 import { Filter } from '@rapiq/core';
 import {
-    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
+    FiltersAdapter, 
+    type FiltersContainerOptions, 
+    FiltersVisitor, 
+    RelationsAdapter, 
+    pg,
 } from '../../../src';
 
 const spy = {
-    on: jest.spyOn,
-    restore: (..._args: any[]) => jest.clearAllMocks(),
+    on: vi.spyOn,
+    restore: (..._args: any[]) => vi.clearAllMocks(),
 };
 
-const options: FiltersContainerOptions = {
-    ...pg,
-};
+const options: FiltersContainerOptions = { ...pg };
 
 describe('auto join', () => {
     let adapter : FiltersAdapter;

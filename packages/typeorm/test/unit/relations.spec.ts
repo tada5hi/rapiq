@@ -44,11 +44,7 @@ describe('src/relations', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({
-            relations: {
-                joinAndSelect: true,
-            },
-        });
+        const adapter = new TypeormAdapter({ relations: { joinAndSelect: true } });
         adapter.withQuery(queryBuilder);
         const visitor = new RelationsVisitor(adapter.relations);
         relations.accept(visitor);

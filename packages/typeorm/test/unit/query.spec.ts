@@ -72,8 +72,8 @@ describe('src/query', () => {
 
         const entities = await queryBuilder.getMany();
         expect(entities.length).toBeGreaterThan(0);
-        for (let i = 0; i < entities.length; i++) {
-            expect(entities[i].age).toBeGreaterThanOrEqual(18);
+        for (const entity of entities) {
+            expect(entity.age).toBeGreaterThanOrEqual(18);
         }
     });
 });

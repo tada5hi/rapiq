@@ -13,10 +13,13 @@ import {
     Fields,
     FieldsParseError,
     applyMapping,
-    groupArrayByKeyPath, isObject, isPathAllowed,
+    groupArrayByKeyPath, 
+    isObject, 
+    isPathAllowed,
 } from '@rapiq/core';
 import type {
-    IFields, ObjectLiteral,
+    IFields, 
+    ObjectLiteral,
     Relations,
 } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
@@ -96,9 +99,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         }
 
         const grouped : Record<string, Record<string, any>> = {};
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-
+        for (const key of keys) {
             let group : string;
             let relation : string;
 
@@ -120,9 +121,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
 
         const groupedKeys = Object.keys(grouped);
 
-        for (let i = 0; i < groupedKeys.length; i++) {
-            const key = groupedKeys[i];
-
+        for (const key of groupedKeys) {
             if (!isPathAllowed(key, options.relations)) {
                 if (schema.throwOnFailure) {
                     throw FieldsParseError.keyPathInvalid(key);
@@ -175,7 +174,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             typeof input === 'string' ||
             Array.isArray(input)
         ) {
-            let temp : unknown[] = [];
+            let temp : unknown[];
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
@@ -183,8 +182,8 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             }
 
             const parts : string[] = [];
-            for (let i = 0; i < temp.length; i++) {
-                if (typeof temp[i] !== 'string') {
+            for (const element of temp) {
+                if (typeof element !== 'string') {
                     if (throwOnFailure) {
                         throw FieldsParseError.inputInvalid();
                     }
@@ -192,7 +191,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
                     continue;
                 }
 
-                parts.push(temp[i] as string);
+                parts.push(element as string);
             }
 
             if (parts.length > 0) {
@@ -206,18 +205,18 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             const output : Record<string, string[]> = {};
 
             const keys = Object.keys(input);
-            for (let i = 0; i < keys.length; i++) {
-                const temp = this.normalize(input[keys[i]], throwOnFailure);
+            for (const key of keys) {
+                const temp = this.normalize(input[key], throwOnFailure);
                 const tempKeys = Object.keys(temp);
 
-                for (let j = 0; j < tempKeys.length; j++) {
+                for (const tempKey of tempKeys) {
                     let nextKey : string;
-                    if (tempKeys[j] === DEFAULT_ID) {
-                        nextKey = keys[i];
+                    if (tempKey === DEFAULT_ID) {
+                        nextKey = key;
                     } else {
-                        nextKey = `${keys[i]}.${tempKeys[j]}`;
+                        nextKey = `${key}.${tempKey}`;
                     }
-                    output[nextKey] = temp[tempKeys[j]];
+                    output[nextKey] = temp[tempKey];
                 }
             }
 

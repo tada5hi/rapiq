@@ -6,7 +6,10 @@
  */
 
 import {
-    Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
+    Filter, 
+    FilterCompoundOperator, 
+    FilterFieldOperator, 
+    Filters,
 } from '@rapiq/core';
 import { URLDecoder, URLEncoder } from '../../src';
 

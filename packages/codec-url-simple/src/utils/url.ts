@@ -42,13 +42,13 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
             return '';
         }
 
-        for (let i = 0; i < keys.length; i++) {
-            let value = data[keys[i]];
+        for (const key of keys) {
+            let value = data[key];
 
             if (isObject(value)) {
                 query.push(serializeAsURI(value, {
                     ...options,
-                    prefixParts: [...prefixParts, keys[i]],
+                    prefixParts: [...prefixParts, key],
                 }));
 
                 continue;
@@ -57,7 +57,7 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
             if (Array.isArray(value)) {
                 query.push(serializeAsURI(value, {
                     ...options,
-                    prefixParts: [...prefixParts, keys[i]],
+                    prefixParts: [...prefixParts, key],
                 }));
 
                 continue;
@@ -68,7 +68,7 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
             }
 
             if (value) {
-                const destinationKey = buildKey([...prefixParts, keys[i]]);
+                const destinationKey = buildKey([...prefixParts, key]);
                 // Encode each key and value, concatenate them into a string, and push them to the array
                 query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
             }

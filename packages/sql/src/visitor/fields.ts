@@ -6,7 +6,11 @@
  */
 
 import type {
-    FieldOperator, IField, IFieldVisitor, IFields, IFieldsVisitor,
+    FieldOperator, 
+    IField, 
+    IFieldVisitor, 
+    IFields, 
+    IFieldsVisitor,
 } from '@rapiq/core';
 import type { IFieldsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';

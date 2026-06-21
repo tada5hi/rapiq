@@ -5,22 +5,26 @@
  * view the LICENSE file that was distributed with this source code.
  */
 import {
-    Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn,
+    Column, 
+    Entity, 
+    JoinColumn, 
+    ManyToOne, 
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Realm } from './realm';
 
 @Entity()
 export class Role {
     @PrimaryGeneratedColumn()
-        id: number;
+    id: number;
 
     @Column()
-        name: string;
+    name: string;
 
     @Column({ nullable: true })
-        realm_id: number;
+    realm_id: number;
 
     @ManyToOne(() => Realm, (role: Realm) => role.id, { nullable: true })
     @JoinColumn({ name: 'realm_id' })
-        realm: Realm;
+    realm: Realm;
 }

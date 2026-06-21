@@ -14,20 +14,22 @@ import {
     SortParseError,
     applyMapping,
     isObject,
-    isPathAllowed, parseKey,
+    isPathAllowed, 
+    parseKey,
 } from '@rapiq/core';
 import type {
-    ObjectLiteral, RelationsParseOptions,
+    ObjectLiteral, 
+    RelationsParseOptions,
     Schema,
 } from '@rapiq/core';
 
 // --------------------------------------------------
 
 export class SimpleRelationsParser extends BaseRelationsParser<
-RelationsParseOptions
+    RelationsParseOptions
 > {
     parse<
-    RECORD extends ObjectLiteral = ObjectLiteral,
+        RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
@@ -55,8 +57,8 @@ RelationsParseOptions
         } = grouped;
 
         if (data) {
-            for (let i = 0; i < data.length; i++) {
-                const key = parseKey(data[i]);
+            for (const datum of data) {
+                const key = parseKey(datum);
                 if (schema) {
                     key.name = applyMapping(key.name, schema.mapping);
 
@@ -89,12 +91,12 @@ RelationsParseOptions
         }
 
         const keys = Object.keys(relationsData);
-        for (let i = 0; i < keys.length; i++) {
+        for (const key_ of keys) {
             let key : string;
             let relationSchema : string | Schema | undefined;
 
             if (schema) {
-                key = applyMapping(keys[i], schema.mapping);
+                key = applyMapping(key_, schema.mapping);
 
                 if (!isPathAllowed(key, schema.allowed)) {
                     if (throwOnFailure) {
@@ -106,13 +108,13 @@ RelationsParseOptions
 
                 relationSchema = this.registry.resolve(schema.name, key);
             } else {
-                key = keys[i];
+                key = key_;
             }
 
             // todo: also pass options.schema
 
             const relationOutput = this.parse(
-                relationsData[keys[i]],
+                relationsData[key_],
                 {
                     schema: relationSchema,
                     throwOnFailure: options.throwOnFailure,
@@ -138,15 +140,14 @@ RelationsParseOptions
             typeof input === 'string' ||
             Array.isArray(input)
         ) {
-            let temp: unknown[] = [];
+            let temp: unknown[];
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
                 temp = input;
             }
 
-            for (let i = 0; i < temp.length; i++) {
-                const key = temp[i];
+            for (const key of temp) {
                 if (typeof key !== 'string') {
                     if (throwOnFailure) {
                         throw SortParseError.inputInvalid();
@@ -163,9 +164,9 @@ RelationsParseOptions
 
         if (isObject(input)) {
             const keys = Object.keys(input);
-            for (let i = 0; i < keys.length; i++) {
-                if (typeof input[keys[i]] === 'string') {
-                    const path = `${keys[i]}.${input[keys[i]]}`;
+            for (const key of keys) {
+                if (typeof input[key] === 'string') {
+                    const path = `${key}.${input[key]}`;
 
                     output.push(path);
                 }
@@ -190,15 +191,15 @@ RelationsParseOptions
     ) : string[] {
         const output : string[] = [...data].reverse();
 
-        for (let i = 0; i < data.length; i++) {
-            const parts: string[] = data[i].split('.');
+        for (const datum of data) {
+            const parts: string[] = datum.split('.');
 
             while (parts.length > 0) {
                 parts.pop();
 
                 if (parts.length > 0) {
                     const value = parts.join('.');
-                    if (output.indexOf(value) === -1) {
+                    if (!output.includes(value)) {
                         output.push(value);
                     }
                 }

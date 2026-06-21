@@ -2,9 +2,9 @@
 
 ## Setup
 
-- **Runner**: Jest 30 with `@swc/jest` / `ts-jest` (per-package configs)
+- **Runner**: Vitest 4 (native TS via Vite/esbuild, no transform config needed)
 - **Test location**: `packages/<pkg>/test/unit/**/*.spec.ts`
-- **Config**: `packages/<pkg>/test/jest.config.js` (one per package)
+- **Config**: `packages/<pkg>/test/vitest.config.ts` (one per package; `globals: true`, v8 coverage)
 - **Fixtures**: `packages/<pkg>/test/data/` (shared schemas, record types)
 
 ## Running Tests
@@ -16,7 +16,7 @@ npm run test --workspace=packages/core -- -t "filters"   # filter by test name
 npm run test:coverage --workspace=packages/core   # with coverage
 ```
 
-Tests run with `NODE_ENV=test` (set via `cross-env` in each package's script). Nx caches `test` targets — pass `--skip-nx-cache` to `npx nx run-many -t test` if you suspect stale results.
+Vitest sets `NODE_ENV=test` automatically. Nx caches `test` targets — pass `--skip-nx-cache` to `npx nx run-many -t test` if you suspect stale results.
 
 ## Test Layers
 
@@ -42,7 +42,7 @@ describe('src/utils/*.ts', () => {
 
 Tests should assert *expected* behavior based on the documented query semantics (JSON-API style parameters, schema allow-lists) — not merely confirm what the implementation currently does. If a test fails, it may surface a real bug rather than a test error.
 
-**Prefer real instances over mocks.** Core classes (`Query`, `Schema`, `SchemaRegistry`, parsers, adapters) are cheap to construct; build real object graphs from `test/data/` fixtures instead of using `jest.fn()` / `jest.mock()`.
+**Prefer real instances over mocks.** Core classes (`Query`, `Schema`, `SchemaRegistry`, parsers, adapters) are cheap to construct; build real object graphs from `test/data/` fixtures instead of using `vi.fn()` / `vi.mock()`. Globals (`describe`/`it`/`expect`/`vi`) are enabled via `globals: true`, so specs need no imports from `vitest`.
 
 ## CI Pipeline
 

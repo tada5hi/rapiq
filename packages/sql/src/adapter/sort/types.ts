@@ -9,7 +9,7 @@ import type { SortDirection } from '@rapiq/core';
 import type { IAdapter } from '../types';
 
 export interface ISortAdapter<
-QUERY extends Record<string, any> = Record<string, any>,
+    QUERY extends Record<string, any> = Record<string, any>,
 > extends IAdapter<QUERY> {
     add(input: string, value: `${SortDirection}`) : void;
 }

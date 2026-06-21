@@ -9,7 +9,7 @@ import { DEFAULT_ID } from '../constants';
 import { isObject } from './object';
 
 export function diffArray<T = unknown>(target: T[], src: T[]): T[] {
-    return target.filter((el) => src.indexOf(el) === -1);
+    return target.filter((el) => !src.includes(el));
 }
 
 export function buildKeyPath(key: string, prefix?: string) {
@@ -24,7 +24,7 @@ type Options = {
     transformer?: (
         input: unknown,
         output: string[],
-        prefix?: string
+        prefix?: string,
     ) => boolean | undefined
 };
 
@@ -45,34 +45,34 @@ export function toKeyPathArray(
     }
 
     if (Array.isArray(input)) {
-        for (let i = 0; i < input.length; i++) {
+        for (const element of input) {
             if (options.transformer) {
-                const result = options.transformer(input[i], output, prefix);
+                const result = options.transformer(element, output, prefix);
                 if (result) {
                     return output;
                 }
             }
 
-            if (Array.isArray(input[i])) {
-                for (let j = 0; j < input[i].length; j++) {
-                    const key = buildKeyPath(input[i][j], prefix);
+            if (Array.isArray(element)) {
+                for (const element_ of element) {
+                    const key = buildKeyPath(element_, prefix);
                     output.push(key);
                 }
 
                 continue;
             }
 
-            if (typeof input[i] === 'string') {
-                output.push(buildKeyPath(input[i], prefix));
+            if (typeof element === 'string') {
+                output.push(buildKeyPath(element, prefix));
 
                 continue;
             }
 
-            if (isObject(input[i])) {
-                const keys = Object.keys(input[i]);
-                for (let j = 0; j < keys.length; j++) {
-                    const value = buildKeyPath(keys[j] as string, prefix);
-                    const data = toKeyPathArray(input[i][keys[j]], options, value);
+            if (isObject(element)) {
+                const keys = Object.keys(element);
+                for (const key of keys) {
+                    const value = buildKeyPath(key as string, prefix);
+                    const data = toKeyPathArray(element[key], options, value);
                     if (data.length === 0) {
                         output.push(value);
                     } else {
@@ -87,9 +87,9 @@ export function toKeyPathArray(
 
     if (isObject(input)) {
         const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            const value = buildKeyPath(keys[i], prefix);
-            const data = toKeyPathArray(input[keys[i]], options, value);
+        for (const key of keys) {
+            const value = buildKeyPath(key, prefix);
+            const data = toKeyPathArray(input[key], options, value);
             if (data.length === 0) {
                 output.push(value);
             } else {
@@ -115,9 +115,7 @@ export function groupArrayByKeyPath(
 ): Record<string, string[]> {
     const output: Record<string, string[]> = {};
 
-    for (let i = 0; i < input.length; i++) {
-        const element = input[i];
-
+    for (const element of input) {
         let key: string;
         let name: string;
 

@@ -58,8 +58,7 @@ export class SchemaRegistry {
 
     resolve(...input: (undefined | Schema | string)[]) : Schema | undefined {
         const normalized : (Schema | string)[] = [];
-        for (let i = 0; i < input.length; i++) {
-            const current = input[i];
+        for (const current of input) {
             if (typeof current === 'string') {
                 normalized.push(...current.split('.'));
             } else if (current instanceof Schema) {

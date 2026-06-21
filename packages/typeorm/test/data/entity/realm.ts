@@ -16,8 +16,8 @@ import {
 @Entity()
 export class Realm {
     @PrimaryGeneratedColumn()
-        id: number;
+    id: number;
 
     @Column()
-        name: string;
+    name: string;
 }

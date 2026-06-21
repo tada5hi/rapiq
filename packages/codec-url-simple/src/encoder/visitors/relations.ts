@@ -6,7 +6,8 @@
  */
 
 import type {
-    IRelationVisitor, IRelationsVisitor,
+    IRelationVisitor, 
+    IRelationsVisitor,
     Relation,
     Relations,
 } from '@rapiq/core';

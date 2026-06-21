@@ -2,15 +2,14 @@
     "name": "@rapiq/sql",
     "version": "1.0.0",
     "description": "A SQL extension for rapiq.",
-    "main": "dist/index.cjs",
-    "module": "dist/index.mjs",
-    "types": "dist/index.d.ts",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
     "exports": {
         "./package.json": "./package.json",
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.cjs"
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
         }
     },
     "files": [
@@ -23,14 +22,11 @@
         "@rapiq/core": "^1.0.0"
     },
     "scripts": {
-        "build:types": "tsc --emitDeclarationOnly -p tsconfig.build.json",
-        "build:js": "rollup -c",
-        "build": "rimraf dist && npm run build:types && npm run build:js",
-        "commit": "npx git-cz",
-        "test": "cross-env NODE_ENV=test jest --config ./test/jest.config.js",
-        "test:coverage": "cross-env NODE_ENV=test jest --config ./test/jest.config.js --coverage",
-        "lint": "eslint --ext .js,.ts ./src",
-        "lint:fix": "npm run lint -- --fix",
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
         "prepublishOnly": "npm run build"
     },
     "author": {

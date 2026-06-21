@@ -8,6 +8,4 @@
 import { mysql } from './mysql';
 import type { DialectOptions } from './types';
 
-export const sqlite : DialectOptions = {
-    ...mysql,
-};
+export const sqlite : DialectOptions = { ...mysql };

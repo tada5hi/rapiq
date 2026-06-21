@@ -18,9 +18,7 @@ export function parseKey(
 ) : KeyDetails {
     const matches = KEY_REGEX.exec(input);
     if (!matches) {
-        return {
-            name: input,
-        };
+        return { name: input };
     }
 
     const [, group, path, key] = matches;

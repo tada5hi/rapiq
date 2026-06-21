@@ -15,7 +15,10 @@ import {
     FiltersParseError,
     applyMapping,
     isObject,
-    isPathAllowed, isPropertyNameValid, parseKey, stringifyKey,
+    isPathAllowed, 
+    isPropertyNameValid, 
+    parseKey, 
+    stringifyKey,
 } from '@rapiq/core';
 
 import type {
@@ -34,7 +37,7 @@ import { URLFilterOperator } from './constants';
 import type { SimpleFiltersParserInput } from './types';
 
 export class SimpleFiltersParser extends BaseFiltersParser<
-FiltersParseOptions
+    FiltersParseOptions
 > {
     protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
@@ -105,8 +108,8 @@ FiltersParseOptions
         const output : IFilter[] = [];
 
         let keys = Object.keys(data.attributes);
-        for (let i = 0; i < keys.length; i++) {
-            const key = parseKey(keys[i]);
+        for (const key_ of keys) {
+            const key = parseKey(key_);
             key.name = applyMapping(key.name, schema.mapping);
 
             if (
@@ -122,7 +125,7 @@ FiltersParseOptions
 
             if (
                 !schema.allowedIsUndefined &&
-                schema.allowed.indexOf(key.name) === -1
+                !schema.allowed.includes(key.name)
             ) {
                 if (throwOnFailure) {
                     throw FiltersParseError.keyInvalid(key.name);
@@ -131,7 +134,7 @@ FiltersParseOptions
                 continue;
             }
 
-            const valueParsed = this.parseValue(data.attributes[keys[i]]);
+            const valueParsed = this.parseValue(data.attributes[key_]);
             if (!valueParsed) {
                 if (throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(key.name);
@@ -165,32 +168,32 @@ FiltersParseOptions
         }
 
         keys = Object.keys(data.relations);
-        for (let i = 0; i < keys.length; i++) {
-            if (!isPathAllowed(keys[i], options.relations)) {
+        for (const key of keys) {
+            if (!isPathAllowed(key, options.relations)) {
                 if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(keys[i]);
+                    throw FiltersParseError.keyPathInvalid(key);
                 }
 
                 continue;
             }
 
             // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, keys[i]);
+            const relationSchema = this.registry.resolve(schema.name, key);
             if (!relationSchema) {
                 if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(keys[i]);
+                    throw FiltersParseError.keyPathInvalid(key);
                 }
 
                 continue;
             }
 
             if (typeof options.relations !== 'undefined') {
-                relations = options.relations.extract(keys[i]);
+                relations = options.relations.extract(key);
             }
 
             const children = this.runFor(
-                keys[i],
-                data.relations[keys[i]],
+                key,
+                data.relations[key],
                 {
                     ...options,
                     relations,
@@ -262,7 +265,7 @@ FiltersParseOptions
 
         try {
             value = this.normalizeValue(input);
-        } catch (e) {
+        } catch {
             return undefined;
         }
 
@@ -436,8 +439,8 @@ FiltersParseOptions
         if (Array.isArray(input)) {
             const output : Scalar[] = [];
 
-            for (let i = 0; i < input.length; i++) {
-                const temp = this.normalizeValue(input[i]);
+            for (const element of input) {
+                const temp = this.normalizeValue(element);
                 if (Array.isArray(temp)) {
                     output.push(...temp);
                 } else {

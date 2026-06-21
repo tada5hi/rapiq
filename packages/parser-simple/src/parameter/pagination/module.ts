@@ -6,10 +6,16 @@
  */
 
 import {
-    BasePaginationParser, Pagination, PaginationParseError, isObject,
+    BasePaginationParser, 
+    Pagination, 
+    PaginationParseError, 
+    isObject,
 } from '@rapiq/core';
 import type {
-    IPagination, ObjectLiteral, PaginationParseOptions, PaginationSchema,
+    IPagination, 
+    ObjectLiteral, 
+    PaginationParseOptions, 
+    PaginationSchema,
 } from '@rapiq/core';
 
 export class SimplePaginationParser<
@@ -36,7 +42,7 @@ export class SimplePaginationParser<
         let { limit, offset } = input as Record<string, any>;
 
         if (typeof limit !== 'undefined') {
-            limit = parseInt(limit, 10);
+            limit = Number.parseInt(limit, 10);
 
             if (!Number.isNaN(limit) && limit > 0) {
                 output.limit = limit;
@@ -46,7 +52,7 @@ export class SimplePaginationParser<
         }
 
         if (typeof offset !== 'undefined') {
-            offset = parseInt(offset, 10);
+            offset = Number.parseInt(offset, 10);
 
             if (!Number.isNaN(offset) && offset >= 0) {
                 output.offset = offset;

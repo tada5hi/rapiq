@@ -89,16 +89,16 @@ export class Fields implements IFields {
         explicates: string[],
         options: FieldsExecuteOptions,
     ) {
-        for (let i = 0; i < explicates.length; i++) {
-            let index = options.default.findIndex((item) => item === explicates[i]);
+        for (const explicate of explicates) {
+            let index = options.default.findIndex((item) => item === explicate);
             if (index !== -1) {
-                input.push(explicates[i]);
+                input.push(explicate);
                 continue;
             }
 
-            index = options.allowed.findIndex((item) => item === explicates[i]);
+            index = options.allowed.findIndex((item) => item === explicate);
             if (index !== -1) {
-                input.push(explicates[i]);
+                input.push(explicate);
             }
         }
     }
@@ -108,16 +108,16 @@ export class Fields implements IFields {
         includes: string[],
         options: FieldsExecuteOptions,
     ) {
-        for (let i = 0; i < includes.length; i++) {
-            let index = options.default.findIndex((item) => item === includes[i]);
+        for (const include of includes) {
+            let index = options.default.findIndex((item) => item === include);
             if (index !== -1) {
-                input.push(includes[i]);
+                input.push(include);
                 continue;
             }
 
-            index = options.allowed.findIndex((item) => item === includes[i]);
+            index = options.allowed.findIndex((item) => item === include);
             if (index !== -1) {
-                input.push(includes[i]);
+                input.push(include);
             }
         }
     }
@@ -126,8 +126,8 @@ export class Fields implements IFields {
         input: string[],
         excludes: string[],
     ) : string[] {
-        for (let i = 0; i < excludes.length; i++) {
-            const index = input.findIndex((item) => item === excludes[i]);
+        for (const exclude of excludes) {
+            const index = input.findIndex((item) => item === exclude);
             if (index === -1) {
                 continue;
             }

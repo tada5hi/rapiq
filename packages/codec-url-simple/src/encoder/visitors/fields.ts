@@ -13,7 +13,8 @@ import type {
     IFieldsVisitor,
 } from '@rapiq/core';
 import {
-    DEFAULT_ID, parseKey,
+    DEFAULT_ID, 
+    parseKey,
 } from '@rapiq/core';
 import { URLParameter } from '../../constants';
 import { RecordArraySerializer } from '../serializer';

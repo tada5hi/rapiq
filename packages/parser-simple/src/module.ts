@@ -34,8 +34,8 @@ import {
 import type { ParseOptions } from './types';
 
 export class SimpleParser extends BaseParser<
-ParseOptions,
-Query
+    ParseOptions,
+    Query
 > {
     protected fieldsParser : SimpleFieldsParser;
 
@@ -75,9 +75,7 @@ Query
             return output.build();
         }
 
-        const parameterOptions : ParseParameterOptions<RECORD> = {
-            schema,
-        };
+        const parameterOptions : ParseParameterOptions<RECORD> = { schema };
 
         if (!this.skipParameter(options.relations)) {
             let relations: IRelations | undefined;

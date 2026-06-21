@@ -7,7 +7,8 @@
 
 import type {
     Fields,
-    IInterpreter, ObjectLiteral,
+    IInterpreter, 
+    ObjectLiteral,
 } from '@rapiq/core';
 import {
     FieldsParseError,
@@ -37,14 +38,10 @@ describe('src/fields/index.ts', () => {
     it('should parse fields with name', async () => {
         const schema = defineSchema({
             name: 'user',
-            fields: {
-                allowed: ['id', 'name', 'email'],
-            },
+            fields: { allowed: ['id', 'name', 'email'] },
         });
 
-        const data = parser.parse([], {
-            schema,
-        });
+        const data = parser.parse([], { schema });
 
         expect(interpreter.interpret(data)).toEqual([
             'id',
@@ -59,28 +56,18 @@ describe('src/fields/index.ts', () => {
             name: 'user',
         });
 
-        const data = parser.parse('+email', {
-            schema,
-        });
+        const data = parser.parse('+email', { schema });
         expect(interpreter.interpret(data)).toEqual(['email']);
     });
 
     it('should parse with invalid input (with default)', async () => {
-        const schema = defineSchema({
-            fields: { default: ['id'] },
-        });
-        const data = parser.parse('name', {
-            schema,
-        });
+        const schema = defineSchema({ fields: { default: ['id'] } });
+        const data = parser.parse('name', { schema });
         expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
     it('should parse invalid input (with allowed)', async () => {
-        const schema = defineSchema({
-            fields: {
-                allowed: ['id', 'name'],
-            },
-        });
+        const schema = defineSchema({ fields: { allowed: ['id', 'name'] } });
 
         // fields undefined
         const data = parser.parse(undefined, { schema });
@@ -98,22 +85,14 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should parse with invalid field pattern, if permitted by allowed', async () => {
-        const schema = defineSchema({
-            fields: {
-                allowed: ['name!'],
-            },
-        });
+        const schema = defineSchema({ fields: { allowed: ['name!'] } });
 
         const data = parser.parse(['name!'], { schema });
         expect(interpreter.interpret(data)).toEqual(['name!']);
     });
 
     it('should not parse with empty allowed', async () => {
-        const schema = defineSchema<ObjectLiteral>({
-            fields: {
-                allowed: [],
-            },
-        });
+        const schema = defineSchema<ObjectLiteral>({ fields: { allowed: [] } });
 
         let data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([]);
@@ -123,11 +102,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should not parse with empty default', async () => {
-        const schema = defineSchema<ObjectLiteral>({
-            fields: {
-                default: [],
-            },
-        });
+        const schema = defineSchema<ObjectLiteral>({ fields: { default: [] } });
 
         const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([]);
@@ -181,9 +156,7 @@ describe('src/fields/index.ts', () => {
     it('should parse with single allowed domain', async () => {
         const schema = defineSchema({
             name: 'domain',
-            fields: {
-                allowed: ['id'],
-            },
+            fields: { allowed: ['id'] },
         });
 
         // if only one domain is given, try to parse request field to single domain.
@@ -194,9 +167,7 @@ describe('src/fields/index.ts', () => {
     it('should parse with multiple allowed domains', async () => {
         const schema = defineSchema({
             name: 'domain',
-            fields: {
-                allowed: ['id', 'name'],
-            },
+            fields: { allowed: ['id', 'name'] },
         });
 
         // if multiple possibilities are available for request field, use allowed
@@ -241,9 +212,7 @@ describe('src/fields/index.ts', () => {
     });
 
     it('should parse with defaults', async () => {
-        const schema = defineSchema({
-            fields: { default: ['id', 'name'] },
-        });
+        const schema = defineSchema({ fields: { default: ['id', 'name'] } });
         let data = parser.parse([], { schema });
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
@@ -258,9 +227,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             fields: {
                 allowed: ['id', 'name'],
-                mapping: {
-                    alias: 'id',
-                },
+                mapping: { alias: 'id' },
             },
         });
 
@@ -320,11 +287,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid input shape', async () => {
         const error = FieldsParseError.inputInvalid();
-        expect(() => parser.parse(false, {
-            schema: defineSchema({
-                throwOnFailure: true,
-            }),
-        })).toThrow(error);
+        expect(() => parser.parse(false, { schema: defineSchema({ throwOnFailure: true }) })).toThrow(error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -335,9 +298,7 @@ describe('src/fields/index.ts', () => {
 
         const error = FieldsParseError.keyPathInvalid('bar');
 
-        expect(() => parser.parse({
-            bar: ['bar'],
-        }, {
+        expect(() => parser.parse({ bar: ['bar'] }, {
             schema,
             relations: new Relations([
                 new Relation('user'),
@@ -349,18 +310,14 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({
             name: 'user',
             throwOnFailure: true,
-            fields: {
-                allowed: ['id', 'name', 'email'],
-            },
+            fields: { allowed: ['id', 'name', 'email'] },
         });
 
         expect(() => parser.parse(['baz'], { schema })).toThrow(FieldsParseError);
     });
 
     it('should throw on invalid key (pattern)', async () => {
-        const schema = defineSchema({
-            throwOnFailure: true,
-        });
+        const schema = defineSchema({ throwOnFailure: true });
 
         expect(() => parser.parse(['!.bar'], { schema })).toThrow(FieldsParseError);
     });
