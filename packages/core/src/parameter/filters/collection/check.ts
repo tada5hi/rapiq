@@ -6,13 +6,22 @@
  */
 
 import type { ICondition } from '../condition';
+import { isObject } from '../../../utils';
 import type { IFilters } from './types';
 
 export function isFilters(
     input: ICondition,
     operator?: string,
 ) : input is IFilters {
-    if (!Array.isArray(input)) return false;
+    // A compound `Filters` node is the only `ICondition` that carries a
+    // `flatten` method; a leaf `Filter` never does. This distinguishes the two
+    // reliably, even when a leaf filter's `value` happens to be an array (e.g. `in`).
+    if (
+        !isObject(input) ||
+        typeof (input as Partial<IFilters>).flatten !== 'function'
+    ) {
+        return false;
+    }
 
     if (operator) {
         return operator === input.operator;
