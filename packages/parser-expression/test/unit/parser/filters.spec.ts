@@ -25,6 +25,37 @@ describe('filters/expr-parser', () => {
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
     });
 
+    describe('parse (top-level wrapping)', () => {
+        it('should wrap a single leaf condition in a root AND group', () => {
+            const output = parser.parse('eq(name, \'admin\')');
+
+            expect(output).toEqual(new Filters(
+                FilterCompoundOperator.AND,
+                [new Filter(FilterFieldOperator.EQUAL, 'name', 'admin')],
+            ));
+        });
+
+        it('should return an existing compound group without re-wrapping it', () => {
+            const output = parser.parse('and(eq(name, \'admin\'), eq(age, \'18\'))');
+
+            // Must stay a single AND level — not Filters(AND, [Filters(AND, [...])]).
+            expect(output).toEqual(new Filters(
+                FilterCompoundOperator.AND,
+                [
+                    new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+                    new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+                ],
+            ));
+        });
+
+        it('should keep an OR group at the root without wrapping in AND', () => {
+            const output = parser.parse('or(eq(name, \'admin\'), eq(name, \'guest\'))');
+
+            expect(output.operator).toBe(FilterCompoundOperator.OR);
+            expect(output.value).toHaveLength(2);
+        });
+    });
+
     it('should parse not eq expression', () => {
         const output = parser.parseExact('not(eq(name, \'admin\'))');
 
