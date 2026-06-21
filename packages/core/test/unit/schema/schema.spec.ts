@@ -47,7 +47,9 @@ describe('src/schema/*.ts', () => {
         });
 
         it('should derive the sort allow-list from default keys', () => {
-            const schema = defineSchema<User>({ sort: { default: { name: 'DESC' } } });
+            const schema = defineSchema<User>({
+                sort: { default: { name: 'DESC' } },
+            });
 
             expect(schema.sort.defaultKeys).toEqual(['name']);
             expect(schema.sort.allowedIsUndefined).toBe(false);
