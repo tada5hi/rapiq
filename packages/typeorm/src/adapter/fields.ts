@@ -11,7 +11,7 @@ import { FieldOperator } from '@rapiq/core';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter<
-QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
 > extends FieldsBaseAdapter<QUERY> {
     constructor(relations: RelationsAdapter<QUERY>) {
         super(relations);

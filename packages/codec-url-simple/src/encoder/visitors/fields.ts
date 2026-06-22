@@ -13,7 +13,8 @@ import type {
     IFieldsVisitor,
 } from '@rapiq/core';
 import {
-    DEFAULT_ID, parseKey,
+    DEFAULT_ID, 
+    parseKey,
 } from '@rapiq/core';
 import { URLParameter } from '../../constants';
 import { RecordArraySerializer } from '../serializer';
@@ -29,8 +30,8 @@ IFieldVisitor<RecordArraySerializer> {
     }
 
     visitFields(expr: Fields): RecordArraySerializer {
-        for (let i = 0; i < expr.value.length; i++) {
-            expr.value[i].accept(this);
+        for (const item of expr.value) {
+            item.accept(this);
         }
 
         return this.serializer;

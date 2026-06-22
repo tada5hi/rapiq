@@ -18,27 +18,19 @@ const userSchema = defineSchema<User>({
             'age',
         ],
     },
-    filters: {
-        allowed: ['id', 'name', 'email'],
-    },
+    filters: { allowed: ['id', 'name', 'email'] },
     relations: {
         allowed: [
             'realm',
             'items',
         ],
-        mapping: {
-            abc: 'items',
-        },
+        mapping: { abc: 'items' },
     },
     sort: {
         allowed: ['id', 'name', 'email'],
-        default: {
-            name: 'DESC',
-        },
+        default: { name: 'DESC' },
     },
-    schemaMapping: {
-        items: 'item',
-    },
+    schemaMapping: { items: 'item' },
 });
 
 const itemSchema = defineSchema<Item>({
@@ -48,18 +40,14 @@ const itemSchema = defineSchema<Item>({
             'id',
         ],
     },
-    filters: {
-        allowed: ['id'],
-    },
+    filters: { allowed: ['id'] },
     relations: {
         allowed: [
             'user',
             'realm',
         ],
     },
-    sort: {
-        allowed: ['id'],
-    },
+    sort: { allowed: ['id'] },
 });
 
 const realmSchema = defineSchema<Realm>({
@@ -71,12 +59,8 @@ const realmSchema = defineSchema<Realm>({
             'description',
         ],
     },
-    filters: {
-        allowed: ['id', 'name'],
-    },
-    sort: {
-        allowed: ['id', 'name'],
-    },
+    filters: { allowed: ['id', 'name'] },
+    sort: { allowed: ['id', 'name'] },
 });
 
 const registry = new SchemaRegistry();

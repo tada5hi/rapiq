@@ -10,7 +10,8 @@ import type {
     IFiltersVisitor,
 } from '@rapiq/core';
 import {
-    Filter, FilterFieldOperator,
+    Filter, 
+    FilterFieldOperator,
 
     FilterRegexFlag,
     Filters,

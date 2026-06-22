@@ -16,9 +16,7 @@ export function createDataSourceOptions() : DataSourceOptions {
         type: 'better-sqlite3',
         entities: [Role, User, Realm],
         database: ':memory:',
-        extra: {
-            charset: 'UTF8_GENERAL_CI',
-        },
+        extra: { charset: 'UTF8_GENERAL_CI' },
     };
 }
 

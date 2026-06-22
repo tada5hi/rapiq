@@ -6,12 +6,13 @@
  */
 
 import {
-    PaginationParseError, defineSchema,
+    PaginationParseError, 
+    defineSchema,
 } from '@rapiq/core';
 import type { IInterpreter, Pagination } from '@rapiq/core';
 import { SimplePaginationParser } from '../../../src';
 
-class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number}> {
+class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number }> {
     interpret(input: Pagination): { limit?: number; offset?: number } {
         const output : {
             limit?: number,
@@ -44,11 +45,7 @@ describe('src/pagination/index.ts', () => {
     });
 
     it('should parse pagination', async () => {
-        const schema = defineSchema({
-            pagination: {
-                maxLimit: 50,
-            },
-        });
+        const schema = defineSchema({ pagination: { maxLimit: 50 } });
         let output = await parser.parse(undefined, { schema });
         expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
 
@@ -76,33 +73,21 @@ describe('src/pagination/index.ts', () => {
     });
 
     it('should throw on invalid input', async () => {
-        const schema = defineSchema({
-            pagination: {
-                throwOnFailure: true,
-            },
-        });
+        const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.inputInvalid();
         expect(() => parser.parse(false, { schema })).toThrow(error);
     });
 
     it('should throw on invalid limit', async () => {
-        const schema = defineSchema({
-            pagination: {
-                throwOnFailure: true,
-            },
-        });
+        const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.keyValueInvalid('limit');
         expect(() => parser.parse({ limit: false }, { schema })).toThrow(error);
     });
 
     it('should throw on invalid offset', async () => {
-        const schema = defineSchema({
-            pagination: {
-                throwOnFailure: true,
-            },
-        });
+        const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.keyValueInvalid('offset');
 

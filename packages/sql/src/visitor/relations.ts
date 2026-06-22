@@ -6,7 +6,10 @@
  */
 
 import type {
-    IRelationVisitor, IRelationsVisitor, Relation, Relations,
+    IRelationVisitor, 
+    IRelationsVisitor, 
+    Relation, 
+    Relations,
 } from '@rapiq/core';
 import type { IRelationsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
@@ -34,8 +37,8 @@ IRelationVisitor<IRelationsAdapter> {
     }
 
     visitRelations(expr: Relations): IRelationsAdapter {
-        for (let i = 0; i < expr.value.length; i++) {
-            expr.value[i].accept(this);
+        for (const item of expr.value) {
+            item.accept(this);
         }
 
         return this.adapter;

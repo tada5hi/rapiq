@@ -34,8 +34,8 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
         if (schema.default) {
             const keys = Object.keys(schema.default);
 
-            for (let i = 0; i < keys.length; i++) {
-                const fieldDetails = parseKey(keys[i]);
+            for (const key_ of keys) {
+                const fieldDetails = parseKey(key_);
 
                 let path : string | undefined;
                 if (fieldDetails.path) {
@@ -51,7 +51,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                     key = fieldDetails.name;
                 }
 
-                output.value.push(new Sort(key, schema.default[keys[i]]));
+                output.value.push(new Sort(key, schema.default[key_]));
             }
 
             return output;
@@ -76,12 +76,12 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
         const normalized = this.normalize(input, throwOnFailure);
         const grouped = this.groupObjectByBasePath(normalized);
-        if (
-            schema.name &&
-            grouped[schema.name]
-        ) {
-            grouped[DEFAULT_ID] = grouped[schema.name];
-            delete grouped[schema.name];
+        if (schema.name) {
+            const named = grouped[schema.name];
+            if (named) {
+                grouped[DEFAULT_ID] = named;
+                delete grouped[schema.name];
+            }
         }
 
         const output = new Sorts();
@@ -93,8 +93,8 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
         if (data) {
             const keys = Object.keys(data);
-            for (let i = 0; i < keys.length; i++) {
-                const key = parseKey(keys[i]);
+            for (const key_ of keys) {
+                const key = parseKey(key_);
                 key.name = applyMapping(key.name, schema.mapping);
 
                 if (
@@ -112,7 +112,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                     !schema.allowedIsUndefined &&
                     !this.isMultiDimensionalArray(schema.allowed) &&
                     schema.allowed &&
-                    schema.allowed.indexOf(key.name) === -1
+                    !schema.allowed.includes(key.name)
                 ) {
                     if (throwOnFailure) {
                         throw SortParseError.keyNotPermitted(key.name);
@@ -121,23 +121,22 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                     continue;
                 }
 
-                output.value.push(new Sort(key.name, data[keys[i]]));
+                output.value.push(new Sort(key.name, data[key_]));
             }
 
             if (this.isMultiDimensionalArray(schema.allowed)) {
-                // eslint-disable-next-line no-labels,no-restricted-syntax
+                // eslint-disable-next-line no-labels
                 outerLoop:
-                for (let i = 0; i < schema.allowed.length; i++) {
+                for (const keyPaths of schema.allowed) {
                     const temp = new Sorts();
 
-                    const keyPaths = schema.allowed[i];
-
-                    let index : number;
-
-                    for (let j = 0; j < keyPaths.length; j++) {
-                        index = output.value.findIndex((el) => el.name === keyPaths[j]);
+                    for (const keyPath of keyPaths) {
+                        const index = output.value.findIndex((el) => el.name === keyPath);
                         if (index !== -1) {
-                            temp.value.push(output.value[index]);
+                            const found = output.value[index];
+                            if (found !== undefined) {
+                                temp.value.push(found);
+                            }
                         } else {
                             // eslint-disable-next-line no-labels
                             continue outerLoop;
@@ -157,9 +156,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
         }
 
         const keys = Object.keys(relationsData);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-
+        for (const key of keys) {
             if (!isPathAllowed(key, options.relations)) {
                 if (throwOnFailure) {
                     throw FiltersParseError.keyPathInvalid(key);
@@ -192,9 +189,9 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                 },
             );
 
-            for (let j = 0; j < relationOutput.value.length; j++) {
+            for (const relation of relationOutput.value) {
                 output.value.push(
-                    new Sort(`${key}.${relationOutput.value[j].name}`, relationOutput.value[j].operator),
+                    new Sort(`${key}.${relation.name}`, relation.operator),
                 );
             }
         }
@@ -216,15 +213,14 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
             typeof input === 'string' ||
             Array.isArray(input)
         ) {
-            let temp: unknown[] = [];
+            let temp: unknown[];
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
                 temp = input;
             }
 
-            for (let i = 0; i < temp.length; i++) {
-                const key = temp[i];
+            for (const key of temp) {
                 if (typeof key !== 'string') {
                     if (throwOnFailure) {
                         throw SortParseError.inputInvalid();
@@ -245,12 +241,12 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
         if (isObject(input)) {
             const keys = Object.keys(input);
-            for (let i = 0; i < keys.length; i++) {
-                const value = input[keys[i]];
+            for (const key of keys) {
+                const value = input[key];
                 if (typeof value === 'string') {
                     const lowered = value.toLowerCase();
                     if (lowered === 'desc' || lowered === 'asc') {
-                        output[keys[i]] = lowered === 'desc' ?
+                        output[key] = lowered === 'desc' ?
                             SortDirection.DESC :
                             SortDirection.ASC;
 
@@ -260,16 +256,15 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
                 const temp = this.normalize(value, throwOnFailure);
 
-                const tempKeys = Object.keys(temp);
-                for (let j = 0; j < tempKeys.length; j++) {
+                for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
-                    if (tempKeys[j] === DEFAULT_ID) {
-                        nextKey = keys[i];
+                    if (tempKey === DEFAULT_ID) {
+                        nextKey = key;
                     } else {
-                        nextKey = `${keys[i]}.${tempKeys[j]}`;
+                        nextKey = `${key}.${tempKey}`;
                     }
 
-                    output[nextKey] = temp[tempKeys[j]];
+                    output[nextKey] = value;
                 }
             }
 

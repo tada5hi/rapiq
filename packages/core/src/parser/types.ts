@@ -21,9 +21,9 @@ export type IParserOptions = {
 };
 
 export interface IParser<
-Input = any,
-Output = any,
-Options extends IParserOptions = IParserOptions,
+    Input = any,
+    Output = any,
+    Options extends IParserOptions = IParserOptions,
 > {
     parse(input: Input, options?: Options): Output;
 }

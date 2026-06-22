@@ -21,7 +21,11 @@ import type {
     ISortVisitor,
     ISortsVisitor,
     Pagination,
-    Query, Relation, Relations, Sort, Sorts,
+    Query, 
+    Relation, 
+    Relations, 
+    Sort, 
+    Sorts,
 } from '@rapiq/core';
 import type {
     IFieldsAdapter,

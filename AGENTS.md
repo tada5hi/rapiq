@@ -13,7 +13,7 @@ npm install
 # Development
 npm run build                 # nx run-many -t build (all packages, dependency-ordered)
 npm run test                  # nx run-many -t test (all packages)
-npm run lint                  # eslint ./packages/**/*.{ts,vue}
+npm run lint                  # eslint (flat config, whole monorepo)
 npm run lint:fix
 
 # Per package (from repo root)
@@ -24,7 +24,7 @@ npm run test --workspace=packages/core
 - **Node.js**: 22 (CI primary version)
 - **Package manager**: npm (workspaces: `packages/*`)
 - **Build orchestration**: Nx (`build` depends on `^build`; `build`, `lint`, `test` are cached)
-- **Per-package build**: `tsc --emitDeclarationOnly` (types) + Rollup (`dist/index.mjs` + `dist/index.cjs`)
+- **Per-package build**: `tsc --noEmit` (type-check, `build:types`) + tsdown (bundle + dts, `build:js`); ESM-only output (`dist/index.mjs` + `dist/index.d.mts`)
 
 All publishable packages live in `packages/`; `packages/docs` is the VitePress documentation site.
 
@@ -43,7 +43,7 @@ Note: the root `README.MD` documents the upcoming v2; v1 lives on the `v1` branc
 
 - **[Project Structure](.agents/structure.md)** — Package inventory, dependency layers, and per-package source layout
 - **[Architecture](.agents/architecture.md)** — Query AST, visitor pattern, schema system, parser dialects, and backend adapters
-- **[Testing](.agents/testing.md)** — Jest setup, per-package configs, and test data conventions
+- **[Testing](.agents/testing.md)** — vitest setup, per-package configs, and test data conventions
 - **[Conventions](.agents/conventions.md)** — Linting, file organization, commit format, and release process
 
 ## Commits, Issues & Pull Requests

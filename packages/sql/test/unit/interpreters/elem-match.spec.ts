@@ -14,9 +14,7 @@ import {
     pg,
 } from '../../../src';
 
-const options: FiltersContainerOptions = {
-    ...pg,
-};
+const options: FiltersContainerOptions = { ...pg };
 
 describe('elemMatch', () => {
     let adapter : FiltersAdapter;

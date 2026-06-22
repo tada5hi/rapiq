@@ -10,7 +10,8 @@ import {
     Fields,
     Relation,
     Relations,
-    SchemaRegistry, defineSchema,
+    SchemaRegistry, 
+    defineSchema,
 } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
 
@@ -19,18 +20,12 @@ describe('src/parser', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
             name: 'foo',
-            fields: {
-                allowed: ['id'],
-            },
+            fields: { allowed: ['id'] },
         }));
 
         const parser = new SimpleParser(registry);
 
-        const output = parser.parse({
-            fields: ['id', 'name'],
-        }, {
-            schema: 'foo',
-        });
+        const output = parser.parse({ fields: ['id', 'name'] }, { schema: 'foo' });
 
         expect(output.fields).toEqual(new Fields([
             new Field('id'),
@@ -41,22 +36,14 @@ describe('src/parser', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
             name: 'realm',
-            fields: {
-                allowed: ['id', 'name'],
-            },
+            fields: { allowed: ['id', 'name'] },
         }));
         registry.add(defineSchema({
             name: 'user',
             schemaMapping: { realm: 'realm' },
-            fields: {
-                allowed: ['id', 'name', 'age'],
-            },
-            relations: {
-                allowed: ['realm'],
-            },
-            sort: {
-                allowed: ['id', 'age'],
-            },
+            fields: { allowed: ['id', 'name', 'age'] },
+            relations: { allowed: ['realm'] },
+            sort: { allowed: ['id', 'age'] },
         }));
 
         const parser = new SimpleParser(registry);
@@ -65,9 +52,7 @@ describe('src/parser', () => {
             fields: ['id', 'name'],
             relations: ['realm'],
             sort: '-age',
-        }, {
-            schema: 'user',
-        });
+        }, { schema: 'user' });
 
         expect(output.relations).toEqual(new Relations([
             new Relation('realm'),

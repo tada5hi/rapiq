@@ -25,17 +25,13 @@ describe('parser/fields/schema', () => {
     });
 
     it('should parse root schema', async () => {
-        const output = parser.parse('id,name', {
-            schema: 'user',
-        });
+        const output = parser.parse('id,name', { schema: 'user' });
 
         expect(interpreter.interpret(output)).toEqual(['id', 'name']);
     });
 
     it('should not parse root schema', async () => {
-        const output = parser.parse('id,name,foo', {
-            schema: 'user',
-        });
+        const output = parser.parse('id,name,foo', { schema: 'user' });
 
         expect(interpreter.interpret(output)).toEqual([
             'id',
@@ -46,9 +42,7 @@ describe('parser/fields/schema', () => {
     it('should parse with valid sub schema field', async () => {
         const output = parser.parse(
             'user.name,realm.name',
-            {
-                schema: 'user',
-            },
+            { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([
@@ -60,9 +54,7 @@ describe('parser/fields/schema', () => {
     it('should parse with invalid sub schema field', async () => {
         const output = parser.parse(
             'user.name,realm.foo',
-            {
-                schema: 'user',
-            },
+            { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([
@@ -76,9 +68,7 @@ describe('parser/fields/schema', () => {
     it('should parse with valid sub sub schema field', async () => {
         const output = parser.parse(
             'user.name,item.realm.name',
-            {
-                schema: 'user',
-            },
+            { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([
@@ -91,9 +81,7 @@ describe('parser/fields/schema', () => {
     it('should parse with invalid sub sub schema field', async () => {
         const output = parser.parse(
             'user.name,item.realm.foo',
-            {
-                schema: 'user',
-            },
+            { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([

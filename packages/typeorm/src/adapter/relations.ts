@@ -26,9 +26,9 @@ export class RelationsAdapter<
         }
 
         // todo: mark items applied
-        for (let i = 0; i < this.value.length; i++) {
+        for (const relation of this.value) {
             // todo: sub paths might already applied ...
-            this.join(this.value[i].path);
+            this.join(relation.path);
         }
     }
 

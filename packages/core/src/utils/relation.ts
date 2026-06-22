@@ -16,8 +16,8 @@ export function isPathAllowed(
     }
 
     if (Array.isArray(allowed)) {
-        return allowed.some(
-            (include) => include === path,
+        return allowed.includes(
+            path,
         );
     }
 

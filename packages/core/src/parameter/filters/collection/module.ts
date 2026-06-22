@@ -41,9 +41,7 @@ export class Filters<
     ) {
         const flatConditions: F[] = aggregatedResult || [];
 
-        for (let i = 0, { length } = conditions; i < length; i++) {
-            const currentNode = conditions[i];
-
+        for (const currentNode of conditions) {
             if (isFilters(currentNode, operator)) {
                 currentNode.flatten(flatConditions);
             } else {

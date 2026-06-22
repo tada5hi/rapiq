@@ -8,6 +8,4 @@
 import { oracle } from './oracle';
 import type { DialectOptions } from './types';
 
-export const pg : DialectOptions = {
-    ...oracle,
-};
+export const pg : DialectOptions = { ...oracle };

@@ -13,10 +13,13 @@ import {
     Fields,
     FieldsParseError,
     applyMapping,
-    groupArrayByKeyPath, isObject, isPathAllowed,
+    groupArrayByKeyPath, 
+    isObject, 
+    isPathAllowed,
 } from '@rapiq/core';
 import type {
-    IFields, ObjectLiteral,
+    IFields, 
+    ObjectLiteral,
     Relations,
 } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
@@ -37,12 +40,12 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
 
         const normalized = this.normalize(input, schema.throwOnFailure);
 
-        if (
-            schema.name &&
-            normalized[schema.name]
-        ) {
-            normalized[DEFAULT_ID] = normalized[schema.name];
-            delete normalized[schema.name];
+        if (schema.name) {
+            const named = normalized[schema.name];
+            if (named) {
+                normalized[DEFAULT_ID] = named;
+                delete normalized[schema.name];
+            }
         }
 
         const data = normalized[DEFAULT_ID] || [];
@@ -51,30 +54,30 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         const fields = new Fields();
 
         if (data.length > 0) {
-            for (let j = 0; j < data.length; j++) {
+            for (let value of data) {
                 let operator: FieldOperator | undefined;
 
-                const character = data[j].substring(0, 1);
+                const character = value.substring(0, 1);
                 if (
                     character === FieldOperator.INCLUDE ||
                     character === FieldOperator.EXCLUDE
                 ) {
                     operator = character;
 
-                    data[j] = data[j].substring(1);
+                    value = value.substring(1);
                 }
 
-                data[j] = applyMapping(data[j], schema.mapping);
+                value = applyMapping(value, schema.mapping);
 
-                if (!schema.isValid(data[j])) {
+                if (!schema.isValid(value)) {
                     if (schema.throwOnFailure) {
-                        throw FieldsParseError.keyNotPermitted(data[j]);
+                        throw FieldsParseError.keyNotPermitted(value);
                     }
 
                     continue;
                 }
 
-                fields.value.push(new Field(data[j], operator));
+                fields.value.push(new Field(value, operator));
             }
         }
 
@@ -86,19 +89,17 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         const keys = Object.keys(normalized);
 
         if (options.relations) {
-            for (let i = 0; i < options.relations.value.length; i++) {
-                const index = keys.indexOf(options.relations.value[i].name);
+            for (const relation of options.relations.value) {
+                const index = keys.indexOf(relation.name);
                 if (index === -1) {
-                    keys.push(options.relations.value[i].name);
-                    normalized[options.relations.value[i].name] = [];
+                    keys.push(relation.name);
+                    normalized[relation.name] = [];
                 }
             }
         }
 
         const grouped : Record<string, Record<string, any>> = {};
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-
+        for (const key of keys) {
             let group : string;
             let relation : string;
 
@@ -111,18 +112,14 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
                 relation = key.substring(index + 1);
             }
 
-            if (!grouped[group]) {
-                grouped[group] = {};
-            }
-
-            grouped[group][relation] = normalized[key];
+            const groupRecord = grouped[group] ?? {};
+            grouped[group] = groupRecord;
+            groupRecord[relation] = normalized[key];
         }
 
         const groupedKeys = Object.keys(grouped);
 
-        for (let i = 0; i < groupedKeys.length; i++) {
-            const key = groupedKeys[i];
-
+        for (const key of groupedKeys) {
             if (!isPathAllowed(key, options.relations)) {
                 if (schema.throwOnFailure) {
                     throw FieldsParseError.keyPathInvalid(key);
@@ -175,7 +172,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             typeof input === 'string' ||
             Array.isArray(input)
         ) {
-            let temp : unknown[] = [];
+            let temp : unknown[];
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
@@ -183,8 +180,8 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             }
 
             const parts : string[] = [];
-            for (let i = 0; i < temp.length; i++) {
-                if (typeof temp[i] !== 'string') {
+            for (const element of temp) {
+                if (typeof element !== 'string') {
                     if (throwOnFailure) {
                         throw FieldsParseError.inputInvalid();
                     }
@@ -192,7 +189,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
                     continue;
                 }
 
-                parts.push(temp[i] as string);
+                parts.push(element as string);
             }
 
             if (parts.length > 0) {
@@ -206,18 +203,16 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             const output : Record<string, string[]> = {};
 
             const keys = Object.keys(input);
-            for (let i = 0; i < keys.length; i++) {
-                const temp = this.normalize(input[keys[i]], throwOnFailure);
-                const tempKeys = Object.keys(temp);
-
-                for (let j = 0; j < tempKeys.length; j++) {
+            for (const key of keys) {
+                const temp = this.normalize(input[key], throwOnFailure);
+                for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
-                    if (tempKeys[j] === DEFAULT_ID) {
-                        nextKey = keys[i];
+                    if (tempKey === DEFAULT_ID) {
+                        nextKey = key;
                     } else {
-                        nextKey = `${keys[i]}.${tempKeys[j]}`;
+                        nextKey = `${key}.${tempKey}`;
                     }
-                    output[nextKey] = temp[tempKeys[j]];
+                    output[nextKey] = value;
                 }
             }
 

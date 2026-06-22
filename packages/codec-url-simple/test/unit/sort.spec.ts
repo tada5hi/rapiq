@@ -6,7 +6,8 @@
  */
 
 import {
-    Sort, Sorts,
+    Sort, 
+    Sorts,
 } from '@rapiq/core';
 import { URLDecoder, URLEncoder } from '../../src';
 

@@ -6,7 +6,8 @@
  */
 
 import type {
-    IRelationVisitor, IRelationsVisitor,
+    IRelationVisitor, 
+    IRelationsVisitor,
     Relation,
     Relations,
 } from '@rapiq/core';
@@ -25,8 +26,8 @@ IRelationVisitor<ArraySerializer> {
     }
 
     visitRelations(expr: Relations): ArraySerializer {
-        for (let i = 0; i < expr.value.length; i++) {
-            expr.value[i].accept(this);
+        for (const item of expr.value) {
+            item.accept(this);
         }
 
         return this.serializer;

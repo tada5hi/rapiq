@@ -65,11 +65,11 @@ export abstract class BaseParser<
         const output : Record<string, any> = aggregated || {};
 
         const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            if (isObject(input[keys[i]])) {
-                setPathValue(output, keys[i], this.expandObject(input[keys[i]], output));
+        for (const key of keys) {
+            if (isObject(input[key])) {
+                setPathValue(output, key, this.expandObject(input[key], output));
             } else {
-                setPathValue(output, keys[i], input[keys[i]]);
+                setPathValue(output, key, input[key]);
             }
         }
 
@@ -83,11 +83,11 @@ export abstract class BaseParser<
         };
 
         const keys = Object.keys(input);
-        for (let i = 0; i < keys.length; i++) {
-            if (isObject(input[keys[i]])) {
-                output.relations[keys[i]] = this.groupObject(input[keys[i]]);
+        for (const key of keys) {
+            if (isObject(input[key])) {
+                output.relations[key] = this.groupObject(input[key]);
             } else {
-                output.attributes[keys[i]] = input[keys[i]];
+                output.attributes[key] = input[key];
             }
         }
 
@@ -108,7 +108,10 @@ export abstract class BaseParser<
                     output[prefix] = {} as T;
                 }
 
-                output[prefix][key as keyof T] = input[keys[index]] as T[keyof T];
+                const sourceKey = keys[index];
+                if (sourceKey !== undefined) {
+                    output[prefix][key as keyof T] = input[sourceKey] as T[keyof T];
+                }
             },
         );
 
@@ -139,11 +142,11 @@ export abstract class BaseParser<
         cb: (
             prefix: string,
             key: string,
-            index: number
+            index: number,
         ) => void,
     ) : void {
-        for (let i = 0; i < items.length; i++) {
-            const key = parseKey(items[i]);
+        for (const [i, item] of items.entries()) {
+            const key = parseKey(item);
 
             let prefix : string;
             if (key.path) {

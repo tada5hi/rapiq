@@ -6,7 +6,10 @@
  */
 
 import type {
-    ISortVisitor, ISortsVisitor, Sort, Sorts,
+    ISortVisitor, 
+    ISortsVisitor, 
+    Sort, 
+    Sorts,
 } from '@rapiq/core';
 import type { ISortAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
@@ -34,8 +37,8 @@ ISortVisitor<ISortAdapter> {
     }
 
     visitSorts(expr: Sorts): ISortAdapter {
-        for (let i = 0; i < expr.value.length; i++) {
-            expr.value[i].accept(this);
+        for (const item of expr.value) {
+            item.accept(this);
         }
 
         return this.adapter;

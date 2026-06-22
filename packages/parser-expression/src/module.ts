@@ -34,8 +34,8 @@ import {
 import type { ParseOptions } from './types';
 
 export class ExpressionParser extends BaseParser<
-ParseOptions,
-IQuery
+    ParseOptions,
+    IQuery
 > {
     protected fieldsParser : ExpressionFieldsParser;
 
@@ -75,9 +75,7 @@ IQuery
             return output.build();
         }
 
-        const parameterOptions : ParseParameterOptions<RECORD> = {
-            schema,
-        };
+        const parameterOptions : ParseParameterOptions<RECORD> = { schema };
 
         if (!this.skipParameter(options.relations)) {
             let relations: IRelations | undefined;

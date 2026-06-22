@@ -32,7 +32,7 @@ import type { FilterExpressionParseOptions, FilterToken } from './types';
  * @see https://www.jsonapi.net/usage/reading/filtering.html
  */
 export class ExpressionFiltersParser extends BaseFiltersParser<
-FiltersParseOptions
+    FiltersParseOptions
 > {
     private tokens: FilterToken[] = [];
 
@@ -94,7 +94,7 @@ FiltersParseOptions
         const regex = /\s+|and|or|eq|ne|gte|gt|lte|lt|contains|startsWith|endsWith|nin|in|null|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
 
         let match: RegExpExecArray | null;
-        // eslint-disable-next-line no-cond-assign
+         
         while ((match = regex.exec(input))) {
             const value = match[0];
             if (/^\s+$/.test(value)) continue;
@@ -424,6 +424,9 @@ FiltersParseOptions
             // [ 'id' ]
             for (let i = 0; i < parts.length - 1; i++) {
                 const part = parts[i];
+                if (part === undefined) {
+                    continue;
+                }
 
                 if (i === 0 && (part === DEFAULT_ID || schema.name)) {
                     continue;
@@ -447,18 +450,20 @@ FiltersParseOptions
 
             const key = parts[parts.length - 1];
 
-            if (
-                schema.allowedIsUndefined &&
-                !isPropertyNameValid(key)
-            ) {
-                throw FiltersParseError.keyInvalid(key);
-            }
+            if (key !== undefined) {
+                if (
+                    schema.allowedIsUndefined &&
+                    !isPropertyNameValid(key)
+                ) {
+                    throw FiltersParseError.keyInvalid(key);
+                }
 
-            if (
-                !schema.allowedIsUndefined &&
-                schema.allowed.indexOf(key) === -1
-            ) {
-                throw FiltersParseError.keyInvalid(key);
+                if (
+                    !schema.allowedIsUndefined &&
+                    !schema.allowed.includes(key)
+                ) {
+                    throw FiltersParseError.keyInvalid(key);
+                }
             }
         }
 

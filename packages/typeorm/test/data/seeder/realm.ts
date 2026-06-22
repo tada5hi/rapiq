@@ -12,8 +12,6 @@ export async function createRealmSeed(dataSource: DataSource) : Promise<Realm[]>
     const repository = dataSource.getRepository(Realm);
 
     return repository.save([
-        {
-            name: 'master',
-        },
+        { name: 'master' },
     ]);
 }

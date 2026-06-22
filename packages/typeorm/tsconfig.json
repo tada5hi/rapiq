@@ -1,12 +1,9 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "paths": {
-            "@rapiq/core": ["./packages/rapiq/src"],
-            "@rapiq/sql": ["./packages/sql/src"]
-        },
+        "types": ["node", "vitest/globals"],
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "strictPropertyInitialization": false
-    }
+        "emitDecoratorMetadata": true
+    },
+    "include": ["src/**/*", "test/**/*"]
 }

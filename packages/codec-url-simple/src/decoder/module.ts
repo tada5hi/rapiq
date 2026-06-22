@@ -9,7 +9,8 @@ import {
     SimpleFieldsParser,
     SimpleFiltersParser,
     SimplePaginationParser,
-    SimpleRelationsParser, SimpleSortParser,
+    SimpleRelationsParser, 
+    SimpleSortParser,
 } from '@rapiq/parser-simple';
 import { parse } from 'qs';
 import type {

@@ -8,7 +8,7 @@
 import type { IAdapter } from '../types';
 
 export interface IFiltersAdapter<
-QUERY extends Record<string, any> = Record<string, any>,
+    QUERY extends Record<string, any> = Record<string, any>,
 > extends IAdapter<QUERY> {
     conditions: string[];
 

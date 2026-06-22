@@ -6,8 +6,12 @@
  */
 
 import {
-    Column, Entity, JoinColumn, ManyToOne,
-    PrimaryGeneratedColumn, Unique,
+    Column, 
+    Entity, 
+    JoinColumn, 
+    ManyToOne,
+    PrimaryGeneratedColumn, 
+    Unique,
 } from 'typeorm';
 import { Realm } from './realm';
 import { Role } from './role';
@@ -16,34 +20,34 @@ import { Role } from './role';
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
-        id: number;
+    id: number;
 
     @Column()
-        age: number;
+    age: number;
 
     @Column({ nullable: true })
-        address : string;
+    address : string;
 
     @Column()
-        first_name: string;
+    first_name: string;
 
     @Column()
-        last_name: string;
+    last_name: string;
 
     @Column()
-        email: string;
+    email: string;
 
     @Column({ nullable: true })
-        role_id: number | null;
+    role_id: number | null;
 
     @ManyToOne(() => Role, (role: Role) => role.id, { nullable: true })
     @JoinColumn({ name: 'role_id' })
-        role: Role;
+    role: Role;
 
     @Column({ nullable: true })
-        realm_id: number;
+    realm_id: number;
 
     @ManyToOne(() => Realm, (role: Realm) => role.id, { nullable: true })
     @JoinColumn({ name: 'realm_id' })
-        realm: Realm;
+    realm: Realm;
 }

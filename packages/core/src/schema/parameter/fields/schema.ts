@@ -136,11 +136,10 @@ export class FieldsSchema<
     private buildReverseRecord(
         record: Record<string, string>,
     ) : Record<string, string> {
-        const keys = Object.keys(record);
         const output : Record<string, string> = {};
 
-        for (let i = 0; i < keys.length; i++) {
-            output[record[keys[i]]] = keys[i];
+        for (const [key, value] of Object.entries(record)) {
+            output[value] = key;
         }
 
         return output;

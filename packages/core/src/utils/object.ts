@@ -20,9 +20,9 @@ export function renameObjectKeys(
     const output : Record<string, any> = {};
 
     const keys = Object.keys(target);
-    for (let i = 0; i < keys.length; i++) {
-        const nextKey = fn(keys[i]);
-        output[nextKey] = target[keys[i]];
+    for (const key of keys) {
+        const nextKey = fn(key);
+        output[nextKey] = target[key];
     }
 
     return output;
@@ -35,10 +35,10 @@ export function reduceObject(
     const output : Record<string, any> = {};
 
     const keys = Object.keys(target);
-    for (let i = 0; i < keys.length; i++) {
-        const remove = fn(keys[i]);
+    for (const key of keys) {
+        const remove = fn(key);
         if (!remove) {
-            output[keys[i]] = target[keys[i]];
+            output[key] = target[key];
         }
     }
 
@@ -53,14 +53,14 @@ export function extendObject(
     let destinationKey : string;
 
     const keys = Object.keys(source);
-    for (let i = 0; i < keys.length; i++) {
+    for (const key of keys) {
         if (prefix) {
-            destinationKey = `${prefix}.${keys[i]}`;
+            destinationKey = `${prefix}.${key}`;
         } else {
-            destinationKey = keys[i];
+            destinationKey = key;
         }
 
-        target[destinationKey] = source[keys[i]];
+        target[destinationKey] = source[key];
     }
 
     return target;
@@ -68,7 +68,8 @@ export function extendObject(
 
 export function hasOwnProperty<
     X extends Record<string, any>,
-    Y extends PropertyKey>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
+    Y extends PropertyKey,
+>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
     return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
@@ -91,9 +92,7 @@ export function toFlatObject(
     const output: Record<string, string> = {};
 
     const keys = Object.keys(data);
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-
+    for (const key of keys) {
         if (options.transformer) {
             data[key] = options.transformer(data[key], key);
         }

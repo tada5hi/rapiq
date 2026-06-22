@@ -7,12 +7,14 @@
 
 import { Filter } from '@rapiq/core';
 import {
-    FiltersAdapter, type FiltersContainerOptions, FiltersVisitor, RelationsAdapter, pg,
+    FiltersAdapter, 
+    type FiltersContainerOptions, 
+    FiltersVisitor, 
+    RelationsAdapter, 
+    pg,
 } from '../../../src';
 
-const options: FiltersContainerOptions = {
-    ...pg,
-};
+const options: FiltersContainerOptions = { ...pg };
 
 describe('exists', () => {
     let adapter : FiltersAdapter;

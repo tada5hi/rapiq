@@ -6,7 +6,11 @@
  */
 
 import type {
-    KeyWithOptionalPrefix, NestedKeys, PrevIndex, SimpleKeys, SortDirection,
+    KeyWithOptionalPrefix, 
+    NestedKeys, 
+    PrevIndex, 
+    SimpleKeys, 
+    SortDirection,
 } from '@rapiq/core';
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
@@ -33,7 +37,6 @@ export type SortBuildInput<
     [
         SortWithOperator<SimpleKeys<T>>[],
         SortBuildRecordInput<T, PrevIndex[DEPTH]>,
-    ]
-    |
+    ]    |
     SortWithOperator<NestedKeys<T>>[] |
     SortWithOperator<NestedKeys<T>>;

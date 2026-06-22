@@ -74,9 +74,9 @@ export type NestedResourceKeys<
                 ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
                     Key | `${Key}.${NestedResourceKeys<ELEMENT, PrevIndex[DEPTH]>}` :
                     never
-            ) : T[Key] extends IsRecursiveKeyValue<T[Key]>
-                ? Key | `${Key}.${NestedResourceKeys<ArrayItem<T[Key]>, PrevIndex[DEPTH]>}`
-                : never
+            ) : T[Key] extends IsRecursiveKeyValue<T[Key]> ?
+                Key | `${Key}.${NestedResourceKeys<ArrayItem<T[Key]>, PrevIndex[DEPTH]>}` :
+                never
     }[keyof T & string];
 
 export type TypeFromNestedKeyPath<
@@ -85,13 +85,13 @@ export type TypeFromNestedKeyPath<
     DEPTH extends number = 4,
 > = [DEPTH] extends [0] ? never :
     {
-        [Key in Path & string]: Key extends keyof T
-            ? (
+        [Key in Path & string]: Key extends keyof T ?
+            (
                 T[Key] extends Array<infer ELEMENT> ?
                     ELEMENT :
                     T[Key]
-            )
-            : Key extends `${infer P}.${infer S}` ?
+            ) :
+            Key extends `${infer P}.${infer S}` ?
                 (P extends keyof T ?
                     (
                         T[P] extends Array<infer ELEMENT> ?
@@ -100,11 +100,11 @@ export type TypeFromNestedKeyPath<
                                     TypeFromNestedKeyPath<ELEMENT, S, PrevIndex[DEPTH]> :
                                     never
                             ) :
-                            T[P] extends Record<PropertyKey, any>
-                                ? TypeFromNestedKeyPath<T[P], S, PrevIndex[DEPTH]>
-                                : never
-                    )
-                    : never
+                            T[P] extends Record<PropertyKey, any> ?
+                                TypeFromNestedKeyPath<T[P], S, PrevIndex[DEPTH]> :
+                                never
+                    ) :
+                    never
                 ) :
                 never;
     }[Path];

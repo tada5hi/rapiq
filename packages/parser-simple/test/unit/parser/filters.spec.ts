@@ -37,33 +37,21 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed', async () => {
         // filter id
-        const output = parseFlat({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['id'],
-            }),
-        });
+        const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: ['id'] }) });
 
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'id', 1));
     });
 
     it('should parse with allowed (underscore key)', async () => {
         // filter with underscore key
-        const output = parseFlat({ display_name: 'admin' }, {
-            schema: defineFiltersSchema({
-                allowed: ['display_name'],
-            }),
-        });
+        const output = parseFlat({ display_name: 'admin' }, { schema: defineFiltersSchema({ allowed: ['display_name'] }) });
 
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'display_name', 'admin'));
     });
 
     it('should parse with allowed (empty)', async () => {
         // filter none
-        const output = parseFlat({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: [],
-            }),
-        });
+        const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: [] }) });
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -74,11 +62,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse with allowed (undefined)', async () => {
         // filter
-        const output = parseFlat({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: undefined,
-            }),
-        });
+        const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: undefined }) });
 
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'id', 1),
@@ -102,11 +86,7 @@ describe('src/filter/index.ts', () => {
 
     it('should not parse with non matching name', async () => {
         // filter wrong allowed
-        const output = parseFlat({ id: 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
+        const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: ['name'] }) });
 
         expect(output).toEqual(
             new Filters(
@@ -117,11 +97,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should not parse with invalid name', async () => {
-        const output = parseFlat({ 'id!': 1 }, {
-            schema: defineFiltersSchema({
-                allowed: undefined,
-            }),
-        });
+        const output = parseFlat({ 'id!': 1 }, { schema: defineFiltersSchema({ allowed: undefined }) });
 
         expect(output).toEqual(
             new Filters(
@@ -132,11 +108,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse invalid name if permitted by allowed', async () => {
-        const output = parseFlat({ 'id!': 1 }, {
-            schema: defineFiltersSchema({
-                allowed: ['id!'],
-            }),
-        });
+        const output = parseFlat({ 'id!': 1 }, { schema: defineFiltersSchema({ allowed: ['id!'] }) });
 
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'id!', 1),
@@ -144,11 +116,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should not parse empty input', async () => {
-        const output = parseFlat({ name: '' }, {
-            schema: defineFiltersSchema({
-                allowed: ['name'],
-            }),
-        });
+        const output = parseFlat({ name: '' }, { schema: defineFiltersSchema({ allowed: ['name'] }) });
 
         expect(output).toEqual(
             new Filters(
@@ -191,11 +159,7 @@ describe('src/filter/index.ts', () => {
             new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
         );
 
-        output = parseFlat({ name: 'tada5hi' }, {
-            schema: defineFiltersSchema({
-                default: new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
-            }),
-        });
+        output = parseFlat({ name: 'tada5hi' }, { schema: defineFiltersSchema({ default: new Filter(FilterFieldOperator.EQUAL, 'name', 'admin') }) });
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'name', 'tada5hi'),
         );
@@ -220,9 +184,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse with different number input', async () => {
-        const schema = defineFiltersSchema({
-            allowed: ['id'],
-        });
+        const schema = defineFiltersSchema({ allowed: ['id'] });
 
         // equal operator
         let output = parseFlat({ id: '1' }, { schema });
@@ -274,9 +236,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should parse different string match inputs', async () => {
-        const schema = defineFiltersSchema({
-            allowed: ['name'],
-        });
+        const schema = defineFiltersSchema({ allowed: ['name'] });
 
         // startsWith
         let output = parseFlat({ name: 'name~' }, { schema });
@@ -385,9 +345,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid input shape', async () => {
-        const schema = defineFiltersSchema({
-            throwOnFailure: true,
-        });
+        const schema = defineFiltersSchema({ throwOnFailure: true });
 
         const error = FiltersParseError.inputInvalid();
 
@@ -395,15 +353,11 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on invalid key', async () => {
-        const schema = defineFiltersSchema({
-            throwOnFailure: true,
-        });
+        const schema = defineFiltersSchema({ throwOnFailure: true });
 
         const error = FiltersParseError.keyInvalid('1foo');
 
-        expect(() => parseFlat({
-            '1foo': 1,
-        }, { schema })).toThrow(error);
+        expect(() => parseFlat({ '1foo': 1 }, { schema })).toThrow(error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -414,9 +368,7 @@ describe('src/filter/index.ts', () => {
 
         const error = FiltersParseError.keyPathInvalid('bar');
 
-        expect(() => parseFlat({
-            'bar.bar': 1,
-        }, {
+        expect(() => parseFlat({ 'bar.bar': 1 }, {
             schema,
             relations: new Relations([
                 new Relation('user'),
@@ -427,9 +379,7 @@ describe('src/filter/index.ts', () => {
     it('should throw on non allowed key which is not covered by a relation', async () => {
         const error = FiltersParseError.keyInvalid('bar');
 
-        expect(() => parseFlat({
-            'realm.bar': 1,
-        }, {
+        expect(() => parseFlat({ 'realm.bar': 1 }, {
             schema: 'user',
             relations: new Relations([
                 new Relation('realm'),
@@ -446,8 +396,6 @@ describe('src/filter/index.ts', () => {
 
         const error = FiltersParseError.keyInvalid('bar');
 
-        expect(() => parseFlat({
-            bar: 1,
-        }, { schema })).toThrow(error);
+        expect(() => parseFlat({ bar: 1 }, { schema })).toThrow(error);
     });
 });

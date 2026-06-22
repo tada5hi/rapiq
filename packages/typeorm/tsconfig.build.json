@@ -1,14 +1,4 @@
 {
-    "extends": "../../tsconfig.build.json",
-
-    "compilerOptions": {
-        "outDir": "./dist",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "strictPropertyInitialization": false
-    },
-
-    "include": [
-        "src/**/*.ts"
-    ]
+    "extends": "../../tsconfig.json",
+    "include": ["src/**/*"]
 }

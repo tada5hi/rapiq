@@ -1,6 +1,6 @@
 # Project Structure
 
-npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable package follows the same layout: `src/` (source), `test/` (Jest config + specs), `dist/` (build output, gitignored).
+npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable package follows the same layout: `src/` (source), `test/` (vitest config + specs), `dist/` (build output, gitignored).
 
 ## Packages & Libraries
 
@@ -84,16 +84,16 @@ packages/codec-url-simple/src/
 
 ## Package Exports
 
-All packages share the same export shape — single entry point, dual CJS/ESM build:
+All packages share the same export shape — single entry point, ESM-only build:
 
 ```json
 {
+    "type": "module",
     "exports": {
         "./package.json": "./package.json",
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.mjs",
-            "require": "./dist/index.cjs"
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
         }
     }
 }

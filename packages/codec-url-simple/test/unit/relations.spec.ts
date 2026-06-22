@@ -6,7 +6,8 @@
  */
 
 import {
-    Relation, Relations,
+    Relation, 
+    Relations,
 } from '@rapiq/core';
 import { URLDecoder, URLEncoder } from '../../src';
 

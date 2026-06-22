@@ -6,7 +6,12 @@
  */
 
 import type {
-    ArrayItem, IsArray, IsScalar, NestedKeys, PrevIndex, TypeFromNestedKeyPath,
+    ArrayItem, 
+    IsArray, 
+    IsScalar, 
+    NestedKeys, 
+    PrevIndex, 
+    TypeFromNestedKeyPath,
 } from '@rapiq/core';
 
 type ValueWithOperator<V> = V extends string | number ?

@@ -32,9 +32,9 @@ export class Relations implements IRelations {
         const children: Relations = new Relations();
 
         const prefix = `${root}.`;
-        for (let i = 0; i < this.value.length; i++) {
-            if (this.value[i].name.substring(0, prefix.length) === prefix) {
-                children.value.push(new Relation(this.value[i].name.substring(prefix.length)));
+        for (const relation of this.value) {
+            if (relation.name.substring(0, prefix.length) === prefix) {
+                children.value.push(new Relation(relation.name.substring(prefix.length)));
             }
         }
 

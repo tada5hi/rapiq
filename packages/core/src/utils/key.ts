@@ -18,9 +18,7 @@ export function parseKey(
 ) : KeyDetails {
     const matches = KEY_REGEX.exec(input);
     if (!matches) {
-        return {
-            name: input,
-        };
+        return { name: input };
     }
 
     const [, group, path, key] = matches;
@@ -28,7 +26,7 @@ export function parseKey(
     return {
         group,
         path: (path && path.at(-1) === '.' ? path.substring(0, path.length - 1) : path),
-        name: key,
+        name: key ?? input,
     };
 }
 

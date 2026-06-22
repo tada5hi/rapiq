@@ -17,13 +17,18 @@ export function extractSubRelations(
 
     const removed : string[] = [];
     for (let i = relations.length - 1; i >= 0; i--) {
-        if (relations[i] === root) {
+        const relation = relations[i];
+        if (relation === undefined) {
+            continue;
+        }
+
+        if (relation === root) {
             relations.splice(i, 1);
             continue;
         }
 
-        if (relations[i].substring(0, root.length) === root) {
-            removed.push(relations[i].substring(root.length + 1));
+        if (relation.substring(0, root.length) === root) {
+            removed.push(relation.substring(root.length + 1));
             relations.splice(i, 1);
         }
     }
