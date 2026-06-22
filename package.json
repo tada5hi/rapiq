@@ -22,7 +22,7 @@
         "eslint-plugin-vue": "^10.9.2",
         "husky": "^9.1.7",
         "nx": "^22.3.3",
-        "pkg-pr-new": "^0.0.62",
+        "pkg-pr-new": "^0.0.75",
         "tsdown": "^0.22.3",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.61.1",
