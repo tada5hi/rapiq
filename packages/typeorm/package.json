@@ -23,13 +23,13 @@
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
         "reflect-metadata": "^0.2.2",
-        "typeorm": "^0.3.28",
+        "typeorm": "^1.0.0",
         "unplugin-swc": "^1.5.9"
     },
     "peerDependencies": {
         "@rapiq/core": "^1.0.0",
         "@rapiq/sql": "^1.0.0",
-        "typeorm": "^0.3.28"
+        "typeorm": "^1.0.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
