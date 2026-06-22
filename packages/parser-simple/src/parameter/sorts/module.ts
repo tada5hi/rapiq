@@ -76,12 +76,12 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
         const normalized = this.normalize(input, throwOnFailure);
         const grouped = this.groupObjectByBasePath(normalized);
-        if (
-            schema.name &&
-            grouped[schema.name]
-        ) {
-            grouped[DEFAULT_ID] = grouped[schema.name];
-            delete grouped[schema.name];
+        if (schema.name) {
+            const named = grouped[schema.name];
+            if (named) {
+                grouped[DEFAULT_ID] = named;
+                delete grouped[schema.name];
+            }
         }
 
         const output = new Sorts();
@@ -127,17 +127,16 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
             if (this.isMultiDimensionalArray(schema.allowed)) {
                 // eslint-disable-next-line no-labels
                 outerLoop:
-                for (let i = 0; i < schema.allowed.length; i++) {
+                for (const keyPaths of schema.allowed) {
                     const temp = new Sorts();
 
-                    const keyPaths = schema.allowed[i];
-
-                    let index : number;
-
                     for (const keyPath of keyPaths) {
-                        index = output.value.findIndex((el) => el.name === keyPath);
+                        const index = output.value.findIndex((el) => el.name === keyPath);
                         if (index !== -1) {
-                            temp.value.push(output.value[index]);
+                            const found = output.value[index];
+                            if (found !== undefined) {
+                                temp.value.push(found);
+                            }
                         } else {
                             // eslint-disable-next-line no-labels
                             continue outerLoop;
@@ -190,9 +189,9 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                 },
             );
 
-            for (let j = 0; j < relationOutput.value.length; j++) {
+            for (const relation of relationOutput.value) {
                 output.value.push(
-                    new Sort(`${key}.${relationOutput.value[j].name}`, relationOutput.value[j].operator),
+                    new Sort(`${key}.${relation.name}`, relation.operator),
                 );
             }
         }
@@ -257,8 +256,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
 
                 const temp = this.normalize(value, throwOnFailure);
 
-                const tempKeys = Object.keys(temp);
-                for (const tempKey of tempKeys) {
+                for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
                     if (tempKey === DEFAULT_ID) {
                         nextKey = key;
@@ -266,7 +264,7 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
                         nextKey = `${key}.${tempKey}`;
                     }
 
-                    output[nextKey] = temp[tempKey];
+                    output[nextKey] = value;
                 }
             }
 

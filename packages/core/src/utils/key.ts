@@ -26,7 +26,7 @@ export function parseKey(
     return {
         group,
         path: (path && path.at(-1) === '.' ? path.substring(0, path.length - 1) : path),
-        name: key,
+        name: key ?? input,
     };
 }
 

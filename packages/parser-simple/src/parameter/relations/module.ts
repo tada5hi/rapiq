@@ -121,9 +121,9 @@ export class SimpleRelationsParser extends BaseRelationsParser<
                 },
             );
 
-            for (let j = 0; j < relationOutput.value.length; j++) {
+            for (const relation of relationOutput.value) {
                 output.value.push(
-                    new Relation(`${key}.${relationOutput.value[j].name}`),
+                    new Relation(`${key}.${relation.name}`),
                 );
             }
         }

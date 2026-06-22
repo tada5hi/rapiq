@@ -36,8 +36,7 @@ export class Fields implements IFields {
         const excludes : string[] = [];
         const explicates : string[] = [];
 
-        for (let i = 0; i < this.value.length; i++) {
-            const item = this.value[i];
+        for (const item of this.value) {
             if (item.operator === FieldOperator.EXCLUDE) {
                 excludes.push(item.name);
             } else if (item.operator === FieldOperator.INCLUDE) {

@@ -40,12 +40,12 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
 
         const normalized = this.normalize(input, schema.throwOnFailure);
 
-        if (
-            schema.name &&
-            normalized[schema.name]
-        ) {
-            normalized[DEFAULT_ID] = normalized[schema.name];
-            delete normalized[schema.name];
+        if (schema.name) {
+            const named = normalized[schema.name];
+            if (named) {
+                normalized[DEFAULT_ID] = named;
+                delete normalized[schema.name];
+            }
         }
 
         const data = normalized[DEFAULT_ID] || [];
@@ -54,30 +54,30 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         const fields = new Fields();
 
         if (data.length > 0) {
-            for (let j = 0; j < data.length; j++) {
+            for (let value of data) {
                 let operator: FieldOperator | undefined;
 
-                const character = data[j].substring(0, 1);
+                const character = value.substring(0, 1);
                 if (
                     character === FieldOperator.INCLUDE ||
                     character === FieldOperator.EXCLUDE
                 ) {
                     operator = character;
 
-                    data[j] = data[j].substring(1);
+                    value = value.substring(1);
                 }
 
-                data[j] = applyMapping(data[j], schema.mapping);
+                value = applyMapping(value, schema.mapping);
 
-                if (!schema.isValid(data[j])) {
+                if (!schema.isValid(value)) {
                     if (schema.throwOnFailure) {
-                        throw FieldsParseError.keyNotPermitted(data[j]);
+                        throw FieldsParseError.keyNotPermitted(value);
                     }
 
                     continue;
                 }
 
-                fields.value.push(new Field(data[j], operator));
+                fields.value.push(new Field(value, operator));
             }
         }
 
@@ -89,11 +89,11 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         const keys = Object.keys(normalized);
 
         if (options.relations) {
-            for (let i = 0; i < options.relations.value.length; i++) {
-                const index = keys.indexOf(options.relations.value[i].name);
+            for (const relation of options.relations.value) {
+                const index = keys.indexOf(relation.name);
                 if (index === -1) {
-                    keys.push(options.relations.value[i].name);
-                    normalized[options.relations.value[i].name] = [];
+                    keys.push(relation.name);
+                    normalized[relation.name] = [];
                 }
             }
         }
@@ -112,11 +112,9 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
                 relation = key.substring(index + 1);
             }
 
-            if (!grouped[group]) {
-                grouped[group] = {};
-            }
-
-            grouped[group][relation] = normalized[key];
+            const groupRecord = grouped[group] ?? {};
+            grouped[group] = groupRecord;
+            groupRecord[relation] = normalized[key];
         }
 
         const groupedKeys = Object.keys(grouped);
@@ -207,16 +205,14 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             const keys = Object.keys(input);
             for (const key of keys) {
                 const temp = this.normalize(input[key], throwOnFailure);
-                const tempKeys = Object.keys(temp);
-
-                for (const tempKey of tempKeys) {
+                for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
                     if (tempKey === DEFAULT_ID) {
                         nextKey = key;
                     } else {
                         nextKey = `${key}.${tempKey}`;
                     }
-                    output[nextKey] = temp[tempKey];
+                    output[nextKey] = value;
                 }
             }
 

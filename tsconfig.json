@@ -4,9 +4,6 @@
         "target": "ES2022",
         "module": "ESNext",
         "moduleResolution": "bundler",
-        // @tada5hi/tsconfig enables noUncheckedIndexedAccess; the codebase has ~137
-        // pre-existing index-access sites to adapt. Kept off for now — adopt in a follow-up.
-        "noUncheckedIndexedAccess": false,
         "declarationMap": true,
         "noEmit": true,
         "allowImportingTsExtensions": true

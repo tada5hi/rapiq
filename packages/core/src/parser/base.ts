@@ -108,7 +108,10 @@ export abstract class BaseParser<
                     output[prefix] = {} as T;
                 }
 
-                output[prefix][key as keyof T] = input[keys[index]] as T[keyof T];
+                const sourceKey = keys[index];
+                if (sourceKey !== undefined) {
+                    output[prefix][key as keyof T] = input[sourceKey] as T[keyof T];
+                }
             },
         );
 

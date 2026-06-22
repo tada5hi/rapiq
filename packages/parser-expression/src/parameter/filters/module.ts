@@ -424,6 +424,9 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
             // [ 'id' ]
             for (let i = 0; i < parts.length - 1; i++) {
                 const part = parts[i];
+                if (part === undefined) {
+                    continue;
+                }
 
                 if (i === 0 && (part === DEFAULT_ID || schema.name)) {
                     continue;
@@ -447,18 +450,20 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
 
             const key = parts[parts.length - 1];
 
-            if (
-                schema.allowedIsUndefined &&
-                !isPropertyNameValid(key)
-            ) {
-                throw FiltersParseError.keyInvalid(key);
-            }
+            if (key !== undefined) {
+                if (
+                    schema.allowedIsUndefined &&
+                    !isPropertyNameValid(key)
+                ) {
+                    throw FiltersParseError.keyInvalid(key);
+                }
 
-            if (
-                !schema.allowedIsUndefined &&
-                !schema.allowed.includes(key)
-            ) {
-                throw FiltersParseError.keyInvalid(key);
+                if (
+                    !schema.allowedIsUndefined &&
+                    !schema.allowed.includes(key)
+                ) {
+                    throw FiltersParseError.keyInvalid(key);
+                }
             }
         }
 

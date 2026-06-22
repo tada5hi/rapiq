@@ -70,17 +70,15 @@ export class SimpleFiltersParser extends BaseFiltersParser<
 
         const normalized = this.groupObject(this.expandObject(input));
 
-        if (
-            schema.name &&
-            normalized.relations[schema.name]
-        ) {
+        const named = schema.name ? normalized.relations[schema.name] : undefined;
+        if (schema.name && named) {
             normalized.attributes = {
                 ...(normalized.attributes || {}),
-                ...normalized.relations[schema.name].attributes,
+                ...named.attributes,
             };
             normalized.relations = {
                 ...(normalized.relations || {}),
-                ...normalized.relations[schema.name].relations,
+                ...named.relations,
             };
 
             delete normalized.relations[schema.name];
@@ -191,9 +189,14 @@ export class SimpleFiltersParser extends BaseFiltersParser<
                 relations = options.relations.extract(key);
             }
 
+            const relationData = data.relations[key];
+            if (relationData === undefined) {
+                continue;
+            }
+
             const children = this.runFor(
                 key,
-                data.relations[key],
+                relationData,
                 {
                     ...options,
                     relations,

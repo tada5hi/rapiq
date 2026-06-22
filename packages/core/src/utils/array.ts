@@ -128,11 +128,9 @@ export function groupArrayByKeyPath(
             name = element.substring(lastIndex + 1);
         }
 
-        if (!output[key]) {
-            output[key] = [];
-        }
-
-        output[key].push(name);
+        const list = output[key] ?? [];
+        output[key] = list;
+        list.push(name);
     }
 
     return output;
