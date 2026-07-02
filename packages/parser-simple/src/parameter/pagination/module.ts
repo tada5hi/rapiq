@@ -74,10 +74,9 @@ export class SimplePaginationParser<
         throwOnFailure?: boolean,
     ) : Pagination {
         if (typeof schema.maxLimit !== 'undefined') {
-            if (
-                typeof data.limit === 'undefined' ||
-                data.limit > schema.maxLimit
-            ) {
+            if (typeof data.limit === 'undefined') {
+                data.limit = schema.maxLimit;
+            } else if (data.limit > schema.maxLimit) {
                 if (throwOnFailure) {
                     throw PaginationParseError.limitExceeded(schema.maxLimit);
                 }

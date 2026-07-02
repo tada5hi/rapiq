@@ -72,6 +72,19 @@ describe('src/pagination/index.ts', () => {
         expect(() => parser.parse({ limit: 100 }, { schema })).toThrow(error);
     });
 
+    it('should not throw on missing limit', async () => {
+        const schema = defineSchema({
+            pagination: {
+                throwOnFailure: true,
+                maxLimit: 50,
+            },
+        });
+
+        // no client limit exceeded anything — default to maxLimit instead
+        const output = parser.parse({}, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
+    });
+
     it('should throw on invalid input', async () => {
         const schema = defineSchema({ pagination: { throwOnFailure: true } });
 

@@ -43,6 +43,21 @@ describe('src/parser', () => {
         ]));
     });
 
+    it('should apply the pagination schema in full-query parsing', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'foo',
+            pagination: { maxLimit: 50 },
+        }));
+
+        const parser = new SimpleParser(registry);
+
+        const output = parser.parse({ pagination: { limit: 100 } }, { schema: 'foo' });
+
+        expect(output.pagination.limit).toEqual(50);
+        expect(output.pagination.offset).toEqual(0);
+    });
+
     it('should keep relations when other parameters are parsed', async () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({

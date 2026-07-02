@@ -148,6 +148,7 @@ export class ExpressionParser extends BaseParser<
                 // todo: parse parameter & url-parameter
                 pagination = this.parsePagination(
                     input[Parameter.PAGINATION],
+                    parameterOptions,
                 );
             }
 
