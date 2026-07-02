@@ -112,3 +112,23 @@ try {
 ```
 
 Each parameter has its own error class: `FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError` — all extend `ParseError` → `BaseError`.
+
+Disallowed keys throw `keyNotPermitted` (`ErrorCode.KEY_NOT_ALLOWED`); syntactically invalid keys under an open schema throw `keyInvalid` (`KEY_INVALID`); rejected or unresolvable relation paths throw `keyPathInvalid` (`KEY_PATH_INVALID`).
+
+## Resolution scope
+
+Parsers resolve raw client keys through a `ResolutionScope` — an immutable handle on one parameter of one schema, under one failure policy. It owns alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware) and the throw-vs-drop policy. Custom parsers and tooling can use it directly:
+
+```typescript
+import { Parameter, ResolutionScope } from '@rapiq/core';
+
+const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'user');
+
+const resolved = scope.resolveKey('items.id');
+// { ok: true, name: 'id', path: ['items'], scope: <scope of the item schema> }
+
+const rejected = scope.resolveKey('secret');
+// { ok: false, code: 'keyNotPermitted', input: 'secret', segment: 'secret' }
+```
+
+`resolveKey()` resolves a local, aliased or dotted key and reports the outcome as a discriminated union (or throws the parameter's error class when `throwOnFailure` applies). `descend()` enters a relation segment and returns a child scope bound to the related schema.

@@ -5,65 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+/**
+ * Check whether the input is a plain (non-array) object.
+ */
 export function isObject(item: unknown) : item is Record<string, any> {
     return (
         !!item &&
         typeof item === 'object' &&
         !Array.isArray(item)
     );
-}
-
-export function renameObjectKeys(
-    target: Record<string, any>,
-    fn: (key: string) => string,
-) {
-    const output : Record<string, any> = {};
-
-    const keys = Object.keys(target);
-    for (const key of keys) {
-        const nextKey = fn(key);
-        output[nextKey] = target[key];
-    }
-
-    return output;
-}
-
-export function reduceObject(
-    target: Record<string, any>,
-    fn: (key: string) => boolean,
-) {
-    const output : Record<string, any> = {};
-
-    const keys = Object.keys(target);
-    for (const key of keys) {
-        const remove = fn(key);
-        if (!remove) {
-            output[key] = target[key];
-        }
-    }
-
-    return output;
-}
-
-export function extendObject(
-    target: Record<string, any>,
-    source: Record<string, any>,
-    prefix?: string,
-) {
-    let destinationKey : string;
-
-    const keys = Object.keys(source);
-    for (const key of keys) {
-        if (prefix) {
-            destinationKey = `${prefix}.${key}`;
-        } else {
-            destinationKey = key;
-        }
-
-        target[destinationKey] = source[key];
-    }
-
-    return target;
 }
 
 export function hasOwnProperty<
@@ -73,47 +23,12 @@ export function hasOwnProperty<
     return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+/**
+ * Check whether an own property is set on the given object.
+ */
 export function isPropertySet<X extends Record<string, any>, K extends keyof X>(
     obj: X,
     prop: K,
 ) : boolean {
     return hasOwnProperty(obj, prop);
-}
-
-type Options = {
-    transformer?: (input: unknown, key: string) => unknown | undefined,
-    validator?: (input: unknown, key: string) => boolean | undefined,
-};
-
-export function toFlatObject(
-    data: Record<string, any>,
-    options: Options = {},
-): Record<string, any> {
-    const output: Record<string, string> = {};
-
-    const keys = Object.keys(data);
-    for (const key of keys) {
-        if (options.transformer) {
-            data[key] = options.transformer(data[key], key);
-        }
-
-        if (options.validator) {
-            const result = options.validator(data[key], key);
-            if (!result) {
-                continue;
-            }
-        }
-
-        if (isObject(data[key])) {
-            extendObject(
-                output,
-                toFlatObject(data[key], options),
-                key,
-            );
-        } else {
-            output[key] = data[key];
-        }
-    }
-
-    return output;
 }

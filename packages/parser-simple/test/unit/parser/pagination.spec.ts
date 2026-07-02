@@ -9,10 +9,10 @@ import {
     PaginationParseError, 
     defineSchema,
 } from '@rapiq/core';
-import type { IInterpreter, Pagination } from '@rapiq/core';
+import type { Pagination } from '@rapiq/core';
 import { SimplePaginationParser } from '../../../src';
 
-class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number }> {
+class PaginationSimpleInterpreter {
     interpret(input: Pagination): { limit?: number; offset?: number } {
         const output : {
             limit?: number,
@@ -70,6 +70,19 @@ describe('src/pagination/index.ts', () => {
         const error = PaginationParseError.limitExceeded(50);
 
         expect(() => parser.parse({ limit: 100 }, { schema })).toThrow(error);
+    });
+
+    it('should not throw on missing limit', async () => {
+        const schema = defineSchema({
+            pagination: {
+                throwOnFailure: true,
+                maxLimit: 50,
+            },
+        });
+
+        // no client limit exceeded anything — default to maxLimit instead
+        const output = parser.parse({}, { schema });
+        expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
     });
 
     it('should throw on invalid input', async () => {

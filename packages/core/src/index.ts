@@ -7,11 +7,15 @@
 
 export * from './errors';
 export * from './constants';
-export * from './interpreter';
 export * from './parameter';
 export * from './parser';
 export * from './schema';
 export * from './types';
 
-// todo: remove this, temporarily exposed
-export * from './utils';
+export {
+    isObject,
+    isPropertySet,
+    parseKey,
+    stringifyKey,
+} from './utils';
+export type { KeyDetails } from './utils';

@@ -75,7 +75,12 @@ export class ExpressionParser extends BaseParser<
             return output.build();
         }
 
-        const parameterOptions : ParseParameterOptions<RECORD> = { schema };
+        // forward the original input — a manufactured empty schema
+        // would wrongly bind the parameter scopes.
+        const parameterOptions : ParseParameterOptions<RECORD> = {};
+        if (options.schema) {
+            parameterOptions.schema = options.schema;
+        }
 
         if (!this.skipParameter(options.relations)) {
             let relations: IRelations | undefined;
@@ -143,6 +148,7 @@ export class ExpressionParser extends BaseParser<
                 // todo: parse parameter & url-parameter
                 pagination = this.parsePagination(
                     input[Parameter.PAGINATION],
+                    parameterOptions,
                 );
             }
 

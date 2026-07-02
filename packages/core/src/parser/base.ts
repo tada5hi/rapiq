@@ -137,6 +137,36 @@ export abstract class BaseParser<
         return output;
     }
 
+    /**
+     * Group keys by everything before their last path segment
+     * (e.g. "items.realm.id" -> { 'items.realm': ['id'] }).
+     */
+    protected groupArrayByKeyPath(
+        input: string[],
+    ) : Record<string, string[]> {
+        const output : Record<string, string[]> = {};
+
+        for (const element of input) {
+            let key : string;
+            let name : string;
+
+            const lastIndex = element.lastIndexOf('.');
+            if (lastIndex === -1) {
+                key = DEFAULT_ID;
+                name = element;
+            } else {
+                key = element.substring(0, lastIndex);
+                name = element.substring(lastIndex + 1);
+            }
+
+            const list = output[key] ?? [];
+            output[key] = list;
+            list.push(name);
+        }
+
+        return output;
+    }
+
     protected groupByFieldPathWithFn(
         items: string[],
         cb: (

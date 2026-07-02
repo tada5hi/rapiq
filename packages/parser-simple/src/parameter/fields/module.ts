@@ -6,39 +6,48 @@
  */
 
 import {
-    BaseFieldsParser,
+    BaseParser,
     DEFAULT_ID,
     Field,
     FieldOperator,
     Fields,
     FieldsParseError,
-    applyMapping,
-    groupArrayByKeyPath, 
-    isObject, 
-    isPathAllowed,
+    Parameter,
+    ResolutionScope,
+    isObject,
 } from '@rapiq/core';
 import type {
-    IFields, 
+    IFields,
     ObjectLiteral,
-    Relations,
 } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
 
-export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOptions> {
+export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFields> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
-        const schema = this.resolveSchema(options.schema);
+        const scope = ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+        });
+
+        return this.parseWithScope(input, scope);
+    }
+
+    protected parseWithScope<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>) : IFields {
+        const { schema } = scope;
 
         // If it is an empty array, nothing is allowed
         if (schema.allDenied) {
             return new Fields();
         }
 
-        const normalized = this.normalize(input, schema.throwOnFailure);
+        const normalized = this.normalize(input, scope.throwOnFailure);
 
         if (schema.name) {
             const named = normalized[schema.name];
@@ -67,17 +76,24 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
                     value = value.substring(1);
                 }
 
-                value = applyMapping(value, schema.mapping);
+                const resolved = scope.resolveKey(value);
+                if (!resolved.success) {
+                    continue;
+                }
 
-                if (!schema.isValid(value)) {
-                    if (schema.throwOnFailure) {
-                        throw FieldsParseError.keyNotPermitted(value);
-                    }
+                if (resolved.path.length > 0) {
+                    // a mapping alias expanded to a relation field —
+                    // requeue it under its canonical group so the child
+                    // schema semantics apply (like direct dotted input).
+                    const group = resolved.path.join('.');
+                    const list = normalized[group] ?? [];
+                    normalized[group] = list;
+                    list.push(`${operator ?? ''}${resolved.name}`);
 
                     continue;
                 }
 
-                fields.value.push(new Field(value, operator));
+                fields.value.push(new Field(resolved.name, operator));
             }
         }
 
@@ -88,8 +104,8 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
 
         const keys = Object.keys(normalized);
 
-        if (options.relations) {
-            for (const relation of options.relations.value) {
+        if (scope.relations) {
+            for (const relation of scope.relations.value) {
                 const index = keys.indexOf(relation.name);
                 if (index === -1) {
                     keys.push(relation.name);
@@ -120,41 +136,32 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
         const groupedKeys = Object.keys(grouped);
 
         for (const key of groupedKeys) {
-            if (!isPathAllowed(key, options.relations)) {
-                if (schema.throwOnFailure) {
-                    throw FieldsParseError.keyPathInvalid(key);
-                }
-
+            const child = scope.descend(key);
+            if (!(child instanceof ResolutionScope)) {
                 continue;
             }
 
-            // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, key);
-            if (!relationSchema) {
-                if (schema.throwOnFailure) {
-                    throw FieldsParseError.keyPathInvalid(key);
-                }
-            }
-
-            let childRelations : Relations | undefined;
-            if (typeof options.relations !== 'undefined') {
-                childRelations = options.relations.extract(key);
-            }
-
-            const relationOutput = this.parse(
-                grouped[key],
-                {
-                    schema: relationSchema,
-                    relations: childRelations,
-                },
-            );
+            const relationOutput = this.parseWithScope(grouped[key], child);
 
             output.value.push(...relationOutput.value.map(
-                (element) => new Field(`${key}.${element.name}`, element.operator),
+                (element) => new Field(`${child.segment}.${element.name}`, element.operator),
             ));
         }
 
-        return output;
+        // alias groups and the relations sub-tree may materialize
+        // the same canonical field twice — keep the first occurrence.
+        const seen = new Set<string>();
+        const unique = output.value.filter((element) => {
+            if (seen.has(element.name)) {
+                return false;
+            }
+
+            seen.add(element.name);
+
+            return true;
+        });
+
+        return new Fields(unique);
     }
 
     protected normalize(
@@ -193,7 +200,7 @@ export class SimpleFieldsParser extends BaseFieldsParser<SimpleFieldsParseOption
             }
 
             if (parts.length > 0) {
-                return groupArrayByKeyPath(parts);
+                return this.groupArrayByKeyPath(parts);
             }
 
             return {};

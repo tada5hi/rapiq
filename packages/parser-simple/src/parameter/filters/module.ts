@@ -6,28 +6,27 @@
  */
 
 import {
-    BaseFiltersParser,
+    BaseParser,
     DEFAULT_ID,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
     FiltersParseError,
-    applyMapping,
+    Parameter,
+    ResolutionScope,
     isObject,
-    isPathAllowed, 
-    isPropertyNameValid, 
-    parseKey, 
+    parseKey,
     stringifyKey,
 } from '@rapiq/core';
 
 import type {
     FiltersParseOptions,
+    FiltersSchema,
     ICondition,
     IFilter,
     IFilters,
     ObjectLiteral,
-    Relations,
     Scalar,
 
     TempType,
@@ -36,15 +35,40 @@ import type {
 import { URLFilterOperator } from './constants';
 import type { SimpleFiltersParserInput } from './types';
 
-export class SimpleFiltersParser extends BaseFiltersParser<
-    FiltersParseOptions
+export class SimpleFiltersParser extends BaseParser<
+    FiltersParseOptions,
+    IFilters
 > {
-    protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
+    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
+    ) : IFilters {
+        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+        });
+
+        let items: ICondition[] = this.run(input, scope);
+
+        if (items.length === 0) {
+            items = this.buildDefaults(scope.schema);
+        }
+
+        return new Filters(FilterCompoundOperator.AND, items);
+    }
+
+    parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: SimpleFiltersParserInput<RECORD>,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : IFilters {
+        return this.parse(input, options);
+    }
+
+    protected run<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        scope: ResolutionScope<`${Parameter.FILTERS}`, RECORD>,
     ) : IFilter[] {
-        const schema = this.resolveSchema(options.schema);
-        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
+        const { schema } = scope;
 
         // If it is an empty array nothing is allowed
         if (
@@ -56,7 +80,7 @@ export class SimpleFiltersParser extends BaseFiltersParser<
 
         /* istanbul ignore next */
         if (!isObject(input)) {
-            if (throwOnFailure) {
+            if (scope.throwOnFailure) {
                 throw FiltersParseError.inputInvalid();
             }
 
@@ -87,20 +111,15 @@ export class SimpleFiltersParser extends BaseFiltersParser<
         return this.runFor(
             DEFAULT_ID,
             normalized,
-            options,
+            scope,
         );
     }
 
-    protected runFor<RECORD extends ObjectLiteral>(
+    protected runFor<RECORD extends ObjectLiteral = ObjectLiteral>(
         currentKey: string,
         data: TempType,
-        options: FiltersParseOptions<RECORD> = {},
+        scope: ResolutionScope<`${Parameter.FILTERS}`, RECORD>,
     ) : IFilter[] {
-        const schema = this.resolveSchema(options.schema);
-        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
-
-        let relations : Relations | undefined;
-
         // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
 
         const output : IFilter[] = [];
@@ -108,34 +127,18 @@ export class SimpleFiltersParser extends BaseFiltersParser<
         let keys = Object.keys(data.attributes);
         for (const key_ of keys) {
             const key = parseKey(key_);
-            key.name = applyMapping(key.name, schema.mapping);
 
-            if (
-                schema.allowedIsUndefined &&
-                !isPropertyNameValid(key.name)
-            ) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(key.name);
-                }
-
+            const resolved = scope.resolveKey(key.name);
+            if (!resolved.success) {
                 continue;
             }
 
-            if (
-                !schema.allowedIsUndefined &&
-                !schema.allowed.includes(key.name)
-            ) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyInvalid(key.name);
-                }
-
-                continue;
-            }
+            const resolvedName = [...resolved.path, resolved.name].join('.');
 
             const valueParsed = this.parseValue(data.attributes[key_]);
             if (!valueParsed) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(key.name);
+                if (scope.throwOnFailure) {
+                    throw FiltersParseError.keyValueInvalid(resolvedName);
                 }
 
                 continue;
@@ -146,8 +149,8 @@ export class SimpleFiltersParser extends BaseFiltersParser<
                     typeof valueParsed.value === 'string' &&
                     valueParsed.value.length === 0
                 ) {
-                    if (throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(key.name);
+                    if (scope.throwOnFailure) {
+                        throw FiltersParseError.keyValueInvalid(resolvedName);
                     }
 
                     continue;
@@ -157,8 +160,8 @@ export class SimpleFiltersParser extends BaseFiltersParser<
             const filter = new Filter(
                 valueParsed.operator,
                 currentKey === DEFAULT_ID ?
-                    key.name :
-                    stringifyKey({ path: currentKey, name: key.name }),
+                    resolvedName :
+                    stringifyKey({ path: currentKey, name: resolvedName }),
                 valueParsed.value,
             );
 
@@ -167,26 +170,9 @@ export class SimpleFiltersParser extends BaseFiltersParser<
 
         keys = Object.keys(data.relations);
         for (const key of keys) {
-            if (!isPathAllowed(key, options.relations)) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
+            const child = scope.descend(key);
+            if (!(child instanceof ResolutionScope)) {
                 continue;
-            }
-
-            // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, key);
-            if (!relationSchema) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
-                continue;
-            }
-
-            if (typeof options.relations !== 'undefined') {
-                relations = options.relations.extract(key);
             }
 
             const relationData = data.relations[key];
@@ -195,13 +181,9 @@ export class SimpleFiltersParser extends BaseFiltersParser<
             }
 
             const children = this.runFor(
-                key,
+                child.segment as string,
                 relationData,
-                {
-                    ...options,
-                    relations,
-                    schema: relationSchema,
-                },
+                child,
             );
 
             if (currentKey === DEFAULT_ID) {
@@ -218,35 +200,9 @@ export class SimpleFiltersParser extends BaseFiltersParser<
         return output;
     }
 
-    parse<RECORD extends ObjectLiteral = ObjectLiteral>(
-        input: unknown,
-        options: FiltersParseOptions<RECORD> = {},
-    ) : IFilters {
-        let items: ICondition[] = this.run(input, {
-            ...options,
-            async: false,
-        });
-
-        if (items.length === 0) {
-            items = this.buildDefaults(options);
-        }
-
-        return new Filters(FilterCompoundOperator.AND, items);
-    }
-
-    parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
-        input: SimpleFiltersParserInput<RECORD>,
-        options: FiltersParseOptions<RECORD> = {},
-    ) : IFilters {
-        return this.parse(input, options);
-    }
-
     protected buildDefaults<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        options: FiltersParseOptions<RECORD> = {},
-    ) : ICondition[] {
-        const schema = this.resolveSchema(options.schema);
+    >(schema: FiltersSchema<RECORD>) : ICondition[] {
         if (!schema.default) {
             return [];
         }

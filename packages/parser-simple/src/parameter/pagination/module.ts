@@ -6,37 +6,41 @@
  */
 
 import {
-    BasePaginationParser, 
-    Pagination, 
-    PaginationParseError, 
+    BaseParser,
+    Pagination,
+    PaginationParseError,
+    Parameter,
+    ResolutionScope,
     isObject,
 } from '@rapiq/core';
 import type {
-    IPagination, 
-    ObjectLiteral, 
-    PaginationParseOptions, 
+    IPagination,
+    ObjectLiteral,
+    PaginationParseOptions,
     PaginationSchema,
 } from '@rapiq/core';
 
 export class SimplePaginationParser<
     OPTIONS extends PaginationParseOptions = PaginationParseOptions,
-> extends BasePaginationParser<OPTIONS> {
+> extends BaseParser<OPTIONS, IPagination> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
     ) : IPagination {
-        const schema = this.resolveSchema(options.schema);
+        const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, { throwOnFailure: options.throwOnFailure });
+
+        const { schema, throwOnFailure } = scope;
 
         const output = new Pagination();
 
         if (!isObject(input)) {
-            if (schema.throwOnFailure) {
+            if (throwOnFailure) {
                 throw PaginationParseError.inputInvalid();
             }
 
-            return this.finalizePagination(output, schema);
+            return this.finalizePagination(output, schema, throwOnFailure);
         }
 
         let { limit, offset } = input as Record<string, any>;
@@ -46,7 +50,7 @@ export class SimplePaginationParser<
 
             if (!Number.isNaN(limit) && limit > 0) {
                 output.limit = limit;
-            } else if (schema.throwOnFailure) {
+            } else if (throwOnFailure) {
                 throw PaginationParseError.keyValueInvalid('limit');
             }
         }
@@ -56,28 +60,28 @@ export class SimplePaginationParser<
 
             if (!Number.isNaN(offset) && offset >= 0) {
                 output.offset = offset;
-            } else if (schema.throwOnFailure) {
+            } else if (throwOnFailure) {
                 throw PaginationParseError.keyValueInvalid('offset');
             }
         }
 
-        return this.finalizePagination(output, schema);
+        return this.finalizePagination(output, schema, throwOnFailure);
     }
 
     protected finalizePagination(
         data: Pagination,
-        options: PaginationSchema,
+        schema: PaginationSchema,
+        throwOnFailure?: boolean,
     ) : Pagination {
-        if (typeof options.maxLimit !== 'undefined') {
-            if (
-                typeof data.limit === 'undefined' ||
-                data.limit > options.maxLimit
-            ) {
-                if (options.throwOnFailure) {
-                    throw PaginationParseError.limitExceeded(options.maxLimit);
+        if (typeof schema.maxLimit !== 'undefined') {
+            if (typeof data.limit === 'undefined') {
+                data.limit = schema.maxLimit;
+            } else if (data.limit > schema.maxLimit) {
+                if (throwOnFailure) {
+                    throw PaginationParseError.limitExceeded(schema.maxLimit);
                 }
 
-                data.limit = options.maxLimit;
+                data.limit = schema.maxLimit;
             }
         }
 

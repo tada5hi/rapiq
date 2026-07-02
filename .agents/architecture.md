@@ -89,6 +89,21 @@ registry.add(userSchema);
 
 Field paths are typed via recursive generics (`NestedKeys<T>`, depth-limited) so `allowed`/`default` keys are checked against the record type.
 
+### ResolutionScope (core)
+
+`ResolutionScope` (`packages/core/src/schema/resolver/`) is the single owner of key resolution — schema-input normalization, alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware, works from unregistered `Schema` instances too) and the throw-vs-drop failure policy with per-parameter error-class selection. Parsers build one scope per `parse()` call and consume two questions:
+
+```typescript
+const scope = ResolutionScope.for(registry, Parameter.SORT, options.schema, {
+    relations: options.relations,           // parsed relations gate relation segments
+    throwOnFailure: options.throwOnFailure, // context override, inherited by child scopes
+});
+scope.resolveKey('items.title'); // KeyResolution: { ok, name, path, scope } | { ok: false, code, input, segment }
+scope.descend('items');          // child ResolutionScope bound to the related schema, or a failure verdict
+```
+
+Parameter quirks (sort tuple groups, fields `execute()`, filter value parsing) stay in the parsers, reached via the `scope.schema` escape hatch. Scopes created without any schema input are *unbound* and impose no traversal constraints (required for schemaless codec round-trips).
+
 ### Parsers (dialects of input)
 
 Both parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-parser per parameter:

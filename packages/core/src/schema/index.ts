@@ -7,6 +7,7 @@
 
 export * from './parameter';
 export * from './registry';
+export * from './resolver';
 export * from './define';
 export * from './module';
 export * from './types';

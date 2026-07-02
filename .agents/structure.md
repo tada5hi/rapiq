@@ -49,11 +49,11 @@ packages/core/src/
 │   └── module.ts         # Query, QueryBuilder, IQueryVisitor
 ├── schema/               # Schema, defineSchema(), per-parameter sub-schemas
 │   ├── parameter/        # FieldsSchema, FiltersSchema, ... + define* factories
-│   └── registry/         # SchemaRegistry (named schemas, cross-schema resolution)
-├── parser/               # BaseParser + per-parameter base parsers
-├── interpreter/          # IInterpreter<Input, Output, Options>
+│   ├── registry/         # SchemaRegistry (named schemas, cross-schema resolution)
+│   └── resolver/         # ResolutionScope (key/alias/allow-list/relation-path resolution)
+├── parser/               # BaseParser + per-parameter parse-option types & error classes
 ├── errors/               # BaseError + ParseError/FiltersParseError + error codes
-└── utils/                # key path parsing, object helpers, linked-list
+└── utils/                # key path parsing (public), mapping/allow-list helpers (internal)
 ```
 
 Parser packages mirror core's parameter split:

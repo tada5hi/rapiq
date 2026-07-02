@@ -15,5 +15,6 @@ export type FieldsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = Omit<ParseParameterOptions<RECORD>, 'schema'> & {
     schema?: string | Schema<RECORD> | FieldsSchema<RECORD>,
+    throwOnFailure?: boolean,
     isChild?: boolean
 };

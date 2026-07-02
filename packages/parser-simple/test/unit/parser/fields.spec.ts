@@ -7,7 +7,6 @@
 
 import type {
     Fields,
-    IInterpreter, 
     ObjectLiteral,
 } from '@rapiq/core';
 import {
@@ -20,7 +19,7 @@ import {
 import { SimpleFieldsParser } from '../../../src';
 import { registry } from '../../data';
 
-class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
+class FieldsSimpleInterpreter {
     interpret(input: Fields): string[] {
         return input.value.map((input) => input.name);
     }
@@ -316,9 +315,56 @@ describe('src/fields/index.ts', () => {
         expect(() => parser.parse(['baz'], { schema })).toThrow(FieldsParseError);
     });
 
-    it('should throw on invalid key (pattern)', async () => {
+    it('should keep the full path of a dotted mapping target', async () => {
+        // the alias expands to a relation field — child (realm) schema
+        // semantics apply, exactly like direct dotted input.
+        const data = parser.parse(['id', 'realmName'], {
+            schema: defineFieldsSchema({
+                allowed: ['id', 'name'],
+                mapping: { realmName: 'realm.name' },
+            }),
+        });
+
+        expect(interpreter.interpret(data)).toEqual(['id', 'realm.name']);
+    });
+
+    it('should not emit duplicate fields for alias groups', async () => {
+        const relations = new Relations([
+            new Relation('items'),
+            new Relation('items.realm'),
+        ]);
+
+        const data = parser.parse({ ir: ['id'] }, {
+            schema: defineSchema({
+                name: 'user',
+                fields: {
+                    allowed: ['id', 'name'],
+                    mapping: { ir: 'items.realm' },
+                },
+                schemaMapping: { items: 'item' },
+            }),
+            relations,
+        });
+
+        const names = interpreter.interpret(data);
+        expect(new Set(names).size).toEqual(names.length);
+        expect(names).toContain('items.realm.id');
+    });
+
+    it('should throw on unresolvable relation path', async () => {
         const schema = defineSchema({ throwOnFailure: true });
 
+        // '!' is treated as a relation segment; a bound schema
+        // without a resolvable child schema rejects the path.
+        const error = FieldsParseError.keyPathInvalid('!');
+        expect(() => parser.parse(['!.bar'], { schema })).toThrow(error);
         expect(() => parser.parse(['!.bar'], { schema })).toThrow(FieldsParseError);
+    });
+
+    it('should throw on invalid key pattern (open schema)', async () => {
+        const schema = defineSchema({ throwOnFailure: true });
+
+        const error = FieldsParseError.keyInvalid('!bar');
+        expect(() => parser.parse(['!bar'], { schema })).toThrow(error);
     });
 });
