@@ -67,7 +67,7 @@ export class SimpleRelationsParser extends BaseParser<
                 const key = parseKey(datum);
 
                 const resolved = scope.resolveKey(key.name);
-                if (!resolved.ok) {
+                if (!resolved.success) {
                     continue;
                 }
 

@@ -72,7 +72,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                 const key = parseKey(key_);
 
                 const resolved = scope.resolveKey(key.name);
-                if (!resolved.ok) {
+                if (!resolved.success) {
                     continue;
                 }
 

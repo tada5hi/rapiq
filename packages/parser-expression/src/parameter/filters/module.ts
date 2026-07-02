@@ -443,7 +443,7 @@ export class ExpressionFiltersParser extends BaseParser<
             const resolved = scope.resolveKey(parts.join('.'));
 
             /* istanbul ignore next -- the scope always throws */
-            if (!resolved.ok) {
+            if (!resolved.success) {
                 throw FiltersParseError.keyInvalid(resolved.input);
             }
 

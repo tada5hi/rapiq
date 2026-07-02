@@ -27,7 +27,7 @@ import type { SchemaRegistry } from '../registry';
 import { KeyResolutionErrorCode } from './constants';
 import type {
     KeyResolution,
-    KeyResolutionFailed,
+    KeyResolutionFailure,
     ParameterSchema,
     ResolutionScopeContext,
 } from './types';
@@ -190,7 +190,7 @@ export class ResolutionScope<
      * no allow-list is set) and for dotted keys walks the relation path through the
      * registry honoring schemaMapping — validating the leaf against the target schema.
      *
-     * Throws the parameter's ParseError subclass instead of returning `{ ok: false }`
+     * Throws the parameter's ParseError subclass instead of returning `{ success: false }`
      * when the effective failure policy is set.
      */
     resolveKey(key: string) : KeyResolution<P, RECORD> {
@@ -204,9 +204,9 @@ export class ResolutionScope<
             }
 
             return {
-                ok: true, 
-                name: mapped, 
-                path: [], 
+                success: true,
+                name: mapped,
+                path: [],
                 scope: this,
             };
         }
@@ -220,12 +220,12 @@ export class ResolutionScope<
         }
 
         const resolved = child.resolveKey(rest);
-        if (!resolved.ok) {
+        if (!resolved.success) {
             return { ...resolved, input: key };
         }
 
         return {
-            ok: true,
+            success: true,
             name: resolved.name,
             path: [segment, ...resolved.path],
             scope: resolved.scope,
@@ -241,7 +241,7 @@ export class ResolutionScope<
      * A mapping alias may expand to a dotted path — every segment is walked,
      * and the returned scope reports the full relative path as its segment.
      */
-    descend(key: string) : ResolutionScope<P, RECORD> | KeyResolutionFailed {
+    descend(key: string) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
@@ -272,7 +272,7 @@ export class ResolutionScope<
     protected descendSegment(
         segment: string,
         input: string,
-    ) : ResolutionScope<P, RECORD> | KeyResolutionFailed {
+    ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         if (this.depth >= MAX_DEPTH) {
             return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment);
         }
@@ -452,7 +452,7 @@ export class ResolutionScope<
         code: KeyResolutionErrorCode,
         input: string,
         segment?: string,
-    ) : KeyResolutionFailed {
+    ) : KeyResolutionFailure {
         if (this.throwOnFailure) {
             switch (code) {
                 case KeyResolutionErrorCode.KEY_INVALID:
@@ -464,10 +464,10 @@ export class ResolutionScope<
             }
         }
 
-        const output : KeyResolutionFailed = {
-            ok: false, 
-            code, 
-            input, 
+        const output : KeyResolutionFailure = {
+            success: false,
+            code,
+            input,
         };
         if (typeof segment !== 'undefined') {
             output.segment = segment;

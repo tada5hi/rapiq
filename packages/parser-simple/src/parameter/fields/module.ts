@@ -77,7 +77,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 }
 
                 const resolved = scope.resolveKey(value);
-                if (!resolved.ok) {
+                if (!resolved.success) {
                     continue;
                 }
 

@@ -68,8 +68,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'user');
             const resolved = scope.resolveKey('name');
 
-            expect(resolved.ok).toBeTruthy();
-            if (resolved.ok) {
+            expect(resolved.success).toBeTruthy();
+            if (resolved.success) {
                 expect(resolved.name).toEqual('name');
                 expect(resolved.path).toEqual([]);
                 expect(resolved.scope).toBe(scope);
@@ -84,8 +84,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
             const resolved = scope.resolveKey('aliasId');
 
-            expect(resolved.ok).toBeTruthy();
-            if (resolved.ok) {
+            expect(resolved.success).toBeTruthy();
+            if (resolved.success) {
                 expect(resolved.name).toEqual('id');
             }
         });
@@ -95,7 +95,7 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('age');
 
             expect(resolved).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.KEY_NOT_PERMITTED,
                 input: 'age',
                 segment: 'age',
@@ -105,9 +105,9 @@ describe('src/schema/resolver/*.ts', () => {
         it('should reject a syntactically invalid key under an open schema', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS);
 
-            expect(scope.resolveKey('foo').ok).toBeTruthy();
+            expect(scope.resolveKey('foo').success).toBeTruthy();
             expect(scope.resolveKey('1foo')).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.KEY_INVALID,
                 input: '1foo',
                 segment: '1foo',
@@ -120,8 +120,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'user');
             const resolved = scope.resolveKey('items.id');
 
-            expect(resolved.ok).toBeTruthy();
-            if (resolved.ok) {
+            expect(resolved.success).toBeTruthy();
+            if (resolved.success) {
                 expect(resolved.name).toEqual('id');
                 expect(resolved.path).toEqual(['items']);
                 expect(resolved.scope.schema.name).toEqual('item');
@@ -133,7 +133,7 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('items.name');
 
             expect(resolved).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.KEY_NOT_PERMITTED,
                 input: 'items.name',
                 segment: 'name',
@@ -145,7 +145,7 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('unknown.id');
 
             expect(resolved).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
                 input: 'unknown.id',
                 segment: 'unknown',
@@ -157,7 +157,7 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('items.id');
 
             expect(resolved).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
                 input: 'items.id',
                 segment: 'items',
@@ -167,7 +167,7 @@ describe('src/schema/resolver/*.ts', () => {
         it('should permit segments covered by the relations context', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'user', { relations: new Relations([new Relation('items')]) });
 
-            expect(scope.resolveKey('items.id').ok).toBeTruthy();
+            expect(scope.resolveKey('items.id').success).toBeTruthy();
         });
     });
 
@@ -190,7 +190,7 @@ describe('src/schema/resolver/*.ts', () => {
             });
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { throwOnFailure: false });
 
-            expect(scope.resolveKey('bar').ok).toBeFalsy();
+            expect(scope.resolveKey('bar').success).toBeFalsy();
         });
 
         it('should throw the parameter error class', () => {
@@ -268,7 +268,7 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, 'user');
 
             expect(scope.descend('foo')).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
                 input: 'foo',
                 segment: 'foo',
@@ -296,7 +296,7 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(local, Parameter.SORT, schema);
 
             expect(scope.descend('bar')).toEqual({
-                ok: false,
+                success: false,
                 code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
                 input: 'bar',
                 segment: 'bar',
@@ -311,7 +311,7 @@ describe('src/schema/resolver/*.ts', () => {
             expect(child).toBeInstanceOf(ResolutionScope);
             if (child instanceof ResolutionScope) {
                 expect(child.schema.allowedIsUndefined).toBeTruthy();
-                expect(child.resolveKey('name').ok).toBeTruthy();
+                expect(child.resolveKey('name').success).toBeTruthy();
             }
         });
 
@@ -339,8 +339,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
 
             const resolved = scope.resolveKey('realmName');
-            expect(resolved.ok).toBeTruthy();
-            if (resolved.ok) {
+            expect(resolved.success).toBeTruthy();
+            if (resolved.success) {
                 expect(resolved.name).toEqual('name');
                 expect(resolved.path).toEqual(['realm']);
                 expect(resolved.scope.schema.name).toEqual('realm');
@@ -378,8 +378,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'user');
 
             const resolved = scope.resolveKey('p');
-            expect(resolved.ok).toBeFalsy();
-            if (!resolved.ok) {
+            expect(resolved.success).toBeFalsy();
+            if (!resolved.success) {
                 expect(resolved.code).toEqual(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE);
             }
         });
@@ -388,8 +388,8 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, 'user');
 
             const resolved = scope.resolveKey('items.realm');
-            expect(resolved.ok).toBeTruthy();
-            if (resolved.ok) {
+            expect(resolved.success).toBeTruthy();
+            if (resolved.success) {
                 expect(resolved.name).toEqual('realm');
                 expect(resolved.path).toEqual(['items']);
                 expect(resolved.scope.schema.name).toEqual('item');
@@ -412,7 +412,7 @@ describe('src/schema/resolver/*.ts', () => {
             }));
 
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'parent');
-            expect(scope.resolveKey('bar').ok).toBeFalsy();
+            expect(scope.resolveKey('bar').success).toBeFalsy();
 
             const child = scope.descend('kid');
             expect(child).toBeInstanceOf(ResolutionScope);

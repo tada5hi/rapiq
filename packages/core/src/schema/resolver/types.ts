@@ -34,11 +34,11 @@ export type ParameterSchema<
                     SortSchema<RECORD> :
                     never;
 
-export type KeyResolutionOk<
+export type KeyResolutionSuccess<
     P extends `${Parameter}`,
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    ok: true,
+    success: true,
     /**
      * Canonical (alias-resolved) leaf field name.
      */
@@ -54,8 +54,8 @@ export type KeyResolutionOk<
     scope: ResolutionScope<P, RECORD>,
 };
 
-export type KeyResolutionFailed = {
-    ok: false,
+export type KeyResolutionFailure = {
+    success: false,
     code: KeyResolutionErrorCode,
     /**
      * Raw input key.
@@ -70,7 +70,7 @@ export type KeyResolutionFailed = {
 export type KeyResolution<
     P extends `${Parameter}`,
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = KeyResolutionOk<P, RECORD> | KeyResolutionFailed;
+> = KeyResolutionSuccess<P, RECORD> | KeyResolutionFailure;
 
 export type ResolutionScopeContext = {
     /**
