@@ -6,75 +6,50 @@
  */
 
 import {
-    BaseSortParser,
+    BaseParser,
     DEFAULT_ID,
-    FiltersParseError,
+    Parameter,
+    ResolutionScope,
     Sort,
     SortDirection,
     SortParseError,
     Sorts,
-    applyMapping,
-
     isObject,
-    isPathAllowed,
-    isPropertyNameValid,
     parseKey,
 } from '@rapiq/core';
-import type { ObjectLiteral, Relations, SortParseOptions } from '@rapiq/core';
+import type {
+    ISorts,
+    ObjectLiteral,
+    SortParseOptions,
+    SortSchema,
+} from '@rapiq/core';
 
-export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
-    protected buildDefaults<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        options: SortParseOptions<RECORD> = {},
-    ) {
-        const output = new Sorts();
-
-        const schema = this.resolveSchema(options.schema);
-        if (schema.default) {
-            const keys = Object.keys(schema.default);
-
-            for (const key_ of keys) {
-                const fieldDetails = parseKey(key_);
-
-                let path : string | undefined;
-                if (fieldDetails.path) {
-                    path = fieldDetails.path;
-                } else if (schema.name) {
-                    path = schema.name;
-                }
-
-                let key : string;
-                if (path) {
-                    key = `${path}.${fieldDetails.name}`;
-                } else {
-                    key = fieldDetails.name;
-                }
-
-                output.value.push(new Sort(key, schema.default[key_]));
-            }
-
-            return output;
-        }
-
-        return output;
-    }
-
+export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortParseOptions<RECORD> = {}) : Sorts {
-        const schema = this.resolveSchema(options.schema);
-        const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure;
+        const scope = ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+        });
+
+        return this.parseWithScope(input, scope);
+    }
+
+    protected parseWithScope<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, scope: ResolutionScope<`${Parameter.SORT}`, RECORD>) : Sorts {
+        const { schema } = scope;
 
         // If it is an empty array nothing is allowed
         if (
             !schema.allowedIsUndefined &&
             schema.allowed.length === 0
         ) {
-            return this.buildDefaults(options);
+            return this.buildDefaults(schema);
         }
 
-        const normalized = this.normalize(input, throwOnFailure);
+        const normalized = this.normalize(input, scope.throwOnFailure);
         const grouped = this.groupObjectByBasePath(normalized);
         if (schema.name) {
             const named = grouped[schema.name];
@@ -95,33 +70,16 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
             const keys = Object.keys(data);
             for (const key_ of keys) {
                 const key = parseKey(key_);
-                key.name = applyMapping(key.name, schema.mapping);
 
-                if (
-                    schema.allowedIsUndefined &&
-                    !isPropertyNameValid(key.name)
-                ) {
-                    if (throwOnFailure) {
-                        throw SortParseError.keyInvalid(key.name);
-                    }
-
+                const resolved = scope.resolveKey(key.name);
+                if (!resolved.ok) {
                     continue;
                 }
 
-                if (
-                    !schema.allowedIsUndefined &&
-                    !this.isMultiDimensionalArray(schema.allowed) &&
-                    schema.allowed &&
-                    !schema.allowed.includes(key.name)
-                ) {
-                    if (throwOnFailure) {
-                        throw SortParseError.keyNotPermitted(key.name);
-                    }
-
-                    continue;
-                }
-
-                output.value.push(new Sort(key.name, data[key_]));
+                output.value.push(new Sort(
+                    [...resolved.path, resolved.name].join('.'),
+                    data[key_],
+                ));
             }
 
             if (this.isMultiDimensionalArray(schema.allowed)) {
@@ -152,48 +110,57 @@ export class SimpleSortParser extends BaseSortParser<SortParseOptions> {
         }
 
         if (output.value.length === 0) {
-            output.value.push(...this.buildDefaults(options).value);
+            output.value.push(...this.buildDefaults(schema).value);
         }
 
         const keys = Object.keys(relationsData);
         for (const key of keys) {
-            if (!isPathAllowed(key, options.relations)) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
+            const child = scope.descend(key);
+            if (!(child instanceof ResolutionScope)) {
                 continue;
             }
 
-            // todo: also pass options.schema
-            const relationSchema = this.registry.resolve(schema.name, key);
-            if (!relationSchema) {
-                if (throwOnFailure) {
-                    throw FiltersParseError.keyPathInvalid(key);
-                }
-
-                continue;
-            }
-
-            let childRelations: Relations | undefined;
-            if (typeof options.relations !== 'undefined') {
-                childRelations = options.relations.extract(key);
-            }
-
-            const relationOutput = this.parse(
-                relationsData[key],
-                {
-                    schema: relationSchema,
-                    relations: childRelations,
-                    throwOnFailure: options.throwOnFailure,
-                },
-            );
+            const relationOutput = this.parseWithScope(relationsData[key], child);
 
             for (const relation of relationOutput.value) {
                 output.value.push(
-                    new Sort(`${key}.${relation.name}`, relation.operator),
+                    new Sort(`${child.segment}.${relation.name}`, relation.operator),
                 );
             }
+        }
+
+        return output;
+    }
+
+    protected buildDefaults<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(schema: SortSchema<RECORD>) {
+        const output = new Sorts();
+
+        if (schema.default) {
+            const keys = Object.keys(schema.default);
+
+            for (const key_ of keys) {
+                const fieldDetails = parseKey(key_);
+
+                let path : string | undefined;
+                if (fieldDetails.path) {
+                    path = fieldDetails.path;
+                } else if (schema.name) {
+                    path = schema.name;
+                }
+
+                let key : string;
+                if (path) {
+                    key = `${path}.${fieldDetails.name}`;
+                } else {
+                    key = fieldDetails.name;
+                }
+
+                output.value.push(new Sort(key, schema.default[key_]));
+            }
+
+            return output;
         }
 
         return output;

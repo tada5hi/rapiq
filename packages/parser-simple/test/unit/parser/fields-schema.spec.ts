@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Fields, IInterpreter } from '@rapiq/core';
+import type { Fields } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { SimpleFieldsParser } from '../../../src';
 
-class FieldsSimpleInterpreter implements IInterpreter<Fields, string[]> {
+class FieldsSimpleInterpreter {
     interpret(input: Fields): string[] {
         return input.value.map((input) => input.name);
     }

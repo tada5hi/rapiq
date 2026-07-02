@@ -6,27 +6,27 @@
  */
 
 import {
-    BaseRelationsParser,
+    BaseParser,
     DEFAULT_ID,
+    Parameter,
     Relation,
     Relations,
     RelationsParseError,
-    SortParseError,
-    applyMapping,
+    ResolutionScope,
     isObject,
-    isPathAllowed, 
     parseKey,
 } from '@rapiq/core';
 import type {
-    ObjectLiteral, 
+    IRelations,
+    ObjectLiteral,
     RelationsParseOptions,
-    Schema,
 } from '@rapiq/core';
 
 // --------------------------------------------------
 
-export class SimpleRelationsParser extends BaseRelationsParser<
-    RelationsParseOptions
+export class SimpleRelationsParser extends BaseParser<
+    RelationsParseOptions,
+    IRelations
 > {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
@@ -34,21 +34,27 @@ export class SimpleRelationsParser extends BaseRelationsParser<
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
-        const schema = this.resolveSchema(options.schema);
-        const throwOnFailure = options.throwOnFailure ?? schema?.throwOnFailure;
+        const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, { throwOnFailure: options.throwOnFailure });
+
+        return this.parseWithScope(input, scope);
+    }
+
+    protected parseWithScope<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>) : Relations {
+        const { schema } = scope;
 
         const output = new Relations();
 
         // If it is an empty array nothing is allowed
         if (
-            schema &&
             Array.isArray(schema.allowed) &&
             schema.allowed.length === 0
         ) {
             return output;
         }
 
-        const normalized = this.includeParents(this.normalize(input, throwOnFailure));
+        const normalized = this.includeParents(this.normalize(input, scope.throwOnFailure));
         const grouped = this.groupArrayByBasePath(normalized);
 
         const {
@@ -59,71 +65,30 @@ export class SimpleRelationsParser extends BaseRelationsParser<
         if (data) {
             for (const datum of data) {
                 const key = parseKey(datum);
-                if (schema) {
-                    key.name = applyMapping(key.name, schema.mapping);
 
-                    if (!isPathAllowed(key.name, schema.allowed)) {
-                        if (schema.throwOnFailure) {
-                            throw RelationsParseError.keyInvalid(key.name);
-                        }
-
-                        continue;
-                    } else if (
-                        typeof schema.allowed === 'undefined' &&
-                        !this.isValidPath(key.name)
-                    ) {
-                        if (throwOnFailure) {
-                            throw RelationsParseError.keyInvalid(key.name);
-                        }
-
-                        continue;
-                    }
-                } else if (!this.isValidPath(key.name)) {
-                    if (throwOnFailure) {
-                        throw RelationsParseError.keyInvalid(key.name);
-                    }
-
+                const resolved = scope.resolveKey(key.name);
+                if (!resolved.ok) {
                     continue;
                 }
 
-                output.value.push(new Relation(key.name));
+                output.value.push(new Relation(
+                    [...resolved.path, resolved.name].join('.'),
+                ));
             }
         }
 
         const keys = Object.keys(relationsData);
-        for (const key_ of keys) {
-            let key : string;
-            let relationSchema : string | Schema | undefined;
-
-            if (schema) {
-                key = applyMapping(key_, schema.mapping);
-
-                if (!isPathAllowed(key, schema.allowed)) {
-                    if (throwOnFailure) {
-                        throw RelationsParseError.keyPathInvalid(key);
-                    }
-
-                    continue;
-                }
-
-                relationSchema = this.registry.resolve(schema.name, key);
-            } else {
-                key = key_;
+        for (const key of keys) {
+            const child = scope.descend(key);
+            if (!(child instanceof ResolutionScope)) {
+                continue;
             }
 
-            // todo: also pass options.schema
-
-            const relationOutput = this.parse(
-                relationsData[key_],
-                {
-                    schema: relationSchema,
-                    throwOnFailure: options.throwOnFailure,
-                },
-            );
+            const relationOutput = this.parseWithScope(relationsData[key], child);
 
             for (const relation of relationOutput.value) {
                 output.value.push(
-                    new Relation(`${key}.${relation.name}`),
+                    new Relation(`${child.segment}.${relation.name}`),
                 );
             }
         }
@@ -150,7 +115,7 @@ export class SimpleRelationsParser extends BaseRelationsParser<
             for (const key of temp) {
                 if (typeof key !== 'string') {
                     if (throwOnFailure) {
-                        throw SortParseError.inputInvalid();
+                        throw RelationsParseError.inputInvalid();
                     }
 
                     continue;
@@ -207,9 +172,5 @@ export class SimpleRelationsParser extends BaseRelationsParser<
         }
 
         return output.reverse();
-    }
-
-    protected isValidPath(input: string) : boolean {
-        return /^[a-zA-Z0-9_-]+([.]*[a-zA-Z0-9_-])*$/gu.test(input);
     }
 }

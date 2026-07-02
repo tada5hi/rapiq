@@ -6,11 +6,11 @@
  */
 
 import { RelationsParseError, defineSchema } from '@rapiq/core';
-import type { IInterpreter, Relations } from '@rapiq/core';
+import type { Relations } from '@rapiq/core';
 import { registry } from '../../data';
 import { SimpleRelationsParser } from '../../../src';
 
-class RelationsSimpleInterpreter implements IInterpreter<Relations, string[]> {
+class RelationsSimpleInterpreter {
     interpret(input: Relations): string[] {
         return input.value.map((relation) => relation.name);
     }
@@ -73,6 +73,18 @@ describe('src/relations/index.ts', () => {
         ]);
     });
 
+    it('should keep the full path of a dotted mapping target', async () => {
+        const schema = defineSchema({
+            relations: {
+                allowed: ['items', 'items.realm'],
+                mapping: { abc: 'items.realm' },
+            },
+        });
+
+        const output = parser.parse(['abc'], { schema });
+        expect(interpreter.interpret(output)).toEqual(['items.realm']);
+    });
+
     it('should parse with array input', async () => {
         // multiple data matching
         const output = parser.parse(['profile', 'abc'], { schema: defineSchema({ relations: { allowed: ['profile'] } }) });
@@ -115,6 +127,10 @@ describe('src/relations/index.ts', () => {
 
         expect(() => parser.parse(['foo', true], { schema })).toThrow(error.message);
         expect(() => parser.parse(false, { schema })).toThrow(error);
+
+        // the relations parameter throws its own error class
+        expect(() => parser.parse(['foo', true], { schema })).toThrow(RelationsParseError);
+        expect(() => parser.parse(false, { schema })).toThrow(RelationsParseError);
     });
 
     it('should throw on non allowed key', async () => {
@@ -123,7 +139,7 @@ describe('src/relations/index.ts', () => {
             relations: { allowed: ['foo'] },
         });
 
-        const error = RelationsParseError.keyInvalid('bar');
+        const error = RelationsParseError.keyNotPermitted('bar');
         expect(() => parser.parse(['foo', 'bar'], { schema })).toThrow(error);
     });
 

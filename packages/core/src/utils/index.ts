@@ -5,11 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './array';
 export * from './mapping';
 export * from './key';
-export * from './merge';
 export * from './relation';
-export * from './regexp';
 export * from './object';
 export * from './property-name';

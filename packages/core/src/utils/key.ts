@@ -11,8 +11,12 @@ export type KeyDetails = {
     path?: string
 };
 
-export const KEY_REGEX = /^(?:([0-9]+):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
+const KEY_REGEX = /^(?:([0-9]+):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
 
+/**
+ * Parse a raw key ("[group:][path.]name", e.g. "0:items.title")
+ * into its group, relation path and leaf name.
+ */
 export function parseKey(
     input: string,
 ) : KeyDetails {
@@ -30,6 +34,9 @@ export function parseKey(
     };
 }
 
+/**
+ * Serialize key details back into the "[group:][path.]name" form.
+ */
 export function stringifyKey(
     key: KeyDetails,
 ) : string {

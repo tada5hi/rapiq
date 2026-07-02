@@ -7,32 +7,34 @@
 
 import type {
     FiltersParseOptions,
-    FiltersSchema,
     IFilter,
     IFilters,
     ObjectLiteral,
     Scalar,
 } from '@rapiq/core';
 import {
-    BaseFiltersParser,
+    BaseParser,
     DEFAULT_ID,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    Parameter,
+    ResolutionScope,
     isFilters,
-    isPathAllowed,
-    isPropertyNameValid,
 } from '@rapiq/core';
 import { FilterTokenType } from './constants';
-import type { FilterExpressionParseOptions, FilterToken } from './types';
+import type { FilterToken } from './types';
+
+type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
 
 /**
  * @see https://www.jsonapi.net/usage/reading/filtering.html
  */
-export class ExpressionFiltersParser extends BaseFiltersParser<
-    FiltersParseOptions
+export class ExpressionFiltersParser extends BaseParser<
+    FiltersParseOptions,
+    IFilters
 > {
     private tokens: FilterToken[] = [];
 
@@ -66,7 +68,17 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         this.pos = 0;
         this.tokens = this.tokenize(input);
 
-        const expr = this.parseFilterExpression(options);
+        // expressions are precise — invalid keys always throw,
+        // but only when a schema constrains the parse.
+        let scope : FiltersScope | undefined;
+        if (options.schema) {
+            scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+                relations: options.relations,
+                throwOnFailure: true,
+            }) as FiltersScope;
+        }
+
+        const expr = this.parseFilterExpression(scope);
         if (this.peek().type !== FilterTokenType.EOF) {
             throw new Error(`Unexpected token: ${this.peek().type}`);
         }
@@ -133,49 +145,49 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         return tokens;
     }
 
-    private parseFilterExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseFilterExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ) : Filters | Filter {
         const token = this.peek();
         switch (token.type) {
             case FilterTokenType.NOT:
-                return this.parseNotExpression(options, negation);
+                return this.parseNotExpression(scope, negation);
             case FilterTokenType.AND:
             case FilterTokenType.OR:
-                return this.parseLogicalExpression(options, negation);
+                return this.parseLogicalExpression(scope, negation);
             case FilterTokenType.EQUAL:
             case FilterTokenType.GREATER_THAN:
             case FilterTokenType.GREATER_OR_EQUAL:
             case FilterTokenType.LESS_THAN:
             case FilterTokenType.LESS_OR_EQUAL:
-                return this.parseComparisonExpression(options, negation);
+                return this.parseComparisonExpression(scope, negation);
             case FilterTokenType.CONTAINS:
             case FilterTokenType.STARTS_WITH:
             case FilterTokenType.ENDS_WITH:
-                return this.parseMatchExpression(options, negation);
+                return this.parseMatchExpression(scope, negation);
             case FilterTokenType.IN:
             case FilterTokenType.NIN:
-                return this.parseInExpression(options, negation);
+                return this.parseInExpression(scope, negation);
             default:
                 throw new Error(`Unexpected token in filterExpression: ${token.type}`);
         }
     }
 
-    private parseNotExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseNotExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ): Filters | Filter {
         this.consume(FilterTokenType.NOT);
         this.consume(FilterTokenType.LPAREN);
-        const expr = this.parseFilterExpression(options, !negation);
+        const expr = this.parseFilterExpression(scope, !negation);
         this.consume(FilterTokenType.RPAREN);
 
         return expr;
     }
 
-    private parseLogicalExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseLogicalExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ): Filters | Filter {
         let op = this.consume().type; // AND / OR
@@ -184,10 +196,10 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         }
 
         this.consume(FilterTokenType.LPAREN);
-        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(options, negation)];
+        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, negation)];
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
-            expressions.push(this.parseFilterExpression(options, negation));
+            expressions.push(this.parseFilterExpression(scope, negation));
         }
         this.consume(FilterTokenType.RPAREN);
 
@@ -209,13 +221,13 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         return new Filters(FilterCompoundOperator.OR, expressions);
     }
 
-    private parseComparisonExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseComparisonExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
-        const left = this.parseExpressionFieldChain(options);
+        const left = this.parseExpressionFieldChain(scope);
         this.consume(FilterTokenType.COMMA);
         const right = this.parseExpressionValue();
         this.consume(FilterTokenType.RPAREN);
@@ -297,13 +309,13 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         throw new Error(`Token type ${op} not supported as comparison operator.`);
     }
 
-    private parseMatchExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseMatchExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
-        const field = this.parseExpressionFieldChain(options);
+        const field = this.parseExpressionFieldChain(scope);
         this.consume(FilterTokenType.COMMA);
         const text = this.consume(FilterTokenType.ESCAPED_TEXT).value!;
         this.consume(FilterTokenType.RPAREN);
@@ -349,8 +361,8 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         }
     }
 
-    private parseInExpression<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FiltersParseOptions<RECORD> = {},
+    private parseInExpression(
+        scope?: FiltersScope,
         negation: boolean = false,
     ): Filters | Filter {
         const token = this.peek();
@@ -362,7 +374,7 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
 
         this.consume(FilterTokenType.LPAREN);
 
-        const field = this.parseExpressionFieldChain(options);
+        const field = this.parseExpressionFieldChain(scope);
 
         const values: unknown[] = [];
         while (this.peek().type === FilterTokenType.COMMA) {
@@ -403,8 +415,8 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
         return this.normalizeValue(token.value ?? 'null');
     }
 
-    private parseExpressionFieldChain<RECORD extends ObjectLiteral = ObjectLiteral>(
-        options: FilterExpressionParseOptions<RECORD> = {},
+    private parseExpressionFieldChain(
+        scope?: FiltersScope,
     ): string {
         const token = this.consume(FilterTokenType.FIELD);
         if (token.type !== FilterTokenType.FIELD) {
@@ -417,54 +429,25 @@ export class ExpressionFiltersParser extends BaseFiltersParser<
             parts.push(this.consume(FilterTokenType.FIELD).value!);
         }
 
-        if (options.schema) {
-            let { relations } = options;
-            let schema : FiltersSchema = this.resolveSchema(options.schema);
-
-            // [ 'id' ]
-            for (let i = 0; i < parts.length - 1; i++) {
-                const part = parts[i];
-                if (part === undefined) {
-                    continue;
-                }
-
-                if (i === 0 && (part === DEFAULT_ID || schema.name)) {
-                    continue;
-                }
-
-                if (!isPathAllowed(part, relations)) {
-                    throw FiltersParseError.keyPathInvalid(part);
-                }
-
-                const root = this.registry.resolve(schema.name, part);
-                if (root) {
-                    schema = root.filters;
-                } else if (typeof relations !== 'undefined') {
-                    throw FiltersParseError.keyPathInvalid(part);
-                }
-
-                if (typeof relations !== 'undefined') {
-                    relations = relations.extract(part);
-                }
+        if (scope) {
+            // a leading segment matching the schema name addresses the
+            // schema itself (mirrors the named-group hoisting of the
+            // simple filters parser) and is stripped.
+            if (
+                parts.length > 1 &&
+                (parts[0] === DEFAULT_ID || parts[0] === scope.schema.name)
+            ) {
+                parts.shift();
             }
 
-            const key = parts[parts.length - 1];
+            const resolved = scope.resolveKey(parts.join('.'));
 
-            if (key !== undefined) {
-                if (
-                    schema.allowedIsUndefined &&
-                    !isPropertyNameValid(key)
-                ) {
-                    throw FiltersParseError.keyInvalid(key);
-                }
-
-                if (
-                    !schema.allowedIsUndefined &&
-                    !schema.allowed.includes(key)
-                ) {
-                    throw FiltersParseError.keyInvalid(key);
-                }
+            /* istanbul ignore next -- the scope always throws */
+            if (!resolved.ok) {
+                throw FiltersParseError.keyInvalid(resolved.input);
             }
+
+            return [...resolved.path, resolved.name].join('.');
         }
 
         return parts.join('.');

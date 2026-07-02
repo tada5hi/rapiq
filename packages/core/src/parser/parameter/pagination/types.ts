@@ -11,5 +11,6 @@ import type { PaginationSchema, Schema } from '../../../schema';
 export type PaginationParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
-    schema?: string | Schema<RECORD> | PaginationSchema
+    schema?: string | Schema<RECORD> | PaginationSchema,
+    throwOnFailure?: boolean
 };

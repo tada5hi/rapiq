@@ -84,6 +84,27 @@ describe('src/filter/index.ts', () => {
         );
     });
 
+    it('should keep the full path of a dotted mapping target', async () => {
+        // the alias expands to a relation path — the leaf validates
+        // against the related (realm) schema and keeps its full path.
+        const output = parseFlat({ realmName: 'master' }, {
+            schema: defineFiltersSchema({
+                mapping: { realmName: 'realm.name' },
+                allowed: ['id', 'realm.name'],
+            }),
+        });
+
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        );
+    });
+
+    it('should hoist keys grouped under the schema name', async () => {
+        const output = parseFlat({ 'user.name': 'admin' }, { schema: 'user' });
+
+        expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
+    });
+
     it('should not parse with non matching name', async () => {
         // filter wrong allowed
         const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: ['name'] }) });
@@ -377,7 +398,7 @@ describe('src/filter/index.ts', () => {
     });
 
     it('should throw on non allowed key which is not covered by a relation', async () => {
-        const error = FiltersParseError.keyInvalid('bar');
+        const error = FiltersParseError.keyNotPermitted('bar');
 
         expect(() => parseFlat({ 'realm.bar': 1 }, {
             schema: 'user',
@@ -394,7 +415,7 @@ describe('src/filter/index.ts', () => {
             allowed: ['foo'],
         });
 
-        const error = FiltersParseError.keyInvalid('bar');
+        const error = FiltersParseError.keyNotPermitted('bar');
 
         expect(() => parseFlat({ bar: 1 }, { schema })).toThrow(error);
     });

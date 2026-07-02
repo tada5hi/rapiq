@@ -10,8 +10,13 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    FiltersParseError,
+    Relation,
+    Relations,
+    defineFiltersSchema,
 } from '@rapiq/core';
-import { ExpressionFiltersParser } from '../../../src';
+import { registry } from '../../data/schema';
+import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
 
 describe('filters/expr-parser', () => {
     let parser : ExpressionFiltersParser;
@@ -212,5 +217,86 @@ describe('filters/expr-parser', () => {
                 ),
             ],
         ));
+    });
+
+    describe('parse (schema-constrained)', () => {
+        let constrained : ExpressionFiltersParser;
+        beforeAll(() => {
+            constrained = new ExpressionFiltersParser(registry);
+        });
+
+        it('should parse an allowed key', () => {
+            const output = constrained.parseExact('eq(name, \'admin\')', { schema: 'user' });
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
+        });
+
+        it('should strip a leading segment matching the schema name', () => {
+            const output = constrained.parseExact('eq(user.name, \'admin\')', { schema: 'user' });
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
+        });
+
+        it('should throw on a non allowed key', () => {
+            const error = FiltersParseError.keyNotPermitted('age');
+
+            expect(() => constrained.parseExact('eq(age, \'18\')', { schema: 'user' })).toThrow(error);
+        });
+
+        it('should walk a relation path through schemaMapping', () => {
+            const output = constrained.parseExact('eq(items.id, \'1\')', { schema: 'user' });
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'items.id', 1));
+        });
+
+        it('should validate the leaf against the related schema', () => {
+            const error = FiltersParseError.keyNotPermitted('name');
+
+            expect(() => constrained.parseExact('eq(items.name, \'foo\')', { schema: 'user' })).toThrow(error);
+        });
+
+        it('should throw on an unresolvable relation segment', () => {
+            const error = FiltersParseError.keyPathInvalid('foo');
+
+            expect(() => constrained.parseExact('eq(foo.id, \'1\')', { schema: 'user' })).toThrow(error);
+        });
+
+        it('should honor the relations context', () => {
+            const error = FiltersParseError.keyPathInvalid('items');
+
+            expect(() => constrained.parseExact('eq(items.id, \'1\')', {
+                schema: 'user',
+                relations: new Relations([new Relation('realm')]),
+            })).toThrow(error);
+
+            const output = constrained.parseExact('eq(items.id, \'1\')', {
+                schema: 'user',
+                relations: new Relations([new Relation('items')]),
+            });
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'items.id', 1));
+        });
+
+        it('should apply mapping aliases', () => {
+            const schema = defineFiltersSchema({
+                allowed: ['id'],
+                mapping: { aliasId: 'id' },
+            });
+            const output = constrained.parseExact('eq(aliasId, \'1\')', { schema });
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'id', 1));
+        });
+    });
+
+    describe('ExpressionParser (composite)', () => {
+        it('should keep dotted fields when parsing without a schema', () => {
+            const composite = new ExpressionParser();
+
+            const output = composite.parse({ filters: 'eq(user.friends, \'5\')' });
+
+            expect(output.filters).toEqual(new Filters(
+                FilterCompoundOperator.AND,
+                [new Filter(FilterFieldOperator.EQUAL, 'user.friends', 5)],
+            ));
+        });
     });
 });

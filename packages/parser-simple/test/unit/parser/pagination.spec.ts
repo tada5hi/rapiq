@@ -9,10 +9,10 @@ import {
     PaginationParseError, 
     defineSchema,
 } from '@rapiq/core';
-import type { IInterpreter, Pagination } from '@rapiq/core';
+import type { Pagination } from '@rapiq/core';
 import { SimplePaginationParser } from '../../../src';
 
-class PaginationSimpleInterpreter implements IInterpreter<Pagination, { limit?: number, offset?: number }> {
+class PaginationSimpleInterpreter {
     interpret(input: Pagination): { limit?: number; offset?: number } {
         const output : {
             limit?: number,

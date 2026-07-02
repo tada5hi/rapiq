@@ -32,6 +32,17 @@ describe('src/parser', () => {
         ]));
     });
 
+    it('should keep dotted keys when parsing without a schema', async () => {
+        const parser = new SimpleParser();
+
+        const output = parser.parse({ fields: ['id', 'realm.name'] });
+
+        expect(output.fields).toEqual(new Fields([
+            new Field('id'),
+            new Field('realm.name'),
+        ]));
+    });
+
     it('should keep relations when other parameters are parsed', async () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({

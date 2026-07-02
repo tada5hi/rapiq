@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IInterpreter, Sorts } from '@rapiq/core';
+import type { Sorts } from '@rapiq/core';
 import {
     Relation,
     Relations,
@@ -18,7 +18,7 @@ import type { User } from '../../data';
 
 import { SimpleSortParser } from '../../../src';
 
-class SortSimpleInterpreter implements IInterpreter<Sorts, Record<string, `${SortDirection}`>> {
+class SortSimpleInterpreter {
     interpret(input: Sorts): Record<string, `${SortDirection}`> {
         const output : Record<string, `${SortDirection}`> = {};
 
@@ -120,6 +120,18 @@ describe('src/sort/index.ts', () => {
             }),
         });
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
+    });
+
+    it('should keep the full path of a dotted mapping target', async () => {
+        // the alias expands to a relation path — the leaf validates
+        // against the related (realm) schema and keeps its full path.
+        const transformed = parser.parse(['-realmName'], {
+            schema: defineSortSchema({
+                allowed: ['id', 'realm.name'],
+                mapping: { realmName: 'realm.name' },
+            }),
+        });
+        expect(interpreter.interpret(transformed)).toEqual({ 'realm.name': SortDirection.DESC });
     });
 
     it('should transform sort with default', async () => {
@@ -254,6 +266,15 @@ describe('src/sort/index.ts', () => {
             ]),
             throwOnFailure: true,
         })).toThrow(error.message);
+
+        // the sort parameter throws its own error class for relation failures
+        expect(() => parser.parse({ 'bar.bar': 'desc' }, {
+            schema: 'user',
+            relations: new Relations([
+                new Relation('realm'),
+            ]),
+            throwOnFailure: true,
+        })).toThrow(SortParseError);
     });
 
     it('should throw on non allowed key which is not covered by a relation', async () => {
