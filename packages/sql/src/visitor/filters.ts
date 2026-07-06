@@ -10,7 +10,8 @@ import type {
     IFiltersVisitor,
 } from '@rapiq/core';
 import {
-    Filter, 
+    AdapterError,
+    Filter,
     FilterFieldOperator,
 
     FilterRegexFlag,
@@ -18,6 +19,7 @@ import {
     createFilterRegex,
 } from '@rapiq/core';
 import type { IFiltersAdapter } from '../adapter';
+import { escapeLikePattern } from '../helpers';
 import type { VisitorOptions } from './types';
 
 export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
@@ -35,10 +37,18 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterEqual(expr: Filter<FilterFieldOperator.EQUAL>): IFiltersAdapter {
+        if (expr.value === null) {
+            return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is null`);
+        }
+
         return this.adapter.where(expr.field, '=', expr.value);
     }
 
     visitFilterNotEqual(expr: Filter<FilterFieldOperator.NOT_EQUAL>): IFiltersAdapter {
+        if (expr.value === null) {
+            return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is not null`);
+        }
+
         return this.adapter.where(expr.field, '<>', expr.value);
     }
 
@@ -63,20 +73,47 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterIn(expr: Filter<FilterFieldOperator.IN, unknown[]>): IFiltersAdapter {
+        const values = expr.value.filter((value) => value !== null);
+        if (values.length === expr.value.length) {
+            return this.adapter.whereRaw(
+                `${this.adapter.buildField(
+                    expr.field,
+                )} in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
+                ...expr.value,
+            );
+        }
+
+        // a null element means: match the values OR the absence of one.
+        const field = this.adapter.buildField(expr.field);
+        if (values.length === 0) {
+            return this.adapter.whereRaw(`${field} is null`);
+        }
+
         return this.adapter.whereRaw(
-            `${this.adapter.buildField(
-                expr.field,
-            )} in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
-            ...expr.value,
+            `(${field} in(${this.adapter.buildParamsPlaceholders(values).join(', ')}) or ${field} is null)`,
+            ...values,
         );
     }
 
     visitFilterNotIn(expr: Filter<FilterFieldOperator.NOT_IN, unknown[]>): IFiltersAdapter {
+        const values = expr.value.filter((value) => value !== null);
+        if (values.length === expr.value.length) {
+            return this.adapter.whereRaw(
+                `${this.adapter.buildField(
+                    expr.field,
+                )} not in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
+                ...expr.value,
+            );
+        }
+
+        const field = this.adapter.buildField(expr.field);
+        if (values.length === 0) {
+            return this.adapter.whereRaw(`${field} is not null`);
+        }
+
         return this.adapter.whereRaw(
-            `${this.adapter.buildField(
-                expr.field,
-            )} not in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
-            ...expr.value,
+            `(${field} not in(${this.adapter.buildParamsPlaceholders(values).join(', ')}) and ${field} is not null)`,
+            ...values,
         );
     }
 
@@ -99,36 +136,60 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterStartsWith(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterNotStartsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`, true);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterEndsWith(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`, true);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
     }
 
     visitFilterNotContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`, true);
+        }
+
         const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
 
         return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
@@ -198,6 +259,15 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilter(expr: Filter): IFiltersAdapter {
-        throw new Error(`The filter operator ${expr.operator} is not supported.`);
+        throw AdapterError.operatorUnsupported(expr.operator);
+    }
+
+    // -----------------------------------------------------------
+
+    protected whereLike(field: string, pattern: string, negated = false) : IFiltersAdapter {
+        return this.adapter.whereRaw(
+            `${this.adapter.buildField(field)} ${negated ? 'not ' : ''}like ${this.adapter.buildParamPlaceholder()} escape '\\'`,
+            pattern,
+        );
     }
 }

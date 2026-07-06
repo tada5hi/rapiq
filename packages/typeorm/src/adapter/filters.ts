@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { AdapterError } from '@rapiq/core';
 import { FiltersBaseAdapter, pg } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
@@ -39,7 +40,12 @@ export class FiltersAdapter<
 
     regexp(field: string, placeholder: string, ignoreCase: boolean): string {
         // todo: get this.query.connection.options.type -> dialect
-        return pg.regexp(field, placeholder, ignoreCase);
+        if (pg.regexp) {
+            return pg.regexp(field, placeholder, ignoreCase);
+        }
+
+        /* istanbul ignore next -- pg always defines regexp */
+        throw AdapterError.featureUnsupported('regexp');
     }
 
     child(): this {

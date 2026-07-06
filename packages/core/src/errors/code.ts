@@ -17,4 +17,8 @@ export enum ErrorCode {
     KEY_NOT_ALLOWED = 'keyNotAllowed',
 
     KEY_VALUE_INVALID = 'keyValueInvalid',
+
+    OPERATOR_UNSUPPORTED = 'operatorUnsupported',
+
+    FEATURE_UNSUPPORTED = 'featureUnsupported',
 }

@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+export * from './adapter';
 export * from './base';
 export * from './build';
 export * from './code';

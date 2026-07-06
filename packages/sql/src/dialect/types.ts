@@ -6,7 +6,13 @@
  */
 
 export type DialectOptions = {
-    regexp: (field: string, placeholder: string, ignoreCase: boolean) => string,
+    /**
+     * Build a regular-expression condition.
+     * Omit when the dialect has no regexp support — anchored operators
+     * (startsWith, endsWith, contains) fall back to LIKE and the
+     * regex operator raises a typed AdapterError.
+     */
+    regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
     escapeField: (input: string) => string,
     paramPlaceholder: (index: number) => string,
 };

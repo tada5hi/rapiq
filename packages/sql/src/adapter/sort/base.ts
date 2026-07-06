@@ -57,6 +57,21 @@ export abstract class SortBaseAdapter<
         this.value[name] = value;
     }
 
+    /**
+     * Escaped ORDER BY entries, e.g. ['"user"."age" DESC'].
+     */
+    getOrderBy() : string[] {
+        const keys = Object.keys(this.value);
+        const output : string[] = [];
+
+        for (const key_ of keys) {
+            const key = key_ as string;
+            output.push(`${key} ${this.value[key]}`);
+        }
+
+        return output;
+    }
+
     protected normalizeField(input: string) {
         const output = parseField(input, this.rootAlias());
         if (output.relation) {

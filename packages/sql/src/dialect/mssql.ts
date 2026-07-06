@@ -7,10 +7,9 @@
 
 import type { DialectOptions } from './types';
 
+// no regexp support: anchored operators (startsWith, endsWith, contains)
+// fall back to LIKE; the regex operator raises a typed AdapterError.
 export const mssql : DialectOptions = {
-    regexp() {
-        throw new Error('"regexp" operator is not supported in MSSQL');
-    },
     paramPlaceholder: () => '?',
     escapeField: (field: string) => `[${field}]`,
 };

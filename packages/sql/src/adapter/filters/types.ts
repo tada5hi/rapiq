@@ -27,6 +27,8 @@ export interface IFiltersAdapter<
 
     regexp(field: string, placeholder: string, ignoreCase: boolean) : string;
 
+    isRegexpSupported() : boolean;
+
     merge<
         T extends IFiltersAdapter<QUERY>,
     >(

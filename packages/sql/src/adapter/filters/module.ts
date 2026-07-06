@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { AdapterError } from '@rapiq/core';
 import type { DialectOptions } from '../../dialect';
 import type { RelationsAdapter } from '../relations';
 import { FiltersBaseAdapter } from './base';
@@ -42,7 +43,15 @@ export class FiltersAdapter<
         return this.options.escapeField(field);
     }
 
+    override isRegexpSupported() : boolean {
+        return typeof this.options.regexp !== 'undefined';
+    }
+
     regexp(field: string, placeholder: string, ignoreCase: boolean) : string {
+        if (!this.options.regexp) {
+            throw AdapterError.featureUnsupported('regexp');
+        }
+
         return this.options.regexp(field, placeholder, ignoreCase);
     }
 

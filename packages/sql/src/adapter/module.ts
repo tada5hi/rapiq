@@ -6,14 +6,16 @@
  */
 
 import type { DialectOptions } from '../dialect';
-import type { IRootAdapter } from './types';
+import type { IRootAdapter, SqlFragments } from './types';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortAdapter } from './sort';
 
-export type AdapterOptions = DialectOptions;
+export type AdapterOptions = DialectOptions & {
+    rootAlias?: string,
+};
 
 export class Adapter<
     QUERY extends Record<string, any> = Record<string, any>,
@@ -33,17 +35,24 @@ export class Adapter<
 
     constructor(options: AdapterOptions) {
         this.relations = new RelationsAdapter<QUERY>({ join: () => true });
-        this.fields = new FieldsAdapter(this.relations, { escapeField: options.escapeField });
+        this.fields = new FieldsAdapter(this.relations, {
+            escapeField: options.escapeField,
+            rootAlias: options.rootAlias,
+        });
 
         this.filters = new FiltersAdapter(this.relations, {
             paramPlaceholder: options.paramPlaceholder,
             regexp: options.regexp,
             escapeField: options.escapeField,
+            rootAlias: options.rootAlias,
         });
 
         this.pagination = new PaginationAdapter<QUERY>();
 
-        this.sort = new SortAdapter(this.relations, { escapeField: options.escapeField });
+        this.sort = new SortAdapter(this.relations, {
+            escapeField: options.escapeField,
+            rootAlias: options.rootAlias,
+        });
     }
 
     // -----------------------------------------------------------
@@ -70,13 +79,33 @@ export class Adapter<
 
     // -----------------------------------------------------------
 
-    // todo: apply all container results to query
+    /**
+     * Collect the accumulated clause fragments of every sub-adapter.
+     */
+    build() : SqlFragments {
+        const [where, params] = this.filters.getQueryAndParameters();
+
+        return {
+            columns: this.fields.getColumns(),
+            where,
+            params,
+            orderBy: this.sort.getOrderBy(),
+            limit: this.pagination.limit,
+            offset: this.pagination.offset,
+            relations: this.relations.getPaths(),
+        };
+    }
+
+    /**
+     * Plain SQL fragments are consumed via {@link build};
+     * execute() exists for backend adapters (e.g. @rapiq/typeorm)
+     * that apply the accumulated state to a query object.
+     */
     execute() {
         this.fields.execute();
         this.filters.execute();
         this.pagination.execute();
         this.sort.execute();
         this.relations.execute();
-        // todo: exclude already applied containers
     }
 }
