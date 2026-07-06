@@ -8,4 +8,11 @@
 import { mysql } from './mysql';
 import type { DialectOptions } from './types';
 
-export const sqlite : DialectOptions = { ...mysql };
+// no regexp: stock SQLite ships without a REGEXP function (it must be
+// registered by the application), so anchored operators (startsWith,
+// endsWith, contains) fall back to LIKE and the regex operator raises
+// a typed AdapterError.
+export const sqlite : DialectOptions = {
+    paramPlaceholder: mysql.paramPlaceholder,
+    escapeField: mysql.escapeField,
+};

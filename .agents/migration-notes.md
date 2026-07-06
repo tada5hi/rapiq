@@ -46,3 +46,11 @@ Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject
 - **Error taxonomy** (plan 008 item 5): core exports `AdapterError` with `operatorUnsupported`/`featureUnsupported` factories and `ErrorCode.OPERATOR_UNSUPPORTED`/`FEATURE_UNSUPPORTED`; the raw `Error` throws in @rapiq/sql are migrated.
 - Relations adapter no longer duplicates parent path entries (`add('a.b'); add('a.c')` previously pushed `{path:'a'}` twice).
 - `AdapterOptions` accepts `rootAlias`, forwarded to the fields/filters/sort sub-adapters.
+
+## Post-review fixes (PR #741 audit)
+
+- **Compound wrapping**: `FiltersBaseAdapter.merge()` now parenthesizes by condition count instead of the `sql[0] !== '('` heuristic. Previously a nested compound whose first condition was itself parenthesized (e.g. the null-rewrite fragments) was merged unwrapped, producing wrong AND/OR precedence; a top-level multi-condition group is now always wrapped too.
+- **Anchored regex patterns** (`@rapiq/core`): `createFilterRegexPattern` used `&&` instead of `&` for the CONTAINS check, so `startsWith`/`endsWith` produced *unanchored* patterns on regexp dialects (pg/mysql/oracle) — they behaved like `contains`. Patterns are now anchored (`^foo`, `foo$`), matching the LIKE-fallback semantics on regexp-less dialects. A pattern built without an anchor flag is now unanchored (was: accidental `input$`).
+- **Empty `in`/`nin` lists**: `in(field, [])` renders `1 = 0` (matches nothing) and `nin(field, [])` renders `1 = 1` — previously the invalid SQL `field in()`.
+- **sqlite preset** no longer inherits mysql's `regexp` callback (stock SQLite has no `REGEXP` function): anchored operators fall back to `LIKE`, the `regex` operator throws a typed `AdapterError`.
+- `FiltersVisitor`: `visitFilterNotEndsWith`/`visitFilterNotContains` signatures used wrong operator type parameters (copy-paste); in/nin and the six anchored-operator methods now share `whereIn`/`whereAnchored` helpers.

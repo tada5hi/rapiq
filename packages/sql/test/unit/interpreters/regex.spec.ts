@@ -14,6 +14,7 @@ import {
     mysql,
     oracle,
     pg,
+    sqlite,
 } from '../../../src';
 
 describe('regex', () => {
@@ -129,5 +130,48 @@ describe('regex', () => {
 
         const [, params] = adapter.getQueryAndParameters();
         expect(params).toStrictEqual(['%100\\%\\_\\[a]%']);
+    });
+
+    it('falls back to LIKE for anchored operators on SQLite', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), sqlite);
+        const visitor = new FiltersVisitor(adapter);
+
+        new Filter('startsWith', 'name', 'foo').accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '`name` like ? escape \'\\\'',
+            ['foo%'],
+        ]);
+    });
+
+    it('throws a typed error for the regex operator on SQLite', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), sqlite);
+        const visitor = new FiltersVisitor(adapter);
+
+        expect(() => {
+            new Filter('regex', 'email', /@/).accept(visitor);
+        }).toThrow(AdapterError);
+    });
+
+    it('generates anchored patterns for anchored operators on regexp dialects', () => {
+        const cases : [string, string][] = [
+            ['startsWith', '^foo'],
+            ['endsWith', 'foo$'],
+            ['contains', 'foo'],
+            ['notStartsWith', '^(?!foo).+'],
+            ['notEndsWith', '^(?!.*foo$).*'],
+            ['notContains', '^(?!.*foo).*'],
+        ];
+
+        for (const [operator, pattern] of cases) {
+            const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
+            const visitor = new FiltersVisitor(adapter);
+
+            new Filter(operator, 'name', 'foo').accept(visitor);
+
+            const [sql, params] = adapter.getQueryAndParameters();
+            expect(sql, operator).toEqual('"name" ~* $1');
+            expect(params, operator).toStrictEqual([pattern]);
+        }
     });
 });

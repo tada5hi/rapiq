@@ -149,7 +149,10 @@ export abstract class FiltersBaseAdapter<
         if (query.conditions.length > 0) {
             let sql = query.conditions.join(` ${operator} `);
 
-            if (sql[0] !== '(') {
+            // single conditions are atomic terms or already wrapped compounds;
+            // a leading '(' says nothing about the whole expression
+            // (e.g. '(a or b) or c'), so wrap by condition count.
+            if (query.conditions.length > 1) {
                 sql = `(${sql})`;
             }
 

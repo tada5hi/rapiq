@@ -27,23 +27,25 @@ export function createFilterRegexPattern(
 ) : string {
     let pattern : string;
     if (flag & FilterRegexFlag.NEGATION) {
-        if (flag & FilterRegexFlag.CONTAINS) {
-            pattern = `^(?!.*${input}).*`;
-        } else if (flag & FilterRegexFlag.STARTS_WITH) {
+        if (flag & FilterRegexFlag.STARTS_WITH) {
             pattern = `^(?!${input}).+`;
-        } else {
+        } else if (flag & FilterRegexFlag.ENDS_WITH) {
             pattern = `^(?!.*${input}$).*`;
+        } else {
+            // CONTAINS or no anchor flag
+            pattern = `^(?!.*${input}).*`;
         }
 
         return pattern;
     }
 
-    if (flag && FilterRegexFlag.CONTAINS) {
-        pattern = `${input}`;
-    } else if (flag & FilterRegexFlag.STARTS_WITH) {
+    if (flag & FilterRegexFlag.STARTS_WITH) {
         pattern = `^${input}`;
-    } else {
+    } else if (flag & FilterRegexFlag.ENDS_WITH) {
         pattern = `${input}$`;
+    } else {
+        // CONTAINS or no anchor flag
+        pattern = `${input}`;
     }
 
     return pattern;
