@@ -11,7 +11,7 @@ import { RelationsAdapter } from './relations';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { SortAdapter } from './sort';
-import type { TypeormAdapterOptions } from './types';
+import type { TypeormAdapterOptions, TypeormAdapterOutput } from './types';
 import { PaginationAdapter } from './pagination';
 
 export class TypeormAdapter<
@@ -29,7 +29,7 @@ export class TypeormAdapter<
 
     protected query : QUERY | undefined;
 
-    constructor(options: TypeormAdapterOptions = {}) {
+    constructor(options: TypeormAdapterOptions<QUERY> = {}) {
         this.relations = new RelationsAdapter<QUERY>(options.relations);
         this.fields = new FieldsAdapter<QUERY>(this.relations);
         this.filters = new FiltersAdapter<QUERY>(this.relations);
@@ -55,11 +55,18 @@ export class TypeormAdapter<
         this.relations.clear();
     }
 
-    execute() {
+    execute() : TypeormAdapterOutput {
         this.fields.execute();
         this.filters.execute();
         this.pagination.execute();
         this.sort.execute();
         this.relations.execute();
+
+        return {
+            pagination: {
+                limit: this.pagination.limit,
+                offset: this.pagination.offset,
+            },
+        };
     }
 }

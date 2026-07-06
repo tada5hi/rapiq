@@ -17,6 +17,7 @@ import { createUserSeed } from '../data/seeder/user';
 
 describe('src/query', () => {
     let dataSource : DataSource;
+    let masterRealmId : number;
 
     beforeAll(async () => {
         dataSource = createDataSource();
@@ -28,6 +29,8 @@ describe('src/query', () => {
 
         aston.realm = master;
         await dataSource.getRepository(User).save(aston);
+
+        masterRealmId = master.id;
     });
 
     afterAll(async () => {
@@ -75,5 +78,50 @@ describe('src/query', () => {
         for (const entity of entities) {
             expect(entity.age).toBeGreaterThanOrEqual(18);
         }
+    });
+
+    it('should apply an authup-style repository query', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'user',
+            filters: { allowed: ['id', 'realm_id'] },
+            relations: { allowed: ['role'] },
+            pagination: { maxLimit: 10 },
+        }));
+
+        const parser = new SimpleParser(registry);
+
+        // realm scoping: match records of a realm *or* without one;
+        // requested limit exceeds maxLimit and is clamped.
+        const query = parser.parse({
+            filters: { realm_id: [`${masterRealmId}`, 'null'] },
+            relations: ['role'],
+            pagination: { limit: 50 },
+        }, { schema: 'user' });
+
+        const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
+        queryBuilder.groupBy('user.id');
+
+        const adapter = new TypeormAdapter({
+            relations: {
+                joinAndSelect: true,
+                onJoin: (path, alias, join) => {
+                    join.addGroupBy(`${alias}.id`);
+                },
+            },
+        });
+        adapter.withQuery(queryBuilder);
+        query.accept(new QueryVisitor(adapter));
+
+        const { pagination } = adapter.execute();
+        expect(pagination.limit).toEqual(10);
+
+        const sql = queryBuilder.getSql();
+        expect(sql).toContain('LEFT JOIN');
+        expect(sql).toContain('GROUP BY');
+
+        // aston (realm master) + caleb (no realm) both match
+        const entities = await queryBuilder.getMany();
+        expect(entities.length).toEqual(2);
     });
 });

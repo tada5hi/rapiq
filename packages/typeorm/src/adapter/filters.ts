@@ -6,20 +6,30 @@
  */
 
 import { AdapterError } from '@rapiq/core';
-import { FiltersBaseAdapter, pg } from '@rapiq/sql';
+import type { DialectOptions } from '@rapiq/sql';
+import { FiltersBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
+import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
 export class FiltersAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
 > extends FiltersBaseAdapter<QUERY, RelationsAdapter<QUERY>> {
+    protected dialect : DialectOptions;
+
     constructor(relations: RelationsAdapter<QUERY>) {
         super(relations);
+
+        this.dialect = resolveQueryDialect();
+    }
+
+    override withQuery(query?: QUERY) {
+        this.dialect = resolveQueryDialect(query);
+
+        return super.withQuery(query);
     }
 
     rootAlias(): string | undefined {
-        // todo: get this.query.connection.options.type -> dialect
-
         if (this.query) {
             return this.query.alias;
         }
@@ -31,20 +41,23 @@ export class FiltersAdapter<
         if (this.query) {
             return this.query.escape(field);
         }
-        return pg.escapeField(field);
+
+        return this.dialect.escapeField(field);
     }
 
     paramPlaceholder(index: number) : string {
         return `:${index - 1}`;
     }
 
+    override isRegexpSupported() : boolean {
+        return typeof this.dialect.regexp !== 'undefined';
+    }
+
     regexp(field: string, placeholder: string, ignoreCase: boolean): string {
-        // todo: get this.query.connection.options.type -> dialect
-        if (pg.regexp) {
-            return pg.regexp(field, placeholder, ignoreCase);
+        if (this.dialect.regexp) {
+            return this.dialect.regexp(field, placeholder, ignoreCase);
         }
 
-        /* istanbul ignore next -- pg always defines regexp */
         throw AdapterError.featureUnsupported('regexp');
     }
 

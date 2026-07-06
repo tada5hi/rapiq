@@ -6,3 +6,4 @@
  */
 
 export * from './adapter';
+export * from './dialect';

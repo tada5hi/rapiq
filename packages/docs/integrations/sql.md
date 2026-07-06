@@ -24,6 +24,14 @@ Presets ship for `pg`, `mysql`, `sqlite`, `mssql` and `oracle`:
 import { mysql, pg } from '@rapiq/sql';
 ```
 
+`resolveDialect(name)` maps a driver/connection type name (e.g. TypeORM's `connection.options.type` or a knex client name) to the matching preset — `postgres`, `mariadb`, `better-sqlite3`, `oracledb`, … — and returns `undefined` for unknown names:
+
+```typescript
+import { resolveDialect } from '@rapiq/sql';
+
+resolveDialect('mariadb'); // mysql preset
+```
+
 ::: warning
 The `mssql` and `sqlite` presets omit `regexp` — SQL Server has no regexp operator, and stock SQLite ships without a `REGEXP` function. On dialects without `regexp`, the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
 :::
