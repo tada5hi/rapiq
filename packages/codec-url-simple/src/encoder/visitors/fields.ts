@@ -13,7 +13,7 @@ import type {
     IFieldsVisitor,
 } from '@rapiq/core';
 import {
-    DEFAULT_ID, 
+    DEFAULT_ID,
     parseKey,
 } from '@rapiq/core';
 import { URLParameter } from '../../constants';

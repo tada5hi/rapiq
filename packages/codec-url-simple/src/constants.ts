@@ -5,6 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+/**
+ * JSON-API wire names of the query parameters,
+ * as they appear in a URL query string.
+ */
 export enum URLParameter {
     FILTERS = 'filter',
     FIELDS = 'fields',

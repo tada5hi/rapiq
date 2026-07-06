@@ -78,9 +78,13 @@ export class SimpleFiltersParser extends BaseParser<
             return [];
         }
 
-        /* istanbul ignore next */
         if (!isObject(input)) {
-            if (scope.throwOnFailure) {
+            // absent input is not a failure — schema defaults still apply.
+            if (
+                typeof input !== 'undefined' &&
+                input !== null &&
+                scope.throwOnFailure
+            ) {
                 throw FiltersParseError.inputInvalid();
             }
 

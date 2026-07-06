@@ -10,6 +10,8 @@ export enum ErrorCode {
 
     INPUT_INVALID = 'inputInvalid',
 
+    SYNTAX_INVALID = 'syntaxInvalid',
+
     KEY_INVALID = 'keyInvalid',
 
     KEY_PATH_INVALID = 'keyPathInvalid',

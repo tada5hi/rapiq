@@ -36,7 +36,13 @@ export class SimplePaginationParser<
         const output = new Pagination();
 
         if (!isObject(input)) {
-            if (throwOnFailure) {
+            // absent input is not a failure — schema constraints
+            // (e.g. maxLimit) still apply.
+            if (
+                typeof input !== 'undefined' &&
+                input !== null &&
+                throwOnFailure
+            ) {
                 throw PaginationParseError.inputInvalid();
             }
 

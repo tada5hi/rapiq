@@ -25,25 +25,29 @@ Per-parameter encoders exist too: `encodeFields`, `encodeFilters`, `encodePagina
 ```typescript
 import { URLDecoder } from '@rapiq/codec-url-simple';
 
-const decoder = new URLDecoder();
-const query = decoder.decode('filter[age]=>=18&sort=-age&page[limit]=25');
+const decoder = new URLDecoder(registry);
+
+// from a raw query string ...
+const query = decoder.decode('filter[age]=>=18&sort=-age&page[limit]=25', { schema: 'user' });
+
+// ... or from an already parsed query object (express req.query)
+app.get('/users', (req, res) => {
+    const query = decoder.decode(req.query, { schema: 'user' });
+    // ...
+});
 ```
 
-`decode(input)` parses the raw string (via [qs](https://www.npmjs.com/package/qs)) and returns a `Query`, or `null` for non-object input. Per-parameter variants: `decodeFields`, `decodeFilters`, `decodePagination`, `decodeRelations`, `decodeSort`.
+`decode(input, options?)` accepts a raw query string (parsed via
+[qs](https://www.npmjs.com/package/qs)) or a pre-parsed query object. It maps
+the JSON:API wire names (`filter`, `page`, `include`, …) to the canonical
+parameters and delegates to a schema-aware [`SimpleParser`](/integrations/simple)
+— pass a `SchemaRegistry` to the constructor and a `schema` option to
+validate untrusted client input. It returns a `Query`, or `null` for
+non-object input.
 
-::: warning Decode does not validate
-`URLDecoder` performs no schema validation. When the string comes from an untrusted client, validate it — either parse the qs output with a schema-aware [`SimpleParser`](/integrations/simple):
-
-```typescript
-import { parse } from 'qs';
-import { SimpleParser } from '@rapiq/parser-simple';
-
-const parser = new SimpleParser(registry);
-const query = parser.parse(parse(rawQueryString), { schema: 'user' });
-```
-
-— or rely on a framework that already gives you the parsed object (express's `req.query`) and skip the decoder entirely.
-:::
+Per-parameter variants exist as well: `decodeFields`, `decodeFilters`,
+`decodePagination`, `decodeRelations`, `decodeSort` — each also accepting
+`{ schema }` options.
 
 ## Parameter names
 

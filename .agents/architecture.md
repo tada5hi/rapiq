@@ -24,6 +24,21 @@ URLEncoder (@rapiq/codec-url-simple)
                                      SQL fragments / mutated SelectQueryBuilder
 ```
 
+## Layering Principles (IR-centric)
+
+The `Query` AST is an **intermediate representation (IR)**. Every package plays exactly one role around it:
+
+1. **Define & interact** — client-side construction (`QueryBuilder`, future typed `BuildInput`).
+2. **Parse to IR** — parsers transform *dialect* input (a spec for how parameters are written: "simple" object shapes, "expression" strings) into the IR, validated against a `Schema`. Parsers are **transport-agnostic**: they read only the canonical `Parameter` keys (`fields`, `filters`, `pagination`, `relations`, `sort`) and know nothing about how the input crossed a process boundary.
+3. **Consume the IR** — either interpret/walk it directly (`@rapiq/sql`, `@rapiq/typeorm` via visitors), or…
+4. **Transport the IR between application boundaries via a codec** — `@rapiq/codec-url-simple` is *one* such codec (HTTP URI scheme). The codec owns the complete wire format: the parameter wire names (`URLParameter`: `filter`, `page`, `include`, …) live **only** there, and `URLDecoder` is the boundary adapter — it accepts a raw query string *or* a pre-parsed query object (express `req.query`), maps wire names to canonical parameters and delegates to a schema-aware `SimpleParser`. App2 then works with the same IR.
+
+Placement rules that follow (settled during plan 006, don't re-litigate):
+
+- Wire/transport naming never goes into `@rapiq/core` or the parser packages. Raw `req.query` handling is `URLDecoder.decode(req.query, { schema })`, **not** a parser concern.
+- No cross-package re-exports — a constant lives in exactly one package; consumers import it from there.
+- New transports (e.g. a future header- or body-based codec) get their own codec package encoding/decoding the same IR; parsers and adapters stay untouched.
+
 ## Core Design Decisions
 
 ### 1. AST + visitor instead of direct translation

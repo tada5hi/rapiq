@@ -6,6 +6,7 @@
  */
 
 import {
+    ErrorCode,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
@@ -125,6 +126,70 @@ describe('filters/expr-parser', () => {
             'name',
             'Peter',
         ));
+    });
+
+    it('should parse negated contains expression', () => {
+        const output = parser.parseExact('not(contains(name, \'Peter\'))');
+
+        expect(output).toEqual(new Filter(
+            FilterFieldOperator.NOT_CONTAINS,
+            'name',
+            'Peter',
+        ));
+    });
+
+    it('should parse negated startsWith expression', () => {
+        const output = parser.parseExact('not(startsWith(name, \'Peter\'))');
+
+        expect(output).toEqual(new Filter(
+            FilterFieldOperator.NOT_STARTS_WITH,
+            'name',
+            'Peter',
+        ));
+    });
+
+    it('should parse negated endsWith expression', () => {
+        const output = parser.parseExact('not(endsWith(name, \'Peter\'))');
+
+        expect(output).toEqual(new Filter(
+            FilterFieldOperator.NOT_ENDS_WITH,
+            'name',
+            'Peter',
+        ));
+    });
+
+    it('should parse fields starting with a keyword prefix', () => {
+        // "or", "not", "in", ... must not be split out of identifiers.
+        let output = parser.parseExact('eq(order, \'asc\')');
+        expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'order', 'asc'));
+
+        output = parser.parseExact('eq(notes, \'foo\')');
+        expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'notes', 'foo'));
+
+        output = parser.parseExact('gt(inventory, \'5\')');
+        expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN, 'inventory', 5));
+    });
+
+    it('should throw a typed error on invalid syntax', () => {
+        let error : unknown;
+        try {
+            parser.parseExact('eq(name \'admin\')');
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeInstanceOf(FiltersParseError);
+        expect((error as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+    });
+
+    it('should apply schema defaults for absent input', () => {
+        const schema = defineFiltersSchema({ default: new Filter(FilterFieldOperator.EQUAL, 'id', 1) });
+
+        const output = parser.parse(undefined, { schema });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+        ]));
     });
 
     it('should parse in expression', () => {

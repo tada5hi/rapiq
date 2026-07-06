@@ -16,6 +16,17 @@ export type ParseParameterOptions<
     relations?: Relations,
 };
 
+export type ParseQueryOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = {
+    fields?: boolean,
+    filters?: boolean,
+    pagination?: boolean,
+    relations?: boolean,
+    sort?: boolean,
+    schema?: Schema<RECORD> | string,
+};
+
 export type IParserOptions = {
     async?: boolean,
 };
@@ -26,4 +37,14 @@ export interface IParser<
     Options extends IParserOptions = IParserOptions,
 > {
     parse(input: Input, options?: Options): Output;
+}
+
+/**
+ * Contract of a per-parameter sub-parser, as consumed by the
+ * query parse orchestration.
+ */
+export interface IQueryParameterParser<Output = unknown> {
+    parse<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options?: ParseParameterOptions<RECORD>): Output;
 }
