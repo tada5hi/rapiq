@@ -88,5 +88,22 @@ describe('src/schema/*.ts', () => {
             expect(schema.fields.throwOnFailure).toBeUndefined();
             expect(schema.sort.throwOnFailure).toBeUndefined();
         });
+
+        it('should propagate strict to sub-schemas that do not set it', () => {
+            const schema = defineSchema<User>({ strict: true });
+
+            expect(schema.fields.strict).toBe(true);
+            expect(schema.filters.strict).toBe(true);
+            expect(schema.relations.strict).toBe(true);
+            expect(schema.sort.strict).toBe(true);
+        });
+
+        it('should not override a strict explicitly set on a sub-schema', () => {
+            const fields = defineFieldsSchema<User>({ strict: false });
+            const schema = defineSchema<User>({ strict: true, fields });
+
+            expect(schema.fields.strict).toBe(false);
+            expect(schema.filters.strict).toBe(true);
+        });
     });
 });

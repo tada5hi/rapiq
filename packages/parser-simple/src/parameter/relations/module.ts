@@ -34,7 +34,10 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
-        const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, { throwOnFailure: options.throwOnFailure });
+        const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        });
 
         return this.parseWithScope(input, scope);
     }

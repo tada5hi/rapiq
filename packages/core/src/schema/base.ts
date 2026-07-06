@@ -38,6 +38,16 @@ export class BaseSchema<OPTIONS extends BaseSchemaOptions = BaseSchemaOptions> {
 
     // ---------------------------------------------------------
 
+    set strict(input: boolean | undefined) {
+        this.options.strict = input;
+    }
+
+    get strict() : boolean | undefined {
+        return this.options.strict;
+    }
+
+    // ---------------------------------------------------------
+
     mapSchema(input: string) {
         if (this.options.schemaMapping) {
             return this.options.schemaMapping[input] || input;

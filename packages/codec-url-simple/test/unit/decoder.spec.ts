@@ -117,6 +117,17 @@ describe('decoder', () => {
         ]));
     });
 
+    it('should reject undeclared parameters when decoding with the strict option', () => {
+        const decoder = new URLDecoder();
+
+        const output = decoder.decode('filter[name]=admin&include=realm&sort=-id', { strict: true });
+
+        expect(output).toBeDefined();
+        expect(output!.filters).toEqual(new Filters(FilterCompoundOperator.AND, []));
+        expect(output!.relations).toEqual(new Relations());
+        expect(output!.sorts).toEqual(new Sorts());
+    });
+
     it('should return null for non-object input', () => {
         const decoder = new URLDecoder();
 

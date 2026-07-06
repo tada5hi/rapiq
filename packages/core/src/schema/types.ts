@@ -33,6 +33,13 @@ export type BaseSchemaOptions = {
     throwOnFailure?: boolean,
 
     /**
+     * Strict mode: a parameter without an explicit allow-list
+     * rejects every client key instead of falling back to the
+     * syntactic property-name check.
+     */
+    strict?: boolean,
+
+    /**
      * Map alias to schema name
      */
     schemaMapping?: Record<string, string>

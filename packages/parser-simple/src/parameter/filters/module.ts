@@ -46,6 +46,7 @@ export class SimpleFiltersParser extends BaseParser<
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
         });
 
         let items: ICondition[] = this.run(input, scope);

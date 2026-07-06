@@ -93,6 +93,13 @@ export class Schema<
             schema.throwOnFailure = this.options.throwOnFailure;
         }
 
+        if (
+            typeof this.options.strict !== 'undefined' &&
+            typeof schema.strict === 'undefined'
+        ) {
+            schema.strict = this.options.strict;
+        }
+
         if (typeof this.options.name !== 'undefined') {
             schema.name = this.options.name;
         }

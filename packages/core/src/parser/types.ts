@@ -14,6 +14,7 @@ export type ParseParameterOptions<
 > = IParserOptions & {
     schema?: Schema<RECORD> | string,
     relations?: Relations,
+    strict?: boolean,
 };
 
 export type ParseQueryOptions<
@@ -25,6 +26,12 @@ export type ParseQueryOptions<
     relations?: boolean,
     sort?: boolean,
     schema?: Schema<RECORD> | string,
+    /**
+     * Strict-mode override: takes precedence over the schema-level setting.
+     * Under strict mode a parameter without an explicit allow-list rejects
+     * every client key instead of falling back to the syntactic name check.
+     */
+    strict?: boolean,
 };
 
 export type IParserOptions = {

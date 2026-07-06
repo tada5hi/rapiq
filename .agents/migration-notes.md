@@ -47,6 +47,13 @@ Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject
 - Relations adapter no longer duplicates parent path entries (`add('a.b'); add('a.c')` previously pushed `{path:'a'}` twice).
 - `AdapterOptions` accepts `rootAlias`, forwarded to the fields/filters/sort sub-adapters.
 
+## Strict mode (M2, plan 011)
+
+- New opt-in `strict` option (schema-level, per-parameter sub-schema, and per parse call), mirroring the `throwOnFailure` plumbing: effective policy is `parse-option ?? schema ?? false`, the parse-option override is inherited into relation recursion, schema-level `strict` propagates to sub-schemas that don't set their own.
+- Semantics: under strict, a parameter without an explicit allow-list rejects every client key (`keyNotPermitted`/`pathNotPermitted` verdicts; throws with `throwOnFailure`) instead of falling back to the syntactic property-name check. Fields count `allowed` **or** `default` as declaration; sort's allow-list already derives from `default` keys; a filters `default` condition alone does *not* open client filtering (it still applies as default); relations require `allowed`; **pagination is unaffected** (`maxLimit` remains the only gate — typeorm-extension never disables pagination either).
+- `parse(input, { strict: true })` without a schema rejects every client-driven parameter (schema-required parsing). In the expression dialect this throws (expressions are precise); in the simple dialect input is dropped.
+- Rationale (plan 010 addendum): typeorm-extension disables any parameter whose `allowed`/`default` options are missing, while v2 treats undefined `allowed` as open — a naive migration would silently widen the attack surface. Migration guide callout: enable `strict: true` on schemas when porting typeorm-extension consumers.
+
 ## Post-review fixes (PR #741 audit)
 
 - **Compound wrapping**: `FiltersBaseAdapter.merge()` now parenthesizes by condition count instead of the `sql[0] !== '('` heuristic. Previously a nested compound whose first condition was itself parenthesized (e.g. the null-rewrite fragments) was merged unwrapped, producing wrong AND/OR precedence; a top-level multi-condition group is now always wrapped too.

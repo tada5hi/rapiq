@@ -16,5 +16,6 @@ export type SortParseOptions<
 > = {
     relations?: Relations,
     throwOnFailure?: boolean,
+    strict?: boolean,
     schema?: string | Schema<RECORD> | SortSchema<RECORD>
 };

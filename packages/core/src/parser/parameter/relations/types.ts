@@ -12,5 +12,6 @@ export type RelationsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     throwOnFailure?: boolean,
+    strict?: boolean,
     schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
 };

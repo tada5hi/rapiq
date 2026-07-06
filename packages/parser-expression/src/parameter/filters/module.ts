@@ -83,12 +83,14 @@ export class ExpressionFiltersParser extends BaseParser<
         this.tokens = this.tokenize(input);
 
         // expressions are precise — invalid keys always throw,
-        // but only when a schema constrains the parse.
+        // but only when a schema (or the strict override,
+        // which rejects undeclared keys) constrains the parse.
         let scope : FiltersScope | undefined;
-        if (options.schema) {
+        if (options.schema || options.strict) {
             scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
                 relations: options.relations,
                 throwOnFailure: true,
+                strict: options.strict,
             }) as FiltersScope;
         }
 

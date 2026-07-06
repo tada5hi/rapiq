@@ -56,6 +56,10 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             parameterOptions.schema = options.schema;
         }
 
+        if (typeof options.strict !== 'undefined') {
+            parameterOptions.strict = options.strict;
+        }
+
         if (!this.skipParameter(options.relations)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
