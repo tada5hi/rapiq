@@ -43,7 +43,7 @@ export class FiltersAdapter<
         return this.options.escapeField(field);
     }
 
-    override supportsRegexp() : boolean {
+    override isRegexpSupported() : boolean {
         return typeof this.options.regexp !== 'undefined';
     }
 

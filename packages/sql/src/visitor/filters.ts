@@ -136,7 +136,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterStartsWith(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`);
         }
 
@@ -146,7 +146,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterNotStartsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`, true);
         }
 
@@ -156,7 +156,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterEndsWith(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`);
         }
 
@@ -166,7 +166,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`, true);
         }
 
@@ -176,7 +176,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`);
         }
 
@@ -186,7 +186,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterNotContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        if (!this.adapter.supportsRegexp()) {
+        if (!this.adapter.isRegexpSupported()) {
             return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`, true);
         }
 

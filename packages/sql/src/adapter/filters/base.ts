@@ -79,7 +79,7 @@ export abstract class FiltersBaseAdapter<
      * Whether the dialect can build regular-expression conditions.
      * Anchored operators fall back to LIKE otherwise.
      */
-    supportsRegexp() : boolean {
+    isRegexpSupported() : boolean {
         return true;
     }
 
