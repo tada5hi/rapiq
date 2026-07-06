@@ -25,7 +25,7 @@ import { mysql, pg } from '@rapiq/sql';
 ```
 
 ::: warning
-The `mssql` preset omits `regexp` — SQL Server has no regexp operator. On dialects without `regexp`, the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
+The `mssql` and `sqlite` presets omit `regexp` — SQL Server has no regexp operator, and stock SQLite ships without a `REGEXP` function. On dialects without `regexp`, the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
 :::
 
 ## Rendering filters
@@ -58,6 +58,12 @@ A `null` filter value is rewritten to the SQL null predicates instead of being b
 | `ne(field, null)` | `field IS NOT NULL` |
 | `in(field, [a, null])` | `(field IN (...) OR field IS NULL)` |
 | `nin(field, [a, null])` | `(field NOT IN (...) AND field IS NOT NULL)` |
+
+An empty list never matches: `in(field, [])` renders `1 = 0` and `nin(field, [])` renders `1 = 1` (instead of the invalid `IN ()`).
+
+### String matching
+
+The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regexp dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
 
 ## The root adapter
 

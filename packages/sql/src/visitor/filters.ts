@@ -73,48 +73,11 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterIn(expr: Filter<FilterFieldOperator.IN, unknown[]>): IFiltersAdapter {
-        const values = expr.value.filter((value) => value !== null);
-        if (values.length === expr.value.length) {
-            return this.adapter.whereRaw(
-                `${this.adapter.buildField(
-                    expr.field,
-                )} in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
-                ...expr.value,
-            );
-        }
-
-        // a null element means: match the values OR the absence of one.
-        const field = this.adapter.buildField(expr.field);
-        if (values.length === 0) {
-            return this.adapter.whereRaw(`${field} is null`);
-        }
-
-        return this.adapter.whereRaw(
-            `(${field} in(${this.adapter.buildParamsPlaceholders(values).join(', ')}) or ${field} is null)`,
-            ...values,
-        );
+        return this.whereIn(expr.field, expr.value, false);
     }
 
     visitFilterNotIn(expr: Filter<FilterFieldOperator.NOT_IN, unknown[]>): IFiltersAdapter {
-        const values = expr.value.filter((value) => value !== null);
-        if (values.length === expr.value.length) {
-            return this.adapter.whereRaw(
-                `${this.adapter.buildField(
-                    expr.field,
-                )} not in(${this.adapter.buildParamsPlaceholders(expr.value).join(', ')})`,
-                ...expr.value,
-            );
-        }
-
-        const field = this.adapter.buildField(expr.field);
-        if (values.length === 0) {
-            return this.adapter.whereRaw(`${field} is not null`);
-        }
-
-        return this.adapter.whereRaw(
-            `(${field} not in(${this.adapter.buildParamsPlaceholders(values).join(', ')}) and ${field} is not null)`,
-            ...values,
-        );
+        return this.whereIn(expr.field, expr.value, true);
     }
 
     visitFilterMod(expr: Filter<FilterFieldOperator.MOD, [number, number]>): IFiltersAdapter {
@@ -136,63 +99,27 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterStartsWith(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.STARTS_WITH);
     }
 
     visitFilterNotStartsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `${escapeLikePattern(`${expr.value}`)}%`, true);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
     }
 
     visitFilterEndsWith(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.ENDS_WITH);
     }
 
-    visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}`, true);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_ENDS_WITH, unknown>): IFiltersAdapter {
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION);
     }
 
     visitFilterContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.CONTAINS);
     }
 
-    visitFilterNotContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            return this.whereLike(expr.field, `%${escapeLikePattern(`${expr.value}`)}%`, true);
-        }
-
-        const regex = createFilterRegex(`${expr.value}`, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
-
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, expr.field, regex));
+    visitFilterNotContains(expr: Filter<FilterFieldOperator.NOT_CONTAINS, unknown>): IFiltersAdapter {
+        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
     }
 
     visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp>): IFiltersAdapter {
@@ -263,6 +190,59 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     // -----------------------------------------------------------
+
+    /**
+     * Render an IN/NOT IN condition.
+     * A null element also matches the absence of a value (IS NULL);
+     * an empty list matches no row (every row when negated).
+     */
+    protected whereIn(fieldName: string, input: unknown[], negated: boolean) : IFiltersAdapter {
+        if (input.length === 0) {
+            return this.adapter.whereRaw(negated ? '1 = 1' : '1 = 0');
+        }
+
+        const values = input.filter((value) => value !== null);
+        const field = this.adapter.buildField(fieldName);
+        const nullCondition = `${field} is ${negated ? 'not ' : ''}null`;
+        if (values.length === 0) {
+            return this.adapter.whereRaw(nullCondition);
+        }
+
+        const inCondition = `${field} ${negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
+        if (values.length === input.length) {
+            return this.adapter.whereRaw(inCondition, ...values);
+        }
+
+        return this.adapter.whereRaw(
+            `(${inCondition} ${negated ? 'and' : 'or'} ${nullCondition})`,
+            ...values,
+        );
+    }
+
+    /**
+     * Render a startsWith/endsWith/contains condition (or its negation)
+     * as a regexp condition, falling back to LIKE on regexp-less dialects.
+     */
+    protected whereAnchored(field: string, value: unknown, flag: number) : IFiltersAdapter {
+        if (!this.adapter.isRegexpSupported()) {
+            const escaped = escapeLikePattern(`${value}`);
+
+            let pattern : string;
+            if (flag & FilterRegexFlag.STARTS_WITH) {
+                pattern = `${escaped}%`;
+            } else if (flag & FilterRegexFlag.ENDS_WITH) {
+                pattern = `%${escaped}`;
+            } else {
+                pattern = `%${escaped}%`;
+            }
+
+            return this.whereLike(field, pattern, !!(flag & FilterRegexFlag.NEGATION));
+        }
+
+        const regex = createFilterRegex(`${value}`, flag);
+
+        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, field, regex));
+    }
 
     protected whereLike(field: string, pattern: string, negated = false) : IFiltersAdapter {
         return this.adapter.whereRaw(

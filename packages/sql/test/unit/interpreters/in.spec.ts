@@ -62,4 +62,30 @@ describe('in (within, nin)', () => {
         expect(sql).toEqual(`${options.escapeField(condition.field)} not in($1, $2)`);
         expect(params).toStrictEqual(condition.value);
     });
+
+    it('generates a never-matching condition for "in" with an empty list', () => {
+        new Filter('in', 'age', []).accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual(['1 = 0', []]);
+    });
+
+    it('generates an always-matching condition for "nin" with an empty list', () => {
+        new Filter('nin', 'age', []).accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual(['1 = 1', []]);
+    });
+
+    it('keeps placeholder numbering continuous around an empty list', () => {
+        const condition = new Filters('and', [
+            new Filter('eq', 'name', 'John'),
+            new Filter('in', 'age', []),
+            new Filter('eq', 'active', true),
+        ]);
+        condition.accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '("name" = $1 and 1 = 0 and "active" = $2)',
+            ['John', true],
+        ]);
+    });
 });

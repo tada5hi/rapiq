@@ -110,12 +110,30 @@ describe('compound operators', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual([
+        expect(sql).toEqual(`(${[
             '("age" = $1 or "age" = $2)',
             'or ("qty" > $3 and "qty" < $4)',
             'or not ("qty" > $5 or "qty" < $6)',
             'or not ("active" = $7 and "age" > $8)',
-        ].join(' '));
+        ].join(' ')})`);
         expect(params).toStrictEqual([1, 2, 1, 20, 10, 20, false, 18]);
+    });
+
+    it('wraps a nested compound even when its first condition is parenthesized', () => {
+        const condition = new Filters('and', [
+            new Filter('eq', 'name', 'x'),
+            new Filters('or', [
+                new Filter('in', 'realm_id', ['a', null]),
+                new Filter('eq', 'age', 18),
+            ]),
+        ]);
+        condition.accept(visitor);
+
+        const [sql, params] = adapter.getQueryAndParameters();
+
+        expect(sql).toEqual(
+            '("name" = $1 and (("realm_id" in($2) or "realm_id" is null) or "age" = $3))',
+        );
+        expect(params).toStrictEqual(['x', 'a', 18]);
     });
 });
