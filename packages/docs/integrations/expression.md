@@ -27,13 +27,12 @@ contains(user.name, 'Bob')
 | `startsWith(field, value)` | prefix | `STARTS_WITH` |
 | `endsWith(field, value)` | suffix | `ENDS_WITH` |
 | `and(expr, …)` / `or(expr, …)` | compound | `Filters` node |
-| `not(expr, …)` | negation | flips operators, `and` ↔ `or` |
+| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or` |
 
 Rules:
 
 - **Values are always single-quoted** — `gte(age, '18')`, not `gte(age, 18)`. Quoted numerals are coerced to numbers, `'true'`/`'false'` to booleans, `'null'` to `null`. Escape a quote by doubling it (`'it''s'`).
 - Field names allow `[A-Za-z0-9_-]` with dots for relation paths (`user.name`).
-- `not(...)` cannot wrap the match expressions (`contains`, `startsWith`, `endsWith`).
 
 ## Usage
 
@@ -55,4 +54,4 @@ There is also a standalone `parseFilters(input, options)` returning just the `Fi
 
 ## Errors
 
-Syntax errors and schema violations throw `FiltersParseError` immediately — the expression parser has no silent-drop mode for malformed expressions.
+Syntax errors and schema violations throw `FiltersParseError` immediately — the expression parser has no silent-drop mode for malformed expressions. Malformed expressions carry `ErrorCode.SYNTAX_INVALID`; schema violations carry the key-related codes (`keyNotAllowed`, `keyPathInvalid`, …).

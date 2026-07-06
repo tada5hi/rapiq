@@ -26,6 +26,15 @@ export class ParseError extends BaseError {
         });
     }
 
+    static syntaxInvalid(details?: string) {
+        return new this({
+            message: details ?
+                `The input syntax is invalid: ${details}` :
+                'The input syntax is invalid.',
+            code: ErrorCode.SYNTAX_INVALID,
+        });
+    }
+
     static keyNotPermitted(name: string) {
         return new this({
             message: `The key ${name} is not permitted.`,

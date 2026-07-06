@@ -8,9 +8,16 @@
 import {
     Field,
     Fields,
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
     Relation,
     Relations,
-    SchemaRegistry, 
+    SchemaRegistry,
+    Sort,
+    SortDirection,
+    Sorts,
     defineSchema,
 } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
@@ -56,6 +63,76 @@ describe('src/parser', () => {
 
         expect(output.pagination.limit).toEqual(50);
         expect(output.pagination.offset).toEqual(0);
+    });
+
+    describe('schema defaults', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'foo',
+            fields: { allowed: ['id', 'name'] },
+            filters: {
+                allowed: ['id'],
+                default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                throwOnFailure: true,
+            },
+            sort: { default: { id: 'DESC' } },
+            pagination: { maxLimit: 25 },
+        }));
+
+        it('should apply defaults when parameters are absent', async () => {
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse({}, { schema: 'foo' });
+
+            expect(output.fields).toEqual(new Fields([
+                new Field('id'),
+                new Field('name'),
+            ]));
+            expect(output.sorts).toEqual(new Sorts([
+                new Sort('id', SortDirection.DESC),
+            ]));
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+            ]));
+            expect(output.pagination.limit).toEqual(25);
+            expect(output.pagination.offset).toEqual(0);
+        });
+
+        it('should apply defaults for non-object input', async () => {
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse(undefined, { schema: 'foo' });
+
+            expect(output.sorts).toEqual(new Sorts([
+                new Sort('id', SortDirection.DESC),
+            ]));
+            expect(output.pagination.limit).toEqual(25);
+        });
+
+        it('should not treat an absent parameter as a failure', async () => {
+            const parser = new SimpleParser(registry);
+
+            // filters schema has throwOnFailure — absent input applies
+            // defaults, present but invalid input still throws.
+            expect(() => parser.parse({}, { schema: 'foo' })).not.toThrow();
+            expect(() => parser.parse({ filters: 1 }, { schema: 'foo' })).toThrow();
+        });
+    });
+
+    it('should enforce the relations allow-list in full-query parsing', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'user',
+            relations: { allowed: ['realm'] },
+        }));
+
+        const parser = new SimpleParser(registry);
+
+        const output = parser.parse({ relations: ['realm', 'owner'] }, { schema: 'user' });
+
+        expect(output.relations).toEqual(new Relations([
+            new Relation('realm'),
+        ]));
     });
 
     it('should keep relations when other parameters are parsed', async () => {

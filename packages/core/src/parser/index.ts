@@ -8,4 +8,5 @@
 export * from './parameter';
 
 export * from './base';
+export * from './query';
 export * from './types';

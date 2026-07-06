@@ -7,6 +7,8 @@
 
 import type {
     FiltersParseOptions,
+    FiltersSchema,
+    ICondition,
     IFilter,
     IFilters,
     ObjectLiteral,
@@ -46,6 +48,18 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
+        // absent input is not a failure — schema defaults still apply.
+        // an empty string is NOT absent: the dialect is precise, so
+        // input like `?filter=` must surface a syntax error.
+        if (input === undefined || input === null) {
+            const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
+
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
         const expr = this.parseExact(input, options);
         if (
             isFilters(expr, FilterCompoundOperator.AND) ||
@@ -80,10 +94,24 @@ export class ExpressionFiltersParser extends BaseParser<
 
         const expr = this.parseFilterExpression(scope);
         if (this.peek().type !== FilterTokenType.EOF) {
-            throw new Error(`Unexpected token: ${this.peek().type}`);
+            throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
         }
 
         return expr;
+    }
+
+    // ---------------------------------------------------------
+
+    protected buildDefaults(schema: FiltersSchema) : ICondition[] {
+        if (!schema.default) {
+            return [];
+        }
+
+        if (Array.isArray(schema.default)) {
+            return schema.default;
+        }
+
+        return [schema.default];
     }
 
     // ---------------------------------------------------------
@@ -95,7 +123,7 @@ export class ExpressionFiltersParser extends BaseParser<
     private consume(expected?: `${FilterTokenType}`): FilterToken {
         const token = this.peek();
         if (expected && token.type !== expected) {
-            throw new Error(`Expected ${expected}, got ${token.type}`);
+            throw FiltersParseError.syntaxInvalid(`Expected ${expected}, got ${token.type}`);
         }
         this.pos++;
         return token;
@@ -103,7 +131,10 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private tokenize(input: string): FilterToken[] {
         const tokens: FilterToken[] = [];
-        const regex = /\s+|and|or|eq|ne|gte|gt|lte|lt|contains|startsWith|endsWith|nin|in|null|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
+        // keywords are classified from whole identifiers (switch below) —
+        // matching them in the regex would split identifiers that merely
+        // start with a keyword (e.g. "order" -> "or" + "der").
+        const regex = /\s+|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
 
         let match: RegExpExecArray | null;
          
@@ -170,7 +201,7 @@ export class ExpressionFiltersParser extends BaseParser<
             case FilterTokenType.NIN:
                 return this.parseInExpression(scope, negation);
             default:
-                throw new Error(`Unexpected token in filterExpression: ${token.type}`);
+                throw FiltersParseError.syntaxInvalid(`Unexpected token in filter expression: ${token.type}`);
         }
     }
 
@@ -192,7 +223,7 @@ export class ExpressionFiltersParser extends BaseParser<
     ): Filters | Filter {
         let op = this.consume().type; // AND / OR
         if (op !== FilterTokenType.AND && op !== FilterTokenType.OR) {
-            throw new Error('Expected AND or OR token type.');
+            throw FiltersParseError.syntaxInvalid('Expected AND or OR token type.');
         }
 
         this.consume(FilterTokenType.LPAREN);
@@ -306,7 +337,7 @@ export class ExpressionFiltersParser extends BaseParser<
             }
         }
 
-        throw new Error(`Token type ${op} not supported as comparison operator.`);
+        throw FiltersParseError.syntaxInvalid(`Token type ${op} not supported as comparison operator.`);
     }
 
     private parseMatchExpression(
@@ -322,12 +353,7 @@ export class ExpressionFiltersParser extends BaseParser<
 
         const normalized = this.normalizeValue(text);
         if (typeof normalized !== 'string') {
-            throw new Error(`String expected for type ${op}.`);
-        }
-
-        if (negation) {
-            // todo: decide if Not(Expr()) or Expr() aka negation constructor parameter
-            throw new FiltersParseError('Negation of match expression is not supported.');
+            throw FiltersParseError.keyValueInvalid(field);
         }
 
         switch (op) {
@@ -409,7 +435,7 @@ export class ExpressionFiltersParser extends BaseParser<
             token.type !== FilterTokenType.ESCAPED_TEXT &&
             token.type !== FilterTokenType.NULL
         ) {
-            throw new Error(`Unexpected token in value: ${token.type}`);
+            throw FiltersParseError.syntaxInvalid(`Unexpected token in value: ${token.type}`);
         }
 
         return this.normalizeValue(token.value ?? 'null');
@@ -420,7 +446,7 @@ export class ExpressionFiltersParser extends BaseParser<
     ): string {
         const token = this.consume(FilterTokenType.FIELD);
         if (token.type !== FilterTokenType.FIELD) {
-            throw new Error(`Unexpected token in value: ${token.type}`);
+            throw FiltersParseError.syntaxInvalid(`Unexpected token in field chain: ${token.type}`);
         }
 
         const parts = [token.value!];

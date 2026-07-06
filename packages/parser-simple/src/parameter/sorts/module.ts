@@ -140,19 +140,14 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         if (schema.default) {
             const keys = Object.keys(schema.default);
 
+            // defaults come out in the same shape as input-derived keys:
+            // local names stay local, explicit dotted keys keep their path.
             for (const key_ of keys) {
                 const fieldDetails = parseKey(key_);
 
-                let path : string | undefined;
-                if (fieldDetails.path) {
-                    path = fieldDetails.path;
-                } else if (schema.name) {
-                    path = schema.name;
-                }
-
                 let key : string;
-                if (path) {
-                    key = `${path}.${fieldDetails.name}`;
+                if (fieldDetails.path) {
+                    key = `${fieldDetails.path}.${fieldDetails.name}`;
                 } else {
                     key = fieldDetails.name;
                 }

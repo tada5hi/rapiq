@@ -40,6 +40,19 @@ const query = parser.parse({
 | `schema` | A `Schema` instance or the name of a registered schema. Omit to parse without validation. |
 | `fields` / `filters` / `relations` / `pagination` / `sort` | Set to `false` to skip a parameter entirely. |
 
+The parser is transport-agnostic: it reads the canonical parameter keys
+(`fields`, `filters`, `pagination`, `relations`, `sort`) only. To consume a
+raw URL query string or an express-style `req.query` object (JSON-API wire
+names like `filter`, `page`, `include`), use the [URL codec](/integrations/url)
+— its decoder maps the wire names and delegates to this parser.
+
+## Schema defaults
+
+A parameter that is absent from the input is still parsed, so schema defaults
+always apply: `fields.default` (or, without one, the `fields.allowed`
+selection), `filters.default`, `sort.default` and `pagination.maxLimit` shape
+the resulting `Query` even when the client sends nothing at all.
+
 ## Input formats
 
 Per-parameter input shapes and operator syntax are documented on the parameter pages:

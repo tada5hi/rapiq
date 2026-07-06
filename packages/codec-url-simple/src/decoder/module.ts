@@ -9,7 +9,8 @@ import {
     SimpleFieldsParser,
     SimpleFiltersParser,
     SimplePaginationParser,
-    SimpleRelationsParser, 
+    SimpleParser,
+    SimpleRelationsParser,
     SimpleSortParser,
 } from '@rapiq/parser-simple';
 import { parse } from 'qs';
@@ -20,14 +21,21 @@ import type {
     IQuery,
     IRelations,
     ISorts,
+    ObjectLiteral,
+    ParseParameterOptions,
+    ParseQueryOptions,
+    SchemaRegistry,
 } from '@rapiq/core';
 import {
-    QueryBuilder,
+    Parameter,
     isObject,
+    isPropertySet,
 } from '@rapiq/core';
 import { URLParameter } from '../constants';
 
 export class URLDecoder {
+    protected parser : SimpleParser;
+
     protected fields: SimpleFieldsParser;
 
     protected filters : SimpleFiltersParser;
@@ -38,107 +46,134 @@ export class URLDecoder {
 
     protected sort: SimpleSortParser;
 
-    constructor() {
-        this.fields = new SimpleFieldsParser();
-        this.filters = new SimpleFiltersParser();
-        this.pagination = new SimplePaginationParser();
-        this.relations = new SimpleRelationsParser();
-        this.sort = new SimpleSortParser();
+    constructor(input?: SchemaRegistry) {
+        this.parser = new SimpleParser(input);
+
+        this.fields = new SimpleFieldsParser(input);
+        this.filters = new SimpleFiltersParser(input);
+        this.pagination = new SimplePaginationParser(input);
+        this.relations = new SimpleRelationsParser(input);
+        this.sort = new SimpleSortParser(input);
     }
 
-    decode(input: string) : IQuery | null {
-        const parsed = parse(input);
+    /**
+     * Decode a query string or an already parsed query object
+     * (e.g. an express req.query): the URL wire names are mapped
+     * to their canonical parameters and parsed to a query.
+     *
+     * @param input
+     * @param options
+     */
+    decode(
+        input: string | ObjectLiteral,
+        options: ParseQueryOptions = {},
+    ) : IQuery | null {
+        const parsed = typeof input === 'string' ? parse(input) : input;
         if (!isObject(parsed)) {
             return null;
         }
 
-        const output = new QueryBuilder();
+        const mapped : ObjectLiteral = {};
 
-        if (parsed[URLParameter.FIELDS]) {
-            output.fields = this.fields.parse(parsed[URLParameter.FIELDS]);
-        }
+        this.mapParameter(parsed, mapped, URLParameter.FIELDS, Parameter.FIELDS);
+        this.mapParameter(parsed, mapped, URLParameter.FILTERS, Parameter.FILTERS);
+        this.mapParameter(parsed, mapped, URLParameter.PAGINATION, Parameter.PAGINATION);
+        this.mapParameter(parsed, mapped, URLParameter.RELATIONS, Parameter.RELATIONS);
+        this.mapParameter(parsed, mapped, URLParameter.SORT, Parameter.SORT);
 
-        if (parsed[URLParameter.FILTERS]) {
-            output.filters = this.filters.parse(parsed[URLParameter.FILTERS]);
-        }
-
-        if (parsed[URLParameter.PAGINATION]) {
-            output.pagination = this.pagination.parse(parsed[URLParameter.PAGINATION]);
-        }
-
-        if (parsed[URLParameter.RELATIONS]) {
-            output.relations = this.relations.parse(parsed[URLParameter.RELATIONS]);
-        }
-
-        if (parsed[URLParameter.SORT]) {
-            output.sorts = this.sort.parse(parsed[URLParameter.SORT]);
-        }
-
-        return output.build();
+        return this.parser.parse(mapped, options);
     }
 
-    decodeFields(input: string) : IFields | null {
+    decodeFields(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : IFields | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.FIELDS]) {
-            return this.fields.parse(output[URLParameter.FIELDS]);
+            return this.fields.parse(output[URLParameter.FIELDS], options);
         }
 
-        return this.fields.parse(output);
+        return this.fields.parse(output, options);
     }
 
-    decodeFilters(input: string) : IFilters | null {
+    decodeFilters(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : IFilters | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.FILTERS]) {
-            return this.filters.parse(output[URLParameter.FILTERS]);
+            return this.filters.parse(output[URLParameter.FILTERS], options);
         }
 
-        return this.filters.parse(output);
+        return this.filters.parse(output, options);
     }
 
-    decodePagination(input: string) : IPagination | null {
+    decodePagination(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : IPagination | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.PAGINATION]) {
-            return this.pagination.parse(output[URLParameter.PAGINATION]);
+            return this.pagination.parse(output[URLParameter.PAGINATION], options);
         }
 
-        return this.pagination.parse(output);
+        return this.pagination.parse(output, options);
     }
 
-    decodeRelations(input: string) : IRelations | null {
+    decodeRelations(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : IRelations | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.RELATIONS]) {
-            return this.relations.parse(output[URLParameter.RELATIONS]);
+            return this.relations.parse(output[URLParameter.RELATIONS], options);
         }
 
-        return this.relations.parse(output);
+        return this.relations.parse(output, options);
     }
 
-    decodeSort(input: string) : ISorts | null {
+    decodeSort(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : ISorts | null {
         const output = parse(input);
         if (!isObject(output)) {
             return null;
         }
 
         if (output[URLParameter.SORT]) {
-            return this.sort.parse(output[URLParameter.SORT]);
+            return this.sort.parse(output[URLParameter.SORT], options);
         }
 
-        return this.sort.parse(output);
+        return this.sort.parse(output, options);
+    }
+
+    // --------------------------------------------------
+
+    protected mapParameter(
+        input: ObjectLiteral,
+        output: ObjectLiteral,
+        urlKey: string,
+        key: `${Parameter}`,
+    ) : void {
+        if (isPropertySet(input, urlKey)) {
+            output[key] = input[urlKey];
+        }
     }
 }
