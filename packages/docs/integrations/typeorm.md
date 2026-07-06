@@ -57,6 +57,10 @@ new TypeormAdapter({
 
 Relations are validated against the entity metadata of the attached query builder — a requested relation that doesn't exist on the entity is ignored. Joins are applied idempotently: relations already joined on the query builder (by the adapter or by your own code, matched by alias) are skipped, so applying a query twice does not duplicate joins.
 
+::: warning Alias convention
+Joins are aliased by the relation path's **last segment**: `role.realm` joins as alias `realm` — the same convention filter/sort/field references resolve against. Two relation paths ending in the same segment (e.g. `realm` and `role.realm`) therefore collide: the later join is skipped and references resolve against the first one. Path-qualified aliases are tracked in [#744](https://github.com/tada5hi/rapiq/issues/744).
+:::
+
 ::: info Migrating from typeorm-extension
 `applyQuery` used `leftJoinAndSelect` and returned the parsed pagination — `joinType: 'left'` (the default) and the `execute()` return value mirror that contract. The `onJoin` hook is the equivalent of typeorm-extension's `relations.onJoin`.
 :::

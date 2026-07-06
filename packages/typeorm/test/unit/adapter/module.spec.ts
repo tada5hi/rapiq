@@ -34,7 +34,7 @@ describe('src/adapter/module.ts', () => {
         expect(queryBuilder.expressionMap.skip).toEqual(20);
     });
 
-    it('should return undefined pagination when none applies', () => {
+    it('should return unset pagination values when none apply', () => {
         const queryBuilder = dataSource
             .getRepository(User)
             .createQueryBuilder('user');
