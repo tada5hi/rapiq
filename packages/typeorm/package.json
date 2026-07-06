@@ -22,6 +22,7 @@
         "@swc/core": "^1.15.43",
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
+        "mysql2": "^3.22.5",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^0.3.28",
         "unplugin-swc": "^1.5.9"

@@ -7,7 +7,6 @@
 
 import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
-import { FieldOperator } from '@rapiq/core';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter<
@@ -26,23 +25,20 @@ export class FieldsAdapter<
     }
 
     escapeField(field: string) {
+        // selection keys must stay `alias.property` — TypeORM resolves
+        // them against its alias map and escapes on its own; pre-escaped
+        // names break column resolution and entity hydration.
         return field;
     }
 
     execute() {
-        if (!this.query || this.value.length === 0) {
+        if (!this.query) {
             return;
         }
 
-        const names = this.value
-            .filter(
-                (el) => !el.operator ||
-                    el.operator === FieldOperator.INCLUDE,
-            )
-            .map((el) => el.name);
-
-        if (names.length > 0) {
-            this.query.select(names);
+        const columns = this.getColumns();
+        if (columns.length > 0) {
+            this.query.select(columns);
         }
     }
 }

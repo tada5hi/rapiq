@@ -9,5 +9,6 @@ export * from './mssql';
 export * from './mysql';
 export * from './oracle';
 export * from './pg';
+export * from './resolve';
 export * from './sqlite';
 export * from './types';

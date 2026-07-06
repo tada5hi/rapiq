@@ -12,6 +12,7 @@ import {
     PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Realm } from './realm';
+import { RoleDetail } from './role-detail';
 
 @Entity()
 export class Role {
@@ -27,4 +28,11 @@ export class Role {
     @ManyToOne(() => Realm, (role: Realm) => role.id, { nullable: true })
     @JoinColumn({ name: 'realm_id' })
     realm: Realm;
+
+    @Column({ nullable: true })
+    detail_id: number | null;
+
+    @ManyToOne(() => RoleDetail, { nullable: true })
+    @JoinColumn({ name: 'detail_id' })
+    detail: RoleDetail;
 }

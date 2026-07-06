@@ -20,7 +20,7 @@ const adapter = new TypeormAdapter({
 adapter.withQuery(queryBuilder);
 
 query.accept(new QueryVisitor(adapter));
-adapter.execute();
+const { pagination } = adapter.execute();
 
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
@@ -29,7 +29,11 @@ The flow is always the same:
 
 1. `withQuery(queryBuilder)` — attach the builder.
 2. `query.accept(new QueryVisitor(adapter))` — walk the AST; the adapter collects state.
-3. `adapter.execute()` — apply everything to the builder in one go.
+3. `adapter.execute()` — apply everything to the builder in one go; it returns the applied pagination (e.g. for the response `meta` block).
+
+## Dialect detection
+
+The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; regexp conditions use the matching [dialect preset](/integrations/sql#dialects) — on regexp-less dialects (SQLite, SQL Server) the `contains` / `startsWith` / `endsWith` operators fall back to `LIKE`, and the `regex` operator throws a typed `AdapterError`. When no query builder is bound (or the connection type is unknown), the postgres preset is the documented last-resort default.
 
 ## Options
 
@@ -37,15 +41,29 @@ The flow is always the same:
 new TypeormAdapter({
     relations: {
         joinAndSelect: true,
+        joinType: 'left',
+        onJoin: (path, alias, queryBuilder) => {
+            queryBuilder.addGroupBy(`${alias}.id`);
+        },
     },
 });
 ```
 
 | Option | Description |
 |---|---|
-| `relations.joinAndSelect` | Use `innerJoinAndSelect` (hydrate the related entities) instead of `innerJoin` (join for filtering/sorting only). |
+| `relations.joinAndSelect` | Join **and select** (hydrate the related entities) instead of joining for filtering/sorting only. |
+| `relations.joinType` | `'left'` (default) or `'inner'`. Left joins keep records whose relation is absent. |
+| `relations.onJoin` | Invoked as `(path, alias, queryBuilder)` for every join the adapter applies — e.g. to `addGroupBy` per join when the root query is grouped. Skipped (pre-existing) joins don't trigger it. |
 
-Relations are validated against the entity metadata of the attached query builder — a requested relation that doesn't exist on the entity is ignored.
+Relations are validated against the entity metadata of the attached query builder — a requested relation that doesn't exist on the entity is ignored. Joins are applied idempotently: relations already joined on the query builder (by the adapter or by your own code, matched by alias) are skipped, so applying a query twice does not duplicate joins.
+
+::: warning Alias convention
+Joins are aliased by the relation path's **last segment**: `role.realm` joins as alias `realm` — the same convention filter/sort/field references resolve against. Two relation paths ending in the same segment (e.g. `realm` and `role.realm`) therefore collide: the later join is skipped and references resolve against the first one. Path-qualified aliases are tracked in [#744](https://github.com/tada5hi/rapiq/issues/744).
+:::
+
+::: info Migrating from typeorm-extension
+`applyQuery` used `leftJoinAndSelect` and returned the parsed pagination — `joinType: 'left'` (the default) and the `execute()` return value mirror that contract. The `onJoin` hook is the equivalent of typeorm-extension's `relations.onJoin`.
+:::
 
 ## Applying a single parameter
 
@@ -92,7 +110,7 @@ export async function getUsers(req: Request, res: Response) {
     const adapter = new TypeormAdapter({ relations: { joinAndSelect: true } });
     adapter.withQuery(queryBuilder);
     query.accept(new QueryVisitor(adapter));
-    adapter.execute();
+    const { pagination } = adapter.execute();
 
     const [entities, total] = await queryBuilder.getManyAndCount();
 
@@ -100,8 +118,8 @@ export async function getUsers(req: Request, res: Response) {
         data: entities,
         meta: {
             total,
-            limit: query.pagination.limit,
-            offset: query.pagination.offset,
+            limit: pagination.limit,
+            offset: pagination.offset,
         },
     });
 }

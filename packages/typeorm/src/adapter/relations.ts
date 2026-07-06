@@ -5,16 +5,16 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { RelationsAdapterBaseOptions } from '@rapiq/sql';
 import { RelationsBaseAdapter, splitFirst } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
+import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter<
     QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
 > extends RelationsBaseAdapter<QUERY> {
-    protected options : RelationsAdapterBaseOptions;
+    protected options : RelationsAdapterOptions<QUERY>;
 
-    constructor(options: RelationsAdapterBaseOptions = {}) {
+    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
         super();
 
         this.options = options;
@@ -25,10 +25,14 @@ export class RelationsAdapter<
             return;
         }
 
-        // todo: mark items applied
         for (const relation of this.value) {
-            // todo: sub paths might already applied ...
-            this.join(relation.path);
+            if (relation.executed) {
+                continue;
+            }
+
+            if (this.join(relation.path)) {
+                relation.executed = true;
+            }
         }
     }
 
@@ -38,6 +42,7 @@ export class RelationsAdapter<
         }
 
         let relationFullName : string | undefined = input;
+        let path : string | undefined;
         let meta = this.query.expressionMap.mainAlias!.metadata;
         let { alias } = this.query;
 
@@ -47,28 +52,51 @@ export class RelationsAdapter<
             let relationName : string;
             [relationName, relationFullName] = splitFirst(relationFullName);
 
+            path = path ?
+                `${path}.${relationName}` :
+                relationName;
+
             const relation = meta.findRelationWithPropertyPath(relationName);
-
-            if (relation) {
-                const joined = joinAttributes.findIndex(
-                    (joinAttribute) => joinAttribute.alias.name === relationName,
-                );
-
-                if (joined === -1) {
-                    if (this.options.joinAndSelect) {
-                        this.query.innerJoinAndSelect(`${alias}.${relationName}`, relationName);
-                    } else {
-                        this.query.innerJoin(`${alias}.${relationName}`, relationName);
-                    }
-                }
-
-                meta = relation.entityMetadata;
-                alias = relationName;
-            } else {
+            if (!relation) {
                 return false;
             }
+
+            const joined = joinAttributes.some(
+                (joinAttribute) => joinAttribute.alias.name === relationName,
+            );
+
+            if (!joined) {
+                this.applyJoin(`${alias}.${relationName}`, relationName);
+
+                if (this.options.onJoin) {
+                    this.options.onJoin(path, relationName, this.query);
+                }
+            }
+
+            meta = relation.inverseEntityMetadata;
+            alias = relationName;
         }
 
         return true;
+    }
+
+    protected applyJoin(property: string, alias: string) : void {
+        if (!this.query) {
+            return;
+        }
+
+        const inner = this.options.joinType === 'inner';
+
+        if (this.options.joinAndSelect) {
+            if (inner) {
+                this.query.innerJoinAndSelect(property, alias);
+            } else {
+                this.query.leftJoinAndSelect(property, alias);
+            }
+        } else if (inner) {
+            this.query.innerJoin(property, alias);
+        } else {
+            this.query.leftJoin(property, alias);
+        }
     }
 }
