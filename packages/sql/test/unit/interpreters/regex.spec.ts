@@ -158,7 +158,7 @@ describe('regex', () => {
             ['startsWith', '^foo'],
             ['endsWith', 'foo$'],
             ['contains', 'foo'],
-            ['notStartsWith', '^(?!foo).+'],
+            ['notStartsWith', '^(?!foo).*'],
             ['notEndsWith', '^(?!.*foo$).*'],
             ['notContains', '^(?!.*foo).*'],
         ];

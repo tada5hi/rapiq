@@ -54,3 +54,5 @@ Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject
 - **Empty `in`/`nin` lists**: `in(field, [])` renders `1 = 0` (matches nothing) and `nin(field, [])` renders `1 = 1` — previously the invalid SQL `field in()`.
 - **sqlite preset** no longer inherits mysql's `regexp` callback (stock SQLite has no `REGEXP` function): anchored operators fall back to `LIKE`, the `regex` operator throws a typed `AdapterError`.
 - `FiltersVisitor`: `visitFilterNotEndsWith`/`visitFilterNotContains` signatures used wrong operator type parameters (copy-paste); in/nin and the six anchored-operator methods now share `whereIn`/`whereAnchored` helpers.
+- **Literal matching for anchored operators** (from PR #742 review): `createFilterRegexPattern` escapes regex metacharacters — the input is a filter value, not a regex. Previously `contains(name, 'a.b')` matched `axb` on regexp dialects (while the LIKE fallback matched literally) and values like `'('` threw a raw `SyntaxError`. The `regex` operator is unaffected (takes a real `RegExp`).
+- `notStartsWith` on regexp dialects now matches the empty string (`^(?!foo).*`, was `.+`), consistent with `NOT LIKE 'foo%'`.

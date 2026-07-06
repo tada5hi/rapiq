@@ -40,7 +40,7 @@ describe('src/parameter/filters/regex.ts', () => {
         const cases : [number, string, string, string][] = [
             [
                 FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION,
-                '^(?!foo).+',
+                '^(?!foo).*',
                 'xxfoo',
                 'foobar',
             ],
@@ -71,5 +71,27 @@ describe('src/parameter/filters/regex.ts', () => {
         const regex = createFilterRegex('foo', FilterRegexFlag.STARTS_WITH);
 
         expect(regex.test('FOObar')).toBeTruthy();
+    });
+
+    it('matches the empty string for negated STARTS_WITH', () => {
+        const regex = createFilterRegex('foo', FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
+
+        expect(regex.test('')).toBeTruthy();
+    });
+
+    it('escapes regex metacharacters so the input matches verbatim', () => {
+        expect(createFilterRegexPattern('a.b', FilterRegexFlag.STARTS_WITH)).toEqual('^a\\.b');
+
+        const dot = createFilterRegex('a.b', FilterRegexFlag.CONTAINS);
+        expect(dot.test('xa.bx')).toBeTruthy();
+        expect(dot.test('xaxbx')).toBeFalsy();
+
+        const alternation = createFilterRegex('a|b', FilterRegexFlag.CONTAINS);
+        expect(alternation.test('a|b')).toBeTruthy();
+        expect(alternation.test('a')).toBeFalsy();
+
+        // previously threw a SyntaxError (invalid regex)
+        const parenthesis = createFilterRegex('(', FilterRegexFlag.STARTS_WITH);
+        expect(parenthesis.test('(x')).toBeTruthy();
     });
 });

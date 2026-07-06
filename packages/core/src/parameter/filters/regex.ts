@@ -25,27 +25,31 @@ export function createFilterRegexPattern(
     input: string,
     flag: number = 0,
 ) : string {
+    // the input is a literal filter value, not a regex:
+    // escape metacharacters so it matches verbatim.
+    const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     let pattern : string;
     if (flag & FilterRegexFlag.NEGATION) {
         if (flag & FilterRegexFlag.STARTS_WITH) {
-            pattern = `^(?!${input}).+`;
+            pattern = `^(?!${escaped}).*`;
         } else if (flag & FilterRegexFlag.ENDS_WITH) {
-            pattern = `^(?!.*${input}$).*`;
+            pattern = `^(?!.*${escaped}$).*`;
         } else {
             // CONTAINS or no anchor flag
-            pattern = `^(?!.*${input}).*`;
+            pattern = `^(?!.*${escaped}).*`;
         }
 
         return pattern;
     }
 
     if (flag & FilterRegexFlag.STARTS_WITH) {
-        pattern = `^${input}`;
+        pattern = `^${escaped}`;
     } else if (flag & FilterRegexFlag.ENDS_WITH) {
-        pattern = `${input}$`;
+        pattern = `${escaped}$`;
     } else {
         // CONTAINS or no anchor flag
-        pattern = `${input}`;
+        pattern = `${escaped}`;
     }
 
     return pattern;

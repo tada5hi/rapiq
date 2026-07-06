@@ -61,6 +61,10 @@ A `null` filter value is rewritten to the SQL null predicates instead of being b
 
 An empty list never matches: `in(field, [])` renders `1 = 0` and `nin(field, [])` renders `1 = 1` (instead of the invalid `IN ()`).
 
+### String matching
+
+The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regexp dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
+
 ## The root adapter
 
 Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state — selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five, `QueryVisitor` walks a whole `Query` into it, and `build()` returns the accumulated clause fragments:
