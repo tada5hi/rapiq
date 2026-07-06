@@ -32,3 +32,34 @@ export interface IRootAdapter<
 
     sort : ISortAdapter<QUERY>;
 }
+
+/**
+ * Clause fragments accumulated from a Query walk.
+ * Statement assembly (FROM/JOIN conditions) is owned by the caller,
+ * which knows the table layout — rapiq only knows relation names.
+ */
+export type SqlFragments = {
+    /**
+     * Escaped selection columns, e.g. ['"user"."id"', '"realm"."name"'].
+     */
+    columns: string[],
+    /**
+     * Joined WHERE condition ('' when no filters apply).
+     */
+    where: string,
+    /**
+     * Bound parameters for `where`.
+     */
+    params: unknown[],
+    /**
+     * Escaped ORDER BY entries, e.g. ['"user"."age" DESC'].
+     */
+    orderBy: string[],
+    limit: number | undefined,
+    offset: number | undefined,
+    /**
+     * Canonical relation paths to join (parents included),
+     * e.g. ['items', 'items.realm'].
+     */
+    relations: string[],
+};

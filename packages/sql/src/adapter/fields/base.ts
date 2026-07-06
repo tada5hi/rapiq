@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FieldOperator } from '@rapiq/core';
+import { FieldOperator } from '@rapiq/core';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { IFieldsAdapter } from './types';
@@ -60,6 +60,24 @@ export abstract class FieldsBaseAdapter<
         const name = this.buildField(input);
 
         this.value.push({ name, operator });
+    }
+
+    /**
+     * Escaped selection columns (excluded fields are dropped).
+     */
+    getColumns() : string[] {
+        const output : string[] = [];
+
+        for (let i = 0; i < this.value.length; i++) {
+            const element = this.value[i] as { name: string, operator?: `${FieldOperator}` };
+            if (element.operator === FieldOperator.EXCLUDE) {
+                continue;
+            }
+
+            output.push(element.name);
+        }
+
+        return output;
     }
 
     buildField(input: string) {

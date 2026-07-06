@@ -63,8 +63,6 @@ export abstract class FiltersBaseAdapter<
 
     // -----------------------------------------------------------
 
-    // todo: try to apply single where clause, with parameters
-
     protected abstract rootAlias() : string | undefined;
 
     protected abstract paramPlaceholder(index: number) : string;
@@ -76,6 +74,14 @@ export abstract class FiltersBaseAdapter<
     abstract execute(): void;
 
     abstract child() : this;
+
+    /**
+     * Whether the dialect can build regular-expression conditions.
+     * Anchored operators fall back to LIKE otherwise.
+     */
+    supportsRegexp() : boolean {
+        return true;
+    }
 
     // -----------------------------------------------------------
 

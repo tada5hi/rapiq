@@ -70,6 +70,10 @@ export abstract class RelationsBaseAdapter<
                 `${path}.${relationName}` :
                 relationName;
 
+            if (this.has(path)) {
+                continue;
+            }
+
             this.value.push({
                 path,
                 name: relationName,
@@ -81,5 +85,12 @@ export abstract class RelationsBaseAdapter<
 
     has(name: string) {
         return this.value.some((join) => join.path === name);
+    }
+
+    /**
+     * Canonical relation paths (parents included), e.g. ['items', 'items.realm'].
+     */
+    getPaths() : string[] {
+        return this.value.map((join) => join.path);
     }
 }

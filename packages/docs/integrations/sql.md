@@ -14,7 +14,7 @@ A dialect is three callbacks:
 type DialectOptions = {
     escapeField: (input: string) => string,      // mysql: `field`, pg: "field", mssql: [field]
     paramPlaceholder: (index: number) => string, // pg: $1, mysql: ?
-    regexp: (field: string, placeholder: string, ignoreCase: boolean) => string,
+    regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
 };
 ```
 
@@ -25,7 +25,7 @@ import { mysql, pg } from '@rapiq/sql';
 ```
 
 ::: warning
-The `mssql` preset throws for `regexp` — SQL Server has no regexp operator. The `contains` / `startsWith` / `endsWith` filter operators lower to regexp conditions, so they are unavailable with that preset.
+The `mssql` preset omits `regexp` — SQL Server has no regexp operator. On dialects without `regexp`, the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
 :::
 
 ## Rendering filters
@@ -48,17 +48,37 @@ const [sql, params] = filters.getQueryAndParameters();
 
 Values are always bound as parameters — never interpolated into the SQL string.
 
-## Other parameters
+### Null semantics
 
-Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state — selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five, and `QueryVisitor` walks a whole `Query` into it:
+A `null` filter value is rewritten to the SQL null predicates instead of being bound as a parameter (which would match nothing):
+
+| Filter | SQL |
+|---|---|
+| `eq(field, null)` | `field IS NULL` |
+| `ne(field, null)` | `field IS NOT NULL` |
+| `in(field, [a, null])` | `(field IN (...) OR field IS NULL)` |
+| `nin(field, [a, null])` | `(field NOT IN (...) AND field IS NOT NULL)` |
+
+## The root adapter
+
+Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state — selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five, `QueryVisitor` walks a whole `Query` into it, and `build()` returns the accumulated clause fragments:
 
 ```typescript
 import { Adapter, QueryVisitor, pg } from '@rapiq/sql';
 
-const adapter = new Adapter(pg);
+const adapter = new Adapter({ ...pg, rootAlias: 'user' });
 query.accept(new QueryVisitor(adapter));
 
-const [where, params] = adapter.filters.getQueryAndParameters();
+const fragments = adapter.build();
+// {
+//     columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
+//     where: '("user"."age" >= $1 and ...)',
+//     params: [18, ...],
+//     orderBy: ['"user"."age" DESC'],
+//     limit: 25,
+//     offset: 50,
+//     relations: ['realm'],   // canonical paths, parents included
+// }
 ```
 
-Composing the final `SELECT` statement from the collected pieces is the job of a backend adapter — that's exactly what [`@rapiq/typeorm`](/integrations/typeorm) does for TypeORM.
+`@rapiq/sql` deliberately stops at fragments: composing the final `SELECT` statement — in particular `FROM`/`JOIN` conditions, which require knowledge of the table layout — is the job of the caller or a backend adapter. That's exactly what [`@rapiq/typeorm`](/integrations/typeorm) does for TypeORM.

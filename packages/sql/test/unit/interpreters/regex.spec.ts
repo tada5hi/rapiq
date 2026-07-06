@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Filter } from '@rapiq/core';
+import { AdapterError, Filter } from '@rapiq/core';
 import {
     FiltersAdapter,
     FiltersVisitor,
@@ -68,7 +68,7 @@ describe('regex', () => {
         expect(params).toStrictEqual([condition.value.source]);
     });
 
-    it('throws exception for MSSQL as it does not support REGEXP', () => {
+    it('throws a typed error for MSSQL as it does not support REGEXP', () => {
         const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
@@ -80,6 +80,54 @@ describe('regex', () => {
 
         expect(() => {
             condition.accept(visitor);
-        }).toThrow(/"regexp" operator is not supported in MSSQL/);
+        }).toThrow(AdapterError);
+        expect(() => {
+            condition.accept(visitor);
+        }).toThrow('The feature regexp is not supported by the dialect.');
+    });
+
+    it('falls back to LIKE for anchored operators on MSSQL', () => {
+        const buildAdapter = () => {
+            const adapter = new FiltersAdapter(new RelationsAdapter(), mssql);
+            return { adapter, visitor: new FiltersVisitor(adapter) };
+        };
+
+        let { adapter, visitor } = buildAdapter();
+        new Filter('startsWith', 'name', 'foo').accept(visitor);
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '[name] like ? escape \'\\\'', 
+            ['foo%'],
+        ]);
+
+        ({ adapter, visitor } = buildAdapter());
+        new Filter('endsWith', 'name', 'foo').accept(visitor);
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '[name] like ? escape \'\\\'', 
+            ['%foo'],
+        ]);
+
+        ({ adapter, visitor } = buildAdapter());
+        new Filter('contains', 'name', 'foo').accept(visitor);
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '[name] like ? escape \'\\\'', 
+            ['%foo%'],
+        ]);
+
+        ({ adapter, visitor } = buildAdapter());
+        new Filter('notContains', 'name', 'foo').accept(visitor);
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '[name] not like ? escape \'\\\'', 
+            ['%foo%'],
+        ]);
+    });
+
+    it('escapes LIKE wildcards in the fallback pattern', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), mssql);
+        const visitor = new FiltersVisitor(adapter);
+
+        new Filter('contains', 'name', '100%_[a]').accept(visitor);
+
+        const [, params] = adapter.getQueryAndParameters();
+        expect(params).toStrictEqual(['%100\\%\\_\\[a]%']);
     });
 });

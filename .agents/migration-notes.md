@@ -37,3 +37,12 @@ Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject
 - `IInterpreter` (`interpreter/`) — no implementation existed; will return with the first real consumer.
 
 **Still public** (documented + tested): `parseKey`, `stringifyKey`, `KeyDetails`, `isObject`, `isPropertySet`. The `smob` runtime dependency was dropped from `@rapiq/core`.
+
+## SQL adapter completion (plan 005)
+
+- `@rapiq/sql`'s deliverable is **clause fragments**, not full statements: `Adapter.build()` returns `SqlFragments` (`{ columns, where, params, orderBy, limit, offset, relations }`); FROM/JOIN assembly stays with the caller, which knows the join conditions. `execute()` remains for backend adapters (typeorm) that mutate a query object.
+- **Null semantics** (typeorm-extension parity): `eq(field, null)` → `field IS NULL`, `ne(field, null)` → `IS NOT NULL`, `in` with a null element → `(field IN (...) OR field IS NULL)`, `nin` with null → `(field NOT IN (...) AND field IS NOT NULL)`. Previously null was bound as an ordinary parameter (matched nothing). Applies to @rapiq/typeorm too (shared visitor).
+- **MSSQL**: `startsWith`/`endsWith`/`contains` (and negations) now work via `LIKE ... ESCAPE '\'` with wildcard escaping (previously threw); the `regex` operator throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`) instead of a raw `Error`. `DialectOptions.regexp` became optional.
+- **Error taxonomy** (plan 008 item 5): core exports `AdapterError` with `operatorUnsupported`/`featureUnsupported` factories and `ErrorCode.OPERATOR_UNSUPPORTED`/`FEATURE_UNSUPPORTED`; the raw `Error` throws in @rapiq/sql are migrated.
+- Relations adapter no longer duplicates parent path entries (`add('a.b'); add('a.c')` previously pushed `{path:'a'}` twice).
+- `AdapterOptions` accepts `rootAlias`, forwarded to the fields/filters/sort sub-adapters.
