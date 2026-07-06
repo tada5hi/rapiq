@@ -6,7 +6,7 @@
  */
 
 import type {
-    ISortVisitor, 
+    ISortVisitor,
     ISortsVisitor,
     Sort,
     Sorts,

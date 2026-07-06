@@ -49,7 +49,9 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         // absent input is not a failure — schema defaults still apply.
-        if (input === undefined || input === null || input === '') {
+        // an empty string is NOT absent: the dialect is precise, so
+        // input like `?filter=` must surface a syntax error.
+        if (input === undefined || input === null) {
             const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
 
             return new Filters(

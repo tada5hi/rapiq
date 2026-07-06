@@ -192,6 +192,18 @@ describe('filters/expr-parser', () => {
         ]));
     });
 
+    it('should treat an empty string as invalid input, not as absent', () => {
+        let error : unknown;
+        try {
+            parser.parse('');
+        } catch (e) {
+            error = e;
+        }
+
+        expect(error).toBeInstanceOf(FiltersParseError);
+        expect((error as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+    });
+
     it('should parse in expression', () => {
         const output = parser.parseExact('in(name, \'Peter\', \'Hans\')');
 

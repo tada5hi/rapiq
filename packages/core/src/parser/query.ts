@@ -26,9 +26,7 @@ import type { IQueryParameterParser, ParseParameterOptions, ParseQueryOptions } 
  * parameter key lookup, relation gating and the delegation order
  * (relations first, since they gate the rest).
  */
-export abstract class BaseQueryParser<
-    OPTIONS extends ParseQueryOptions = ParseQueryOptions,
-> extends BaseParser<OPTIONS, Query> {
+export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Query> {
     protected abstract fieldsParser : IQueryParameterParser<IFields>;
 
     protected abstract filtersParser : IQueryParameterParser<IFilters>;
