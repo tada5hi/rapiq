@@ -92,6 +92,7 @@ export default defineConfig({
                         { text: 'Overview', link: '/integrations/' },
                         { text: 'Simple Parser', link: '/integrations/simple' },
                         { text: 'Expression Parser', link: '/integrations/expression' },
+                        { text: 'Mongo Parser', link: '/integrations/mongo' },
                         { text: 'URL Codec', link: '/integrations/url' },
                         { text: 'SQL', link: '/integrations/sql' },
                         { text: 'TypeORM', link: '/integrations/typeorm' },

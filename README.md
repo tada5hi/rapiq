@@ -226,6 +226,7 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/core](packages/core) | Query AST, typed build layer (`defineQuery`, condition helpers, `mergeQueries`), schema system & registry |
 | [@rapiq/parser-simple](packages/parser-simple) | Parses plain object/array input (the "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](packages/parser-expression) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
+| [@rapiq/parser-mongo](packages/parser-mongo) | Parses MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
 | [@rapiq/codec-url-simple](packages/codec-url-simple) | URL query-string encoder & decoder for the simple dialect |
 | [@rapiq/codec-url-expression](packages/codec-url-expression) | URL codec carrying nested filter compounds in a single `filter=and(...)` parameter |
 | [@rapiq/codec-url](packages/codec-url) | Registry dispatching between URL codec dialects via the reserved `codec` parameter |
