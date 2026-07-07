@@ -1,6 +1,6 @@
 # Simple Parser
 
-`@rapiq/parser-simple` parses plain object/array input — the URL-query-like "simple" dialect. It is the workhorse parser: express-style `req.query` objects feed straight into it, and the [URL codec](/integrations/url) builds on it.
+`@rapiq/parser-simple` parses plain object/array input — the URL-query-like "simple" dialect. It is the workhorse parser: the [URL codec](/integrations/url) builds on it, mapping URL wire names to the canonical parameter keys this parser reads.
 
 ```sh
 npm install @rapiq/core @rapiq/parser-simple

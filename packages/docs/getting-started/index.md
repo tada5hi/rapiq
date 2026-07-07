@@ -48,8 +48,10 @@ URLEncoder (@rapiq/codec-url-simple)
 |---|---|
 | [@rapiq/core](https://github.com/tada5hi/rapiq/tree/master/packages/core) | Query AST, visitor interfaces, schema system & registry, parser base classes, errors |
 | [@rapiq/parser-simple](/integrations/simple) | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
-| [@rapiq/parser-expression](/integrations/expression) | Parses an infix expression language (e.g. `age gte 18 and name eq 'John'`) into a `Query` |
+| [@rapiq/parser-expression](/integrations/expression) | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/codec-url-simple](/integrations/url) | URL query-string encoder & decoder for the simple dialect |
+| [@rapiq/codec-url-expression](/integrations/url#expression-dialect) | URL codec for the expression dialect — a nested filter compound in a single `filter=and(...)` parameter |
+| [@rapiq/codec-url](/integrations/url#codec-registry) | Registry dispatching between URL codec dialects via the reserved `codec` parameter |
 | [@rapiq/sql](/integrations/sql) | Dialect-agnostic SQL adapter; ships presets for Postgres, MySQL, SQLite, MSSQL & Oracle |
 | [@rapiq/typeorm](/integrations/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
 

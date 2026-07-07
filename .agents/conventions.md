@@ -17,7 +17,7 @@
 
 - After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
 - When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url-simple) — they peer-depend on it.
-- User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.MD`.
+- User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.md`.
 
 ## Code Style
 
@@ -93,4 +93,4 @@ This builds a cumulative mapping over time so future work can quickly find corre
 | Change | Docs to update |
 |--------|----------------|
 | Parameter syntax/semantics (fields, filters, sort, …) | `packages/docs/guide/` API reference pages |
-| New package or export | `packages/docs/guide/` + root `README.MD` |
+| New package or export | `packages/docs/guide/` + root `README.md` |

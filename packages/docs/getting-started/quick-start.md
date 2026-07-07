@@ -44,13 +44,13 @@ const response = await fetch(`/users?${queryString}`);
 
 The record generic types every field path against `User`. Filters take scalars (`{ name: 'John' }`), arrays (`{ realm_id: [1, null] }`), `$`-operator objects and [condition helpers](/guide/build#condition-helpers) like `or(gte('age', 18), eq('email', null))` — see [Building Queries](/guide/build) for the full grammar.
 
-## 2. Parse & validate (server)
+## 2. Decode & validate (server)
 
-Declare a `Schema` — the allow-list of what a client may request — and parse the incoming input against it:
+Declare a `Schema` — the allow-list of what a client may request — and decode the incoming query against it:
 
 ```typescript
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { SimpleParser } from '@rapiq/parser-simple';
+import { URLDecoder } from '@rapiq/codec-url-simple';
 
 const registry = new SchemaRegistry();
 
@@ -69,16 +69,21 @@ registry.add(defineSchema<User>({
     schemaMapping: { realm: 'realm' },
 }));
 
-const parser = new SimpleParser(registry);
+const decoder = new URLDecoder(registry);
 
-// express parses the query string into an object for you (req.query)
-const query = parser.parse(req.query, { schema: 'user' });
+// accepts the raw query string as well as a pre-parsed object (express req.query);
+// URL wire names (filter, page, include, ...) map to their canonical parameters.
+const query = decoder.decode(req.query, { schema: 'user' });
+if (!query) {
+    // decode returns null for non-object input — e.g. reply 400 Bad Request
+    throw new Error('Invalid query input.');
+}
 ```
 
 Anything outside the allow-lists is silently dropped; set `throwOnFailure: true` on the schema to get a `ParseError` instead. See [Schemas](/guide/schema).
 
-::: tip Raw query strings
-If you only have the raw string, parse it with [qs](https://www.npmjs.com/package/qs) and feed the result to `SimpleParser` — or use the schema-less [`URLDecoder`](/integrations/url) when validation isn't needed.
+::: tip Canonical object input
+If your input isn't URL-shaped — it already uses the canonical parameter keys (`filters`, `pagination`, `relations`, …) — feed it to [`SimpleParser`](/integrations/simple) from `@rapiq/parser-simple` directly: `new SimpleParser(registry).parse(input, { schema: 'user' })`. The `URLDecoder` builds on it.
 :::
 
 ## 3. Apply to the database (server)

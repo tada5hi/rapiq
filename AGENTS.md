@@ -37,7 +37,7 @@ npm run dev --workspace=packages/docs     # run the docs site locally
 npm run build --workspace=packages/docs   # build the docs site
 ```
 
-Note: the root `README.MD` documents the upcoming v2; v1 lives on the `v1` branch.
+Note: the root `README.md` documents the upcoming v2; v1 lives on the `v1` branch.
 
 ## Detailed Guides
 

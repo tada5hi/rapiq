@@ -84,10 +84,13 @@ The same pattern works with `FieldsVisitor` (`adapter.fields`), `SortsVisitor` (
 ## End-to-end example
 
 ```typescript
+import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { SimpleParser } from '@rapiq/parser-simple';
+import { URLDecoder } from '@rapiq/codec-url-simple';
 import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
+// your app's TypeORM DataSource instance
+import { dataSource } from './data-source';
 
 const registry = new SchemaRegistry();
 registry.add(defineSchema<User>({
@@ -100,10 +103,15 @@ registry.add(defineSchema<User>({
     schemaMapping: { realm: 'realm' },
 }));
 
-const parser = new SimpleParser(registry);
+const decoder = new URLDecoder(registry);
 
 export async function getUsers(req: Request, res: Response) {
-    const query = parser.parse(req.query, { schema: 'user' });
+    // wire names (filter, page, include, ...) map to canonical parameters
+    const query = decoder.decode(req.query, { schema: 'user' });
+    if (!query) {
+        // decode returns null for non-object input
+        return res.status(400).end();
+    }
 
     const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
