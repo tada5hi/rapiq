@@ -69,6 +69,10 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.sort = new SortsVisitor(serializer.sort);
     }
 
+    reset() : void {
+        this.serializer.reset();
+    }
+
     visitQuery(expr: IQuery): QuerySerializer {
         expr.fields.accept(this.fields);
         expr.filters.accept(this.filters);

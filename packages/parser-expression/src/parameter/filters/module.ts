@@ -26,6 +26,7 @@ import {
     ResolutionScope,
     isFilters,
 } from '@rapiq/core';
+import { parseFilterScalar } from '@rapiq/parser-simple';
 import { FilterTokenType } from './constants';
 import type { FilterToken } from './types';
 
@@ -490,38 +491,17 @@ export class ExpressionFiltersParser extends BaseParser<
                 return trimmed;
             }
 
+            // quoted content is coerced but never comma-split —
+            // the expression dialect passes lists as separate args.
             if (
-                input.startsWith('\'') &&
-                input.endsWith('\'')
+                trimmed.startsWith('\'') &&
+                trimmed.endsWith('\'') &&
+                trimmed.length >= 2
             ) {
-                return this.normalizeValue(trimmed.slice(1, -1).replace(/''/g, '\''));
+                return parseFilterScalar(trimmed.slice(1, -1).replace(/''/g, '\''));
             }
 
-            const lower = trimmed.toLowerCase();
-
-            if (lower === 'true') {
-                return true;
-            }
-
-            if (lower === 'false') {
-                return false;
-            }
-
-            if (lower === 'null') {
-                return null;
-            }
-
-            const num = Number(trimmed);
-            if (!Number.isNaN(num)) {
-                return num;
-            }
-
-            const parts = trimmed.split(',');
-            if (parts.length > 1) {
-                return this.normalizeValue(parts);
-            }
-
-            return trimmed;
+            return parseFilterScalar(trimmed);
         }
 
         if (typeof input === 'number') {
