@@ -18,6 +18,8 @@ class Query {
 
 Every node implements `accept(visitor)` — backends consume the AST by implementing visitor interfaces, never by inspecting it ad hoc. See [Query AST](/guide/query).
 
+Queries are constructed three ways: typed client-side input via [`defineQuery`](/guide/build) (with condition helpers like `eq`/`and`/`or`), parsing raw wire input, or hand-assembling nodes. Queries compose with [`mergeQueries`](/guide/merge) and the filter combinators.
+
 ## Schema
 
 A `Schema<RECORD>` declares what a client *may* request per parameter: `allowed` keys, `default` values, alias `mapping`s and `pagination.maxLimit`. Parsers consult it while parsing and either drop disallowed input or throw (`throwOnFailure`). The `SchemaRegistry` stores schemas by name so relation traversal (`schemaMapping`) resolves nested record types. See [Schemas](/guide/schema).

@@ -43,16 +43,20 @@ packages/core/src/
 ├── parameter/            # Query AST node classes + visitor interfaces
 │   ├── fields/           # Fields/Field (include/exclude operators)
 │   ├── filters/          # Filters (compound and/or) + Filter (field-op-value condition)
+│   │   └── helpers/      # typed condition helpers (eq, gte, inArray, and, or, …)
 │   ├── pagination/       # Pagination (limit/offset)
 │   ├── relations/        # Relations/Relation
 │   ├── sorts/            # Sorts/Sort (asc/desc)
-│   └── module.ts         # Query, QueryBuilder, IQueryVisitor
+│   ├── merge.ts          # mergeQueries (left-priority IR merge; per-node merge/and/or methods live on the node classes)
+│   └── module.ts         # Query, IQueryVisitor (QueryBuilder is deprecated → defineQuery)
+├── build/                # typed build layer: defineQuery + per-parameter define* factories
+│   └── parameter/        # Build*Input types + defineFields/defineFilters/… (schema-free, direct-to-AST)
 ├── schema/               # Schema, defineSchema(), per-parameter sub-schemas
 │   ├── parameter/        # FieldsSchema, FiltersSchema, ... + define* factories
 │   ├── registry/         # SchemaRegistry (named schemas, cross-schema resolution)
 │   └── resolver/         # ResolutionScope (key/alias/allow-list/relation-path resolution)
 ├── parser/               # BaseParser + per-parameter parse-option types & error classes
-├── errors/               # BaseError + ParseError/FiltersParseError + error codes
+├── errors/               # BaseError + ParseError/FiltersParseError/BuildError/MergeError + error codes
 └── utils/                # key path parsing (public), mapping/allow-list helpers (internal)
 ```
 

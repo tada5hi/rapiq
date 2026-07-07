@@ -7,7 +7,7 @@ Rapiq is a **query-language abstraction pipeline**: raw client input is parsed i
 ```
 Client side                          Server side
 -----------                          -----------
-QueryBuilder / BuildInput
+defineQuery(BuildInput) / condition helpers (eq, and, or, …)
         │
         ▼
 URLEncoder (@rapiq/codec-url-simple)
@@ -28,7 +28,7 @@ URLEncoder (@rapiq/codec-url-simple)
 
 The `Query` AST is an **intermediate representation (IR)**. Every package plays exactly one role around it:
 
-1. **Define & interact** — client-side construction (`QueryBuilder`, future typed `BuildInput`).
+1. **Define & interact** — client-side construction (plan 012): `defineQuery<RECORD>(QueryBuildInput)` + per-parameter `define*` fragment factories desugar typed input (scalars → `eq`, bare arrays → `in` with `null` legal, `$`-operator objects, condition-helper trees) straight to the AST — schema-free, no parsing. Condition helpers (`parameter/filters/helpers/`, one per `FilterFieldOperator`; `in` → `inArray` since `in` is reserved) build `Filter`/`Filters` nodes directly. Queries compose immutably via `mergeQueries` (left-priority; fields/relations/sorts keyed by name, pagination per-property) and the `Filters` combinators: `merge()` = per-field replace, flat root-AND only (typed `MergeError`, `ErrorCode.FILTERS_NOT_FLAT`); `and()`/`or()` = wrap & inject (server scoping — injected conditions can't be displaced by later merges). `$and`/`$or` object keys stay reserved for a future mongo parser dialect. `QueryBuilder` is deprecated.
 2. **Parse to IR** — parsers transform *dialect* input (a spec for how parameters are written: "simple" object shapes, "expression" strings) into the IR, validated against a `Schema`. Parsers are **transport-agnostic**: they read only the canonical `Parameter` keys (`fields`, `filters`, `pagination`, `relations`, `sort`) and know nothing about how the input crossed a process boundary.
 3. **Consume the IR** — either interpret/walk it directly (`@rapiq/sql`, `@rapiq/typeorm` via visitors), or…
 4. **Transport the IR between application boundaries via a codec** — `@rapiq/codec-url-simple` is *one* such codec (HTTP URI scheme). The codec owns the complete wire format: the parameter wire names (`URLParameter`: `filter`, `page`, `include`, …) live **only** there, and `URLDecoder` is the boundary adapter — it accepts a raw query string *or* a pre-parsed query object (express `req.query`), maps wire names to canonical parameters and delegates to a schema-aware `SimpleParser`. App2 then works with the same IR.

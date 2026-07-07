@@ -46,7 +46,11 @@ Multiple keys combine with **and**.
 Value coercion: numeric strings become numbers (`'18'` → `18`), `'true'`/`'false'` become booleans, `'null'` becomes `null`.
 
 ::: tip OR conditions
-The simple object dialect combines keys with **and**. For `or` combinations, build the `Filters` tree [by hand](/guide/query#filters-form-a-tree) or use the [expression language](/integrations/expression).
+The simple object dialect combines keys with **and**. For `or` combinations, use the [condition helpers](/guide/build#condition-helpers) (`or(gte('age', 18), eq('status', 'active'))`), build the `Filters` tree [by hand](/guide/query#filters-form-a-tree) or use the [expression language](/integrations/expression).
+:::
+
+::: info Client-side construction
+The string prefixes above are the *wire* format. When building queries in code, use [`defineQuery`](/guide/build)'s typed operator objects (`{ age: { $gte: 18 } }`) or condition helpers instead of magic strings.
 :::
 
 ## Nested fields

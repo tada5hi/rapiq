@@ -15,4 +15,6 @@ export interface ISorts {
     readonly value: ISort[];
 
     accept<R>(visitor: ISortsVisitor<R>) : R;
+
+    merge(other: ISorts): ISorts;
 }

@@ -12,6 +12,10 @@ import type { IPagination } from './pagination';
 import type { ISorts } from './sorts';
 import { Query } from './module';
 
+/**
+ * @deprecated Superseded by the typed build layer — use `defineQuery`
+ * (or the per-parameter `define*` factories) instead.
+ */
 export class QueryBuilder {
     fields : IFields | undefined;
 

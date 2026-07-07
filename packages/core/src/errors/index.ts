@@ -9,4 +9,5 @@ export * from './adapter';
 export * from './base';
 export * from './build';
 export * from './code';
+export * from './merge';
 export * from './parse';

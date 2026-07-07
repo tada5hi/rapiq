@@ -25,4 +25,6 @@ export enum ErrorCode {
     OPERATOR_UNSUPPORTED = 'operatorUnsupported',
 
     FEATURE_UNSUPPORTED = 'featureUnsupported',
+
+    FILTERS_NOT_FLAT = 'filtersNotFlat',
 }

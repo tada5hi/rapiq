@@ -58,38 +58,21 @@ read the [docs](https://rapiq.tada5hi.net).
 
 ### Build 🔧
 
-The first step is to construct a [BuildInput](https://rapiq.tada5hi.net/guide/build-api-reference#buildinput) object for a generic Record `<T>`.
-Pass the object to the [buildQuery](https://rapiq.tada5hi.net/guide/build-api-reference#buildquery) method to convert it to a transportable string.
+The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query) for a generic Record `<T>` with
+[defineQuery](https://rapiq.tada5hi.net/guide/build) — typed input in, AST out, no magic value strings.
+Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects and
+[condition helpers](https://rapiq.tada5hi.net/guide/build#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
+queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merge).
 
-The `BuildInput<T>` can contain a configuration for each
-[Parameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#parameter)/
-[URLParameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#urlparameter).
-- [Fields](https://rapiq.tada5hi.net/guide/fields-api-reference.md#fieldsbuildinput): `FieldsBuildInput<T>`
-- [Filter(s)](https://rapiq.tada5hi.net/guide/filters-api-reference.md#filtersbuildinput): `FiltersBuildInput<T>`
-- [Pagination](https://rapiq.tada5hi.net/guide/pagination-api-reference.md#paginationbuildinput): `PaginationBuildInput<T>`
-- [Relations](https://rapiq.tada5hi.net/guide/relations-api-reference.md#relationsbuildinput): `RelationsBuildInput<T>`
-- [Sort](https://rapiq.tada5hi.net/guide/sort-api-reference.md#sortbuildinput): `SortBuildInput<T>`
-
-> [!NOTE]
-> Check out the API-Reference of each parameter for acceptable input formats and examples.
-
-After building, the string can be passed to a backend application as http query string argument.
-The backend application can process the request, by [parsing](https://rapiq.tada5hi.net/guide/parse.md) the query string.
+The query is serialized for transport by the URL codec (`@rapiq/codec-url-simple`) and parsed back
+into the same AST on the server side.
 
 #### Example
 
-The following example is based on the assumption, that the following packages are installed:
-- [express](https://www.npmjs.com/package/express)
-- [typeorm](https://www.npmjs.com/package/typeorm)
-- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
-
-It should give an insight on how to use this library.
-Therefore, a type which will represent a `User` and a method `getAPIUsers` are defined.
-The method should perform a request to the resource API to receive a collection of entities.
-
 ```typescript
-import axios from "axios";
-import { builder } from 'rapiq';
+import axios from 'axios';
+import { defineQuery } from '@rapiq/core';
+import { URLEncoder } from '@rapiq/codec-url-simple';
 
 export type Realm = {
     id: string,
@@ -121,7 +104,7 @@ type ResponsePayload = {
     }
 }
 
-const data = builder<User>({
+const query = defineQuery<User>({
     pagination: {
         limit: 20,
         offset: 10
@@ -134,19 +117,19 @@ const data = builder<User>({
     relations: ['realm']
 });
 
-// console.log(builder.toString());
-// ?filter[id]=1&fields=id,name&page[limit]=20&page[offset]=10&sort=-id&include=realm
+const encoder = new URLEncoder();
 
-async function getAPIUsers(
-    builder: Builder<User>
-): Promise<ResponsePayload> {
-    const response = await axios.get(`users${data.toString()}`);
+// console.log(encoder.encode(query));
+// fields=id,name&filter[id]=1&page[limit]=20&page[offset]=10&include=realm&sort=-id
+
+async function getAPIUsers(): Promise<ResponsePayload> {
+    const response = await axios.get(`users?${encoder.encode(query)}`);
 
     return response.data;
 }
 
 (async () => {
-    let response = await getAPIUsers(data);
+    let response = await getAPIUsers();
 
     // do something with the response :)
 })();

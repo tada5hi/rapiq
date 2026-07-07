@@ -7,5 +7,6 @@
 
 export * from './collection';
 export * from './condition';
+export * from './helpers';
 export * from './record';
 export * from './regex';

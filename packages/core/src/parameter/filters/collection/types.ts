@@ -21,4 +21,10 @@ export interface IFilters<
     accept<R>(visitor: IFiltersVisitor<R>) : R;
 
     flatten(items?: T[]) : IFilters<T>;
+
+    merge(other: IFilters) : IFilters;
+
+    and(...conditions: ICondition[]) : IFilters;
+
+    or(...conditions: ICondition[]) : IFilters;
 }
