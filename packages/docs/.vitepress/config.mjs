@@ -78,6 +78,12 @@ export default defineConfig({
                         { text: 'Sort', link: '/guide/sort' },
                     ],
                 },
+                {
+                    text: 'Migration',
+                    items: [
+                        { text: 'Migration from v1', link: '/guide/migration' },
+                    ],
+                },
             ],
             '/integrations/': [
                 {
