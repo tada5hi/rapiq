@@ -13,9 +13,17 @@ import { isObject } from '../../../utils';
 import { isParameterNode } from '../../utils';
 import type { RelationsBuildInput } from './types';
 
+/**
+ * The generic-less overload comes first: without an explicit record
+ * generic, input is checked against the plain-string grammar instead of
+ * letting inference derive RECORD from the argument (a bare string would
+ * otherwise become the record type and yield nonsense key types).
+ */
+export function defineRelations(input: RelationsBuildInput<ObjectLiteral> | IRelations) : IRelations;
 export function defineRelations<
-    RECORD extends ObjectLiteral = ObjectLiteral,
->(input: RelationsBuildInput<RECORD> | IRelations) : IRelations {
+    RECORD extends ObjectLiteral,
+>(input: RelationsBuildInput<RECORD> | IRelations) : IRelations;
+export function defineRelations(input: RelationsBuildInput<ObjectLiteral> | IRelations) : IRelations {
     if (isParameterNode<IRelations>(input)) {
         return input;
     }

@@ -22,9 +22,11 @@ import type { QueryBuildInput } from './types';
  * round-trip, no parsing, no schema. Validation against a schema happens
  * server-side after transport.
  */
+export function defineQuery(input?: QueryBuildInput<ObjectLiteral>) : Query;
 export function defineQuery<
-    RECORD extends ObjectLiteral = ObjectLiteral,
->(input: QueryBuildInput<RECORD> = {}) : Query {
+    RECORD extends ObjectLiteral,
+>(input?: QueryBuildInput<RECORD>) : Query;
+export function defineQuery(input: QueryBuildInput<ObjectLiteral> = {}) : Query {
     const context : QueryContext = {};
 
     if (typeof input.fields !== 'undefined') {

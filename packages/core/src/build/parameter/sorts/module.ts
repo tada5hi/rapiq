@@ -14,9 +14,17 @@ import { isObject } from '../../../utils';
 import { isParameterNode } from '../../utils';
 import type { SortsBuildInput } from './types';
 
+/**
+ * The generic-less overload comes first: without an explicit record
+ * generic, input is checked against the plain-string grammar instead of
+ * letting inference derive RECORD from the argument (a bare string would
+ * otherwise become the record type and yield nonsense key types).
+ */
+export function defineSorts(input: SortsBuildInput<ObjectLiteral> | ISorts) : ISorts;
 export function defineSorts<
-    RECORD extends ObjectLiteral = ObjectLiteral,
->(input: SortsBuildInput<RECORD> | ISorts) : ISorts {
+    RECORD extends ObjectLiteral,
+>(input: SortsBuildInput<RECORD> | ISorts) : ISorts;
+export function defineSorts(input: SortsBuildInput<ObjectLiteral> | ISorts) : ISorts {
     if (isParameterNode<ISorts>(input)) {
         return input;
     }

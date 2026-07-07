@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter, ObjectLiteral } from '../../../src';
+import type { IFilter } from '../../../src';
 import {
     BuildError,
     ErrorCode,
@@ -169,7 +169,9 @@ describe('src/build/parameter/filters/*.ts', () => {
 
         expect(leafs(output)).toHaveLength(1);
         expect(leafs(output)[0]).toMatchObject({
-            operator: FilterFieldOperator.LESS_THAN, field: 'age', value: 65,
+            operator: FilterFieldOperator.LESS_THAN, 
+            field: 'age', 
+            value: 65,
         });
     });
 
@@ -234,18 +236,18 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
     });
 
     it('should trim comma-separated string input', () => {
-        // csv strings are an untyped runtime convenience — the typed
-        // grammar knows single keys and key arrays only.
-        const sorts = defineSorts<ObjectLiteral>('age, -name, ');
+        // csv strings are an untyped runtime convenience: generic-less
+        // calls check against the plain-string overload.
+        const sorts = defineSorts('age, -name, ');
         expect(sorts.value.map((el) => [el.name, el.operator])).toEqual([
             ['age', SortDirection.ASC],
             ['name', SortDirection.DESC],
         ]);
 
-        const relations = defineRelations<ObjectLiteral>('realm, items.user');
+        const relations = defineRelations('realm, items.user');
         expect(relations.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
 
-        const fields = defineFields<ObjectLiteral>('id, -email');
+        const fields = defineFields('id, -email');
         expect(fields.value.map((el) => [el.name, el.operator])).toEqual([
             ['id', undefined],
             ['email', FieldOperator.EXCLUDE],

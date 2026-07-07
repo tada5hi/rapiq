@@ -19,9 +19,16 @@ for (const operator of Object.values(FilterFieldOperator)) {
     OPERATORS[`$${operator}`] = operator;
 }
 
+/**
+ * The generic-less overload comes first: without an explicit record
+ * generic, input is checked against the plain-string grammar instead of
+ * letting inference derive RECORD from the argument.
+ */
+export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | ICondition) : IFilters;
 export function defineFilters<
-    RECORD extends ObjectLiteral = ObjectLiteral,
->(input: FiltersBuildInput<RECORD> | ICondition) : IFilters {
+    RECORD extends ObjectLiteral,
+>(input: FiltersBuildInput<RECORD> | ICondition) : IFilters;
+export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | ICondition) : IFilters {
     if (isParameterNode<Filter | Filters>(input)) {
         if (isFilters(input)) {
             return input;

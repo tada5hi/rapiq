@@ -14,9 +14,17 @@ import { isObject } from '../../../utils';
 import { isParameterNode } from '../../utils';
 import type { FieldsBuildInput } from './types';
 
+/**
+ * The generic-less overload comes first: without an explicit record
+ * generic, input is checked against the plain-string grammar instead of
+ * letting inference derive RECORD from the argument (a bare string would
+ * otherwise become the record type and yield nonsense key types).
+ */
+export function defineFields(input: FieldsBuildInput<ObjectLiteral> | IFields) : IFields;
 export function defineFields<
-    RECORD extends ObjectLiteral = ObjectLiteral,
->(input: FieldsBuildInput<RECORD> | IFields) : IFields {
+    RECORD extends ObjectLiteral,
+>(input: FieldsBuildInput<RECORD> | IFields) : IFields;
+export function defineFields(input: FieldsBuildInput<ObjectLiteral> | IFields) : IFields {
     if (isParameterNode<IFields>(input)) {
         return input;
     }
