@@ -10,6 +10,8 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/parser-simple](../packages/parser-simple)         | Library  | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/codec-url-simple](../packages/codec-url-simple)   | Library  | URL query-string encoder (`URLEncoder`) & decoder (`URLDecoder`) for the simple dialect; uses `qs` |
+| [@rapiq/codec-url-expression](../packages/codec-url-expression) | Library | URL codec for the expression dialect: nested filter compounds in a single `filter=and(...)` param; other parameters shared with codec-url-simple |
+| [@rapiq/codec-url](../packages/codec-url)                 | Library  | `URLCodecRegistry` dispatching between URL codec dialects via the in-band reserved `codec` parameter (default: simple) |
 | [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
@@ -30,6 +32,12 @@ Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
   @rapiq/codec-url-simple    (core + parser-simple)
   @rapiq/typeorm             (core + sql + typeorm)
+
+Layer 3:
+  @rapiq/codec-url-expression (core + parser-expression + codec-url-simple)
+
+Layer 4:
+  @rapiq/codec-url           (core + codec-url-simple + codec-url-expression)
 ```
 
 Changes to `@rapiq/core` affect every other package.
@@ -84,6 +92,14 @@ packages/codec-url-simple/src/
 ├── encoder/              # URLEncoder + serializer/ + visitors/
 ├── decoder/              # URLDecoder (qs-based, reuses parser-simple parsers)
 └── utils/
+
+packages/codec-url-expression/src/
+├── encoder/              # URLEncoder (filters → expression string; other params via codec-url-simple)
+└── decoder/              # URLDecoder (qs-based, delegates to ExpressionParser)
+
+packages/codec-url/src/
+├── module.ts             # URLCodecRegistry (in-band `codec` param dispatch)
+└── factory.ts            # createURLCodecRegistry (bundles simple + expression)
 ```
 
 ## Package Exports
@@ -109,6 +125,6 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 
 - **AST & type definitions** → `@rapiq/core` (`parameter/`)
 - **What a client may request (allow-lists, defaults, mappings)** → `@rapiq/core` (`schema/`)
-- **Turning raw input into the AST** → `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/codec-url-simple` (decode)
-- **Turning the AST into transport format** → `@rapiq/codec-url-simple` (encode)
+- **Turning raw input into the AST** → `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/codec-url-{simple,expression}` (decode)
+- **Turning the AST into transport format** → `@rapiq/codec-url-{simple,expression}` (encode), `@rapiq/codec-url` (dialect dispatch via in-band `codec` param)
 - **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`

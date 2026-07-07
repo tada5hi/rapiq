@@ -10,7 +10,6 @@ import {
     DEFAULT_ID,
     Filter,
     FilterCompoundOperator,
-    FilterFieldOperator,
     Filters,
     FiltersParseError,
     Parameter,
@@ -21,19 +20,19 @@ import {
 } from '@rapiq/core';
 
 import type {
+    FilterFieldOperator,
     FiltersParseOptions,
     FiltersSchema,
     ICondition,
     IFilter,
     IFilters,
     ObjectLiteral,
-    Scalar,
 
     TempType,
 } from '@rapiq/core';
 
-import { URLFilterOperator } from './constants';
 import type { SimpleFiltersParserInput } from './types';
+import { parseFilterWireValue } from './value';
 
 export class SimpleFiltersParser extends BaseParser<
     FiltersParseOptions,
@@ -225,201 +224,10 @@ export class SimpleFiltersParser extends BaseParser<
         value: unknown,
         operator: `${FilterFieldOperator}`
     } | undefined {
-        let value : Scalar | Scalar[];
-
         try {
-            value = this.normalizeValue(input);
+            return parseFilterWireValue(input);
         } catch {
             return undefined;
         }
-
-        if (typeof value !== 'string' && !Array.isArray(value)) {
-            return { value, operator: FilterFieldOperator.EQUAL };
-        }
-
-        if (Array.isArray(value)) {
-            const [first, ...rest] = value;
-            if (typeof first === 'string') {
-                const parsed = this.parseStringValue(first);
-                if (parsed.operator === FilterFieldOperator.NOT_EQUAL) {
-                    return {
-                        value: [parsed.value, ...rest],
-                        operator: FilterFieldOperator.NOT_IN,
-                    };
-                }
-            }
-
-            return { value, operator: FilterFieldOperator.IN };
-        }
-
-        return this.parseStringValue(value);
-    }
-
-    protected parseStringValue(value: string) : {
-        operator: `${FilterFieldOperator}`,
-        value: unknown
-    } {
-        let hasNegation = false;
-
-        if (
-            value.substring(0, 1) === URLFilterOperator.NEGATION
-        ) {
-            value = value.substring(1);
-            hasNegation = true;
-        }
-
-        const hasLikeStart = value.substring(0, URLFilterOperator.LIKE.length) === URLFilterOperator.LIKE;
-        const hasLikeEnd = value.substring(value.length - URLFilterOperator.LIKE.length) === URLFilterOperator.LIKE;
-
-        if (hasLikeStart && hasLikeEnd) {
-            if (hasNegation) {
-                return {
-                    value: value.substring(URLFilterOperator.LIKE.length, value.length - URLFilterOperator.LIKE.length),
-                    operator: FilterFieldOperator.NOT_CONTAINS,
-                };
-            }
-
-            return {
-                value: value.substring(URLFilterOperator.LIKE.length, value.length - URLFilterOperator.LIKE.length),
-                operator: FilterFieldOperator.CONTAINS,
-            };
-        }
-
-        if (hasLikeStart) {
-            if (hasNegation) {
-                return {
-                    value: value.substring(URLFilterOperator.LIKE.length),
-                    operator: FilterFieldOperator.NOT_ENDS_WITH,
-                };
-            }
-
-            return {
-                value: value.substring(URLFilterOperator.LIKE.length),
-                operator: FilterFieldOperator.ENDS_WITH,
-            };
-        }
-
-        if (hasLikeEnd) {
-            if (hasNegation) {
-                return {
-                    value: value.substring(0, value.length - URLFilterOperator.LIKE.length),
-                    operator: FilterFieldOperator.NOT_STARTS_WITH,
-                };
-            }
-
-            return {
-                value: value.substring(0, value.length - URLFilterOperator.LIKE.length),
-                operator: FilterFieldOperator.STARTS_WITH,
-            };
-        }
-
-        if (
-            value.substring(0, URLFilterOperator.LESS_THAN_EQUAL.length) === URLFilterOperator.LESS_THAN_EQUAL
-        ) {
-            return {
-                value: this.normalizeValue(value.substring(URLFilterOperator.LESS_THAN_EQUAL.length)),
-                operator: FilterFieldOperator.LESS_THAN_EQUAL,
-            };
-        }
-
-        if (
-            value.substring(0, URLFilterOperator.LESS_THAN.length) === URLFilterOperator.LESS_THAN
-        ) {
-            return {
-                value: this.normalizeValue(value.substring(URLFilterOperator.LESS_THAN.length)),
-                operator: FilterFieldOperator.LESS_THAN,
-            };
-        }
-
-        if (
-            value.substring(0, URLFilterOperator.GREATER_THAN_EQUAL.length) === URLFilterOperator.GREATER_THAN_EQUAL
-        ) {
-            return {
-                value: this.normalizeValue(value.substring(URLFilterOperator.GREATER_THAN_EQUAL.length)),
-                operator: FilterFieldOperator.GREATER_THAN_EQUAL,
-            };
-        }
-
-        if (
-            value.substring(0, URLFilterOperator.GREATER_THAN.length) === URLFilterOperator.GREATER_THAN
-        ) {
-            return {
-                value: this.normalizeValue(value.substring(URLFilterOperator.GREATER_THAN.length)),
-                operator: FilterFieldOperator.GREATER_THAN,
-            };
-        }
-
-        if (hasNegation) {
-            return {
-                value: this.normalizeValue(value),
-                operator: FilterFieldOperator.NOT_EQUAL,
-            };
-        }
-
-        return {
-            value: this.normalizeValue(value),
-            operator: FilterFieldOperator.EQUAL,
-        };
-    }
-
-    protected normalizeValue(input: unknown) : Scalar | Scalar[] {
-        if (typeof input === 'string') {
-            const trimmed = input.trim();
-            if (trimmed.length === 0) {
-                return trimmed;
-            }
-
-            const lower = trimmed.toLowerCase();
-
-            if (lower === 'true') {
-                return true;
-            }
-
-            if (lower === 'false') {
-                return false;
-            }
-
-            if (lower === 'null') {
-                return null;
-            }
-
-            const num = Number(trimmed);
-            if (!Number.isNaN(num)) {
-                return num;
-            }
-
-            const parts = trimmed.split(',');
-            if (parts.length > 1) {
-                return this.normalizeValue(parts);
-            }
-
-            return trimmed;
-        }
-
-        if (typeof input === 'number') {
-            return input;
-        }
-
-        if (Array.isArray(input)) {
-            const output : Scalar[] = [];
-
-            for (const element of input) {
-                const temp = this.normalizeValue(element);
-                if (Array.isArray(temp)) {
-                    output.push(...temp);
-                } else {
-                    output.push(temp);
-                }
-            }
-
-            return output
-                .filter((n) => n === 0 || n === null || !!n);
-        }
-
-        if (typeof input === 'undefined' || input === null) {
-            return null;
-        }
-
-        throw new SyntaxError('Value can not be normalized.');
     }
 }

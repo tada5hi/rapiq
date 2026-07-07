@@ -27,4 +27,6 @@ export enum ErrorCode {
     FEATURE_UNSUPPORTED = 'featureUnsupported',
 
     FILTERS_NOT_FLAT = 'filtersNotFlat',
+
+    CODEC_UNRESOLVABLE = 'codecUnresolvable',
 }

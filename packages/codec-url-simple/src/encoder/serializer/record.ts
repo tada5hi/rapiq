@@ -28,6 +28,10 @@ export class RecordSerializer<
         this.value[key] = value;
     }
 
+    has(key: string) : boolean {
+        return Object.prototype.hasOwnProperty.call(this.value, key);
+    }
+
     serialize(): string | null {
         const keys = Object.keys(this.value);
         if (keys.length === 0) {

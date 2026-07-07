@@ -35,6 +35,14 @@ import { PaginationVisitor } from './pagination';
 import { RelationsVisitor } from './relations';
 import { SortsVisitor } from './sort';
 
+export type QueryParameterMask = {
+    fields?: boolean,
+    filters?: boolean,
+    pagination?: boolean,
+    relations?: boolean,
+    sorts?: boolean,
+};
+
 export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     IFieldsVisitor<RecordArraySerializer>,
     IFieldVisitor<RecordArraySerializer>,
@@ -69,12 +77,35 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.sort = new SortsVisitor(serializer.sort);
     }
 
-    visitQuery(expr: IQuery): QuerySerializer {
-        expr.fields.accept(this.fields);
-        expr.filters.accept(this.filters);
-        expr.pagination.accept(this.pagination);
-        expr.relations.accept(this.relations);
-        expr.sorts.accept(this.sort);
+    reset() : void {
+        this.serializer.reset();
+    }
+
+    /**
+     * The optional mask limits which parameters are emitted —
+     * the schema-aware encode pass uses it to avoid materializing
+     * schema defaults for parameters absent from the input query.
+     */
+    visitQuery(expr: IQuery, parameters?: QueryParameterMask): QuerySerializer {
+        if (!parameters || parameters.fields) {
+            expr.fields.accept(this.fields);
+        }
+
+        if (!parameters || parameters.filters) {
+            expr.filters.accept(this.filters);
+        }
+
+        if (!parameters || parameters.pagination) {
+            expr.pagination.accept(this.pagination);
+        }
+
+        if (!parameters || parameters.relations) {
+            expr.relations.accept(this.relations);
+        }
+
+        if (!parameters || parameters.sorts) {
+            expr.sorts.accept(this.sort);
+        }
 
         return this.serializer;
     }

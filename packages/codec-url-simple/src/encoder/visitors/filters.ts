@@ -5,7 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { URLFilterOperator } from '@rapiq/parser-simple';
+import {
+    URLFilterOperator,
+    parseFilterWireValue,
+    serializeFilterValue,
+} from '@rapiq/parser-simple';
 import type { IFilterVisitor, IFiltersVisitor } from '@rapiq/core';
 import {
     AdapterError,
@@ -54,147 +58,143 @@ IFilterVisitor<RecordSerializer> {
     }
 
     visitFilter(expr: Filter): RecordSerializer {
-        const normalized = this.normalizeValue(expr.value);
-
-        if (
-            expr.operator === FilterFieldOperator.NOT_EQUAL ||
-            expr.operator === FilterFieldOperator.NOT_IN
-        ) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.NEGATION + normalized,
-            );
-
-            return this.serializer;
+        // the wire record holds one condition per field — a second
+        // one would silently overwrite the first (changed semantics).
+        if (this.serializer.has(expr.field)) {
+            throw AdapterError.featureUnsupported('filters:field:duplicate');
         }
 
-        if (expr.operator === FilterFieldOperator.LESS_THAN) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.LESS_THAN + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.LESS_THAN_EQUAL) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.LESS_THAN_EQUAL + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.GREATER_THAN) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.GREATER_THAN + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.GREATER_THAN_EQUAL) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.GREATER_THAN_EQUAL + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.CONTAINS) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.LIKE + normalized + URLFilterOperator.LIKE,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.NOT_CONTAINS) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.NEGATION + URLFilterOperator.LIKE + normalized + URLFilterOperator.LIKE,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.STARTS_WITH) {
-            this.serializer.set(
-                expr.field,
-                normalized + URLFilterOperator.LIKE,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.NOT_STARTS_WITH) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.NEGATION + normalized + URLFilterOperator.LIKE,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.ENDS_WITH) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.LIKE + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        if (expr.operator === FilterFieldOperator.NOT_ENDS_WITH) {
-            this.serializer.set(
-                expr.field,
-                URLFilterOperator.NEGATION + URLFilterOperator.LIKE + normalized,
-            );
-
-            return this.serializer;
-        }
-
-        this.serializer.set(expr.field, normalized);
+        this.serializer.set(expr.field, this.serializeCondition(expr));
 
         return this.serializer;
     }
 
-    protected normalizeValue(input: unknown) : string {
-        if (typeof input === 'string') {
-            return input;
+    protected serializeCondition(expr: Filter) : string {
+        switch (expr.operator) {
+            case FilterFieldOperator.EQUAL:
+            case FilterFieldOperator.IN: {
+                return this.verifyWireValue(expr, serializeFilterValue(expr.value));
+            }
+            case FilterFieldOperator.NOT_EQUAL:
+            case FilterFieldOperator.NOT_IN: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.NEGATION + serializeFilterValue(expr.value),
+                );
+            }
+            case FilterFieldOperator.LESS_THAN: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.LESS_THAN + serializeFilterValue(expr.value),
+                );
+            }
+            case FilterFieldOperator.LESS_THAN_EQUAL: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.LESS_THAN_EQUAL + serializeFilterValue(expr.value),
+                );
+            }
+            case FilterFieldOperator.GREATER_THAN: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.GREATER_THAN + serializeFilterValue(expr.value),
+                );
+            }
+            case FilterFieldOperator.GREATER_THAN_EQUAL: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.GREATER_THAN_EQUAL + serializeFilterValue(expr.value),
+                );
+            }
+            case FilterFieldOperator.CONTAINS: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.LIKE + this.serializeLikeText(expr) + URLFilterOperator.LIKE,
+                );
+            }
+            case FilterFieldOperator.NOT_CONTAINS: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.NEGATION + URLFilterOperator.LIKE +
+                        this.serializeLikeText(expr) + URLFilterOperator.LIKE,
+                );
+            }
+            case FilterFieldOperator.STARTS_WITH: {
+                return this.verifyWireValue(
+                    expr,
+                    this.serializeLikeText(expr) + URLFilterOperator.LIKE,
+                );
+            }
+            case FilterFieldOperator.NOT_STARTS_WITH: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.NEGATION + this.serializeLikeText(expr) + URLFilterOperator.LIKE,
+                );
+            }
+            case FilterFieldOperator.ENDS_WITH: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.LIKE + this.serializeLikeText(expr),
+                );
+            }
+            case FilterFieldOperator.NOT_ENDS_WITH: {
+                return this.verifyWireValue(
+                    expr,
+                    URLFilterOperator.NEGATION + URLFilterOperator.LIKE + this.serializeLikeText(expr),
+                );
+            }
+            default: {
+                // REGEX, MOD, EXISTS, ELEM_MATCH, ... have no simple-dialect
+                // wire syntax and would decode as plain equality.
+                throw AdapterError.operatorUnsupported(expr.operator);
+            }
+        }
+    }
+
+    /**
+     * LIKE inner text travels raw (the decoder applies no scalar
+     * coercion and no comma-splitting to it) — strings pass through
+     * verbatim, everything else uses the scalar wire form.
+     */
+    protected serializeLikeText(expr: Filter) : string {
+        if (typeof expr.value === 'string') {
+            if (expr.value.length === 0) {
+                // decodes to an empty match text, which the parser drops.
+                throw AdapterError.featureUnsupported('filters:value:empty');
+            }
+
+            return expr.value;
         }
 
-        if (
-            typeof input === 'undefined' ||
-            input === 'null' ||
-            input === null
-        ) {
-            return 'null';
+        return serializeFilterValue(expr.value);
+    }
+
+    /**
+     * Subset law, enforced pointwise: the wire token must decode back
+     * to the operator it was serialized from (values may still change
+     * scalar type — that normalization is part of the wire contract).
+     * The simple dialect has no escaping, so e.g. an EQUAL on the
+     * string 'foo~' would silently decode as STARTS_WITH 'foo'.
+     */
+    protected verifyWireValue(expr: Filter, wire: string) : string {
+        const reparsed = parseFilterWireValue(wire);
+
+        let matches = reparsed.operator === expr.operator;
+
+        if (!matches && expr.operator === FilterFieldOperator.IN) {
+            // scalar lists decode as EQUAL and are lifted to IN by the
+            // parser when the value is (or splits into) an array.
+            matches = reparsed.operator === FilterFieldOperator.EQUAL;
         }
 
-        if (typeof input === 'number') {
-            return `${input}`;
+        if (!matches && expr.operator === FilterFieldOperator.NOT_IN) {
+            matches = reparsed.operator === FilterFieldOperator.NOT_EQUAL;
         }
 
-        if (typeof input === 'boolean') {
-            return input ? 'true' : 'false';
+        if (!matches) {
+            throw AdapterError.featureUnsupported(`filters:value:${expr.field}`);
         }
 
-        if (input instanceof RegExp) {
-            return input.source;
-        }
-
-        if (Array.isArray(input)) {
-            return input
-                .map((el) => this.normalizeValue(el))
-                .filter(Boolean)
-                .join(',');
-        }
-
-        throw new Error('Value can not be normalized');
+        return wire;
     }
 }
