@@ -81,12 +81,29 @@ function buildFieldConditions(
         return [new Filter(FilterFieldOperator.EQUAL, field, value)];
     }
 
+    // a condition node already carries its own field — as a field value
+    // it is ambiguous input and must not be expanded like a record.
+    if (isParameterNode(value)) {
+        throw BuildError.keyValueInvalid(field);
+    }
+
     if (isObject(value)) {
         const keys = Object.keys(value);
 
         const isOperatorInput = keys.some((key) => key.substring(0, 1) === '$');
         if (isOperatorInput) {
-            return keys.map((key) => buildOperatorCondition(field, key, value[key]));
+            const output : Condition[] = [];
+            for (const key of keys) {
+                // optional operator keys may be present but undefined
+                // (conditional spreads) — they carry no condition.
+                if (typeof value[key] === 'undefined') {
+                    continue;
+                }
+
+                output.push(buildOperatorCondition(field, key, value[key]));
+            }
+
+            return output;
         }
 
         // nested record — relation traversal via dot-path prefixing.

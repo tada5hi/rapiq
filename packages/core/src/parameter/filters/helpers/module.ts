@@ -22,9 +22,9 @@ type FieldKey<RECORD extends ObjectLiteral> = string extends keyof RECORD ?
 
 /**
  * One helper per {@link FilterFieldOperator}, named after the operator's
- * enum value, mirroring the expression dialect (eq(name, 'John') in code
- * ≙ eq(name, 'John') on the wire). Sole exception: `in` is a reserved
- * word in JavaScript, so the IN helper is named {@link inArray}.
+ * enum value, mirroring the expression dialect (eq('name', 'John') in
+ * code ≙ eq(name, 'John') on the wire). Sole exception: `in` is a
+ * reserved word in JavaScript, so the IN helper is named {@link inArray}.
  */
 
 export function eq<RECORD extends ObjectLiteral = ObjectLiteral>(

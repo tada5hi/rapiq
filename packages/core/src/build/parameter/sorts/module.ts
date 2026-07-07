@@ -34,7 +34,12 @@ function buildSorts(
 ) : void {
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
-            pushSort(output, part, prefix);
+            const name = part.trim();
+            if (!name) {
+                continue;
+            }
+
+            pushSort(output, name, prefix);
         }
 
         return;

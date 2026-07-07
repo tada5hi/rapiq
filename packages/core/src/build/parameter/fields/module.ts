@@ -34,7 +34,12 @@ function buildFields(
 ) : void {
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
-            pushField(output, part, prefix);
+            const name = part.trim();
+            if (!name) {
+                continue;
+            }
+
+            pushField(output, name, prefix);
         }
 
         return;

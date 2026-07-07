@@ -47,7 +47,7 @@ Compound object keys are reserved for a future MongoDB-notation parser dialect a
 
 ## Condition helpers
 
-Typed constructors for single conditions and compound trees — one per operator, named after the operator's enum value, mirroring the [expression dialect](/integrations/expression) one-to-one (`eq(name, 'John')` in code ≙ `eq(name, 'John')` on the wire):
+Typed constructors for single conditions and compound trees — one per operator, named after the operator's enum value, mirroring the [expression dialect](/integrations/expression) one-to-one (`eq('name', 'John')` in code ≙ `eq(name, 'John')` on the wire):
 
 ```typescript
 import { and, eq, gte, inArray, or } from '@rapiq/core';

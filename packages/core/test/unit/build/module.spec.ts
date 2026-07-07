@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter } from '../../../src';
+import type { IFilter, ObjectLiteral } from '../../../src';
 import {
     BuildError,
     ErrorCode,
@@ -161,6 +161,29 @@ describe('src/build/parameter/filters/*.ts', () => {
             expect((e as BuildError).code).toBe(ErrorCode.KEY_INVALID);
         }
     });
+
+    it('should skip operator keys that are present but undefined', () => {
+        // conditional spreads leave optional keys set to undefined —
+        // they must not leak conditions with undefined values.
+        const output = defineFilters<User>({ age: { $gte: undefined, $lt: 65 } });
+
+        expect(leafs(output)).toHaveLength(1);
+        expect(leafs(output)[0]).toMatchObject({
+            operator: FilterFieldOperator.LESS_THAN, field: 'age', value: 65,
+        });
+    });
+
+    it('should throw a typed error when a condition node is used as a field value', () => {
+        // a helper already carries its own field — as a field value it is
+        // ambiguous and must not be expanded into operator/field/value leaves.
+        try {
+            defineFilters({ age: gte('age', 18) } as never);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(BuildError);
+            expect((e as BuildError).code).toBe(ErrorCode.KEY_VALUE_INVALID);
+        }
+    });
 });
 
 describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
@@ -210,11 +233,40 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
         expect(record.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
     });
 
+    it('should trim comma-separated string input', () => {
+        // csv strings are an untyped runtime convenience — the typed
+        // grammar knows single keys and key arrays only.
+        const sorts = defineSorts<ObjectLiteral>('age, -name, ');
+        expect(sorts.value.map((el) => [el.name, el.operator])).toEqual([
+            ['age', SortDirection.ASC],
+            ['name', SortDirection.DESC],
+        ]);
+
+        const relations = defineRelations<ObjectLiteral>('realm, items.user');
+        expect(relations.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
+
+        const fields = defineFields<ObjectLiteral>('id, -email');
+        expect(fields.value.map((el) => [el.name, el.operator])).toEqual([
+            ['id', undefined],
+            ['email', FieldOperator.EXCLUDE],
+        ]);
+    });
+
     it('should build pagination', () => {
         const output = definePagination({ limit: 10, offset: 20 });
 
         expect(output.limit).toBe(10);
         expect(output.offset).toBe(20);
+    });
+
+    it('should throw a typed error on non-object pagination input', () => {
+        try {
+            definePagination(null as never);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(BuildError);
+            expect((e as BuildError).code).toBe(ErrorCode.INPUT_INVALID);
+        }
     });
 });
 

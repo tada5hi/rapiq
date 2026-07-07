@@ -33,7 +33,12 @@ function buildRelations(
 ) : void {
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
-            output.push(new Relation(prefix ? `${prefix}.${part}` : part));
+            const name = part.trim();
+            if (!name) {
+                continue;
+            }
+
+            output.push(new Relation(prefix ? `${prefix}.${name}` : name));
         }
 
         return;

@@ -33,6 +33,13 @@ export class BuildError extends BaseError {
         });
     }
 
+    static keyValueInvalid(key: string) {
+        return new this({
+            message: `The value of the key ${key} is invalid.`,
+            code: ErrorCode.KEY_VALUE_INVALID,
+        });
+    }
+
     static operatorUnsupported(operator: string) {
         return new this({
             message: `The operator ${operator} is not supported.`,
