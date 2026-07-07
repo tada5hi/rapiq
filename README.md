@@ -1,10 +1,13 @@
 <p align="center">
-  <img src=".github/assets/banner.svg" alt="rapiq — REST API Query" width="800">
+  <img src=".github/assets/logo.svg" alt="rapiq" width="120">
 </p>
 
+<h1 align="center">rapiq</h1>
+
 <p align="center">
-  <b>Rapiq</b> (<b>R</b>est <b>Api</b> <b>Q</b>uery) builds an efficient, typed interface between client- &amp; server-side applications.<br>
-  It defines a scheme for the request — <b>not</b> for the response.
+  <b>Typed REST queries — from client to database.</b><br>
+  Rapiq (<b>R</b>est <b>Api</b> <b>Q</b>uery) builds an efficient interface between client- &amp; server-side applications —<br>
+  it defines a scheme for the request, but <b>not</b> for the response.
 </p>
 
 <p align="center">
@@ -36,18 +39,12 @@
 
 Every REST list endpoint answers the same five questions: which **fields**, which **filters**, which **relations**, which **page**, which **order**. rapiq turns them into one typed pipeline instead of ad-hoc string parsing:
 
-```text
-defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })       client (typed)
-        │  encode                              @rapiq/codec-url-simple
-        ▼
-?filter[age]=>=18&sort=-name                                          the wire (JSON-API style)
-        │  decode + validate                   Schema allow-lists, defaults, mappings
-        ▼
-Query — fields · filters · pagination · relations · sorts             the AST
-        │  accept(visitor)
-        ▼
-parameterized SQL (@rapiq/sql) · SelectQueryBuilder (@rapiq/typeorm)  your database
-```
+| Stage | What happens |
+|---|---|
+| **Build** <sub>client</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })` — typed input in, query AST out |
+| **Transport** <sub>wire</sub> | encoded as a JSON-API-style query string: `?filter[age]=>=18&sort=-name` |
+| **Validate** <sub>server</sub> | decoded back into the same AST, checked against a `Schema` — allow-lists, defaults, mappings |
+| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`) or to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) |
 
 - 🧭 **Typed end to end** — every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
 - 🛡️ **The server has the last word** — a `Schema` declares what a client may request per parameter (allow-lists, defaults, mappings). Anything outside it is dropped — or throws, opt-in — and server-injected conditions (`query.filters.and(...)`) can't be displaced by client input.

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="rapiq">
+    <defs>
+        <linearGradient id="mark" x1="4" y1="116" x2="116" y2="4" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#7c3aed"/>
+            <stop offset="1" stop-color="#06b6d4"/>
+        </linearGradient>
+        <linearGradient id="shine" x1="60" y1="4" x2="60" y2="74" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+    </defs>
+    <rect x="4" y="4" width="112" height="112" rx="28" fill="url(#mark)"/>
+    <rect x="4" y="4" width="112" height="112" rx="28" fill="url(#shine)"/>
+    <g stroke="#ffffff" stroke-linecap="round">
+        <circle cx="53" cy="53" r="22.2" stroke-width="8.2"/>
+        <path d="M69.3 69.3 90.3 90.3" stroke-width="8.2"/>
+        <path d="M42.5 47.2h21M46 55.3h14M49.5 63.5h7" stroke-width="4.7"/>
+    </g>
+</svg>
