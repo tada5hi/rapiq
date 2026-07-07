@@ -6,5 +6,6 @@
  */
 
 export * from './constants';
-export * from './decoder';
-export * from './encoder';
+export * from './factory';
+export * from './module';
+export * from './types';
