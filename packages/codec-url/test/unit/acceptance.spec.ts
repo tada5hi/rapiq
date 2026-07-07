@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { URL_EXPRESSION_CODEC } from '@rapiq/codec-url-expression';
 import { URLDecoder, URLEncoder } from '@rapiq/codec-url-simple';
 import {
     Pagination,
@@ -122,8 +123,11 @@ describe('gateway controller (hub archetype)', () => {
             sorts: query.sorts,
         });
 
-        const wire = codecs.encode(scoped, { codec: 'url-expression' });
+        const wire = codecs.encode(scoped, { codec: URL_EXPRESSION_CODEC });
 
+        // the expected wire stays a literal on purpose: the stamped
+        // identifier is a public wire contract, and deriving the
+        // expectation from the same constant would hide a rename.
         expect(decodeURIComponent(wire!)).toEqual(
             'codec=url-expression' +
             '&filter=and(and(eq(level,\'error\')),eq(node_id,\'node-1\'))' +
