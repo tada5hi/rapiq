@@ -39,7 +39,25 @@ One key per [`FilterFieldOperator`](/guide/filters), prefixed with `$`:
 
 `$eq` `$ne` `$lt` `$lte` `$gt` `$gte` `$in` `$nin` `$startsWith` `$notStartsWith` `$endsWith` `$notEndsWith` `$contains` `$notContains` `$regex` `$mod` `$exists` `$elemMatch`
 
-Unknown `$` keys throw a `BuildError` (`ErrorCode.OPERATOR_UNSUPPORTED`) — input is never guessed at.
+Most take the field's value type (`$eq`/`$ne` also accept `null`, `$in`/`$nin` take arrays, the string operators take strings). The remaining value shapes:
+
+```typescript
+defineQuery<User>({
+    filters: {
+        name: { $regex: /^jo/i },              // RegExp or pattern string
+        age: { $mod: [4, 0] },                 // [divisor, remainder]
+        email: { $exists: true },              // boolean
+        items: {                               // match array elements;
+            $elemMatch: { name: 'chess' },     // field paths are relative
+        },                                     // to the element (helpers
+    },                                         // work too: eq('name', …))
+});
+```
+
+Operator keys that are present but `undefined` are skipped — conditional
+spreads like `{ $contains: search || undefined }` simply contribute no
+condition. Unknown `$` keys throw a `BuildError`
+(`ErrorCode.OPERATOR_UNSUPPORTED`) — input is never guessed at.
 
 ::: warning Reserved: `$and` / `$or`
 Compound object keys are reserved for a future MongoDB-notation parser dialect and deliberately **not** part of the build layer. Compound trees are written with the condition helpers instead: `filters: or(...)`.
@@ -59,6 +77,15 @@ const conditions = and(
 ```
 
 `eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `exists` `elemMatch` — plus `and` / `or` compounds.
+
+Three helpers deviate from the uniform `(field, value)` signature:
+
+```typescript
+mod('age', 4, 0);                    // (field, divisor, remainder)
+exists('email');                     // (field, value = true)
+elemMatch('items', eq('name', 'x')); // (field, condition) — condition
+                                     // field paths are element-relative
+```
 
 ::: info `inArray`
 `in` is a reserved word in JavaScript, so the `IN` helper is named `inArray`. On the wire (expression dialect) the keyword stays `in`; `nin` is unaffected.
