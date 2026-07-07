@@ -86,6 +86,7 @@ describe('round-trip', () => {
             ['gte negative', gte('age', -10)],
             ['in numbers', inArray('id', [1, 2, 3])],
             ['in with null element', inArray('realm_id', ['master', null])],
+            ['in with boolean elements', inArray('flag', [true, false])],
             ['nin', nin('id', [1, 2])],
             ['nin with null element', nin('realm_id', ['master', null])],
             ['startsWith', startsWith('name', 'Jo')],

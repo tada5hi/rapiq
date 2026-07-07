@@ -44,7 +44,7 @@ export class URLEncoder {
     protected decoder : URLDecoder;
 
     constructor(input?: SchemaRegistry) {
-        this.simple = new SimpleURLEncoder();
+        this.simple = new SimpleURLEncoder(input);
         this.decoder = new URLDecoder(input);
     }
 

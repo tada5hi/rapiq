@@ -104,7 +104,11 @@ export class URLCodecRegistry {
 
         const codec = this.resolve(name);
 
-        return codec.decoder.decode(input, options);
+        // the registry owns the reserved parameter — delegated
+        // decoders (especially external ones) must not see it.
+        const { [CODEC_PARAMETER]: _, ...payload } = parsed;
+
+        return codec.decoder.decode(payload, options);
     }
 
     protected resolve(name?: string) : URLCodec {

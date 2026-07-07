@@ -91,6 +91,30 @@ describe('URLCodecRegistry', () => {
         expect(external.decode('codec=noop')).toBeNull();
     });
 
+    it('should strip the reserved parameter before delegating', () => {
+        const seen : unknown[] = [];
+
+        const external = new URLCodecRegistry();
+        external.register({
+            name: 'noop',
+            encoder: { encode: () => null },
+            decoder: {
+                decode: (input) => {
+                    seen.push(input);
+                    return null;
+                },
+            },
+        });
+
+        external.decode('codec=noop&filter[name]=John');
+        external.decode({ codec: 'noop', filter: { name: 'John' } });
+
+        expect(seen).toEqual([
+            { filter: { name: 'John' } },
+            { filter: { name: 'John' } },
+        ]);
+    });
+
     it('should return null for an empty query', () => {
         expect(registry.encode(defineQuery({}) as IQuery)).toBeNull();
     });

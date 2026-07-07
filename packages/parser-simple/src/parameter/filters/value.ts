@@ -84,7 +84,7 @@ export function parseFilterValue(input: unknown) : Scalar | Scalar[] {
         }
 
         return output
-            .filter((n) => n === 0 || n === null || !!n);
+            .filter((n) => n === 0 || n === false || n === null || !!n);
     }
 
     if (typeof input === 'undefined' || input === null) {

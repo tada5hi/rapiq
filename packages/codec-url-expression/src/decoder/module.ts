@@ -111,7 +111,10 @@ export class URLDecoder {
             return null;
         }
 
-        if (output[URLParameter.FILTERS]) {
+        // an empty string is NOT absent — the expression dialect is
+        // precise, so `filter=` must surface the parser's syntax error
+        // instead of falling back to schema defaults.
+        if (isPropertySet(output, URLParameter.FILTERS)) {
             return this.filters.parse(output[URLParameter.FILTERS], options);
         }
 

@@ -87,6 +87,7 @@ describe('round-trip', () => {
             ['in numbers', inArray('id', [1, 2, 3])],
             ['in with null element', inArray('realm_id', ['master', null])],
             ['in with comma element', inArray('name', ['a,b', 'c'])],
+            ['in with boolean elements', inArray('flag', [true, false])],
             ['nin', nin('id', [1, 2])],
             ['startsWith', startsWith('name', 'Jo')],
             ['notStartsWith', notStartsWith('name', 'Jo')],
@@ -203,6 +204,12 @@ describe('round-trip', () => {
                 new Sort('id', SortDirection.DESC),
                 new Sort('name', SortDirection.ASC),
             ]));
+        });
+
+        it('should surface a syntax error for an empty filter parameter', () => {
+            // the expression dialect is precise: `filter=` is not absent
+            // input and must not fall back to schema defaults.
+            expect(() => decoder.decodeFilters('filter=')).toThrowError();
         });
 
         it('should emit the documented wire format', () => {
