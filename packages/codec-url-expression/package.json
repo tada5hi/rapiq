@@ -1,0 +1,70 @@
+{
+    "name": "@rapiq/codec-url-expression",
+    "version": "1.0.0",
+    "description": "A package containing an url encoder & decoder for the expression dialect.",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "dependencies": {
+        "qs": "^6.15.3"
+    },
+    "devDependencies": {
+        "@rapiq/codec-url-simple": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
+        "@rapiq/parser-expression": "^1.0.0",
+        "@types/qs": "^6.14.0"
+    },
+    "peerDependencies": {
+        "@rapiq/codec-url-simple": "^1.0.0",
+        "@rapiq/core": "^1.0.0",
+        "@rapiq/parser-expression": "^1.0.0"
+    },
+    "scripts": {
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "api-utils",
+        "include",
+        "pagination",
+        "sort",
+        "fields",
+        "filter",
+        "relations",
+        "typescript"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/codec-url-expression"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme"
+}
