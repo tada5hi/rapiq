@@ -8,7 +8,9 @@
 import { URLFilterOperator } from '@rapiq/parser-simple';
 import type { IFilterVisitor, IFiltersVisitor } from '@rapiq/core';
 import {
+    AdapterError,
     Filter,
+    FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
 } from '@rapiq/core';
@@ -27,10 +29,20 @@ IFilterVisitor<RecordSerializer> {
     }
 
     visitFilters(expr: Filters): RecordSerializer {
+        // subset law: the simple wire dialect expresses flat root-AND
+        // condition sets only — anything else must fail loudly instead
+        // of silently flattening into changed semantics.
+        if (
+            expr.operator === FilterCompoundOperator.OR &&
+            expr.value.length > 1
+        ) {
+            throw AdapterError.featureUnsupported('filters:or');
+        }
+
         for (let i = 0; i < expr.value.length; i++) {
             const value = expr.value[i];
             if (value instanceof Filters) {
-                value.accept(this);
+                throw AdapterError.featureUnsupported('filters:compound');
             }
 
             if (value instanceof Filter) {

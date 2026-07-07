@@ -66,6 +66,10 @@ const conditions = and(
 
 Like `defineQuery`, every helper accepts a record generic for typed field paths: `eq<User>('realm.name', 'master')`.
 
+::: warning Transporting compound trees
+The simple [URL codec](/integrations/url) can only express **flat root-AND** filter sets on the wire. Encoding a query with `or(...)` or nested groups throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`) instead of silently flattening. Compound trees work with backend adapters directly and with the [expression dialect](/integrations/expression).
+:::
+
 ## Other parameters
 
 | Parameter | Input forms |
