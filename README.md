@@ -156,6 +156,8 @@ import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { URLDecoder } from '@rapiq/codec-url-simple';
 import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
+// your app's TypeORM DataSource instance
+import { dataSource } from './data-source';
 
 const registry = new SchemaRegistry();
 

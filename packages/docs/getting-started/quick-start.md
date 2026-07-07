@@ -74,12 +74,16 @@ const decoder = new URLDecoder(registry);
 // accepts the raw query string as well as a pre-parsed object (express req.query);
 // URL wire names (filter, page, include, ...) map to their canonical parameters.
 const query = decoder.decode(req.query, { schema: 'user' });
+if (!query) {
+    // decode returns null for non-object input — e.g. reply 400 Bad Request
+    throw new Error('Invalid query input.');
+}
 ```
 
 Anything outside the allow-lists is silently dropped; set `throwOnFailure: true` on the schema to get a `ParseError` instead. See [Schemas](/guide/schema).
 
 ::: tip Canonical object input
-If your input isn't URL-shaped — it already uses the canonical parameter keys (`filters`, `pagination`, `relations`, …) — feed it to [`SimpleParser`](/integrations/simple) from `@rapiq/parser-simple` directly: `parser.parse(input, { schema: 'user' })`. The `URLDecoder` builds on it.
+If your input isn't URL-shaped — it already uses the canonical parameter keys (`filters`, `pagination`, `relations`, …) — feed it to [`SimpleParser`](/integrations/simple) from `@rapiq/parser-simple` directly: `new SimpleParser(registry).parse(input, { schema: 'user' })`. The `URLDecoder` builds on it.
 :::
 
 ## 3. Apply to the database (server)
