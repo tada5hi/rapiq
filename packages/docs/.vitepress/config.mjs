@@ -63,6 +63,8 @@ export default defineConfig({
                     items: [
                         { text: 'Overview', link: '/guide/' },
                         { text: 'Query AST', link: '/guide/query' },
+                        { text: 'Building Queries', link: '/guide/build' },
+                        { text: 'Merging Queries', link: '/guide/merge' },
                         { text: 'Schemas', link: '/guide/schema' },
                     ],
                 },

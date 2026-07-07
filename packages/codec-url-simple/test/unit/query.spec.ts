@@ -6,6 +6,8 @@
  */
 
 import {
+    AdapterError,
+    ErrorCode,
     Field,
     Fields,
     Filter,
@@ -19,6 +21,11 @@ import {
     Sort,
     SortDirection,
     Sorts,
+    and,
+    defineQuery,
+    eq,
+    gte,
+    or,
 } from '@rapiq/core';
 import { URLEncoder } from '../../src';
 
@@ -52,5 +59,47 @@ describe('query', () => {
         expect(decodeURIComponent(encoded!)).toEqual(
             'fields=id,name&filter[id]=1&page[limit]=20&page[offset]=10&include=realm&sort=-id',
         );
+    });
+
+    it('should encode a defineQuery-built query without magic value strings', () => {
+        // plan 012 entity-client archetype: typed operator objects in,
+        // wire prefixes (~) stay a codec concern.
+        const query = defineQuery({
+            fields: ['id', 'name'],
+            filters: { name: { $contains: 'oh' } },
+            pagination: { limit: 20 },
+            sort: '-id',
+        });
+
+        const encoded = encoder.encode(query);
+
+        expect(decodeURIComponent(encoded!)).toEqual(
+            'fields=id,name&filter[name]=~oh~&page[limit]=20&sort=-id',
+        );
+    });
+
+    it('should throw a typed error when encoding an or compound', () => {
+        // subset law: the simple dialect expresses flat root-AND only —
+        // no silent flattening into changed semantics.
+        const query = defineQuery({ filters: or(gte('age', 18), eq('email', null)) });
+
+        try {
+            encoder.encode(query);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
+        }
+    });
+
+    it('should throw a typed error when encoding a nested compound group', () => {
+        const query = defineQuery({
+            filters: and(
+                eq('name', 'John'),
+                or(gte('age', 18), eq('email', null)),
+            ),
+        });
+
+        expect(() => encoder.encode(query)).toThrowError(AdapterError);
     });
 });

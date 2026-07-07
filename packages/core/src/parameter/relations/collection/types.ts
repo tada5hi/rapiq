@@ -17,4 +17,6 @@ export interface IRelations {
     accept<R>(visitor: IRelationsVisitor<R>) : R;
 
     extract(root: string): IRelations;
+
+    merge(other: IRelations): IRelations;
 }

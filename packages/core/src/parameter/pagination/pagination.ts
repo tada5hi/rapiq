@@ -20,4 +20,15 @@ export class Pagination implements IPagination {
     accept<R>(visitor: IPaginationVisitor<R>) : R {
         return visitor.visitPagination(this);
     }
+
+    /**
+     * Per-property left/receiver priority — limit and offset are merged
+     * independently. Immutable — returns a new instance.
+     */
+    merge(other: IPagination) : IPagination {
+        return new Pagination(
+            this.limit ?? other.limit,
+            this.offset ?? other.offset,
+        );
+    }
 }

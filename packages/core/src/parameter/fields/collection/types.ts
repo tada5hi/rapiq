@@ -15,4 +15,6 @@ export interface IFields {
     readonly value: IField[]
 
     accept<R>(visitor: IFieldsVisitor<R>): R;
+
+    merge(other: IFields): IFields;
 }

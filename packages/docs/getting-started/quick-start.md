@@ -21,24 +21,18 @@ type User = {
 
 ## 1. Build a query (client)
 
-Construct a `Query` from AST nodes and encode it as a URL query string:
+Build a `Query` from typed input with [`defineQuery`](/guide/build) and encode it as a URL query string:
 
 ```typescript
-import {
-    Field, Fields,
-    Filter, FilterCompoundOperator, FilterFieldOperator, Filters,
-    Pagination, Query, Relation, Relations, Sort, Sorts,
-} from '@rapiq/core';
+import { defineQuery } from '@rapiq/core';
 import { URLEncoder } from '@rapiq/codec-url-simple';
 
-const query = new Query({
-    fields: new Fields([new Field('id'), new Field('name')]),
-    filters: new Filters(FilterCompoundOperator.AND, [
-        new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, 'age', 18),
-    ]),
-    relations: new Relations([new Relation('realm')]),
-    sorts: new Sorts([new Sort('age', 'DESC')]),
-    pagination: new Pagination(25, 0),
+const query = defineQuery<User>({
+    fields: ['id', 'name'],
+    filters: { age: { $gte: 18 } },
+    relations: ['realm'],
+    sort: '-age',
+    pagination: { limit: 25, offset: 0 },
 });
 
 const encoder = new URLEncoder();
@@ -47,6 +41,8 @@ const queryString = encoder.encode(query);
 
 const response = await fetch(`/users?${queryString}`);
 ```
+
+The record generic types every field path against `User`. Filters take scalars (`{ name: 'John' }`), arrays (`{ realm_id: [1, null] }`), `$`-operator objects and [condition helpers](/guide/build#condition-helpers) like `or(gte('age', 18), eq('email', null))` — see [Building Queries](/guide/build) for the full grammar.
 
 ## 2. Parse & validate (server)
 
@@ -111,5 +107,7 @@ Without TypeORM, [`@rapiq/sql`](/integrations/sql) renders parameterized SQL fra
 ## Going further
 
 - [Concepts](/guide/) — the Query AST, schemas and the visitor pattern.
+- [Building Queries](/guide/build) — the typed build layer: `defineQuery`, condition helpers, fragments.
+- [Merging Queries](/guide/merge) — composing queries with `mergeQueries` and the filter combinators.
 - [Filters](/guide/filters) — every filter operator and its syntax.
 - [Integrations](/integrations/) — parsers, codecs and backend adapters in detail.

@@ -38,6 +38,8 @@ const query = new Query({
 
 Every constructor argument is optional — omitted parameters default to empty collections.
 
+Hand-construction is rarely necessary: [`defineQuery`](/guide/build) builds the same tree from typed input, and the [condition helpers](/guide/build#condition-helpers) (`eq`, `gte`, `and`, `or`, …) replace raw `new Filter(...)` calls.
+
 ## Filters form a tree
 
 `Filters` is a compound node: its children are either leaf `Filter` conditions or nested `Filters`, so arbitrary `and`/`or` combinations compose naturally.

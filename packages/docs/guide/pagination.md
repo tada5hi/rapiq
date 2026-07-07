@@ -18,6 +18,10 @@ Limit the number of resources returned from the collection.
 
 Both keys are optional. Values are coerced to integers; `limit` must be positive, `offset` non-negative. In URL form this is `page[limit]=25&page[offset]=50`.
 
+::: info Client-side construction
+The same shape works as typed build input — `defineQuery({ pagination: { limit: 25 } })` or the `definePagination(...)` fragment factory. See [Building Queries](/guide/build).
+:::
+
 ## Schema options
 
 ```typescript

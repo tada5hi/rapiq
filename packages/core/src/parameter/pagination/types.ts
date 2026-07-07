@@ -15,4 +15,6 @@ export interface IPagination {
     offset?: number
 
     accept<R>(visitor: IPaginationVisitor<R>) : R;
+
+    merge(other: IPagination): IPagination;
 }

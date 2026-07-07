@@ -33,6 +33,10 @@ Accepted by [`SimpleParser`](/integrations/simple) (and, in URL form, by the [UR
 }
 ```
 
+::: info Client-side construction
+The same shapes work as typed build input — `defineQuery<User>({ fields: ['id', '+email'] })` or the `defineFields<User>(...)` fragment factory build the AST directly, with field paths checked against the record type. See [Building Queries](/guide/build).
+:::
+
 ## Include & exclude operators
 
 A field name can carry a prefix:

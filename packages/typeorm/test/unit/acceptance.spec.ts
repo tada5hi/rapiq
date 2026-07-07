@@ -6,7 +6,12 @@
  */
 
 import { URLDecoder } from '@rapiq/codec-url-simple';
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    Query, 
+    SchemaRegistry, 
+    defineSchema, 
+    eq,
+} from '@rapiq/core';
 import type { Schema } from '@rapiq/core';
 import { QueryVisitor } from '@rapiq/sql';
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
@@ -162,6 +167,48 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
             expect(entity.first_name).toBeDefined();
             expect(entity.email).toBeUndefined();
         }
+    });
+
+    it('should enforce server-injected scoping regardless of client input', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<User>({
+            name: 'user',
+            filters: { allowed: ['first_name', 'realm_id'] },
+        }));
+        const decoder = new URLDecoder(registry);
+
+        const applyScoped = (input: string) => {
+            const query = decoder.decode(input, { schema: 'user' });
+
+            // plan 012 layer 3: post-parse wrap & inject — immutable,
+            // a later replace-merge cannot displace the condition.
+            const scoped = new Query({
+                ...query,
+                filters: query!.filters.and(eq('realm_id', masterRealmId)),
+            });
+
+            const adapter = new TypeormAdapter<SelectQueryBuilder<User>>();
+            const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
+            adapter.withQuery(queryBuilder);
+            scoped.accept(new QueryVisitor(adapter));
+            adapter.execute();
+
+            return queryBuilder;
+        };
+
+        // no client filters: the injected condition alone scopes the list
+        const bare = applyScoped('');
+        expect(bare.getSql()).toMatch(/"user"\."realm_id" = /);
+
+        const scopedEntities = await bare.getMany();
+        expect(scopedEntities.length).toEqual(1);
+        expect(scopedEntities[0].first_name).toEqual('Aston');
+
+        // client filter matches caleb, but caleb has no realm:
+        // the injected scoping stays in effect alongside client input
+        const filtered = applyScoped('filter[first_name]=Caleb');
+        expect(filtered.getSql()).toMatch(/"user"\."realm_id" = /);
+        expect(await filtered.getMany()).toHaveLength(0);
     });
 
     it('should reject all client parameters on a strict repository without allow-lists', async () => {

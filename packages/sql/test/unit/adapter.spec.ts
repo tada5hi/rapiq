@@ -11,7 +11,7 @@ import {
     Filter,
     Filters,
     Pagination,
-    QueryBuilder,
+    Query,
     Relation,
     Relations,
     Sort,
@@ -28,24 +28,20 @@ import {
     sqlite,
 } from '../../src';
 
-const buildQuery = () => {
-    const builder = new QueryBuilder();
-
-    builder.fields = new Fields([
+const buildQuery = () => new Query({
+    fields: new Fields([
         new Field('id'),
         new Field('name'),
         new Field('realm.name'),
-    ]);
-    builder.filters = new Filters('and', [
+    ]),
+    filters: new Filters('and', [
         new Filter('gte', 'age', 18),
         new Filter('in', 'realm.id', ['a', null]),
-    ]);
-    builder.relations = new Relations([new Relation('realm')]);
-    builder.sorts = new Sorts([new Sort('age', 'DESC')]);
-    builder.pagination = new Pagination(25, 50);
-
-    return builder.build();
-};
+    ]),
+    relations: new Relations([new Relation('realm')]),
+    sorts: new Sorts([new Sort('age', 'DESC')]),
+    pagination: new Pagination(25, 50),
+});
 
 const buildFragments = (dialect: DialectOptions) => {
     const adapter = new Adapter({ ...dialect, rootAlias: 'user' });
@@ -115,13 +111,14 @@ describe('src/adapter/module.ts', () => {
     it('should drop excluded fields from the columns', () => {
         const adapter = new Adapter(pg);
 
-        const builder = new QueryBuilder();
-        builder.fields = new Fields([
-            new Field('id'),
-            new Field('email', '-'),
-        ]);
+        const query = new Query({
+            fields: new Fields([
+                new Field('id'),
+                new Field('email', '-'),
+            ]),
+        });
 
-        builder.build().accept(new QueryVisitor(adapter));
+        query.accept(new QueryVisitor(adapter));
 
         expect(adapter.build().columns).toEqual(['"id"']);
     });
@@ -129,13 +126,14 @@ describe('src/adapter/module.ts', () => {
     it('should expand and dedupe relation paths', () => {
         const adapter = new Adapter(pg);
 
-        const builder = new QueryBuilder();
-        builder.relations = new Relations([
-            new Relation('items.realm'),
-            new Relation('items.user'),
-        ]);
+        const query = new Query({
+            relations: new Relations([
+                new Relation('items.realm'),
+                new Relation('items.user'),
+            ]),
+        });
 
-        builder.build().accept(new QueryVisitor(adapter));
+        query.accept(new QueryVisitor(adapter));
 
         expect(adapter.build().relations).toEqual([
             'items',

@@ -27,6 +27,26 @@ export class Fields implements IFields {
     }
 
     /**
+     * Keyed by name, left/receiver priority; order = first occurrence.
+     * Immutable — returns a new collection.
+     */
+    merge(other: IFields) : IFields {
+        const output : IField[] = [];
+
+        const seen = new Set<string>();
+        for (const item of [...this.value, ...other.value]) {
+            if (seen.has(item.name)) {
+                continue;
+            }
+
+            seen.add(item.name);
+            output.push(item);
+        }
+
+        return new Fields(output);
+    }
+
+    /**
      * Extract field set, with includes and excludes.
      *
      * @param options

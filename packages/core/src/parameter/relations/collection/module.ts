@@ -40,4 +40,24 @@ export class Relations implements IRelations {
 
         return children;
     }
+
+    /**
+     * Keyed by name, left/receiver priority; order = first occurrence.
+     * Immutable — returns a new collection.
+     */
+    merge(other: IRelations) : IRelations {
+        const output : IRelation[] = [];
+
+        const seen = new Set<string>();
+        for (const item of [...this.value, ...other.value]) {
+            if (seen.has(item.name)) {
+                continue;
+            }
+
+            seen.add(item.name);
+            output.push(item);
+        }
+
+        return new Relations(output);
+    }
 }

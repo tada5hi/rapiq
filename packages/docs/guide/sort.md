@@ -26,6 +26,10 @@ Sort the resources by one or more keys, ascending or descending.
 
 In URL form this is `sort=name,-age`.
 
+::: info Client-side construction
+The same shapes work as typed build input — `defineQuery<User>({ sort: '-age' })` or the `defineSorts<User>(...)` fragment factory build the AST directly, with keys checked against the record type. See [Building Queries](/guide/build).
+:::
+
 ## Relation fields
 
 `relation.field` keys (or nested records, as above) sort by a related record's field. The relation must be requested and allowed, and the field validates against the related schema via [`schemaMapping`](/guide/schema#the-registry).
