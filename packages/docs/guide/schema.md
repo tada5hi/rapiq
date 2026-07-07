@@ -100,7 +100,10 @@ Schema defaults are unaffected: dropped client input falls back to `default` val
 
 ```typescript
 parser.parse(input, { schema: 'user', strict: true });
-parser.parse(input, { strict: true });   // schema-required parsing: everything is dropped
+
+// schema-required parsing: the simple dialect drops all client-driven
+// parameters, the expression dialect throws
+parser.parse(input, { strict: true });
 ```
 
 ::: warning Migrating from typeorm-extension
@@ -150,7 +153,7 @@ try {
 
 Each parameter has its own error class: `FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError` — all extend `ParseError` → `BaseError`.
 
-Disallowed keys throw `keyNotPermitted` (`ErrorCode.KEY_NOT_ALLOWED`); syntactically invalid keys under an open schema throw `keyInvalid` (`KEY_INVALID`); rejected or unresolvable relation paths throw `keyPathInvalid` (`KEY_PATH_INVALID`).
+Disallowed keys throw `keyNotPermitted` (`ErrorCode.KEY_NOT_ALLOWED`); syntactically invalid keys under an open schema throw `keyInvalid` (`KEY_INVALID`); relation paths rejected by an allow-list or the relations context throw `keyPathNotPermitted` (`KEY_PATH_NOT_ALLOWED`); unresolvable relation paths throw `keyPathInvalid` (`KEY_PATH_INVALID`).
 
 ## Resolution scope
 

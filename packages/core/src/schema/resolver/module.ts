@@ -494,6 +494,8 @@ export class ResolutionScope<
                     throw this.errors.keyInvalid(segment ?? input);
                 case KeyResolutionErrorCode.KEY_NOT_PERMITTED:
                     throw this.errors.keyNotPermitted(segment ?? input);
+                case KeyResolutionErrorCode.PATH_NOT_PERMITTED:
+                    throw this.errors.keyPathNotPermitted(segment ?? input);
                 default:
                     throw this.errors.keyPathInvalid(segment ?? input);
             }

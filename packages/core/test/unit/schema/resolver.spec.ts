@@ -12,6 +12,7 @@ import {
     Parameter,
     Relation,
     Relations,
+    RelationsParseError,
     ResolutionScope,
     SchemaRegistry,
     SortParseError,
@@ -206,7 +207,7 @@ describe('src/schema/resolver/*.ts', () => {
             });
 
             expect(() => scope.descend('items')).toThrow(SortParseError);
-            expect(() => scope.descend('items')).toThrow('The key path items is invalid.');
+            expect(() => scope.descend('items')).toThrow('The key path items is not permitted.');
         });
 
         it('should inherit the policy override through descend', () => {
@@ -512,6 +513,18 @@ describe('src/schema/resolver/*.ts', () => {
 
             expect(() => scope.resolveKey('foo')).toThrow(FiltersParseError);
             expect(() => scope.resolveKey('foo')).toThrow('The key foo is not permitted.');
+        });
+
+        it('should throw a permission error for strict relation segments', () => {
+            const schema = defineSchema({
+                strict: true,
+                throwOnFailure: true,
+                relations: {},
+            });
+            const scope = ResolutionScope.for(registry, Parameter.RELATIONS, schema);
+
+            expect(() => scope.descend('realm')).toThrow(RelationsParseError);
+            expect(() => scope.descend('realm')).toThrow('The key path realm is not permitted.');
         });
     });
 

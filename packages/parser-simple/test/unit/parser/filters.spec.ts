@@ -387,7 +387,7 @@ describe('src/filter/index.ts', () => {
             allowed: ['user.foo'],
         });
 
-        const error = FiltersParseError.keyPathInvalid('bar');
+        const error = FiltersParseError.keyPathNotPermitted('bar');
 
         expect(() => parseFlat({ 'bar.bar': 1 }, {
             schema,

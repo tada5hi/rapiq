@@ -339,7 +339,7 @@ describe('filters/expr-parser', () => {
         });
 
         it('should honor the relations context', () => {
-            const error = FiltersParseError.keyPathInvalid('items');
+            const error = FiltersParseError.keyPathNotPermitted('items');
 
             expect(() => constrained.parseExact('eq(items.id, \'1\')', {
                 schema: 'user',
