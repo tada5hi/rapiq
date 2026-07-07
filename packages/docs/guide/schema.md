@@ -50,11 +50,12 @@ Field keys are typed against `RECORD` via recursive key paths — `allowed` and 
 |---|---|---|
 | `name` | `string` | Registry key; also used to resolve nested schemas. |
 | `throwOnFailure` | `boolean` | Throw on disallowed input instead of dropping it. Inherited by every sub-schema that doesn't set its own value. |
+| `strict` | `boolean` | A parameter without an explicit allow-list rejects all client input instead of permitting any syntactically valid key. Inherited by every sub-schema that doesn't set its own value. See [Strict mode](#strict-mode). |
 | `schemaMapping` | `Record<string, string>` | Maps a relation name to a registered schema name, so nested input (`realm.name`) validates against the related record's schema. |
 
 ## Per-parameter options
 
-Every sub-schema also accepts its own `throwOnFailure`.
+Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 
 | Parameter | Options |
 |---|---|
@@ -67,7 +68,46 @@ Every sub-schema also accepts its own `throwOnFailure`.
 Standalone factories exist for each parameter — `defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema` — useful when calling a single parameter parser directly.
 
 ::: tip
-`allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything. Be deliberate about which one you mean.
+`allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything — unless [strict mode](#strict-mode) is on. Be deliberate about which one you mean.
+:::
+
+## Strict mode
+
+By default, a parameter whose schema declares no allow-list is **open**: any syntactically valid key passes. `strict: true` inverts that default — a parameter accepts client input only for explicitly declared keys, and everything else is dropped (or thrown, with `throwOnFailure`):
+
+```typescript
+const userSchema = defineSchema<User>({
+    name: 'user',
+    strict: true,
+    filters: { allowed: ['id', 'name'] },
+    // fields/relations/sort declare nothing -> client input for them is rejected
+});
+```
+
+Per parameter, "declared" means:
+
+| Parameter | Client input accepted when |
+|---|---|
+| `fields` | `allowed` or `default` is set (validated against both lists) |
+| `filters` | `allowed` is set (a `default` condition alone still applies, but clients cannot filter) |
+| `sort` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
+| `relations` | `allowed` is set |
+| `pagination` | always — `maxLimit` remains the only constraint |
+
+Schema defaults are unaffected: dropped client input falls back to `default` values exactly as if the parameter had been absent.
+
+`strict` can also be set per parse call, overriding the schema setting — including parsing **without** a schema, which then rejects every client-driven parameter:
+
+```typescript
+parser.parse(input, { schema: 'user', strict: true });
+
+// schema-required parsing: the simple dialect drops all client-driven
+// parameters, the expression dialect throws
+parser.parse(input, { strict: true });
+```
+
+::: warning Migrating from typeorm-extension
+typeorm-extension **disables** any parameter whose `allowed`/`default` options are missing. rapiq's default is the opposite (open). Enable `strict: true` on your schemas to keep the closed-by-default semantics when migrating.
 :::
 
 ## The registry
@@ -113,7 +153,7 @@ try {
 
 Each parameter has its own error class: `FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError` — all extend `ParseError` → `BaseError`.
 
-Disallowed keys throw `keyNotPermitted` (`ErrorCode.KEY_NOT_ALLOWED`); syntactically invalid keys under an open schema throw `keyInvalid` (`KEY_INVALID`); rejected or unresolvable relation paths throw `keyPathInvalid` (`KEY_PATH_INVALID`).
+Disallowed keys throw `keyNotPermitted` (`ErrorCode.KEY_NOT_ALLOWED`); syntactically invalid keys under an open schema throw `keyInvalid` (`KEY_INVALID`); relation paths rejected by an allow-list or the relations context throw `keyPathNotPermitted` (`KEY_PATH_NOT_ALLOWED`); unresolvable relation paths throw `keyPathInvalid` (`KEY_PATH_INVALID`).
 
 ## Resolution scope
 

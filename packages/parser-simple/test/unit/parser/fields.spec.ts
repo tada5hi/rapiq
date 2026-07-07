@@ -295,7 +295,7 @@ describe('src/fields/index.ts', () => {
             allowed: ['user.foo'],
         });
 
-        const error = FieldsParseError.keyPathInvalid('bar');
+        const error = FieldsParseError.keyPathNotPermitted('bar');
 
         expect(() => parser.parse({ bar: ['bar'] }, {
             schema,

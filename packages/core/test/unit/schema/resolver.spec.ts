@@ -12,6 +12,7 @@ import {
     Parameter,
     Relation,
     Relations,
+    RelationsParseError,
     ResolutionScope,
     SchemaRegistry,
     SortParseError,
@@ -206,7 +207,7 @@ describe('src/schema/resolver/*.ts', () => {
             });
 
             expect(() => scope.descend('items')).toThrow(SortParseError);
-            expect(() => scope.descend('items')).toThrow('The key path items is invalid.');
+            expect(() => scope.descend('items')).toThrow('The key path items is not permitted.');
         });
 
         it('should inherit the policy override through descend', () => {
@@ -394,6 +395,136 @@ describe('src/schema/resolver/*.ts', () => {
                 expect(resolved.path).toEqual(['items']);
                 expect(resolved.scope.schema.name).toEqual('item');
             }
+        });
+    });
+
+    describe('strict mode', () => {
+        it('should reject filter keys when no allow-list is declared', () => {
+            const schema = defineFiltersSchema({ strict: true });
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
+
+            expect(scope.resolveKey('foo')).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.KEY_NOT_PERMITTED,
+                input: 'foo',
+                segment: 'foo',
+            });
+        });
+
+        it('should not change validation when an allow-list is declared', () => {
+            const schema = defineFiltersSchema({
+                allowed: ['id'],
+                strict: true,
+            });
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
+
+            expect(scope.resolveKey('id').success).toBeTruthy();
+            expect(scope.resolveKey('foo').success).toBeFalsy();
+        });
+
+        it('should keep fields open when a default list is declared', () => {
+            const schema = defineSchema({
+                strict: true,
+                fields: { default: ['id', 'name'] },
+            });
+            const scope = ResolutionScope.for(registry, Parameter.FIELDS, schema);
+
+            expect(scope.resolveKey('name').success).toBeTruthy();
+            expect(scope.resolveKey('email').success).toBeFalsy();
+        });
+
+        it('should reject field keys when neither allowed nor default is declared', () => {
+            const schema = defineSchema({
+                strict: true,
+                fields: {},
+            });
+            const scope = ResolutionScope.for(registry, Parameter.FIELDS, schema);
+
+            const resolved = scope.resolveKey('name');
+            expect(resolved.success).toBeFalsy();
+            if (!resolved.success) {
+                expect(resolved.code).toEqual(KeyResolutionErrorCode.KEY_NOT_PERMITTED);
+            }
+        });
+
+        it('should keep sort open for keys derived from the default', () => {
+            const schema = defineSchema({
+                strict: true,
+                sort: { default: { name: 'DESC' } },
+            });
+            const scope = ResolutionScope.for(registry, Parameter.SORT, schema);
+
+            expect(scope.resolveKey('name').success).toBeTruthy();
+            expect(scope.resolveKey('id').success).toBeFalsy();
+        });
+
+        it('should reject relation keys and segments when no allow-list is declared', () => {
+            const schema = defineSchema({
+                strict: true,
+                relations: {},
+            });
+            const scope = ResolutionScope.for(registry, Parameter.RELATIONS, schema);
+
+            const resolved = scope.resolveKey('realm');
+            expect(resolved.success).toBeFalsy();
+            if (!resolved.success) {
+                expect(resolved.code).toEqual(KeyResolutionErrorCode.KEY_NOT_PERMITTED);
+            }
+
+            const child = scope.descend('realm');
+            expect(child).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+                input: 'realm',
+                segment: 'realm',
+            });
+        });
+
+        it('should constrain an unbound scope through the context override', () => {
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, undefined, { strict: true });
+
+            expect(scope.resolveKey('foo').success).toBeFalsy();
+        });
+
+        it('should let the context override take precedence over the schema setting', () => {
+            const schema = defineFiltersSchema({ strict: true });
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { strict: false });
+
+            expect(scope.resolveKey('foo').success).toBeTruthy();
+        });
+
+        it('should inherit the context override through descend', () => {
+            const local = new SchemaRegistry();
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, undefined, { strict: true });
+
+            const child = scope.descend('realm');
+            expect(child).toBeInstanceOf(ResolutionScope);
+            if (child instanceof ResolutionScope) {
+                expect(child.resolveKey('name').success).toBeFalsy();
+            }
+        });
+
+        it('should combine with throwOnFailure', () => {
+            const schema = defineFiltersSchema({
+                strict: true,
+                throwOnFailure: true,
+            });
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
+
+            expect(() => scope.resolveKey('foo')).toThrow(FiltersParseError);
+            expect(() => scope.resolveKey('foo')).toThrow('The key foo is not permitted.');
+        });
+
+        it('should throw a permission error for strict relation segments', () => {
+            const schema = defineSchema({
+                strict: true,
+                throwOnFailure: true,
+                relations: {},
+            });
+            const scope = ResolutionScope.for(registry, Parameter.RELATIONS, schema);
+
+            expect(() => scope.descend('realm')).toThrow(RelationsParseError);
+            expect(() => scope.descend('realm')).toThrow('The key path realm is not permitted.');
         });
     });
 

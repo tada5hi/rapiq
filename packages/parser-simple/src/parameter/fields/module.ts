@@ -32,6 +32,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const scope = ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
         });
 
         return this.parseWithScope(input, scope);

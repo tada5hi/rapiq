@@ -15,5 +15,6 @@ export type FiltersParseOptions<
 > = IParserOptions & {
     relations?: Relations,
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
-    throwOnFailure?: boolean
+    throwOnFailure?: boolean,
+    strict?: boolean
 };

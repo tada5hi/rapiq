@@ -257,7 +257,7 @@ describe('src/sort/index.ts', () => {
     });
 
     it('should throw on non allowed relation', async () => {
-        const error = SortParseError.keyPathInvalid('bar');
+        const error = SortParseError.keyPathNotPermitted('bar');
 
         expect(() => parser.parse({ 'bar.bar': 'desc' }, {
             schema: 'user',

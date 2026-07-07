@@ -73,6 +73,7 @@ type ResolutionScopeOptions<
     segment?: string,
     depth?: number,
     throwOnFailure?: boolean,
+    strict?: boolean,
     errors: typeof ParseError,
 };
 
@@ -116,6 +117,8 @@ export class ResolutionScope<
 
     protected throwOnFailureContext: boolean | undefined;
 
+    protected strictContext: boolean | undefined;
+
     protected errors: typeof ParseError;
 
     // ---------------------------------------------------------
@@ -130,6 +133,7 @@ export class ResolutionScope<
         this.segment = options.segment;
         this.depth = options.depth ?? 0;
         this.throwOnFailureContext = options.throwOnFailure;
+        this.strictContext = options.strict;
         this.errors = options.errors;
     }
 
@@ -140,6 +144,15 @@ export class ResolutionScope<
      */
     get throwOnFailure() : boolean {
         return this.throwOnFailureContext ?? this.schema.throwOnFailure ?? false;
+    }
+
+    /**
+     * Effective strict policy: context override ?? schema setting ?? false.
+     * Under strict mode a parameter without an explicit allow-list rejects
+     * every client key instead of falling back to the syntactic name check.
+     */
+    get strict() : boolean {
+        return this.strictContext ?? this.schema.strict ?? false;
     }
 
     // ---------------------------------------------------------
@@ -178,6 +191,7 @@ export class ResolutionScope<
             base,
             relations: context.relations,
             throwOnFailure: context.throwOnFailure,
+            strict: context.strict,
             errors: context.errors ?? PARAMETER_ERROR_CLASSES[parameter as `${Parameter}`],
         });
     }
@@ -324,6 +338,7 @@ export class ResolutionScope<
             segment,
             depth: this.depth + 1,
             throwOnFailure: this.throwOnFailureContext,
+            strict: this.strictContext,
             errors: this.errors,
         });
     }
@@ -336,6 +351,10 @@ export class ResolutionScope<
             case Parameter.FIELDS: {
                 const schema = this.schema as FieldsSchema<RECORD>;
                 if (schema.allowedIsUndefined && schema.defaultIsUndefined) {
+                    if (this.strict) {
+                        return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
+                    }
+
                     return isPropertyNameValid(name) ?
                         undefined :
                         KeyResolutionErrorCode.KEY_INVALID;
@@ -348,6 +367,10 @@ export class ResolutionScope<
             case Parameter.FILTERS: {
                 const schema = this.schema as FiltersSchema<RECORD>;
                 if (schema.allowedIsUndefined) {
+                    if (this.strict) {
+                        return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
+                    }
+
                     return isPropertyNameValid(name) ?
                         undefined :
                         KeyResolutionErrorCode.KEY_INVALID;
@@ -360,6 +383,10 @@ export class ResolutionScope<
             case Parameter.SORT: {
                 const schema = this.schema as SortSchema<RECORD>;
                 if (schema.allowedIsUndefined) {
+                    if (this.strict) {
+                        return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
+                    }
+
                     return isPropertyNameValid(name) ?
                         undefined :
                         KeyResolutionErrorCode.KEY_INVALID;
@@ -378,6 +405,10 @@ export class ResolutionScope<
             case Parameter.RELATIONS: {
                 const schema = this.schema as RelationsSchema<RECORD>;
                 if (typeof schema.allowed === 'undefined') {
+                    if (this.strict) {
+                        return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
+                    }
+
                     return RELATION_NAME_REGEX.test(name) ?
                         undefined :
                         KeyResolutionErrorCode.KEY_INVALID;
@@ -398,10 +429,13 @@ export class ResolutionScope<
     protected checkSegment(segment: string) : KeyResolutionErrorCode | undefined {
         if (this.parameter === Parameter.RELATIONS) {
             const schema = this.schema as RelationsSchema<RECORD>;
-            if (
-                typeof schema.allowed !== 'undefined' &&
-                !isPathAllowed(segment, schema.allowed)
-            ) {
+            if (typeof schema.allowed === 'undefined') {
+                return this.strict ?
+                    KeyResolutionErrorCode.PATH_NOT_PERMITTED :
+                    undefined;
+            }
+
+            if (!isPathAllowed(segment, schema.allowed)) {
                 return KeyResolutionErrorCode.PATH_NOT_PERMITTED;
             }
 
@@ -444,6 +478,7 @@ export class ResolutionScope<
             segment,
             depth: this.depth,
             throwOnFailure: this.throwOnFailureContext,
+            strict: this.strictContext,
             errors: this.errors,
         });
     }
@@ -459,6 +494,8 @@ export class ResolutionScope<
                     throw this.errors.keyInvalid(segment ?? input);
                 case KeyResolutionErrorCode.KEY_NOT_PERMITTED:
                     throw this.errors.keyNotPermitted(segment ?? input);
+                case KeyResolutionErrorCode.PATH_NOT_PERMITTED:
+                    throw this.errors.keyPathNotPermitted(segment ?? input);
                 default:
                     throw this.errors.keyPathInvalid(segment ?? input);
             }

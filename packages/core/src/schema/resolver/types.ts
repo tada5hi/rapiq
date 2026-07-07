@@ -82,6 +82,12 @@ export type ResolutionScopeContext = {
      */
     throwOnFailure?: boolean,
     /**
+     * Strict-mode override: takes precedence over the schema-level setting.
+     * Under strict mode a parameter without an explicit allow-list rejects
+     * every client key instead of falling back to the syntactic name check.
+     */
+    strict?: boolean,
+    /**
      * Error class used when throwing; defaults to the parameter's ParseError subclass.
      */
     errors?: typeof ParseError,

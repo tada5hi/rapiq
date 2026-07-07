@@ -12,6 +12,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    FiltersParseError,
     Relation,
     Relations,
     SchemaRegistry,
@@ -133,6 +134,129 @@ describe('src/parser', () => {
         expect(output.relations).toEqual(new Relations([
             new Relation('realm'),
         ]));
+    });
+
+    describe('strict mode', () => {
+        it('should drop undeclared parameter input under a strict schema', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'foo',
+                strict: true,
+                pagination: { maxLimit: 50 },
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse({
+                fields: ['id'],
+                filters: { name: 'admin' },
+                relations: ['realm'],
+                sort: '-id',
+                pagination: { limit: 100 },
+            }, { schema: 'foo' });
+
+            expect(output.fields).toEqual(new Fields());
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, []));
+            expect(output.relations).toEqual(new Relations());
+            expect(output.sorts).toEqual(new Sorts());
+            expect(output.pagination.limit).toEqual(50);
+        });
+
+        it('should keep declared allow-lists working under a strict schema', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'foo',
+                strict: true,
+                fields: { allowed: ['id', 'name'] },
+                filters: { allowed: ['id'] },
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse({
+                fields: ['id', 'email'],
+                filters: { id: 1, name: 'admin' },
+            }, { schema: 'foo' });
+
+            expect(output.fields).toEqual(new Fields([
+                new Field('id'),
+            ]));
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+            ]));
+        });
+
+        it('should apply schema defaults when strict drops client input', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'foo',
+                strict: true,
+                filters: { default: new Filter(FilterFieldOperator.EQUAL, 'id', 1) },
+                sort: { default: { id: 'DESC' } },
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse({
+                filters: { name: 'admin' },
+                sort: '-name',
+            }, { schema: 'foo' });
+
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+            ]));
+            expect(output.sorts).toEqual(new Sorts([
+                new Sort('id', SortDirection.DESC),
+            ]));
+        });
+
+        it('should reject everything when parsing schemaless with the strict option', async () => {
+            const parser = new SimpleParser();
+
+            const output = parser.parse({
+                fields: ['id'],
+                filters: { name: 'admin' },
+                relations: ['realm'],
+                sort: '-id',
+            }, { strict: true });
+
+            expect(output.fields).toEqual(new Fields());
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, []));
+            expect(output.relations).toEqual(new Relations());
+            expect(output.sorts).toEqual(new Sorts());
+        });
+
+        it('should let the parse option override a strict schema', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'foo',
+                strict: true,
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse({ fields: ['id'] }, {
+                schema: 'foo',
+                strict: false,
+            });
+
+            expect(output.fields).toEqual(new Fields([
+                new Field('id'),
+            ]));
+        });
+
+        it('should throw under strict when the schema sets throwOnFailure', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'foo',
+                strict: true,
+                throwOnFailure: true,
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            expect(() => parser.parse({ filters: { name: 'admin' } }, { schema: 'foo' })).toThrow(FiltersParseError);
+        });
     });
 
     it('should keep relations when other parameters are parsed', async () => {

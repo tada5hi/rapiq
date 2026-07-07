@@ -56,6 +56,13 @@ export class ParseError extends BaseError {
         });
     }
 
+    static keyPathNotPermitted(key: string) {
+        return new this({
+            message: `The key path ${key} is not permitted.`,
+            code: ErrorCode.KEY_PATH_NOT_ALLOWED,
+        });
+    }
+
     static keyValueInvalid(key: string) {
         return new this({
             message: `The value of the key ${key} is invalid.`,

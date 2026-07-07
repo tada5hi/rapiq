@@ -31,6 +31,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const scope = ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
         });
 
         return this.parseWithScope(input, scope);

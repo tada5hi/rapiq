@@ -339,7 +339,7 @@ describe('filters/expr-parser', () => {
         });
 
         it('should honor the relations context', () => {
-            const error = FiltersParseError.keyPathInvalid('items');
+            const error = FiltersParseError.keyPathNotPermitted('items');
 
             expect(() => constrained.parseExact('eq(items.id, \'1\')', {
                 schema: 'user',
@@ -364,6 +364,31 @@ describe('filters/expr-parser', () => {
         });
     });
 
+    describe('parse (strict mode)', () => {
+        it('should throw for any key when parsing schemaless with the strict option', () => {
+            const error = FiltersParseError.keyNotPermitted('name');
+
+            expect(() => parser.parseExact('eq(name, \'admin\')', { strict: true })).toThrow(error);
+        });
+
+        it('should throw for undeclared keys under a strict schema', () => {
+            const schema = defineFiltersSchema({ strict: true });
+            const error = FiltersParseError.keyNotPermitted('name');
+
+            expect(() => parser.parseExact('eq(name, \'admin\')', { schema })).toThrow(error);
+        });
+
+        it('should keep a declared allow-list working under strict', () => {
+            const schema = defineFiltersSchema({
+                allowed: ['name'],
+                strict: true,
+            });
+            const output = parser.parseExact('eq(name, \'admin\')', { schema });
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
+        });
+    });
+
     describe('ExpressionParser (composite)', () => {
         it('should keep dotted fields when parsing without a schema', () => {
             const composite = new ExpressionParser();
@@ -374,6 +399,13 @@ describe('filters/expr-parser', () => {
                 FilterCompoundOperator.AND,
                 [new Filter(FilterFieldOperator.EQUAL, 'user.friends', 5)],
             ));
+        });
+
+        it('should reject undeclared parameters when parsing with the strict option', () => {
+            const composite = new ExpressionParser();
+
+            expect(() => composite.parse({ filters: 'eq(name, \'admin\')' }, { strict: true }))
+                .toThrow(FiltersParseError.keyNotPermitted('name'));
         });
     });
 });
