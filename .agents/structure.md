@@ -48,7 +48,7 @@ packages/core/src/
 │   ├── relations/        # Relations/Relation
 │   ├── sorts/            # Sorts/Sort (asc/desc)
 │   ├── merge.ts          # mergeQueries (left-priority IR merge; per-node merge/and/or methods live on the node classes)
-│   └── module.ts         # Query, IQueryVisitor (QueryBuilder is deprecated → defineQuery)
+│   └── module.ts         # Query, IQueryVisitor (queries are built via defineQuery or parsed)
 ├── build/                # typed build layer: defineQuery + per-parameter define* factories
 │   └── parameter/        # Build*Input types + defineFields/defineFilters/… (schema-free, direct-to-AST)
 ├── schema/               # Schema, defineSchema(), per-parameter sub-schemas

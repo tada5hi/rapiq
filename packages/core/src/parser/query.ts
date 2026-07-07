@@ -12,9 +12,9 @@ import type {
     IPagination,
     IRelations,
     ISorts,
-    Query,
+    QueryContext,
 } from '../parameter';
-import { QueryBuilder } from '../parameter';
+import { Query } from '../parameter';
 import type { ObjectLiteral } from '../types';
 import { isObject, isPropertySet } from '../utils';
 import { BaseParser } from './base';
@@ -45,7 +45,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: unknown,
         options: ParseQueryOptions<RECORD> = {},
     ): Query {
-        const output = new QueryBuilder();
+        const output : QueryContext = {};
 
         const data : ObjectLiteral = isObject(input) ? input : {};
 
@@ -101,7 +101,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             );
         }
 
-        return output.build();
+        return new Query(output);
     }
 
     // -----------------------------------------------------
