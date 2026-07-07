@@ -17,11 +17,12 @@ import {
 const options: FiltersContainerOptions = { ...pg };
 
 describe('elemMatch', () => {
+    let relationsAdapter : RelationsAdapter;
     let adapter : FiltersAdapter;
     let visitor : FiltersVisitor;
 
     beforeEach(() => {
-        const relationsAdapter = new RelationsAdapter();
+        relationsAdapter = new RelationsAdapter();
         adapter = new FiltersAdapter(
             relationsAdapter,
             options,
@@ -42,6 +43,28 @@ describe('elemMatch', () => {
 
         expect(sql).toEqual('"projects"."active" = $1');
         expect(params).toStrictEqual([true]);
+    });
+
+    it('generates query from a nested condition', () => {
+        const condition = new Filter(
+            'elemMatch',
+            'items',
+            new Filter(
+                'elemMatch',
+                'parts',
+                new Filter('eq', 'id', 7),
+            ),
+        );
+        condition.accept(visitor);
+
+        const [sql, params] = adapter.getQueryAndParameters();
+
+        expect(sql).toEqual('"parts"."id" = $1');
+        expect(params).toStrictEqual([7]);
+
+        // the inner interior binds relative to the OUTER element —
+        // the join path composes instead of resetting to the root.
+        expect(relationsAdapter.getPaths()).toStrictEqual(['items', 'items.parts']);
     });
 
     it('generates query from a compound condition based on relation', () => {

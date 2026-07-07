@@ -89,7 +89,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     visitFilterElemMatch(expr: Filter<FilterFieldOperator.ELEM_MATCH, Filter | Filters>): IFiltersAdapter {
         const oldPrefix = this.adapter.getFieldPrefix();
 
-        this.adapter.setFieldPrefix(`${expr.field}.`);
+        this.adapter.setFieldPrefix(`${oldPrefix}${expr.field}.`);
 
         expr.value.accept(this);
 
