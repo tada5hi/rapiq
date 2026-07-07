@@ -16,17 +16,44 @@ It defines a scheme for the request, but **not** for the response.
 
 **Table of Contents**
 
+- [Packages](#packages)
 - [Installation](#installation)
 - [Documentation](#documentation)
 - [Parameters](#parameters)
 - [Usage](#usage)
 - [License](#license)
 
+## Packages
+
+Version 2 splits the former single `rapiq` package into focused, composable `@rapiq/*` packages —
+there is **no** `rapiq` umbrella package for v2, install only what you need
+(`@rapiq/core` is a peer dependency of every other package):
+
+| Package | Purpose |
+|---|---|
+| [@rapiq/core](packages/core) | Query AST, typed build layer (`defineQuery`, condition helpers, `mergeQueries`), schema system & registry |
+| [@rapiq/parser-simple](packages/parser-simple) | Parses plain object/array input (the "simple" dialect) into a `Query` |
+| [@rapiq/parser-expression](packages/parser-expression) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
+| [@rapiq/codec-url-simple](packages/codec-url-simple) | URL query-string encoder & decoder for the simple dialect |
+| [@rapiq/codec-url-expression](packages/codec-url-expression) | URL codec carrying nested filter compounds in a single `filter=and(...)` parameter |
+| [@rapiq/codec-url](packages/codec-url) | Registry dispatching between URL codec dialects via the reserved `codec` parameter |
+| [@rapiq/sql](packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
+| [@rapiq/typeorm](packages/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
+
 ## Installation
 
+Client side — build queries and encode them as URL query strings:
+
 ```bash
-npm install rapiq --save
+npm install @rapiq/core @rapiq/codec-url-simple
 ```
+
+Server side — decode & validate incoming query input and apply it to the database:
+
+```bash
+npm install @rapiq/core @rapiq/codec-url-simple @rapiq/sql @rapiq/typeorm
+```
+
 ## Documentation
 
 To read the docs, visit [https://rapiq.tada5hi.net](https://rapiq.tada5hi.net)
@@ -139,93 +166,48 @@ The next [section](#parse-) will describe, how to parse the query string on the 
 
 ### Parse 🔎
 
-The last step of the whole process is to parse the transpiled query string, to an efficient data structure.
-The result object (`ParseOutput`) can contain an output for each
-[Parameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#parameter)/
-[URLParameter](https://rapiq.tada5hi.net/guide/parameter-api-reference.md#urlparameter).
-- [Fields](https://rapiq.tada5hi.net/guide/fields-api-reference.md#fieldsparseoutput): `FieldsParseOutput<T>`
-- [Filter(s)](https://rapiq.tada5hi.net/guide/filters-api-reference.md#filtersparseoutput): `FiltersParseOutput<T>`
-- [Pagination](https://rapiq.tada5hi.net/guide/pagination-api-reference.md#paginationparseoutput): `PaginationParseOutput<T>`
-- [Relations](https://rapiq.tada5hi.net/guide/relations-api-reference.md#relationsparseoutput): `RelationsParseOutput<T>`
-- [Sort](https://rapiq.tada5hi.net/guide/sort-api-reference.md#sortparseoutput): `SortParseOutput<T>`
-
-> **NOTE**: Check out the API-Reference of each parameter for output formats and examples.
+On the server side the incoming query is decoded back into the same
+[Query](https://rapiq.tada5hi.net/guide/query) AST. A
+[Schema](https://rapiq.tada5hi.net/guide/schema) declares what a client may request per parameter
+(allow-lists, defaults, mappings) — anything outside it is silently dropped
+(set `throwOnFailure: true` on the schema to get a `ParseError` instead).
+The decoded query is then applied to the database by an adapter
+([@rapiq/typeorm](https://rapiq.tada5hi.net/integrations/typeorm) below;
+[@rapiq/sql](https://rapiq.tada5hi.net/integrations/sql) renders parameterized SQL fragments for any other driver).
 
 #### Example
 
 The following example is based on the assumption, that the following packages are installed:
 - [express](https://www.npmjs.com/package/express)
 - [typeorm](https://www.npmjs.com/package/typeorm)
-- [typeorm-extension](https://www.npmjs.com/package/typeorm-extension)
 
-For explanation purposes, three simple entities with relations between them are declared to demonstrate
-the usage on the backend side.
-
-**`entities.ts`**
-```typescript
-import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    OneToMany,
-    JoinColumn,
-    ManyToOne
-} from "typeorm";
-
-@Entity()
-export class User {
-    @PrimaryGeneratedColumn({unsigned: true})
-    id: number;
-
-    @Column({type: 'varchar', length: 30})
-    @Index({unique: true})
-    name: string;
-
-    @Column({type: 'varchar', length: 255, default: null, nullable: true})
-    email: string;
-
-    @Column({type: 'int', nullable: true})
-    age: number
-
-    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
-    realm: Realm;
-
-    @OneToMany(() => User, { onDelete: 'CASCADE' })
-    items: Item[];
-}
-
-@Entity()
-export class Realm {
-    @PrimaryColumn({ type: 'varchar', length: 36 })
-    id: string;
-
-    @Column({ type: 'varchar', length: 128, unique: true })
-    name: string;
-
-    @Column({ type: 'text', nullable: true, default: null })
-    description: string | null;
-}
-
-@Entity()
-export class Item {
-    @PrimaryGeneratedColumn({unsigned: true})
-    id: number;
-
-    @ManyToOne(() => Realm, { onDelete: 'CASCADE' })
-    realm: Realm;
-
-    @ManyToOne(() => User, { onDelete: 'CASCADE' })
-    user: User;
-}
-```
+It uses the same `User` & `Realm` types as the build example, declared as TypeORM entities.
 
 ```typescript
 import { Request, Response } from 'express';
+import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { URLDecoder } from '@rapiq/codec-url-simple';
+import { QueryVisitor } from '@rapiq/sql';
+import { TypeormAdapter } from '@rapiq/typeorm';
 
-import {
-    applyQuery,
-    useDataSource
-} from 'typeorm-extension';
+const registry = new SchemaRegistry();
+
+registry.add(defineSchema<Realm>({
+    name: 'realm',
+    fields: { allowed: ['id', 'name'] },
+}));
+
+registry.add(defineSchema<User>({
+    name: 'user',
+    fields: { allowed: ['id', 'name', 'email', 'age'] },
+    filters: { allowed: ['id', 'name', 'age'] },
+    relations: { allowed: ['items', 'realm'] },
+    pagination: { maxLimit: 20 },
+    sort: { allowed: ['id', 'name'] },
+    schemaMapping: { realm: 'realm' },
+}));
+
+const decoder = new URLDecoder(registry);
 
 /**
  * Get many users.
@@ -237,43 +219,32 @@ import {
  * @param res
  */
 export async function getUsers(req: Request, res: Response) {
-    const dataSource = await useDataSource();
-    const repository = dataSource.getRepository(User);
-    const query = repository.createQueryBuilder('user');
+    // map the URL wire names (filter, page, include, ...) to their canonical
+    // parameters and validate against the schema allow-lists.
+    const query = decoder.decode(req.query, { schema: 'user' });
+    if (!query) {
+        return res.status(400).end();
+    }
 
-    // -----------------------------------------------------
+    const queryBuilder = dataSource
+        .getRepository(User)
+        .createQueryBuilder('user');
 
-    // parse and apply data on the db query.
-    const { pagination } = applyQuery(query, req.query, {
-        defaultPath: 'user',
-        fields: {
-            allowed: ['id', 'name', 'realm.id', 'realm.name'],
-        },
-        filters: {
-            allowed: ['id', 'name', 'realm.id'],
-        },
-        relations: {
-            allowed: ['items', 'realm']
-        },
-        pagination: {
-            maxLimit: 20
-        },
-        sort: {
-            allowed: ['id', 'name', 'realm.id'],
-        }
+    const adapter = new TypeormAdapter({
+        relations: { joinAndSelect: true }
     });
+    adapter.withQuery(queryBuilder);
+    query.accept(new QueryVisitor(adapter));
+    const { pagination } = adapter.execute();
 
-    // -----------------------------------------------------
-
-    const [entities, total] = await query.getManyAndCount();
+    const [entities, total] = await queryBuilder.getManyAndCount();
 
     return res.json({
-        data: {
-            data: entities,
-            meta: {
-                total,
-                ...pagination
-            }
+        data: entities,
+        meta: {
+            total,
+            limit: pagination.limit,
+            offset: pagination.offset
         }
     });
 }

@@ -13,10 +13,11 @@ npm install @rapiq/core @rapiq/codec-url-simple
 
 ## Server side
 
-To parse and validate incoming query input:
+To decode and validate incoming URL query input (a raw query string or a pre-parsed
+object like express' `req.query`):
 
 ```sh
-npm install @rapiq/core @rapiq/parser-simple
+npm install @rapiq/core @rapiq/codec-url-simple
 ```
 
 Add the backend adapter that matches your stack:
@@ -37,8 +38,10 @@ npm install @rapiq/sql @rapiq/typeorm
 
 | Package | Install when… |
 |---|---|
-| `@rapiq/parser-expression` | you want to accept infix filter expressions like `age gte 18 and name eq 'John'` |
-| `@rapiq/codec-url-simple` | you want to decode full URL query strings on the server (it builds on `@rapiq/parser-simple`) |
+| `@rapiq/parser-simple` | your input already uses the canonical parameter keys (`filters`, `pagination`, …) instead of URL wire names — the layer `@rapiq/codec-url-simple` builds on |
+| `@rapiq/parser-expression` | you want to accept function-call filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
+| `@rapiq/codec-url-expression` | you want the expression dialect on the wire — a nested filter compound in a single `filter=and(...)` parameter |
+| `@rapiq/codec-url` | you accept more than one URL codec dialect and want dispatch via the reserved `codec` parameter |
 
 ## Requirements
 
