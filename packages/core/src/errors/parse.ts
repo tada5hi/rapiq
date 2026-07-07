@@ -69,4 +69,18 @@ export class ParseError extends BaseError {
             code: ErrorCode.KEY_VALUE_INVALID,
         });
     }
+
+    static operatorUnsupported(operator: string) {
+        return new this({
+            message: `The operator ${operator} is not supported.`,
+            code: ErrorCode.OPERATOR_UNSUPPORTED,
+        });
+    }
+
+    static featureUnsupported(feature: string) {
+        return new this({
+            message: `The feature ${feature} is not supported.`,
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
+    }
 }
