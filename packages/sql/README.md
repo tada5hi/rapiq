@@ -12,15 +12,14 @@ npm install @rapiq/core @rapiq/sql
 
 ## Usage
 
-A root `Adapter` bundles one sub-adapter per parameter, `QueryVisitor` walks a whole `Query` into it, and `build()` returns the accumulated clause fragments:
+A root `Adapter` bundles one sub-adapter per parameter; `execute(query)` walks a whole `Query` into it and returns the accumulated clause fragments:
 
 ```typescript
-import { Adapter, QueryVisitor, pg } from '@rapiq/sql';
+import { Adapter, pg } from '@rapiq/sql';
 
 const adapter = new Adapter({ ...pg, rootAlias: 'user' });
-query.accept(new QueryVisitor(adapter));
 
-const fragments = adapter.build();
+const fragments = adapter.execute(query);
 // {
 //     columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
 //     where: '("user"."age" >= $1 and ...)',

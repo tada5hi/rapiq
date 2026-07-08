@@ -163,7 +163,7 @@ type DialectOptions = {
 };
 ```
 
-`@rapiq/typeorm`: `TypeormAdapter<QUERY extends SelectQueryBuilder>` mirrors the SQL adapter but mutates a TypeORM query builder: `adapter.withQuery(qb)` → visitor walks query → `adapter.execute()`.
+`@rapiq/typeorm`: `TypeormAdapter<TARGET extends SelectQueryBuilder>` mirrors the SQL adapter but mutates a TypeORM query builder: `adapter.execute(query, qb)` walks the query and applies the accumulated state to the builder in a single call.
 
 `@rapiq/memory`: compile-once functional visitors — the core visitor interfaces implemented with `R = compiled function` (`IFiltersVisitor<Predicate>`, `ISortsVisitor<Comparator>`, `IFieldsVisitor<Projector>`, `IPaginationVisitor<Slicer>`, `IQueryVisitor<CompiledQuery>`): `compileFilters(condition)` → `(input) => boolean`, `applyQuery(query, data)` → `{ data, total, pagination }`. The semantics contract (SQL parity for positive operators, complement law for negations — `ne`/`nin`/`not*` match null/missing —, same-element join-row binding for dotted paths over arrays, keep-tree projection where relations widen a sparse field selection) is settled in `.agents/plans/014-memory.md`; do not re-litigate decisions recorded there.
 
