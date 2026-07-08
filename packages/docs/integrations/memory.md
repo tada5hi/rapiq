@@ -147,7 +147,7 @@ relation). Projection follows the TypeORM adapter:
 
 ## Errors
 
-Compilation throws a typed [`AdapterError`](/guide/errors) for structural problems:
+Compilation throws a typed `AdapterError` for structural problems:
 
 - an unknown filter operator or compound operator → `ErrorCode.OPERATOR_UNSUPPORTED`,
 - a malformed `elemMatch` or `regex` value → `ErrorCode.FEATURE_UNSUPPORTED`.
