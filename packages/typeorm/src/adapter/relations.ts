@@ -10,18 +10,18 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends RelationsBaseAdapter<QUERY> {
-    protected options : RelationsAdapterOptions<QUERY>;
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> extends RelationsBaseAdapter<TARGET> {
+    protected options : RelationsAdapterOptions<TARGET>;
 
-    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
+    constructor(options: RelationsAdapterOptions<TARGET> = {}) {
         super();
 
         this.options = options;
     }
 
     execute() : void {
-        if (!this.query) {
+        if (!this.target) {
             return;
         }
 
@@ -37,16 +37,16 @@ export class RelationsAdapter<
     }
 
     protected join(input: string): boolean {
-        if (!this.query) {
+        if (!this.target) {
             return false;
         }
 
         let relationFullName : string | undefined = input;
         let path : string | undefined;
-        let meta = this.query.expressionMap.mainAlias!.metadata;
-        let { alias } = this.query;
+        let meta = this.target.expressionMap.mainAlias!.metadata;
+        let { alias } = this.target;
 
-        const { joinAttributes } = this.query.expressionMap;
+        const { joinAttributes } = this.target.expressionMap;
 
         while (relationFullName) {
             let relationName : string;
@@ -69,7 +69,7 @@ export class RelationsAdapter<
                 this.applyJoin(`${alias}.${relationName}`, relationName);
 
                 if (this.options.onJoin) {
-                    this.options.onJoin(path, relationName, this.query);
+                    this.options.onJoin(path, relationName, this.target);
                 }
             }
 
@@ -81,7 +81,7 @@ export class RelationsAdapter<
     }
 
     protected applyJoin(property: string, alias: string) : void {
-        if (!this.query) {
+        if (!this.target) {
             return;
         }
 
@@ -89,14 +89,14 @@ export class RelationsAdapter<
 
         if (this.options.joinAndSelect) {
             if (inner) {
-                this.query.innerJoinAndSelect(property, alias);
+                this.target.innerJoinAndSelect(property, alias);
             } else {
-                this.query.leftJoinAndSelect(property, alias);
+                this.target.leftJoinAndSelect(property, alias);
             }
         } else if (inner) {
-            this.query.innerJoin(property, alias);
+            this.target.innerJoin(property, alias);
         } else {
-            this.query.leftJoin(property, alias);
+            this.target.leftJoin(property, alias);
         }
     }
 }

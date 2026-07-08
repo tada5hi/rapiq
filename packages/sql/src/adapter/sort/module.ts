@@ -14,12 +14,12 @@ export type SortContainerOptions = {
 };
 
 export class SortAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends SortBaseAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends SortBaseAdapter<TARGET> {
     protected options : SortContainerOptions;
 
     constructor(
-        relations: RelationsAdapter<QUERY>,
+        relations: RelationsAdapter<TARGET>,
         options: SortContainerOptions,
     ) {
         super(relations);

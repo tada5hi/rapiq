@@ -75,15 +75,14 @@ The `contains` / `startsWith` / `endsWith` operators (and their negations) match
 
 ## The root adapter
 
-Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state — selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five, `QueryVisitor` walks a whole `Query` into it, and `build()` returns the accumulated clause fragments:
+Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state — selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five; `execute(query)` walks a whole `Query` into it and returns the accumulated clause fragments:
 
 ```typescript
-import { Adapter, QueryVisitor, pg } from '@rapiq/sql';
+import { Adapter, pg } from '@rapiq/sql';
 
 const adapter = new Adapter({ ...pg, rootAlias: 'user' });
-query.accept(new QueryVisitor(adapter));
 
-const fragments = adapter.build();
+const fragments = adapter.execute(query);
 // {
 //     columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
 //     where: '("user"."age" >= $1 and ...)',

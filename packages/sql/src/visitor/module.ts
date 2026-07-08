@@ -72,11 +72,11 @@ export class QueryVisitor implements IQueryVisitor<IRootAdapter>,
         this.container = adapter;
         this.options = options;
 
-        this.fields = new FieldsVisitor(adapter.fields);
-        this.filters = new FiltersVisitor(adapter.filters);
-        this.pagination = new PaginationVisitor(adapter.pagination);
-        this.relations = new RelationsVisitor(adapter.relations);
-        this.sorts = new SortsVisitor(adapter.sort);
+        this.fields = new FieldsVisitor(adapter.fields, options);
+        this.filters = new FiltersVisitor(adapter.filters, options);
+        this.pagination = new PaginationVisitor(adapter.pagination, options);
+        this.relations = new RelationsVisitor(adapter.relations, options);
+        this.sorts = new SortsVisitor(adapter.sort, options);
     }
 
     // -----------------------------------------------------------

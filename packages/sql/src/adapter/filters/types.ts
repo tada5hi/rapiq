@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IAdapter } from '../types';
+import type { ISubAdapter } from '../types';
 
 export interface IFiltersAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends ISubAdapter<TARGET> {
     conditions: string[];
 
     params : unknown[];
@@ -30,7 +30,7 @@ export interface IFiltersAdapter<
     isRegexpSupported() : boolean;
 
     merge<
-        T extends IFiltersAdapter<QUERY>,
+        T extends IFiltersAdapter<TARGET>,
     >(
         query: T,
         operator?: 'and' | 'or',

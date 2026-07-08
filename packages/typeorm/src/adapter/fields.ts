@@ -10,15 +10,15 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FieldsBaseAdapter<QUERY> {
-    constructor(relations: RelationsAdapter<QUERY>) {
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> extends FieldsBaseAdapter<TARGET> {
+    constructor(relations: RelationsAdapter<TARGET>) {
         super(relations);
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
+        if (this.target) {
+            return this.target.alias;
         }
 
         return undefined;
@@ -32,13 +32,13 @@ export class FieldsAdapter<
     }
 
     execute() {
-        if (!this.query) {
+        if (!this.target) {
             return;
         }
 
         const columns = this.getColumns();
         if (columns.length > 0) {
-            this.query.select(columns);
+            this.target.select(columns);
         }
     }
 }

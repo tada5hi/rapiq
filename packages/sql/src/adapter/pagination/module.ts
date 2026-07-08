@@ -8,8 +8,8 @@
 import { PaginationBaseAdapter } from './base';
 
 export class PaginationAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends PaginationBaseAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends PaginationBaseAdapter<TARGET> {
     execute() {
 
     }

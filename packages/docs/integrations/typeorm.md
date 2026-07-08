@@ -9,7 +9,6 @@ npm install @rapiq/core @rapiq/sql @rapiq/typeorm
 ## Usage
 
 ```typescript
-import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
 
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
@@ -17,19 +16,19 @@ const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 const adapter = new TypeormAdapter({
     relations: { joinAndSelect: true },
 });
-adapter.withQuery(queryBuilder);
 
-query.accept(new QueryVisitor(adapter));
-const { pagination } = adapter.execute();
+const { pagination } = adapter.execute(query, queryBuilder);
 
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-The flow is always the same:
+`execute(query, queryBuilder)` does everything in one call: it walks the parsed `Query` (the AST), collects the state into its sub-adapters, and applies it to the builder — returning the applied pagination (e.g. for the response `meta` block).
 
-1. `withQuery(queryBuilder)` — attach the builder.
-2. `query.accept(new QueryVisitor(adapter))` — walk the AST; the adapter collects state.
-3. `adapter.execute()` — apply everything to the builder in one go; it returns the applied pagination (e.g. for the response `meta` block).
+By default each call clears any previously accumulated state, so an adapter instance is re-runnable. Pass `{ clear: false }` as a third argument to apply several queries onto the same builder, and `{ visitor }` to forward options to the underlying visitors:
+
+```typescript
+adapter.execute(query, queryBuilder, { clear: false });
+```
 
 ## Dialect detection
 
@@ -62,24 +61,21 @@ Joins are aliased by the relation path's **last segment**: `role.realm` joins as
 :::
 
 ::: info Migrating from typeorm-extension
-`applyQuery` used `leftJoinAndSelect` and returned the parsed pagination — `joinType: 'left'` (the default) and the `execute()` return value mirror that contract. The `onJoin` hook is the equivalent of typeorm-extension's `relations.onJoin`.
+`applyQuery` used `leftJoinAndSelect` and returned the parsed pagination — `joinType: 'left'` (the default) and the `execute(query, queryBuilder)` return value mirror that contract. The `onJoin` hook is the equivalent of typeorm-extension's `relations.onJoin`.
 :::
 
 ## Applying a single parameter
 
-Per-parameter visitors from `@rapiq/sql` work against the adapter's sub-adapters when only part of a query applies:
+A `Query` with only some parameters set applies just those — the rest are empty and become no-ops. To apply, say, only the filters of a parsed query:
 
 ```typescript
-import { FiltersVisitor } from '@rapiq/sql';
+import { Query } from '@rapiq/core';
 
 const adapter = new TypeormAdapter();
-adapter.withQuery(queryBuilder);
-
-query.filters.accept(new FiltersVisitor(adapter.filters));
-adapter.execute();
+adapter.execute(new Query({ filters: query.filters }), queryBuilder);
 ```
 
-The same pattern works with `FieldsVisitor` (`adapter.fields`), `SortsVisitor` (`adapter.sort`), `PaginationVisitor` (`adapter.pagination`) and `RelationsVisitor` (`adapter.relations`).
+For lower-level control, each per-parameter sub-adapter (`adapter.filters`, `adapter.fields`, `adapter.sort`, `adapter.pagination`, `adapter.relations`) exposes `setTarget()` + `execute()` and pairs with the matching `@rapiq/sql` visitor (`FiltersVisitor`, `FieldsVisitor`, `SortsVisitor`, `PaginationVisitor`, `RelationsVisitor`).
 
 ## End-to-end example
 
@@ -87,7 +83,6 @@ The same pattern works with `FieldsVisitor` (`adapter.fields`), `SortsVisitor` (
 import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { URLDecoder } from '@rapiq/codec-url-simple';
-import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
 // your app's TypeORM DataSource instance
 import { dataSource } from './data-source';
@@ -116,9 +111,7 @@ export async function getUsers(req: Request, res: Response) {
     const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
     const adapter = new TypeormAdapter({ relations: { joinAndSelect: true } });
-    adapter.withQuery(queryBuilder);
-    query.accept(new QueryVisitor(adapter));
-    const { pagination } = adapter.execute();
+    const { pagination } = adapter.execute(query, queryBuilder);
 
     const [entities, total] = await queryBuilder.getManyAndCount();
 

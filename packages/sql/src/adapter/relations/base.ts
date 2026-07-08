@@ -9,8 +9,8 @@ import { splitFirst } from '../../helpers';
 import type { IRelationsAdapter } from './types';
 
 export abstract class RelationsBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements IRelationsAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> implements IRelationsAdapter<TARGET> {
     /**
      * joins
      *
@@ -27,7 +27,7 @@ export abstract class RelationsBaseAdapter<
         executed?: boolean
     }[];
 
-    protected query : QUERY | undefined;
+    protected target : TARGET | undefined;
 
     // -----------------------------------------------------------
 
@@ -37,9 +37,8 @@ export abstract class RelationsBaseAdapter<
 
     // -----------------------------------------------------------
 
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
+    setTarget(target?: TARGET) {
+        this.target = target;
     }
 
     // -----------------------------------------------------------

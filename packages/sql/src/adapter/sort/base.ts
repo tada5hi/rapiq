@@ -11,18 +11,18 @@ import type { RelationsBaseAdapter } from '../relations';
 import type { ISortAdapter } from './types';
 
 export abstract class SortBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements ISortAdapter<QUERY> {
-    protected relations: RelationsBaseAdapter<QUERY>;
+    TARGET extends Record<string, any> = Record<string, any>,
+> implements ISortAdapter<TARGET> {
+    protected relations: RelationsBaseAdapter<TARGET>;
 
     protected value : Record<string, `${SortDirection}`>;
 
-    protected query : QUERY | undefined;
+    protected target : TARGET | undefined;
 
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<QUERY>,
+        relations: RelationsBaseAdapter<TARGET>,
     ) {
         this.relations = relations;
         this.value = {};
@@ -30,9 +30,8 @@ export abstract class SortBaseAdapter<
 
     // -----------------------------------------------------------
 
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
+    setTarget(target?: TARGET) {
+        this.target = target;
     }
 
     // -----------------------------------------------------------

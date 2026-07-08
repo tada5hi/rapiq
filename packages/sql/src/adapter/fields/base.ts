@@ -11,9 +11,9 @@ import type { RelationsBaseAdapter } from '../relations';
 import type { IFieldsAdapter } from './types';
 
 export abstract class FieldsBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements IFieldsAdapter {
-    protected relations: RelationsBaseAdapter<QUERY>;
+    TARGET extends Record<string, any> = Record<string, any>,
+> implements IFieldsAdapter<TARGET> {
+    protected relations: RelationsBaseAdapter<TARGET>;
 
     /**
      * selection fields.
@@ -22,12 +22,12 @@ export abstract class FieldsBaseAdapter<
      */
     protected value : { name: string, operator?: `${FieldOperator}` }[];
 
-    protected query : QUERY | undefined;
+    protected target : TARGET | undefined;
 
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<QUERY>,
+        relations: RelationsBaseAdapter<TARGET>,
     ) {
         this.relations = relations;
         this.value = [];
@@ -35,9 +35,8 @@ export abstract class FieldsBaseAdapter<
 
     // -----------------------------------------------------------
 
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
+    setTarget(target?: TARGET) {
+        this.target = target;
     }
 
     // -----------------------------------------------------------

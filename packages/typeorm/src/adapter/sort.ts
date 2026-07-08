@@ -10,15 +10,15 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
 export class SortAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends SortBaseAdapter<QUERY> {
-    constructor(relations: RelationsAdapter<QUERY>) {
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> extends SortBaseAdapter<TARGET> {
+    constructor(relations: RelationsAdapter<TARGET>) {
         super(relations);
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
+        if (this.target) {
+            return this.target.alias;
         }
 
         return undefined;
@@ -32,8 +32,8 @@ export class SortAdapter<
     }
 
     execute() {
-        if (this.query) {
-            this.query.orderBy(this.value);
+        if (this.target) {
+            this.target.orderBy(this.value);
         }
     }
 }

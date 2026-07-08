@@ -13,33 +13,33 @@ import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
 export class FiltersAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FiltersBaseAdapter<QUERY, RelationsAdapter<QUERY>> {
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> extends FiltersBaseAdapter<TARGET, RelationsAdapter<TARGET>> {
     protected dialect : DialectOptions;
 
-    constructor(relations: RelationsAdapter<QUERY>) {
+    constructor(relations: RelationsAdapter<TARGET>) {
         super(relations);
 
         this.dialect = resolveQueryDialect();
     }
 
-    override withQuery(query?: QUERY) {
-        this.dialect = resolveQueryDialect(query);
+    override setTarget(target?: TARGET) {
+        this.dialect = resolveQueryDialect(target);
 
-        return super.withQuery(query);
+        super.setTarget(target);
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
+        if (this.target) {
+            return this.target.alias;
         }
 
         return undefined;
     }
 
     escapeField(field: string) {
-        if (this.query) {
-            return this.query.escape(field);
+        if (this.target) {
+            return this.target.escape(field);
         }
 
         return this.dialect.escapeField(field);
@@ -72,8 +72,8 @@ export class FiltersAdapter<
     execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        if (this.query) {
-            this.query.where(sql, params);
+        if (this.target) {
+            this.target.where(sql, params);
         }
     }
 }

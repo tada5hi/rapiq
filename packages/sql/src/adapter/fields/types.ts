@@ -6,10 +6,10 @@
  */
 
 import type { FieldOperator } from '@rapiq/core';
-import type { IAdapter } from '../types';
+import type { ISubAdapter } from '../types';
 
 export interface IFieldsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends ISubAdapter<TARGET> {
     add(input: string, operator?: `${FieldOperator}`): void;
 }

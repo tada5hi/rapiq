@@ -9,13 +9,13 @@ import { RelationsBaseAdapter } from './base';
 import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends RelationsBaseAdapter<QUERY> {
-    protected options : RelationsAdapterOptions<QUERY>;
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends RelationsBaseAdapter<TARGET> {
+    protected options : RelationsAdapterOptions<TARGET>;
 
     // -----------------------------------------------------------
 
-    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
+    constructor(options: RelationsAdapterOptions<TARGET> = {}) {
         super();
 
         this.options = options;

@@ -8,19 +8,18 @@
 import type { IPaginationAdapter } from './types';
 
 export abstract class PaginationBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements IPaginationAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> implements IPaginationAdapter<TARGET> {
     public limit : number | undefined;
 
     public offset : number | undefined;
 
-    protected query : QUERY | undefined;
+    protected target : TARGET | undefined;
 
     // -----------------------------------------------------------
 
-    withQuery(query?: QUERY): PaginationBaseAdapter<QUERY> {
-        this.query = query;
-        return this;
+    setTarget(target?: TARGET) {
+        this.target = target;
     }
 
     // -----------------------------------------------------------

@@ -37,7 +37,7 @@ describe('src/adapter/filters.ts', () => {
             .createQueryBuilder('user');
 
         const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
+        adapter.filters.setTarget(queryBuilder);
 
         condition.accept(new FiltersVisitor(adapter.filters));
 

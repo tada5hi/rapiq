@@ -5,32 +5,80 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IQuery } from '@rapiq/core';
+import type { VisitorOptions } from '../visitor/types';
 import type { IFieldsAdapter } from './fields';
 import type { IFiltersAdapter } from './filters';
 import type { IPaginationAdapter } from './pagination';
 import type { IRelationsAdapter } from './relations';
 import type { ISortAdapter } from './sort';
 
-export interface IAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
+/**
+ * Options for a single {@link IRootAdapter.execute} call.
+ */
+export type ExecuteOptions = {
+    /**
+     * Reset the accumulated state before walking the query.
+     *
+     * `true` (default) makes execute() self-contained and re-runnable;
+     * pass `false` to accumulate across multiple execute() calls
+     * (e.g. applying several queries onto the same target).
+     */
+    clear?: boolean,
+
+    /**
+     * Options forwarded to the {@link QueryVisitor} (and its sub-visitors)
+     * that walks the query.
+     */
+    visitor?: VisitorOptions,
+};
+
+/**
+ * Shared contract for the per-parameter sub-adapters that accumulate
+ * clause state during a query walk.
+ *
+ * `TARGET` is the backend object the state is applied to on execute
+ * (e.g. a TypeORM `SelectQueryBuilder`); the plain SQL adapter leaves it
+ * unset and emits {@link SqlFragments} instead.
+ */
+export interface ISubAdapter<
+    TARGET extends Record<string, any> = Record<string, any>,
 > {
-    withQuery(query?: QUERY): void;
+    setTarget(target?: TARGET): void;
     execute() : void;
     clear() : void;
 }
 
+/**
+ * Root adapter contract: walks a rapiq {@link IQuery} into the sub-adapters
+ * and emits the backend result — SQL fragments, or the echo of a mutated
+ * target.
+ */
 export interface IRootAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
-    relations : IRelationsAdapter<QUERY>;
+    TARGET extends Record<string, any> = Record<string, any>,
+    OUTPUT = unknown,
+> {
+    relations : IRelationsAdapter<TARGET>;
 
-    fields : IFieldsAdapter<QUERY>;
+    fields : IFieldsAdapter<TARGET>;
 
-    filters : IFiltersAdapter<QUERY>;
+    filters : IFiltersAdapter<TARGET>;
 
-    pagination : IPaginationAdapter<QUERY>;
+    pagination : IPaginationAdapter<TARGET>;
 
-    sort : ISortAdapter<QUERY>;
+    sort : ISortAdapter<TARGET>;
+
+    /**
+     * Walk `query` into the sub-adapters and emit the backend result.
+     *
+     * @param query   the parsed rapiq query (AST) to consume.
+     * @param target  the backend object to apply state to (optional; the
+     *                plain SQL adapter ignores it and returns fragments).
+     * @param options per-call options ({@link ExecuteOptions}).
+     */
+    execute(query: IQuery, target?: TARGET, options?: ExecuteOptions): OUTPUT;
+
+    clear() : void;
 }
 
 /**

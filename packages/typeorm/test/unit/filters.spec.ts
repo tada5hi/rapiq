@@ -6,13 +6,11 @@
  */
 
 import {
-    FiltersVisitor,
-} from '@rapiq/sql';
-import {
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    Query,
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
@@ -50,12 +48,12 @@ describe('src/filters', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
-        const visitor = new FiltersVisitor(adapter.filters);
-        condition.accept(visitor);
+        const filters = condition instanceof Filters ?
+            condition :
+            new Filters(FilterCompoundOperator.AND, [condition]);
 
-        adapter.execute();
+        const adapter = new TypeormAdapter();
+        adapter.execute(new Query({ filters }), queryBuilder);
 
         return queryBuilder;
     };

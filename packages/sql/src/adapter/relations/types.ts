@@ -5,20 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IAdapter } from '../types';
+import type { ISubAdapter } from '../types';
 
 export interface IRelationsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends ISubAdapter<TARGET> {
     add(input: string): void;
 }
 
 export type JoinRelationFn<
-    QUERY extends Record<string, any> = Record<string, any>,
+    TARGET extends Record<string, any> = Record<string, any>,
 > = (
     relation: string,
     alias?: string,
-    query?: QUERY,
+    target?: TARGET,
 ) => boolean;
 
 export type RelationsAdapterBaseOptions = {
@@ -29,8 +29,8 @@ export type RelationsAdapterBaseOptions = {
 };
 
 export type RelationsAdapterOptions<
-    QUERY extends Record<string, any> = Record<string, any>,
+    TARGET extends Record<string, any> = Record<string, any>,
 > = RelationsAdapterBaseOptions & {
-    join?: JoinRelationFn<QUERY>,
+    join?: JoinRelationFn<TARGET>,
 
 };

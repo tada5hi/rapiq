@@ -14,12 +14,12 @@ export type FieldsContainerOptions = {
 };
 
 export class FieldsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends FieldsBaseAdapter<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+> extends FieldsBaseAdapter<TARGET> {
     protected options : FieldsContainerOptions;
 
     constructor(
-        relations: RelationsAdapter<QUERY>,
+        relations: RelationsAdapter<TARGET>,
         options: FieldsContainerOptions,
     ) {
         super(relations);

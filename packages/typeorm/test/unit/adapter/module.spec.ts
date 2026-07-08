@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { Pagination, Query } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../../src';
 import { User } from '../../data/entity/user';
@@ -23,11 +24,11 @@ describe('src/adapter/module.ts', () => {
             .createQueryBuilder('user');
 
         const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
-        adapter.pagination.setLimit(10);
-        adapter.pagination.setOffset(20);
 
-        const output = adapter.execute();
+        const output = adapter.execute(
+            new Query({ pagination: new Pagination(10, 20) }),
+            queryBuilder,
+        );
 
         expect(output.pagination).toEqual({ limit: 10, offset: 20 });
         expect(queryBuilder.expressionMap.take).toEqual(10);
@@ -40,9 +41,8 @@ describe('src/adapter/module.ts', () => {
             .createQueryBuilder('user');
 
         const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
 
-        const output = adapter.execute();
+        const output = adapter.execute(new Query(), queryBuilder);
 
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
     });

@@ -13,7 +13,6 @@ import {
     eq,
 } from '@rapiq/core';
 import type { Schema } from '@rapiq/core';
-import { QueryVisitor } from '@rapiq/sql';
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
@@ -58,10 +57,7 @@ function createUserRepository(schema: Schema<User>) {
                 },
             });
 
-            adapter.withQuery(queryBuilder);
-            query!.accept(new QueryVisitor(adapter));
-
-            return adapter.execute();
+            return adapter.execute(query!, queryBuilder);
         },
     };
 }
@@ -189,9 +185,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
 
             const adapter = new TypeormAdapter<SelectQueryBuilder<User>>();
             const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
-            adapter.withQuery(queryBuilder);
-            scoped.accept(new QueryVisitor(adapter));
-            adapter.execute();
+            adapter.execute(scoped, queryBuilder);
 
             return queryBuilder;
         };

@@ -9,19 +9,19 @@ import { PaginationBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 export class PaginationAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends PaginationBaseAdapter<QUERY> {
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> extends PaginationBaseAdapter<TARGET> {
     override execute() {
-        if (!this.query) {
+        if (!this.target) {
             return;
         }
 
         if (this.limit) {
-            this.query.take(this.limit);
+            this.target.take(this.limit);
         }
 
         if (this.offset) {
-            this.query.skip(this.offset);
+            this.target.skip(this.offset);
         }
     }
 }

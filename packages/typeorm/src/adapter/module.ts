@@ -5,7 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IRootAdapter } from '@rapiq/sql';
+import type { IQuery } from '@rapiq/core';
+import type { ExecuteOptions, IRootAdapter } from '@rapiq/sql';
+import { QueryVisitor } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import { RelationsAdapter } from './relations';
 import { FieldsAdapter } from './fields';
@@ -15,36 +17,32 @@ import type { TypeormAdapterOptions, TypeormAdapterOutput } from './types';
 import { PaginationAdapter } from './pagination';
 
 export class TypeormAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> implements IRootAdapter<QUERY> {
-    public readonly relations : RelationsAdapter<QUERY>;
+    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
+> implements IRootAdapter<TARGET, TypeormAdapterOutput> {
+    public readonly relations : RelationsAdapter<TARGET>;
 
-    public readonly fields : FieldsAdapter<QUERY>;
+    public readonly fields : FieldsAdapter<TARGET>;
 
-    public readonly filters : FiltersAdapter<QUERY>;
+    public readonly filters : FiltersAdapter<TARGET>;
 
-    public readonly pagination : PaginationAdapter<QUERY>;
+    public readonly pagination : PaginationAdapter<TARGET>;
 
-    public readonly sort : SortAdapter<QUERY>;
+    public readonly sort : SortAdapter<TARGET>;
 
-    protected query : QUERY | undefined;
-
-    constructor(options: TypeormAdapterOptions<QUERY> = {}) {
-        this.relations = new RelationsAdapter<QUERY>(options.relations);
-        this.fields = new FieldsAdapter<QUERY>(this.relations);
-        this.filters = new FiltersAdapter<QUERY>(this.relations);
-        this.pagination = new PaginationAdapter<QUERY>();
-        this.sort = new SortAdapter<QUERY>(this.relations);
+    constructor(options: TypeormAdapterOptions<TARGET> = {}) {
+        this.relations = new RelationsAdapter<TARGET>(options.relations);
+        this.fields = new FieldsAdapter<TARGET>(this.relations);
+        this.filters = new FiltersAdapter<TARGET>(this.relations);
+        this.pagination = new PaginationAdapter<TARGET>();
+        this.sort = new SortAdapter<TARGET>(this.relations);
     }
 
-    withQuery(query?: QUERY) {
-        this.query = query;
-
-        this.relations.withQuery(query);
-        this.fields.withQuery(query);
-        this.filters.withQuery(query);
-        this.pagination.withQuery(query);
-        this.sort.withQuery(query);
+    protected setTarget(target?: TARGET) {
+        this.relations.setTarget(target);
+        this.fields.setTarget(target);
+        this.filters.setTarget(target);
+        this.pagination.setTarget(target);
+        this.sort.setTarget(target);
     }
 
     clear() {
@@ -55,7 +53,23 @@ export class TypeormAdapter<
         this.relations.clear();
     }
 
-    execute() : TypeormAdapterOutput {
+    /**
+     * Walk `query` into the sub-adapters and apply the accumulated state
+     * to the target query builder.
+     */
+    execute(
+        query: IQuery,
+        target?: TARGET,
+        options: ExecuteOptions = {},
+    ) : TypeormAdapterOutput {
+        if (options.clear ?? true) {
+            this.clear();
+        }
+
+        this.setTarget(target);
+
+        query.accept(new QueryVisitor(this, options.visitor));
+
         this.fields.execute();
         this.filters.execute();
         this.pagination.execute();
