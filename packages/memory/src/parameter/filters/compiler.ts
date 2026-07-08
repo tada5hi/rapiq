@@ -1,0 +1,310 @@
+/*
+ * Copyright (c) 2026.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+import type { 
+    FilterFieldOperator, 
+    IFilter, 
+    IFilterVisitor, 
+    IFilters, 
+    IFiltersVisitor, 
+} from '@rapiq/core';
+import {
+    AdapterError,
+    FilterCompoundOperator,
+    FilterRegexFlag,
+    createFilterRegex,
+    isFilter,
+    isFilters,
+} from '@rapiq/core';
+import {
+    compareValues,
+    isValueEqual,
+    normalizeValue,
+    resolveProperty,
+    toText,
+} from '../../helpers';
+import type { FilterCompileResult, ValueTest } from './types';
+
+/**
+ * Positive leaf tests treat an array value by element
+ * (membership semantics where SQL has no array columns).
+ */
+function anyValue(test: ValueTest) : ValueTest {
+    return (value) => {
+        if (Array.isArray(value)) {
+            return value.some((element) => test(normalizeValue(element)));
+        }
+
+        return test(value);
+    };
+}
+
+/**
+ * Compiles a condition tree into per-binding evaluation functions and
+ * collects the relation paths the tree references. Field prefixes compose
+ * through elemMatch exactly like the SQL adapter, so conditions sharing a
+ * relation path bind to the same array element.
+ */
+export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
+    IFilterVisitor<FilterCompileResult> {
+    public readonly paths : Set<string>;
+
+    protected fieldPrefix : string;
+
+    constructor() {
+        this.paths = new Set();
+        this.fieldPrefix = '';
+    }
+
+    // -----------------------------------------------------------
+
+    visitFilterEqual(expr: IFilter<FilterFieldOperator.EQUAL>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildEqualTest(expr.value));
+    }
+
+    visitFilterNotEqual(expr: IFilter<FilterFieldOperator.NOT_EQUAL>) : FilterCompileResult {
+        const test = this.buildEqualTest(expr.value);
+
+        return this.leaf(expr.field, (value) => !test(value));
+    }
+
+    visitFilterLessThan(expr: IFilter<FilterFieldOperator.LESS_THAN>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildCompareTest(expr.value, -1, -1));
+    }
+
+    visitFilterLessThanEqual(expr: IFilter<FilterFieldOperator.LESS_THAN_EQUAL>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildCompareTest(expr.value, -1, 0));
+    }
+
+    visitFilterGreaterThan(expr: IFilter<FilterFieldOperator.GREATER_THAN>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildCompareTest(expr.value, 1, 1));
+    }
+
+    visitFilterGreaterThanEqual(expr: IFilter<FilterFieldOperator.GREATER_THAN_EQUAL>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildCompareTest(expr.value, 0, 1));
+    }
+
+    visitFilterExists(expr: IFilter<FilterFieldOperator.EXISTS, boolean>) : FilterCompileResult {
+        if (expr.value) {
+            return this.leaf(expr.field, (value) => value !== null);
+        }
+
+        return this.leaf(expr.field, (value) => value === null);
+    }
+
+    visitFilterIn(expr: IFilter<FilterFieldOperator.IN, unknown[]>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildInTest(expr.value));
+    }
+
+    visitFilterNotIn(expr: IFilter<FilterFieldOperator.NOT_IN, unknown[]>) : FilterCompileResult {
+        const test = this.buildInTest(expr.value);
+
+        return this.leaf(expr.field, (value) => !test(value));
+    }
+
+    visitFilterMod(expr: IFilter<FilterFieldOperator.MOD, [number, number]>) : FilterCompileResult {
+        if (
+            !Array.isArray(expr.value) ||
+            expr.value.length !== 2 ||
+            !Number.isFinite(expr.value[0]) ||
+            !Number.isFinite(expr.value[1]) ||
+            expr.value[0] === 0
+        ) {
+            return this.leaf(expr.field, () => false);
+        }
+
+        const [divisor, remainder] = expr.value;
+
+        return this.leaf(expr.field, anyValue(
+            (value) => typeof value === 'number' &&
+                Number.isFinite(value) &&
+                value % divisor === remainder,
+        ));
+    }
+
+    visitFilterElemMatch(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : FilterCompileResult {
+        if (!isFilter(expr.value) && !isFilters(expr.value)) {
+            throw AdapterError.featureUnsupported('filters:elemMatch:value');
+        }
+
+        const oldPrefix = this.fieldPrefix;
+
+        this.fieldPrefix = `${oldPrefix}${expr.field}.`;
+
+        try {
+            return expr.value.accept(this);
+        } finally {
+            this.fieldPrefix = oldPrefix;
+        }
+    }
+
+    visitFilterStartsWith(expr: IFilter<FilterFieldOperator.STARTS_WITH>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.STARTS_WITH));
+    }
+
+    visitFilterNotStartsWith(expr: IFilter<FilterFieldOperator.NOT_STARTS_WITH>) : FilterCompileResult {
+        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.STARTS_WITH);
+
+        return this.leaf(expr.field, (value) => !test(value));
+    }
+
+    visitFilterEndsWith(expr: IFilter<FilterFieldOperator.ENDS_WITH>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.ENDS_WITH));
+    }
+
+    visitFilterNotEndsWith(expr: IFilter<FilterFieldOperator.NOT_ENDS_WITH>) : FilterCompileResult {
+        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.ENDS_WITH);
+
+        return this.leaf(expr.field, (value) => !test(value));
+    }
+
+    visitFilterContains(expr: IFilter<FilterFieldOperator.CONTAINS>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.CONTAINS));
+    }
+
+    visitFilterNotContains(expr: IFilter<FilterFieldOperator.NOT_CONTAINS>) : FilterCompileResult {
+        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.CONTAINS);
+
+        return this.leaf(expr.field, (value) => !test(value));
+    }
+
+    visitFilterRegex(expr: IFilter<FilterFieldOperator.REGEX, RegExp>) : FilterCompileResult {
+        return this.leaf(expr.field, this.buildRegexTest(this.buildRegex(expr.value)));
+    }
+
+    visitFilter(expr: IFilter) : FilterCompileResult {
+        throw AdapterError.operatorUnsupported(expr.operator);
+    }
+
+    visitFilters(expr: IFilters) : FilterCompileResult {
+        if (
+            expr.operator !== FilterCompoundOperator.AND &&
+            expr.operator !== FilterCompoundOperator.OR
+        ) {
+            throw AdapterError.operatorUnsupported(expr.operator);
+        }
+
+        const children : NonNullable<FilterCompileResult>[] = [];
+        for (let i = 0; i < expr.value.length; i++) {
+            const child = expr.value[i];
+            if (!child) {
+                continue;
+            }
+
+            if (isFilter(child) || isFilters(child)) {
+                const compiled = child.accept(this);
+                if (compiled) {
+                    children.push(compiled);
+                }
+            }
+        }
+
+        // an empty compound vanishes, exactly like an empty
+        // child adapter in the SQL merge step.
+        if (children.length === 0) {
+            return null;
+        }
+
+        if (expr.operator === FilterCompoundOperator.OR) {
+            return (ctx, root) => children.some((child) => child(ctx, root));
+        }
+
+        return (ctx, root) => children.every((child) => child(ctx, root));
+    }
+
+    // -----------------------------------------------------------
+
+    protected leaf(field: string, test: ValueTest) : FilterCompileResult {
+        const key = `${this.fieldPrefix}${field}`;
+        const separatorIndex = key.lastIndexOf('.');
+
+        if (separatorIndex === -1) {
+            return (_ctx, root) => test(resolveProperty(root, key));
+        }
+
+        const path = key.slice(0, separatorIndex);
+        const name = key.slice(separatorIndex + 1);
+
+        this.registerPath(path);
+
+        return (ctx) => test(resolveProperty(ctx.get(path), name));
+    }
+
+    protected registerPath(path: string) : void {
+        const segments = path.split('.');
+
+        for (let i = 0; i < segments.length; i++) {
+            this.paths.add(segments.slice(0, i + 1).join('.'));
+        }
+    }
+
+    // -----------------------------------------------------------
+
+    protected buildEqualTest(input: unknown) : ValueTest {
+        const condition = normalizeValue(input);
+
+        return anyValue((value) => isValueEqual(value, condition));
+    }
+
+    protected buildCompareTest(input: unknown, min: number, max: number) : ValueTest {
+        const condition = normalizeValue(input);
+
+        return anyValue((value) => {
+            const result = compareValues(value, condition);
+            if (result === undefined) {
+                return false;
+            }
+
+            return result >= min && result <= max;
+        });
+    }
+
+    protected buildInTest(input: unknown[]) : ValueTest {
+        if (!Array.isArray(input)) {
+            return () => false;
+        }
+
+        const items = input.map((item) => normalizeValue(item));
+
+        return anyValue(
+            (value) => items.some((item) => isValueEqual(value, item)),
+        );
+    }
+
+    protected buildAnchoredTest(input: unknown, flag: number) : ValueTest {
+        return this.buildRegexTest(createFilterRegex(`${input}`, flag));
+    }
+
+    protected buildRegexTest(regex: RegExp) : ValueTest {
+        return anyValue((value) => {
+            const text = toText(value);
+            if (text === undefined) {
+                return false;
+            }
+
+            return regex.test(text);
+        });
+    }
+
+    protected buildRegex(input: unknown) : RegExp {
+        if (input instanceof RegExp) {
+            // rebuild without the stateful flags, so repeated
+            // test() calls never depend on lastIndex.
+            return new RegExp(input.source, input.flags.replace(/[gy]/g, ''));
+        }
+
+        if (typeof input === 'string') {
+            try {
+                return new RegExp(input);
+            } catch {
+                throw AdapterError.featureUnsupported('filters:regex:value');
+            }
+        }
+
+        throw AdapterError.featureUnsupported('filters:regex:value');
+    }
+}
