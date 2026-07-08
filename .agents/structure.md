@@ -9,6 +9,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/core](../packages/core)                           | Library  | Query AST (fields/filters/pagination/relations/sorts), visitor interfaces, schema system + registry, parser base classes, errors |
 | [@rapiq/parser-simple](../packages/parser-simple)         | Library  | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
+| [@rapiq/parser-mongo](../packages/parser-mongo)           | Library  | Parses MongoDB-style filter documents (e.g. `{ age: { $gte: 18 } }`, `$and`/`$or`/`$not`) into a `Query` |
 | [@rapiq/codec-url-simple](../packages/codec-url-simple)   | Library  | URL query-string encoder (`URLEncoder`) & decoder (`URLDecoder`) for the simple dialect; uses `qs` |
 | [@rapiq/codec-url-expression](../packages/codec-url-expression) | Library | URL codec for the expression dialect: nested filter compounds in a single `filter=and(...)` param; other parameters shared with codec-url-simple |
 | [@rapiq/codec-url](../packages/codec-url)                 | Library  | `URLCodecRegistry` dispatching between URL codec dialects via the in-band reserved `codec` parameter (default: simple) |
@@ -30,6 +31,7 @@ Layer 1 (depend on core):
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
+  @rapiq/parser-mongo        (core + parser-simple)
   @rapiq/codec-url-simple    (core + parser-simple)
   @rapiq/typeorm             (core + sql + typeorm)
 
@@ -71,9 +73,9 @@ packages/core/src/
 Parser packages mirror core's parameter split:
 
 ```
-packages/parser-{simple,expression}/src/
+packages/parser-{simple,expression,mongo}/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/   # one parser class per parameter
-└── module.ts             # SimpleParser / ExpressionParser composing them
+└── module.ts             # SimpleParser / ExpressionParser / MongoParser composing them
 ```
 
 Backend/codec packages:

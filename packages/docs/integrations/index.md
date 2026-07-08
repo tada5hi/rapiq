@@ -8,6 +8,7 @@ Everything outside `@rapiq/core` is an integration: parsers turn input *into* th
 |---|---|---|
 | `@rapiq/parser-simple` | Plain objects & arrays (URL-query-like) | [Simple Parser](/integrations/simple) |
 | `@rapiq/parser-expression` | Expression strings (`and(eq(name, 'John'), gte(age, '18'))`) | [Expression Parser](/integrations/expression) |
+| `@rapiq/parser-mongo` | MongoDB-style filter documents (`{ age: { $gte: 18 } }`) | [Mongo Parser](/integrations/mongo) |
 | `@rapiq/codec-url-simple` | Raw URL query strings (decode) | [URL Codec](/integrations/url) |
 | `@rapiq/codec-url-expression` | Raw URL query strings, expression filter dialect (decode) | [URL Codec](/integrations/url#expression-dialect) |
 

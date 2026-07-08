@@ -28,7 +28,7 @@ URLEncoder (@rapiq/codec-url-simple)
 
 The `Query` AST is an **intermediate representation (IR)**. Every package plays exactly one role around it:
 
-1. **Define & interact** — client-side construction (plan 012): `defineQuery<RECORD>(QueryBuildInput)` + per-parameter `define*` fragment factories desugar typed input (scalars → `eq`, bare arrays → `in` with `null` legal, `$`-operator objects, condition-helper trees) straight to the AST — schema-free, no parsing. Condition helpers (`parameter/filters/helpers/`, one per `FilterFieldOperator`; `in` → `inArray` since `in` is reserved) build `Filter`/`Filters` nodes directly. Queries compose immutably via `mergeQueries` (left-priority; fields/relations/sorts keyed by name, pagination per-property) and the `Filters` combinators: `merge()` = per-field replace, flat root-AND only (typed `MergeError`, `ErrorCode.FILTERS_NOT_FLAT`); `and()`/`or()` = wrap & inject (server scoping — injected conditions can't be displaced by later merges). `$and`/`$or` object keys stay reserved for a future mongo parser dialect. `QueryBuilder` was removed — `defineQuery` replaces it.
+1. **Define & interact** — client-side construction (plan 012): `defineQuery<RECORD>(QueryBuildInput)` + per-parameter `define*` fragment factories desugar typed input (scalars → `eq`, bare arrays → `in` with `null` legal, `$`-operator objects, condition-helper trees) straight to the AST — schema-free, no parsing. Condition helpers (`parameter/filters/helpers/`, one per `FilterFieldOperator`; `in` → `inArray` since `in` is reserved) build `Filter`/`Filters` nodes directly. Queries compose immutably via `mergeQueries` (left-priority; fields/relations/sorts keyed by name, pagination per-property) and the `Filters` combinators: `merge()` = per-field replace, flat root-AND only (typed `MergeError`, `ErrorCode.FILTERS_NOT_FLAT`); `and()`/`or()` = wrap & inject (server scoping — injected conditions can't be displaced by later merges). `$and`/`$or` object keys stay reserved for the mongo parser dialect (`@rapiq/parser-mongo`). `QueryBuilder` was removed — `defineQuery` replaces it.
 2. **Parse to IR** — parsers transform *dialect* input (a spec for how parameters are written: "simple" object shapes, "expression" strings) into the IR, validated against a `Schema`. Parsers are **transport-agnostic**: they read only the canonical `Parameter` keys (`fields`, `filters`, `pagination`, `relations`, `sort`) and know nothing about how the input crossed a process boundary.
 3. **Consume the IR** — either interpret/walk it directly (`@rapiq/sql`, `@rapiq/typeorm` via visitors), or…
 4. **Transport the IR between application boundaries via a codec** — `@rapiq/codec-url-simple` is *one* such codec (HTTP URI scheme). The codec owns the complete wire format: the parameter wire names (`URLParameter`: `filter`, `page`, `include`, …) live **only** there, and `URLDecoder` is the boundary adapter — it accepts a raw query string *or* a pre-parsed query object (express `req.query`), maps wire names to canonical parameters and delegates to a schema-aware `SimpleParser`. App2 then works with the same IR. `@rapiq/codec-url-expression` is the sibling codec for the expression dialect (nested filter compounds in a single `filter=and(...)` param; the other four parameters share the simple wire machinery).
@@ -128,7 +128,7 @@ Parameter quirks (sort tuple groups, fields `execute()`, filter value parsing) s
 
 ### Parsers (dialects of input)
 
-Both parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-parser per parameter:
+All parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-parser per parameter:
 
 - **`SimpleParser`** (`packages/parser-simple/src/module.ts`) — plain object input, URL-query-like:
   ```typescript
@@ -143,6 +143,12 @@ Both parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-
 - **`ExpressionParser`** (`packages/parser-expression/src/module.ts`) — function-call filter expressions (values always single-quoted), tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
   ```
   or(and(eq(name, 'John'), gte(age, '18')), in(status, 'active', 'pending'))
+  ```
+- **`MongoParser`** (`packages/parser-mongo/src/module.ts`) — MongoDB-style filter documents with typed values (`$`-operator objects, `$and`/`$or`/`$nor` compounds, De Morgan `$not`/`$nor` negation, `$elemMatch`; six `$contains`-family operators are rapiq extensions). Only `filters` is mongo-flavored — the other four parameters reuse the simple sub-parsers. Two-class failure model: grammar errors (unknown/misplaced `$`-operators, malformed values) always throw `FiltersParseError`; field-key/allow-list failures follow the schema drop-vs-throw policy:
+  ```typescript
+  parser.parse({
+      filters: { $or: [{ name: 'John' }, { age: { $gte: 18, $lt: 65 } }] },
+  }, { schema: 'user' });
   ```
 
 ### Backend adapters

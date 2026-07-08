@@ -60,7 +60,7 @@ condition. Unknown `$` keys throw a `BuildError`
 (`ErrorCode.OPERATOR_UNSUPPORTED`) — input is never guessed at.
 
 ::: warning Reserved: `$and` / `$or`
-Compound object keys are reserved for a future MongoDB-notation parser dialect and deliberately **not** part of the build layer. Compound trees are written with the condition helpers instead: `filters: or(...)`.
+Compound object keys are reserved for the MongoDB-notation parser dialect ([Mongo Parser](/integrations/mongo)) and deliberately **not** part of the build layer. Compound trees are written with the condition helpers instead: `filters: or(...)`.
 :::
 
 ## Condition helpers
