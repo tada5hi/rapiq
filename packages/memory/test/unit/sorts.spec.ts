@@ -75,13 +75,14 @@ describe('sorts', () => {
     });
 
     it('should sort absent values last ascending, first descending', () => {
-        const input = [{ age: 30 }, {}, { age: null }, { age: 18 }];
+        // null, missing and explicit undefined are one absent value.
+        const input = [{ age: 30 }, {}, { age: null }, { age: undefined }, { age: 18 }];
 
         expect([...input].sort(compileSorts(new Sorts([new Sort('age')]))))
-            .toEqual([{ age: 18 }, { age: 30 }, {}, { age: null }]);
+            .toEqual([{ age: 18 }, { age: 30 }, {}, { age: null }, { age: undefined }]);
 
         expect([...input].sort(compileSorts(new Sorts([new Sort('age', SortDirection.DESC)]))))
-            .toEqual([{}, { age: null }, { age: 30 }, { age: 18 }]);
+            .toEqual([{}, { age: null }, { age: undefined }, { age: 30 }, { age: 18 }]);
     });
 
     it('should resolve dotted to-one paths', () => {
