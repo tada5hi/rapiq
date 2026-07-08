@@ -15,6 +15,9 @@
     "files": [
         "dist/"
     ],
+    "dependencies": {
+        "smob": "^1.6.2"
+    },
     "devDependencies": {
         "@rapiq/core": "^1.0.0"
     },

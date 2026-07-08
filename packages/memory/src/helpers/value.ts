@@ -6,6 +6,7 @@
  */
 
 import { isObject, isPropertySet } from '@rapiq/core';
+import { isEqual } from 'smob';
 
 /**
  * SQL knows a single absent value; unify undefined and null to null
@@ -15,15 +16,14 @@ export function normalizeValue(input: unknown) : unknown {
     return input === undefined ? null : input;
 }
 
+/**
+ * Deep value equality after null-unification. `smob`'s `isEqual`
+ * covers primitives, `Date` (by time) and structural object/array
+ * equality — so an object- or array-valued field is compared by
+ * value rather than by reference.
+ */
 export function isValueEqual(a: unknown, b: unknown) : boolean {
-    const left = normalizeValue(a);
-    const right = normalizeValue(b);
-
-    if (left instanceof Date && right instanceof Date) {
-        return left.getTime() === right.getTime();
-    }
-
-    return left === right;
+    return isEqual(normalizeValue(a), normalizeValue(b));
 }
 
 /**

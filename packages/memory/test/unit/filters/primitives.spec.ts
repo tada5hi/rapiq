@@ -46,6 +46,11 @@ describe('filters: primitive operators', () => {
             expect(predicate({ age: undefined })).toBeTruthy();
             expect(predicate({ age: 18 })).toBeFalsy();
         });
+
+        it('should match object and array values structurally', () => {
+            expect(compileFilters(eq('meta', { a: 1, b: [2, 3] }))({ meta: { a: 1, b: [2, 3] } })).toBeTruthy();
+            expect(compileFilters(eq('meta', { a: 1 }))({ meta: { a: 2 } })).toBeFalsy();
+        });
     });
 
     describe('ne', () => {
