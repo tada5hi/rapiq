@@ -232,6 +232,7 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/codec-url](packages/codec-url) | Registry dispatching between URL codec dialects via the reserved `codec` parameter |
 | [@rapiq/sql](packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
 | [@rapiq/typeorm](packages/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/memory](packages/memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
 
 ## Parameters
 

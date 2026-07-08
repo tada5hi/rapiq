@@ -26,5 +26,6 @@ Everything outside `@rapiq/core` is an integration: parsers turn input *into* th
 |---|---|---|
 | `@rapiq/sql` | Parameterized SQL fragments, five dialect presets | [SQL](/integrations/sql) |
 | `@rapiq/typeorm` | TypeORM `SelectQueryBuilder` | [TypeORM](/integrations/typeorm) |
+| `@rapiq/memory` | Plain JS objects & arrays (in-memory) | [Memory](/integrations/memory) |
 
 All integrations meet in the same [Query AST](/guide/query) — they compose freely.

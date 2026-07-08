@@ -15,6 +15,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/codec-url](../packages/codec-url)                 | Library  | `URLCodecRegistry` dispatching between URL codec dialects via the in-band reserved `codec` parameter (default: simple) |
 | [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
+| [@rapiq/memory](../packages/memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
 
 ## Package Dependency Layers
@@ -28,6 +29,7 @@ Foundation (no internal deps):
 Layer 1 (depend on core):
   @rapiq/parser-simple
   @rapiq/sql
+  @rapiq/memory
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
@@ -90,6 +92,12 @@ packages/sql/src/
 packages/typeorm/src/
 └── adapter/              # TypeormAdapter + sub-adapters targeting SelectQueryBuilder
 
+packages/memory/src/
+├── parameter/{fields,filters,pagination,relations,sorts}/  # visitors compiling AST nodes into functions
+├── query/                # CompiledQuery (matches/apply, pagination echo)
+├── helpers/              # value semantics (normalize/equal/compare/resolve)
+└── module.ts             # QueryVisitor + compileQuery/applyQuery/compile* helpers
+
 packages/codec-url-simple/src/
 ├── encoder/              # URLEncoder + serializer/ + visitors/
 ├── decoder/              # URLDecoder (qs-based, reuses parser-simple parsers)
@@ -130,3 +138,4 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 - **Turning raw input into the AST** → `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/codec-url-{simple,expression}` (decode)
 - **Turning the AST into transport format** → `@rapiq/codec-url-{simple,expression}` (encode), `@rapiq/codec-url` (dialect dispatch via in-band `codec` param)
 - **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`
+- **Evaluating the AST against in-memory data** → `@rapiq/memory` (predicates/comparators/projectors compiled from the AST)

@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) 2026.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+import type {
+    IFilter,
+    IFilterVisitor,
+    IFilters,
+    IFiltersVisitor,
+} from '@rapiq/core';
+import type { Predicate } from '../../types';
+import { createBoundPredicate } from './binding';
+import { FiltersCompiler } from './compiler';
+
+export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisitor<Predicate> {
+    visitFilters(expr: IFilters) : Predicate {
+        return this.compile(expr);
+    }
+
+    visitFilter(expr: IFilter) : Predicate {
+        return this.compile(expr);
+    }
+
+    // -----------------------------------------------------------
+
+    protected compile(expr: IFilter | IFilters) : Predicate {
+        const compiler = this.createCompiler();
+
+        const evaluate = expr.accept(compiler);
+        if (!evaluate) {
+            return () => true;
+        }
+
+        return createBoundPredicate(evaluate, compiler.paths);
+    }
+
+    protected createCompiler() : FiltersCompiler {
+        return new FiltersCompiler();
+    }
+}

@@ -32,6 +32,10 @@ npm install @rapiq/sql
 npm install @rapiq/sql @rapiq/typeorm
 ```
 
+```sh [In-memory]
+npm install @rapiq/memory
+```
+
 :::
 
 ## Optional packages
@@ -43,6 +47,7 @@ npm install @rapiq/sql @rapiq/typeorm
 | `@rapiq/parser-mongo` | you want to accept MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
 | `@rapiq/codec-url-expression` | you want the expression dialect on the wire — a nested filter compound in a single `filter=and(...)` parameter |
 | `@rapiq/codec-url` | you accept more than one URL codec dialect and want dispatch via the reserved `codec` parameter |
+| `@rapiq/memory` | you want to evaluate a `Query` against in-memory objects/arrays — e.g. authorization guards or mock backends |
 
 ## Requirements
 

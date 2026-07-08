@@ -47,4 +47,21 @@ package is the reference implementation for rapiq's mongo parser dialect
 
 ucast interprets its AST with per-operator interpreter functions (`@ucast/js`, `@ucast/sql`,
 `createInterpreter`); rapiq's equivalent is the visitor pattern (`IFilterVisitor` with optional
-per-operator methods) consumed by `@rapiq/sql` / `@rapiq/typeorm`.
+per-operator methods) consumed by `@rapiq/sql` / `@rapiq/typeorm` / `@rapiq/memory`.
+
+## In-memory evaluation (`@ucast/js` ↔ `@rapiq/memory`)
+
+`@ucast/js` is the reference implementation behind `@rapiq/memory` (plan 014); the maintainer
+explicitly rejected its interpreter-registry shape in favor of the core visitor interfaces.
+
+| ucast (`packages/js/src/`) | rapiq (`packages/memory/src/`) | Differences |
+|---|---|---|
+| `createJsInterpreter(operators, {get, compare})` → `interpret(condition, object)` | `FiltersVisitor`/`FiltersCompiler` (`parameter/filters/`), `compileFilters(condition)` → `Predicate` | rapiq compiles once to a reusable closure; extension = subclass `FiltersCompiler`, not an options bag |
+| interpreter registry (record of functions, unregistered op throws plain `Error`) | per-operator `visitFilterX` methods; `visitFilter` fallback throws `AdapterError.operatorUnsupported` | closed operator set over `FilterFieldOperator` |
+| `getObjectField`/`getValueByPath` (dot paths; array parent → map+**flatten**; numeric segments index arrays; `ITSELF` sentinel) | join-row binding (`parameter/filters/binding.ts`): dotted prefixes = relation paths, ∃-DFS binds one element per path (SQL LEFT-join parity); leaf lookup is own-property only | ucast quantifies each leaf independently; rapiq binds same-element across the tree (`elemMatch` = prefix composition, like `@rapiq/sql`) — settled by maintainer, plan 014 Q4. No numeric-index segments, no ITSELF |
+| `eq` (whole-array equality ∨ membership; RegExp value acts as pattern; null matches missing own-prop) | `buildEqualTest` (`parameter/filters/compiler.ts`): strict equality after null-unification, Date by `getTime`, array leaf → membership only | no whole-array equality, no RegExp-as-eq-value; `undefined` ≡ `null` (ucast: explicit `undefined` does NOT match null) |
+| `ne`/`nin` = `!eq`/`!within` (complement) | same complement law (plan 014 Q3) | agreement — this is where rapiq deviates from SQL 3VL instead |
+| `exists` = `hasOwn` (undefined-valued key exists) | `exists` = is-not-null | SQL parity beats mongo presence semantics |
+| `regex` resets `lastIndex` around `.test()` | compiled `RegExp` rebuilt without `g`/`y` flags | same goal, compile-time fix |
+| contains-family: none (regex only) | `contains/startsWith/endsWith` ± negation via core `createFilterRegex` (case-insensitive, literal-escaped) | rapiq extension operators |
+| no projection/sort/pagination | `FieldsVisitor` keep-tree, `SortsVisitor`, `PaginationVisitor`, `CompiledQuery.apply` | ucast is conditions-only; rapiq covers all five parameters |
