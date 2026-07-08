@@ -67,6 +67,16 @@ describe('filters: compounds', () => {
         expect(emptyOnly({ id: 1 })).toBeTruthy();
     });
 
+    it('should let an empty child of an or vanish, not force it true', () => {
+        // sql parity: an empty compound produces no condition, so the sql
+        // adapter's merge() skips it entirely — the or reduces to its
+        // remaining child rather than becoming always-true.
+        const predicate = compileFilters(or(eq('id', 1), and()));
+
+        expect(predicate({ id: 1 })).toBeTruthy();
+        expect(predicate({ id: 2 })).toBeFalsy();
+    });
+
     it('should throw on an unknown compound operator', () => {
         expect(() => compileFilters(new Filters('nor', [eq('id', 1)])))
             .toThrow(AdapterError);

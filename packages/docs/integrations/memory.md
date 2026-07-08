@@ -142,8 +142,8 @@ relation). Projection follows the TypeORM adapter:
 
 - Multi-key stable sort; absent values sort last ascending, first descending (pg semantics).
 - Dotted sort paths traverse to-one objects; to-many paths resolve as absent.
-- `limit`/`offset` apply only when truthy — `limit: 0` means *no limit*, mirroring the
-  TypeORM adapter.
+- `limit`/`offset` apply only when strictly positive — `limit: 0` (and any negative) means
+  *no limit*, mirroring the TypeORM adapter.
 
 ## Errors
 
