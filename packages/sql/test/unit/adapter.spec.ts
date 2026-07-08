@@ -143,13 +143,34 @@ describe('src/adapter/module.ts', () => {
         expect(second).toEqual(first);
     });
 
+    it('should reset every sub-adapter on the default clear', () => {
+        const adapter = new Adapter(pg);
+
+        // first run populates every parameter
+        adapter.execute(buildQuery());
+
+        // a second run that omits sort, pagination and relations must not
+        // leak the previous run's state. sort/pagination/relations overwrite
+        // or dedupe rather than append, so re-walking the *same* query would
+        // hide a broken clear() — dropping the parameters is what exposes it.
+        const query = new Query({ fields: new Fields([new Field('id')]) });
+        const fragments = adapter.execute(query);
+
+        expect(fragments.orderBy).toEqual([]);
+        expect(fragments.limit).toBeUndefined();
+        expect(fragments.offset).toBeUndefined();
+        expect(fragments.relations).toEqual([]);
+    });
+
     it('should accumulate across executes when clear is disabled', () => {
         const adapter = new Adapter(pg);
 
         adapter.execute(buildQuery());
         const fragments = adapter.execute(buildQuery(), undefined, { clear: false });
 
-        // filter conditions (and their params) stack instead of resetting
+        // append-style sub-adapters stack instead of resetting:
+        // filter conditions/params and selected columns both double
         expect(fragments.params).toEqual([18, 'a', 18, 'a']);
+        expect(fragments.columns).toHaveLength(6);
     });
 });
