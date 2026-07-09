@@ -35,6 +35,8 @@ export class TypeormAdapter<
         this.filters = new FiltersAdapter<TARGET>(this.relations);
         this.pagination = new PaginationAdapter<TARGET>();
         this.sort = new SortAdapter<TARGET>(this.relations);
+
+        this.setTarget(options.target);
     }
 
     protected setTarget(target?: TARGET) {
@@ -55,18 +57,15 @@ export class TypeormAdapter<
 
     /**
      * Walk `query` into the sub-adapters and apply the accumulated state
-     * to the target query builder.
+     * to the target query builder (bound at construction).
      */
     execute(
         query: IQuery,
-        target?: TARGET,
         options: ExecuteOptions = {},
     ) : TypeormAdapterOutput {
         if (options.clear ?? true) {
             this.clear();
         }
-
-        this.setTarget(target);
 
         query.accept(new QueryVisitor(this, options.visitor));
 

@@ -3,8 +3,8 @@ const code = `import { TypeormAdapter } from '@rapiq/typeorm';
 
 const queryBuilder = repository.createQueryBuilder('user');
 
-const adapter = new TypeormAdapter();
-adapter.execute(query, queryBuilder);
+const adapter = new TypeormAdapter({ target: queryBuilder });
+adapter.execute(query);
 
 const [entities, total] = await queryBuilder.getManyAndCount();`;
 </script>

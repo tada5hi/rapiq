@@ -14,6 +14,20 @@ import type { IRelationsAdapter } from './relations';
 import type { ISortAdapter } from './sort';
 
 /**
+ * Base constructor options shared by every adapter.
+ *
+ * `target` is the backend object the adapter writes into (e.g. a TypeORM
+ * `SelectQueryBuilder`). It is bound at construction, not per `execute()` call;
+ * it is optional because the plain SQL adapter ignores it (it emits
+ * {@link SqlFragments}) and backends may resolve sensible defaults without one.
+ */
+export type BaseAdapterOptions<
+    TARGET extends Record<string, any> = Record<string, any>,
+> = {
+    target?: TARGET,
+};
+
+/**
  * Options for a single {@link IRootAdapter.execute} call.
  */
 export type ExecuteOptions = {
@@ -71,12 +85,13 @@ export interface IRootAdapter<
     /**
      * Walk `query` into the sub-adapters and emit the backend result.
      *
+     * The target is bound at construction ({@link BaseAdapterOptions.target}),
+     * not passed here.
+     *
      * @param query   the parsed rapiq query (AST) to consume.
-     * @param target  the backend object to apply state to (optional; the
-     *                plain SQL adapter ignores it and returns fragments).
      * @param options per-call options ({@link ExecuteOptions}).
      */
-    execute(query: IQuery, target?: TARGET, options?: ExecuteOptions): OUTPUT;
+    execute(query: IQuery, options?: ExecuteOptions): OUTPUT;
 
     clear() : void;
 }

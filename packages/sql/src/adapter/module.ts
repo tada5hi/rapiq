@@ -8,14 +8,21 @@
 import type { IQuery } from '@rapiq/core';
 import { QueryVisitor } from '../visitor';
 import type { DialectOptions } from '../dialect';
-import type { ExecuteOptions, IRootAdapter, SqlFragments } from './types';
+import type {
+    BaseAdapterOptions,
+    ExecuteOptions,
+    IRootAdapter,
+    SqlFragments,
+} from './types';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortAdapter } from './sort';
 
-export type AdapterOptions = DialectOptions & {
+export type AdapterOptions<
+    TARGET extends Record<string, any> = Record<string, any>,
+> = BaseAdapterOptions<TARGET> & DialectOptions & {
     rootAlias?: string,
 };
 
@@ -34,7 +41,7 @@ export class Adapter<
 
     // -----------------------------------------------------------
 
-    constructor(options: AdapterOptions) {
+    constructor(options: AdapterOptions<TARGET>) {
         this.relations = new RelationsAdapter<TARGET>({ join: () => true });
         this.fields = new FieldsAdapter(this.relations, {
             escapeField: options.escapeField,
@@ -54,12 +61,14 @@ export class Adapter<
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
         });
+
+        this.setTarget(options.target);
     }
 
     // -----------------------------------------------------------
 
     /**
-     * Attach the backend target to every sub-adapter.
+     * Fan the constructor-bound target out to every sub-adapter.
      * The plain SQL adapter has no target, so this is a no-op in practice;
      * it exists for backends (e.g. @rapiq/typeorm) that mutate a target.
      */
@@ -85,14 +94,12 @@ export class Adapter<
 
     /**
      * Walk `query` into the sub-adapters and collect the accumulated
-     * clause fragments. The plain SQL adapter ignores `target`.
+     * clause fragments. The target (if any) is bound at construction.
      */
-    execute(query: IQuery, target?: TARGET, options: ExecuteOptions = {}) : SqlFragments {
+    execute(query: IQuery, options: ExecuteOptions = {}) : SqlFragments {
         if (options.clear ?? true) {
             this.clear();
         }
-
-        this.setTarget(target);
 
         query.accept(new QueryVisitor(this, options.visitor));
 

@@ -25,8 +25,7 @@ describe('src/adapter/relations.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ relations: options });
-        adapter.relations.setTarget(queryBuilder);
+        const adapter = new TypeormAdapter({ target: queryBuilder, relations: options });
 
         return { queryBuilder, adapter };
     };

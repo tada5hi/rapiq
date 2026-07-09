@@ -199,9 +199,10 @@ export async function getUsers(req: Request, res: Response) {
         .createQueryBuilder('user');
 
     const adapter = new TypeormAdapter({
+        target: queryBuilder,
         relations: { joinAndSelect: true }
     });
-    const { pagination } = adapter.execute(query, queryBuilder);
+    const { pagination } = adapter.execute(query);
 
     const [entities, total] = await queryBuilder.getManyAndCount();
 

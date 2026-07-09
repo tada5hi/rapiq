@@ -96,10 +96,11 @@ import { TypeormAdapter } from '@rapiq/typeorm';
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
 const adapter = new TypeormAdapter({
+    target: queryBuilder,
     relations: { joinAndSelect: true },
 });
 
-adapter.execute(query, queryBuilder);
+adapter.execute(query);
 
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```

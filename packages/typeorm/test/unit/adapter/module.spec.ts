@@ -23,12 +23,9 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
+        const adapter = new TypeormAdapter({ target: queryBuilder });
 
-        const output = adapter.execute(
-            new Query({ pagination: new Pagination(10, 20) }),
-            queryBuilder,
-        );
+        const output = adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
 
         expect(output.pagination).toEqual({ limit: 10, offset: 20 });
         expect(queryBuilder.expressionMap.take).toEqual(10);
@@ -40,9 +37,9 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
+        const adapter = new TypeormAdapter({ target: queryBuilder });
 
-        const output = adapter.execute(new Query(), queryBuilder);
+        const output = adapter.execute(new Query());
 
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
     });

@@ -49,6 +49,7 @@ function createUserRepository(schema: Schema<User>) {
             expect(query).toBeDefined();
 
             const adapter = new TypeormAdapter<SelectQueryBuilder<User>>({
+                target: queryBuilder,
                 relations: {
                     joinAndSelect: true,
                     onJoin: (_path, alias, join) => {
@@ -57,7 +58,7 @@ function createUserRepository(schema: Schema<User>) {
                 },
             });
 
-            return adapter.execute(query!, queryBuilder);
+            return adapter.execute(query!);
         },
     };
 }
@@ -183,9 +184,9 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
                 filters: query!.filters.and(eq('realm_id', masterRealmId)),
             });
 
-            const adapter = new TypeormAdapter<SelectQueryBuilder<User>>();
             const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
-            adapter.execute(scoped, queryBuilder);
+            const adapter = new TypeormAdapter<SelectQueryBuilder<User>>({ target: queryBuilder });
+            adapter.execute(scoped);
 
             return queryBuilder;
         };

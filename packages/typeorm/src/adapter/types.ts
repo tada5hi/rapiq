@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { RelationsAdapterBaseOptions } from '@rapiq/sql';
+import type { BaseAdapterOptions, RelationsAdapterBaseOptions } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 export type RelationsAdapterJoinType = 'left' | 'inner';
@@ -30,7 +30,7 @@ export type RelationsAdapterOptions<
 
 export type TypeormAdapterOptions<
     TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> = {
+> = BaseAdapterOptions<TARGET> & {
     relations?: RelationsAdapterOptions<TARGET>
 };
 

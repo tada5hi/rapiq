@@ -166,7 +166,7 @@ describe('src/adapter/module.ts', () => {
         const adapter = new Adapter(pg);
 
         adapter.execute(buildQuery());
-        const fragments = adapter.execute(buildQuery(), undefined, { clear: false });
+        const fragments = adapter.execute(buildQuery(), { clear: false });
 
         // append-style sub-adapters stack instead of resetting:
         // filter conditions/params and selected columns both double
