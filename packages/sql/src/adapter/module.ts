@@ -72,7 +72,8 @@ export class Adapter implements IRootAdapter<SqlFragments> {
 
     /**
      * Walk `query` into the sub-adapters and collect the accumulated
-     * clause fragments. The target (if any) is bound at construction.
+     * clause fragments. Plain SQL has no backend target — it returns the
+     * fragments for the caller to assemble.
      */
     execute(query: IQuery, options: ExecuteOptions = {}) : SqlFragments {
         if (options.clear ?? true) {

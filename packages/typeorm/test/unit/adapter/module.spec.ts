@@ -43,4 +43,22 @@ describe('src/adapter/module.ts', () => {
 
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
     });
+
+    it('should reset stale pagination on a re-run whose query drops it', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        // first run applies take/skip to the builder
+        adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
+        expect(queryBuilder.expressionMap.take).toEqual(10);
+
+        // default clear:true makes the adapter re-runnable — a follow-up query
+        // without pagination must reset the builder, not leak the prior limit/offset
+        adapter.execute(new Query());
+        expect(queryBuilder.expressionMap.take).toBeUndefined();
+        expect(queryBuilder.expressionMap.skip).toBeUndefined();
+    });
 });

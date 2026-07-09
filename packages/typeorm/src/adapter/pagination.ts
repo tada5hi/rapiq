@@ -11,7 +11,7 @@ import type { SelectQueryBuilder } from 'typeorm';
 export class PaginationAdapter extends PaginationBaseAdapter {
     protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
-    constructor(queryBuilder?: SelectQueryBuilder<any>) {
+    constructor(queryBuilder: SelectQueryBuilder<any> | undefined) {
         super();
 
         this.queryBuilder = queryBuilder;
@@ -22,12 +22,10 @@ export class PaginationAdapter extends PaginationBaseAdapter {
             return;
         }
 
-        if (this.limit) {
-            this.queryBuilder.take(this.limit);
-        }
-
-        if (this.offset) {
-            this.queryBuilder.skip(this.offset);
-        }
+        // apply unconditionally so a re-run whose query drops pagination
+        // resets the builder (falsy limit/offset -> undefined = no clause),
+        // instead of leaking the previous run's take/skip.
+        this.queryBuilder.take(this.limit || undefined);
+        this.queryBuilder.skip(this.offset || undefined);
     }
 }
