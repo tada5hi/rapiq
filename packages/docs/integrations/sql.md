@@ -94,4 +94,6 @@ const fragments = adapter.execute(query);
 // }
 ```
 
+Construct the `Adapter` **per request** — it accumulates per-call state, so the shareable, long-lived part is the options object, not the adapter instance.
+
 `@rapiq/sql` deliberately stops at fragments: composing the final `SELECT` statement — in particular `FROM`/`JOIN` conditions, which require knowledge of the table layout — is the job of the caller or a backend adapter. That's exactly what [`@rapiq/typeorm`](/integrations/typeorm) does for TypeORM.

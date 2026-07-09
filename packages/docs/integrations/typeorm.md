@@ -24,6 +24,16 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 
 `execute(query, queryBuilder)` does everything in one call: it walks the parsed `Query` (the AST), collects the state into its sub-adapters, and applies it to the builder — returning the applied pagination (e.g. for the response `meta` block).
 
+Construct the adapter **per request**, just like the `SelectQueryBuilder` you hand it — it holds per-call state, so the shareable, long-lived part is the options object, not the adapter instance:
+
+```typescript
+// module scope — the reusable part
+const options = { relations: { joinAndSelect: true } };
+
+// per request
+new TypeormAdapter(options).execute(query, queryBuilder);
+```
+
 By default each call clears any previously accumulated state, so an adapter instance is re-runnable. Pass `{ clear: false }` as a third argument to apply several queries onto the same builder, and `{ visitor }` to forward options to the underlying visitors:
 
 ```typescript

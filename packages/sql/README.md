@@ -31,6 +31,8 @@ const fragments = adapter.execute(query);
 // }
 ```
 
+Construct the `Adapter` **per request** — it accumulates per-call state, so the shareable, long-lived part is the options object, not the adapter instance.
+
 Per-parameter adapter/visitor pairs work standalone — e.g. rendering just the filters:
 
 ```typescript

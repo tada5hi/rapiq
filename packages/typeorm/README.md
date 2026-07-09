@@ -28,6 +28,8 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 
 `adapter.execute(query, queryBuilder)` does everything in one call — it walks the parsed `Query`, collects the state into its sub-adapters, and applies it to the builder — and returns the applied pagination (e.g. for the response `meta` block). State is cleared before each call by default (pass `{ clear: false }` as a third argument to apply several queries onto the same builder).
 
+Construct the adapter **per request**, like the `SelectQueryBuilder` you hand it — it holds per-call state, so the shareable, long-lived part is the options object, not the adapter instance.
+
 The SQL dialect is resolved from the attached builder's connection type; joins are applied idempotently and validated against the entity metadata. Options: `relations.joinAndSelect` (hydrate related entities), `relations.joinType` (`'left'` default / `'inner'`), and an `onJoin(path, alias, queryBuilder)` hook per applied join. Per-parameter visitors from [@rapiq/sql](https://www.npmjs.com/package/@rapiq/sql) work against the adapter's sub-adapters (`adapter.filters`, `adapter.sort`, …) when only part of a query applies.
 
 Typically the query comes from a [URL decoder](https://www.npmjs.com/package/@rapiq/codec-url-simple) validating `req.query` against a schema — see the [end-to-end example](https://rapiq.tada5hi.net/integrations/typeorm#end-to-end-example) in the docs.
