@@ -9,11 +9,13 @@ import { SortBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class SortAdapter<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends SortBaseAdapter<TARGET> {
-    constructor(relations: RelationsAdapter<TARGET>) {
+export class SortAdapter extends SortBaseAdapter {
+    protected target : SelectQueryBuilder<any> | undefined;
+
+    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
+
+        this.target = target;
     }
 
     rootAlias(): string | undefined {

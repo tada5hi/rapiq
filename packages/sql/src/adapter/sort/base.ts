@@ -10,28 +10,18 @@ import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { ISortAdapter } from './types';
 
-export abstract class SortBaseAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> implements ISortAdapter<TARGET> {
-    protected relations: RelationsBaseAdapter<TARGET>;
+export abstract class SortBaseAdapter implements ISortAdapter {
+    protected relations: RelationsBaseAdapter;
 
     protected value : Record<string, `${SortDirection}`>;
-
-    protected target : TARGET | undefined;
 
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<TARGET>,
+        relations: RelationsBaseAdapter,
     ) {
         this.relations = relations;
         this.value = {};
-    }
-
-    // -----------------------------------------------------------
-
-    setTarget(target?: TARGET) {
-        this.target = target;
     }
 
     // -----------------------------------------------------------

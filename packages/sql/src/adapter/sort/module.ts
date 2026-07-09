@@ -13,13 +13,11 @@ export type SortContainerOptions = {
     escapeField?: (input: string) => string
 };
 
-export class SortAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends SortBaseAdapter<TARGET> {
+export class SortAdapter extends SortBaseAdapter {
     protected options : SortContainerOptions;
 
     constructor(
-        relations: RelationsAdapter<TARGET>,
+        relations: RelationsAdapter,
         options: SortContainerOptions,
     ) {
         super(relations);

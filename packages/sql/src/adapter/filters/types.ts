@@ -7,9 +7,7 @@
 
 import type { ISubAdapter } from '../types';
 
-export interface IFiltersAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends ISubAdapter<TARGET> {
+export interface IFiltersAdapter extends ISubAdapter {
     conditions: string[];
 
     params : unknown[];
@@ -30,7 +28,7 @@ export interface IFiltersAdapter<
     isRegexpSupported() : boolean;
 
     merge<
-        T extends IFiltersAdapter<TARGET>,
+        T extends IFiltersAdapter,
     >(
         query: T,
         operator?: 'and' | 'or',

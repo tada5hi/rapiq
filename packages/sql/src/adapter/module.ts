@@ -9,7 +9,6 @@ import type { IQuery } from '@rapiq/core';
 import { QueryVisitor } from '../visitor';
 import type { DialectOptions } from '../dialect';
 import type {
-    BaseAdapterOptions,
     ExecuteOptions,
     IRootAdapter,
     SqlFragments,
@@ -20,29 +19,25 @@ import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortAdapter } from './sort';
 
-export type AdapterOptions<
-    TARGET extends Record<string, any> = Record<string, any>,
-> = BaseAdapterOptions<TARGET> & DialectOptions & {
+export type AdapterOptions = DialectOptions & {
     rootAlias?: string,
 };
 
-export class Adapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> implements IRootAdapter<TARGET, SqlFragments> {
-    public readonly relations : RelationsAdapter<TARGET>;
+export class Adapter implements IRootAdapter<SqlFragments> {
+    public readonly relations : RelationsAdapter;
 
-    public readonly fields : FieldsAdapter<TARGET>;
+    public readonly fields : FieldsAdapter;
 
-    public readonly filters : FiltersAdapter<TARGET>;
+    public readonly filters : FiltersAdapter;
 
-    public readonly pagination : PaginationAdapter<TARGET>;
+    public readonly pagination : PaginationAdapter;
 
-    public readonly sort : SortAdapter<TARGET>;
+    public readonly sort : SortAdapter;
 
     // -----------------------------------------------------------
 
-    constructor(options: AdapterOptions<TARGET>) {
-        this.relations = new RelationsAdapter<TARGET>({ join: () => true });
+    constructor(options: AdapterOptions) {
+        this.relations = new RelationsAdapter({ join: () => true });
         this.fields = new FieldsAdapter(this.relations, {
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
@@ -55,29 +50,12 @@ export class Adapter<
             rootAlias: options.rootAlias,
         });
 
-        this.pagination = new PaginationAdapter<TARGET>();
+        this.pagination = new PaginationAdapter();
 
         this.sort = new SortAdapter(this.relations, {
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
         });
-
-        this.setTarget(options.target);
-    }
-
-    // -----------------------------------------------------------
-
-    /**
-     * Fan the constructor-bound target out to every sub-adapter.
-     * The plain SQL adapter has no target, so this is a no-op in practice;
-     * it exists for backends (e.g. @rapiq/typeorm) that mutate a target.
-     */
-    protected setTarget(target?: TARGET) {
-        this.relations.setTarget(target);
-        this.fields.setTarget(target);
-        this.filters.setTarget(target);
-        this.pagination.setTarget(target);
-        this.sort.setTarget(target);
     }
 
     // -----------------------------------------------------------

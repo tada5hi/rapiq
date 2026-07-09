@@ -9,11 +9,13 @@ import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class FieldsAdapter<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FieldsBaseAdapter<TARGET> {
-    constructor(relations: RelationsAdapter<TARGET>) {
+export class FieldsAdapter extends FieldsBaseAdapter {
+    protected target : SelectQueryBuilder<any> | undefined;
+
+    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
+
+        this.target = target;
     }
 
     rootAlias(): string | undefined {

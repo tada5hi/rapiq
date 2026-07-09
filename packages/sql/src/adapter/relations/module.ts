@@ -8,14 +8,12 @@
 import { RelationsBaseAdapter } from './base';
 import type { RelationsAdapterOptions } from './types';
 
-export class RelationsAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends RelationsBaseAdapter<TARGET> {
-    protected options : RelationsAdapterOptions<TARGET>;
+export class RelationsAdapter extends RelationsBaseAdapter {
+    protected options : RelationsAdapterOptions;
 
     // -----------------------------------------------------------
 
-    constructor(options: RelationsAdapterOptions<TARGET> = {}) {
+    constructor(options: RelationsAdapterOptions = {}) {
         super();
 
         this.options = options;

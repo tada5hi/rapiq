@@ -14,15 +14,13 @@ export type FiltersContainerOptions = {
     rootAlias?: string,
 } & DialectOptions;
 
-export class FiltersAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends FiltersBaseAdapter<TARGET> {
+export class FiltersAdapter extends FiltersBaseAdapter {
     protected options: FiltersContainerOptions;
 
     // -----------------------------------------------------------
 
     constructor(
-        relations: RelationsAdapter<TARGET>,
+        relations: RelationsAdapter,
         options: FiltersContainerOptions,
     ) {
         super(relations);
@@ -58,8 +56,8 @@ export class FiltersAdapter<
     // -----------------------------------------------------------
 
     child() : this {
-        const child = new FiltersAdapter<TARGET>(
-            this.relations as unknown as RelationsAdapter<TARGET>,
+        const child = new FiltersAdapter(
+            this.relations as unknown as RelationsAdapter,
             this.options,
         );
 

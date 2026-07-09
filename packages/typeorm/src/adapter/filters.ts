@@ -12,21 +12,16 @@ import type { SelectQueryBuilder } from 'typeorm';
 import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
-export class FiltersAdapter<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FiltersBaseAdapter<TARGET, RelationsAdapter<TARGET>> {
+export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
+    protected target : SelectQueryBuilder<any> | undefined;
+
     protected dialect : DialectOptions;
 
-    constructor(relations: RelationsAdapter<TARGET>) {
+    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
 
-        this.dialect = resolveQueryDialect();
-    }
-
-    override setTarget(target?: TARGET) {
+        this.target = target;
         this.dialect = resolveQueryDialect(target);
-
-        super.setTarget(target);
     }
 
     rootAlias(): string | undefined {
@@ -62,7 +57,7 @@ export class FiltersAdapter<
     }
 
     child(): this {
-        const child = new FiltersAdapter(this.relations);
+        const child = new FiltersAdapter(this.target, this.relations);
 
         this.setChildAttributes(child);
 

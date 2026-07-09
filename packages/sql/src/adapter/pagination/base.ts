@@ -7,20 +7,10 @@
 
 import type { IPaginationAdapter } from './types';
 
-export abstract class PaginationBaseAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> implements IPaginationAdapter<TARGET> {
+export abstract class PaginationBaseAdapter implements IPaginationAdapter {
     public limit : number | undefined;
 
     public offset : number | undefined;
-
-    protected target : TARGET | undefined;
-
-    // -----------------------------------------------------------
-
-    setTarget(target?: TARGET) {
-        this.target = target;
-    }
 
     // -----------------------------------------------------------
 

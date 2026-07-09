@@ -14,20 +14,6 @@ import type { IRelationsAdapter } from './relations';
 import type { ISortAdapter } from './sort';
 
 /**
- * Base constructor options shared by every adapter.
- *
- * `target` is the backend object the adapter writes into (e.g. a TypeORM
- * `SelectQueryBuilder`). It is bound at construction, not per `execute()` call;
- * it is optional because the plain SQL adapter ignores it (it emits
- * {@link SqlFragments}) and backends may resolve sensible defaults without one.
- */
-export type BaseAdapterOptions<
-    TARGET extends Record<string, any> = Record<string, any>,
-> = {
-    target?: TARGET,
-};
-
-/**
  * Options for a single {@link IRootAdapter.execute} call.
  */
 export type ExecuteOptions = {
@@ -35,8 +21,7 @@ export type ExecuteOptions = {
      * Reset the accumulated state before walking the query.
      *
      * `true` (default) makes execute() self-contained and re-runnable;
-     * pass `false` to accumulate across multiple execute() calls
-     * (e.g. applying several queries onto the same target).
+     * pass `false` to accumulate across multiple execute() calls.
      */
     clear?: boolean,
 
@@ -49,16 +34,9 @@ export type ExecuteOptions = {
 
 /**
  * Shared contract for the per-parameter sub-adapters that accumulate
- * clause state during a query walk.
- *
- * `TARGET` is the backend object the state is applied to on execute
- * (e.g. a TypeORM `SelectQueryBuilder`); the plain SQL adapter leaves it
- * unset and emits {@link SqlFragments} instead.
+ * clause state while a query is walked, then flush it on {@link execute}.
  */
-export interface ISubAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> {
-    setTarget(target?: TARGET): void;
+export interface ISubAdapter {
     execute() : void;
     clear() : void;
 }
@@ -66,27 +44,23 @@ export interface ISubAdapter<
 /**
  * Root adapter contract: walks a rapiq {@link IQuery} into the sub-adapters
  * and emits the backend result — SQL fragments, or the echo of a mutated
- * target.
+ * backend query object.
  */
 export interface IRootAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
     OUTPUT = unknown,
 > {
-    relations : IRelationsAdapter<TARGET>;
+    relations : IRelationsAdapter;
 
-    fields : IFieldsAdapter<TARGET>;
+    fields : IFieldsAdapter;
 
-    filters : IFiltersAdapter<TARGET>;
+    filters : IFiltersAdapter;
 
-    pagination : IPaginationAdapter<TARGET>;
+    pagination : IPaginationAdapter;
 
-    sort : ISortAdapter<TARGET>;
+    sort : ISortAdapter;
 
     /**
      * Walk `query` into the sub-adapters and emit the backend result.
-     *
-     * The target is bound at construction ({@link BaseAdapterOptions.target}),
-     * not passed here.
      *
      * @param query   the parsed rapiq query (AST) to consume.
      * @param options per-call options ({@link ExecuteOptions}).

@@ -5,14 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { BaseAdapterOptions, RelationsAdapterBaseOptions } from '@rapiq/sql';
+import type { RelationsAdapterBaseOptions } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 export type RelationsAdapterJoinType = 'left' | 'inner';
 
-export type RelationsAdapterOptions<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> = RelationsAdapterBaseOptions & {
+export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
     /**
      * Join strategy for relations.
      * Defaults to 'left' so records with absent relations are kept
@@ -25,13 +23,15 @@ export type RelationsAdapterOptions<
      * e.g. pre-existing ones, do not trigger it). Useful to extend
      * the query per join, e.g. `target.addGroupBy(`${alias}.id`)`.
      */
-    onJoin?: (path: string, alias: string, target: TARGET) => void,
+    onJoin?: (path: string, alias: string, target: SelectQueryBuilder<any>) => void,
 };
 
-export type TypeormAdapterOptions<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> = BaseAdapterOptions<TARGET> & {
-    relations?: RelationsAdapterOptions<TARGET>
+export type TypeormAdapterOptions = {
+    /**
+     * The query builder to apply the parsed query to.
+     */
+    target?: SelectQueryBuilder<any>,
+    relations?: RelationsAdapterOptions,
 };
 
 export type TypeormAdapterOutput = {

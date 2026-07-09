@@ -8,9 +8,7 @@
 import { splitFirst } from '../../helpers';
 import type { IRelationsAdapter } from './types';
 
-export abstract class RelationsBaseAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> implements IRelationsAdapter<TARGET> {
+export abstract class RelationsBaseAdapter implements IRelationsAdapter {
     /**
      * joins
      *
@@ -27,18 +25,10 @@ export abstract class RelationsBaseAdapter<
         executed?: boolean
     }[];
 
-    protected target : TARGET | undefined;
-
     // -----------------------------------------------------------
 
     protected constructor() {
         this.value = [];
-    }
-
-    // -----------------------------------------------------------
-
-    setTarget(target?: TARGET) {
-        this.target = target;
     }
 
     // -----------------------------------------------------------

@@ -7,18 +7,13 @@
 
 import type { ISubAdapter } from '../types';
 
-export interface IRelationsAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends ISubAdapter<TARGET> {
+export interface IRelationsAdapter extends ISubAdapter {
     add(input: string): void;
 }
 
-export type JoinRelationFn<
-    TARGET extends Record<string, any> = Record<string, any>,
-> = (
+export type JoinRelationFn = (
     relation: string,
     alias?: string,
-    target?: TARGET,
 ) => boolean;
 
 export type RelationsAdapterBaseOptions = {
@@ -28,9 +23,7 @@ export type RelationsAdapterBaseOptions = {
     joinAndSelect?: boolean
 };
 
-export type RelationsAdapterOptions<
-    TARGET extends Record<string, any> = Record<string, any>,
-> = RelationsAdapterBaseOptions & {
-    join?: JoinRelationFn<TARGET>,
+export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
+    join?: JoinRelationFn,
 
 };

@@ -8,9 +8,15 @@
 import { PaginationBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
-export class PaginationAdapter<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends PaginationBaseAdapter<TARGET> {
+export class PaginationAdapter extends PaginationBaseAdapter {
+    protected target : SelectQueryBuilder<any> | undefined;
+
+    constructor(target?: SelectQueryBuilder<any>) {
+        super();
+
+        this.target = target;
+    }
+
     override execute() {
         if (!this.target) {
             return;

@@ -9,14 +9,18 @@ import { RelationsBaseAdapter, splitFirst } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
 
-export class RelationsAdapter<
-    TARGET extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends RelationsBaseAdapter<TARGET> {
-    protected options : RelationsAdapterOptions<TARGET>;
+export class RelationsAdapter extends RelationsBaseAdapter {
+    protected target : SelectQueryBuilder<any> | undefined;
 
-    constructor(options: RelationsAdapterOptions<TARGET> = {}) {
+    protected options : RelationsAdapterOptions;
+
+    constructor(
+        target: SelectQueryBuilder<any> | undefined,
+        options: RelationsAdapterOptions = {},
+    ) {
         super();
 
+        this.target = target;
         this.options = options;
     }
 

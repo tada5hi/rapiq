@@ -7,9 +7,7 @@
 
 import type { ISubAdapter } from '../types';
 
-export interface IPaginationAdapter<
-    TARGET extends Record<string, any> = Record<string, any>,
-> extends ISubAdapter<TARGET> {
+export interface IPaginationAdapter extends ISubAdapter {
     setLimit(limit?: number): void;
     setOffset(offset?: number) : void
 }
