@@ -35,7 +35,7 @@ const config = { relations: { joinAndSelect: true } };
 new TypeormAdapter({ ...config, queryBuilder }).execute(query);
 ```
 
-By default each call clears any previously accumulated state, so an adapter instance is re-runnable. Pass `{ clear: false }` as the second argument to apply several queries onto the same builder, and `{ visitor }` to forward options to the underlying visitors:
+By default each call clears the adapter's own accumulated state. The bound `queryBuilder`, however, is mutated in place — joins and the selected projection are not rolled back — so build a fresh adapter (with a fresh builder) per query rather than re-running one onto an already-applied builder. Pass `{ clear: false }` as the second argument to accumulate several queries' conditions onto the same builder, and `{ visitor }` to forward options to the underlying visitors:
 
 ```typescript
 adapter.execute(query, { clear: false });
