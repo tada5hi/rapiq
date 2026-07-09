@@ -27,11 +27,11 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
     public readonly sort : SortAdapter;
 
     constructor(options: TypeormAdapterOptions = {}) {
-        this.relations = new RelationsAdapter(options.target, options.relations);
-        this.fields = new FieldsAdapter(options.target, this.relations);
-        this.filters = new FiltersAdapter(options.target, this.relations);
-        this.pagination = new PaginationAdapter(options.target);
-        this.sort = new SortAdapter(options.target, this.relations);
+        this.relations = new RelationsAdapter(options.queryBuilder, options.relations);
+        this.fields = new FieldsAdapter(options.queryBuilder, this.relations);
+        this.filters = new FiltersAdapter(options.queryBuilder, this.relations);
+        this.pagination = new PaginationAdapter(options.queryBuilder);
+        this.sort = new SortAdapter(options.queryBuilder, this.relations);
     }
 
     clear() {
@@ -44,7 +44,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
     /**
      * Walk `query` into the sub-adapters and apply the accumulated state
-     * to the target query builder (bound at construction).
+     * to the queryBuilder query builder (bound at construction).
      */
     execute(
         query: IQuery,

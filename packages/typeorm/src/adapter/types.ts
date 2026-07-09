@@ -21,16 +21,16 @@ export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
     /**
      * Invoked for every join this adapter applies (skipped joins,
      * e.g. pre-existing ones, do not trigger it). Useful to extend
-     * the query per join, e.g. `target.addGroupBy(`${alias}.id`)`.
+     * the query per join, e.g. `queryBuilder.addGroupBy(`${alias}.id`)`.
      */
-    onJoin?: (path: string, alias: string, target: SelectQueryBuilder<any>) => void,
+    onJoin?: (path: string, alias: string, queryBuilder: SelectQueryBuilder<any>) => void,
 };
 
 export type TypeormAdapterOptions = {
     /**
      * The query builder to apply the parsed query to.
      */
-    target?: SelectQueryBuilder<any>,
+    queryBuilder?: SelectQueryBuilder<any>,
     relations?: RelationsAdapterOptions,
 };
 

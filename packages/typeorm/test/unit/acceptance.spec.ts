@@ -49,7 +49,7 @@ function createUserRepository(schema: Schema<User>) {
             expect(query).toBeDefined();
 
             const adapter = new TypeormAdapter({
-                target: queryBuilder,
+                queryBuilder,
                 relations: {
                     joinAndSelect: true,
                     onJoin: (_path, alias, join) => {
@@ -185,7 +185,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
             });
 
             const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
-            const adapter = new TypeormAdapter({ target: queryBuilder });
+            const adapter = new TypeormAdapter({ queryBuilder });
             adapter.execute(scoped);
 
             return queryBuilder;

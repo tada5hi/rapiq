@@ -23,7 +23,7 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ target: queryBuilder });
+        const adapter = new TypeormAdapter({ queryBuilder });
 
         const output = adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
 
@@ -37,7 +37,7 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ target: queryBuilder });
+        const adapter = new TypeormAdapter({ queryBuilder });
 
         const output = adapter.execute(new Query());
 

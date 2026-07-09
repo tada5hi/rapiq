@@ -43,7 +43,7 @@ describe('src/sort', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ target: queryBuilder });
+        const adapter = new TypeormAdapter({ queryBuilder });
         adapter.execute(new Query({ sorts: sort }));
 
         return queryBuilder;

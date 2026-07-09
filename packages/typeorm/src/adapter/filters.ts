@@ -13,28 +13,28 @@ import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
 export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
-    protected target : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
     protected dialect : DialectOptions;
 
-    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
+    constructor(queryBuilder: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
 
-        this.target = target;
-        this.dialect = resolveQueryDialect(target);
+        this.queryBuilder = queryBuilder;
+        this.dialect = resolveQueryDialect(queryBuilder);
     }
 
     rootAlias(): string | undefined {
-        if (this.target) {
-            return this.target.alias;
+        if (this.queryBuilder) {
+            return this.queryBuilder.alias;
         }
 
         return undefined;
     }
 
     escapeField(field: string) {
-        if (this.target) {
-            return this.target.escape(field);
+        if (this.queryBuilder) {
+            return this.queryBuilder.escape(field);
         }
 
         return this.dialect.escapeField(field);
@@ -57,7 +57,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     child(): this {
-        const child = new FiltersAdapter(this.target, this.relations);
+        const child = new FiltersAdapter(this.queryBuilder, this.relations);
 
         this.setChildAttributes(child);
 
@@ -67,8 +67,8 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        if (this.target) {
-            this.target.where(sql, params);
+        if (this.queryBuilder) {
+            this.queryBuilder.where(sql, params);
         }
     }
 }

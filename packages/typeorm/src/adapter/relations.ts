@@ -10,22 +10,22 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter extends RelationsBaseAdapter {
-    protected target : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
     protected options : RelationsAdapterOptions;
 
     constructor(
-        target: SelectQueryBuilder<any> | undefined,
+        queryBuilder: SelectQueryBuilder<any> | undefined,
         options: RelationsAdapterOptions = {},
     ) {
         super();
 
-        this.target = target;
+        this.queryBuilder = queryBuilder;
         this.options = options;
     }
 
     execute() : void {
-        if (!this.target) {
+        if (!this.queryBuilder) {
             return;
         }
 
@@ -41,16 +41,16 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     }
 
     protected join(input: string): boolean {
-        if (!this.target) {
+        if (!this.queryBuilder) {
             return false;
         }
 
         let relationFullName : string | undefined = input;
         let path : string | undefined;
-        let meta = this.target.expressionMap.mainAlias!.metadata;
-        let { alias } = this.target;
+        let meta = this.queryBuilder.expressionMap.mainAlias!.metadata;
+        let { alias } = this.queryBuilder;
 
-        const { joinAttributes } = this.target.expressionMap;
+        const { joinAttributes } = this.queryBuilder.expressionMap;
 
         while (relationFullName) {
             let relationName : string;
@@ -73,7 +73,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
                 this.applyJoin(`${alias}.${relationName}`, relationName);
 
                 if (this.options.onJoin) {
-                    this.options.onJoin(path, relationName, this.target);
+                    this.options.onJoin(path, relationName, this.queryBuilder);
                 }
             }
 
@@ -85,7 +85,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     }
 
     protected applyJoin(property: string, alias: string) : void {
-        if (!this.target) {
+        if (!this.queryBuilder) {
             return;
         }
 
@@ -93,14 +93,14 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
         if (this.options.joinAndSelect) {
             if (inner) {
-                this.target.innerJoinAndSelect(property, alias);
+                this.queryBuilder.innerJoinAndSelect(property, alias);
             } else {
-                this.target.leftJoinAndSelect(property, alias);
+                this.queryBuilder.leftJoinAndSelect(property, alias);
             }
         } else if (inner) {
-            this.target.innerJoin(property, alias);
+            this.queryBuilder.innerJoin(property, alias);
         } else {
-            this.target.leftJoin(property, alias);
+            this.queryBuilder.leftJoin(property, alias);
         }
     }
 }

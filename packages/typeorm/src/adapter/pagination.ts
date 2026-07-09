@@ -9,25 +9,25 @@ import { PaginationBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 export class PaginationAdapter extends PaginationBaseAdapter {
-    protected target : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
-    constructor(target?: SelectQueryBuilder<any>) {
+    constructor(queryBuilder?: SelectQueryBuilder<any>) {
         super();
 
-        this.target = target;
+        this.queryBuilder = queryBuilder;
     }
 
     override execute() {
-        if (!this.target) {
+        if (!this.queryBuilder) {
             return;
         }
 
         if (this.limit) {
-            this.target.take(this.limit);
+            this.queryBuilder.take(this.limit);
         }
 
         if (this.offset) {
-            this.target.skip(this.offset);
+            this.queryBuilder.skip(this.offset);
         }
     }
 }

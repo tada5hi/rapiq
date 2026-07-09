@@ -96,7 +96,7 @@ import { TypeormAdapter } from '@rapiq/typeorm';
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
 const adapter = new TypeormAdapter({
-    target: queryBuilder,
+    queryBuilder,
     relations: { joinAndSelect: true },
 });
 

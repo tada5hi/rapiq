@@ -36,7 +36,7 @@ describe('src/adapter/filters.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ target: queryBuilder });
+        const adapter = new TypeormAdapter({ queryBuilder });
 
         condition.accept(new FiltersVisitor(adapter.filters));
 

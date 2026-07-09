@@ -10,17 +10,17 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
 export class SortAdapter extends SortBaseAdapter {
-    protected target : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
-    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
+    constructor(queryBuilder: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
 
-        this.target = target;
+        this.queryBuilder = queryBuilder;
     }
 
     rootAlias(): string | undefined {
-        if (this.target) {
-            return this.target.alias;
+        if (this.queryBuilder) {
+            return this.queryBuilder.alias;
         }
 
         return undefined;
@@ -34,8 +34,8 @@ export class SortAdapter extends SortBaseAdapter {
     }
 
     execute() {
-        if (this.target) {
-            this.target.orderBy(this.value);
+        if (this.queryBuilder) {
+            this.queryBuilder.orderBy(this.value);
         }
     }
 }

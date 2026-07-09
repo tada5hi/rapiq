@@ -10,17 +10,17 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter extends FieldsBaseAdapter {
-    protected target : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any> | undefined;
 
-    constructor(target: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
+    constructor(queryBuilder: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
         super(relations);
 
-        this.target = target;
+        this.queryBuilder = queryBuilder;
     }
 
     rootAlias(): string | undefined {
-        if (this.target) {
-            return this.target.alias;
+        if (this.queryBuilder) {
+            return this.queryBuilder.alias;
         }
 
         return undefined;
@@ -34,13 +34,13 @@ export class FieldsAdapter extends FieldsBaseAdapter {
     }
 
     execute() {
-        if (!this.target) {
+        if (!this.queryBuilder) {
             return;
         }
 
         const columns = this.getColumns();
         if (columns.length > 0) {
-            this.target.select(columns);
+            this.queryBuilder.select(columns);
         }
     }
 }

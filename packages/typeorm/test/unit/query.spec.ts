@@ -63,7 +63,7 @@ describe('src/query', () => {
 
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ target: queryBuilder, relations: { joinAndSelect: true } });
+        const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
         adapter.execute(query);
 
         const sql = queryBuilder.getSql();
@@ -100,7 +100,7 @@ describe('src/query', () => {
         queryBuilder.groupBy('user.id');
 
         const adapter = new TypeormAdapter({
-            target: queryBuilder,
+            queryBuilder,
             relations: {
                 joinAndSelect: true,
                 onJoin: (path, alias, join) => {

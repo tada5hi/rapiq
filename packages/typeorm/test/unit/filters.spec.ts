@@ -52,7 +52,7 @@ describe('src/filters', () => {
             condition :
             new Filters(FilterCompoundOperator.AND, [condition]);
 
-        const adapter = new TypeormAdapter({ target: queryBuilder });
+        const adapter = new TypeormAdapter({ queryBuilder });
         adapter.execute(new Query({ filters }));
 
         return queryBuilder;
