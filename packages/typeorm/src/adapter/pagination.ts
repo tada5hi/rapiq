@@ -8,20 +8,20 @@
 import { PaginationBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
-export class PaginationAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends PaginationBaseAdapter<QUERY> {
+export class PaginationAdapter extends PaginationBaseAdapter {
+    protected queryBuilder : SelectQueryBuilder<any>;
+
+    constructor(queryBuilder: SelectQueryBuilder<any>) {
+        super();
+
+        this.queryBuilder = queryBuilder;
+    }
+
     override execute() {
-        if (!this.query) {
-            return;
-        }
-
-        if (this.limit) {
-            this.query.take(this.limit);
-        }
-
-        if (this.offset) {
-            this.query.skip(this.offset);
-        }
+        // apply unconditionally so a re-run whose query drops pagination
+        // resets the builder (falsy limit/offset -> undefined = no clause),
+        // instead of leaking the previous run's take/skip.
+        this.queryBuilder.take(this.limit || undefined);
+        this.queryBuilder.skip(this.offset || undefined);
     }
 }

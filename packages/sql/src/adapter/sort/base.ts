@@ -10,29 +10,18 @@ import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { ISortAdapter } from './types';
 
-export abstract class SortBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements ISortAdapter<QUERY> {
-    protected relations: RelationsBaseAdapter<QUERY>;
+export abstract class SortBaseAdapter implements ISortAdapter {
+    protected relations: RelationsBaseAdapter;
 
     protected value : Record<string, `${SortDirection}`>;
-
-    protected query : QUERY | undefined;
 
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<QUERY>,
+        relations: RelationsBaseAdapter,
     ) {
         this.relations = relations;
         this.value = {};
-    }
-
-    // -----------------------------------------------------------
-
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
     }
 
     // -----------------------------------------------------------

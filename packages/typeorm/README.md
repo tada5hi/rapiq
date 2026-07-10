@@ -13,27 +13,23 @@ npm install @rapiq/core @rapiq/sql @rapiq/typeorm
 ## Usage
 
 ```typescript
-import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
 
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
 const adapter = new TypeormAdapter({
+    queryBuilder,
     relations: { joinAndSelect: true },
 });
-adapter.withQuery(queryBuilder);
 
-query.accept(new QueryVisitor(adapter));
-const { pagination } = adapter.execute();
+const { pagination } = adapter.execute(query);
 
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-The flow is always the same:
+The `queryBuilder` (the builder to write into) is bound at construction; `adapter.execute(query)` then walks the parsed `Query`, collects the state into its sub-adapters, and applies it to that builder — returning the applied pagination (e.g. for the response `meta` block). State is cleared before each call by default (pass `{ clear: false }` as the second argument to apply several queries onto the same builder).
 
-1. `withQuery(queryBuilder)` — attach the builder.
-2. `query.accept(new QueryVisitor(adapter))` — walk the AST; the adapter collects state.
-3. `adapter.execute()` — apply everything to the builder in one go; it returns the applied pagination (e.g. for the response `meta` block).
+Construct the adapter **per request**, like the `SelectQueryBuilder` you hand it — it holds per-call state. The shareable, long-lived part is your config (`relations`, …), spread into the per-request options with the request's builder as `queryBuilder`.
 
 The SQL dialect is resolved from the attached builder's connection type; joins are applied idempotently and validated against the entity metadata. Options: `relations.joinAndSelect` (hydrate related entities), `relations.joinType` (`'left'` default / `'inner'`), and an `onJoin(path, alias, queryBuilder)` hook per applied join. Per-parameter visitors from [@rapiq/sql](https://www.npmjs.com/package/@rapiq/sql) work against the adapter's sub-adapters (`adapter.filters`, `adapter.sort`, …) when only part of a query applies.
 

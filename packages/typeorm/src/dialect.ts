@@ -10,19 +10,16 @@ import { pg, resolveDialect } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
 /**
- * Resolve the {@link DialectOptions} preset matching the bound query
- * builder's connection type. The postgres preset is the documented
- * last-resort default when no query builder is bound (yet) or the
- * connection type has no matching preset.
+ * Resolve the {@link DialectOptions} preset matching the query builder's
+ * connection type. The postgres preset is the documented last-resort
+ * default when the connection type has no matching preset.
  */
 export function resolveQueryDialect(
-    query?: SelectQueryBuilder<any>,
+    query: SelectQueryBuilder<any>,
 ) : DialectOptions {
-    if (query) {
-        const dialect = resolveDialect(query.connection.options.type);
-        if (dialect) {
-            return dialect;
-        }
+    const dialect = resolveDialect(query.connection.options.type);
+    if (dialect) {
+        return dialect;
     }
 
     return pg;

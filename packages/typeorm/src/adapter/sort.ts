@@ -9,19 +9,17 @@ import { SortBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class SortAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends SortBaseAdapter<QUERY> {
-    constructor(relations: RelationsAdapter<QUERY>) {
+export class SortAdapter extends SortBaseAdapter {
+    protected queryBuilder : SelectQueryBuilder<any>;
+
+    constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
+
+        this.queryBuilder = queryBuilder;
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
-        }
-
-        return undefined;
+        return this.queryBuilder.alias;
     }
 
     escapeField(field: string) {
@@ -32,8 +30,6 @@ export class SortAdapter<
     }
 
     execute() {
-        if (this.query) {
-            this.query.orderBy(this.value);
-        }
+        this.queryBuilder.orderBy(this.value);
     }
 }

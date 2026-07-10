@@ -7,7 +7,6 @@
 
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { SimpleParser } from '@rapiq/parser-simple';
-import { QueryVisitor } from '@rapiq/sql';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
@@ -64,10 +63,8 @@ describe('src/query', () => {
 
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ relations: { joinAndSelect: true } });
-        adapter.withQuery(queryBuilder);
-        query.accept(new QueryVisitor(adapter));
-        adapter.execute();
+        const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
+        adapter.execute(query);
 
         const sql = queryBuilder.getSql();
         expect(sql).toContain('JOIN');
@@ -103,6 +100,7 @@ describe('src/query', () => {
         queryBuilder.groupBy('user.id');
 
         const adapter = new TypeormAdapter({
+            queryBuilder,
             relations: {
                 joinAndSelect: true,
                 onJoin: (path, alias, join) => {
@@ -110,10 +108,8 @@ describe('src/query', () => {
                 },
             },
         });
-        adapter.withQuery(queryBuilder);
-        query.accept(new QueryVisitor(adapter));
 
-        const { pagination } = adapter.execute();
+        const { pagination } = adapter.execute(query);
         expect(pagination.limit).toEqual(10);
 
         const sql = queryBuilder.getSql();

@@ -25,8 +25,7 @@ describe('src/adapter/relations.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ relations: options });
-        adapter.withQuery(queryBuilder);
+        const adapter = new TypeormAdapter({ queryBuilder, relations: options });
 
         return { queryBuilder, adapter };
     };
@@ -43,7 +42,7 @@ describe('src/adapter/relations.ts', () => {
         const { queryBuilder, adapter } = setup();
 
         visit(adapter, 'realm');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.getSql()).toContain('LEFT JOIN');
         expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(1);
@@ -53,7 +52,7 @@ describe('src/adapter/relations.ts', () => {
         const { queryBuilder, adapter } = setup({ joinType: 'inner' });
 
         visit(adapter, 'realm');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.getSql()).toContain('INNER JOIN');
     });
@@ -62,7 +61,7 @@ describe('src/adapter/relations.ts', () => {
         const { queryBuilder, adapter } = setup({ joinAndSelect: true });
 
         visit(adapter, 'realm');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.getSql()).toContain('LEFT JOIN');
         expect(
@@ -76,8 +75,8 @@ describe('src/adapter/relations.ts', () => {
         const { queryBuilder, adapter } = setup();
 
         visit(adapter, 'realm');
-        adapter.execute();
-        adapter.execute();
+        adapter.relations.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(1);
     });
@@ -87,7 +86,7 @@ describe('src/adapter/relations.ts', () => {
         queryBuilder.leftJoinAndSelect('user.realm', 'realm');
 
         visit(adapter, 'realm');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(1);
     });
@@ -98,7 +97,7 @@ describe('src/adapter/relations.ts', () => {
         // `detail` only exists on Role, not on User — resolvable
         // only when the walk descends into the related entity metadata.
         visit(adapter, 'role.detail');
-        adapter.execute();
+        adapter.relations.execute();
 
         const paths = queryBuilder.expressionMap.joinAttributes.map(
             (join) => join.entityOrProperty,
@@ -110,7 +109,7 @@ describe('src/adapter/relations.ts', () => {
         const { queryBuilder, adapter } = setup();
 
         visit(adapter, 'nonexistent');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
     });
@@ -126,7 +125,7 @@ describe('src/adapter/relations.ts', () => {
         });
 
         visit(adapter, 'role.detail');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(calls).toEqual([
             ['role', 'role'],
@@ -146,7 +145,7 @@ describe('src/adapter/relations.ts', () => {
         queryBuilder.leftJoin('user.realm', 'realm');
 
         visit(adapter, 'realm');
-        adapter.execute();
+        adapter.relations.execute();
 
         expect(calls).toHaveLength(0);
     });

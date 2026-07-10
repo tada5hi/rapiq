@@ -13,13 +13,11 @@ export type FieldsContainerOptions = {
     escapeField?: (input: string) => string
 };
 
-export class FieldsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends FieldsBaseAdapter<QUERY> {
+export class FieldsAdapter extends FieldsBaseAdapter {
     protected options : FieldsContainerOptions;
 
     constructor(
-        relations: RelationsAdapter<QUERY>,
+        relations: RelationsAdapter,
         options: FieldsContainerOptions,
     ) {
         super(relations);

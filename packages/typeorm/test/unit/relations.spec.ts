@@ -6,8 +6,7 @@
  */
 
 import type { DataSource, Repository } from 'typeorm';
-import { RelationsVisitor } from '@rapiq/sql';
-import { Relation, Relations } from '@rapiq/core';
+import { Query, Relation, Relations } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -44,12 +43,8 @@ describe('src/relations', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter({ relations: { joinAndSelect: true } });
-        adapter.withQuery(queryBuilder);
-        const visitor = new RelationsVisitor(adapter.relations);
-        relations.accept(visitor);
-
-        adapter.execute();
+        const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
+        adapter.execute(new Query({ relations }));
 
         return queryBuilder;
     };

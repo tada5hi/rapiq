@@ -91,18 +91,16 @@ If your input isn't URL-shaped — it already uses the canonical parameter keys 
 With TypeORM, the adapter mutates a `SelectQueryBuilder` in place:
 
 ```typescript
-import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
 
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
 const adapter = new TypeormAdapter({
+    queryBuilder,
     relations: { joinAndSelect: true },
 });
-adapter.withQuery(queryBuilder);
 
-query.accept(new QueryVisitor(adapter));
-adapter.execute();
+adapter.execute(query);
 
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```

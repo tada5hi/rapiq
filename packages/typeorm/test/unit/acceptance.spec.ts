@@ -13,7 +13,6 @@ import {
     eq,
 } from '@rapiq/core';
 import type { Schema } from '@rapiq/core';
-import { QueryVisitor } from '@rapiq/sql';
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
@@ -49,7 +48,8 @@ function createUserRepository(schema: Schema<User>) {
             const query = decoder.decode(input, { schema: 'user' });
             expect(query).toBeDefined();
 
-            const adapter = new TypeormAdapter<SelectQueryBuilder<User>>({
+            const adapter = new TypeormAdapter({
+                queryBuilder,
                 relations: {
                     joinAndSelect: true,
                     onJoin: (_path, alias, join) => {
@@ -58,10 +58,7 @@ function createUserRepository(schema: Schema<User>) {
                 },
             });
 
-            adapter.withQuery(queryBuilder);
-            query!.accept(new QueryVisitor(adapter));
-
-            return adapter.execute();
+            return adapter.execute(query!);
         },
     };
 }
@@ -187,11 +184,9 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
                 filters: query!.filters.and(eq('realm_id', masterRealmId)),
             });
 
-            const adapter = new TypeormAdapter<SelectQueryBuilder<User>>();
             const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
-            adapter.withQuery(queryBuilder);
-            scoped.accept(new QueryVisitor(adapter));
-            adapter.execute();
+            const adapter = new TypeormAdapter({ queryBuilder });
+            adapter.execute(scoped);
 
             return queryBuilder;
         };

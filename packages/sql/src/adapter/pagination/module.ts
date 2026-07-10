@@ -7,9 +7,7 @@
 
 import { PaginationBaseAdapter } from './base';
 
-export class PaginationAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends PaginationBaseAdapter<QUERY> {
+export class PaginationAdapter extends PaginationBaseAdapter {
     execute() {
 
     }

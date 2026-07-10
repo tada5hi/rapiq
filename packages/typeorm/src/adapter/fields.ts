@@ -9,19 +9,17 @@ import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class FieldsAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FieldsBaseAdapter<QUERY> {
-    constructor(relations: RelationsAdapter<QUERY>) {
+export class FieldsAdapter extends FieldsBaseAdapter {
+    protected queryBuilder : SelectQueryBuilder<any>;
+
+    constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
+
+        this.queryBuilder = queryBuilder;
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
-        }
-
-        return undefined;
+        return this.queryBuilder.alias;
     }
 
     escapeField(field: string) {
@@ -32,13 +30,9 @@ export class FieldsAdapter<
     }
 
     execute() {
-        if (!this.query) {
-            return;
-        }
-
         const columns = this.getColumns();
         if (columns.length > 0) {
-            this.query.select(columns);
+            this.queryBuilder.select(columns);
         }
     }
 }

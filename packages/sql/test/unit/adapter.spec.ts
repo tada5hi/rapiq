@@ -20,7 +20,6 @@ import {
 import type { DialectOptions } from '../../src';
 import {
     Adapter,
-    QueryVisitor,
     mssql,
     mysql,
     oracle,
@@ -46,9 +45,7 @@ const buildQuery = () => new Query({
 const buildFragments = (dialect: DialectOptions) => {
     const adapter = new Adapter({ ...dialect, rootAlias: 'user' });
 
-    buildQuery().accept(new QueryVisitor(adapter));
-
-    return adapter.build();
+    return adapter.execute(buildQuery());
 };
 
 describe('src/adapter/module.ts', () => {
@@ -101,9 +98,7 @@ describe('src/adapter/module.ts', () => {
     it('should build fragments without a root alias', () => {
         const adapter = new Adapter(pg);
 
-        buildQuery().accept(new QueryVisitor(adapter));
-
-        const fragments = adapter.build();
+        const fragments = adapter.execute(buildQuery());
         expect(fragments.columns).toEqual(['"id"', '"name"', '"realm"."name"']);
         expect(fragments.where).toEqual('("age" >= $1 and ("realm"."id" in($2) or "realm"."id" is null))');
     });
@@ -118,9 +113,7 @@ describe('src/adapter/module.ts', () => {
             ]),
         });
 
-        query.accept(new QueryVisitor(adapter));
-
-        expect(adapter.build().columns).toEqual(['"id"']);
+        expect(adapter.execute(query).columns).toEqual(['"id"']);
     });
 
     it('should expand and dedupe relation paths', () => {
@@ -133,29 +126,51 @@ describe('src/adapter/module.ts', () => {
             ]),
         });
 
-        query.accept(new QueryVisitor(adapter));
-
-        expect(adapter.build().relations).toEqual([
+        expect(adapter.execute(query).relations).toEqual([
             'items',
             'items.realm',
             'items.user',
         ]);
     });
 
-    it('should reset accumulated fragments on clear', () => {
+    it('should clear accumulated state between executes by default', () => {
         const adapter = new Adapter(pg);
 
-        buildQuery().accept(new QueryVisitor(adapter));
-        adapter.clear();
+        const first = adapter.execute(buildQuery());
+        const second = adapter.execute(buildQuery());
 
-        expect(adapter.build()).toEqual({
-            columns: [],
-            where: '',
-            params: [],
-            orderBy: [],
-            limit: undefined,
-            offset: undefined,
-            relations: [],
-        });
+        // default clear makes execute() re-runnable — no double-accumulation
+        expect(second).toEqual(first);
+    });
+
+    it('should reset every sub-adapter on the default clear', () => {
+        const adapter = new Adapter(pg);
+
+        // first run populates every parameter
+        adapter.execute(buildQuery());
+
+        // a second run that omits sort, pagination and relations must not
+        // leak the previous run's state. sort/pagination/relations overwrite
+        // or dedupe rather than append, so re-walking the *same* query would
+        // hide a broken clear() — dropping the parameters is what exposes it.
+        const query = new Query({ fields: new Fields([new Field('id')]) });
+        const fragments = adapter.execute(query);
+
+        expect(fragments.orderBy).toEqual([]);
+        expect(fragments.limit).toBeUndefined();
+        expect(fragments.offset).toBeUndefined();
+        expect(fragments.relations).toEqual([]);
+    });
+
+    it('should accumulate across executes when clear is disabled', () => {
+        const adapter = new Adapter(pg);
+
+        adapter.execute(buildQuery());
+        const fragments = adapter.execute(buildQuery(), { clear: false });
+
+        // append-style sub-adapters stack instead of resetting:
+        // filter conditions/params and selected columns both double
+        expect(fragments.params).toEqual([18, 'a', 18, 'a']);
+        expect(fragments.columns).toHaveLength(6);
     });
 });

@@ -6,10 +6,8 @@
  */
 
 import type { SortDirection } from '@rapiq/core';
-import type { IAdapter } from '../types';
+import type { ISubAdapter } from '../types';
 
-export interface ISortAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
+export interface ISortAdapter extends ISubAdapter {
     add(input: string, value: `${SortDirection}`) : void;
 }

@@ -5,32 +5,69 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IQuery } from '@rapiq/core';
+import type { VisitorOptions } from '../visitor/types';
 import type { IFieldsAdapter } from './fields';
 import type { IFiltersAdapter } from './filters';
 import type { IPaginationAdapter } from './pagination';
 import type { IRelationsAdapter } from './relations';
 import type { ISortAdapter } from './sort';
 
-export interface IAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> {
-    withQuery(query?: QUERY): void;
+/**
+ * Options for a single {@link IRootAdapter.execute} call.
+ */
+export type ExecuteOptions = {
+    /**
+     * Reset the accumulated state before walking the query.
+     *
+     * `true` (default) makes execute() self-contained and re-runnable;
+     * pass `false` to accumulate across multiple execute() calls.
+     */
+    clear?: boolean,
+
+    /**
+     * Options forwarded to the {@link QueryVisitor} (and its sub-visitors)
+     * that walks the query.
+     */
+    visitor?: VisitorOptions,
+};
+
+/**
+ * Shared contract for the per-parameter sub-adapters that accumulate
+ * clause state while a query is walked, then flush it on {@link execute}.
+ */
+export interface ISubAdapter {
     execute() : void;
     clear() : void;
 }
 
+/**
+ * Root adapter contract: walks a rapiq {@link IQuery} into the sub-adapters
+ * and emits the backend result — SQL fragments, or the echo of a mutated
+ * backend query object.
+ */
 export interface IRootAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends IAdapter<QUERY> {
-    relations : IRelationsAdapter<QUERY>;
+    OUTPUT = unknown,
+> {
+    relations : IRelationsAdapter;
 
-    fields : IFieldsAdapter<QUERY>;
+    fields : IFieldsAdapter;
 
-    filters : IFiltersAdapter<QUERY>;
+    filters : IFiltersAdapter;
 
-    pagination : IPaginationAdapter<QUERY>;
+    pagination : IPaginationAdapter;
 
-    sort : ISortAdapter<QUERY>;
+    sort : ISortAdapter;
+
+    /**
+     * Walk `query` into the sub-adapters and emit the backend result.
+     *
+     * @param query   the parsed rapiq query (AST) to consume.
+     * @param options per-call options ({@link ExecuteOptions}).
+     */
+    execute(query: IQuery, options?: ExecuteOptions): OUTPUT;
+
+    clear() : void;
 }
 
 /**

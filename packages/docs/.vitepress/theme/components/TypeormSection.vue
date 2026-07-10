@@ -1,14 +1,10 @@
 <script setup lang="ts">
-const code = `import { FiltersVisitor } from '@rapiq/sql';
-import { TypeormAdapter } from '@rapiq/typeorm';
+const code = `import { TypeormAdapter } from '@rapiq/typeorm';
 
 const queryBuilder = repository.createQueryBuilder('user');
 
-const adapter = new TypeormAdapter();
-adapter.withQuery(queryBuilder);
-
-query.filters.accept(new FiltersVisitor(adapter.filters));
-adapter.execute();
+const adapter = new TypeormAdapter({ queryBuilder });
+adapter.execute(query);
 
 const [entities, total] = await queryBuilder.getManyAndCount();`;
 </script>

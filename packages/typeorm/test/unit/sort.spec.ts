@@ -6,8 +6,7 @@
  */
 
 import type { DataSource, Repository } from 'typeorm';
-import { SortsVisitor } from '@rapiq/sql';
-import { Sort, Sorts } from '@rapiq/core';
+import { Query, Sort, Sorts } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -44,12 +43,8 @@ describe('src/sort', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
-        const visitor = new SortsVisitor(adapter.sort);
-        sort.accept(visitor);
-
-        adapter.execute();
+        const adapter = new TypeormAdapter({ queryBuilder });
+        adapter.execute(new Query({ sorts: sort }));
 
         return queryBuilder;
     };

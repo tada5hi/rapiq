@@ -8,14 +8,12 @@
 import { RelationsBaseAdapter } from './base';
 import type { RelationsAdapterOptions } from './types';
 
-export class RelationsAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> extends RelationsBaseAdapter<QUERY> {
-    protected options : RelationsAdapterOptions<QUERY>;
+export class RelationsAdapter extends RelationsBaseAdapter {
+    protected options : RelationsAdapterOptions;
 
     // -----------------------------------------------------------
 
-    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
+    constructor(options: RelationsAdapterOptions = {}) {
         super();
 
         this.options = options;

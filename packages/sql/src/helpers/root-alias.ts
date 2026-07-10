@@ -8,8 +8,8 @@
 import type { RootAliasFn } from '../types';
 
 export function toRootAliasFn<
-    QUERY extends Record<string, any> = Record<string, any>,
->(input: string | RootAliasFn<QUERY>) : RootAliasFn<QUERY> {
+    TARGET extends Record<string, any> = Record<string, any>,
+>(input: string | RootAliasFn<TARGET>) : RootAliasFn<TARGET> {
     if (typeof input === 'function') {
         return input;
     }

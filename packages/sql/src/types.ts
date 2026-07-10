@@ -6,5 +6,5 @@
  */
 
 export type RootAliasFn<
-    QUERY extends Record<string, any> = Record<string, any>,
-> = (query?: QUERY) => string;
+    TARGET extends Record<string, any> = Record<string, any>,
+> = (target?: TARGET) => string;

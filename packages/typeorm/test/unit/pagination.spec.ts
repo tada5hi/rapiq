@@ -6,8 +6,7 @@
  */
 
 import type { DataSource, Repository } from 'typeorm';
-import { PaginationVisitor } from '@rapiq/sql';
-import { Pagination } from '@rapiq/core';
+import { Pagination, Query } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -44,12 +43,8 @@ describe('src/pagination', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
-        const visitor = new PaginationVisitor(adapter.pagination);
-        pagination.accept(visitor);
-
-        adapter.execute();
+        const adapter = new TypeormAdapter({ queryBuilder });
+        adapter.execute(new Query({ pagination }));
 
         return queryBuilder;
     };

@@ -10,9 +10,8 @@ import type { IRelationsAdapter } from '../relations';
 import type { IFiltersAdapter } from './types';
 
 export abstract class FiltersBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-    RelationsAdapter extends IRelationsAdapter<QUERY> = IRelationsAdapter<QUERY>,
-> implements IFiltersAdapter<QUERY> {
+    RelationsAdapter extends IRelationsAdapter = IRelationsAdapter,
+> implements IFiltersAdapter {
     /**
      * where conditions
      *
@@ -28,8 +27,6 @@ export abstract class FiltersBaseAdapter<
 
     protected fieldPrefix: string;
 
-    protected query : QUERY | undefined;
-
     // -----------------------------------------------------------
 
     protected constructor(
@@ -42,13 +39,6 @@ export abstract class FiltersBaseAdapter<
 
         this.paramPlaceholderIndexer = new ParamPlaceholderIndexer();
         this.fieldPrefix = '';
-    }
-
-    // -----------------------------------------------------------
-
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
     }
 
     // -----------------------------------------------------------
@@ -140,7 +130,7 @@ export abstract class FiltersBaseAdapter<
     // -----------------------------------------------------------
 
     merge<
-        T extends IFiltersAdapter<QUERY>,
+        T extends IFiltersAdapter,
     >(
         query: T,
         operator: 'and' | 'or' = 'and',
@@ -164,9 +154,8 @@ export abstract class FiltersBaseAdapter<
     }
 
     protected setChildAttributes<
-        T extends FiltersBaseAdapter<QUERY>,
+        T extends FiltersBaseAdapter,
     >(child: T) : T {
-        child.withQuery(this.query);
         child.setFieldPrefix(this.fieldPrefix);
         child.setLastPlaceholderIndexer(this.paramPlaceholderIndexer);
 

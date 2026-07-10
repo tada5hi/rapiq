@@ -154,7 +154,6 @@ The following example assumes [express](https://www.npmjs.com/package/express) a
 import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { URLDecoder } from '@rapiq/codec-url-simple';
-import { QueryVisitor } from '@rapiq/sql';
 import { TypeormAdapter } from '@rapiq/typeorm';
 // your app's TypeORM DataSource instance
 import { dataSource } from './data-source';
@@ -200,11 +199,10 @@ export async function getUsers(req: Request, res: Response) {
         .createQueryBuilder('user');
 
     const adapter = new TypeormAdapter({
+        queryBuilder,
         relations: { joinAndSelect: true }
     });
-    adapter.withQuery(queryBuilder);
-    query.accept(new QueryVisitor(adapter));
-    const { pagination } = adapter.execute();
+    const { pagination } = adapter.execute(query);
 
     const [entities, total] = await queryBuilder.getManyAndCount();
 

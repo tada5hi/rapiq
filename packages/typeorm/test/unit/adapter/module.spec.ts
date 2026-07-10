@@ -5,6 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import {
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
+    Pagination,
+    Query,
+} from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../../src';
 import { User } from '../../data/entity/user';
@@ -22,12 +30,9 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
-        adapter.pagination.setLimit(10);
-        adapter.pagination.setOffset(20);
+        const adapter = new TypeormAdapter({ queryBuilder });
 
-        const output = adapter.execute();
+        const output = adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
 
         expect(output.pagination).toEqual({ limit: 10, offset: 20 });
         expect(queryBuilder.expressionMap.take).toEqual(10);
@@ -39,11 +44,49 @@ describe('src/adapter/module.ts', () => {
             .getRepository(User)
             .createQueryBuilder('user');
 
-        const adapter = new TypeormAdapter();
-        adapter.withQuery(queryBuilder);
+        const adapter = new TypeormAdapter({ queryBuilder });
 
-        const output = adapter.execute();
+        const output = adapter.execute(new Query());
 
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
+    });
+
+    it('should reset stale pagination on a re-run whose query drops it', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        // first run applies take/skip to the builder
+        adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
+        expect(queryBuilder.expressionMap.take).toEqual(10);
+
+        // default clear:true makes the adapter re-runnable — a follow-up query
+        // without pagination must reset the builder, not leak the prior limit/offset
+        adapter.execute(new Query());
+        expect(queryBuilder.expressionMap.take).toBeUndefined();
+        expect(queryBuilder.expressionMap.skip).toBeUndefined();
+    });
+
+    it('should reset a stale where on a re-run whose query drops filters', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query({
+            filters: new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+            ]),
+        }));
+        expect(queryBuilder.getSql()).toContain('WHERE');
+
+        // the unconditional where('') call is what resets the builder here:
+        // typeorm clears expressionMap.wheres before adding a condition and
+        // skips empty ones, so no dangling WHERE is emitted either
+        adapter.execute(new Query());
+        expect(queryBuilder.getSql()).not.toContain('WHERE');
     });
 });

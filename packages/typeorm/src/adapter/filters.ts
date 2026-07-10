@@ -12,37 +12,24 @@ import type { SelectQueryBuilder } from 'typeorm';
 import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
-export class FiltersAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends FiltersBaseAdapter<QUERY, RelationsAdapter<QUERY>> {
+export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
+    protected queryBuilder : SelectQueryBuilder<any>;
+
     protected dialect : DialectOptions;
 
-    constructor(relations: RelationsAdapter<QUERY>) {
+    constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
 
-        this.dialect = resolveQueryDialect();
-    }
-
-    override withQuery(query?: QUERY) {
-        this.dialect = resolveQueryDialect(query);
-
-        return super.withQuery(query);
+        this.queryBuilder = queryBuilder;
+        this.dialect = resolveQueryDialect(queryBuilder);
     }
 
     rootAlias(): string | undefined {
-        if (this.query) {
-            return this.query.alias;
-        }
-
-        return undefined;
+        return this.queryBuilder.alias;
     }
 
     escapeField(field: string) {
-        if (this.query) {
-            return this.query.escape(field);
-        }
-
-        return this.dialect.escapeField(field);
+        return this.queryBuilder.escape(field);
     }
 
     paramPlaceholder(index: number) : string {
@@ -62,7 +49,7 @@ export class FiltersAdapter<
     }
 
     child(): this {
-        const child = new FiltersAdapter(this.relations);
+        const child = new FiltersAdapter(this.queryBuilder, this.relations);
 
         this.setChildAttributes(child);
 
@@ -72,8 +59,6 @@ export class FiltersAdapter<
     execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        if (this.query) {
-            this.query.where(sql, params);
-        }
+        this.queryBuilder.where(sql, params);
     }
 }

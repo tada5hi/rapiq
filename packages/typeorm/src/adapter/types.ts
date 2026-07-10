@@ -10,9 +10,7 @@ import type { SelectQueryBuilder } from 'typeorm';
 
 export type RelationsAdapterJoinType = 'left' | 'inner';
 
-export type RelationsAdapterOptions<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> = RelationsAdapterBaseOptions & {
+export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
     /**
      * Join strategy for relations.
      * Defaults to 'left' so records with absent relations are kept
@@ -23,15 +21,17 @@ export type RelationsAdapterOptions<
     /**
      * Invoked for every join this adapter applies (skipped joins,
      * e.g. pre-existing ones, do not trigger it). Useful to extend
-     * the query per join, e.g. `query.addGroupBy(`${alias}.id`)`.
+     * the query per join, e.g. `queryBuilder.addGroupBy(`${alias}.id`)`.
      */
-    onJoin?: (path: string, alias: string, query: QUERY) => void,
+    onJoin?: (path: string, alias: string, queryBuilder: SelectQueryBuilder<any>) => void,
 };
 
-export type TypeormAdapterOptions<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> = {
-    relations?: RelationsAdapterOptions<QUERY>
+export type TypeormAdapterOptions = {
+    /**
+     * The query builder to apply the parsed query to.
+     */
+    queryBuilder: SelectQueryBuilder<any>,
+    relations?: RelationsAdapterOptions,
 };
 
 export type TypeormAdapterOutput = {

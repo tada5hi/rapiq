@@ -10,10 +10,8 @@ import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
 import type { IFieldsAdapter } from './types';
 
-export abstract class FieldsBaseAdapter<
-    QUERY extends Record<string, any> = Record<string, any>,
-> implements IFieldsAdapter {
-    protected relations: RelationsBaseAdapter<QUERY>;
+export abstract class FieldsBaseAdapter implements IFieldsAdapter {
+    protected relations: RelationsBaseAdapter;
 
     /**
      * selection fields.
@@ -22,22 +20,13 @@ export abstract class FieldsBaseAdapter<
      */
     protected value : { name: string, operator?: `${FieldOperator}` }[];
 
-    protected query : QUERY | undefined;
-
     // -----------------------------------------------------------
 
     protected constructor(
-        relations: RelationsBaseAdapter<QUERY>,
+        relations: RelationsBaseAdapter,
     ) {
         this.relations = relations;
         this.value = [];
-    }
-
-    // -----------------------------------------------------------
-
-    withQuery(query?: QUERY) {
-        this.query = query;
-        return this;
     }
 
     // -----------------------------------------------------------

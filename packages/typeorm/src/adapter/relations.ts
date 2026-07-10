@@ -9,22 +9,22 @@ import { RelationsBaseAdapter, splitFirst } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
 
-export class RelationsAdapter<
-    QUERY extends SelectQueryBuilder<any> = SelectQueryBuilder<any>,
-> extends RelationsBaseAdapter<QUERY> {
-    protected options : RelationsAdapterOptions<QUERY>;
+export class RelationsAdapter extends RelationsBaseAdapter {
+    protected queryBuilder : SelectQueryBuilder<any>;
 
-    constructor(options: RelationsAdapterOptions<QUERY> = {}) {
+    protected options : RelationsAdapterOptions;
+
+    constructor(
+        queryBuilder: SelectQueryBuilder<any>,
+        options: RelationsAdapterOptions = {},
+    ) {
         super();
 
+        this.queryBuilder = queryBuilder;
         this.options = options;
     }
 
     execute() : void {
-        if (!this.query) {
-            return;
-        }
-
         for (const relation of this.value) {
             if (relation.executed) {
                 continue;
@@ -37,16 +37,12 @@ export class RelationsAdapter<
     }
 
     protected join(input: string): boolean {
-        if (!this.query) {
-            return false;
-        }
-
         let relationFullName : string | undefined = input;
         let path : string | undefined;
-        let meta = this.query.expressionMap.mainAlias!.metadata;
-        let { alias } = this.query;
+        let meta = this.queryBuilder.expressionMap.mainAlias!.metadata;
+        let { alias } = this.queryBuilder;
 
-        const { joinAttributes } = this.query.expressionMap;
+        const { joinAttributes } = this.queryBuilder.expressionMap;
 
         while (relationFullName) {
             let relationName : string;
@@ -69,7 +65,7 @@ export class RelationsAdapter<
                 this.applyJoin(`${alias}.${relationName}`, relationName);
 
                 if (this.options.onJoin) {
-                    this.options.onJoin(path, relationName, this.query);
+                    this.options.onJoin(path, relationName, this.queryBuilder);
                 }
             }
 
@@ -81,22 +77,18 @@ export class RelationsAdapter<
     }
 
     protected applyJoin(property: string, alias: string) : void {
-        if (!this.query) {
-            return;
-        }
-
         const inner = this.options.joinType === 'inner';
 
         if (this.options.joinAndSelect) {
             if (inner) {
-                this.query.innerJoinAndSelect(property, alias);
+                this.queryBuilder.innerJoinAndSelect(property, alias);
             } else {
-                this.query.leftJoinAndSelect(property, alias);
+                this.queryBuilder.leftJoinAndSelect(property, alias);
             }
         } else if (inner) {
-            this.query.innerJoin(property, alias);
+            this.queryBuilder.innerJoin(property, alias);
         } else {
-            this.query.leftJoin(property, alias);
+            this.queryBuilder.leftJoin(property, alias);
         }
     }
 }
