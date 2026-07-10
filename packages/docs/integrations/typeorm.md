@@ -43,7 +43,7 @@ adapter.execute(query, { clear: false });
 
 ## Dialect detection
 
-The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; regexp conditions use the matching [dialect preset](/integrations/sql#dialects) — on regexp-less dialects (SQLite, SQL Server) the `contains` / `startsWith` / `endsWith` operators fall back to `LIKE`, and the `regex` operator throws a typed `AdapterError`. When no query builder is bound (or the connection type is unknown), the postgres preset is the documented last-resort default.
+The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; regexp conditions use the matching [dialect preset](/integrations/sql#dialects) — on regexp-less dialects (SQLite, SQL Server) the `contains` / `startsWith` / `endsWith` operators fall back to `LIKE`, and the `regex` operator throws a typed `AdapterError`. When the connection type has no matching preset, the postgres preset is the documented last-resort default.
 
 ## Options
 
