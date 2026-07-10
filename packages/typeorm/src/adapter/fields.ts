@@ -10,20 +10,16 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
 export class FieldsAdapter extends FieldsBaseAdapter {
-    protected queryBuilder : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any>;
 
-    constructor(queryBuilder: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
+    constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
 
         this.queryBuilder = queryBuilder;
     }
 
     rootAlias(): string | undefined {
-        if (this.queryBuilder) {
-            return this.queryBuilder.alias;
-        }
-
-        return undefined;
+        return this.queryBuilder.alias;
     }
 
     escapeField(field: string) {
@@ -34,10 +30,6 @@ export class FieldsAdapter extends FieldsBaseAdapter {
     }
 
     execute() {
-        if (!this.queryBuilder) {
-            return;
-        }
-
         const columns = this.getColumns();
         if (columns.length > 0) {
             this.queryBuilder.select(columns);

@@ -26,7 +26,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
     public readonly sort : SortAdapter;
 
-    constructor(options: TypeormAdapterOptions = {}) {
+    constructor(options: TypeormAdapterOptions) {
         this.relations = new RelationsAdapter(options.queryBuilder, options.relations);
         this.fields = new FieldsAdapter(options.queryBuilder, this.relations);
         this.filters = new FiltersAdapter(options.queryBuilder, this.relations);

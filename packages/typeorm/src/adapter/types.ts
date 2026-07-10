@@ -30,7 +30,7 @@ export type TypeormAdapterOptions = {
     /**
      * The query builder to apply the parsed query to.
      */
-    queryBuilder?: SelectQueryBuilder<any>,
+    queryBuilder: SelectQueryBuilder<any>,
     relations?: RelationsAdapterOptions,
 };
 

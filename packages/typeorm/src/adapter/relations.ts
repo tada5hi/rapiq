@@ -10,12 +10,12 @@ import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
 
 export class RelationsAdapter extends RelationsBaseAdapter {
-    protected queryBuilder : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any>;
 
     protected options : RelationsAdapterOptions;
 
     constructor(
-        queryBuilder: SelectQueryBuilder<any> | undefined,
+        queryBuilder: SelectQueryBuilder<any>,
         options: RelationsAdapterOptions = {},
     ) {
         super();
@@ -25,10 +25,6 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     }
 
     execute() : void {
-        if (!this.queryBuilder) {
-            return;
-        }
-
         for (const relation of this.value) {
             if (relation.executed) {
                 continue;
@@ -41,10 +37,6 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     }
 
     protected join(input: string): boolean {
-        if (!this.queryBuilder) {
-            return false;
-        }
-
         let relationFullName : string | undefined = input;
         let path : string | undefined;
         let meta = this.queryBuilder.expressionMap.mainAlias!.metadata;
@@ -85,10 +77,6 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     }
 
     protected applyJoin(property: string, alias: string) : void {
-        if (!this.queryBuilder) {
-            return;
-        }
-
         const inner = this.options.joinType === 'inner';
 
         if (this.options.joinAndSelect) {

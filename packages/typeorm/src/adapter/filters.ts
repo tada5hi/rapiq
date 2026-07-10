@@ -13,11 +13,11 @@ import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
 export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
-    protected queryBuilder : SelectQueryBuilder<any> | undefined;
+    protected queryBuilder : SelectQueryBuilder<any>;
 
     protected dialect : DialectOptions;
 
-    constructor(queryBuilder: SelectQueryBuilder<any> | undefined, relations: RelationsAdapter) {
+    constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
 
         this.queryBuilder = queryBuilder;
@@ -25,19 +25,11 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     rootAlias(): string | undefined {
-        if (this.queryBuilder) {
-            return this.queryBuilder.alias;
-        }
-
-        return undefined;
+        return this.queryBuilder.alias;
     }
 
     escapeField(field: string) {
-        if (this.queryBuilder) {
-            return this.queryBuilder.escape(field);
-        }
-
-        return this.dialect.escapeField(field);
+        return this.queryBuilder.escape(field);
     }
 
     paramPlaceholder(index: number) : string {
@@ -67,8 +59,6 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        if (this.queryBuilder) {
-            this.queryBuilder.where(sql, params);
-        }
+        this.queryBuilder.where(sql, params);
     }
 }

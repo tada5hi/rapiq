@@ -92,15 +92,4 @@ describe('src/adapter/filters.ts', () => {
         expect(sql).toEqual('(`user`.`realm_id` in(:0) or `user`.`realm_id` is null)');
         expect(params).toEqual([1]);
     });
-
-    it('should fall back to the postgres preset without a bound query', () => {
-        const adapter = new TypeormAdapter();
-
-        const condition = new Filter(FilterFieldOperator.EQUAL, 'age', 18);
-        condition.accept(new FiltersVisitor(adapter.filters));
-
-        const [sql, params] = adapter.filters.getQueryAndParameters();
-        expect(sql).toEqual('"age" = :0');
-        expect(params).toEqual([18]);
-    });
 });
