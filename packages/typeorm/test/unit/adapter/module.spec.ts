@@ -5,7 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Pagination, Query } from '@rapiq/core';
+import {
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
+    Filters,
+    Pagination,
+    Query,
+} from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../../src';
 import { User } from '../../data/entity/user';
@@ -60,5 +67,26 @@ describe('src/adapter/module.ts', () => {
         adapter.execute(new Query());
         expect(queryBuilder.expressionMap.take).toBeUndefined();
         expect(queryBuilder.expressionMap.skip).toBeUndefined();
+    });
+
+    it('should reset a stale where on a re-run whose query drops filters', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query({
+            filters: new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+            ]),
+        }));
+        expect(queryBuilder.getSql()).toContain('WHERE');
+
+        // the unconditional where('') call is what resets the builder here:
+        // typeorm clears expressionMap.wheres before adding a condition and
+        // skips empty ones, so no dangling WHERE is emitted either
+        adapter.execute(new Query());
+        expect(queryBuilder.getSql()).not.toContain('WHERE');
     });
 });
