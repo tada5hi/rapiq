@@ -10,7 +10,7 @@ Order the collection by one or more keys, ascending or descending.
 
 ## On the wire
 
-```
+```txt
 sort=-age                     `-` prefix = descending
 sort=name,-age                multiple keys, applied in order
 sort=items.id                 relation field

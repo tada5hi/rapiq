@@ -4,7 +4,7 @@ Every error rapiq throws extends `BaseError` and carries a machine-readable `cod
 
 ## The hierarchy
 
-```
+```txt
 BaseError { code: ErrorCode }
 ├── BuildError            defineQuery / helpers — malformed build input
 ├── MergeError            mergeQueries / Filters.merge — non-flat trees
@@ -57,7 +57,7 @@ Two dialects are stricter than the drop policy: **grammar errors always throw**,
 
 | Code | Trigger |
 |---|---|
-| `OPERATOR_UNSUPPORTED` | e.g. `regex` on a dialect without regexp support; `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
+| `OPERATOR_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
 | `FEATURE_UNSUPPORTED` | e.g. `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip |
 
 The URL encoders throw these too — a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).

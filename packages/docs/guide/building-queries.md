@@ -7,7 +7,7 @@ import { defineQuery } from '@rapiq/core';
 
 const query = defineQuery<User>({
     fields: ['id', 'name'],
-    filters: { name: { $contains: text }, realm_id: [id, null] },
+    filters: { name: { $contains: 'jo' }, 'realm.id': [1, null] },
     relations: ['realm'],
     sort: '-created_at',
     pagination: { limit: 10 },
@@ -27,7 +27,7 @@ Four equivalent notations, freely mixable:
 | Notation | Example | Meaning |
 |---|---|---|
 | scalar | `{ name: 'John' }` | equals |
-| bare array | `{ realm_id: [id, null] }` | *in* list — `null` is a legal element; backends rewrite it to `… OR IS NULL` |
+| bare array | `{ 'realm.id': [1, null] }` | *in* list — `null` is a legal element; backends rewrite it to `… OR IS NULL` |
 | operator object | `{ age: { $gte: 18, $lt: 65 } }` | explicit operators, combined with **and** |
 | condition helpers | `or(gte('age', 18), eq('deleted_at', null))` | arbitrary condition trees |
 

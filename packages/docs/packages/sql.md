@@ -32,8 +32,8 @@ import { resolveDialect } from '@rapiq/sql';
 resolveDialect('mariadb'); // mysql preset
 ```
 
-::: warning Dialects without regexp
-The `mssql` and `sqlite` presets omit `regexp` — SQL Server has no regexp operator, and stock SQLite ships without a `REGEXP` function. On those dialects the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
+::: warning Dialects without regex support
+The `mssql` and `sqlite` presets omit the `regexp` callback — SQL Server has no regex operator, and stock SQLite ships without a `REGEXP` function. On those dialects the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
 :::
 
 ## The root adapter
@@ -96,4 +96,4 @@ An empty list never matches: `in(field, [])` renders `1 = 0` and `nin(field, [])
 
 ### String matching
 
-The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regexp dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
+The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.

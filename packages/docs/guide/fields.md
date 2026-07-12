@@ -10,7 +10,7 @@ Select which resource fields are returned — or extend/shrink the server's defa
 
 ## On the wire
 
-```
+```txt
 fields=id,name,email          one list for the root resource
 fields[items]=id,name         per-relation lists
 fields=+email                 extend the default selection

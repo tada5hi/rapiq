@@ -10,7 +10,7 @@ Limit and offset the collection — with a server-side cap.
 
 ## On the wire
 
-```
+```txt
 page[limit]=25&page[offset]=50
 ```
 

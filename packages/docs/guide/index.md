@@ -4,7 +4,7 @@ Rapiq (**R**est **Api** **Q**uery) gives the two sides of an HTTP API **one shar
 
 The caller builds a **typed query**, sends it as an ordinary URL query string, and the receiving application validates it against an **allow-list schema** before turning it into a database query. No hand-rolled `req.query` parsing, no string concatenation, no guessing which parameters a client may touch.
 
-```
+```txt
 ?filter[age]=>=18&include=realm&sort=-age&page[limit]=25&fields=id,name
 ```
 

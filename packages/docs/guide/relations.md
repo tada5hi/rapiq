@@ -10,7 +10,7 @@ Load related resources alongside the primary one — and unlock their fields for
 
 ## On the wire
 
-```
+```txt
 include=realm,items           comma-separated
 include=items.realm           nested path (dot notation)
 ```

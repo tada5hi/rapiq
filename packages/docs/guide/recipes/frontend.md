@@ -36,23 +36,25 @@ const defaults = defineQuery<User>({
     pagination: { limit: 25 },
 });
 
-// 2. parent-imposed scope — arrives as a prop / argument
-//    (fragments travel well as data)
-const scope = defineFilters<User>({ 'realm.id': props.realmId });
+// 2. parent-imposed scope — realmId arrives as a prop / argument
+//    (fragments are plain values, so they travel well as data)
+function scopeFor(realmId: string) {
+    return defineFilters<User>({ 'realm.id': realmId });
+}
 
 // 3. user input — from the search box & pager
-function buildQuery(search: string, page: number) {
+function buildQuery(realmId: string, search: string, page: number) {
     const userInput = defineQuery<User>({
         filters: { name: { $contains: search || undefined } },
         pagination: { offset: (page - 1) * 25 },
     });
 
     // left wins: user input > scope > defaults
-    return mergeQueries(userInput, defineQuery<User>({ filters: scope }), defaults);
+    return mergeQueries(userInput, defineQuery<User>({ filters: scopeFor(realmId) }), defaults);
 }
 
-async function fetchUsers(search: string, page: number) {
-    const queryString = encoder.encode(buildQuery(search, page));
+async function fetchUsers(realmId: string, search: string, page: number) {
+    const queryString = encoder.encode(buildQuery(realmId, search, page));
     const response = await fetch(`/users?${queryString}`);
     return response.json();
 }
@@ -62,7 +64,7 @@ Three details doing quiet work here:
 
 - `{ $contains: search || undefined }` — an `undefined` operator value contributes **no condition**, so the empty search box simply doesn't filter. No `if`-shuffling around the query object.
 - The merge is **per-field** for filters: the user's `name` filter never disturbs the scope's `realm.id` condition, and both survive alongside the defaults' sort and fields.
-- Everything is **immutable** — `defaults` and `scope` are never mutated, so they're safe as module constants or reactive props.
+- Everything is **immutable** — merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
 
 ## Framework flavors
 
@@ -70,11 +72,13 @@ Three details doing quiet work here:
 
 ```vue [Vue]
 <script setup lang="ts">
+const props = defineProps<{ realmId: string }>();
+
 const search = ref('');
 const page = ref(1);
 
 const queryString = computed(() =>
-    encoder.encode(buildQuery(search.value, page.value)));
+    encoder.encode(buildQuery(props.realmId, search.value, page.value)));
 
 watchEffect(async () => {
     users.value = (await (await fetch(`/users?${queryString.value}`)).json()).data;
@@ -83,19 +87,23 @@ watchEffect(async () => {
 ```
 
 ```tsx [React]
-const [search, setSearch] = useState('');
-const [page, setPage] = useState(1);
+function UserList({ realmId }: { realmId: string }) {
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
 
-const queryString = useMemo(
-    () => encoder.encode(buildQuery(search, page)),
-    [search, page],
-);
+    const queryString = useMemo(
+        () => encoder.encode(buildQuery(realmId, search, page)),
+        [realmId, search, page],
+    );
 
-useEffect(() => {
-    fetch(`/users?${queryString}`)
-        .then((r) => r.json())
-        .then((json) => setUsers(json.data));
-}, [queryString]);
+    useEffect(() => {
+        fetch(`/users?${queryString}`)
+            .then((r) => r.json())
+            .then((json) => setUsers(json.data));
+    }, [queryString]);
+
+    // ...
+}
 ```
 
 :::

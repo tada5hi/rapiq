@@ -4,7 +4,7 @@ The complete, production-shaped list endpoint: schemas in one module, a decoder 
 
 ## Project layout
 
-```
+```txt
 src/
 ├── schema.ts        # schemas + registry (one place for the whole contract)
 ├── decoder.ts       # shared URLDecoder
@@ -106,7 +106,7 @@ export async function getUsers(req: Request, res: Response) {
 
 ## What clients can now do
 
-```
+```txt
 GET /users                                            defaults: id+name, sorted -id, limit 50
 GET /users?filter[age]=>=18&sort=-age                 filtered & sorted
 GET /users?include=realm&fields[realm]=name           relation + sparse fields

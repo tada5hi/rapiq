@@ -39,7 +39,7 @@ The last four have no representation in the URL dialects — they work in code, 
 
 Keys are field names (or `relation.field` paths); the value string encodes the operator:
 
-```
+```txt
 filter[id]=1                  equal
 filter[name]=~jo~             contains
 filter[age]=>=18              greater than or equal
@@ -64,7 +64,7 @@ import { and, defineQuery, eq, gte, or } from '@rapiq/core';
 defineQuery<User>({
     filters: {
         name: 'John',                 // scalar → eq
-        realm_id: [1, null],          // array → in (null is legal)
+        'realm.id': [1, null],        // array → in (null is legal)
         age: { $gte: 18, $lt: 65 },   // operator object
     },
 });

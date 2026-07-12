@@ -84,7 +84,7 @@ read the [docs](https://rapiq.tada5hi.net).
 The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query-ast) for a generic Record `<T>` with
 [defineQuery](https://rapiq.tada5hi.net/guide/building-queries) — typed input in, AST out, no magic value strings.
 Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects and
-[condition helpers](https://rapiq.tada5hi.net/guide/building-queriesing-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
+[condition helpers](https://rapiq.tada5hi.net/guide/building-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
 queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merging-queries).
 
 The query is serialized for transport by the URL codec (`@rapiq/codec-url-simple`) and decoded back

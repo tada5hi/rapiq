@@ -41,7 +41,7 @@ const queryString = new URLEncoder().encode(query);
 const response = await fetch(`/users?${queryString}`);
 ```
 
-Filters accept scalars (`{ name: 'John' }`), arrays (`{ realm_id: [1, null] }` — an *in* list), `$`-operator objects and condition helpers like `or(gte('age', 18), eq('email', null))`. The full grammar lives in [Building Queries](/guide/building-queries).
+Filters accept scalars (`{ name: 'John' }`), arrays (`{ id: [1, null] }` — an *in* list), `$`-operator objects and condition helpers like `or(gte('age', 18), eq('email', null))`. The full grammar lives in [Building Queries](/guide/building-queries).
 
 ## 2. Declare what clients may request (server)
 
