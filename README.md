@@ -21,11 +21,11 @@
 <p align="center">
   <a href="https://rapiq.tada5hi.net"><b>Documentation</b></a>
   ·
-  <a href="https://rapiq.tada5hi.net/getting-started/">Getting Started</a>
+  <a href="https://rapiq.tada5hi.net/guide/">Getting Started</a>
   ·
   <a href="https://rapiq.tada5hi.net/guide/">Guide</a>
   ·
-  <a href="https://rapiq.tada5hi.net/guide/migration">Migration from v1</a>
+  <a href="https://rapiq.tada5hi.net/guide/migration-v1">Migration from v1</a>
 </p>
 
 ---
@@ -81,11 +81,11 @@ read the [docs](https://rapiq.tada5hi.net).
 
 ### Build 🔧
 
-The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query) for a generic Record `<T>` with
-[defineQuery](https://rapiq.tada5hi.net/guide/build) — typed input in, AST out, no magic value strings.
+The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query-ast) for a generic Record `<T>` with
+[defineQuery](https://rapiq.tada5hi.net/guide/building-queries) — typed input in, AST out, no magic value strings.
 Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects and
-[condition helpers](https://rapiq.tada5hi.net/guide/build#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
-queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merge).
+[condition helpers](https://rapiq.tada5hi.net/guide/building-queriesing-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
+queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merging-queries).
 
 The query is serialized for transport by the URL codec (`@rapiq/codec-url-simple`) and decoded back
 into the same AST on the receiving side.
@@ -138,13 +138,13 @@ const response = await fetch(`/users?${queryString}`);
 ### Parse 🔎
 
 On the receiving side the incoming query is decoded back into the same
-[Query](https://rapiq.tada5hi.net/guide/query) AST. A
-[Schema](https://rapiq.tada5hi.net/guide/schema) declares what a caller may request per parameter
+[Query](https://rapiq.tada5hi.net/guide/query-ast) AST. A
+[Schema](https://rapiq.tada5hi.net/guide/schemas) declares what a caller may request per parameter
 (allow-lists, defaults, mappings) — anything outside it is silently dropped
 (set `throwOnFailure: true` on the schema to get a `ParseError` instead).
 The decoded query is then applied to the database by an adapter
-([@rapiq/typeorm](https://rapiq.tada5hi.net/integrations/typeorm) below;
-[@rapiq/sql](https://rapiq.tada5hi.net/integrations/sql) renders parameterized SQL fragments for any other driver).
+([@rapiq/typeorm](https://rapiq.tada5hi.net/packages/typeorm) below;
+[@rapiq/sql](https://rapiq.tada5hi.net/packages/sql) renders parameterized SQL fragments for any other driver).
 
 The following example assumes [express](https://www.npmjs.com/package/express) and
 [typeorm](https://www.npmjs.com/package/typeorm) are installed, and uses the same

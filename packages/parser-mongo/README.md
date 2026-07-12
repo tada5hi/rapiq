@@ -33,13 +33,13 @@ const query = parser.parse({
 }, { schema: 'user' });
 ```
 
-Only the `filters` parameter uses the mongo dialect — fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query) AST.
+Only the `filters` parameter uses the mongo dialect — fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST.
 
 Grammar errors (unknown `$`-operators, misplaced operators, malformed operator arguments) always throw `FiltersParseError`; field keys that fail the schema allow-list are dropped by default and throw when `throwOnFailure` is set.
 
 ## Documentation
 
-Full guide (operator table & deviations from MongoDB): [rapiq.tada5hi.net/integrations/mongo](https://rapiq.tada5hi.net/integrations/mongo)
+Full guide (operator table & deviations from MongoDB): [rapiq.tada5hi.net/packages/parser-mongo](https://rapiq.tada5hi.net/packages/parser-mongo)
 
 ## License
 

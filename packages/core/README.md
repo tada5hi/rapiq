@@ -56,7 +56,7 @@ Every node implements `accept(visitor)` — backends implement the visitor inter
 
 ## Documentation
 
-Full guide: [rapiq.tada5hi.net](https://rapiq.tada5hi.net) — see [Building Queries](https://rapiq.tada5hi.net/guide/build), [Schemas](https://rapiq.tada5hi.net/guide/schema) and [Merging Queries](https://rapiq.tada5hi.net/guide/merge).
+Full guide: [rapiq.tada5hi.net](https://rapiq.tada5hi.net) — see [Building Queries](https://rapiq.tada5hi.net/guide/building-queries), [Schemas](https://rapiq.tada5hi.net/guide/schemas) and [Merging Queries](https://rapiq.tada5hi.net/guide/merging-queries).
 
 ## License
 

@@ -36,7 +36,7 @@ Dispatch rules:
 
 ## Documentation
 
-Full guide: [rapiq.tada5hi.net/integrations/url#codec-registry](https://rapiq.tada5hi.net/integrations/url#codec-registry)
+Full guide: [rapiq.tada5hi.net/packages/codec-url](https://rapiq.tada5hi.net/packages/codec-url)
 
 ## License
 

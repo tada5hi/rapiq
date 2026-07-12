@@ -2,7 +2,7 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-Moves a [`Query`](https://rapiq.tada5hi.net/guide/query) over the wire: `URLEncoder` turns the AST into a JSON:API-style URL query string, `URLDecoder` turns a query string (or an express-style `req.query` object) back into the AST.
+Moves a [`Query`](https://rapiq.tada5hi.net/guide/query-ast) over the wire: `URLEncoder` turns the AST into a JSON:API-style URL query string, `URLDecoder` turns a query string (or an express-style `req.query` object) back into the AST.
 
 ## Installation
 
@@ -49,7 +49,7 @@ Within the dialect's expressible subset, `decode(encode(query)) ≍ query` — e
 
 ## Documentation
 
-Full guide (wire format, operator support matrix): [rapiq.tada5hi.net/integrations/url](https://rapiq.tada5hi.net/integrations/url)
+Full guide (wire format, operator support matrix): [rapiq.tada5hi.net/packages/codec-url-simple](https://rapiq.tada5hi.net/packages/codec-url-simple)
 
 ## License
 

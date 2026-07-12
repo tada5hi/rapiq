@@ -1,11 +1,20 @@
 # Pagination
 
-Limit the number of resources returned from the collection.
+Limit and offset the collection — with a server-side cap.
 
-- **URL parameter**: `page`
-- **AST node**: `Pagination { limit, offset }`
+| | |
+|---|---|
+| URL key | `page` |
+| AST node | `Pagination { limit, offset }` |
+| Schema options | `maxLimit` |
 
-## Input format
+## On the wire
+
+```
+page[limit]=25&page[offset]=50
+```
+
+Parser input shape:
 
 ```typescript
 {
@@ -16,11 +25,15 @@ Limit the number of resources returned from the collection.
 }
 ```
 
-Both keys are optional. Values are coerced to integers; `limit` must be positive, `offset` non-negative. In URL form this is `page[limit]=25&page[offset]=50`.
+Both keys are optional. Values are coerced to integers; `limit` must be positive, `offset` non-negative.
 
-::: info Client-side construction
-The same shape works as typed build input — `defineQuery({ pagination: { limit: 25 } })` or the `definePagination(...)` fragment factory. See [Building Queries](/guide/build).
-:::
+## Building in code
+
+```typescript
+defineQuery<User>({ pagination: { limit: 25 } });
+
+definePagination({ limit: 25, offset: 50 });   // standalone fragment
+```
 
 ## Schema options
 
@@ -36,4 +49,17 @@ defineSchema<User>({
 |---|---|
 | `maxLimit` | Upper bound for `limit`. A larger requested limit is clamped to `maxLimit`; when no limit is requested at all, `maxLimit` is applied as the limit. |
 
-With `throwOnFailure`, exceeding `maxLimit` throws `PaginationParseError.limitExceeded()` instead of clamping.
+## Echoing pagination back
+
+Adapters report the pagination they applied, so responses can carry an accurate `meta` block:
+
+```typescript
+const { pagination } = adapter.execute(query);          // TypeORM adapter
+const { total, pagination } = applyQuery(query, data);  // memory
+
+res.json({ data, meta: { total, ...pagination } });
+```
+
+## On violation
+
+Out-of-range values are clamped/dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw), exceeding `maxLimit` throws `PaginationParseError.limitExceeded()` instead of clamping.

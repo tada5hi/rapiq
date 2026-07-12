@@ -2,7 +2,7 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-URL codec for the [expression dialect](https://rapiq.tada5hi.net/integrations/expression): the filters parameter crosses the URL boundary as a single expression — nested `and`/`or` compounds first-class — while the other four parameters share the [simple codec](https://www.npmjs.com/package/@rapiq/codec-url-simple)'s wire format.
+URL codec for the [expression dialect](https://rapiq.tada5hi.net/packages/parser-expression): the filters parameter crosses the URL boundary as a single expression — nested `and`/`or` compounds first-class — while the other four parameters share the [simple codec](https://www.npmjs.com/package/@rapiq/codec-url-simple)'s wire format.
 
 ## Installation
 
@@ -35,7 +35,7 @@ The package exports its codec identifier (`URL_EXPRESSION_CODEC`) for out-of-ban
 
 ## Documentation
 
-Full guide: [rapiq.tada5hi.net/integrations/url#expression-dialect](https://rapiq.tada5hi.net/integrations/url#expression-dialect)
+Full guide: [rapiq.tada5hi.net/packages/codec-url-expression](https://rapiq.tada5hi.net/packages/codec-url-expression)
 
 ## License
 

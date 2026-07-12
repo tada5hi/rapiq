@@ -11,10 +11,10 @@ const packages: PackageCard[] = [
     {
         name: '@rapiq/core',
         accent: 'var(--rq-color-primary)',
-        href: '/guide/',
-        summary: 'The foundation — query AST, visitor interfaces and the schema system everything else builds on.',
+        href: '/packages/core',
+        summary: 'The foundation — query AST, typed build layer and the schema system everything else builds on.',
         bullets: [
-            'Fields, Filters, Pagination, Relations & Sorts nodes',
+            'defineQuery() + condition helpers (eq, and, or, …)',
             'defineSchema() + SchemaRegistry allow-lists',
             'Parser base classes & typed errors',
         ],
@@ -22,7 +22,7 @@ const packages: PackageCard[] = [
     {
         name: '@rapiq/parser-simple',
         accent: 'var(--rq-color-accent)',
-        href: '/integrations/simple',
+        href: '/packages/parser-simple',
         summary: 'Parses plain object/array input — the URL-query-like "simple" dialect.',
         bullets: [
             'Filters like { age: \'>=18\', name: \'~jo~\' }',
@@ -31,21 +31,10 @@ const packages: PackageCard[] = [
         ],
     },
     {
-        name: '@rapiq/parser-expression',
-        accent: 'var(--rq-color-success)',
-        href: '/integrations/expression',
-        summary: 'Parses an expression language into the same Query AST.',
-        bullets: [
-            'and(eq(name, \'John\'), gte(age, \'18\'))',
-            'Tokenizer + recursive-descent parser',
-            'Compound and/or conditions with negation',
-        ],
-    },
-    {
         name: '@rapiq/codec-url-simple',
         accent: 'var(--rq-color-warning)',
-        href: '/integrations/url',
-        summary: 'URL query-string codec — the transport between client and server.',
+        href: '/packages/codec-url-simple',
+        summary: 'URL query-string codec — the transport between caller and receiver.',
         bullets: [
             'URLEncoder: Query AST → query string',
             'URLDecoder: query string → Query AST',
@@ -55,7 +44,7 @@ const packages: PackageCard[] = [
     {
         name: '@rapiq/sql',
         accent: 'var(--rq-color-error)',
-        href: '/integrations/sql',
+        href: '/packages/sql',
         summary: 'Dialect-agnostic SQL adapter turning the AST into parameterized fragments.',
         bullets: [
             'Presets: Postgres, MySQL, SQLite, MSSQL, Oracle',
@@ -66,12 +55,23 @@ const packages: PackageCard[] = [
     {
         name: '@rapiq/typeorm',
         accent: 'var(--rq-color-primary)',
-        href: '/integrations/typeorm',
+        href: '/packages/typeorm',
         summary: 'Applies a parsed Query directly to a TypeORM SelectQueryBuilder.',
         bullets: [
             'Mutates the query builder in place',
             'Relations become joins automatically',
             'Builds on the @rapiq/sql visitors',
+        ],
+    },
+    {
+        name: '@rapiq/memory',
+        accent: 'var(--rq-color-success)',
+        href: '/packages/memory',
+        summary: 'Evaluates the same Query against in-memory objects & arrays.',
+        bullets: [
+            'Filters compile to plain predicates',
+            'SQL-parity semantics — guards agree with the database',
+            'Perfect for authorization checks & tests',
         ],
     },
 ];
@@ -81,12 +81,13 @@ const packages: PackageCard[] = [
     <section class="rq-packages">
         <div class="rq-packages-inner">
             <h2 class="rq-packages-heading">
-                One AST, six packages
+                One AST, one package family
             </h2>
             <p class="rq-packages-sub">
                 rapiq is a family of focused, composable packages.
                 Install only what each side of your application needs —
                 everything meets in the core query AST.
+                <a href="/packages/">Browse all packages →</a>
             </p>
 
             <div class="rq-packages-grid">
