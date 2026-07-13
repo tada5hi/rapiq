@@ -18,7 +18,7 @@
         "@tada5hi/tsconfig": "^0.7.2",
         "@types/node": "^25.0.6",
         "@vitest/coverage-v8": "^4.1.10",
-        "eslint": "^10.6.0",
+        "eslint": "^10.7.0",
         "eslint-plugin-vue": "^10.9.2",
         "husky": "^9.1.7",
         "nx": "^22.3.3",
