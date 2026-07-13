@@ -94,6 +94,16 @@ A `null` filter value is rewritten to the SQL null predicates instead of being b
 
 An empty list never matches: `in(field, [])` renders `1 = 0` and `nin(field, [])` renders `1 = 1` (instead of the invalid `IN ()`).
 
+Negated operators are **exact complements** of their positive twins: a record that does not match `eq(field, a)` matches `ne(field, a)` — including records where the column is `NULL`. Since a bare SQL negation drops `NULL` rows under three-valued logic, negations render null-inclusively:
+
+| Filter | SQL |
+|---|---|
+| `ne(field, a)` | `(field <> ? OR field IS NULL)` |
+| `nin(field, [a, b])` | `(field NOT IN (...) OR field IS NULL)` |
+| `notContains(field, a)` (also `notStartsWith` / `notEndsWith`) | `(field ~* ? OR field IS NULL)` |
+
 ### String matching
 
 The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
+
+The negations match rows whose column is `NULL` (complement law, see above) — on the LIKE fallback they render `(field NOT LIKE ? ESCAPE '\' OR field IS NULL)`.

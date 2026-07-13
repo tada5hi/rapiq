@@ -45,11 +45,16 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     visitFilterNotEqual(expr: Filter<FilterFieldOperator.NOT_EQUAL>): IFiltersAdapter {
+        const field = this.adapter.buildField(expr.field);
         if (expr.value === null) {
-            return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is not null`);
+            return this.adapter.whereRaw(`${field} is not null`);
         }
 
-        return this.adapter.where(expr.field, '<>', expr.value);
+        return this.whereComplement(
+            field,
+            `${field} <> ${this.adapter.buildParamPlaceholder()}`,
+            expr.value,
+        );
     }
 
     visitFilterLessThan(expr: Filter<FilterFieldOperator.LESS_THAN>): IFiltersAdapter {
@@ -210,6 +215,10 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
         const inCondition = `${field} ${negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
         if (values.length === input.length) {
+            if (negated) {
+                return this.whereComplement(field, inCondition, ...values);
+            }
+
             return this.adapter.whereRaw(inCondition, ...values);
         }
 
@@ -240,14 +249,36 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         }
 
         const regex = createFilterRegex(`${value}`, flag);
+        if (!(flag & FilterRegexFlag.NEGATION)) {
+            return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, field, regex));
+        }
 
-        return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, field, regex));
+        const fieldBuilt = this.adapter.buildField(field);
+        const sql = this.adapter.regexp(
+            fieldBuilt,
+            this.adapter.buildParamPlaceholder(),
+            regex.ignoreCase,
+        );
+
+        return this.whereComplement(fieldBuilt, sql, regex.source);
     }
 
     protected whereLike(field: string, pattern: string, negated = false) : IFiltersAdapter {
-        return this.adapter.whereRaw(
-            `${this.adapter.buildField(field)} ${negated ? 'not ' : ''}like ${this.adapter.buildParamPlaceholder()} escape '\\'`,
-            pattern,
-        );
+        const fieldBuilt = this.adapter.buildField(field);
+        const condition = `${fieldBuilt} ${negated ? 'not ' : ''}like ${this.adapter.buildParamPlaceholder()} escape '\\'`;
+        if (negated) {
+            return this.whereComplement(fieldBuilt, condition, pattern);
+        }
+
+        return this.adapter.whereRaw(condition, pattern);
+    }
+
+    /**
+     * Render a negated condition null-inclusively. Negated operators are
+     * exact complements of their positive twins (complement law), but the
+     * bare SQL negation follows three-valued logic and drops NULL rows.
+     */
+    protected whereComplement(field: string, sql: string, ...values: unknown[]) : IFiltersAdapter {
+        return this.adapter.whereRaw(`(${sql} or ${field} is null)`, ...values);
     }
 }

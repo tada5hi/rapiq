@@ -53,13 +53,14 @@ describe('in (within, nin)', () => {
         expect(params).toStrictEqual(['John', 1, 2]);
     });
 
-    it('generates `not in` operator for "nin', () => {
+    it('generates a null-inclusive `not in` condition for "nin"', () => {
         const condition = new Filter('nin', 'age', [1, 2]);
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual(`${options.escapeField(condition.field)} not in($1, $2)`);
+        const field = options.escapeField(condition.field);
+        expect(sql).toEqual(`(${field} not in($1, $2) or ${field} is null)`);
         expect(params).toStrictEqual(condition.value);
     });
 

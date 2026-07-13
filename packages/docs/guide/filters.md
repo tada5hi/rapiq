@@ -97,6 +97,8 @@ The simple object/wire dialect only expresses flat **and** sets. For `or` and ne
 | `inArray(field, [a, null])` | `field IN (…) OR field IS NULL` |
 | `exists(field)` | `field IS NOT NULL` |
 
+Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) are **exact complements** of their positive twins — they also match records where the field is `NULL`/absent. Adapters render them null-inclusively, e.g. `ne(field, a)` → `(field <> ? OR field IS NULL)`.
+
 ## Schema options
 
 ```typescript

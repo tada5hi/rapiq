@@ -222,6 +222,64 @@ describe('src/filters', () => {
         expect(user.first_name).toEqual('Caleb');
     });
 
+    // complement law: negated operators match rows where the filtered
+    // column is NULL (Aston has no address, Caleb lives at 'Hogwarts').
+    it('should match a NULL row with not eq', async () => {
+        const condition = new Filter(
+            FilterFieldOperator.NOT_EQUAL,
+            'address',
+            'Hogwarts',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+
+        const [user] = data;
+        expect(user.first_name).toEqual('Aston');
+    });
+
+    it('should match a NULL row with nin', async () => {
+        const condition = new Filter(
+            FilterFieldOperator.NOT_IN,
+            'address',
+            ['Hogwarts', 'Mordor'],
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+
+        const [user] = data;
+        expect(user.first_name).toEqual('Aston');
+    });
+
+    it('should match a NULL row with notContains, but not with contains', async () => {
+        const negated = new Filter(
+            FilterFieldOperator.NOT_CONTAINS,
+            'address',
+            'wart',
+        );
+
+        const negatedData = await createQueryBuilder(negated).getMany();
+
+        expect(negatedData.length).toEqual(1);
+        expect(negatedData[0].first_name).toEqual('Aston');
+
+        const positive = new Filter(
+            FilterFieldOperator.CONTAINS,
+            'address',
+            'wart',
+        );
+
+        const positiveData = await createQueryBuilder(positive).getMany();
+
+        expect(positiveData.length).toEqual(1);
+        expect(positiveData[0].first_name).toEqual('Caleb');
+    });
+
     it('work with compound and (eq + in)', async () => {
         const condition = new Filters(
             FilterCompoundOperator.AND,
