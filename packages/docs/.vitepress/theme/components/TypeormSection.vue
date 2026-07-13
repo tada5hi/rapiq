@@ -32,7 +32,7 @@ const [entities, total] = await queryBuilder.getManyAndCount();`;
                 </ul>
                 <a
                     class="rq-btn rq-btn-primary"
-                    href="/integrations/typeorm"
+                    href="/packages/typeorm"
                 >Read the TypeORM guide →</a>
             </div>
 

@@ -52,7 +52,7 @@ Notable semantics: `null` filter values render as `IS NULL` / `IS NOT NULL` pred
 
 ## Documentation
 
-Full guide (dialects, null semantics, fragment API): [rapiq.tada5hi.net/integrations/sql](https://rapiq.tada5hi.net/integrations/sql)
+Full guide (dialects, null semantics, fragment API): [rapiq.tada5hi.net/packages/sql](https://rapiq.tada5hi.net/packages/sql)
 
 ## License
 

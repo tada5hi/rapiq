@@ -30,7 +30,7 @@ const query = parser.parse({
 }, { schema: 'user' });
 ```
 
-Only the `filters` parameter uses the expression language — fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query) AST. A standalone `parseFilters(input, options)` returns just the `Filters` node.
+Only the `filters` parameter uses the expression language — fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST. A standalone `parseFilters(input, options)` returns just the `Filters` node.
 
 The grammar: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `in`, `nin`, `contains`, `startsWith`, `endsWith` (and negations) as leaf conditions, composed with `and(…)` / `or(…)` / `not(…)`. Values are always single-quoted (`gte(age, '18')`); quoted numerals coerce to numbers, `'true'`/`'false'` to booleans, `'null'` to `null`.
 
@@ -38,7 +38,7 @@ Syntax errors and schema violations throw `FiltersParseError` immediately — th
 
 ## Documentation
 
-Full guide (grammar & operator table): [rapiq.tada5hi.net/integrations/expression](https://rapiq.tada5hi.net/integrations/expression)
+Full guide (grammar & operator table): [rapiq.tada5hi.net/packages/parser-expression](https://rapiq.tada5hi.net/packages/parser-expression)
 
 ## License
 

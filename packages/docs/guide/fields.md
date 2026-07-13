@@ -1,66 +1,69 @@
 # Fields
 
-Return only specific resource fields, or extend the default selection.
+Select which resource fields are returned — or extend/shrink the server's default selection.
 
-- **URL parameter**: `fields`
-- **AST nodes**: `Fields` / `Field { name, operator? }`
+| | |
+|---|---|
+| URL key | `fields` |
+| AST nodes | `Fields` / `Field { name, operator? }` |
+| Schema options | `allowed`, `default`, `mapping` |
 
-## Input formats
+## On the wire
 
-Accepted by [`SimpleParser`](/integrations/simple) (and, in URL form, by the [URL codec](/integrations/url)):
-
-```typescript
-// comma-separated string
-{ fields: 'id,name,email' }
-
-// array of names
-{ fields: ['id', 'name'] }
-
-// record keyed by relation — values follow the same rules
-{
-    fields: {
-        items: ['id', 'name'],
-        'items.realm': ['id'],
-    },
-}
-
-// tuple: base fields + per-relation record
-{
-    fields: [
-        ['id', 'name'],
-        { items: ['id'] },
-    ],
-}
+```txt
+fields=id,name,email          one list for the root resource
+fields[items]=id,name         per-relation lists
+fields=+email                 extend the default selection
+fields=-name                  shrink it
 ```
 
-::: info Client-side construction
-The same shapes work as typed build input — `defineQuery<User>({ fields: ['id', '+email'] })` or the `defineFields<User>(...)` fragment factory build the AST directly, with field paths checked against the record type. See [Building Queries](/guide/build).
-:::
+The equivalent parser input shapes (what [`SimpleParser`](/packages/parser-simple) and the [URL decoder](/guide/wire) accept):
 
-## Include & exclude operators
+```typescript
+{ fields: 'id,name,email' }                    // comma-separated string
+{ fields: ['id', 'name'] }                     // array of names
+{ fields: { items: ['id', 'name'] } }          // record keyed by relation
+{ fields: [['id'], { items: ['id'] }] }        // tuple: base + relations
+```
 
-A field name can carry a prefix:
+## Include & exclude modifiers
+
+A field name can carry a prefix that changes how it combines with the schema's `default` selection:
 
 | Syntax | Meaning |
 |---|---|
-| `name` | Select this field. |
-| `+name` | Explicitly **include** — extends the schema's `default` selection instead of replacing it. |
-| `-name` | Explicitly **exclude** — removes the field from the selection. |
+| `name` | Select this field (replaces the default selection). |
+| `+name` | **Include** — extends the default selection instead of replacing it. |
+| `-name` | **Exclude** — removes the field from the selection. |
 
 ```typescript
-// defaults are { default: ['id', 'name'] } —
-// keep them and additionally select email:
-{ fields: '+email' }
-
-// drop name from the defaults:
-{ fields: '-name' }
+// schema default is ['id', 'name'] —
+{ fields: '+email' }   // → id, name, email
+{ fields: '-name' }    // → id
 ```
 
 In the AST, the prefix becomes `Field.operator` (`FieldOperator.INCLUDE` / `FieldOperator.EXCLUDE`).
 
-## Relation fields
+## Building in code
 
-Fields of related records use the relation name as key (or a `relation.field` path) and validate against the related schema, resolved through [`schemaMapping`](/guide/schema#the-registry). The relation itself must be allowed and requested via [relations](/guide/relations).
+The same shapes work as typed [build input](/guide/building-queries) — field paths checked against the record type:
+
+```typescript
+defineQuery<User>({ fields: ['id', '+email'] });
+
+defineFields<User>(['id', 'name']);   // standalone fragment
+```
+
+## Fields of related records
+
+Fields of a relation use the relation name as key (or a `relation.field` path) and validate against the **related** schema, resolved through [`schemaMapping`](/guide/schemas#the-registry--relations). The relation itself must be allowed and requested via [relations](/guide/relations).
+
+```typescript
+{
+    relations: ['items'],
+    fields: { items: ['id', 'name'] },
+}
+```
 
 ## Schema options
 
@@ -80,4 +83,6 @@ defineSchema<User>({
 | `default` | Selection when the client sends nothing (or only `+`/`-` modifiers). |
 | `mapping` | Alias → field translation applied before validation. |
 
-On violation: dropped silently, or `FieldsParseError` with `throwOnFailure`.
+## On violation
+
+Disallowed or invalid field input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `FieldsParseError` instead.

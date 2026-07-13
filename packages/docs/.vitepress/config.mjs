@@ -31,75 +31,109 @@ export default defineConfig({
         },
         nav: [
             {
-                text: 'Getting Started',
-                link: '/getting-started/',
-                activeMatch: '/getting-started/',
-            },
-            {
                 text: 'Guide',
                 link: '/guide/',
                 activeMatch: '/guide/',
             },
             {
-                text: 'Integrations',
-                link: '/integrations/',
-                activeMatch: '/integrations/',
+                text: 'Packages',
+                link: '/packages/',
+                activeMatch: '/packages/',
             },
         ],
         sidebar: {
-            '/getting-started/': [
-                {
-                    text: 'Getting Started',
-                    items: [
-                        { text: 'Introduction', link: '/getting-started/' },
-                        { text: 'Installation', link: '/getting-started/installation' },
-                        { text: 'Quick Start', link: '/getting-started/quick-start' },
-                    ],
-                },
-            ],
             '/guide/': [
                 {
-                    text: 'Concepts',
+                    text: 'Introduction',
                     items: [
-                        { text: 'Overview', link: '/guide/' },
-                        { text: 'Query AST', link: '/guide/query' },
-                        { text: 'Building Queries', link: '/guide/build' },
-                        { text: 'Merging Queries', link: '/guide/merge' },
-                        { text: 'Schemas', link: '/guide/schema' },
+                        { text: 'What is rapiq?', link: '/guide/' },
+                        { text: 'Installation', link: '/guide/installation' },
+                        { text: 'Quick Start', link: '/guide/quick-start' },
                     ],
                 },
                 {
-                    text: 'Parameters',
+                    text: 'Essentials',
+                    items: [
+                        { text: 'Core Concepts', link: '/guide/concepts' },
+                        { text: 'Building Queries', link: '/guide/building-queries' },
+                        { text: 'Schemas & Validation', link: '/guide/schemas' },
+                        { text: 'Queries over the Wire', link: '/guide/wire' },
+                        { text: 'Executing Queries', link: '/guide/executing-queries' },
+                    ],
+                },
+                {
+                    text: 'Query Parameters',
+                    collapsed: false,
                     items: [
                         { text: 'Fields', link: '/guide/fields' },
                         { text: 'Filters', link: '/guide/filters' },
-                        { text: 'Pagination', link: '/guide/pagination' },
                         { text: 'Relations', link: '/guide/relations' },
                         { text: 'Sort', link: '/guide/sort' },
+                        { text: 'Pagination', link: '/guide/pagination' },
+                    ],
+                },
+                {
+                    text: 'Digging Deeper',
+                    items: [
+                        { text: 'Merging & Composition', link: '/guide/merging-queries' },
+                        { text: 'Error Handling', link: '/guide/errors' },
+                        { text: 'The Query AST', link: '/guide/query-ast' },
+                    ],
+                },
+                {
+                    text: 'Recipes',
+                    items: [
+                        { text: 'REST API with Express & TypeORM', link: '/guide/recipes/express-typeorm' },
+                        { text: 'Type-Safe Frontend Queries', link: '/guide/recipes/frontend' },
+                        { text: 'Authorization & Scoping', link: '/guide/recipes/authorization' },
                     ],
                 },
                 {
                     text: 'Migration',
+                    collapsed: true,
                     items: [
-                        { text: 'Migration from v1', link: '/guide/migration' },
+                        { text: 'From rapiq v1', link: '/guide/migration-v1' },
+                        { text: 'From typeorm-extension', link: '/guide/migration-typeorm-extension' },
                     ],
                 },
             ],
-            '/integrations/': [
+            '/packages/': [
                 {
-                    text: 'Integrations',
+                    text: 'Packages',
                     items: [
-                        { text: 'Overview', link: '/integrations/' },
-                        { text: 'Simple Parser', link: '/integrations/simple' },
-                        { text: 'Expression Parser', link: '/integrations/expression' },
-                        { text: 'Mongo Parser', link: '/integrations/mongo' },
-                        { text: 'URL Codec', link: '/integrations/url' },
-                        { text: 'SQL', link: '/integrations/sql' },
-                        { text: 'TypeORM', link: '/integrations/typeorm' },
-                        { text: 'Memory', link: '/integrations/memory' },
+                        { text: 'Overview', link: '/packages/' },
+                        { text: '@rapiq/core', link: '/packages/core' },
+                    ],
+                },
+                {
+                    text: 'Parsers',
+                    items: [
+                        { text: '@rapiq/parser-simple', link: '/packages/parser-simple' },
+                        { text: '@rapiq/parser-expression', link: '/packages/parser-expression' },
+                        { text: '@rapiq/parser-mongo', link: '/packages/parser-mongo' },
+                    ],
+                },
+                {
+                    text: 'URL Codecs',
+                    items: [
+                        { text: '@rapiq/codec-url-simple', link: '/packages/codec-url-simple' },
+                        { text: '@rapiq/codec-url-expression', link: '/packages/codec-url-expression' },
+                        { text: '@rapiq/codec-url', link: '/packages/codec-url' },
+                    ],
+                },
+                {
+                    text: 'Backend Adapters',
+                    items: [
+                        { text: '@rapiq/sql', link: '/packages/sql' },
+                        { text: '@rapiq/typeorm', link: '/packages/typeorm' },
+                        { text: '@rapiq/memory', link: '/packages/memory' },
                     ],
                 },
             ],
+        },
+
+        outline: {
+            level: [2, 3],
         },
 
         search: { provider: 'local' },

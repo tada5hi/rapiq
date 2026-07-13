@@ -152,7 +152,7 @@ const sqlOutput = computed(() => {
                 <div class="rq-hero-actions">
                     <a
                         class="rq-btn rq-btn-primary"
-                        href="/getting-started/"
+                        href="/guide/quick-start"
                     >Get Started</a>
                     <a
                         class="rq-btn rq-btn-ghost"

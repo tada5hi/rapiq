@@ -1,38 +1,45 @@
 # Sort
 
-Sort the resources by one or more keys, ascending or descending.
+Order the collection by one or more keys, ascending or descending.
 
-- **URL parameter**: `sort`
-- **AST nodes**: `Sorts` / `Sort { name, operator: 'ASC' | 'DESC' }`
+| | |
+|---|---|
+| URL key | `sort` |
+| AST nodes | `Sorts` / `Sort { name, operator: 'ASC' \| 'DESC' }` |
+| Schema options | `allowed`, `default`, `mapping` |
 
-## Input formats
+## On the wire
 
-```typescript
-// string — `-` prefix means descending
-{ sort: '-age' }
-
-// multiple keys, applied in order
-{ sort: 'name,-age' }
-
-// array
-{ sort: ['name', '-age'] }
-
-// object with explicit directions (case-insensitive)
-{ sort: { name: 'ASC', age: 'DESC' } }
-
-// nested record for relation fields
-{ sort: { id: 'DESC', items: { id: 'ASC' } } }
+```txt
+sort=-age                     `-` prefix = descending
+sort=name,-age                multiple keys, applied in order
+sort=items.id                 relation field
 ```
 
-In URL form this is `sort=name,-age`.
+Parser input shapes:
 
-::: info Client-side construction
-The same shapes work as typed build input — `defineQuery<User>({ sort: '-age' })` or the `defineSorts<User>(...)` fragment factory build the AST directly, with keys checked against the record type. See [Building Queries](/guide/build).
-:::
+```typescript
+{ sort: '-age' }                              // string
+{ sort: 'name,-age' }                         // comma list
+{ sort: ['name', '-age'] }                    // array
+{ sort: { name: 'ASC', age: 'DESC' } }        // record (case-insensitive)
+{ sort: { id: 'DESC', items: { id: 'ASC' } } } // nested record
+```
+
+## Building in code
+
+```typescript
+defineQuery<User>({ sort: '-age' });
+defineQuery<User>({ sort: { created_at: 'DESC', realm: { name: 'ASC' } } });
+
+defineSorts<User>(['-age']);   // standalone fragment
+```
+
+Keys are checked against the record type.
 
 ## Relation fields
 
-`relation.field` keys (or nested records, as above) sort by a related record's field. The relation must be requested and allowed, and the field validates against the related schema via [`schemaMapping`](/guide/schema#the-registry).
+`relation.field` keys (or nested records) sort by a related record's field. The relation must be requested and allowed, and the field validates against the related schema via [`schemaMapping`](/guide/schemas#the-registry--relations).
 
 ## Schema options
 
@@ -48,8 +55,10 @@ defineSchema<User>({
 
 | Option | Description |
 |---|---|
-| `allowed` | Sortable field names. A nested list (`[['name', 'age']]`) only permits exactly those multi-key combinations. Omit to allow all; `[]` blocks the parameter. |
+| `allowed` | Sortable field names. A nested list (`[['name', 'age']]`) only permits exactly those multi-key combinations — useful when only certain composite indexes exist. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Sort order applied when the client sends nothing valid. |
 | `mapping` | Alias → field translation applied before validation. |
 
-On violation: dropped silently, or `SortParseError` with `throwOnFailure`.
+## On violation
+
+Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortParseError` instead.

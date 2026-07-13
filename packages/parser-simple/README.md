@@ -2,7 +2,7 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](https://rapiq.tada5hi.net/guide/query) AST, validated against a schema. It is the workhorse parser the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url-simple) builds on.
+Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST, validated against a schema. It is the workhorse parser the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url-simple) builds on.
 
 ## Installation
 
@@ -45,7 +45,7 @@ Per-parameter parser classes (`SimpleFieldsParser`, `SimpleFiltersParser`, `Simp
 
 ## Documentation
 
-Full guide: [rapiq.tada5hi.net/integrations/simple](https://rapiq.tada5hi.net/integrations/simple) — per-parameter input shapes and operator syntax are on the [parameter pages](https://rapiq.tada5hi.net/guide/filters).
+Full guide: [rapiq.tada5hi.net/packages/parser-simple](https://rapiq.tada5hi.net/packages/parser-simple) — per-parameter input shapes and operator syntax are on the [parameter pages](https://rapiq.tada5hi.net/guide/filters).
 
 ## License
 

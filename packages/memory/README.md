@@ -60,7 +60,7 @@ const slicer = compilePagination(query.pagination); // (data) => data page
 
 ## Documentation
 
-To find out more, head over to the [documentation](https://rapiq.tada5hi.net/integrations/memory).
+To find out more, head over to the [documentation](https://rapiq.tada5hi.net/packages/memory).
 
 ## License
 

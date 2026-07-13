@@ -2,7 +2,7 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-Applies a parsed [`Query`](https://rapiq.tada5hi.net/guide/query) directly to a TypeORM `SelectQueryBuilder` — filters become parameterized `WHERE` conditions, relations become joins, fields/sort/pagination map to `select`/`orderBy`/`take`+`skip`.
+Applies a parsed [`Query`](https://rapiq.tada5hi.net/guide/query-ast) directly to a TypeORM `SelectQueryBuilder` — filters become parameterized `WHERE` conditions, relations become joins, fields/sort/pagination map to `select`/`orderBy`/`take`+`skip`.
 
 ## Installation
 
@@ -33,13 +33,13 @@ Construct the adapter **per request**, like the `SelectQueryBuilder` you hand it
 
 The SQL dialect is resolved from the attached builder's connection type; joins are applied idempotently and validated against the entity metadata. Options: `relations.joinAndSelect` (hydrate related entities), `relations.joinType` (`'left'` default / `'inner'`), and an `onJoin(path, alias, queryBuilder)` hook per applied join. Per-parameter visitors from [@rapiq/sql](https://www.npmjs.com/package/@rapiq/sql) work against the adapter's sub-adapters (`adapter.filters`, `adapter.sort`, …) when only part of a query applies.
 
-Typically the query comes from a [URL decoder](https://www.npmjs.com/package/@rapiq/codec-url-simple) validating `req.query` against a schema — see the [end-to-end example](https://rapiq.tada5hi.net/integrations/typeorm#end-to-end-example) in the docs.
+Typically the query comes from a [URL decoder](https://www.npmjs.com/package/@rapiq/codec-url-simple) validating `req.query` against a schema — see the [end-to-end example](https://rapiq.tada5hi.net/guide/recipes/express-typeorm) in the docs.
 
-Migrating from typeorm-extension's `applyQuery`? The defaults mirror its contract (`leftJoinAndSelect`, returned pagination) — see the [migration guide](https://rapiq.tada5hi.net/guide/migration).
+Migrating from typeorm-extension's `applyQuery`? The defaults mirror its contract (`leftJoinAndSelect`, returned pagination) — see the [migration guide](https://rapiq.tada5hi.net/guide/migration-typeorm-extension).
 
 ## Documentation
 
-Full guide (options, dialect detection, alias convention): [rapiq.tada5hi.net/integrations/typeorm](https://rapiq.tada5hi.net/integrations/typeorm)
+Full guide (options, dialect detection, alias convention): [rapiq.tada5hi.net/packages/typeorm](https://rapiq.tada5hi.net/packages/typeorm)
 
 ## License
 
