@@ -117,7 +117,7 @@ describe('regex', () => {
         ({ adapter, visitor } = buildAdapter());
         new Filter('notContains', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] not like ? escape \'\\\'', 
+            '([name] not like ? escape \'\\\' or [name] is null)',
             ['%foo%'],
         ]);
     });
@@ -154,23 +154,25 @@ describe('regex', () => {
     });
 
     it('generates anchored patterns for anchored operators on regexp dialects', () => {
-        const cases : [string, string][] = [
-            ['startsWith', '^foo'],
-            ['endsWith', 'foo$'],
-            ['contains', 'foo'],
-            ['notStartsWith', '^(?!foo).*'],
-            ['notEndsWith', '^(?!.*foo$).*'],
-            ['notContains', '^(?!.*foo).*'],
+        const cases : [string, string, boolean][] = [
+            ['startsWith', '^foo', false],
+            ['endsWith', 'foo$', false],
+            ['contains', 'foo', false],
+            ['notStartsWith', '^(?!foo).*', true],
+            ['notEndsWith', '^(?!.*foo$).*', true],
+            ['notContains', '^(?!.*foo).*', true],
         ];
 
-        for (const [operator, pattern] of cases) {
+        for (const [operator, pattern, negated] of cases) {
             const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
             const visitor = new FiltersVisitor(adapter);
 
             new Filter(operator, 'name', 'foo').accept(visitor);
 
             const [sql, params] = adapter.getQueryAndParameters();
-            expect(sql, operator).toEqual('"name" ~* $1');
+            expect(sql, operator).toEqual(negated ?
+                '("name" ~* $1 or "name" is null)' :
+                '"name" ~* $1');
             expect(params, operator).toStrictEqual([pattern]);
         }
     });

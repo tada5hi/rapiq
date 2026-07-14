@@ -98,7 +98,6 @@ compileFilters(elemMatch('items', and(eq('id', 1), eq('active', true))))(user); 
 
 | Case | @rapiq/memory | Baseline |
 |---|---|---|
-| `ne`/`nin`/`not*` on absent values | match (complement law) | SQL renders `field <> ?`, which does **not** match `NULL` rows (alignment planned) |
 | Per-leaf array quantification | same-element binding | Mongo/ucast quantify each dotted condition independently |
 | `exists` | is-not-null | Mongo: property presence |
 | `contains` family | case-insensitive | Mongo/ucast: case-sensitive |

@@ -40,13 +40,14 @@ describe('primitive operators', () => {
         expect(params).toStrictEqual([condition.value]);
     });
 
-    it('generates query with `<>` operator for "ne"', () => {
+    it('generates a null-inclusive `<>` condition for "ne"', () => {
         const condition = new Filter('ne', 'name', 'test');
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual(`${options.escapeField(condition.field)} <> $1`);
+        const field = options.escapeField(condition.field);
+        expect(sql).toEqual(`(${field} <> $1 or ${field} is null)`);
         expect(params).toStrictEqual([condition.value]);
     });
 
