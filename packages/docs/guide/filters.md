@@ -99,6 +99,41 @@ The simple object/wire dialect only expresses flat **and** sets. For `or` and ne
 
 Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) are **exact complements** of their positive twins — they also match records where the field is `NULL`/absent. Adapters render them null-inclusively, e.g. `ne(field, a)` → `(field <> ? OR field IS NULL)`.
 
+## Case sensitivity
+
+String matching is **case-insensitive by default**, uniformly across every adapter — the same query matches the same records whether it runs on Postgres, MySQL, in memory, or through TypeORM:
+
+- The **equality family** (`eq`, `ne`, `in`, `nin`) compares string values case-insensitively: `eq('name', 'super hero')` matches `Super Hero`. Non-string values (numbers, booleans, dates, `null`) are unaffected.
+- The **anchored operators** (`contains`, `startsWith`, `endsWith` and their negations) match case-insensitively as well.
+- **Range comparisons** (`lt`/`lte`/`gt`/`gte`) and `sort` follow the backend's collation — rapiq does not fold string ordering.
+
+Opt out per field with the `caseSensitive` schema option where exactness matters — identifiers, tokens, enum-like codes:
+
+```typescript
+const schema = defineSchema<User>({
+    filters: {
+        allowed: ['id', 'name'],
+        caseSensitive: ['id'],
+    },
+});
+```
+
+The receiving side forwards the list to its adapter:
+
+```typescript
+// @rapiq/sql & @rapiq/typeorm
+adapter.execute(query, { visitor: { caseSensitive: schema.filters.caseSensitive } });
+
+// @rapiq/memory
+applyQuery(query, data, { filters: { caseSensitive: schema.filters.caseSensitive } });
+```
+
+Under the hood, `@rapiq/sql` folds both sides of the comparison — `lower(field) = lower(?)`. Dialects whose plain `=` already compares case-insensitively under their default collation (the MySQL and MSSQL presets) skip the folding through the `caseFold` dialect option, so plain indexes stay usable. On folding dialects (Postgres, SQLite, Oracle), add an expression index for hot string filter columns — `CREATE INDEX ON "user" (lower(name))` — or list the column in `caseSensitive`.
+
+::: warning Collation wins on MySQL/MSSQL
+On the MySQL/MSSQL presets, equality delegates to the column collation: `caseSensitive` cannot force exactness onto a `*_ci` collated column. Use a `*_bin`/`*_cs` collation for such columns, or override `caseFold` with a `lower()`-wrapping implementation.
+:::
+
 ## Schema options
 
 ```typescript
@@ -118,6 +153,7 @@ defineSchema<User>({
 | `default` | Condition applied when the client sends no filters. |
 | `mapping` | Alias → field translation applied before validation. |
 | `validate` | Per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
+| `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 
 ## On violation
 

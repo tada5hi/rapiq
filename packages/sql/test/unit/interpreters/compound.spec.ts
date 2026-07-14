@@ -132,7 +132,7 @@ describe('compound operators', () => {
         const [sql, params] = adapter.getQueryAndParameters();
 
         expect(sql).toEqual(
-            '("name" = $1 and (("realm_id" in($2) or "realm_id" is null) or "age" = $3))',
+            '(lower("name") = lower($1) and ((lower("realm_id") in(lower($2)) or "realm_id" is null) or "age" = $3))',
         );
         expect(params).toStrictEqual(['x', 'a', 18]);
     });

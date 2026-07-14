@@ -47,7 +47,7 @@ describe('auto join', () => {
 
         const [sql] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"projects"."name" = $1');
+        expect(sql).toEqual('lower("projects"."name") = lower($1)');
         expect(options.escapeField).toHaveBeenCalledWith('projects');
     });
 });

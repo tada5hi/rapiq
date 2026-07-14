@@ -15,7 +15,7 @@ import type {
     ISorts,
 } from '@rapiq/core';
 import { FieldOperator } from '@rapiq/core';
-import type { FieldsVisitorOptions } from './parameter';
+import type { FieldsVisitorOptions, FiltersVisitorOptions } from './parameter';
 import {
     FieldsVisitor,
     FiltersVisitor,
@@ -32,7 +32,17 @@ import type {
     Slicer,
 } from './types';
 
+export type QueryVisitorOptions = {
+    filters?: FiltersVisitorOptions,
+};
+
 export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<CompiledQuery<T>> {
+    protected options : QueryVisitorOptions;
+
+    constructor(options: QueryVisitorOptions = {}) {
+        this.options = options;
+    }
+
     visitQuery(expr: IQuery) : CompiledQuery<T> {
         const relations = expr.relations.accept(new RelationsVisitor());
 
@@ -50,7 +60,7 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         }
 
         return new CompiledQuery<T>({
-            predicate: expr.filters.accept(new FiltersVisitor()),
+            predicate: expr.filters.accept(new FiltersVisitor(this.options.filters)),
             comparator,
             projector,
             slicer: expr.pagination.accept(new PaginationVisitor()),
@@ -64,16 +74,26 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
 
 // -----------------------------------------------------------
 
-export function compileQuery<T = Record<string, any>>(query: IQuery) : CompiledQuery<T> {
-    return query.accept(new QueryVisitor<T>());
+export function compileQuery<T = Record<string, any>>(
+    query: IQuery,
+    options: QueryVisitorOptions = {},
+) : CompiledQuery<T> {
+    return query.accept(new QueryVisitor<T>(options));
 }
 
-export function applyQuery<T = Record<string, any>>(query: IQuery, data: T[]) : ApplyOutput<T> {
-    return compileQuery<T>(query).apply(data);
+export function applyQuery<T = Record<string, any>>(
+    query: IQuery,
+    data: T[],
+    options: QueryVisitorOptions = {},
+) : ApplyOutput<T> {
+    return compileQuery<T>(query, options).apply(data);
 }
 
-export function compileFilters(input: IFilter | IFilters) : Predicate {
-    return input.accept<Predicate>(new FiltersVisitor());
+export function compileFilters(
+    input: IFilter | IFilters,
+    options: FiltersVisitorOptions = {},
+) : Predicate {
+    return input.accept<Predicate>(new FiltersVisitor(options));
 }
 
 export function compileSorts<T = Record<string, any>>(input: ISorts) : Comparator<T> {

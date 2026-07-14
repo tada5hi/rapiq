@@ -46,6 +46,10 @@ v1 accepted `'>=18'`, `'~jo~'`, `'!null'` as *build input*. In v2, the string pr
 
 v1's URL build silently emitted whatever it was given. v2's `encode` throws typed errors (`FEATURE_UNSUPPORTED`, `OPERATOR_UNSUPPORTED`) for queries the wire dialect cannot represent — nested compounds, `or(...)`, same-field conditions, regex/mod/exists/elemMatch, values that would re-parse as a different condition. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
 
+### Filters: string equality is case-insensitive (breaking)
+
+In v1, `eq`/`in` on strings delegated case behavior to the database — the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
+
 ## Coming from typeorm-extension?
 
 The server-pipeline differences (strict mode, join defaults, `applyQuery`) have [their own page](/guide/migration-typeorm-extension).

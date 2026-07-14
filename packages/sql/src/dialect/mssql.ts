@@ -12,4 +12,9 @@ import type { DialectOptions } from './types';
 export const mssql : DialectOptions = {
     paramPlaceholder: () => '?',
     escapeField: (field: string) => `[${field}]`,
+    // sql server's default collations (*_CI_*) already compare `=`
+    // case-insensitively; skip lower() so plain indexes stay usable.
+    // Override with a lower()-wrapping caseFold when columns use
+    // *_CS_* / *_BIN collations.
+    caseFold: (input) => input,
 };

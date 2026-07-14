@@ -338,4 +338,40 @@ describe('src/filters', () => {
 
         expect(data.length).toEqual(1);
     });
+
+    it('should match string equality case-insensitively', async () => {
+        const condition = new Filter(
+            FilterFieldOperator.EQUAL,
+            'first_name',
+            'ASTON',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+
+        const [user] = data;
+
+        expect(user.first_name).toEqual('Aston');
+    });
+
+    it('should keep fields listed in caseSensitive exact', async () => {
+        const repository = dataSource.getRepository(User);
+        const queryBuilder = repository.createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+        adapter.execute(
+            new Query({
+                filters: new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'first_name', 'ASTON'),
+                ]),
+            }),
+            { visitor: { caseSensitive: ['first_name'] } },
+        );
+
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(0);
+    });
 });

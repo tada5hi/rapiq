@@ -53,6 +53,13 @@ describe('src/schema/*.ts', () => {
             expect(schema.sort.allowedIsUndefined).toBe(false);
             expect(schema.sort.allowed).toContain('name');
         });
+
+        it('should normalize the filters caseSensitive opt-out list', () => {
+            const schema = defineSchema<User>({ filters: { caseSensitive: ['id'] } });
+
+            expect(schema.filters.caseSensitive).toEqual(['id']);
+            expect(defineSchema<User>({}).filters.caseSensitive).toEqual([]);
+        });
     });
 
     describe('extendSchemasOptions', () => {

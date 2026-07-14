@@ -20,3 +20,13 @@ export type ConditionEval = (ctx: BindingContext, root: unknown) => boolean;
 export type FilterCompileResult = ConditionEval | null;
 
 export type ValueTest = (value: unknown) => boolean;
+
+export type FiltersVisitorOptions = {
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default —
+     * e.g. identifier or token columns. Typically forwarded from
+     * a schema's `filters.caseSensitive` list.
+     */
+    caseSensitive?: string[],
+};

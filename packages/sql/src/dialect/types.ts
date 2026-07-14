@@ -13,6 +13,14 @@ export type DialectOptions = {
      * regex operator raises a typed AdapterError.
      */
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
+    /**
+     * Fold an expression (field or parameter placeholder) for a
+     * case-insensitive equality comparison (eq/ne/in/nin on strings).
+     * Omit for the default `lower(...)` wrapping — dialects whose plain
+     * `=` already compares case-insensitively under their default
+     * collation (mysql, mssql) return the input unchanged instead.
+     */
+    caseFold?: (input: string) => string,
     escapeField: (input: string) => string,
     paramPlaceholder: (index: number) => string,
 };

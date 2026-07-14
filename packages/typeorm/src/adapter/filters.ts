@@ -48,6 +48,14 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         throw AdapterError.featureUnsupported('regexp');
     }
 
+    override caseFold(input: string) : string {
+        if (this.dialect.caseFold) {
+            return this.dialect.caseFold(input);
+        }
+
+        return super.caseFold(input);
+    }
+
     child(): this {
         const child = new FiltersAdapter(this.queryBuilder, this.relations);
 

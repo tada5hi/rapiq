@@ -60,7 +60,7 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | Parameter | Options |
 |---|---|
 | `fields` | `allowed`, `default`, `mapping` (alias → field) |
-| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook) |
+| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)) |
 | `relations` | `allowed`, `mapping` |
 | `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping` |
 | `pagination` | `maxLimit` |

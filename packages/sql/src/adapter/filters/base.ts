@@ -73,6 +73,15 @@ export abstract class FiltersBaseAdapter<
         return true;
     }
 
+    /**
+     * Fold an expression for a case-insensitive equality comparison
+     * (eq/ne/in/nin on strings). Dialects whose plain `=` already
+     * compares case-insensitively return the input unchanged.
+     */
+    caseFold(input: string) : string {
+        return `lower(${input})`;
+    }
+
     // -----------------------------------------------------------
 
     where(field: string, operator: string, value?: unknown) {

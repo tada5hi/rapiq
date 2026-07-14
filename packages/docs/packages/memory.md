@@ -73,6 +73,13 @@ The package aims for **SQL parity**: the same query should select the same recor
 
 `contains`, `startsWith`, `endsWith` (and their negations) are **case-insensitive** and treat the filter value as a literal — the same anchored regular expression the SQL adapter builds. Numbers are matched by their decimal string form; other value types never match.
 
+String **equality** (`eq` / `ne` / `in` / `nin`) is [case-insensitive by default](/guide/filters#case-sensitivity) too. Opt fields out via the `caseSensitive` option, mirroring a schema's `filters.caseSensitive` list:
+
+```typescript
+applyQuery(query, users, { filters: { caseSensitive: ['id'] } });
+compileFilters(eq('id', 'aBc'), { caseSensitive: ['id'] });
+```
+
 ### Join-row binding
 
 Dotted paths emulate the SQL adapter's joins: all conditions on one relation path bind to the **same array element**, and the record matches if *some* assignment of elements satisfies the whole filter tree. An empty or absent array contributes one all-`null` row, like a LEFT JOIN.

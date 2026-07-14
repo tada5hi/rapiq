@@ -30,8 +30,18 @@ describe('primitive operators', () => {
         visitor = new FiltersVisitor(adapter);
     });
 
-    it('generates query with `=` operator for "eq"', () => {
+    it('generates a case-folded `=` condition for "eq" on strings', () => {
         const condition = new Filter('eq', 'name', 'test');
+        condition.accept(visitor);
+
+        const [sql, params] = adapter.getQueryAndParameters();
+
+        expect(sql).toEqual(`lower(${options.escapeField(condition.field)}) = lower($1)`);
+        expect(params).toStrictEqual([condition.value]);
+    });
+
+    it('generates a plain `=` condition for "eq" on non-strings', () => {
+        const condition = new Filter('eq', 'age', 18);
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -40,14 +50,14 @@ describe('primitive operators', () => {
         expect(params).toStrictEqual([condition.value]);
     });
 
-    it('generates a null-inclusive `<>` condition for "ne"', () => {
+    it('generates a null-inclusive case-folded `<>` condition for "ne"', () => {
         const condition = new Filter('ne', 'name', 'test');
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
         const field = options.escapeField(condition.field);
-        expect(sql).toEqual(`(${field} <> $1 or ${field} is null)`);
+        expect(sql).toEqual(`(lower(${field}) <> lower($1) or ${field} is null)`);
         expect(params).toStrictEqual([condition.value]);
     });
 

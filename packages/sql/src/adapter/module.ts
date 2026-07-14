@@ -56,6 +56,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
         this.filters = new FiltersAdapter(this.relations, {
             paramPlaceholder: options.paramPlaceholder,
             regexp: options.regexp,
+            caseFold: options.caseFold,
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
         });

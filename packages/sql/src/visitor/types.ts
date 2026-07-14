@@ -6,5 +6,13 @@
  */
 
 export type VisitorOptions = {
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default —
+     * e.g. identifier or token columns. Typically forwarded from
+     * a schema's `filters.caseSensitive` list.
+     */
+    caseSensitive?: string[],
+
     [key: string]: any;
 };

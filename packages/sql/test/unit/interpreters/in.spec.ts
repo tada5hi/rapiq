@@ -49,7 +49,7 @@ describe('in (within, nin)', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('("name" = $1 and "age" in($2, $3))');
+        expect(sql).toEqual('(lower("name") = lower($1) and "age" in($2, $3))');
         expect(params).toStrictEqual(['John', 1, 2]);
     });
 
@@ -85,7 +85,7 @@ describe('in (within, nin)', () => {
         condition.accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
-            '("name" = $1 and 1 = 0 and "active" = $2)',
+            '(lower("name") = lower($1) and 1 = 0 and "active" = $2)',
             ['John', true],
         ]);
     });
