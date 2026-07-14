@@ -157,7 +157,7 @@ defineSchema<User>({
 | `validate` | Per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 
-`validate` runs synchronously after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf. Compound `and`/`or` structure is preserved; if every submitted leaf is rejected, the schema default is applied.
+`validate` runs synchronously after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf. Promise/thenable results throw a `SchemaError` with `SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED`. Compound `and`/`or` structure is preserved; if every submitted leaf is rejected, the schema default is applied.
 
 ## On violation
 

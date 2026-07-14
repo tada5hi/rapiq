@@ -6,13 +6,16 @@
  */
 
 import {
+    ErrorCode,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    SchemaError,
     applyFiltersSchemaValidation,
     defineFiltersSchema,
 } from '../../../src';
+import type { Validator } from '../../../src';
 
 describe('src/parser/parameter/filters/validate.ts', () => {
     it('should replace and reject leaves while preserving compounds', () => {
@@ -43,5 +46,21 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
 
         expect(applyFiltersSchemaValidation(input, defineFiltersSchema())).toBe(input);
+    });
+
+    it('should reject promise-returning validators', () => {
+        const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
+        const validate = (async () => input) as unknown as Validator;
+        const schema = defineFiltersSchema({ validate });
+
+        try {
+            applyFiltersSchemaValidation(input, schema);
+            expect.fail('Expected asynchronous validation to throw.');
+        } catch (error) {
+            expect(error).toBeInstanceOf(SchemaError);
+            expect((error as SchemaError).code).toBe(
+                ErrorCode.SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED,
+            );
+        }
     });
 });

@@ -75,6 +75,7 @@ The URL encoders throw these too — a codec never silently changes what a query
 |---|---|
 | `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
+| `SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED` | a synchronous schema validator returned a Promise/thenable |
 
 ## Mapping to HTTP responses
 

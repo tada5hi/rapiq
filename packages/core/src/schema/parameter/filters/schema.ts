@@ -11,6 +11,16 @@ import type {
     FiltersOptions,
 } from './types';
 import { BaseSchema } from '../../base';
+import { SchemaError } from '../../../errors';
+
+function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
+    return (
+        input !== null &&
+        (typeof input === 'object' || typeof input === 'function') &&
+        'then' in input &&
+        typeof input.then === 'function'
+    );
+}
 
 export class FiltersSchema<
     T extends ObjectLiteral = ObjectLiteral,
@@ -62,7 +72,12 @@ export class FiltersSchema<
             return input;
         }
 
-        return this.options.validate(input);
+        const output : unknown = this.options.validate(input);
+        if (isPromiseLike(output)) {
+            throw SchemaError.validatorAsyncUnsupported();
+        }
+
+        return output as IFilter | undefined | void;
     }
 
     // ---------------------------------------------------------

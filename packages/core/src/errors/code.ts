@@ -33,4 +33,6 @@ export enum ErrorCode {
     SCHEMA_NAME_INVALID = 'schemaNameInvalid',
 
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
+
+    SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED = 'schemaValidatorAsyncUnsupported',
 }

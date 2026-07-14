@@ -32,4 +32,11 @@ export class SchemaError extends BaseError {
             code: ErrorCode.SCHEMA_UNRESOLVABLE,
         });
     }
+
+    static validatorAsyncUnsupported() {
+        return new this({
+            message: 'Schema validators must return synchronously.',
+            code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED,
+        });
+    }
 }
