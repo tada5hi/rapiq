@@ -26,7 +26,14 @@ Resolution semantics:
 10. Alias mappings whose target contains dots (`mapping: { realmName: 'realm.name' }`) resolve through relation traversal: every segment is walked (per-level relations gate + registry/schemaMapping lookup) and the leaf validates against the *related* schema instead of the root allow-list — matching what direct dotted input always did. The emitted field keeps the full mapped path. In the fields parser such aliases are requeued through the relation machinery (child `execute()` semantics apply) and duplicate field nodes are deduplicated by name. Relation traversal is bounded (32 levels): cyclic mapping/schemaMapping configurations yield a `schemaUnresolvable` verdict (or `keyPathInvalid` under `throwOnFailure`) instead of unbounded recursion.
 11. `SimpleParser.parse` / `ExpressionParser.parse` without a schema no longer bind the parameter parsers to a manufactured empty schema — schemaless parsing is uniformly unconstrained (dotted keys survive), consistent with `URLDecoder`.
 
-Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject` self-references its accumulator for genuinely nested object input (e.g. filters `{ user: { name: 'x' } }`), causing infinite recursion; flat dotted keys are unaffected.
+`BaseParser.expandObject` now creates a fresh child object for nested input. Earlier v2 builds self-referenced the parent accumulator for input such as `{ user: { name: 'x' } }`, causing infinite recursion.
+
+## 2.0.0-beta hardening
+
+- Filter schema `validate` hooks are synchronous and run for every parsed leaf in the simple, expression and Mongo dialects. They may return the original/replacement filter or `undefined` to reject it; compound structure is retained and defaults apply when every leaf is rejected.
+- Expression filters reject every unmatched source character, preserve leading underscores and cap recursive compounds/negations at 32 levels. The Mongo parser applies the same traversal cap.
+- `regex(field, pattern)` accepts `RegExp` or string consistently in memory and SQL backends; invalid string patterns throw typed `AdapterError`. Oracle now renders `REGEXP_LIKE` with `:n` placeholders instead of inherited PostgreSQL syntax.
+- TypeORM filters append with `andWhere`, preserving caller-owned predicates. The default relation alias is now the injective length-prefixed `buildRelationAlias` (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`) so underscores in relation names cannot collide with path separators.
 
 ## Public-API triage (plan 008, items 1+2)
 
@@ -62,5 +69,5 @@ Known pre-existing issue (out of scope here, plan 006): `BaseParser.expandObject
 - **Empty `in`/`nin` lists**: `in(field, [])` renders `1 = 0` (matches nothing) and `nin(field, [])` renders `1 = 1` — previously the invalid SQL `field in()`.
 - **sqlite preset** no longer inherits mysql's `regexp` callback (stock SQLite has no `REGEXP` function): anchored operators fall back to `LIKE`, the `regex` operator throws a typed `AdapterError`.
 - `FiltersVisitor`: `visitFilterNotEndsWith`/`visitFilterNotContains` signatures used wrong operator type parameters (copy-paste); in/nin and the six anchored-operator methods now share `whereIn`/`whereAnchored` helpers.
-- **Literal matching for anchored operators** (from PR #742 review): `createFilterRegexPattern` escapes regex metacharacters — the input is a filter value, not a regex. Previously `contains(name, 'a.b')` matched `axb` on regexp dialects (while the LIKE fallback matched literally) and values like `'('` threw a raw `SyntaxError`. The `regex` operator is unaffected (takes a real `RegExp`).
+- **Literal matching for anchored operators** (from PR #742 review): `createFilterRegexPattern` escapes regex metacharacters — the input is a filter value, not a regex. Previously `contains(name, 'a.b')` matched `axb` on regexp dialects (while the LIKE fallback matched literally) and values like `'('` threw a raw `SyntaxError`. The `regex` operator is unaffected and interprets a `RegExp` or string as a real pattern.
 - `notStartsWith` on regexp dialects now matches the empty string (`^(?!foo).*`, was `.+`), consistent with `NOT LIKE 'foo%'`.

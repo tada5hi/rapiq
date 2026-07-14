@@ -147,14 +147,25 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
     }
 
-    visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp>): IFiltersAdapter {
+    visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp | string>): IFiltersAdapter {
+        let regex : RegExp;
+        if (expr.value instanceof RegExp) {
+            regex = expr.value;
+        } else {
+            try {
+                regex = new RegExp(expr.value);
+            } catch {
+                throw AdapterError.featureUnsupported('filters:regex:value');
+            }
+        }
+
         const sql = this.adapter.regexp(
             this.adapter.buildField(expr.field),
             this.adapter.buildParamPlaceholder(),
-            expr.value.ignoreCase,
+            regex.ignoreCase,
         );
 
-        return this.adapter.whereRaw(sql, expr.value.source);
+        return this.adapter.whereRaw(sql, regex.source);
     }
 
     visitFilters(expr: Filters): IFiltersAdapter {

@@ -27,7 +27,7 @@ export type RelationsAdapterBaseOptions = {
 
     /**
      * Derive the join alias for a relation path
-     * (e.g. `role.realm` -> `role_realm`).
+     * (e.g. `role.realm` -> `r4_role_5_realm`).
      * Field references in filters/sort/fields resolve against the
      * same derivation, so it must be injected once, on the relations
      * adapter shared by all sub-adapters.

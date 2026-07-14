@@ -123,7 +123,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
         // relations join left (not inner) and honor the groupBy hook
         expect(sql).toContain('LEFT JOIN');
         expect(sql).not.toContain('INNER JOIN');
-        expect(sql).toContain('GROUP BY "user"."id", "role"."id"');
+        expect(sql).toContain('GROUP BY "user"."id", "r4_role"."id"');
 
         // email is selected only because the client opted in
         expect(sql).toContain('"user"."email"');

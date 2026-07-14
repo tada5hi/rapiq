@@ -29,7 +29,7 @@ const { pagination } = adapter.execute(query);
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-`execute` returns the applied pagination — handy for the response `meta` block. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/typeorm).
+`execute` returns the applied pagination — handy for the response `meta` block. Existing builder predicates are preserved and rapiq filters are appended with `AND`, so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/typeorm).
 
 ## Raw SQL
 

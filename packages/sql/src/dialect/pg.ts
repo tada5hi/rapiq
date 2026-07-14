@@ -5,7 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { oracle } from './oracle';
 import type { DialectOptions } from './types';
 
-export const pg : DialectOptions = { ...oracle };
+export const pg : DialectOptions = {
+    regexp: (field, placeholder, ignoreCase) => {
+        const operator = ignoreCase ? '~*' : '~';
+        return `${field} ${operator} ${placeholder}`;
+    },
+    escapeField: (field: string) => `"${field}"`,
+    paramPlaceholder: (index) => `$${index}`,
+};

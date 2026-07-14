@@ -58,28 +58,28 @@ describe('src/adapter/module.ts', () => {
         // case-sensitive (pg, oracle, sqlite); mysql/mssql default collations
         // already compare case-insensitively, so their presets skip it.
         ['pg', pg, {
-            columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
-            where: '("user"."age" >= $1 and (lower("realm"."id") in(lower($2)) or "realm"."id" is null))',
+            columns: ['"user"."id"', '"user"."name"', '"r5_realm"."name"'],
+            where: '("user"."age" >= $1 and (lower("r5_realm"."id") in(lower($2)) or "r5_realm"."id" is null))',
             orderBy: ['"user"."age" DESC'],
         }],
         ['oracle', oracle, {
-            columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
-            where: '("user"."age" >= $1 and (lower("realm"."id") in(lower($2)) or "realm"."id" is null))',
+            columns: ['"user"."id"', '"user"."name"', '"r5_realm"."name"'],
+            where: '("user"."age" >= :1 and (lower("r5_realm"."id") in(lower(:2)) or "r5_realm"."id" is null))',
             orderBy: ['"user"."age" DESC'],
         }],
         ['mysql', mysql, {
-            columns: ['`user`.`id`', '`user`.`name`', '`realm`.`name`'],
-            where: '(`user`.`age` >= ? and (`realm`.`id` in(?) or `realm`.`id` is null))',
+            columns: ['`user`.`id`', '`user`.`name`', '`r5_realm`.`name`'],
+            where: '(`user`.`age` >= ? and (`r5_realm`.`id` in(?) or `r5_realm`.`id` is null))',
             orderBy: ['`user`.`age` DESC'],
         }],
         ['sqlite', sqlite, {
-            columns: ['`user`.`id`', '`user`.`name`', '`realm`.`name`'],
-            where: '(`user`.`age` >= ? and (lower(`realm`.`id`) in(lower(?)) or `realm`.`id` is null))',
+            columns: ['`user`.`id`', '`user`.`name`', '`r5_realm`.`name`'],
+            where: '(`user`.`age` >= ? and (lower(`r5_realm`.`id`) in(lower(?)) or `r5_realm`.`id` is null))',
             orderBy: ['`user`.`age` DESC'],
         }],
         ['mssql', mssql, {
-            columns: ['[user].[id]', '[user].[name]', '[realm].[name]'],
-            where: '([user].[age] >= ? and ([realm].[id] in(?) or [realm].[id] is null))',
+            columns: ['[user].[id]', '[user].[name]', '[r5_realm].[name]'],
+            where: '([user].[age] >= ? and ([r5_realm].[id] in(?) or [r5_realm].[id] is null))',
             orderBy: ['[user].[age] DESC'],
         }],
     ];
@@ -102,8 +102,8 @@ describe('src/adapter/module.ts', () => {
         const adapter = new Adapter(pg);
 
         const fragments = adapter.execute(buildQuery());
-        expect(fragments.columns).toEqual(['"id"', '"name"', '"realm"."name"']);
-        expect(fragments.where).toEqual('("age" >= $1 and (lower("realm"."id") in(lower($2)) or "realm"."id" is null))');
+        expect(fragments.columns).toEqual(['"id"', '"name"', '"r5_realm"."name"']);
+        expect(fragments.where).toEqual('("age" >= $1 and (lower("r5_realm"."id") in(lower($2)) or "r5_realm"."id" is null))');
     });
 
     it('should drop excluded fields from the columns', () => {
@@ -154,10 +154,27 @@ describe('src/adapter/module.ts', () => {
 
         const fragments = adapter.execute(query);
 
-        expect(fragments.columns).toEqual(['"realm"."name"', '"role_realm"."name"']);
-        expect(fragments.where).toEqual('lower("role_realm"."name") = lower($1)');
-        expect(fragments.orderBy).toEqual(['"role_realm"."name" ASC']);
+        expect(fragments.columns).toEqual(['"r5_realm"."name"', '"r4_role_5_realm"."name"']);
+        expect(fragments.where).toEqual('lower("r4_role_5_realm"."name") = lower($1)');
+        expect(fragments.orderBy).toEqual(['"r4_role_5_realm"."name" ASC']);
         expect(fragments.relations).toEqual(['realm', 'role', 'role.realm']);
+    });
+
+    it('should not collide when a relation name contains underscores', () => {
+        const adapter = new Adapter({ ...pg, rootAlias: 'user' });
+        const query = new Query({
+            fields: new Fields([
+                new Field('role_realm.name'),
+                new Field('role.realm.name'),
+            ]),
+        });
+
+        const fragments = adapter.execute(query);
+
+        expect(fragments.columns).toEqual([
+            '"r10_role_realm"."name"',
+            '"r4_role_5_realm"."name"',
+        ]);
     });
 
     it('should derive relation aliases via a custom function', () => {

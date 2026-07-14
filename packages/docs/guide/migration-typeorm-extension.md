@@ -33,7 +33,7 @@ typeorm-extension used inner joins for relations; `@rapiq/typeorm` defaults to *
 
 ### Join aliases are path-qualified
 
-typeorm-extension aliased joins by the relation path's **last segment** (`role.realm` joined as `realm`), so relation paths ending in the same segment collided. `@rapiq/typeorm` aliases by the **full path** with `.` replaced by `_` (`role.realm` → `role_realm`) — see the [alias convention](/packages/typeorm#options). This only surfaces in code that references join aliases directly, e.g. hand-written `andWhere` clauses on nested relations; `onJoin` hooks keep working unchanged, since the `alias` argument they receive is already path-qualified. A custom derivation can be injected via `relations: { relationAlias }`, but it must stay collision-free.
+typeorm-extension aliased joins by the relation path's **last segment** (`role.realm` joined as `realm`), so relation paths ending in the same segment collided. `@rapiq/typeorm` uses the collision-free `buildRelationAlias(path)` helper (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`) — see the [alias convention](/packages/typeorm#options). This surfaces in code that references join aliases directly, e.g. hand-written `andWhere` clauses; `onJoin` hooks keep working because they receive the derived alias. A custom derivation can be injected via `relations: { relationAlias }`, but it must stay collision-free.
 
 ### Defaults that carried over
 

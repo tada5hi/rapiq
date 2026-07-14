@@ -35,6 +35,10 @@
         "url": "https://github.com/tada5hi"
     },
     "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "beta"
+    },
     "keywords": [
         "query",
         "json",
@@ -53,7 +57,7 @@
     "repository": {
         "type": "git",
         "url": "git+https://github.com/Tada5hi/rapiq.git",
-        "directory": "packages/codec"
+        "directory": "packages/parser-simple"
     },
     "bugs": {
         "url": "https://github.com/Tada5hi/rapiq/issues"

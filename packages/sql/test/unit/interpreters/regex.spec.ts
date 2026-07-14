@@ -35,7 +35,28 @@ describe('regex', () => {
         expect(params).toStrictEqual([condition.value.source]);
     });
 
-    it('generates posix operator for Oracle', () => {
+    it('normalizes a string regex pattern for PostgresSQL', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
+        const visitor = new FiltersVisitor(adapter);
+
+        new Filter('regex', 'email', '@example\\.com$').accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '"email" ~ $1',
+            ['@example\\.com$'],
+        ]);
+    });
+
+    it('throws a typed error for an invalid string regex pattern', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
+        const visitor = new FiltersVisitor(adapter);
+
+        expect(() => {
+            new Filter('regex', 'email', '(').accept(visitor);
+        }).toThrow(AdapterError);
+    });
+
+    it('generates REGEXP_LIKE for Oracle', () => {
         const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(
             relationsAdapter,
@@ -48,8 +69,20 @@ describe('regex', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"email" ~ $1');
+        expect(sql).toEqual('regexp_like("email", :1)');
         expect(params).toStrictEqual([condition.value.source]);
+    });
+
+    it('passes the case-insensitive match parameter to Oracle', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), oracle);
+        const visitor = new FiltersVisitor(adapter);
+
+        new Filter('regex', 'email', /@/i).accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            'regexp_like("email", :1, \'i\')',
+            ['@'],
+        ]);
     });
 
     it('generates call to `REGEXP` function for MySQL', () => {

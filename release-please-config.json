@@ -1,20 +1,44 @@
 {
-    "include-component-in-tag": false,
+    "include-component-in-tag": true,
     "prerelease": true,
-    "prerelease-type": "alpha",
+    "prerelease-type": "beta",
+    "release-as": "2.0.0-beta.0",
     "release-type": "node",
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
     "packages": {
-        ".": { "component": "root" },
-        "packages/core": { "component":  "core" }
+        "packages/core": { "component": "core" },
+        "packages/parser-simple": { "component": "parser-simple" },
+        "packages/parser-expression": { "component": "parser-expression" },
+        "packages/parser-mongo": { "component": "parser-mongo" },
+        "packages/codec-url-simple": { "component": "codec-url-simple" },
+        "packages/codec-url-expression": { "component": "codec-url-expression" },
+        "packages/codec-url": { "component": "codec-url" },
+        "packages/sql": { "component": "sql" },
+        "packages/typeorm": { "component": "typeorm" },
+        "packages/memory": { "component": "memory" }
     },
     "plugins": [
         {
             "type": "node-workspace",
             "updatePeerDependencies": true,
-            "merge": false,
-            "updateAllPackages": true
+            "merge": false
+        },
+        {
+            "type": "linked-versions",
+            "groupName": "rapiq",
+            "components": [
+                "core",
+                "parser-simple",
+                "parser-expression",
+                "parser-mongo",
+                "codec-url-simple",
+                "codec-url-expression",
+                "codec-url",
+                "sql",
+                "typeorm",
+                "memory"
+            ]
         }
     ],
     "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"

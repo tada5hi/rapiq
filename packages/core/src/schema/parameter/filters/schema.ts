@@ -6,7 +6,7 @@
  */
 
 import type { ICondition, IFilter } from '../../../parameter';
-import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
+import type { ObjectLiteral, SimpleKeys } from '../../../types';
 import type {
     FiltersOptions,
 } from './types';
@@ -57,7 +57,7 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    validate(input: IFilter) : MaybeAsync<IFilter | undefined | void> {
+    validate(input: IFilter) : IFilter | undefined | void {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }

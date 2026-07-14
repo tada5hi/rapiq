@@ -48,7 +48,7 @@ const adapter = new Adapter({ ...pg, rootAlias: 'user' });
 
 const fragments = adapter.execute(query);
 // {
-//     columns: ['"user"."id"', '"user"."name"', '"realm"."name"'],
+//     columns: ['"user"."id"', '"user"."name"', '"r5_realm"."name"'],
 //     where: '("user"."age" >= $1 and ...)',
 //     params: [18, ...],
 //     orderBy: ['"user"."age" DESC'],
@@ -63,7 +63,7 @@ Construct the `Adapter` **per request** — it accumulates per-call state; the s
 `@rapiq/sql` deliberately stops at fragments: composing the final `SELECT` statement — in particular `FROM`/`JOIN` conditions, which require knowledge of the table layout — is the job of the caller or a backend adapter. That's exactly what [`@rapiq/typeorm`](/packages/typeorm) does for TypeORM.
 
 ::: warning Alias convention
-Fragments reference joined columns via the relation path's **path-qualified alias**: the path with `.` replaced by `_` (e.g. `realm.name` → `"realm"."name"`, `role.realm.name` → `"role_realm"."name"`), so same-named relations on different branches never collide. When rendering `JOIN` clauses from `relations`, derive each alias with the exported `buildRelationAlias(path)` helper — or inject your own convention via the `relationAlias` adapter option, keeping it collision-free and within your database's identifier length limit.
+Fragments reference joined columns through the exported `buildRelationAlias(path)` derivation. It length-prefixes every path segment (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`), so `role_realm` and `role.realm` cannot collapse onto one alias. Use the same helper when rendering `JOIN` clauses from `relations`, or inject one convention through the `relationAlias` adapter option. Keep a custom derivation collision-free and within your database's identifier length limit.
 :::
 
 ## Rendering filters standalone
@@ -109,7 +109,7 @@ Negated operators are **exact complements** of their positive twins: a record th
 
 ### String matching
 
-The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
+The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its `RegExp` or string value as a pattern; invalid string patterns throw a typed `AdapterError`.
 
 The negations match rows whose column is `NULL` (complement law, see above) — on the LIKE fallback they render `(field NOT LIKE ? ESCAPE '\' OR field IS NULL)`.
 

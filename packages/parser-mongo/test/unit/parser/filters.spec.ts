@@ -810,6 +810,35 @@ describe('filters/mongo-parser', () => {
         });
     });
 
+    describe('schema validation', () => {
+        it('should replace and reject leaves without changing compound structure', () => {
+            const schema = defineFiltersSchema({
+                validate: (filter) => filter.field === 'name' ?
+                    new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                    undefined,
+            });
+
+            const output = parser.parse({ $or: [{ name: 'admin' }, { age: 18 }] }, { schema });
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.OR, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+            ]));
+        });
+
+        it('should apply schema defaults when validation rejects every filter', () => {
+            const schema = defineFiltersSchema({
+                default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+                validate: () => undefined,
+            });
+
+            const output = parser.parse({ name: 'admin' }, { schema });
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+            ]));
+        });
+    });
+
     describe('strict mode', () => {
         it('should drop any key when parsing schemaless with the strict option', () => {
             const output = parser.parse({ name: 'x' }, { strict: true });

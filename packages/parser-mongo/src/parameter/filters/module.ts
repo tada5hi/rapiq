@@ -24,6 +24,7 @@ import {
     Parameter,
     ParseError,
     ResolutionScope,
+    applyFiltersSchemaValidation,
     isFilters,
     isObject,
 } from '@rapiq/core';
@@ -111,14 +112,23 @@ export class MongoFiltersParser extends BaseParser<
             );
         }
 
-        // an explicit root compound is returned as-is;
-        // everything else wraps in a root AND.
+        // An explicit root compound is returned as-is; everything else wraps
+        // in a root AND. Validation runs over that final tree so replacement
+        // and rejection semantics are identical across parser dialects.
         const [first] = conditions;
-        if (conditions.length === 1 && first && isFilters(first)) {
-            return first;
+        const parsed = conditions.length === 1 && first && isFilters(first) ?
+            first :
+            new Filters(FilterCompoundOperator.AND, conditions);
+
+        const validated = applyFiltersSchemaValidation(parsed, scope.schema);
+        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
         }
 
-        return new Filters(FilterCompoundOperator.AND, conditions);
+        return validated as IFilters;
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(

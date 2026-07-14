@@ -43,6 +43,10 @@
         "url": "https://github.com/tada5hi"
     },
     "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "beta"
+    },
     "keywords": [
         "query",
         "json",

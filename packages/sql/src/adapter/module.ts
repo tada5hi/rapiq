@@ -25,7 +25,8 @@ export type AdapterOptions = DialectOptions & {
 
     /**
      * Derive the join alias for a relation path
-     * (default: `path.replace('.', '_')`, e.g. `role.realm` -> `role_realm`).
+     * (default: length-prefixed segments, e.g. `role.realm` ->
+     * `r4_role_5_realm`).
      */
     relationAlias?: RelationAliasFn,
 };

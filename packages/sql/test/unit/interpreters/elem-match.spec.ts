@@ -41,7 +41,7 @@ describe('elemMatch', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"projects"."active" = $1');
+        expect(sql).toEqual('"r8_projects"."active" = $1');
         expect(params).toStrictEqual([true]);
     });
 
@@ -59,7 +59,7 @@ describe('elemMatch', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"items_parts"."id" = $1');
+        expect(sql).toEqual('"r5_items_5_parts"."id" = $1');
         expect(params).toStrictEqual([7]);
 
         // the inner interior binds relative to the OUTER element —
@@ -80,7 +80,7 @@ describe('elemMatch', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('("projects"."count" > $1 and "projects"."count" < $2)');
+        expect(sql).toEqual('("r8_projects"."count" > $1 and "r8_projects"."count" < $2)');
         expect(params).toStrictEqual([5, 10]);
     });
 });

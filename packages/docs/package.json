@@ -2,11 +2,11 @@
     "name": "@rapiq/docs",
     "version": "1.0.0",
     "private": true,
-    "dependencies": {
-        "@rapiq/codec-url-simple": "^1.0.0",
-        "@rapiq/core": "^1.0.0",
-        "@rapiq/parser-simple": "^1.0.0",
-        "@rapiq/sql": "^1.0.0",
+    "devDependencies": {
+        "@rapiq/codec-url-simple": "*",
+        "@rapiq/core": "*",
+        "@rapiq/parser-simple": "*",
+        "@rapiq/sql": "*",
         "vitepress": "^1.6.4"
     },
     "scripts": {

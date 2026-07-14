@@ -74,8 +74,11 @@ No AI-attribution trailers in commits, issues, or PRs (see AGENTS.md).
 
 ## Release Process
 
-- **release-please** (`release-please-config.json`, manifest-driven) manages versions and changelogs across workspaces; currently in `prerelease: true` mode with `alpha` versioning, and it bumps internal peer dependency ranges automatically.
-- Release workflow: `.github/workflows/release.yml`; CI runs on `develop`, `master`, `next`, `beta`, `alpha`.
+- **release-please** (`release-please-config.json`, manifest-driven) manages all ten public workspaces as one linked version group. It is currently in `prerelease: true` / `beta` mode, emits component-qualified tags, and updates internal peer dependency ranges through the node-workspace plugin.
+- `release-as: 2.0.0-beta.0` bootstraps the first v2 beta. Remove that one-time override immediately after the beta release PR is merged so subsequent betas increment normally.
+- Every public package publishes with npm access `public` and dist-tag `beta`; a prerelease must never update npm's `latest` tag.
+- The private `@rapiq/docs` workspace keeps its internal `@rapiq/*` build inputs in `devDependencies` with `*` ranges. This ensures clean installs always link the current workspaces across major/prerelease bumps without adding docs tooling to the production audit.
+- Release workflow: `.github/workflows/release.yml` runs on `master`. After release-please creates releases it installs, builds, lints, runs coverage, uploads coverage, and only then publishes. General CI runs on `develop`, `master`, `next`, `beta`, `alpha`.
 - Do not bump versions or edit `CHANGELOG.md` manually.
 
 ## References

@@ -60,14 +60,13 @@ export abstract class BaseParser<
 
     protected expandObject(
         input: Record<string, any>,
-        aggregated: Record<string, any> = {},
     ) {
-        const output : Record<string, any> = aggregated || {};
+        const output : Record<string, any> = {};
 
         const keys = Object.keys(input);
         for (const key of keys) {
             if (isObject(input[key])) {
-                setPathValue(output, key, this.expandObject(input[key], output));
+                setPathValue(output, key, this.expandObject(input[key]));
             } else {
                 setPathValue(output, key, input[key]);
             }

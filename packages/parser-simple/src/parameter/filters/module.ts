@@ -14,6 +14,7 @@ import {
     FiltersParseError,
     Parameter,
     ResolutionScope,
+    applyFiltersSchemaValidation,
     isObject,
     parseKey,
     stringifyKey,
@@ -49,6 +50,12 @@ export class SimpleFiltersParser extends BaseParser<
         });
 
         let items: ICondition[] = this.run(input, scope);
+
+        if (items.length > 0) {
+            items = items
+                .map((item) => applyFiltersSchemaValidation(item, scope.schema))
+                .filter((item): item is ICondition => typeof item !== 'undefined');
+        }
 
         if (items.length === 0) {
             items = this.buildDefaults(scope.schema);

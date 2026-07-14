@@ -1,4 +1,12 @@
 {
-    ".": "1.0.0",
-    "packages/core": "1.0.0"
+    "packages/core": "1.0.0",
+    "packages/parser-simple": "1.0.0",
+    "packages/parser-expression": "1.0.0",
+    "packages/parser-mongo": "1.0.0",
+    "packages/codec-url-simple": "1.0.0",
+    "packages/codec-url-expression": "1.0.0",
+    "packages/codec-url": "1.0.0",
+    "packages/sql": "1.0.0",
+    "packages/typeorm": "1.0.0",
+    "packages/memory": "1.0.0"
 }

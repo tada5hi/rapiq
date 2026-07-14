@@ -175,7 +175,7 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         return this.leaf(expr.field, (value) => !test(value));
     }
 
-    visitFilterRegex(expr: IFilter<FilterFieldOperator.REGEX, RegExp>) : FilterCompileResult {
+    visitFilterRegex(expr: IFilter<FilterFieldOperator.REGEX, RegExp | string>) : FilterCompileResult {
         return this.leaf(expr.field, this.buildRegexTest(this.buildRegex(expr.value)));
     }
 

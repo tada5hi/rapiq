@@ -170,6 +170,38 @@ describe('filters/expr-parser', () => {
         expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN, 'inventory', 5));
     });
 
+    it('should preserve a leading underscore in a field name', () => {
+        const output = parser.parseExact('eq(_id, \'value\')');
+
+        expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, '_id', 'value'));
+    });
+
+    it.each([
+        '!eq(id, \'value\')',
+        'eq(id, \'value\')!',
+        'eq(id, \'value\') @',
+    ])('should reject unmatched source characters in %s', (input) => {
+        expect(() => parser.parseExact(input)).toThrow(FiltersParseError);
+
+        try {
+            parser.parseExact(input);
+        } catch (error) {
+            expect((error as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+        }
+    });
+
+    it('should reject excessive nesting with a typed syntax error', () => {
+        const input = `${'not('.repeat(40)}eq(id, 'value')${')'.repeat(40)}`;
+
+        expect(() => parser.parseExact(input)).toThrow(FiltersParseError);
+
+        try {
+            parser.parseExact(input);
+        } catch (error) {
+            expect((error as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+        }
+    });
+
     it('should throw a typed error on invalid syntax', () => {
         let error : unknown;
         try {
@@ -189,6 +221,33 @@ describe('filters/expr-parser', () => {
 
         expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
             new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+        ]));
+    });
+
+    it('should apply the schema validator without changing compound structure', () => {
+        const schema = defineFiltersSchema({
+            validate: (filter) => filter.field === 'name' ?
+                new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                undefined,
+        });
+
+        const output = parser.parse('or(eq(name, \'admin\'), eq(age, \'18\'))', { schema });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.OR, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        ]));
+    });
+
+    it('should apply schema defaults when validation rejects every filter', () => {
+        const schema = defineFiltersSchema({
+            default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+            validate: () => undefined,
+        });
+
+        const output = parser.parse('eq(name, \'admin\')', { schema });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
         ]));
     });
 

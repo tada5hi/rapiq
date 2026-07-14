@@ -69,10 +69,11 @@ describe('src/adapter/module.ts', () => {
         expect(queryBuilder.expressionMap.skip).toBeUndefined();
     });
 
-    it('should reset a stale where on a re-run whose query drops filters', () => {
+    it('should preserve a caller-owned where clause when applying filters', () => {
         const queryBuilder = dataSource
             .getRepository(User)
-            .createQueryBuilder('user');
+            .createQueryBuilder('user')
+            .where('user.id = :actorId', { actorId: 1 });
 
         const adapter = new TypeormAdapter({ queryBuilder });
 
@@ -81,12 +82,22 @@ describe('src/adapter/module.ts', () => {
                 new Filter(FilterFieldOperator.EQUAL, 'age', 18),
             ]),
         }));
-        expect(queryBuilder.getSql()).toContain('WHERE');
 
-        // the unconditional where('') call is what resets the builder here:
-        // typeorm clears expressionMap.wheres before adding a condition and
-        // skips empty ones, so no dangling WHERE is emitted either
+        const sql = queryBuilder.getSql();
+        expect(sql).toContain('WHERE "user"."id" = 1 AND');
+        expect(sql).toContain('"user"."age" = 18');
+    });
+
+    it('should preserve a caller-owned where clause for an empty query', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user')
+            .where('user.id = :actorId', { actorId: 1 });
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query());
-        expect(queryBuilder.getSql()).not.toContain('WHERE');
+
+        expect(queryBuilder.getSql()).toContain('WHERE "user"."id" = 1');
     });
 });

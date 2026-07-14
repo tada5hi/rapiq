@@ -38,7 +38,8 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
     // -----------------------------------------------------------
 
     /**
-     * Join alias for a relation path (e.g. `role.realm` -> `role_realm`).
+     * Join alias for a relation path (e.g. `role.realm` ->
+     * `r4_role_5_realm`).
      * The single derivation point shared by join application and the
      * field references built by the fields/filters/sort adapters.
      */
