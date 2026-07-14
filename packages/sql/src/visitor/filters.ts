@@ -235,7 +235,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
         let inCondition : string;
         if (
-            !this.isCaseSensitiveField(fieldName) &&
+            this.isCaseFoldableField(fieldName) &&
             values.some((value) => typeof value === 'string')
         ) {
             const placeholders = values.map((value) => {
@@ -317,13 +317,17 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     /**
      * Equality-family comparisons (eq/ne/in/nin) match string values
      * case-insensitively unless the field is opted out via the
-     * `caseSensitive` visitor option.
+     * `caseSensitive` visitor option or the adapter exempts it
+     * (non-string columns never fold).
      */
     protected isCaseInsensitive(field: string, value: unknown) : boolean {
-        return typeof value === 'string' && !this.isCaseSensitiveField(field);
+        return typeof value === 'string' && this.isCaseFoldableField(field);
     }
 
-    protected isCaseSensitiveField(field: string) : boolean {
-        return this.caseSensitiveFields.has(`${this.adapter.getFieldPrefix()}${field}`);
+    protected isCaseFoldableField(field: string) : boolean {
+        const path = `${this.adapter.getFieldPrefix()}${field}`;
+
+        return !this.caseSensitiveFields.has(path) &&
+            this.adapter.isCaseFoldable(path);
     }
 }

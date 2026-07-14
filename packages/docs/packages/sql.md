@@ -129,3 +129,5 @@ adapter.execute(query, { visitor: { caseSensitive: ['id'] } });
 ```
 
 On folding dialects, give hot string filter columns an expression index (`CREATE INDEX ... ON "user" (lower(name))`) — or opt them out.
+
+Folding only happens for string filter values. Backends with column metadata can exempt whole columns by overriding `isCaseFoldable(field)` on the filters adapter (default: `true`) — the [TypeORM adapter](/packages/typeorm) uses it to fold only string-typed columns.
