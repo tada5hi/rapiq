@@ -59,7 +59,7 @@ describe('elemMatch', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"parts"."id" = $1');
+        expect(sql).toEqual('"items_parts"."id" = $1');
         expect(params).toStrictEqual([7]);
 
         // the inner interior binds relative to the OUTER element —

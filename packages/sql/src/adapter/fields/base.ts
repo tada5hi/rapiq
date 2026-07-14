@@ -72,7 +72,7 @@ export abstract class FieldsBaseAdapter implements IFieldsAdapter {
     buildField(input: string) {
         const rootAlias = this.rootAlias();
 
-        const output = parseField(input, rootAlias);
+        const output = parseField(input, rootAlias, (path) => this.relations.buildAlias(path));
         if (output.relation) {
             this.relations.add(output.relation);
         }

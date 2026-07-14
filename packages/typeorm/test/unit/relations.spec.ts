@@ -10,6 +10,7 @@ import { Query, Relation, Relations } from '@rapiq/core';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
+import { Realm } from '../data/entity/realm';
 import { Role } from '../data/entity/role';
 import { createUserSeed } from '../data/seeder/user';
 import { User } from '../data/entity/user';
@@ -25,10 +26,14 @@ describe('src/relations', () => {
         await dataSource.synchronize();
 
         const [master] = await createRealmSeed(dataSource);
+        // a second realm on the role branch — distinct data on `realm`
+        // vs `role.realm` exposes join-alias collisions (#744).
+        const realmRepository = dataSource.getRepository(Realm);
+        const other = await realmRepository.save({ name: 'other' });
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
-        admin.realm = master;
+        admin.realm = other;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
@@ -70,5 +75,19 @@ describe('src/relations', () => {
 
         expect(user.role).toBeDefined();
         expect(user.realm).toBeDefined();
+    });
+
+    it('should include same-named relations on different branches', async () => {
+        const queryBuilder = createQueryBuilder(new Relations([
+            new Relation('realm'),
+            new Relation('role.realm'),
+        ]));
+
+        const users = await queryBuilder.getMany();
+        const user = users.find((element) => !!element.role);
+
+        expect(user).toBeDefined();
+        expect(user?.realm.name).toEqual('master');
+        expect(user?.role.realm.name).toEqual('other');
     });
 });

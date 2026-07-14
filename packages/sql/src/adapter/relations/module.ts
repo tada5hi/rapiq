@@ -14,7 +14,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
     // -----------------------------------------------------------
 
     constructor(options: RelationsAdapterOptions = {}) {
-        super();
+        super(options);
 
         this.options = options;
     }

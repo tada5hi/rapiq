@@ -48,8 +48,8 @@ describe('auto join', () => {
 
         const [sql] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('"user"."name" = $1');
-        expect(options.escapeField).toHaveBeenCalledWith('user');
+        expect(sql).toEqual('"projects_user"."name" = $1');
+        expect(options.escapeField).toHaveBeenCalledWith('projects_user');
         spy.restore(options, 'escapeField');
     });
 });

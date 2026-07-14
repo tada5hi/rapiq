@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { splitFirst } from '../../helpers';
-import type { IRelationsAdapter } from './types';
+import type { RelationAliasFn } from '../../helpers';
+import { buildRelationAlias, splitFirst } from '../../helpers';
+import type { IRelationsAdapter, RelationsAdapterBaseOptions } from './types';
 
 export abstract class RelationsBaseAdapter implements IRelationsAdapter {
     /**
@@ -25,10 +26,24 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
         executed?: boolean
     }[];
 
+    protected relationAlias : RelationAliasFn;
+
     // -----------------------------------------------------------
 
-    protected constructor() {
+    protected constructor(options: RelationsAdapterBaseOptions = {}) {
         this.value = [];
+        this.relationAlias = options.relationAlias ?? buildRelationAlias;
+    }
+
+    // -----------------------------------------------------------
+
+    /**
+     * Join alias for a relation path (e.g. `role.realm` -> `role_realm`).
+     * The single derivation point shared by join application and the
+     * field references built by the fields/filters/sort adapters.
+     */
+    buildAlias(path: string) : string {
+        return this.relationAlias(path);
     }
 
     // -----------------------------------------------------------

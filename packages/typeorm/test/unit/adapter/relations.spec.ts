@@ -99,10 +99,44 @@ describe('src/adapter/relations.ts', () => {
         visit(adapter, 'role.detail');
         adapter.relations.execute();
 
-        const paths = queryBuilder.expressionMap.joinAttributes.map(
-            (join) => join.entityOrProperty,
+        const joins = queryBuilder.expressionMap.joinAttributes.map(
+            (join) => [join.entityOrProperty, join.alias.name],
         );
-        expect(paths).toEqual(['user.role', 'role.detail']);
+        expect(joins).toEqual([
+            ['user.role', 'role'],
+            ['role.detail', 'role_detail'],
+        ]);
+    });
+
+    it('should join same-named relations on different branches distinctly', () => {
+        const { queryBuilder, adapter } = setup();
+
+        // both paths end in `realm` — leaf-based aliasing skipped the
+        // second join and resolved every `*.realm.*` reference against
+        // whichever join was applied first (#744).
+        visit(adapter, 'realm', 'role.realm');
+        adapter.relations.execute();
+
+        const joins = queryBuilder.expressionMap.joinAttributes.map(
+            (join) => [join.entityOrProperty, join.alias.name],
+        );
+        expect(joins).toEqual([
+            ['user.realm', 'realm'],
+            ['user.role', 'role'],
+            ['role.realm', 'role_realm'],
+        ]);
+    });
+
+    it('should derive join aliases via a custom function', () => {
+        const { queryBuilder, adapter } = setup({ relationAlias: (path) => path.replace(/\./g, '__') });
+
+        visit(adapter, 'role.realm');
+        adapter.relations.execute();
+
+        const aliases = queryBuilder.expressionMap.joinAttributes.map(
+            (join) => join.alias.name,
+        );
+        expect(aliases).toEqual(['role', 'role__realm']);
     });
 
     it('should drop unknown relations', () => {
@@ -129,7 +163,7 @@ describe('src/adapter/relations.ts', () => {
 
         expect(calls).toEqual([
             ['role', 'role'],
-            ['role.detail', 'detail'],
+            ['role.detail', 'role_detail'],
         ]);
         expect(queryBuilder.getSql()).toContain('GROUP BY');
     });

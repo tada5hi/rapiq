@@ -6,6 +6,8 @@
  */
 
 import { splitLast } from './name-split';
+import type { RelationAliasFn } from './relation-alias';
+import { buildRelationAlias } from './relation-alias';
 
 type Field = {
     prefix?: string,
@@ -13,7 +15,11 @@ type Field = {
     name: string
 };
 
-export function parseField(input: string, rootAlias?: string) : Field {
+export function parseField(
+    input: string,
+    rootAlias?: string,
+    relationAlias: RelationAliasFn = buildRelationAlias,
+) : Field {
     const [relation, name] = splitLast(input);
     if (!name) {
         if (rootAlias) {
@@ -26,18 +32,9 @@ export function parseField(input: string, rootAlias?: string) : Field {
         return { name: relation };
     }
 
-    const [first, last] = splitLast(relation);
-    if (last) {
-        return {
-            relation,
-            prefix: last,
-            name,
-        };
-    }
-
     return {
         relation,
-        prefix: first,
+        prefix: relationAlias(relation),
         name,
     };
 }
