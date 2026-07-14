@@ -18,7 +18,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         queryBuilder: SelectQueryBuilder<any>,
         options: RelationsAdapterOptions = {},
     ) {
-        super();
+        super(options);
 
         this.queryBuilder = queryBuilder;
         this.options = options;
@@ -40,7 +40,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         let relationFullName : string | undefined = input;
         let path : string | undefined;
         let meta = this.queryBuilder.expressionMap.mainAlias!.metadata;
-        let { alias } = this.queryBuilder;
+        let parentAlias = this.queryBuilder.alias;
 
         const { joinAttributes } = this.queryBuilder.expressionMap;
 
@@ -57,20 +57,22 @@ export class RelationsAdapter extends RelationsBaseAdapter {
                 return false;
             }
 
+            const alias = this.buildAlias(path);
+
             const joined = joinAttributes.some(
-                (joinAttribute) => joinAttribute.alias.name === relationName,
+                (joinAttribute) => joinAttribute.alias.name === alias,
             );
 
             if (!joined) {
-                this.applyJoin(`${alias}.${relationName}`, relationName);
+                this.applyJoin(`${parentAlias}.${relationName}`, alias);
 
                 if (this.options.onJoin) {
-                    this.options.onJoin(path, relationName, this.queryBuilder);
+                    this.options.onJoin(path, alias, this.queryBuilder);
                 }
             }
 
             meta = relation.inverseEntityMetadata;
-            alias = relationName;
+            parentAlias = alias;
         }
 
         return true;

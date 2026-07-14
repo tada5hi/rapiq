@@ -60,11 +60,12 @@ new TypeormAdapter({
 | `relations.joinAndSelect` | Join **and select** (hydrate the related entities) instead of joining for filtering/sorting only. |
 | `relations.joinType` | `'left'` (default) or `'inner'`. Left joins keep records whose relation is absent. |
 | `relations.onJoin` | Invoked as `(path, alias, queryBuilder)` for every join the adapter applies — e.g. to `addGroupBy` per join when the root query is grouped. Skipped (pre-existing) joins don't trigger it. |
+| `relations.relationAlias` | Derive the join alias for a relation path (default: the path with `.` replaced by `_`, e.g. `role.realm` → `role_realm`). Filter/sort/field references resolve against the same derivation. |
 
 Relations are validated against the entity metadata of the attached query builder — a requested relation that doesn't exist on the entity is ignored. Joins are applied idempotently: relations already joined on the query builder (by the adapter or by your own code, matched by alias) are skipped, so applying a query twice does not duplicate joins.
 
 ::: warning Alias convention
-Joins are aliased by the relation path's **last segment**: `role.realm` joins as alias `realm` — the same convention filter/sort/field references resolve against. Two relation paths ending in the same segment (e.g. `realm` and `role.realm`) therefore collide: the later join is skipped and references resolve against the first one. Path-qualified aliases are tracked in [#744](https://github.com/tada5hi/rapiq/issues/744).
+Joins are aliased by the **full relation path**, with `.` replaced by `_`: `realm` joins as alias `realm`, `role.realm` as `role_realm` — the same convention filter/sort/field references resolve against, so same-named relations on different branches never collide. Pre-existing joins are matched by that alias: joins you apply yourself under a different alias (e.g. `role.realm` as `realm`) are not recognized — either use the path-qualified alias or inject your own convention via `relations.relationAlias`. Make sure a custom derivation stays collision-free and within your database's identifier length limit.
 :::
 
 ## Dialect detection

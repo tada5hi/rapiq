@@ -115,7 +115,7 @@ export abstract class FiltersBaseAdapter<
             inputNormalized = input;
         }
 
-        const output = parseField(inputNormalized, this.rootAlias());
+        const output = parseField(inputNormalized, this.rootAlias(), (path) => this.relations.buildAlias(path));
         if (output.relation) {
             this.relations.add(output.relation);
         }

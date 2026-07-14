@@ -133,6 +133,41 @@ describe('src/adapter/module.ts', () => {
         ]);
     });
 
+    it('should path-qualify nested relation references', () => {
+        const adapter = new Adapter({ ...pg, rootAlias: 'user' });
+
+        // `realm` and `role.realm` end in the same segment — leaf-based
+        // aliasing would collapse both onto the alias `realm` (#744).
+        const query = new Query({
+            fields: new Fields([
+                new Field('realm.name'),
+                new Field('role.realm.name'),
+            ]),
+            filters: new Filters('and', [
+                new Filter('eq', 'role.realm.name', 'master'),
+            ]),
+            sorts: new Sorts([new Sort('role.realm.name', 'ASC')]),
+        });
+
+        const fragments = adapter.execute(query);
+
+        expect(fragments.columns).toEqual(['"realm"."name"', '"role_realm"."name"']);
+        expect(fragments.where).toEqual('"role_realm"."name" = $1');
+        expect(fragments.orderBy).toEqual(['"role_realm"."name" ASC']);
+        expect(fragments.relations).toEqual(['realm', 'role', 'role.realm']);
+    });
+
+    it('should derive relation aliases via a custom function', () => {
+        const adapter = new Adapter({
+            ...pg,
+            relationAlias: (path) => path.replace(/\./g, '__'),
+        });
+
+        const query = new Query({ fields: new Fields([new Field('role.realm.name')]) });
+
+        expect(adapter.execute(query).columns).toEqual(['"role__realm"."name"']);
+    });
+
     it('should clear accumulated state between executes by default', () => {
         const adapter = new Adapter(pg);
 

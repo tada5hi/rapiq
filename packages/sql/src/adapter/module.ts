@@ -8,6 +8,7 @@
 import type { IQuery } from '@rapiq/core';
 import { QueryVisitor } from '../visitor';
 import type { DialectOptions } from '../dialect';
+import type { RelationAliasFn } from '../helpers';
 import type {
     ExecuteOptions,
     IRootAdapter,
@@ -21,6 +22,12 @@ import { SortAdapter } from './sort';
 
 export type AdapterOptions = DialectOptions & {
     rootAlias?: string,
+
+    /**
+     * Derive the join alias for a relation path
+     * (default: `path.replace('.', '_')`, e.g. `role.realm` -> `role_realm`).
+     */
+    relationAlias?: RelationAliasFn,
 };
 
 export class Adapter implements IRootAdapter<SqlFragments> {
@@ -37,7 +44,10 @@ export class Adapter implements IRootAdapter<SqlFragments> {
     // -----------------------------------------------------------
 
     constructor(options: AdapterOptions) {
-        this.relations = new RelationsAdapter({ join: () => true });
+        this.relations = new RelationsAdapter({
+            join: () => true,
+            relationAlias: options.relationAlias,
+        });
         this.fields = new FieldsAdapter(this.relations, {
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
