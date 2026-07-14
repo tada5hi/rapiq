@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { SchemaError } from '../../errors';
 import { Schema } from '../module';
 import type { ObjectLiteral } from '../../types';
 
@@ -21,7 +22,7 @@ export class SchemaRegistry {
 
     add<T extends ObjectLiteral>(schema: Schema<T>) {
         if (typeof schema.name === 'undefined') {
-            throw new Error('The schema name is not defined.');
+            throw SchemaError.nameUndefined();
         }
 
         this.entities.set(schema.name, schema);
@@ -48,7 +49,7 @@ export class SchemaRegistry {
     >(name: string | Schema<T>): Schema<T> {
         const schema = this.get(name);
         if (typeof schema === 'undefined') {
-            throw new Error(`Cannot find schema with name "${name}".`);
+            throw SchemaError.notResolvable(name as string);
         }
 
         return schema;

@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from '../../../src';
+import { 
+    ErrorCode, 
+    SchemaError, 
+    SchemaRegistry, 
+    defineSchema, 
+} from '../../../src';
 import { registry } from '../../data/schema';
 
 describe('src/schema/registry/*.ts', () => {
@@ -21,7 +26,14 @@ describe('src/schema/registry/*.ts', () => {
 
         it('should throw when adding a schema without a name', () => {
             const local = new SchemaRegistry();
-            expect(() => local.add(defineSchema({}))).toThrow();
+            expect(() => local.add(defineSchema({}))).toThrow(SchemaError);
+
+            try {
+                local.add(defineSchema({}));
+            } catch (e) {
+                expect(e).toBeInstanceOf(SchemaError);
+                expect((e as SchemaError).code).toBe(ErrorCode.SCHEMA_NAME_INVALID);
+            }
         });
 
         it('should return undefined for an unknown name', () => {
@@ -31,7 +43,14 @@ describe('src/schema/registry/*.ts', () => {
 
         it('should throw in getOrFail for an unknown name', () => {
             const local = new SchemaRegistry();
-            expect(() => local.getOrFail('missing')).toThrow();
+            expect(() => local.getOrFail('missing')).toThrow(SchemaError);
+
+            try {
+                local.getOrFail('missing');
+            } catch (e) {
+                expect(e).toBeInstanceOf(SchemaError);
+                expect((e as SchemaError).code).toBe(ErrorCode.SCHEMA_UNRESOLVABLE);
+            }
         });
 
         it('should return a passed Schema instance unchanged', () => {
