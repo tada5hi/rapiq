@@ -57,12 +57,17 @@ function findColumnByPropertyPath(metadata: EntityMetadata, path: string) {
     const segments = path.split('.');
 
     for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        if (!segment) {
+            return undefined;
+        }
+
         const column = current.findColumnWithPropertyPath(segments.slice(i).join('.'));
         if (column) {
             return column;
         }
 
-        const relation = current.findRelationWithPropertyPath(segments[i]);
+        const relation = current.findRelationWithPropertyPath(segment);
         if (!relation) {
             return undefined;
         }
