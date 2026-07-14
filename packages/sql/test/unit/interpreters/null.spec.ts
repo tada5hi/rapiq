@@ -38,7 +38,7 @@ describe('null semantics', () => {
         new Filter('in', 'realm_id', ['a', 'b', null]).accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
-            '("realm_id" in($1, $2) or "realm_id" is null)',
+            '(lower("realm_id") in(lower($1), lower($2)) or "realm_id" is null)',
             ['a', 'b'],
         ]);
     });
@@ -53,7 +53,7 @@ describe('null semantics', () => {
         new Filter('nin', 'realm_id', ['a', null]).accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
-            '("realm_id" not in($1) and "realm_id" is not null)',
+            '(lower("realm_id") not in(lower($1)) and "realm_id" is not null)',
             ['a'],
         ]);
     });
@@ -72,7 +72,7 @@ describe('null semantics', () => {
         ]).accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
-            '("name" = $1 and ("realm_id" in($2) or "realm_id" is null) and "age" = $3)',
+            '(lower("name") = lower($1) and (lower("realm_id") in(lower($2)) or "realm_id" is null) and "age" = $3)',
             ['admin', 'a', 18],
         ]);
     });

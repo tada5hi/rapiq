@@ -73,6 +73,25 @@ export abstract class FiltersBaseAdapter<
         return true;
     }
 
+    /**
+     * Fold an expression for a case-insensitive equality comparison
+     * (eq/ne/in/nin on strings). Dialects whose plain `=` already
+     * compares case-insensitively return the input unchanged.
+     */
+    caseFold(input: string) : string {
+        return `lower(${input})`;
+    }
+
+    /**
+     * Whether equality comparisons on this field may case-fold at all.
+     * Backends with column metadata override this to exempt non-string
+     * columns — folding them is wasted work at best and a type error at
+     * worst (e.g. `lower(integer)` on postgres).
+     */
+    isCaseFoldable(_field: string) : boolean {
+        return true;
+    }
+
     // -----------------------------------------------------------
 
     where(field: string, operator: string, value?: unknown) {

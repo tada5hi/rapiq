@@ -338,4 +338,75 @@ describe('src/filters', () => {
 
         expect(data.length).toEqual(1);
     });
+
+    it('should match string equality case-insensitively', async () => {
+        const condition = new Filter(
+            FilterFieldOperator.EQUAL,
+            'first_name',
+            'ASTON',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+
+        const [user] = data;
+
+        expect(user.first_name).toEqual('Aston');
+    });
+
+    it('should keep fields listed in caseSensitive exact', async () => {
+        const repository = dataSource.getRepository(User);
+        const queryBuilder = repository.createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+        adapter.execute(
+            new Query({
+                filters: new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'first_name', 'ASTON'),
+                ]),
+            }),
+            { visitor: { caseSensitive: ['first_name'] } },
+        );
+
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(0);
+    });
+
+    it('should case-fold only string-typed columns', () => {
+        const repository = dataSource.getRepository(User);
+        const queryBuilder = repository.createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        expect(adapter.filters.isCaseFoldable('first_name')).toBeTruthy();
+        expect(adapter.filters.isCaseFoldable('role.realm.name')).toBeTruthy();
+
+        expect(adapter.filters.isCaseFoldable('age')).toBeFalsy();
+        expect(adapter.filters.isCaseFoldable('role_id')).toBeFalsy();
+
+        // unresolvable paths keep the folding default
+        expect(adapter.filters.isCaseFoldable('unknown.path')).toBeTruthy();
+    });
+
+    it('should not case-fold a non-string column filtered with a wire string', async () => {
+        // the wire is untyped — '18' may reach an int column as a string.
+        // lower(int) is a type error on postgres; the column type exempts it.
+        const condition = new Filter(FilterFieldOperator.EQUAL, 'age', '18');
+
+        const queryBuilder = createQueryBuilder(condition);
+
+        expect(queryBuilder.getQuery()).not.toContain('lower(');
+
+        // the database still coerces the comparison by column affinity
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+
+        const [user] = data;
+
+        expect(user.first_name).toEqual('Caleb');
+    });
 });

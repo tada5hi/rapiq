@@ -53,6 +53,14 @@ export class FiltersAdapter extends FiltersBaseAdapter {
         return this.options.regexp(field, placeholder, ignoreCase);
     }
 
+    override caseFold(input: string) : string {
+        if (this.options.caseFold) {
+            return this.options.caseFold(input);
+        }
+
+        return super.caseFold(input);
+    }
+
     // -----------------------------------------------------------
 
     child() : this {

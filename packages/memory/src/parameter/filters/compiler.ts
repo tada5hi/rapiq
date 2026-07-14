@@ -27,7 +27,7 @@ import {
     resolveProperty,
     toText,
 } from '../../helpers';
-import type { FilterCompileResult, ValueTest } from './types';
+import type { FilterCompileResult, FiltersVisitorOptions, ValueTest } from './types';
 
 /**
  * Positive leaf tests treat an array value by element
@@ -55,19 +55,22 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
     protected fieldPrefix : string;
 
-    constructor() {
+    protected caseSensitiveFields : Set<string>;
+
+    constructor(options: FiltersVisitorOptions = {}) {
         this.paths = new Set();
         this.fieldPrefix = '';
+        this.caseSensitiveFields = new Set(options.caseSensitive || []);
     }
 
     // -----------------------------------------------------------
 
     visitFilterEqual(expr: IFilter<FilterFieldOperator.EQUAL>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildEqualTest(expr.value));
+        return this.leaf(expr.field, this.buildEqualTest(expr.value, expr.field));
     }
 
     visitFilterNotEqual(expr: IFilter<FilterFieldOperator.NOT_EQUAL>) : FilterCompileResult {
-        const test = this.buildEqualTest(expr.value);
+        const test = this.buildEqualTest(expr.value, expr.field);
 
         return this.leaf(expr.field, (value) => !test(value));
     }
@@ -97,11 +100,11 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
     }
 
     visitFilterIn(expr: IFilter<FilterFieldOperator.IN, unknown[]>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildInTest(expr.value));
+        return this.leaf(expr.field, this.buildInTest(expr.value, expr.field));
     }
 
     visitFilterNotIn(expr: IFilter<FilterFieldOperator.NOT_IN, unknown[]>) : FilterCompileResult {
-        const test = this.buildInTest(expr.value);
+        const test = this.buildInTest(expr.value, expr.field);
 
         return this.leaf(expr.field, (value) => !test(value));
     }
@@ -244,10 +247,29 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
     // -----------------------------------------------------------
 
-    protected buildEqualTest(input: unknown) : ValueTest {
+    protected buildEqualTest(input: unknown, field: string) : ValueTest {
+        return anyValue(this.buildValueEqualTest(input, field));
+    }
+
+    /**
+     * Single-value equality: string conditions compare case-insensitively
+     * (mirroring the SQL adapter's lower()-wrapped rendering) unless the
+     * field is opted out via the `caseSensitive` option.
+     */
+    protected buildValueEqualTest(input: unknown, field: string) : ValueTest {
         const condition = normalizeValue(input);
 
-        return anyValue((value) => isValueEqual(value, condition));
+        if (
+            typeof condition === 'string' &&
+            !this.caseSensitiveFields.has(`${this.fieldPrefix}${field}`)
+        ) {
+            const lowered = condition.toLowerCase();
+
+            return (value) => typeof value === 'string' &&
+                value.toLowerCase() === lowered;
+        }
+
+        return (value) => isValueEqual(value, condition);
     }
 
     protected buildCompareTest(input: unknown, min: number, max: number) : ValueTest {
@@ -263,15 +285,15 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         });
     }
 
-    protected buildInTest(input: unknown[]) : ValueTest {
+    protected buildInTest(input: unknown[], field: string) : ValueTest {
         if (!Array.isArray(input)) {
             return () => false;
         }
 
-        const items = input.map((item) => normalizeValue(item));
+        const tests = input.map((item) => this.buildValueEqualTest(item, field));
 
         return anyValue(
-            (value) => items.some((item) => isValueEqual(value, item)),
+            (value) => tests.some((test) => test(value)),
         );
     }
 

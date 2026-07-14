@@ -28,17 +28,29 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
     protected options : VisitorOptions;
 
+    protected caseSensitiveFields : Set<string>;
+
     constructor(
         adapter: IFiltersAdapter,
         options: VisitorOptions = {},
     ) {
         this.adapter = adapter;
         this.options = options;
+
+        this.caseSensitiveFields = new Set(options.caseSensitive || []);
     }
 
     visitFilterEqual(expr: Filter<FilterFieldOperator.EQUAL>): IFiltersAdapter {
         if (expr.value === null) {
             return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is null`);
+        }
+
+        if (this.isCaseInsensitive(expr.field, expr.value)) {
+            const field = this.adapter.buildField(expr.field);
+            return this.adapter.whereRaw(
+                `${this.adapter.caseFold(field)} = ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
+                expr.value,
+            );
         }
 
         return this.adapter.where(expr.field, '=', expr.value);
@@ -48,6 +60,14 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         const field = this.adapter.buildField(expr.field);
         if (expr.value === null) {
             return this.adapter.whereRaw(`${field} is not null`);
+        }
+
+        if (this.isCaseInsensitive(expr.field, expr.value)) {
+            return this.whereComplement(
+                field,
+                `${this.adapter.caseFold(field)} <> ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
+                expr.value,
+            );
         }
 
         return this.whereComplement(
@@ -213,7 +233,19 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
             return this.adapter.whereRaw(nullCondition);
         }
 
-        const inCondition = `${field} ${negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
+        let inCondition : string;
+        if (
+            this.isCaseFoldableField(fieldName) &&
+            values.some((value) => typeof value === 'string')
+        ) {
+            const placeholders = values.map((value) => {
+                const placeholder = this.adapter.buildParamPlaceholder();
+                return typeof value === 'string' ? this.adapter.caseFold(placeholder) : placeholder;
+            });
+            inCondition = `${this.adapter.caseFold(field)} ${negated ? 'not ' : ''}in(${placeholders.join(', ')})`;
+        } else {
+            inCondition = `${field} ${negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
+        }
         if (values.length === input.length) {
             if (negated) {
                 return this.whereComplement(field, inCondition, ...values);
@@ -280,5 +312,22 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
      */
     protected whereComplement(field: string, sql: string, ...values: unknown[]) : IFiltersAdapter {
         return this.adapter.whereRaw(`(${sql} or ${field} is null)`, ...values);
+    }
+
+    /**
+     * Equality-family comparisons (eq/ne/in/nin) match string values
+     * case-insensitively unless the field is opted out via the
+     * `caseSensitive` visitor option or the adapter exempts it
+     * (non-string columns never fold).
+     */
+    protected isCaseInsensitive(field: string, value: unknown) : boolean {
+        return typeof value === 'string' && this.isCaseFoldableField(field);
+    }
+
+    protected isCaseFoldableField(field: string) : boolean {
+        const path = `${this.adapter.getFieldPrefix()}${field}`;
+
+        return !this.caseSensitiveFields.has(path) &&
+            this.adapter.isCaseFoldable(path);
     }
 }

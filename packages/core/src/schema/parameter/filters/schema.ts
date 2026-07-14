@@ -23,6 +23,8 @@ export class FiltersSchema<
 
     public allowedIsUndefined : boolean;
 
+    public caseSensitive : string[];
+
     // ---------------------------------------------------------
 
     constructor(input: FiltersOptions<T> = {}) {
@@ -34,8 +36,11 @@ export class FiltersSchema<
         this.default = undefined;
         this.defaultIsUndefined = true;
 
+        this.caseSensitive = [];
+
         this.setDefault(this.options.default);
         this.setAllowed(this.options.allowed);
+        this.setCaseSensitive(this.options.caseSensitive);
     }
 
     // ---------------------------------------------------------
@@ -76,6 +81,10 @@ export class FiltersSchema<
 
         this.allowed = input;
         this.allowedIsUndefined = false;
+    }
+
+    setCaseSensitive(input?: SimpleKeys<T>[]) {
+        this.caseSensitive = input || [];
     }
 
     // ---------------------------------------------------------

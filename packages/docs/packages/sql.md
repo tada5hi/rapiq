@@ -8,13 +8,14 @@ npm install @rapiq/core @rapiq/sql
 
 ## Dialects
 
-A dialect is three callbacks:
+A dialect is a handful of callbacks:
 
 ```typescript
 type DialectOptions = {
     escapeField: (input: string) => string,      // mysql: `field`, pg: "field", mssql: [field]
     paramPlaceholder: (index: number) => string, // pg: $1, mysql: ?
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
+    caseFold?: (input: string) => string,        // default: lower(input); mysql/mssql: identity
 };
 ```
 
@@ -111,3 +112,22 @@ Negated operators are **exact complements** of their positive twins: a record th
 The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its value as a pattern.
 
 The negations match rows whose column is `NULL` (complement law, see above) — on the LIKE fallback they render `(field NOT LIKE ? ESCAPE '\' OR field IS NULL)`.
+
+### Case sensitivity
+
+String equality (`eq` / `ne` / `in` / `nin`) matches [case-insensitively by default](/guide/filters#case-sensitivity). On dialects whose `=` is case-sensitive, both sides fold through the `caseFold` dialect callback — `lower(field) = lower(?)`:
+
+| Filter | pg / sqlite / oracle | mysql / mssql |
+|---|---|---|
+| `eq(field, 'a')` | `lower(field) = lower(?)` | `field = ?` |
+| `in(field, ['a', 1])` | `lower(field) IN (lower(?), ?)` | `field IN (?, ?)` |
+
+The `mysql` and `mssql` presets set `caseFold` to identity: their default collations (`*_ci`) already compare case-insensitively, and skipping `lower()` keeps plain indexes usable. Fields opted out via the `caseSensitive` visitor option render unfolded on every dialect:
+
+```typescript
+adapter.execute(query, { visitor: { caseSensitive: ['id'] } });
+```
+
+On folding dialects, give hot string filter columns an expression index (`CREATE INDEX ... ON "user" (lower(name))`) — or opt them out.
+
+Folding only happens for string filter values. Backends with column metadata can exempt whole columns by overriding `isCaseFoldable(field)` on the filters adapter (default: `true`) — the [TypeORM adapter](/packages/typeorm) uses it to fold only string-typed columns.

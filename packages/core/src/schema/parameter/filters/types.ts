@@ -21,5 +21,12 @@ export type FiltersOptions<
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
     default?: ICondition,
-    validate?: Validator
+    validate?: Validator,
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default —
+     * e.g. identifier or token columns. Keys are resolved names
+     * (after mapping), matching the entries of `allowed`.
+     */
+    caseSensitive?: SimpleKeys<T>[],
 };

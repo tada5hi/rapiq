@@ -14,8 +14,15 @@ import type {
 import type { Predicate } from '../../types';
 import { createBoundPredicate } from './binding';
 import { FiltersCompiler } from './compiler';
+import type { FiltersVisitorOptions } from './types';
 
 export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisitor<Predicate> {
+    protected options : FiltersVisitorOptions;
+
+    constructor(options: FiltersVisitorOptions = {}) {
+        this.options = options;
+    }
+
     visitFilters(expr: IFilters) : Predicate {
         return this.compile(expr);
     }
@@ -38,6 +45,6 @@ export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisito
     }
 
     protected createCompiler() : FiltersCompiler {
-        return new FiltersCompiler();
+        return new FiltersCompiler(this.options);
     }
 }

@@ -11,4 +11,9 @@ export const mysql : DialectOptions = {
     regexp: (field, placeholder) => `${field} regexp ${placeholder} = 1`,
     paramPlaceholder: () => '?',
     escapeField: (field: string) => `\`${field}\``,
+    // mysql's default collations (*_ci) already compare `=` case-
+    // insensitively; skip lower() so plain indexes stay usable.
+    // Override with a lower()-wrapping caseFold when columns use
+    // *_bin / *_cs collations.
+    caseFold: (input) => input,
 };
