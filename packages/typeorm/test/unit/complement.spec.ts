@@ -65,6 +65,10 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
         records = await repository.find();
     });
 
+    afterAll(async () => {
+        await dataSource.destroy();
+    });
+
     const fetchIds = async (condition: Filter) : Promise<number[]> => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
