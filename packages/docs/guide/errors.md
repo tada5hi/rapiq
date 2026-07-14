@@ -15,7 +15,8 @@ BaseError { code: ErrorCode }
 │   ├── RelationsParseError
 │   └── SortParseError
 ├── AdapterError          backends & encoders — query exceeds the target's subset
-└── CodecError            codec registry — unresolvable dialect
+├── CodecError            codec registry — unresolvable dialect
+└── SchemaError           schema registry — misconfigured or unresolvable schema
 ```
 
 ## Where errors come from
@@ -66,6 +67,15 @@ The URL encoders throw these too — a codec never silently changes what a query
 
 `CodecError` with `CODEC_UNRESOLVABLE` — a payload named a codec that isn't registered. See [@rapiq/codec-url](/packages/codec-url).
 
+### Schema registry (server bug)
+
+`SchemaError` — the `SchemaRegistry` was misused or misconfigured. Like `BuildError`, these indicate a programming error on the receiving side:
+
+| Code | Trigger |
+|---|---|
+| `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
+| `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
+
 ## Mapping to HTTP responses
 
 A pragmatic mapping for a typical endpoint:
@@ -93,7 +103,7 @@ app.get('/users', async (req, res) => {
 ```
 
 - `ParseError` (with `throwOnFailure`) → **400** — the client broke the contract; `e.message` names the offending key.
-- `BuildError` / `MergeError` / `AdapterError` on the server → **500** — these mean *your* code produced or forwarded something invalid.
+- `BuildError` / `MergeError` / `AdapterError` / `SchemaError` on the server → **500** — these mean *your* code produced or forwarded something invalid.
 - `AdapterError` on the caller (encode) → fix the query or switch wire dialect; it never leaves the caller.
 
 ## Adding failure modes of your own

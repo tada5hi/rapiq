@@ -29,4 +29,8 @@ export enum ErrorCode {
     FILTERS_NOT_FLAT = 'filtersNotFlat',
 
     CODEC_UNRESOLVABLE = 'codecUnresolvable',
+
+    SCHEMA_NAME_INVALID = 'schemaNameInvalid',
+
+    SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
 }
