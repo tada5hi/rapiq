@@ -7,12 +7,13 @@
 
 import type { ICondition, IFilter } from '../../../parameter';
 import type {
+    MaybeAsync,
     ObjectLiteral, 
     SimpleKeys,
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
-export type Validator = (input: IFilter) => IFilter | undefined | void;
+export type Validator = (input: IFilter) => MaybeAsync<IFilter | undefined | void>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,

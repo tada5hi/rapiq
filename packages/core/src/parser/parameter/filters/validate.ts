@@ -16,6 +16,16 @@ import type {
     IFilters,
 } from '../../../parameter';
 import type { FiltersSchema } from '../../../schema';
+import { SchemaError } from '../../../errors';
+
+function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
+    return (
+        input !== null &&
+        (typeof input === 'object' || typeof input === 'function') &&
+        'then' in input &&
+        typeof input.then === 'function'
+    );
+}
 
 /**
  * Apply a filter schema's leaf validator without flattening or otherwise
@@ -35,7 +45,13 @@ export function applyFiltersSchemaValidation(
     schema: FiltersSchema,
 ) : ICondition | undefined {
     if (isFilter(input)) {
-        return schema.validate(input) || undefined;
+        const output = schema.validate(input);
+        if (isPromiseLike(output)) {
+            void Promise.resolve(output).catch(() => undefined);
+            throw SchemaError.validatorAsyncRequiresAsyncParser();
+        }
+
+        return output || undefined;
     }
 
     if (!isFilters(input)) {
@@ -45,6 +61,42 @@ export function applyFiltersSchemaValidation(
     const conditions : ICondition[] = [];
     for (const child of input.value) {
         const validated = applyFiltersSchemaValidation(child, schema);
+        if (validated) {
+            conditions.push(validated);
+        }
+    }
+
+    return new Filters(input.operator, conditions);
+}
+
+/**
+ * Async counterpart of {@link applyFiltersSchemaValidation}. Validators are
+ * awaited sequentially so leaf order and observable execution order remain
+ * identical to the synchronous traversal.
+ */
+export function applyFiltersSchemaValidationAsync(
+    input: IFilter | IFilters,
+    schema: FiltersSchema,
+) : Promise<IFilter | IFilters | undefined>;
+export function applyFiltersSchemaValidationAsync(
+    input: ICondition,
+    schema: FiltersSchema,
+) : Promise<ICondition | undefined>;
+export async function applyFiltersSchemaValidationAsync(
+    input: ICondition,
+    schema: FiltersSchema,
+) : Promise<ICondition | undefined> {
+    if (isFilter(input)) {
+        return (await schema.validate(input)) || undefined;
+    }
+
+    if (!isFilters(input)) {
+        return input;
+    }
+
+    const conditions : ICondition[] = [];
+    for (const child of input.value) {
+        const validated = await applyFiltersSchemaValidationAsync(child, schema);
         if (validated) {
             conditions.push(validated);
         }

@@ -30,6 +30,8 @@ const decoder = new URLDecoder(registry);
 const query = decoder.decode(req.query, { schema: 'user' });
 ```
 
+For schemas with asynchronous filter validators, use `encodeAsync()` / `encodeFiltersAsync()` and `decodeAsync()` / `decodeFiltersAsync()`.
+
 ## The expressible subset
 
 Wider than the simple dialect's: nested compounds, several conditions on the same field and comma-containing strings all round-trip (values are quoted, `''` escapes a quote). Still outside it — and loudly rejected on encode:

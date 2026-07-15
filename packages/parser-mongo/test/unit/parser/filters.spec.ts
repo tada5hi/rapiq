@@ -825,6 +825,23 @@ describe('filters/mongo-parser', () => {
             ]));
         });
 
+        it('should await an asynchronous schema validator through parseAsync', async () => {
+            const schema = defineFiltersSchema({
+                validate: async (filter) => filter.field === 'name' ?
+                    new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                    undefined,
+            });
+
+            const output = await parser.parseAsync(
+                { $or: [{ name: 'admin' }, { age: 18 }] },
+                { schema },
+            );
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.OR, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+            ]));
+        });
+
         it('should apply schema defaults when validation rejects every filter', () => {
             const schema = defineFiltersSchema({
                 default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),

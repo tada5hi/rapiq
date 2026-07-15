@@ -42,6 +42,15 @@ export class SimpleRelationsParser extends BaseParser<
         return this.parseWithScope(input, scope);
     }
 
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: RelationsParseOptions<RECORD> = {},
+    ) : Promise<IRelations> {
+        return this.parse(input, options);
+    }
+
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>) : Relations {

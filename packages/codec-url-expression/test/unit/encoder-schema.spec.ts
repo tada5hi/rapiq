@@ -8,6 +8,7 @@
 import {
     FiltersParseError,
     defineQuery,
+    defineSchema,
     eq,
     gte,
     or,
@@ -50,5 +51,23 @@ describe('encoder (schema-aware)', () => {
         const encoded = encoder.encodeSort(query.sorts, { schema: 'user' });
 
         expect(decodeURIComponent(encoded!)).toEqual('sort=-id');
+    });
+
+    it('should await asynchronous validators in async encode methods', async () => {
+        const schema = defineSchema({
+            filters: {
+                validate: async (filter) => eq(
+                    filter.field,
+                    String(filter.value).toUpperCase(),
+                ),
+            },
+        });
+        const query = defineQuery({ filters: eq('name', 'John') });
+
+        const encoded = await encoder.encodeAsync(query, { schema });
+        const encodedFilters = await encoder.encodeFiltersAsync(query.filters, { schema });
+
+        expect(decodeURIComponent(encoded!)).toEqual('filter=eq(name,\'JOHN\')');
+        expect(decodeURIComponent(encodedFilters!)).toEqual('filter=eq(name,\'JOHN\')');
     });
 });

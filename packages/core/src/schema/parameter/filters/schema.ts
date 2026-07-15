@@ -6,21 +6,11 @@
  */
 
 import type { ICondition, IFilter } from '../../../parameter';
-import type { ObjectLiteral, SimpleKeys } from '../../../types';
+import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
 import type {
     FiltersOptions,
 } from './types';
 import { BaseSchema } from '../../base';
-import { SchemaError } from '../../../errors';
-
-function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
-    return (
-        input !== null &&
-        (typeof input === 'object' || typeof input === 'function') &&
-        'then' in input &&
-        typeof input.then === 'function'
-    );
-}
 
 export class FiltersSchema<
     T extends ObjectLiteral = ObjectLiteral,
@@ -67,18 +57,12 @@ export class FiltersSchema<
 
     // ---------------------------------------------------------
 
-    validate(input: IFilter) : IFilter | undefined | void {
+    validate(input: IFilter) : MaybeAsync<IFilter | undefined | void> {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }
 
-        const output : unknown = this.options.validate(input);
-        if (isPromiseLike(output)) {
-            void Promise.resolve(output).catch(() => undefined);
-            throw SchemaError.validatorAsyncUnsupported();
-        }
-
-        return output as IFilter | undefined | void;
+        return this.options.validate(input);
     }
 
     // ---------------------------------------------------------

@@ -33,10 +33,10 @@ export class SchemaError extends BaseError {
         });
     }
 
-    static validatorAsyncUnsupported() {
+    static validatorAsyncRequiresAsyncParser() {
         return new this({
-            message: 'Schema validators must return synchronously.',
-            code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED,
+            message: 'Asynchronous schema validators require parseAsync().',
+            code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER,
         });
     }
 }

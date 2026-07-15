@@ -25,6 +25,7 @@ import {
     Parameter,
     ResolutionScope,
     applyFiltersSchemaValidation,
+    applyFiltersSchemaValidationAsync,
     isFilters,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -79,6 +80,30 @@ export class ExpressionFiltersParser extends BaseParser<
         return new Filters(FilterCompoundOperator.AND, [expr]);
     }
 
+    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        if (input === undefined || input === null) {
+            const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
+
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        const expr = await this.parseExactAsync(input, options);
+        if (
+            isFilters(expr, FilterCompoundOperator.AND) ||
+            isFilters(expr, FilterCompoundOperator.OR)
+        ) {
+            return expr;
+        }
+
+        return new Filters(FilterCompoundOperator.AND, [expr]);
+    }
+
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
@@ -112,6 +137,46 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         const validated = applyFiltersSchemaValidation(expr, scope.schema);
+        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        return validated;
+    }
+
+    async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters | IFilter> {
+        if (typeof input !== 'string') {
+            throw FiltersParseError.inputInvalid();
+        }
+
+        this.pos = 0;
+        this.tokens = this.tokenize(input);
+
+        let scope : FiltersScope | undefined;
+        if (options.schema || options.strict) {
+            scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+                relations: options.relations,
+                throwOnFailure: true,
+                strict: options.strict,
+            }) as FiltersScope;
+        }
+
+        const expr = this.parseFilterExpression(scope);
+        if (this.peek().type !== FilterTokenType.EOF) {
+            throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
+        }
+
+        if (!scope) {
+            return expr;
+        }
+
+        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema);
         if (!validated || (isFilters(validated) && validated.value.length === 0)) {
             return new Filters(
                 FilterCompoundOperator.AND,

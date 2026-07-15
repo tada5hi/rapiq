@@ -13,6 +13,7 @@ import {
     Filters,
     SchemaError,
     applyFiltersSchemaValidation,
+    applyFiltersSchemaValidationAsync,
     defineFiltersSchema,
 } from '../../../src';
 import type { Validator } from '../../../src';
@@ -50,7 +51,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
 
     it('should reject promise-returning validators', () => {
         const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
-        const validate = (async () => input) as unknown as Validator;
+        const validate : Validator = async () => input;
         const schema = defineFiltersSchema({ validate });
 
         try {
@@ -59,7 +60,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         } catch (error) {
             expect(error).toBeInstanceOf(SchemaError);
             expect((error as SchemaError).code).toBe(
-                ErrorCode.SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED,
+                ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER,
             );
         }
     });
@@ -68,10 +69,45 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
         const output = Promise.reject(new Error('Validator rejected.'));
         const catchMock = vi.spyOn(output, 'catch');
-        const validate = (() => output) as unknown as Validator;
+        const validate : Validator = () => output;
         const schema = defineFiltersSchema({ validate });
 
         expect(() => applyFiltersSchemaValidation(input, schema)).toThrow(SchemaError);
         expect(catchMock).toHaveBeenCalledOnce();
+    });
+
+    it('should await validators sequentially while preserving compounds', async () => {
+        const calls : string[] = [];
+        const input = new Filters(FilterCompoundOperator.OR, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18),
+        ]);
+        const schema = defineFiltersSchema({
+            validate: async (filter) => {
+                calls.push(filter.field);
+                await Promise.resolve();
+
+                return filter.field === 'name' ? filter : undefined;
+            },
+        });
+
+        await expect(applyFiltersSchemaValidationAsync(input, schema)).resolves.toEqual(
+            new Filters(FilterCompoundOperator.OR, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            ]),
+        );
+        expect(calls).toEqual(['name', 'age']);
+    });
+
+    it('should propagate asynchronous validator failures', async () => {
+        const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
+        const schema = defineFiltersSchema({
+            validate: async () => {
+                throw new Error('Validator rejected.');
+            },
+        });
+
+        await expect(applyFiltersSchemaValidationAsync(input, schema))
+            .rejects.toThrow('Validator rejected.');
     });
 });

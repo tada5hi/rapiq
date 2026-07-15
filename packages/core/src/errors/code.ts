@@ -34,5 +34,5 @@ export enum ErrorCode {
 
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
 
-    SCHEMA_VALIDATOR_ASYNC_UNSUPPORTED = 'schemaValidatorAsyncUnsupported',
+    SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER = 'schemaValidatorAsyncRequiresAsyncParser',
 }

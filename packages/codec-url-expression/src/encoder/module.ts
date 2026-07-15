@@ -80,6 +80,30 @@ export class URLEncoder {
         });
     }
 
+    async encodeAsync(
+        input: IQuery,
+        options: ParseQueryOptions = {},
+    ) : Promise<string | null> {
+        const encoded = this.encodeParts(input);
+        if (encoded === null || !this.isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeAsync(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        return this.encodeParts(decoded, {
+            fields: input.fields.value.length > 0,
+            filters: input.filters.value.length > 0,
+            pagination: typeof input.pagination.limit !== 'undefined' ||
+                typeof input.pagination.offset !== 'undefined',
+            relations: input.relations.value.length > 0,
+            sorts: input.sorts.value.length > 0,
+        });
+    }
+
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
         return this.simple.encodeFields(input, options);
     }
@@ -91,6 +115,23 @@ export class URLEncoder {
         }
 
         const decoded = this.decoder.decodeFilters(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        return this.serializeFilters(decoded);
+    }
+
+    async encodeFiltersAsync(
+        input: IFilters,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        const encoded = this.serializeFilters(input);
+        if (encoded === null || !this.isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
         if (!decoded) {
             return null;
         }

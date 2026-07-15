@@ -86,6 +86,26 @@ export class URLDecoder {
         return this.parser.parse(mapped, options);
     }
 
+    async decodeAsync(
+        input: string | ObjectLiteral,
+        options: ParseQueryOptions = {},
+    ) : Promise<IQuery | null> {
+        const parsed = typeof input === 'string' ? parse(input) : input;
+        if (!isObject(parsed)) {
+            return null;
+        }
+
+        const mapped : ObjectLiteral = {};
+
+        this.mapParameter(parsed, mapped, URLParameter.FIELDS, Parameter.FIELDS);
+        this.mapParameter(parsed, mapped, URLParameter.FILTERS, Parameter.FILTERS);
+        this.mapParameter(parsed, mapped, URLParameter.PAGINATION, Parameter.PAGINATION);
+        this.mapParameter(parsed, mapped, URLParameter.RELATIONS, Parameter.RELATIONS);
+        this.mapParameter(parsed, mapped, URLParameter.SORT, Parameter.SORT);
+
+        return this.parser.parseAsync(mapped, options);
+    }
+
     decodeFields(
         input: string,
         options: ParseParameterOptions = {},
@@ -119,6 +139,22 @@ export class URLDecoder {
         }
 
         return this.filters.parse(undefined, options);
+    }
+
+    async decodeFiltersAsync(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : Promise<IFilters | null> {
+        const output = parse(input);
+        if (!isObject(output)) {
+            return null;
+        }
+
+        if (isPropertySet(output, URLParameter.FILTERS)) {
+            return this.filters.parseAsync(output[URLParameter.FILTERS], options);
+        }
+
+        return this.filters.parseAsync(undefined, options);
     }
 
     decodePagination(

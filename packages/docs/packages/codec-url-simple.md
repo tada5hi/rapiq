@@ -59,6 +59,8 @@ const encoder = new URLEncoder(registry); // SchemaRegistry, like URLDecoder
 encoder.encode(query, { schema: 'user' });
 ```
 
+If `filters.validate` may return a Promise, use `await encoder.encodeAsync(query, { schema })`; use `encodeFiltersAsync()` for a filter-only schema pass. The synchronous methods remain synchronous and reject async validator results with a typed `SchemaError`.
+
 - Disallowed fields/filters/relations/sort keys are **dropped** by default; a schema with `throwOnFailure: true` throws instead.
 - Schema `mapping` aliases resolve to their canonical names on the wire.
 - `pagination.maxLimit` clamps the emitted limit.
@@ -85,6 +87,8 @@ app.get('/users', (req, res) => {
 `decode(input, options?)` accepts a raw query string (parsed via [qs](https://www.npmjs.com/package/qs)) or a pre-parsed query object. It maps the wire names to the canonical parameters and delegates to a schema-aware [`SimpleParser`](/packages/parser-simple). It returns a `Query`, or `null` for non-object input.
 
 Per-parameter variants exist as well: `decodeFields`, `decodeFilters`, `decodePagination`, `decodeRelations`, `decodeSort` — each also accepting `{ schema }` options.
+
+Use `await decodeAsync(input, options)` for an asynchronous filter validator. The filter-only equivalent is `decodeFiltersAsync()`.
 
 ## Related
 

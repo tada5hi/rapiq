@@ -25,6 +25,7 @@ import {
     ParseError,
     ResolutionScope,
     applyFiltersSchemaValidation,
+    applyFiltersSchemaValidationAsync,
     isFilters,
     isObject,
 } from '@rapiq/core';
@@ -131,11 +132,73 @@ export class MongoFiltersParser extends BaseParser<
         return validated as IFilters;
     }
 
+    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        }) as FiltersScope;
+
+        if (typeof input === 'undefined' || input === null) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        if (!isPlainObject(input)) {
+            throw FiltersParseError.inputInvalid();
+        }
+
+        if (
+            !scope.schema.allowedIsUndefined &&
+            scope.schema.allowed.length === 0
+        ) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        const conditions = this.parseDocument(input, scope, false, 0);
+        if (conditions.length === 0) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        const [first] = conditions;
+        const parsed = conditions.length === 1 && first && isFilters(first) ?
+            first :
+            new Filters(FilterCompoundOperator.AND, conditions);
+
+        const validated = await applyFiltersSchemaValidationAsync(parsed, scope.schema);
+        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        return validated as IFilters;
+    }
+
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: MongoFiltersParserInput<RECORD>,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         return this.parse(input, options);
+    }
+
+    parseTypedAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: MongoFiltersParserInput<RECORD>,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        return this.parseAsync(input, options);
     }
 
     // ---------------------------------------------------------

@@ -13,10 +13,14 @@ import type {
 
 export interface IURLCodecEncoder {
     encode(input: IQuery, options?: ParseQueryOptions): string | null;
+
+    encodeAsync?(input: IQuery, options?: ParseQueryOptions): Promise<string | null>;
 }
 
 export interface IURLCodecDecoder {
     decode(input: string | ObjectLiteral, options?: ParseQueryOptions): IQuery | null;
+
+    decodeAsync?(input: string | ObjectLiteral, options?: ParseQueryOptions): Promise<IQuery | null>;
 }
 
 /**

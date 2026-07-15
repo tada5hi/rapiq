@@ -15,6 +15,7 @@ import {
     Parameter,
     ResolutionScope,
     applyFiltersSchemaValidation,
+    applyFiltersSchemaValidationAsync,
     isObject,
     parseKey,
     stringifyKey,
@@ -64,11 +65,45 @@ export class SimpleFiltersParser extends BaseParser<
         return new Filters(FilterCompoundOperator.AND, items);
     }
 
+    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        });
+
+        let items: ICondition[] = [];
+        const parsed = this.run(input, scope);
+
+        for (const item of parsed) {
+            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema);
+            if (validated) {
+                items.push(validated);
+            }
+        }
+
+        if (items.length === 0) {
+            items = this.buildDefaults(scope.schema);
+        }
+
+        return new Filters(FilterCompoundOperator.AND, items);
+    }
+
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: SimpleFiltersParserInput<RECORD>,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         return this.parse(input, options);
+    }
+
+    parseTypedAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: SimpleFiltersParserInput<RECORD>,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        return this.parseAsync(input, options);
     }
 
     protected run<RECORD extends ObjectLiteral = ObjectLiteral>(

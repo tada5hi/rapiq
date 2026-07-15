@@ -37,6 +37,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         return this.parseWithScope(input, scope);
     }
 
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SortParseOptions<RECORD> = {},
+    ) : Promise<ISorts> {
+        return this.parse(input, options);
+    }
+
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, scope: ResolutionScope<`${Parameter.SORT}`, RECORD>) : Sorts {

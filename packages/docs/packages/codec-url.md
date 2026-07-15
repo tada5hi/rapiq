@@ -23,6 +23,8 @@ codecs.decode('codec=url-expression&filter=or(...)', { schema: 'user' });
 codecs.decode('filter[name]=John'); // no stamp → default codec (simple)
 ```
 
+When a schema may run asynchronous filter validators, use `await codecs.encodeAsync(...)` and `await codecs.decodeAsync(...)`. Custom codecs may optionally implement `encodeAsync` / `decodeAsync`; the registry falls back to their synchronous methods when those hooks are absent.
+
 `createURLCodecRegistry()` bundles the two built-in dialects with `url-simple` as the default.
 
 ## Dispatch rules

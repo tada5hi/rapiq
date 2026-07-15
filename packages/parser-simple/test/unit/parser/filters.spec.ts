@@ -98,6 +98,20 @@ describe('src/filter/index.ts', () => {
         );
     });
 
+    it('should await an asynchronous schema validator through parseAsync', async () => {
+        const output = await parser.parseAsync({ name: 'admin', age: 18 }, {
+            schema: defineFiltersSchema({
+                validate: async (filter) => filter.field === 'name' ?
+                    new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                    undefined,
+            }),
+        });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        ]));
+    });
+
     it('should apply schema defaults when validation rejects every filter', () => {
         const output = parseFlat({ name: 'admin' }, {
             schema: defineFiltersSchema({
