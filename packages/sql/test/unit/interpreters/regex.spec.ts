@@ -35,7 +35,7 @@ describe('regex', () => {
         expect(params).toStrictEqual([condition.value.source]);
     });
 
-    it('normalizes a string regex pattern for PostgresSQL', () => {
+    it('passes a string regex pattern through for PostgresSQL', () => {
         const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
         const visitor = new FiltersVisitor(adapter);
 
@@ -47,13 +47,16 @@ describe('regex', () => {
         ]);
     });
 
-    it('throws a typed error for an invalid string regex pattern', () => {
+    it('leaves string regex validation to the database', () => {
         const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
         const visitor = new FiltersVisitor(adapter);
 
-        expect(() => {
-            new Filter('regex', 'email', '(').accept(visitor);
-        }).toThrow(AdapterError);
+        new Filter('regex', 'email', '(').accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '"email" ~ $1',
+            ['('],
+        ]);
     });
 
     it('generates REGEXP_LIKE for Oracle', () => {

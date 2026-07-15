@@ -58,7 +58,7 @@ A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`
 
 ### 3. Dialects as small option objects, not subclasses
 
-`@rapiq/sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`). Presets live in `packages/sql/src/dialect/`.
+`@rapiq/sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`). Presets live in `packages/sql/src/dialect/`. Regex strings pass through unchanged for the database engine to interpret and validate; JavaScript `RegExp` values contribute their `source` and `ignoreCase` flag.
 
 ## Key Abstractions
 

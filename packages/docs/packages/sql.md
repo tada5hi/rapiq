@@ -109,7 +109,7 @@ Negated operators are **exact complements** of their positive twins: a record th
 
 ### String matching
 
-The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its `RegExp` or string value as a pattern; invalid string patterns throw a typed `AdapterError`.
+The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its `RegExp` or string value as a pattern. A JavaScript `RegExp` contributes its `source` and `ignoreCase` flag; a string is passed through unchanged so the selected database regex engine owns its syntax and validation.
 
 The negations match rows whose column is `NULL` (complement law, see above) — on the LIKE fallback they render `(field NOT LIKE ? ESCAPE '\' OR field IS NULL)`.
 
