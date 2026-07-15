@@ -74,6 +74,7 @@ export class FiltersSchema<
 
         const output : unknown = this.options.validate(input);
         if (isPromiseLike(output)) {
+            void Promise.resolve(output).catch(() => undefined);
             throw SchemaError.validatorAsyncUnsupported();
         }
 

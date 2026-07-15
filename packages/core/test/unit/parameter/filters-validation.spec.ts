@@ -63,4 +63,15 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             );
         }
     });
+
+    it('should consume rejected promise-returning validators', () => {
+        const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
+        const output = Promise.reject(new Error('Validator rejected.'));
+        const catchMock = vi.spyOn(output, 'catch');
+        const validate = (() => output) as unknown as Validator;
+        const schema = defineFiltersSchema({ validate });
+
+        expect(() => applyFiltersSchemaValidation(input, schema)).toThrow(SchemaError);
+        expect(catchMock).toHaveBeenCalledOnce();
+    });
 });
