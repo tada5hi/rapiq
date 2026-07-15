@@ -1,6 +1,6 @@
 # @rapiq/parser-expression
 
-Parses an expression language for filters — useful when a single string must carry a complex condition tree (search boxes, saved filters, CLI flags). The [expression URL codec](/packages/codec-url-expression) builds on it.
+Parses an expression language for filters — useful when a single string must carry a complex condition tree (search boxes, saved filters, CLI flags). The [expression URL codec](/packages/codec-url#expression-dialect) builds on it.
 
 ```sh
 npm install @rapiq/core @rapiq/parser-simple @rapiq/parser-expression

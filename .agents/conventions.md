@@ -16,7 +16,7 @@
 ## Workflow
 
 - After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
-- When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url-simple) — they peer-depend on it.
+- When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url) — they peer-depend on it.
 - User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.md`.
 
 ## Code Style
@@ -74,7 +74,7 @@ No AI-attribution trailers in commits, issues, or PRs (see AGENTS.md).
 
 ## Release Process
 
-- **release-please** (`release-please-config.json`, manifest-driven) manages all ten public workspaces as one linked version group. It is currently in `prerelease: true` / `beta` mode, emits component-qualified tags, and updates internal peer dependency ranges through the node-workspace plugin.
+- **release-please** (`release-please-config.json`, manifest-driven) manages all eight public workspaces as one linked version group. It is currently in `prerelease: true` / `beta` mode, emits component-qualified tags, and updates internal peer dependency ranges through the node-workspace plugin.
 - `release-as: 2.0.0-beta.0` bootstraps the first v2 beta. Remove that one-time override immediately after the beta release PR is merged so subsequent betas increment normally.
 - Every public package publishes with npm access `public` and dist-tag `beta`; a prerelease must never update npm's `latest` tag.
 - The private `@rapiq/docs` workspace keeps its internal `@rapiq/*` build inputs in `devDependencies` with `*` ranges. This ensures clean installs always link the current workspaces across major/prerelease bumps without adding docs tooling to the production audit.

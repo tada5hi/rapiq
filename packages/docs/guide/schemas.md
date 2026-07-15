@@ -1,6 +1,6 @@
 # Schemas & Validation
 
-A `Schema<RECORD>` is the receiving side's contract: it declares, per parameter, what a client **may** request. Parsers consult it *while* parsing — anything outside the allow-lists is dropped by default, or throws when `throwOnFailure` is set. Without a schema, a parser accepts any syntactically valid input; with one, the query that reaches your database is guaranteed to stay inside the contract.
+A `Schema<RECORD>` is the receiving side's contract: it declares, per parameter, what a client **may** request. Parsers consult it *while* parsing. Most parameters drop input outside the allow-lists by default and throw when `throwOnFailure` is set; expression filters always reject schema-key violations. Without a schema, a parser accepts any syntactically valid input; with one, the query that reaches your database is guaranteed to stay inside the contract.
 
 ## Defining a schema
 

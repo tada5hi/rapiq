@@ -13,7 +13,7 @@ After decoding the client's query, wrap its filters with your scope condition vi
 import { Query, eq } from '@rapiq/core';
 
 app.get('/users', async (req, res) => {
-    const query = decoder.decode(req.query, { schema: 'user' });
+    const query = codec.decode(req.query, { schema: 'user' });
     if (!query) {
         return res.status(400).end();
     }

@@ -35,7 +35,17 @@ Every dialect maps onto the same operator set (`FilterFieldOperator`):
 
 The last four have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries).
 
-## On the wire (simple dialect)
+## On the wire (expression dialect)
+
+The URL codec writes one expression by default, preserving compound structure and repeated fields:
+
+```txt
+codec=url-expression&filter=and(gte(age,'18'),or(eq(status,'active'),eq(status,'pending')))
+```
+
+The function names mirror the condition helpers in the table above. Values are single-quoted; quote characters escape by doubling (`'it''s'`).
+
+## Legacy simple input
 
 Keys are field names (or `relation.field` paths); the value string encodes the operator:
 
@@ -48,7 +58,7 @@ filter[id]=1,2,3              in list
 filter[email]=!null           not null
 ```
 
-Multiple keys combine with **and**. Scalar coercion applies on decode: `'18'` → `18`, `'true'` → `true`, `'null'` → `null`.
+The v2 codec continues to decode this shape for existing clients. Multiple keys combine with **and**. Scalar coercion applies on decode: `'18'` → `18`, `'true'` → `true`, `'null'` → `null`.
 
 ::: info Wire strings vs. code
 The `!`/`<`/`~` prefixes are the *wire* format. In code, use typed operator objects (`{ age: { $gte: 18 } }`) or condition helpers — never magic strings.
@@ -79,7 +89,7 @@ defineQuery<User>({
 The simple object/wire dialect only expresses flat **and** sets. For `or` and nested groups:
 
 - **in code** — condition helpers: `or(...)`, `and(...)`, arbitrarily nested;
-- **over a URL** — the [expression codec](/packages/codec-url-expression): `filter=or(gte(age,'18'),eq(status,'active'))`;
+- **over a URL** — the [expression codec](/packages/codec-url#expression-dialect): `filter=or(gte(age,'18'),eq(status,'active'))`;
 - **in a request body** — the [MongoDB-style parser](/packages/parser-mongo): `{ $or: [...] }`.
 
 ## Nested fields
@@ -163,12 +173,12 @@ Use the synchronous `parse()` / `decode()` / schema-aware `encode()` methods whe
 
 ```typescript
 const query = await parser.parseAsync(input, { schema });
-const decoded = await decoder.decodeAsync(req.query, { schema });
-const encoded = await encoder.encodeAsync(query, { schema });
+const decoded = await codec.decodeAsync(req.query, { schema });
+const encoded = await codec.encodeAsync(query, { schema });
 ```
 
 The async path awaits validators sequentially in filter-tree order. Calling a synchronous method when a validator returns a Promise/thenable throws a `SchemaError` with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`. Compound `and`/`or` structure is preserved; if every submitted leaf is rejected, the schema default is applied.
 
 ## On violation
 
-Disallowed or invalid filter input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `FiltersParseError` instead. Grammar errors in the expression and MongoDB-style dialects always throw — see [Error Handling](/guide/errors).
+Legacy simple and MongoDB field-key failures follow the schema's drop-vs-throw policy. Expression filters are precise: syntax and schema-key violations throw `FiltersParseError`. See [Error Handling](/guide/errors).

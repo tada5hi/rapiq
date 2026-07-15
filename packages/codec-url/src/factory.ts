@@ -7,37 +7,39 @@
 
 import type { SchemaRegistry } from '@rapiq/core';
 import {
-    URLDecoder as ExpressionURLDecoder,
-    URLEncoder as ExpressionURLEncoder,
-    URL_EXPRESSION_CODEC,
-} from '@rapiq/codec-url-expression';
+    ExpressionURLDecoder,
+    ExpressionURLEncoder,
+} from './expression';
+import { URL_EXPRESSION_CODEC } from './expression/constants';
 import {
-    URLDecoder as SimpleURLDecoder,
-    URLEncoder as SimpleURLEncoder,
-    URL_SIMPLE_CODEC,
-} from '@rapiq/codec-url-simple';
-import { URLCodecRegistry } from './module';
+    SimpleURLDecoder,
+    SimpleURLEncoder,
+} from './simple';
+import { URL_SIMPLE_CODEC } from './simple/constants';
+import { URLCodec } from './module';
 
 /**
- * Create a registry with the bundled dialects registered:
- * simple (the default for unstamped payloads) and expression.
+ * Create the URL transport facade with both bundled dialects.
+ * Expression is the v2 write default; simple remains available
+ * explicitly and is recognized automatically while decoding legacy
+ * bracket-filter payloads.
  *
  * @param input
  */
-export function createURLCodecRegistry(input?: SchemaRegistry) : URLCodecRegistry {
-    const registry = new URLCodecRegistry();
+export function createURLCodec(input?: SchemaRegistry) : URLCodec {
+    const codec = new URLCodec();
 
-    registry.register({
+    codec.register({
         name: URL_SIMPLE_CODEC,
         encoder: new SimpleURLEncoder(input),
         decoder: new SimpleURLDecoder(input),
     });
 
-    registry.register({
+    codec.register({
         name: URL_EXPRESSION_CODEC,
         encoder: new ExpressionURLEncoder(input),
         decoder: new ExpressionURLDecoder(input),
-    });
+    }, true);
 
-    return registry;
+    return codec;
 }

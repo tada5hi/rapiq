@@ -2,7 +2,7 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST, validated against a schema. It is the workhorse parser the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url-simple) builds on.
+Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST, validated against a schema. It is the workhorse parser the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url) builds on.
 
 ## Installation
 
@@ -39,7 +39,7 @@ const query = parser.parse({
 
 Anything outside the schema's allow-lists is silently dropped; set `throwOnFailure: true` on the schema to get a `ParseError` instead. Parameters absent from the input still receive schema defaults.
 
-The parser is transport-agnostic: it reads the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) only. To consume a raw URL query string or an express-style `req.query` object (JSON:API wire names like `filter`, `page`, `include`), use the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url-simple) — its decoder maps the wire names and delegates to this parser.
+The parser is transport-agnostic: it reads the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) only. To consume a raw URL query string or an express-style `req.query` object (JSON:API wire names like `filter`, `page`, `include`), use the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url) — its decoder maps the wire names and delegates to this parser.
 
 Per-parameter parser classes (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser`) are exported for parsing a single parameter.
 

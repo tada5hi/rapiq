@@ -1,12 +1,12 @@
 # @rapiq/parser-simple
 
-Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](/guide/query-ast). It is the workhorse parser: the [URL codec](/packages/codec-url-simple) builds on it, mapping URL wire names to the canonical parameter keys this parser reads.
+Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](/guide/query-ast). The [URL codec](/packages/codec-url) uses it for shared parameter parsing and legacy bracket-filter compatibility.
 
 ```sh
 npm install @rapiq/core @rapiq/parser-simple
 ```
 
-**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) — e.g. a JSON request body or an internal call. For raw URL input, use the [URL decoder](/packages/codec-url-simple) instead.
+**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) — e.g. a JSON request body or an internal call. For raw URL input, use [`@rapiq/codec-url`](/packages/codec-url) instead.
 
 ## Usage
 

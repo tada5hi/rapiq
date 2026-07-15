@@ -25,7 +25,7 @@ type User = {
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
 const query = defineQuery<User>({
     fields: ['id', 'name'],
@@ -35,8 +35,8 @@ const query = defineQuery<User>({
     pagination: { limit: 25, offset: 0 },
 });
 
-const queryString = new URLEncoder().encode(query);
-// fields=id,name&filter[age]=>=18&page[limit]=25&page[offset]=0&include=realm&sort=-age
+const queryString = createURLCodec().encode(query);
+// codec=url-expression&fields=id,name&filter=gte(age%2C'18')&page[limit]=25&...
 
 const response = await fetch(`/users?${queryString}`);
 ```
@@ -73,13 +73,13 @@ registry.add(defineSchema<User>({
 ## 3. Decode & validate (server)
 
 ```typescript
-import { URLDecoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
-const decoder = new URLDecoder(registry);
+const codec = createURLCodec(registry);
 
 app.get('/users', async (req, res) => {
     // accepts a raw query string or a pre-parsed object (express req.query)
-    const query = decoder.decode(req.query, { schema: 'user' });
+    const query = codec.decode(req.query, { schema: 'user' });
     if (!query) {
         // null for non-object input → 400 Bad Request
         return res.status(400).end();
@@ -88,7 +88,7 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-Anything outside the allow-lists is silently dropped — the query still parses, minus the offending parts. Prefer a hard failure? Set `throwOnFailure: true` on the schema and catch the `ParseError`. See [Schemas & Validation](/guide/schemas).
+Fields, relations, sort and pagination follow the schema's drop-vs-throw policy. Expression-filter violations are precise and reject the request; legacy simple filters drop invalid leaves unless `throwOnFailure` is enabled. See [Schemas & Validation](/guide/schemas).
 
 ## 4. Execute (server)
 
@@ -119,7 +119,7 @@ No TypeORM? [`@rapiq/sql`](/packages/sql) renders parameterized SQL fragments fo
 ## What just happened
 
 1. The caller expressed *intent* in a typed structure — no hand-built query strings.
-2. The wire carried plain JSON:API-style parameters — readable, cacheable, framework-neutral.
+2. The wire carried a self-described expression filter alongside JSON:API-style parameters.
 3. The server enforced its contract *before* anything touched the database.
 4. The adapter translated the validated query mechanically — values are always bound as parameters, never interpolated.
 

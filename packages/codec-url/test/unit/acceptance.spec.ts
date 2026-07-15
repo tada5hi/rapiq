@@ -5,8 +5,6 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { URL_EXPRESSION_CODEC } from '@rapiq/codec-url-expression';
-import { URLDecoder, URLEncoder } from '@rapiq/codec-url-simple';
 import {
     Pagination,
     Query,
@@ -20,7 +18,7 @@ import {
     eq,
     mergeQueries,
 } from '@rapiq/core';
-import { createURLCodecRegistry } from '../../src';
+import { createURLCodec } from '../../src';
 
 /**
  * M3 gate (roadmap 000): the hub gateway controller and a Vue
@@ -65,8 +63,7 @@ describe('gateway controller (hub archetype)', () => {
         sort: { allowed: ['created_at'] },
     }));
 
-    const decoder = new URLDecoder(schemaRegistry);
-    const encoder = new URLEncoder(schemaRegistry);
+    const codec = createURLCodec(schemaRegistry);
 
     // express-style req.query: aliased key, disallowed key,
     // oversized limit — everything a real client gets wrong.
@@ -77,7 +74,7 @@ describe('gateway controller (hub archetype)', () => {
     };
 
     it('should validate, pin a server condition and re-encode (flat forward)', () => {
-        const query = decoder.decode(requestQuery, { schema: 'log' })!;
+        const query = codec.decode(requestQuery, { schema: 'log' })!;
 
         // the gateway pins node_id with server priority: merge() is
         // per-field replace, so a client-sent node_id could never win.
@@ -89,14 +86,16 @@ describe('gateway controller (hub archetype)', () => {
             sorts: query.sorts,
         });
 
-        const wire = encoder.encode(forwarded);
+        const wire = codec.encode(forwarded);
 
         expect(decodeURIComponent(wire!)).toEqual(
-            'filter[node_id]=node-1&filter[level]=error&page[limit]=50&sort=-created_at',
+            'codec=url-expression' +
+            '&filter=and(eq(node_id,\'node-1\'),eq(level,\'error\'))' +
+            '&page[limit]=50&sort=-created_at',
         );
 
         // the downstream service decodes the same AST the gateway built.
-        const downstream = decoder.decode(wire!)!;
+        const downstream = codec.decode(wire!)!;
 
         expect(downstream.filters).toEqual(and(
             eq('node_id', 'node-1'),
@@ -105,15 +104,13 @@ describe('gateway controller (hub archetype)', () => {
         expect(downstream.pagination).toEqual(new Pagination(50, 0));
     });
 
-    it('should carry undisplaceable scoping downstream via the codec registry', () => {
-        const codecs = createURLCodecRegistry(schemaRegistry);
-
-        const query = codecs.decode(requestQuery, { schema: 'log' })!;
+    it('should carry undisplaceable scoping downstream', () => {
+        const query = codec.decode(requestQuery, { schema: 'log' })!;
 
         // filters.and() wraps — the injected condition cannot be
         // displaced by any later merge. The wrapped tree is a nested
         // compound, which only the expression dialect can carry over
-        // a URL; the registry stamps the codec identity so the
+        // a URL; the facade stamps the codec identity so the
         // downstream service knows how to decode it.
         const scoped = new Query({
             fields: query.fields,
@@ -123,7 +120,7 @@ describe('gateway controller (hub archetype)', () => {
             sorts: query.sorts,
         });
 
-        const wire = codecs.encode(scoped, { codec: URL_EXPRESSION_CODEC });
+        const wire = codec.encode(scoped);
 
         // the expected wire stays a literal on purpose: the stamped
         // identifier is a public wire contract, and deriving the
@@ -135,7 +132,7 @@ describe('gateway controller (hub archetype)', () => {
         );
 
         // downstream: dispatch on the stamp, same AST comes out.
-        const downstream = codecs.decode(wire!)!;
+        const downstream = codec.decode(wire!)!;
 
         expect(downstream.filters).toEqual(
             and(eq('level', 'error')).and(eq('node_id', 'node-1')),
@@ -171,10 +168,11 @@ describe('list-kit merge (vue archetype)', () => {
         // string/object shapes — on the AST it is a plain property read.
         expect(query.sorts.value[0]).toEqual(new Sort('created_at', SortDirection.DESC));
 
-        const encoder = new URLEncoder();
+        const codec = createURLCodec();
 
-        expect(decodeURIComponent(encoder.encode(query)!)).toEqual(
-            'filter[name]=~jo~&page[limit]=10&page[offset]=20&include=realm&sort=-created_at',
+        expect(decodeURIComponent(codec.encode(query)!)).toEqual(
+            'codec=url-expression&filter=contains(name,\'jo\')' +
+            '&page[limit]=10&page[offset]=20&include=realm&sort=-created_at',
         );
     });
 });

@@ -10,9 +10,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/parser-simple](../packages/parser-simple)         | Library  | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/parser-mongo](../packages/parser-mongo)           | Library  | Parses MongoDB-style filter documents (e.g. `{ age: { $gte: 18 } }`, `$and`/`$or`/`$not`) into a `Query` |
-| [@rapiq/codec-url-simple](../packages/codec-url-simple)   | Library  | URL query-string encoder (`URLEncoder`) & decoder (`URLDecoder`) for the simple dialect; uses `qs` |
-| [@rapiq/codec-url-expression](../packages/codec-url-expression) | Library | URL codec for the expression dialect: nested filter compounds in a single `filter=and(...)` param; other parameters shared with codec-url-simple |
-| [@rapiq/codec-url](../packages/codec-url)                 | Library  | `URLCodecRegistry` dispatching between URL codec dialects via the in-band reserved `codec` parameter (default: simple) |
+| [@rapiq/codec-url](../packages/codec-url)                 | Library  | URL transport façade: expression-default encoding, expression + legacy simple decoding, in-band dialect dispatch; uses `qs` |
 | [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
 | [@rapiq/memory](../packages/memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
@@ -34,14 +32,10 @@ Layer 1 (depend on core):
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
   @rapiq/parser-mongo        (core + parser-simple)
-  @rapiq/codec-url-simple    (core + parser-simple)
   @rapiq/typeorm             (core + sql + typeorm)
 
 Layer 3:
-  @rapiq/codec-url-expression (core + parser-expression + codec-url-simple)
-
-Layer 4:
-  @rapiq/codec-url           (core + codec-url-simple + codec-url-expression)
+  @rapiq/codec-url           (core + parser-simple + parser-expression)
 ```
 
 Changes to `@rapiq/core` affect every other package.
@@ -98,18 +92,11 @@ packages/memory/src/
 ├── helpers/              # value semantics (normalize/equal/compare/resolve)
 └── module.ts             # QueryVisitor + compileQuery/applyQuery/compile* helpers
 
-packages/codec-url-simple/src/
-├── encoder/              # URLEncoder + serializer/ + visitors/
-├── decoder/              # URLDecoder (qs-based, reuses parser-simple parsers)
-└── utils/
-
-packages/codec-url-expression/src/
-├── encoder/              # URLEncoder (filters → expression string; other params via codec-url-simple)
-└── decoder/              # URLDecoder (qs-based, delegates to ExpressionParser)
-
 packages/codec-url/src/
-├── module.ts             # URLCodecRegistry (in-band `codec` param dispatch)
-└── factory.ts            # createURLCodecRegistry (bundles simple + expression)
+├── module.ts             # public URLCodec façade + custom dialect registration
+├── factory.ts            # createURLCodec (bundles both; expression default)
+├── expression/           # internal expression encoder/decoder strategy
+└── simple/               # internal legacy encoder/decoder + shared URL serializers
 ```
 
 ## Package Exports
@@ -135,7 +122,7 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 
 - **AST & type definitions** → `@rapiq/core` (`parameter/`)
 - **What a client may request (allow-lists, defaults, mappings)** → `@rapiq/core` (`schema/`)
-- **Turning raw input into the AST** → `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/codec-url-{simple,expression}` (decode)
-- **Turning the AST into transport format** → `@rapiq/codec-url-{simple,expression}` (encode), `@rapiq/codec-url` (dialect dispatch via in-band `codec` param)
+- **Turning raw URL input into the AST** → `@rapiq/codec-url` (dispatch + decode through parser-simple/parser-expression)
+- **Turning the AST into URL transport format** → `@rapiq/codec-url` (expression-default encode; deprecated explicit simple encode)
 - **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`
 - **Evaluating the AST against in-memory data** → `@rapiq/memory` (predicates/comparators/projectors compiled from the AST)

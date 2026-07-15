@@ -2,37 +2,40 @@
 
 Part of [rapiq](https://github.com/tada5hi/rapiq) — typed REST queries: build, transport, validate, execute.
 
-Makes URL payloads self-describing across codec dialects: encoding through the `URLCodecRegistry` stamps a reserved `codec` parameter, decoding dispatches on it. Useful wherever the receiving side cannot know out-of-band which dialect produced a payload — a gateway forwarding queries it did not author, for instance.
+Moves a `Query` over a URL boundary. New payloads use expression filters and carry an in-band codec identifier; the decoder also accepts legacy JSON:API-style bracket filters so applications can migrate without a flag day.
 
 ## Installation
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url-simple @rapiq/codec-url-expression @rapiq/codec-url
+npm install @rapiq/core @rapiq/parser-simple @rapiq/parser-expression @rapiq/codec-url
 ```
 
 ## Usage
 
 ```typescript
-import { createURLCodecRegistry } from '@rapiq/codec-url';
+import { createURLCodec } from '@rapiq/codec-url';
 
-const codecs = createURLCodecRegistry(schemaRegistry);
+const codec = createURLCodec(schemaRegistry);
 
-codecs.encode(query);
-// codec=url-simple&filter[name]=John
-
-codecs.encode(query, { codec: 'url-expression' });
+codec.encode(query);
 // codec=url-expression&filter=or(eq(name,'John'),gte(age,'18'))
 
-codecs.decode('codec=url-expression&filter=or(...)', { schema: 'user' });
-codecs.decode('filter[name]=John'); // no stamp → default codec (simple)
+codec.decode('codec=url-expression&filter=or(...)', { schema: 'user' });
+codec.decode('filter[name]=John', { schema: 'user' }); // legacy simple input
 ```
 
-Dispatch rules:
+Encoding uses `url-expression` by default. During the v2 migration, callers can explicitly request the deprecated simple writer:
 
-- An **unstamped** payload falls back to the registry default — plain callers and hand-written URLs keep working.
-- A payload naming an **unregistered** codec throws a typed `CodecError` (`ErrorCode.CODEC_UNRESOLVABLE`) — it is never silently mis-decoded under another dialect.
+```typescript
+import { URL_SIMPLE_CODEC } from '@rapiq/codec-url';
 
-`createURLCodecRegistry()` bundles the [simple](https://www.npmjs.com/package/@rapiq/codec-url-simple) and [expression](https://www.npmjs.com/package/@rapiq/codec-url-expression) dialects with `url-simple` as the default. Custom codecs implement the `URLCodec` shape (`{ name, encoder, decoder }`) and register on a plain `URLCodecRegistry`.
+codec.encode(query, { codec: URL_SIMPLE_CODEC });
+// codec=url-simple&filter[name]=John
+```
+
+Decoding dispatches on a stamped codec identifier first. For unstamped input, a string `filter` is treated as an expression and a bracket/object `filter` as the legacy simple dialect. Unknown stamped identifiers throw a typed `CodecError`.
+
+Use `encodeAsync()` and `decodeAsync()` when schema filter validators are asynchronous. Advanced callers can register a custom `URLCodecDefinition` on a `URLCodec` instance.
 
 ## Documentation
 
@@ -40,4 +43,4 @@ Full guide: [rapiq.tada5hi.net/packages/codec-url](https://rapiq.tada5hi.net/pac
 
 ## License
 
-Published under the [MIT License](https://github.com/tada5hi/rapiq/blob/master/LICENSE).
+Published under the [MIT License](https://github.com/Tada5hi/rapiq/blob/master/LICENSE).

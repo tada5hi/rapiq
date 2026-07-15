@@ -35,15 +35,13 @@ const layers: Layer[] = [
         packages: [
             { name: '@rapiq/parser-expression', href: '/packages/parser-expression', deps: 'parser-simple' },
             { name: '@rapiq/parser-mongo', href: '/packages/parser-mongo', deps: 'parser-simple' },
-            { name: '@rapiq/codec-url-simple', href: '/packages/codec-url-simple', deps: 'parser-simple' },
             { name: '@rapiq/typeorm', href: '/packages/typeorm', deps: 'sql + typeorm' },
         ],
     },
     {
-        title: 'Codec composition',
+        title: 'URL transport',
         packages: [
-            { name: '@rapiq/codec-url-expression', href: '/packages/codec-url-expression', deps: 'parser-expression + codec-url-simple' },
-            { name: '@rapiq/codec-url', href: '/packages/codec-url', deps: 'both url codecs' },
+            { name: '@rapiq/codec-url', href: '/packages/codec-url', deps: 'parser-simple + parser-expression' },
         ],
     },
 ];

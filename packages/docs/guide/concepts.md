@@ -42,12 +42,12 @@ defineQuery<User>({
 });
 ```
 
-```txt [URL (simple)]
+```txt [URL (legacy simple)]
 filter[age]=>=18&filter[name]=~jo~
 ```
 
-```txt [Expression]
-and(gte(age, '18'), contains(name, 'jo'))
+```txt [URL (expression default)]
+codec=url-expression&filter=and(gte(age, '18'), contains(name, 'jo'))
 ```
 
 ```typescript [MongoDB-style]
@@ -84,7 +84,7 @@ Parsers turn raw, untrusted input into a validated `Query`. Each speaks one inpu
 - [`ExpressionParser`](/packages/parser-expression) — expression strings (`and(eq(name, 'John'), gte(age, '18'))`)
 - [`MongoParser`](/packages/parser-mongo) — MongoDB-style documents (`{ age: { $gte: 18 } }`)
 
-Parsers are transport-agnostic: they read canonical parameter keys (`fields`, `filters`, …) and don't know about URLs. **Codecs** wrap them for a concrete transport — [`URLDecoder`](/guide/wire) maps URL wire names (`filter`, `page`, `include`, …) onto a parser, and `URLEncoder` does the reverse trip. One codec pair per wire dialect.
+Parsers are transport-agnostic: they read canonical parameter keys (`fields`, `filters`, …) and don't know about URLs. The [`URLCodec`](/guide/wire) façade maps URL wire names (`filter`, `page`, `include`, …) onto the matching parser and performs the reverse trip. It hides expression/simple dialect dispatch from callers.
 
 ## Adapter — from Query to results
 
@@ -122,7 +122,7 @@ Both patterns are covered in [Merging & Composition](/guide/merging-queries).
 | Stage | Packages |
 |---|---|
 | Build | `@rapiq/core` (`defineQuery`, helpers) |
-| Transport | `@rapiq/codec-url-simple`, `@rapiq/codec-url-expression`, `@rapiq/codec-url` |
+| Transport | `@rapiq/codec-url` |
 | Parse & validate | `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/parser-mongo` + `Schema` from core |
 | Execute | `@rapiq/typeorm`, `@rapiq/sql`, `@rapiq/memory` |
 

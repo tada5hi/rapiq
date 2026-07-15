@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "devDependencies": {
-        "@rapiq/codec-url-simple": "*",
+        "@rapiq/codec-url": "*",
         "@rapiq/core": "*",
         "@rapiq/parser-simple": "*",
         "@rapiq/sql": "*",

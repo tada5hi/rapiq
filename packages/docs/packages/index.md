@@ -10,9 +10,7 @@ rapiq is a family of small packages around one shared data structure — the [`Q
 | [@rapiq/parser-simple](/packages/parser-simple) | Parses plain object/array input (URL-query-like "simple" dialect) |
 | [@rapiq/parser-expression](/packages/parser-expression) | Parses function-call filter expressions (`and(eq(name, 'John'), …)`) |
 | [@rapiq/parser-mongo](/packages/parser-mongo) | Parses MongoDB-style filter documents (`{ age: { $gte: 18 } }`) |
-| [@rapiq/codec-url-simple](/packages/codec-url-simple) | URL query-string encoder & decoder for the simple dialect |
-| [@rapiq/codec-url-expression](/packages/codec-url-expression) | URL codec carrying nested filter compounds in one `filter=and(...)` param |
-| [@rapiq/codec-url](/packages/codec-url) | Registry dispatching between URL dialects via the in-band `codec` param |
+| [@rapiq/codec-url](/packages/codec-url) | URL codec façade; writes expressions and reads expression plus legacy simple filters |
 | [@rapiq/sql](/packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql, oracle presets) |
 | [@rapiq/typeorm](/packages/typeorm) | Applies a `Query` to a TypeORM `SelectQueryBuilder` |
 | [@rapiq/memory](/packages/memory) | Evaluates a `Query` against in-memory objects & arrays |
@@ -22,19 +20,19 @@ rapiq is a family of small packages around one shared data structure — the [`Q
 **A frontend that builds and sends queries:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url-simple
+npm install @rapiq/core @rapiq/codec-url
 ```
 
 **An HTTP API backed by TypeORM:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url-simple @rapiq/sql @rapiq/typeorm
+npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
 ```
 
 **An HTTP API composing SQL by hand:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url-simple @rapiq/sql
+npm install @rapiq/core @rapiq/codec-url @rapiq/sql
 ```
 
 **Something in-process — guards, tests, mock backends:**
@@ -45,8 +43,6 @@ npm install @rapiq/core @rapiq/memory
 
 Then add per feature:
 
-- nested `and`/`or` filters over URLs → [@rapiq/codec-url-expression](/packages/codec-url-expression)
-- both URL dialects on one endpoint → [@rapiq/codec-url](/packages/codec-url)
 - MongoDB-style filter documents (e.g. JSON bodies) → [@rapiq/parser-mongo](/packages/parser-mongo)
 - non-URL canonical object input → [@rapiq/parser-simple](/packages/parser-simple) directly
 

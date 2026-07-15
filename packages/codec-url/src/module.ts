@@ -13,21 +13,21 @@ import type {
 } from '@rapiq/core';
 import { parse } from 'qs';
 import { CODEC_PARAMETER } from './constants';
+import { URL_EXPRESSION_CODEC } from './expression/constants';
+import { URLParameter, URL_SIMPLE_CODEC } from './simple/constants';
 import type {
-    URLCodec,
-    URLCodecRegistryEncodeOptions,
+    URLCodecDefinition,
+    URLCodecEncodeOptions,
 } from './types';
 
 /**
- * Dispatches between URL codec dialects via the in-band
- * {@link CODEC_PARAMETER}: encoding stamps the codec identity onto
- * the wire, decoding reads it and delegates to the matching codec.
- * A payload without the parameter falls back to the registry
- * default; a payload naming an unregistered codec fails loudly —
- * it must never silently mis-decode under another dialect.
+ * URL transport facade. Encoding uses the configured default dialect
+ * and stamps its identity in-band. Decoding dispatches on that stamp,
+ * while untagged payloads are recognized structurally so legacy simple
+ * bracket filters and expression filters can coexist during v2.
  */
-export class URLCodecRegistry {
-    protected items : Map<string, URLCodec>;
+export class URLCodec {
+    protected items : Map<string, URLCodecDefinition>;
 
     protected defaultName : string | undefined;
 
@@ -36,14 +36,13 @@ export class URLCodecRegistry {
     }
 
     /**
-     * Register a codec. The first registered codec becomes the
-     * default (used for unstamped payloads and stampless encodes)
-     * unless a later one is registered with `asDefault`.
+     * Register a dialect. The first registered dialect becomes the
+     * default unless a later one is registered with `asDefault`.
      *
      * @param codec
      * @param asDefault
      */
-    register(codec: URLCodec, asDefault?: boolean) : void {
+    register(codec: URLCodecDefinition, asDefault?: boolean) : void {
         this.items.set(codec.name, codec);
 
         if (asDefault || typeof this.defaultName === 'undefined') {
@@ -62,7 +61,7 @@ export class URLCodecRegistry {
      * @param input
      * @param options
      */
-    encode(input: IQuery, options: URLCodecRegistryEncodeOptions = {}) : string | null {
+    encode(input: IQuery, options: URLCodecEncodeOptions = {}) : string | null {
         const { codec: name, ...parseOptions } = options;
 
         const codec = this.resolve(name);
@@ -76,7 +75,7 @@ export class URLCodecRegistry {
 
     async encodeAsync(
         input: IQuery,
-        options: URLCodecRegistryEncodeOptions = {},
+        options: URLCodecEncodeOptions = {},
     ) : Promise<string | null> {
         const { codec: name, ...parseOptions } = options;
 
@@ -93,8 +92,9 @@ export class URLCodecRegistry {
 
     /**
      * Decode a query string or a pre-parsed query object (e.g. an
-     * express req.query) with the codec its payload names — or the
-     * default codec when the identity parameter is absent.
+     * express req.query) with the dialect its payload names. Untagged
+     * expression strings and legacy simple bracket filters are
+     * recognized from the filter wire shape.
      *
      * @param input
      * @param options
@@ -103,35 +103,32 @@ export class URLCodecRegistry {
         input: string | ObjectLiteral,
         options: ParseQueryOptions = {},
     ) : IQuery | null {
-        const parsed = typeof input === 'string' ? parse(input) : input;
-        if (!isObject(parsed)) {
+        const prepared = this.prepareDecode(input);
+        if (!prepared) {
             return null;
         }
 
-        let name : string | undefined;
-
-        const value = parsed[CODEC_PARAMETER];
-        if (typeof value !== 'undefined') {
-            if (typeof value !== 'string') {
-                throw CodecError.notResolvable();
-            }
-
-            name = value;
-        }
-
-        const codec = this.resolve(name);
-
-        // the registry owns the reserved parameter — delegated
-        // decoders (especially external ones) must not see it.
-        const { [CODEC_PARAMETER]: _, ...payload } = parsed;
-
-        return codec.decoder.decode(payload, options);
+        return prepared.codec.decoder.decode(prepared.payload, options);
     }
 
     async decodeAsync(
         input: string | ObjectLiteral,
         options: ParseQueryOptions = {},
     ) : Promise<IQuery | null> {
+        const prepared = this.prepareDecode(input);
+        if (!prepared) {
+            return null;
+        }
+
+        return prepared.codec.decoder.decodeAsync ?
+            prepared.codec.decoder.decodeAsync(prepared.payload, options) :
+            prepared.codec.decoder.decode(prepared.payload, options);
+    }
+
+    protected prepareDecode(input: string | ObjectLiteral) : {
+        codec: URLCodecDefinition,
+        payload: ObjectLiteral,
+    } | null {
         const parsed = typeof input === 'string' ? parse(input) : input;
         if (!isObject(parsed)) {
             return null;
@@ -146,17 +143,32 @@ export class URLCodecRegistry {
             }
 
             name = value;
+        } else {
+            const filters = parsed[URLParameter.FILTERS];
+            if (
+                typeof filters === 'string' &&
+                this.items.has(URL_EXPRESSION_CODEC)
+            ) {
+                name = URL_EXPRESSION_CODEC;
+            } else if (
+                typeof filters !== 'undefined' &&
+                this.items.has(URL_SIMPLE_CODEC)
+            ) {
+                name = URL_SIMPLE_CODEC;
+            }
         }
 
-        const codec = this.resolve(name);
+        // The facade owns the reserved parameter. Delegated decoders,
+        // especially external ones, must never see it.
         const { [CODEC_PARAMETER]: _, ...payload } = parsed;
 
-        return codec.decoder.decodeAsync ?
-            codec.decoder.decodeAsync(payload, options) :
-            codec.decoder.decode(payload, options);
+        return {
+            codec: this.resolve(name),
+            payload,
+        };
     }
 
-    protected resolve(name?: string) : URLCodec {
+    protected resolve(name?: string) : URLCodecDefinition {
         const key = name ?? this.defaultName;
         if (typeof key === 'undefined') {
             throw CodecError.notResolvable();

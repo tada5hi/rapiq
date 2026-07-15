@@ -7,8 +7,8 @@
 
 /**
  * Reserved wire parameter carrying the codec identity of a payload.
- * Encoding through the registry stamps it; decoding dispatches on it
- * and falls back to the registry default when it is absent (plain
- * clients keep working without stamping anything).
+ * Encoding through the facade stamps it; decoding dispatches on it.
+ * When absent, the built-in facade recognizes expression versus
+ * legacy simple input from the filter wire shape.
  */
 export const CODEC_PARAMETER = 'codec';

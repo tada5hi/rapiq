@@ -93,7 +93,7 @@ elemMatch('items', eq('name', 'x')); // (field, condition) — condition
 Like `defineQuery`, every helper accepts a record generic for typed field paths: `eq<User>('realm.name', 'master')`.
 
 ::: warning Compound trees on the wire
-The simple URL dialect can only express **flat root-AND** filter sets. Encoding a query with `or(...)` or nested groups throws a typed error instead of silently flattening — use the [expression codec](/packages/codec-url-expression) when compound trees must cross the URL boundary. Adapters consume compound trees natively. See [Queries over the Wire](/guide/wire#what-fits-on-the-wire).
+The URL codec writes the [expression dialect](/packages/codec-url#expression-dialect) by default, so `or(...)` and nested groups cross the boundary intact. Only the deprecated simple writer is limited to flat root-AND filters. Operators without a URL grammar still throw rather than silently changing semantics. See [Queries over the Wire](/guide/wire#what-fits-on-the-wire).
 :::
 
 ## Other parameters

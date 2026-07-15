@@ -6,7 +6,7 @@
 
 | typeorm-extension | rapiq v2 |
 |---|---|
-| `applyQuery(qb, req.query, options)` | `decoder.decode(req.query, { schema })` + `new TypeormAdapter({ queryBuilder: qb }).execute(query)` — see the [Express recipe](/guide/recipes/express-typeorm) |
+| `applyQuery(qb, req.query, options)` | `codec.decode(req.query, { schema })` + `new TypeormAdapter({ queryBuilder: qb }).execute(query)` — see the [Express recipe](/guide/recipes/express-typeorm) |
 | per-call `allowed`/`default` options | a named [`Schema`](/guide/schemas) in a `SchemaRegistry` |
 | returned parse output (pagination) | `adapter.execute(query)` returns the applied pagination |
 | `relations.onJoin` hook | `relations.onJoin` on the [adapter options](/packages/typeorm#options) |

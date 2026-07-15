@@ -16,8 +16,8 @@ The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/t
 
 | v1 | v2 |
 |---|---|
-| `buildQuery(input)` → string | [`defineQuery(input)`](/guide/building-queries) → `Query`, then `new URLEncoder().encode(query)` |
-| `parseQuery(input, options)` | [`new URLDecoder(registry).decode(input, { schema })`](/guide/wire) for URL input; [`SimpleParser`](/packages/parser-simple) for canonical object input |
+| `buildQuery(input)` → string | [`defineQuery(input)`](/guide/building-queries) → `Query`, then `createURLCodec().encode(query)` |
+| `parseQuery(input, options)` | [`createURLCodec(registry).decode(input, { schema })`](/guide/wire) for URL input; [`SimpleParser`](/packages/parser-simple) for canonical object input |
 | per-call allow-list options | a named [`Schema`](/guide/schemas) in a `SchemaRegistry` |
 
 ## Behavior changes
@@ -32,7 +32,7 @@ In v1, `~text` meant *starts with* (`text%`) — the only LIKE form the dialect 
 | `~text` | starts with (`text%`) | ends with (`%text`) |
 | `~text~` | — | contains (`%text%`) |
 
-**v1 clients sending `~text` change meaning from starts-with to ends-with.** Rewrite them to `text~` — or move to typed [condition helpers](/guide/building-queries#condition-helpers) / the [expression dialect](/packages/codec-url-expression), which have no positional magic.
+**v1 clients sending `~text` change meaning from starts-with to ends-with.** Rewrite them to `text~` — or move to typed [condition helpers](/guide/building-queries#condition-helpers) / the [expression dialect](/packages/codec-url#expression-dialect), which have no positional magic.
 
 ### Filters: magic value strings are wire-only
 
@@ -45,6 +45,10 @@ v1 accepted `'>=18'`, `'~jo~'`, `'!null'` as *build input*. In v2, the string pr
 ### Codecs: loud failures instead of silent lossiness (breaking)
 
 v1's URL build silently emitted whatever it was given. v2's `encode` throws typed errors (`FEATURE_UNSUPPORTED`, `OPERATOR_UNSUPPORTED`) for queries the wire dialect cannot represent — nested compounds, `or(...)`, same-field conditions, regex/mod/exists/elemMatch, values that would re-parse as a different condition. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
+
+### URL filters: expression output, legacy input
+
+The v2 URL codec writes stamped expression filters by default. Its decoder still recognizes v1-style bracket filters, so deploy receiving applications before switching callers. Deprecated simple encoding remains available explicitly with `URL_SIMPLE_CODEC` during the v2 migration.
 
 ### Filters: string equality is case-insensitive (breaking)
 

@@ -24,20 +24,19 @@ export interface IURLCodecDecoder {
 }
 
 /**
- * A registrable URL codec: a stable identifier plus the two wire
- * directions. The bundled dialects (@rapiq/codec-url-simple,
- * @rapiq/codec-url-expression) satisfy the encoder/decoder contracts
- * structurally; external codecs implement the same shape.
+ * A registrable URL dialect: a stable identifier plus both wire
+ * directions. The bundled simple and expression dialects satisfy
+ * these contracts structurally; external codecs can do the same.
  */
-export type URLCodec = {
+export type URLCodecDefinition = {
     name: string,
     encoder: IURLCodecEncoder,
     decoder: IURLCodecDecoder,
 };
 
-export type URLCodecRegistryEncodeOptions = ParseQueryOptions & {
+export type URLCodecEncodeOptions = ParseQueryOptions & {
     /**
-     * Name of the codec to encode with; the registry
+     * Name of the codec to encode with; the facade
      * default is used when omitted.
      */
     codec?: string,

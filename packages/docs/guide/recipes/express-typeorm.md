@@ -7,7 +7,7 @@ The complete, production-shaped list endpoint: schemas in one module, a decoder 
 ```txt
 src/
 ├── schema.ts        # schemas + registry (one place for the whole contract)
-├── decoder.ts       # shared URLDecoder
+├── codec.ts         # shared URL codec
 └── routes/users.ts  # the endpoint
 ```
 
@@ -44,19 +44,19 @@ registry.add(defineSchema<User>({
 }));
 ```
 
-`throwOnFailure` is a taste decision: without it, disallowed input is dropped and the request still succeeds (forgiving mode); with it, clients get told. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
+`throwOnFailure` controls fields, relations, sort, pagination and legacy simple filters. Expression filters already reject contract violations precisely. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
 
-## 2. The decoder
+## 2. The codec
 
 ```typescript
-// src/decoder.ts
-import { URLDecoder } from '@rapiq/codec-url-simple';
+// src/codec.ts
+import { createURLCodec } from '@rapiq/codec-url';
 import { registry } from './schema';
 
-export const decoder = new URLDecoder(registry);
+export const codec = createURLCodec(registry);
 ```
 
-The decoder is stateless — share one instance across all routes.
+The codec is stateless between calls — share one instance across all routes.
 
 ## 3. The endpoint
 
@@ -66,7 +66,7 @@ import type { Request, Response } from 'express';
 import { ParseError } from '@rapiq/core';
 import { TypeormAdapter } from '@rapiq/typeorm';
 import { dataSource } from '../data-source';
-import { decoder } from '../decoder';
+import { codec } from '../codec';
 import { User } from '../entities';
 
 const adapterConfig = { relations: { joinAndSelect: true } };
@@ -74,7 +74,7 @@ const adapterConfig = { relations: { joinAndSelect: true } };
 export async function getUsers(req: Request, res: Response) {
     let query;
     try {
-        query = decoder.decode(req.query, { schema: 'user' });
+        query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
         if (e instanceof ParseError) {
             return res.status(400).json({ error: e.message, code: e.code });
@@ -118,4 +118,4 @@ GET /users?filter[secret]=x                           400 — key not allowed
 
 - **Scope by the authenticated user** — inject filters the client can't displace: [Authorization & scoping](/guide/recipes/authorization).
 - **No TypeORM** — swap the adapter for [`@rapiq/sql`](/packages/sql) fragments; the decode half stays identical.
-- **Accept `or(...)` filters** — add the [expression codec](/packages/codec-url-expression), or dispatch both dialects with [`@rapiq/codec-url`](/packages/codec-url).
+- **Migrate old clients gradually** — the codec writes expressions but continues to recognize legacy bracket-filter input; see [Queries over the Wire](/guide/wire).
