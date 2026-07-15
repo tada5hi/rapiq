@@ -31,5 +31,6 @@
     "production": [
       "default"
     ]
-  }
+  },
+  "analytics": false
 }
