@@ -25,6 +25,8 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 
 The `queryBuilder` (the builder to write into) is bound at construction; `execute(query)` then walks the parsed `Query`, collects the state into its sub-adapters, and applies it to that builder — returning the applied pagination (e.g. for the response `meta` block).
 
+Any `WHERE` conditions already present on the builder are preserved. Rapiq appends its filter tree with `AND`, so an application-owned tenant or authorization predicate remains the baseline even when the client sends no filters.
+
 Construct the adapter **per request**, just like the `SelectQueryBuilder` you hand it — it holds per-call state. The shareable, long-lived part is your config, which you spread into the per-request options:
 
 ```typescript
@@ -60,12 +62,12 @@ new TypeormAdapter({
 | `relations.joinAndSelect` | Join **and select** (hydrate the related entities) instead of joining for filtering/sorting only. |
 | `relations.joinType` | `'left'` (default) or `'inner'`. Left joins keep records whose relation is absent. |
 | `relations.onJoin` | Invoked as `(path, alias, queryBuilder)` for every join the adapter applies — e.g. to `addGroupBy` per join when the root query is grouped. Skipped (pre-existing) joins don't trigger it. |
-| `relations.relationAlias` | Derive the join alias for a relation path (default: the path with `.` replaced by `_`, e.g. `role.realm` → `role_realm`). Filter/sort/field references resolve against the same derivation. |
+| `relations.relationAlias` | Derive the join alias for a relation path (default: collision-free length-prefixed segments, e.g. `role.realm` → `r4_role_5_realm`). Filter/sort/field references resolve against the same derivation. |
 
 Relations are validated against the entity metadata of the attached query builder — a requested relation that doesn't exist on the entity is ignored. Joins are applied idempotently: relations already joined on the query builder (by the adapter or by your own code, matched by alias) are skipped, so applying a query twice does not duplicate joins.
 
 ::: warning Alias convention
-Joins are aliased by the **full relation path**, with `.` replaced by `_`: `realm` joins as alias `realm`, `role.realm` as `role_realm` — the same convention filter/sort/field references resolve against, so same-named relations on different branches never collide. Pre-existing joins are matched by that alias: joins you apply yourself under a different alias (e.g. `role.realm` as `realm`) are not recognized — either use the path-qualified alias or inject your own convention via `relations.relationAlias`. Make sure a custom derivation stays collision-free and within your database's identifier length limit.
+The exported `buildRelationAlias(path)` helper length-prefixes every segment: `realm` becomes `r5_realm`, and `role.realm` becomes `r4_role_5_realm`. This remains distinct even from a relation literally named `role_realm`. Fields, filters, sorts and joins all use the same derivation. Pre-existing joins are matched by that alias; use the helper for joins you apply yourself, or inject one convention via `relations.relationAlias`. Keep a custom derivation collision-free and within your database's identifier length limit.
 :::
 
 ## Dialect detection

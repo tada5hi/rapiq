@@ -32,4 +32,11 @@ export class SchemaError extends BaseError {
             code: ErrorCode.SCHEMA_UNRESOLVABLE,
         });
     }
+
+    static validatorAsyncRequiresAsyncParser() {
+        return new this({
+            message: 'Asynchronous schema validators require parseAsync().',
+            code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER,
+        });
+    }
 }

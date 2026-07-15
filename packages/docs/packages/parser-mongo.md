@@ -85,7 +85,7 @@ const query = parser.parse({
 
 Only the `filters` parameter uses the mongo dialect — fields, relations, pagination and sort accept the same input as the [simple parser](/packages/parser-simple), and the whole thing returns the same [`Query`](/guide/query-ast).
 
-There is also a standalone `MongoFiltersParser` returning just the `Filters` node; its `parseTyped(input, options)` accepts a `MongoFiltersParserInput<RECORD>`, so field keys and operator values are type-checked against the record type.
+There is also a standalone `MongoFiltersParser` returning just the `Filters` node; its `parseTyped(input, options)` accepts a `MongoFiltersParserInput<RECORD>`, so field keys and operator values are type-checked against the record type. For schemas with asynchronous filter validators, use `parseAsync()` or `parseTypedAsync()`.
 
 ## Failure model
 

@@ -71,6 +71,34 @@ export class URLEncoder implements IEncoder<string | null> {
         }));
     }
 
+    async encodeAsync(
+        input: IQuery,
+        options: ParseQueryOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitQuery(input));
+        if (encoded === null || !this.isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeAsync(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitQuery(decoded, {
+            fields: input.fields.value.length > 0,
+            filters: input.filters.value.length > 0,
+            pagination: typeof input.pagination.limit !== 'undefined' ||
+                typeof input.pagination.offset !== 'undefined',
+            relations: input.relations.value.length > 0,
+            sorts: input.sorts.value.length > 0,
+        }));
+    }
+
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
         this.visitor.reset();
 
@@ -104,6 +132,27 @@ export class URLEncoder implements IEncoder<string | null> {
         }
 
         const decoded = this.decoder.decodeFilters(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitFilters(decoded));
+    }
+
+    async encodeFiltersAsync(
+        input: IFilters,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitFilters(input));
+        if (encoded === null || !this.isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
         if (!decoded) {
             return null;
         }

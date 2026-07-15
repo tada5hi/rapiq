@@ -6,7 +6,7 @@
         "email": "contact@tada5hi.net",
         "url": "https://tada5hi.net"
     },
-    "license": "Apache-2.0",
+    "license": "MIT",
     "version": "1.0.0",
     "description": "This package contains all rapiq related packages.",
     "workspaces": [
@@ -32,6 +32,7 @@
     "scripts": {
         "build": "npx nx run-many -t build",
         "test": "npx nx run-many -t test",
+        "test:coverage": "npx nx run-many -t test:coverage",
         "lint": "eslint",
         "lint:fix": "eslint --fix",
         "prepare": "husky"

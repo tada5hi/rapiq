@@ -117,6 +117,25 @@ describe('decoder', () => {
         ]));
     });
 
+    it('should await asynchronous schema validation through decodeAsync', async () => {
+        const decoder = new URLDecoder();
+        const schema = defineSchema({
+            filters: {
+                validate: async (filter) => new Filter(
+                    filter.operator,
+                    filter.field,
+                    String(filter.value).toUpperCase(),
+                ),
+            },
+        });
+
+        const output = await decoder.decodeAsync('filter[name]=admin', { schema });
+
+        expect(output!.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        ]));
+    });
+
     it('should reject undeclared parameters when decoding with the strict option', () => {
         const decoder = new URLDecoder();
 

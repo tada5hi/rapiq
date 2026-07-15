@@ -8,10 +8,11 @@
 export type RelationAliasFn = (path: string) => string;
 
 /**
- * Default join-alias derivation: the full relation path with `.`
- * replaced by `_` (e.g. `role.realm` -> `role_realm`), so relation
- * paths ending in the same segment never share an alias.
+ * Default join-alias derivation: every path segment is length-prefixed
+ * (e.g. `role.realm` -> `r4_role_5_realm`). Unlike replacing dots with
+ * underscores, this is injective even when relation names contain `_`.
  */
 export function buildRelationAlias(path: string) : string {
-    return path.replace(/\./g, '_');
+    const segments = path.split('.');
+    return `r${segments.map((segment) => `${segment.length}_${segment}`).join('_')}`;
 }

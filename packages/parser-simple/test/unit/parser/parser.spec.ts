@@ -66,6 +66,25 @@ describe('src/parser', () => {
         expect(output.pagination.offset).toEqual(0);
     });
 
+    it('should await asynchronous filter validation in full-query parsing', async () => {
+        const parser = new SimpleParser();
+        const schema = defineSchema({
+            filters: {
+                validate: async (filter) => new Filter(
+                    filter.operator,
+                    filter.field,
+                    String(filter.value).toUpperCase(),
+                ),
+            },
+        });
+
+        const output = await parser.parseAsync({ filters: { name: 'admin' } }, { schema });
+
+        expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        ]));
+    });
+
     describe('schema defaults', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({

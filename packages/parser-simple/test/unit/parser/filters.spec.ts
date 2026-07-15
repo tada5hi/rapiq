@@ -84,6 +84,47 @@ describe('src/filter/index.ts', () => {
         );
     });
 
+    it('should apply the schema validator to parsed filters', () => {
+        const output = parseFlat({ name: 'admin', age: 18 }, {
+            schema: defineFiltersSchema({
+                validate: (filter) => filter.field === 'name' ?
+                    new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                    undefined,
+            }),
+        });
+
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        );
+    });
+
+    it('should await an asynchronous schema validator through parseAsync', async () => {
+        const output = await parser.parseAsync({ name: 'admin', age: 18 }, {
+            schema: defineFiltersSchema({
+                validate: async (filter) => filter.field === 'name' ?
+                    new Filter(filter.operator, filter.field, String(filter.value).toUpperCase()) :
+                    undefined,
+            }),
+        });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'ADMIN'),
+        ]));
+    });
+
+    it('should apply schema defaults when validation rejects every filter', () => {
+        const output = parseFlat({ name: 'admin' }, {
+            schema: defineFiltersSchema({
+                default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+                validate: () => undefined,
+            }),
+        });
+
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+        );
+    });
+
     it('should keep the full path of a dotted mapping target', async () => {
         // the alias expands to a relation path — the leaf validates
         // against the related (realm) schema and keeps its full path.
@@ -103,6 +144,14 @@ describe('src/filter/index.ts', () => {
         const output = parseFlat({ 'user.name': 'admin' }, { schema: 'user' });
 
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
+    });
+
+    it('should parse nested objects as dotted field paths', () => {
+        const output = parseFlat({ realm: { name: 'master' } });
+
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        );
     });
 
     it('should not parse with non matching name', async () => {

@@ -43,6 +43,8 @@ const query = parser.parse({
 | `strict` | Override the schema's [strict mode](/guide/schemas#strict-mode) for this call. |
 | `fields` / `filters` / `relations` / `pagination` / `sort` | Set to `false` to skip a parameter entirely. |
 
+If `filters.validate` may return a Promise, use `await parser.parseAsync(input, options)`. `parse()` remains synchronous for schemas whose validators are synchronous and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` if it encounters an async result.
+
 ## Schema defaults
 
 A parameter absent from the input is still parsed, so schema defaults always apply: `fields.default` (or, without one, the `fields.allowed` selection), `filters.default`, `sort.default` and `pagination.maxLimit` shape the resulting `Query` even when the input is empty.
@@ -59,7 +61,7 @@ Per-parameter input shapes and the wire operator syntax are documented on the pa
 
 ## Per-parameter parsers
 
-Each parameter also has a standalone parser class — `SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser` — with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input.
+Each parameter also has a standalone parser class — `SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser` — with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
 
 ## Errors
 

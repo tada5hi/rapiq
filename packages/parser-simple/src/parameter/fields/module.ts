@@ -38,6 +38,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         return this.parseWithScope(input, scope);
     }
 
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SimpleFieldsParseOptions<RECORD> = {},
+    ) : Promise<IFields> {
+        return this.parse(input, options);
+    }
+
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>) : IFields {

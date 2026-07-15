@@ -53,7 +53,7 @@ const query = parser.parse({
 
 Only the `filters` parameter uses the expression language — fields, relations, pagination and sort accept the same input as the [simple parser](/packages/parser-simple), and the whole thing returns the same [`Query`](/guide/query-ast).
 
-There is also a standalone `parseFilters(input, options)` returning just the `Filters` node.
+There is also a standalone `parseFilters(input, options)` returning just the `Filters` node. For schemas with asynchronous filter validators, use `parseAsync()` / `parseFiltersAsync()` on the query parser, or `parseAsync()` / `parseExactAsync()` on `ExpressionFiltersParser`.
 
 ## Errors
 

@@ -24,6 +24,8 @@ import {
     FiltersParseError,
     Parameter,
     ResolutionScope,
+    applyFiltersSchemaValidation,
+    applyFiltersSchemaValidationAsync,
     isFilters,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -31,6 +33,12 @@ import { FilterTokenType } from './constants';
 import type { FilterToken } from './types';
 
 type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
+
+/**
+ * Keep recursive expression parsing below the JavaScript call-stack limit and
+ * aligned with the schema resolver and Mongo parser traversal caps.
+ */
+const MAX_DEPTH = 32;
 
 /**
  * @see https://www.jsonapi.net/usage/reading/filtering.html
@@ -72,6 +80,30 @@ export class ExpressionFiltersParser extends BaseParser<
         return new Filters(FilterCompoundOperator.AND, [expr]);
     }
 
+    override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        if (input === undefined || input === null) {
+            const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
+
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        const expr = await this.parseExactAsync(input, options);
+        if (
+            isFilters(expr, FilterCompoundOperator.AND) ||
+            isFilters(expr, FilterCompoundOperator.OR)
+        ) {
+            return expr;
+        }
+
+        return new Filters(FilterCompoundOperator.AND, [expr]);
+    }
+
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
@@ -100,7 +132,59 @@ export class ExpressionFiltersParser extends BaseParser<
             throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
         }
 
-        return expr;
+        if (!scope) {
+            return expr;
+        }
+
+        const validated = applyFiltersSchemaValidation(expr, scope.schema);
+        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        return validated;
+    }
+
+    async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters | IFilter> {
+        if (typeof input !== 'string') {
+            throw FiltersParseError.inputInvalid();
+        }
+
+        this.pos = 0;
+        this.tokens = this.tokenize(input);
+
+        let scope : FiltersScope | undefined;
+        if (options.schema || options.strict) {
+            scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+                relations: options.relations,
+                throwOnFailure: true,
+                strict: options.strict,
+            }) as FiltersScope;
+        }
+
+        const expr = this.parseFilterExpression(scope);
+        if (this.peek().type !== FilterTokenType.EOF) {
+            throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
+        }
+
+        if (!scope) {
+            return expr;
+        }
+
+        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema);
+        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
+            return new Filters(
+                FilterCompoundOperator.AND,
+                this.buildDefaults(scope.schema),
+            );
+        }
+
+        return validated;
     }
 
     // ---------------------------------------------------------
@@ -137,12 +221,18 @@ export class ExpressionFiltersParser extends BaseParser<
         // keywords are classified from whole identifiers (switch below) —
         // matching them in the regex would split identifiers that merely
         // start with a keyword (e.g. "order" -> "or" + "der").
-        const regex = /\s+|\(|\)|,|'(?:''|[^'])*'|[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?/g;
+        const regex = /\s+|\(|\)|,|\.|'(?:''|[^'])*'|[A-Za-z0-9_](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?/g;
 
         let match: RegExpExecArray | null;
-         
+        let cursor = 0;
+
         while ((match = regex.exec(input))) {
+            if (match.index !== cursor) {
+                throw FiltersParseError.syntaxInvalid(`Unexpected character at position ${cursor}.`);
+            }
+
             const value = match[0];
+            cursor = regex.lastIndex;
             if (/^\s+$/.test(value)) continue;
 
             switch (value) {
@@ -163,6 +253,7 @@ export class ExpressionFiltersParser extends BaseParser<
                 case '(': tokens.push({ type: FilterTokenType.LPAREN }); break;
                 case ')': tokens.push({ type: FilterTokenType.RPAREN }); break;
                 case ',': tokens.push({ type: FilterTokenType.COMMA }); break;
+                case '.': tokens.push({ type: FilterTokenType.DOT }); break;
                 default:
                     if (
                         value.startsWith('\'') &&
@@ -175,21 +266,30 @@ export class ExpressionFiltersParser extends BaseParser<
             }
         }
 
-        tokens.push({ type: 'EOF' });
+        if (cursor !== input.length) {
+            throw FiltersParseError.syntaxInvalid(`Unexpected character at position ${cursor}.`);
+        }
+
+        tokens.push({ type: FilterTokenType.EOF });
         return tokens;
     }
 
     private parseFilterExpression(
         scope?: FiltersScope,
         negation: boolean = false,
+        depth: number = 0,
     ) : Filters | Filter {
+        if (depth > MAX_DEPTH) {
+            throw FiltersParseError.syntaxInvalid('The maximum nesting depth was exceeded.');
+        }
+
         const token = this.peek();
         switch (token.type) {
             case FilterTokenType.NOT:
-                return this.parseNotExpression(scope, negation);
+                return this.parseNotExpression(scope, negation, depth);
             case FilterTokenType.AND:
             case FilterTokenType.OR:
-                return this.parseLogicalExpression(scope, negation);
+                return this.parseLogicalExpression(scope, negation, depth);
             case FilterTokenType.EQUAL:
             case FilterTokenType.GREATER_THAN:
             case FilterTokenType.GREATER_OR_EQUAL:
@@ -211,10 +311,11 @@ export class ExpressionFiltersParser extends BaseParser<
     private parseNotExpression(
         scope?: FiltersScope,
         negation: boolean = false,
+        depth: number = 0,
     ): Filters | Filter {
         this.consume(FilterTokenType.NOT);
         this.consume(FilterTokenType.LPAREN);
-        const expr = this.parseFilterExpression(scope, !negation);
+        const expr = this.parseFilterExpression(scope, !negation, depth + 1);
         this.consume(FilterTokenType.RPAREN);
 
         return expr;
@@ -223,6 +324,7 @@ export class ExpressionFiltersParser extends BaseParser<
     private parseLogicalExpression(
         scope?: FiltersScope,
         negation: boolean = false,
+        depth: number = 0,
     ): Filters | Filter {
         let op = this.consume().type; // AND / OR
         if (op !== FilterTokenType.AND && op !== FilterTokenType.OR) {
@@ -230,10 +332,10 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         this.consume(FilterTokenType.LPAREN);
-        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, negation)];
+        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, negation, depth + 1)];
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
-            expressions.push(this.parseFilterExpression(scope, negation));
+            expressions.push(this.parseFilterExpression(scope, negation, depth + 1));
         }
         this.consume(FilterTokenType.RPAREN);
 
@@ -454,7 +556,8 @@ export class ExpressionFiltersParser extends BaseParser<
 
         const parts = [token.value!];
 
-        while (this.peek().type === FilterTokenType.FIELD) {
+        while (this.peek().type === FilterTokenType.DOT) {
+            this.consume(FilterTokenType.DOT);
             parts.push(this.consume(FilterTokenType.FIELD).value!);
         }
 

@@ -66,7 +66,7 @@ describe('src/adapter/relations.ts', () => {
         expect(queryBuilder.getSql()).toContain('LEFT JOIN');
         expect(
             queryBuilder.expressionMap.selects.some(
-                (select) => select.selection === 'realm',
+                (select) => select.selection === 'r5_realm',
             ),
         ).toBeTruthy();
     });
@@ -83,7 +83,7 @@ describe('src/adapter/relations.ts', () => {
 
     it('should skip pre-existing joins', () => {
         const { queryBuilder, adapter } = setup();
-        queryBuilder.leftJoinAndSelect('user.realm', 'realm');
+        queryBuilder.leftJoinAndSelect('user.realm', 'r5_realm');
 
         visit(adapter, 'realm');
         adapter.relations.execute();
@@ -103,8 +103,8 @@ describe('src/adapter/relations.ts', () => {
             (join) => [join.entityOrProperty, join.alias.name],
         );
         expect(joins).toEqual([
-            ['user.role', 'role'],
-            ['role.detail', 'role_detail'],
+            ['user.role', 'r4_role'],
+            ['r4_role.detail', 'r4_role_6_detail'],
         ]);
     });
 
@@ -121,9 +121,9 @@ describe('src/adapter/relations.ts', () => {
             (join) => [join.entityOrProperty, join.alias.name],
         );
         expect(joins).toEqual([
-            ['user.realm', 'realm'],
-            ['user.role', 'role'],
-            ['role.realm', 'role_realm'],
+            ['user.realm', 'r5_realm'],
+            ['user.role', 'r4_role'],
+            ['r4_role.realm', 'r4_role_5_realm'],
         ]);
     });
 
@@ -162,8 +162,8 @@ describe('src/adapter/relations.ts', () => {
         adapter.relations.execute();
 
         expect(calls).toEqual([
-            ['role', 'role'],
-            ['role.detail', 'role_detail'],
+            ['role', 'r4_role'],
+            ['role.detail', 'r4_role_6_detail'],
         ]);
         expect(queryBuilder.getSql()).toContain('GROUP BY');
     });
@@ -176,7 +176,7 @@ describe('src/adapter/relations.ts', () => {
                 calls.push(path);
             },
         });
-        queryBuilder.leftJoin('user.realm', 'realm');
+        queryBuilder.leftJoin('user.realm', 'r5_realm');
 
         visit(adapter, 'realm');
         adapter.relations.execute();

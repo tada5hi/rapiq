@@ -144,7 +144,7 @@ defineSchema<User>({
         allowed: ['id', 'name', 'age'],
         mapping: { aliasId: 'id' },
         default: eq('status', 'active'),
-        validate: (filter) => { /* inspect / replace / reject a parsed Filter */ },
+        validate: async (filter) => { /* inspect / replace / reject a parsed Filter */ },
     },
 });
 ```
@@ -154,8 +154,20 @@ defineSchema<User>({
 | `allowed` | Filterable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Condition applied when the client sends no filters. |
 | `mapping` | Alias → field translation applied before validation. |
-| `validate` | Per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
+| `validate` | Sync or async per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
+
+`validate` runs after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf. The return value may also be a Promise of any of those results.
+
+Use the synchronous `parse()` / `decode()` / schema-aware `encode()` methods when every validator is synchronous. Use their `Async` counterparts when a validator may be asynchronous:
+
+```typescript
+const query = await parser.parseAsync(input, { schema });
+const decoded = await decoder.decodeAsync(req.query, { schema });
+const encoded = await encoder.encodeAsync(query, { schema });
+```
+
+The async path awaits validators sequentially in filter-tree order. Calling a synchronous method when a validator returns a Promise/thenable throws a `SchemaError` with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`. Compound `and`/`or` structure is preserved; if every submitted leaf is rejected, the schema default is applied.
 
 ## On violation
 

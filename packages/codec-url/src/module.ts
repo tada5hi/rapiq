@@ -74,6 +74,23 @@ export class URLCodecRegistry {
         return `${CODEC_PARAMETER}=${codec.name}&${encoded}`;
     }
 
+    async encodeAsync(
+        input: IQuery,
+        options: URLCodecRegistryEncodeOptions = {},
+    ) : Promise<string | null> {
+        const { codec: name, ...parseOptions } = options;
+
+        const codec = this.resolve(name);
+        const encoded = codec.encoder.encodeAsync ?
+            await codec.encoder.encodeAsync(input, parseOptions) :
+            codec.encoder.encode(input, parseOptions);
+        if (encoded === null) {
+            return null;
+        }
+
+        return `${CODEC_PARAMETER}=${codec.name}&${encoded}`;
+    }
+
     /**
      * Decode a query string or a pre-parsed query object (e.g. an
      * express req.query) with the codec its payload names — or the
@@ -109,6 +126,34 @@ export class URLCodecRegistry {
         const { [CODEC_PARAMETER]: _, ...payload } = parsed;
 
         return codec.decoder.decode(payload, options);
+    }
+
+    async decodeAsync(
+        input: string | ObjectLiteral,
+        options: ParseQueryOptions = {},
+    ) : Promise<IQuery | null> {
+        const parsed = typeof input === 'string' ? parse(input) : input;
+        if (!isObject(parsed)) {
+            return null;
+        }
+
+        let name : string | undefined;
+
+        const value = parsed[CODEC_PARAMETER];
+        if (typeof value !== 'undefined') {
+            if (typeof value !== 'string') {
+                throw CodecError.notResolvable();
+            }
+
+            name = value;
+        }
+
+        const codec = this.resolve(name);
+        const { [CODEC_PARAMETER]: _, ...payload } = parsed;
+
+        return codec.decoder.decodeAsync ?
+            codec.decoder.decodeAsync(payload, options) :
+            codec.decoder.decode(payload, options);
     }
 
     protected resolve(name?: string) : URLCodec {

@@ -35,6 +35,7 @@ export type ParseQueryOptions<
 };
 
 export type IParserOptions = {
+    /** @deprecated Call parseAsync() instead of selecting execution mode in options. */
     async?: boolean,
 };
 
@@ -44,6 +45,8 @@ export interface IParser<
     Options extends IParserOptions = IParserOptions,
 > {
     parse(input: Input, options?: Options): Output;
+
+    parseAsync(input: Input, options?: Options): Promise<Output>;
 }
 
 /**
@@ -54,4 +57,8 @@ export interface IQueryParameterParser<Output = unknown> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options?: ParseParameterOptions<RECORD>): Output;
+
+    parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options?: ParseParameterOptions<RECORD>): Promise<Output>;
 }

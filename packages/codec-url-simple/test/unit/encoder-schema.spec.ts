@@ -131,4 +131,22 @@ describe('encoder (schema-aware)', () => {
 
         expect(decodeURIComponent(encoded!)).toEqual('filter[name]=John');
     });
+
+    it('should await asynchronous validators in async encode methods', async () => {
+        const schema = defineSchema<User>({
+            filters: {
+                validate: async (filter) => eq(
+                    filter.field,
+                    String(filter.value).toUpperCase(),
+                ),
+            },
+        });
+        const query = defineQuery({ filters: { name: 'John' } });
+
+        const encoded = await encoder.encodeAsync(query, { schema });
+        const encodedFilters = await encoder.encodeFiltersAsync(query.filters, { schema });
+
+        expect(decodeURIComponent(encoded!)).toEqual('filter[name]=JOHN');
+        expect(decodeURIComponent(encodedFilters!)).toEqual('filter[name]=JOHN');
+    });
 });

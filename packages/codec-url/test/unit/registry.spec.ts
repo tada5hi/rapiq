@@ -10,6 +10,7 @@ import {
     ErrorCode,
     Filters,
     defineQuery,
+    defineSchema,
     eq,
     gte,
     or,
@@ -89,6 +90,42 @@ describe('URLCodecRegistry', () => {
 
         expect(external.encode(defineQuery({ filters: { a: 1 } }))).toEqual('codec=noop&x=1');
         expect(external.decode('codec=noop')).toBeNull();
+    });
+
+    it('should preserve sync-only external codecs in async dispatch', async () => {
+        const external = new URLCodecRegistry();
+        external.register({
+            name: 'noop',
+            encoder: { encode: () => 'x=1' },
+            decoder: { decode: () => null },
+        });
+
+        await expect(external.encodeAsync(defineQuery({ filters: { a: 1 } })))
+            .resolves.toEqual('codec=noop&x=1');
+        await expect(external.decodeAsync('codec=noop')).resolves.toBeNull();
+    });
+
+    it('should dispatch bundled async codecs for asynchronous validators', async () => {
+        const schema = defineSchema({
+            filters: {
+                validate: async (filter) => eq(
+                    filter.field,
+                    String(filter.value).toUpperCase(),
+                ),
+            },
+        });
+        const query = defineQuery({ filters: eq('name', 'John') });
+
+        const encoded = await registry.encodeAsync(query, {
+            codec: 'url-expression',
+            schema,
+        });
+        const decoded = await registry.decodeAsync(encoded!, { schema });
+
+        expect(decodeURIComponent(encoded!)).toEqual(
+            'codec=url-expression&filter=eq(name,\'JOHN\')',
+        );
+        expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'JOHN')]));
     });
 
     it('should strip the reserved parameter before delegating', () => {

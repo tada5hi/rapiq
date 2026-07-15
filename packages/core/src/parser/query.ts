@@ -104,6 +104,67 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return new Query(output);
     }
 
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseQueryOptions<RECORD> = {},
+    ) : Promise<Query> {
+        const output : QueryContext = {};
+
+        const data : ObjectLiteral = isObject(input) ? input : {};
+
+        const parameterOptions : ParseParameterOptions<RECORD> = {};
+        if (options.schema) {
+            parameterOptions.schema = options.schema;
+        }
+
+        if (typeof options.strict !== 'undefined') {
+            parameterOptions.strict = options.strict;
+        }
+
+        if (!this.skipParameter(options.relations)) {
+            const relationsInput = this.readParameter(data, Parameter.RELATIONS);
+
+            const relations = await this.parseRelationsAsync(relationsInput, parameterOptions);
+            output.relations = relations;
+
+            if (typeof relationsInput !== 'undefined') {
+                parameterOptions.relations = relations;
+            }
+        }
+
+        if (!this.skipParameter(options.fields)) {
+            output.fields = await this.parseFieldsAsync(
+                this.readParameter(data, Parameter.FIELDS),
+                parameterOptions,
+            );
+        }
+
+        if (!this.skipParameter(options.filters)) {
+            output.filters = await this.parseFiltersAsync(
+                this.readParameter(data, Parameter.FILTERS),
+                parameterOptions,
+            );
+        }
+
+        if (!this.skipParameter(options.pagination)) {
+            output.pagination = await this.parsePaginationAsync(
+                this.readParameter(data, Parameter.PAGINATION),
+                parameterOptions,
+            );
+        }
+
+        if (!this.skipParameter(options.sort)) {
+            output.sorts = await this.parseSortAsync(
+                this.readParameter(data, Parameter.SORT),
+                parameterOptions,
+            );
+        }
+
+        return new Query(output);
+    }
+
     // -----------------------------------------------------
 
     /**
@@ -121,6 +182,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return this.relationsParser.parse(input, options);
     }
 
+    parseRelationsAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<IRelations> {
+        return this.relationsParser.parseAsync(input, options);
+    }
+
     /**
      * Parse fields input parameter.
      *
@@ -134,6 +204,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseParameterOptions<RECORD> = {},
     ) : IFields {
         return this.fieldsParser.parse(input, options);
+    }
+
+    parseFieldsAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<IFields> {
+        return this.fieldsParser.parseAsync(input, options);
     }
 
     /**
@@ -151,6 +230,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return this.filtersParser.parse(input, options);
     }
 
+    parseFiltersAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<IFilters> {
+        return this.filtersParser.parseAsync(input, options);
+    }
+
     /**
      * Parse pagination input parameter.
      *
@@ -166,6 +254,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return this.paginationParser.parse(input, options);
     }
 
+    parsePaginationAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<IPagination> {
+        return this.paginationParser.parseAsync(input, options);
+    }
+
     /**
      * Parse sort input parameter.
      *
@@ -179,6 +276,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseParameterOptions<RECORD> = {},
     ) : ISorts {
         return this.sortParser.parse(input, options);
+    }
+
+    parseSortAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<ISorts> {
+        return this.sortParser.parseAsync(input, options);
     }
 
     // --------------------------------------------------

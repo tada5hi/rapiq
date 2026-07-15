@@ -28,5 +28,6 @@ export enum FilterTokenType {
     LPAREN = 'LPAREN',
     RPAREN = 'RPAREN',
     COMMA = 'COMMA',
+    DOT = 'DOT',
     EOF = 'EOF',
 }

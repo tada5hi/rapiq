@@ -40,7 +40,7 @@ export interface IFilterVisitor<R> {
     visitFilterEndsWith?(expr: IFilter<FilterFieldOperator.ENDS_WITH, unknown>) : R;
     visitFilterNotEndsWith?(expr: IFilter<FilterFieldOperator.NOT_ENDS_WITH, unknown>) : R;
 
-    visitFilterRegex?(expr: IFilter<FilterFieldOperator.REGEX, RegExp>) : R;
+    visitFilterRegex?(expr: IFilter<FilterFieldOperator.REGEX, RegExp | string>) : R;
 }
 
 export interface IFilter<

@@ -147,6 +147,11 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        this.queryBuilder.where(sql, params);
+        if (sql) {
+            // The builder may already carry an application-owned predicate
+            // (for example a tenant or authorization scope). Rapiq filters
+            // narrow that query; they must never replace its baseline WHERE.
+            this.queryBuilder.andWhere(sql, params);
+        }
     }
 }

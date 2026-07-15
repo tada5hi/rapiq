@@ -74,6 +74,15 @@ export class SimplePaginationParser<
         return this.finalizePagination(output, schema, throwOnFailure);
     }
 
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD> = {},
+    ) : Promise<IPagination> {
+        return this.parse(input, options);
+    }
+
     protected finalizePagination(
         data: Pagination,
         schema: PaginationSchema,

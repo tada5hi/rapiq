@@ -8,10 +8,9 @@
 import type { DialectOptions } from './types';
 
 export const oracle : DialectOptions = {
-    regexp: (field, placeholder, ignoreCase) => {
-        const operator = ignoreCase ? '~*' : '~';
-        return `${field} ${operator} ${placeholder}`;
-    },
+    regexp: (field, placeholder, ignoreCase) => ignoreCase ?
+        `regexp_like(${field}, ${placeholder}, 'i')` :
+        `regexp_like(${field}, ${placeholder})`,
     escapeField: (field: string) => `"${field}"`,
-    paramPlaceholder: (index) => `$${index}`,
+    paramPlaceholder: (index) => `:${index}`,
 };

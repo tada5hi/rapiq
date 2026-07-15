@@ -53,40 +53,23 @@ jobs:
                 if: steps.release.outputs.releases_created == 'true'
                 uses: ./.github/actions/build
 
-            -   name: Publish
+            -   name: Lint
                 if: steps.release.outputs.releases_created == 'true'
-                run: npx workspaces-publish
-                env:
-                    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                run: npm run lint
 
-            -   name: CREATE CNAME
+            -   name: Test with coverage
                 if: steps.release.outputs.releases_created == 'true'
-                run: |
-                    cd ./packages/docs/.vitepress/dist/
-                    touch CNAME
-                    echo "rapiq.tada5hi.net" > CNAME
-
-            -   name: Build docs
-                if: steps.release.outputs.releases_created == 'true'
-                run: |
-                    npm run build --workspace=packages/docs
-
-            -   name: Deploy docs
-                if: steps.release.outputs.releases_created == 'true'
-                uses: peaceiris/actions-gh-pages@v3
-                with:
-                    github_token: ${{ secrets.GITHUB_TOKEN }}
-                    publish_dir: ./packages/docs/.vitepress/dist
-
-            -   name: Create coverage
-                if: steps.release.outputs.releases_created == 'true'
-                run: |
-                    npm run test:coverage
+                run: npm run test:coverage
 
             -   name: Upload coverage report
                 if: steps.release.outputs.releases_created == 'true'
                 uses: codecov/codecov-action@v7.0.0
                 with:
                     token: ${{ secrets.codecov }}
-                    directory: ./coverage/
+                    directory: ./packages
 
+            -   name: Publish
+                if: steps.release.outputs.releases_created == 'true'
+                run: npx workspaces-publish
+                env:
+                    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
