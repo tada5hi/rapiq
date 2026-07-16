@@ -21,13 +21,14 @@ export class PaginationAdapter extends PaginationBaseAdapter {
         // a query without pagination leaves caller-owned take/skip
         // untouched — the same preservation contract the filters adapter
         // applies to WHERE. The adapter/builder pair is per-request;
-        // resetting a previous run is not this method's job.
+        // resetting a previous run is not this method's job. Nullish
+        // (not falsy) coalescing: an explicit 0 is a value, not absence.
         if (typeof this.limit !== 'undefined') {
-            this.queryBuilder.take(this.limit || undefined);
+            this.queryBuilder.take(this.limit ?? undefined);
         }
 
         if (typeof this.offset !== 'undefined') {
-            this.queryBuilder.skip(this.offset || undefined);
+            this.queryBuilder.skip(this.offset ?? undefined);
         }
     }
 }

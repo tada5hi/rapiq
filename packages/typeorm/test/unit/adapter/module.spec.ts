@@ -51,6 +51,19 @@ describe('src/adapter/module.ts', () => {
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
     });
 
+    it('should apply an explicit zero offset instead of coercing it away', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query({ pagination: new Pagination(10, 0) }));
+
+        expect(queryBuilder.expressionMap.take).toEqual(10);
+        expect(queryBuilder.expressionMap.skip).toEqual(0);
+    });
+
     it('should preserve caller-owned take/skip for a query without pagination', () => {
         // the adapter/builder pair is per-request; a query that carries no
         // pagination must not erase an application-owned safety cap —
