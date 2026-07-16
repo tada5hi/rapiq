@@ -6,6 +6,7 @@
  */
 
 import {
+    AdapterError,
     Pagination,
 } from '@rapiq/core';
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
@@ -45,5 +46,23 @@ describe('pagination', () => {
         const decoded = decoder.decodePagination(encoded!);
 
         expect(value).toEqual(decoded);
+    });
+
+    it('should throw for a zero or non-integer limit (outside the wire subset)', () => {
+        expect(() => encoder.encodePagination(new Pagination(0)))
+            .toThrowError(AdapterError);
+        expect(() => encoder.encodePagination(new Pagination(2.5)))
+            .toThrowError(AdapterError);
+    });
+
+    it('should throw for a negative offset', () => {
+        expect(() => encoder.encodePagination(new Pagination(50, -1)))
+            .toThrowError(AdapterError);
+    });
+
+    it('should omit the redundant zero offset from the wire', () => {
+        const encoded = encoder.encodePagination(new Pagination(50, 0));
+
+        expect(decodeURIComponent(encoded!)).toEqual('page[limit]=50');
     });
 });

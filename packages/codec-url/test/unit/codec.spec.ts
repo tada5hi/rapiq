@@ -9,6 +9,7 @@ import {
     CodecError,
     ErrorCode,
     Filters,
+    FiltersParseError,
     defineQuery,
     defineSchema,
     eq,
@@ -66,6 +67,65 @@ describe('URLCodec', () => {
         const decoded = codec.decode('filter=or(eq(name,\'John\'),gte(age,\'18\'))');
 
         expect(decoded!.filters).toEqual(or(eq('name', 'John'), gte('age', 18)));
+    });
+
+    it('should tolerate an untagged empty filter parameter', () => {
+        const decoded = codec.decode('filter=&sort=-name');
+
+        expect(decoded!.filters.value).toHaveLength(0);
+        expect(decoded!.sorts.value).toHaveLength(1);
+    });
+
+    it('should fail loudly for an untagged non-expression filter string', () => {
+        expect(() => codec.decode('filter=John')).toThrowError(FiltersParseError);
+    });
+
+    it('should fail loudly for a repeated untagged expression filter', () => {
+        expect(() => codec.decode('filter=eq(name,\'a\')&filter=eq(name,\'b\')'))
+            .toThrowError(FiltersParseError);
+    });
+
+    it('should treat an empty codec stamp as absent', () => {
+        const decoded = codec.decode('codec=&filter[name]=John');
+
+        expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'John')]));
+    });
+
+    it('should omit the identity stamp on request', () => {
+        const query = defineQuery({ filters: { name: 'John' } });
+
+        const encoded = codec.encode(query, { stamp: false });
+
+        expect(decodeURIComponent(encoded!)).toEqual('filter=eq(name,\'John\')');
+        expect(codec.decode(encoded!)!.filters).toEqual(
+            new Filters('and', [eq('name', 'John')]),
+        );
+    });
+
+    it('should let a registered detect hook claim untagged payloads', () => {
+        const seen : unknown[] = [];
+
+        const external = new URLCodec();
+        external.register({
+            name: 'mine',
+            encoder: { encode: () => null },
+            decoder: {
+                decode: (input) => {
+                    seen.push(input);
+                    return null;
+                },
+            },
+            detect: (payload) => typeof payload.q === 'string',
+        });
+        external.register({
+            name: 'fallback',
+            encoder: { encode: () => null },
+            decoder: { decode: () => null },
+        }, true);
+
+        external.decode('q=test');
+
+        expect(seen).toEqual([{ q: 'test' }]);
     });
 
     it('should decode a pre-parsed query object (req.query)', () => {

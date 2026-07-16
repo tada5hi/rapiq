@@ -114,7 +114,7 @@ Because the encoded string is derived state, it also makes a perfect cache key f
 
 The default expression dialect carries nested `or(...)` trees and repeated-field conditions. Operators without a URL grammar still throw a typed error rather than sending something with different semantics. Legacy simple encoding is available only as an explicit migration option; see the [URL codec reference](/packages/codec-url#legacy-simple-dialect).
 
-Optionally, encode against the server's schema for early feedback — see [schema-aware encoding](/guide/wire#schema-aware-encoding).
+Optionally, encode against the server's schema for early feedback — see [schema-aware transport](/guide/wire#schema-aware-transport).
 
 ## Next steps
 

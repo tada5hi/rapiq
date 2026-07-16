@@ -12,33 +12,22 @@ import {
     FilterFieldOperator,
     Filters,
 } from '@rapiq/core';
+import {
+    FILTER_EXPRESSION_KEYWORDS,
+    FILTER_FIELD_SEGMENT_PATTERN,
+} from '@rapiq/parser-expression';
 import { parseFilterScalar } from '@rapiq/parser-simple';
 
 /**
  * Grammar keywords of the expression dialect — a field segment
  * matching one of these would tokenize as an operator on decode.
  */
-const KEYWORDS = new Set([
-    'not', 
-    'and', 
-    'or',
-    'eq', 
-    'gt', 
-    'gte', 
-    'lt', 
-    'lte',
-    'contains', 
-    'startsWith', 
-    'endsWith',
-    'in', 
-    'nin', 
-    'null',
-]);
+const KEYWORDS = new Set(Object.keys(FILTER_EXPRESSION_KEYWORDS));
 
 /**
  * A field segment must survive the expression tokenizer unchanged.
  */
-const FIELD_SEGMENT = /^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/;
+const FIELD_SEGMENT = new RegExp(`^(?:${FILTER_FIELD_SEGMENT_PATTERN})$`);
 
 /**
  * Serialize a filters tree to its expression-dialect wire form,
@@ -166,18 +155,42 @@ function serializeValue(input: unknown) : string {
     }
 
     if (typeof input === 'string') {
-        return `'${input.replace(/'/g, '\'\'')}'`;
+        // the decoder trims and type-coerces quoted content. Only a
+        // pure type normalization ('5' → 5, 'true' → true) preserves
+        // the condition's semantics; anything else must fail loudly:
+        // ' John ' decodes trimmed, 'null' becomes an IS NULL check,
+        // '0xFF' becomes the number 255.
+        const decoded = parseFilterScalar(input);
+        const roundTrips = typeof decoded === 'string' ?
+            decoded === input :
+            decoded !== null && `${decoded}` === input;
+        if (!roundTrips) {
+            throw AdapterError.featureUnsupported('filters:value:text');
+        }
+
+        return quote(input);
     }
 
-    if (
-        typeof input === 'number' ||
-        typeof input === 'boolean'
-    ) {
+    if (typeof input === 'number') {
+        if (Number.isNaN(input)) {
+            // 'NaN' fails Number() coercion on decode and would come
+            // back as the string 'NaN'.
+            throw AdapterError.featureUnsupported('filters:value:number');
+        }
+
         // quoted; the decoder coerces the scalar type back.
-        return `'${input}'`;
+        return quote(`${input}`);
+    }
+
+    if (typeof input === 'boolean') {
+        return quote(`${input}`);
     }
 
     throw AdapterError.featureUnsupported('filters:value:type');
+}
+
+function quote(text: string) : string {
+    return `'${text.replace(/'/g, '\'\'')}'`;
 }
 
 function serializeList(input: unknown) : string {
@@ -189,16 +202,17 @@ function serializeList(input: unknown) : string {
 }
 
 /**
- * Match text (contains/startsWith/endsWith) must stay a string
- * after the decoder's scalar coercion — numeric- or boolean-looking
- * text ('5', 'true') would decode to a non-string and fail there.
+ * Match text (contains/startsWith/endsWith) must survive the
+ * decoder's scalar coercion unchanged: staying a string (numeric-
+ * or boolean-looking text would decode to a non-string) and keeping
+ * its exact characters (surrounding whitespace decodes trimmed).
  */
 function serializeMatchText(input: unknown) : string {
     const text = typeof input === 'string' ? input : `${input}`;
 
-    if (typeof parseFilterScalar(text) !== 'string') {
+    if (parseFilterScalar(text) !== text) {
         throw AdapterError.featureUnsupported('filters:value:text');
     }
 
-    return serializeValue(text);
+    return quote(text);
 }

@@ -5,6 +5,7 @@
     "devDependencies": {
         "@rapiq/codec-url": "*",
         "@rapiq/core": "*",
+        "@rapiq/parser-expression": "*",
         "@rapiq/parser-simple": "*",
         "@rapiq/sql": "*",
         "vitepress": "^1.6.4"

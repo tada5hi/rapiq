@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2025-2025.
+ * Copyright (c) 2025-2026.
  * Author Peter Placzek (tada5hi)
  * For the full copyright and license information,
  * view the LICENSE file that was distributed with this source code.
  */
-
-/**
- * JSON-API wire names of the query parameters,
- * as they appear in a URL query string.
- */
-export enum URLParameter {
-    FILTERS = 'filter',
-    FIELDS = 'fields',
-    PAGINATION = 'page',
-    RELATIONS = 'include',
-    SORT = 'sort',
-}
 
 /**
  * Stable identifier of this codec (wire dialect), e.g. for the

@@ -19,17 +19,11 @@ import type {
 import {
     SimpleURLEncoder,
 } from '../../simple/encoder';
-import { URLParameter } from '../../simple/constants';
+import { URLParameter } from '../../constants';
+import type { QueryParameterMask } from '../../utils';
+import { buildQueryParameterMask, isSchemaAware } from '../../utils';
 import { ExpressionURLDecoder } from '../decoder';
 import { serializeFiltersExpression } from './filters';
-
-type QueryParameterMask = {
-    fields?: boolean,
-    filters?: boolean,
-    pagination?: boolean,
-    relations?: boolean,
-    sorts?: boolean,
-};
 
 /**
  * URL encoder for the expression dialect: the filter parameter
@@ -43,9 +37,15 @@ export class ExpressionURLEncoder {
 
     protected decoder : ExpressionURLDecoder;
 
-    constructor(input?: SchemaRegistry) {
-        this.simple = new SimpleURLEncoder(input);
-        this.decoder = new ExpressionURLDecoder(input);
+    constructor(
+        input?: SchemaRegistry,
+        context: {
+            simple?: SimpleURLEncoder,
+            decoder?: ExpressionURLDecoder,
+        } = {},
+    ) {
+        this.simple = context.simple || new SimpleURLEncoder(input);
+        this.decoder = context.decoder || new ExpressionURLDecoder(input);
     }
 
     /**
@@ -59,7 +59,7 @@ export class ExpressionURLEncoder {
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
         const encoded = this.encodeParts(input);
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -70,14 +70,7 @@ export class ExpressionURLEncoder {
 
         // re-emit only parameters present in the input — validation
         // must not materialize schema defaults for absent ones.
-        return this.encodeParts(decoded, {
-            fields: input.fields.value.length > 0,
-            filters: input.filters.value.length > 0,
-            pagination: typeof input.pagination.limit !== 'undefined' ||
-                typeof input.pagination.offset !== 'undefined',
-            relations: input.relations.value.length > 0,
-            sorts: input.sorts.value.length > 0,
-        });
+        return this.encodeParts(decoded, buildQueryParameterMask(input));
     }
 
     async encodeAsync(
@@ -85,7 +78,7 @@ export class ExpressionURLEncoder {
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
         const encoded = this.encodeParts(input);
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -94,14 +87,7 @@ export class ExpressionURLEncoder {
             return null;
         }
 
-        return this.encodeParts(decoded, {
-            fields: input.fields.value.length > 0,
-            filters: input.filters.value.length > 0,
-            pagination: typeof input.pagination.limit !== 'undefined' ||
-                typeof input.pagination.offset !== 'undefined',
-            relations: input.relations.value.length > 0,
-            sorts: input.sorts.value.length > 0,
-        });
+        return this.encodeParts(decoded, buildQueryParameterMask(input));
     }
 
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
@@ -110,7 +96,7 @@ export class ExpressionURLEncoder {
 
     encodeFilters(input: IFilters, options: ParseParameterOptions = {}) : string | null {
         const encoded = this.serializeFilters(input);
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -127,7 +113,7 @@ export class ExpressionURLEncoder {
         options: ParseParameterOptions = {},
     ) : Promise<string | null> {
         const encoded = this.serializeFilters(input);
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -186,10 +172,5 @@ export class ExpressionURLEncoder {
         }
 
         return `${URLParameter.FILTERS}=${encodeURIComponent(expression)}`;
-    }
-
-    protected isSchemaAware(options: ParseQueryOptions | ParseParameterOptions) : boolean {
-        return typeof options.schema !== 'undefined' ||
-            typeof options.strict !== 'undefined';
     }
 }

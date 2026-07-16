@@ -18,19 +18,22 @@ import type {
     ParseQueryOptions,
     SchemaRegistry,
 } from '@rapiq/core';
+import { buildQueryParameterMask, isSchemaAware } from '../../utils';
 import { SimpleURLDecoder } from '../decoder';
-import type { IEncoder } from '../types';
 import type { ISerializer } from './serializer';
 import { QueryVisitor } from './visitors';
 
-export class SimpleURLEncoder implements IEncoder<string | null> {
+export class SimpleURLEncoder {
     protected visitor : QueryVisitor;
 
     protected decoder : SimpleURLDecoder;
 
-    constructor(input?: SchemaRegistry) {
+    constructor(
+        input?: SchemaRegistry,
+        context: { decoder?: SimpleURLDecoder } = {},
+    ) {
         this.visitor = new QueryVisitor();
-        this.decoder = new SimpleURLDecoder(input);
+        this.decoder = context.decoder || new SimpleURLDecoder(input);
     }
 
     /**
@@ -48,7 +51,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -61,14 +64,9 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
 
         // re-emit only parameters present in the input — validation
         // must not materialize schema defaults for absent ones.
-        return this.runSerializer(this.visitor.visitQuery(decoded, {
-            fields: input.fields.value.length > 0,
-            filters: input.filters.value.length > 0,
-            pagination: typeof input.pagination.limit !== 'undefined' ||
-                typeof input.pagination.offset !== 'undefined',
-            relations: input.relations.value.length > 0,
-            sorts: input.sorts.value.length > 0,
-        }));
+        return this.runSerializer(
+            this.visitor.visitQuery(decoded, buildQueryParameterMask(input)),
+        );
     }
 
     async encodeAsync(
@@ -78,7 +76,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -89,21 +87,16 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
 
         this.visitor.reset();
 
-        return this.runSerializer(this.visitor.visitQuery(decoded, {
-            fields: input.fields.value.length > 0,
-            filters: input.filters.value.length > 0,
-            pagination: typeof input.pagination.limit !== 'undefined' ||
-                typeof input.pagination.offset !== 'undefined',
-            relations: input.relations.value.length > 0,
-            sorts: input.sorts.value.length > 0,
-        }));
+        return this.runSerializer(
+            this.visitor.visitQuery(decoded, buildQueryParameterMask(input)),
+        );
     }
 
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFields(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -127,7 +120,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFilters(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -148,7 +141,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFilters(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -172,7 +165,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitPagination(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -190,7 +183,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitRelations(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -208,7 +201,7 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitSorts(input));
-        if (encoded === null || !this.isSchemaAware(options)) {
+        if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
@@ -220,15 +213,6 @@ export class SimpleURLEncoder implements IEncoder<string | null> {
         this.visitor.reset();
 
         return this.runSerializer(this.visitor.visitSorts(decoded));
-    }
-
-    /**
-     * The schema pass only runs on request — a registry alone
-     * imposes no constraints (unbound scopes), matching the parsers.
-     */
-    protected isSchemaAware(options: ParseQueryOptions | ParseParameterOptions) : boolean {
-        return typeof options.schema !== 'undefined' ||
-            typeof options.strict !== 'undefined';
     }
 
     /**

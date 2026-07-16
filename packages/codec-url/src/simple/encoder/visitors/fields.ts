@@ -16,7 +16,7 @@ import {
     DEFAULT_ID,
     parseKey,
 } from '@rapiq/core';
-import { URLParameter } from '../../constants';
+import { URLParameter } from '../../../constants';
 import { RecordArraySerializer } from '../serializer';
 
 export class FieldsVisitor implements IFieldsVisitor<RecordArraySerializer>,

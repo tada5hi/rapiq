@@ -67,7 +67,9 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
                 value = 'null';
             }
 
-            if (value) {
+            // falsy scalars are still values — only an empty string
+            // has nothing to emit (0 and false must reach the wire).
+            if (value !== '') {
                 const destinationKey = buildKey([...prefixParts, key]);
                 // Encode each key and value, concatenate them into a string, and push them to the array
                 query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
@@ -75,5 +77,5 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
         }
     }
 
-    return query.join('&');
+    return query.filter((part) => part !== '').join('&');
 }

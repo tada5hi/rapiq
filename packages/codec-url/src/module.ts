@@ -13,8 +13,6 @@ import type {
 } from '@rapiq/core';
 import { parse } from 'qs';
 import { CODEC_PARAMETER } from './constants';
-import { URL_EXPRESSION_CODEC } from './expression/constants';
-import { URLParameter, URL_SIMPLE_CODEC } from './simple/constants';
 import type {
     URLCodecDefinition,
     URLCodecEncodeOptions,
@@ -22,9 +20,11 @@ import type {
 
 /**
  * URL transport facade. Encoding uses the configured default dialect
- * and stamps its identity in-band. Decoding dispatches on that stamp,
- * while untagged payloads are recognized structurally so legacy simple
- * bracket filters and expression filters can coexist during v2.
+ * and stamps its identity in-band. Decoding dispatches on that stamp;
+ * untagged payloads are probed against the registered dialects'
+ * `detect` hooks (in registration order) so, with the bundled setup,
+ * legacy simple bracket filters and expression filters can coexist
+ * during v2. A payload nothing claims decodes with the default.
  */
 export class URLCodec {
     protected items : Map<string, URLCodecDefinition>;
@@ -50,51 +50,49 @@ export class URLCodec {
         }
     }
 
-    has(name: string) : boolean {
-        return this.items.has(name);
-    }
-
     /**
      * Encode a query with the named codec (or the default) and stamp
-     * the codec identity onto the wire.
+     * the codec identity onto the wire (unless `stamp: false`).
      *
      * @param input
      * @param options
      */
     encode(input: IQuery, options: URLCodecEncodeOptions = {}) : string | null {
-        const { codec: name, ...parseOptions } = options;
+        const {
+            codec: name,
+            stamp,
+            ...parseOptions
+        } = options;
 
         const codec = this.resolve(name);
         const encoded = codec.encoder.encode(input, parseOptions);
-        if (encoded === null) {
-            return null;
-        }
 
-        return `${CODEC_PARAMETER}=${codec.name}&${encoded}`;
+        return this.stampEncoded(codec, encoded, stamp);
     }
 
     async encodeAsync(
         input: IQuery,
         options: URLCodecEncodeOptions = {},
     ) : Promise<string | null> {
-        const { codec: name, ...parseOptions } = options;
+        const {
+            codec: name,
+            stamp,
+            ...parseOptions
+        } = options;
 
         const codec = this.resolve(name);
         const encoded = codec.encoder.encodeAsync ?
             await codec.encoder.encodeAsync(input, parseOptions) :
             codec.encoder.encode(input, parseOptions);
-        if (encoded === null) {
-            return null;
-        }
 
-        return `${CODEC_PARAMETER}=${codec.name}&${encoded}`;
+        return this.stampEncoded(codec, encoded, stamp);
     }
 
     /**
      * Decode a query string or a pre-parsed query object (e.g. an
      * express req.query) with the dialect its payload names. Untagged
-     * expression strings and legacy simple bracket filters are
-     * recognized from the filter wire shape.
+     * payloads are recognized structurally via the registered
+     * dialects' `detect` hooks and otherwise fall back to the default.
      *
      * @param input
      * @param options
@@ -137,35 +135,45 @@ export class URLCodec {
         let name : string | undefined;
 
         const value = parsed[CODEC_PARAMETER];
-        if (typeof value !== 'undefined') {
+        if (
+            typeof value !== 'undefined' &&
+            value !== ''
+        ) {
             if (typeof value !== 'string') {
                 throw CodecError.notResolvable();
             }
 
             name = value;
-        } else {
-            const filters = parsed[URLParameter.FILTERS];
-            if (
-                typeof filters === 'string' &&
-                this.items.has(URL_EXPRESSION_CODEC)
-            ) {
-                name = URL_EXPRESSION_CODEC;
-            } else if (
-                typeof filters !== 'undefined' &&
-                this.items.has(URL_SIMPLE_CODEC)
-            ) {
-                name = URL_SIMPLE_CODEC;
-            }
         }
 
         // The facade owns the reserved parameter. Delegated decoders,
         // especially external ones, must never see it.
         const { [CODEC_PARAMETER]: _, ...payload } = parsed;
 
+        if (typeof name === 'undefined') {
+            for (const codec of this.items.values()) {
+                if (codec.detect && codec.detect(payload)) {
+                    return { codec, payload };
+                }
+            }
+        }
+
         return {
             codec: this.resolve(name),
             payload,
         };
+    }
+
+    protected stampEncoded(
+        codec: URLCodecDefinition,
+        encoded: string | null,
+        stamp?: boolean,
+    ) : string | null {
+        if (encoded === null || stamp === false) {
+            return encoded;
+        }
+
+        return `${CODEC_PARAMETER}=${codec.name}&${encoded}`;
     }
 
     protected resolve(name?: string) : URLCodecDefinition {

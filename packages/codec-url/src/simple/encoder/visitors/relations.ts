@@ -12,7 +12,7 @@ import type {
     Relations,
 } from '@rapiq/core';
 
-import { URLParameter } from '../../constants';
+import { URLParameter } from '../../../constants';
 import { ArraySerializer } from '../serializer';
 
 export class RelationsVisitor implements IRelationsVisitor<ArraySerializer>,

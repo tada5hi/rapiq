@@ -93,8 +93,11 @@ packages/memory/src/
 └── module.ts             # QueryVisitor + compileQuery/applyQuery/compile* helpers
 
 packages/codec-url/src/
-├── module.ts             # public URLCodec façade + custom dialect registration
-├── factory.ts            # createURLCodec (bundles both; expression default)
+├── module.ts             # public URLCodec façade + custom dialect registration (detect hooks)
+├── factory.ts            # createURLCodec (bundles both; expression default; structural detects)
+├── constants.ts          # URLParameter wire names + reserved CODEC_PARAMETER
+├── decoder/              # shared BaseURLDecoder (qs parse + wire-name mapping pipeline)
+├── utils/                # shared encode helpers (parameter mask, schema-awareness)
 ├── expression/           # internal expression encoder/decoder strategy
 └── simple/               # internal legacy encoder/decoder + shared URL serializers
 ```

@@ -55,7 +55,6 @@
         "rest",
         "api-utils",
         "codec",
-        "registry",
         "typescript"
     ],
     "repository": {

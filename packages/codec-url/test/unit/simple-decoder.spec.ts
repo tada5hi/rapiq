@@ -23,6 +23,16 @@ import {
 import { SimpleURLDecoder } from '../../src/simple';
 
 describe('decoder', () => {
+    it('should not fabricate filters from unrelated parameters on an empty filter value', () => {
+        const decoder = new SimpleURLDecoder();
+
+        // present-but-empty must not fall back to reading the whole
+        // payload (page[limit] would become an eq condition).
+        const output = decoder.decodeFilters('filter=&page[limit]=10');
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, []));
+    });
+
     it('should decode a query string', () => {
         const decoder = new SimpleURLDecoder();
 

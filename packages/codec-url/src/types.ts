@@ -32,6 +32,14 @@ export type URLCodecDefinition = {
     name: string,
     encoder: IURLCodecEncoder,
     decoder: IURLCodecDecoder,
+    /**
+     * Structural recognizer for untagged payloads: given the parsed
+     * wire payload (reserved parameters already removed), return true
+     * to claim it for this dialect. Definitions are probed in
+     * registration order; when none claims a payload, the default
+     * dialect decodes it.
+     */
+    detect?: (payload: ObjectLiteral) => boolean,
 };
 
 export type URLCodecEncodeOptions = ParseQueryOptions & {
@@ -40,4 +48,11 @@ export type URLCodecEncodeOptions = ParseQueryOptions & {
      * default is used when omitted.
      */
     codec?: string,
+    /**
+     * Stamp the codec identity onto the wire (reserved `codec`
+     * parameter, default true). Disable when the receiver is not a
+     * rapiq URL codec (e.g. a strict JSON:API endpoint); untagged
+     * output is still recognized structurally on decode.
+     */
+    stamp?: boolean,
 };

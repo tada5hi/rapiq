@@ -21,16 +21,23 @@ const decoded = codec.decode(wire!, { schema: 'user' });
 
 The façade owns both directions. Use `encodeAsync()` and `decodeAsync()` when a schema uses asynchronous filter validators.
 
+For receivers outside rapiq (e.g. strict JSON:API endpoints that reject unknown query parameters), the reserved stamp can be omitted — the output is still recognized structurally on decode:
+
+```typescript
+codec.encode(query, { stamp: false });
+// filter=or(eq(name,'John'),gte(age,'18'))
+```
+
 ## Dispatch rules
 
 Encoding uses `url-expression` by default and stamps `codec=url-expression`. Decoding applies these rules in order:
 
 1. A stamped payload dispatches to the named dialect.
-2. An unstamped string `filter` is parsed as an expression.
-3. An unstamped bracket/object `filter` is parsed as legacy simple input.
+2. An unstamped non-empty string `filter` is parsed as an expression.
+3. Any other unstamped defined `filter` — bracket/object input, or an empty `filter=` which carries no dialect signal — is parsed as legacy simple input.
 4. A payload naming an unknown codec throws `CodecError` with `CODEC_UNRESOLVABLE`.
 
-Input without a filter is dialect-neutral because fields, pagination, relations and sort share one wire grammar.
+Input without a filter is dialect-neutral because fields, pagination, relations and sort share one wire grammar. Structural recognition is supplied by each registered dialect's `detect` hook (see [Custom codecs](#custom-codecs)), so it applies to third-party dialects too.
 
 ## Expression dialect
 
@@ -90,4 +97,4 @@ Allow-lists, aliases, defaults, pagination clamps and filter validation then use
 
 ## Custom codecs
 
-Advanced callers can construct `URLCodec`, register a `URLCodecDefinition` (`{ name, encoder, decoder }`) and choose whether it becomes the default. Optional async methods fall back to their synchronous counterparts when omitted.
+Advanced callers can construct `URLCodec`, register a `URLCodecDefinition` (`{ name, encoder, decoder, detect? }`) and choose whether it becomes the default. The optional `detect(payload)` hook lets a dialect claim untagged payloads structurally: hooks are probed in registration order, and a payload no hook claims decodes with the default dialect. Optional async methods fall back to their synchronous counterparts when omitted.

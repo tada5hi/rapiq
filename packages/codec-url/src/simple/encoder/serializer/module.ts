@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { URLParameter } from '../../constants';
+import { URLParameter } from '../../../constants';
 import { ArraySerializer } from './array';
 import { RecordSerializer } from './record';
 import { RecordArraySerializer } from './record-array';

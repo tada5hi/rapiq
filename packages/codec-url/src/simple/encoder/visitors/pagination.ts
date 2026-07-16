@@ -6,8 +6,9 @@
  */
 
 import type { IPaginationVisitor, Pagination } from '@rapiq/core';
+import { AdapterError } from '@rapiq/core';
 
-import { URLParameter } from '../../constants';
+import { URLParameter } from '../../../constants';
 import { RecordSerializer } from '../serializer';
 
 export class PaginationVisitor implements IPaginationVisitor<RecordSerializer> {
@@ -19,13 +20,30 @@ export class PaginationVisitor implements IPaginationVisitor<RecordSerializer> {
         );
     }
 
+    /**
+     * The wire subset mirrors the decoder: only integer limits > 0
+     * and integer offsets >= 0 survive a decode — anything else
+     * must fail loudly instead of silently dropping or truncating.
+     */
     visitPagination(expr: Pagination): RecordSerializer {
         if (typeof expr.limit !== 'undefined') {
+            if (!Number.isInteger(expr.limit) || expr.limit <= 0) {
+                throw AdapterError.featureUnsupported('pagination:limit');
+            }
+
             this.serializer.set('limit', expr.limit);
         }
 
         if (typeof expr.offset !== 'undefined') {
-            this.serializer.set('offset', expr.offset);
+            if (!Number.isInteger(expr.offset) || expr.offset < 0) {
+                throw AdapterError.featureUnsupported('pagination:offset');
+            }
+
+            // offset 0 is the wire default — absent and zero decode
+            // to the same query, so emitting it is redundant.
+            if (expr.offset > 0) {
+                this.serializer.set('offset', expr.offset);
+            }
         }
 
         return this.serializer;

@@ -33,7 +33,8 @@ const query = new Query({
 
 const codec = createURLCodec();
 const queryString = codec.encode(query);
-// → codec=url-expression&filter=gte(age,'18')&sort=-age&page[limit]=25`,
+// → codec=url-expression&filter=gte(age,'18')&page[limit]=25&sort=-age
+//   (URI-decoded for readability)`,
     },
     {
         label: 'Parse (server)',

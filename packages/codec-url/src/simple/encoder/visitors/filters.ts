@@ -19,7 +19,7 @@ import {
     Filters,
 } from '@rapiq/core';
 
-import { URLParameter } from '../../constants';
+import { URLParameter } from '../../../constants';
 import { RecordSerializer } from '../serializer';
 
 export class FiltersVisitor implements IFiltersVisitor<RecordSerializer>,

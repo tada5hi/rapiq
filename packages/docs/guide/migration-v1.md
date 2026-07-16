@@ -44,7 +44,7 @@ v1 accepted `'>=18'`, `'~jo~'`, `'!null'` as *build input*. In v2, the string pr
 
 ### Codecs: loud failures instead of silent lossiness (breaking)
 
-v1's URL build silently emitted whatever it was given. v2's `encode` throws typed errors (`FEATURE_UNSUPPORTED`, `OPERATOR_UNSUPPORTED`) for queries the wire dialect cannot represent — nested compounds, `or(...)`, same-field conditions, regex/mod/exists/elemMatch, values that would re-parse as a different condition. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
+v1's URL build silently emitted whatever it was given. v2's `encode` throws typed errors (`FEATURE_UNSUPPORTED`, `OPERATOR_UNSUPPORTED`) for queries the wire dialect cannot represent. The default expression dialect carries nested compounds, `or(...)` and same-field conditions natively, so its typed failures are limited to operators without a grammar production (regex/mod/exists/elemMatch) and values that would decode to a different condition. Only the deprecated explicit simple encoding (`URL_SIMPLE_CODEC`) additionally rejects nested compounds, `or(...)` and same-field conditions. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
 
 ### URL filters: expression output, legacy input
 

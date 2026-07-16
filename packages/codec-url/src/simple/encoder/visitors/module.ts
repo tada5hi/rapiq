@@ -27,6 +27,7 @@ import type {
     ISorts,
     ISortsVisitor,
 } from '@rapiq/core';
+import type { QueryParameterMask } from '../../../utils';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
 import { FieldsVisitor } from './fields';
@@ -34,14 +35,6 @@ import { FiltersVisitor } from './filters';
 import { PaginationVisitor } from './pagination';
 import { RelationsVisitor } from './relations';
 import { SortsVisitor } from './sort';
-
-export type QueryParameterMask = {
-    fields?: boolean,
-    filters?: boolean,
-    pagination?: boolean,
-    relations?: boolean,
-    sorts?: boolean,
-};
 
 export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     IFieldsVisitor<RecordArraySerializer>,

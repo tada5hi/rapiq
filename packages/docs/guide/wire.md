@@ -14,7 +14,7 @@ const queryString = codec.encode(query);
 await fetch(`/users?${queryString}`);
 ```
 
-New payloads use the expression filter dialect and carry `codec=url-expression`. The remaining URL parameters use JSON:API-style names:
+New payloads use the expression filter dialect and carry `codec=url-expression`. Pass `{ stamp: false }` to omit the reserved stamp for receivers outside rapiq (e.g. strict JSON:API endpoints) — untagged output is still recognized structurally on decode. The remaining URL parameters use JSON:API-style names:
 
 | Parameter | URL key | Example |
 |---|---|---|
@@ -53,8 +53,8 @@ If your input already uses canonical parameter keys (`filters`, `pagination`, �
 The v2 codec follows a read-both/write-expression migration:
 
 1. A stamped payload dispatches to its named dialect.
-2. An unstamped string `filter` is parsed as an expression.
-3. An unstamped bracket/object `filter` is parsed as legacy simple input.
+2. An unstamped non-empty string `filter` is parsed as an expression.
+3. Any other unstamped defined `filter` — bracket/object input, or an empty `filter=` — is parsed as legacy simple input.
 4. An unknown stamped codec throws `CodecError` with `CODEC_UNRESOLVABLE`.
 
 This lets receiving applications upgrade before callers. Existing URLs such as `filter[age]=>=18` continue to decode, while upgraded callers begin producing expressions.
