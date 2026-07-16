@@ -48,6 +48,20 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
 }
 
 /**
+ * TypeORM parameters are global to the query builder and last-write-wins,
+ * so every filter application needs its own namespace: positional names
+ * like `:0` would silently rebind a caller-owned `:0` parameter — or, on
+ * a re-run, the previous run's clauses.
+ */
+let PARAM_NAMESPACE_SEQ = 0;
+
+function nextParamNamespace() : string {
+    PARAM_NAMESPACE_SEQ += 1;
+
+    return `rapiq_${PARAM_NAMESPACE_SEQ}_`;
+}
+
+/**
  * Resolve a (possibly relation-dotted) property path to its column,
  * descending through relation metadata segment by segment; embedded
  * paths resolve through the plain column lookup per step.
@@ -83,11 +97,22 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
     protected dialect : DialectOptions;
 
+    protected paramNamespace : string;
+
     constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
 
         this.queryBuilder = queryBuilder;
         this.dialect = resolveQueryDialect(queryBuilder);
+        this.paramNamespace = nextParamNamespace();
+    }
+
+    override clear() {
+        super.clear();
+
+        // a fresh namespace per run: clauses a previous run left on the
+        // builder keep their own bindings instead of being rebound.
+        this.paramNamespace = nextParamNamespace();
     }
 
     rootAlias(): string | undefined {
@@ -99,7 +124,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     paramPlaceholder(index: number) : string {
-        return `:${index - 1}`;
+        return `:${this.paramNamespace}${index - 1}`;
     }
 
     override isRegexpSupported() : boolean {
@@ -140,6 +165,9 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         const child = new FiltersAdapter(this.queryBuilder, this.relations);
 
         this.setChildAttributes(child);
+        // children share the placeholder indexer, so they must also
+        // share the namespace their placeholders are rendered with.
+        child.paramNamespace = this.paramNamespace;
 
         return child as this;
     }
@@ -148,10 +176,15 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         const [sql, params] = this.getQueryAndParameters();
 
         if (sql) {
+            const parameters : Record<string, unknown> = {};
+            for (const [i, param] of params.entries()) {
+                parameters[`${this.paramNamespace}${i}`] = param;
+            }
+
             // The builder may already carry an application-owned predicate
             // (for example a tenant or authorization scope). Rapiq filters
             // narrow that query; they must never replace its baseline WHERE.
-            this.queryBuilder.andWhere(sql, params);
+            this.queryBuilder.andWhere(sql, parameters);
         }
     }
 }

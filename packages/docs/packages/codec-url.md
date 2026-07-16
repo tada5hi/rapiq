@@ -95,6 +95,8 @@ const decoded = codec.decode(wire!, { schema: 'user' });
 
 Allow-lists, aliases, defaults, pagination clamps and filter validation then use parser-exact semantics. Parameters absent from the input query remain absent from the wire.
 
+Schema-aware encoding validates by piping the output through the schema-bound decoder — a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
+
 ## Custom codecs
 
 Advanced callers can construct `URLCodec`, register a `URLCodecDefinition` (`{ name, encoder, decoder, detect? }`) and choose whether it becomes the default. The optional `detect(payload)` hook lets a dialect claim untagged payloads structurally: hooks are probed in registration order, and a payload no hook claims decodes with the default dialect. Optional async methods fall back to their synchronous counterparts when omitted.

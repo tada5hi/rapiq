@@ -62,17 +62,25 @@ export abstract class BaseParser<
         return schema;
     }
 
+    /**
+     * Expand dotted keys and nested objects into one canonical tree.
+     * Every leaf is written via its full dotted path, so a dotted key
+     * and a nested object sharing a prefix (`{'realm.id': 1, realm:
+     * {name: 'x'}}`) merge instead of the later key replacing the
+     * earlier subtree.
+     */
     protected expandObject(
         input: Record<string, any>,
+        output: Record<string, any> = {},
+        prefix?: string,
     ) {
-        const output : Record<string, any> = {};
-
         const keys = Object.keys(input);
         for (const key of keys) {
+            const path = prefix ? `${prefix}.${key}` : key;
             if (isObject(input[key])) {
-                setPathValue(output, key, this.expandObject(input[key]));
+                this.expandObject(input[key], output, path);
             } else {
-                setPathValue(output, key, input[key]);
+                setPathValue(output, path, input[key]);
             }
         }
 

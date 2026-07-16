@@ -46,31 +46,14 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD> = {},
     ): Query {
         const output : QueryContext = {};
-
-        const data : ObjectLiteral = isObject(input) ? input : {};
-
-        // forward the original schema input — a manufactured empty schema
-        // would wrongly bind the parameter scopes.
-        const parameterOptions : ParseParameterOptions<RECORD> = {};
-        if (options.schema) {
-            parameterOptions.schema = options.schema;
-        }
-
-        if (typeof options.strict !== 'undefined') {
-            parameterOptions.strict = options.strict;
-        }
+        const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
         if (!this.skipParameter(options.relations)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = this.parseRelations(relationsInput, parameterOptions);
             output.relations = relations;
-
-            // relation paths of the other parameters are only gated by the
-            // relations parameter when the client actually supplied one.
-            if (typeof relationsInput !== 'undefined') {
-                parameterOptions.relations = relations;
-            }
+            this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options.fields)) {
@@ -111,27 +94,14 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD> = {},
     ) : Promise<Query> {
         const output : QueryContext = {};
-
-        const data : ObjectLiteral = isObject(input) ? input : {};
-
-        const parameterOptions : ParseParameterOptions<RECORD> = {};
-        if (options.schema) {
-            parameterOptions.schema = options.schema;
-        }
-
-        if (typeof options.strict !== 'undefined') {
-            parameterOptions.strict = options.strict;
-        }
+        const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
         if (!this.skipParameter(options.relations)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = await this.parseRelationsAsync(relationsInput, parameterOptions);
             output.relations = relations;
-
-            if (typeof relationsInput !== 'undefined') {
-                parameterOptions.relations = relations;
-            }
+            this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options.fields)) {
@@ -163,6 +133,49 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         return new Query(output);
+    }
+
+    // -----------------------------------------------------
+
+    /**
+     * The option plumbing shared by {@link parse} and {@link parseAsync}.
+     * Forwards the ORIGINAL schema input — a manufactured empty schema
+     * would wrongly bind the parameter scopes.
+     */
+    protected prepareQueryContext<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseQueryOptions<RECORD>,
+    ) : { data: ObjectLiteral, parameterOptions: ParseParameterOptions<RECORD> } {
+        const data : ObjectLiteral = isObject(input) ? input : {};
+
+        const parameterOptions : ParseParameterOptions<RECORD> = {};
+        if (options.schema) {
+            parameterOptions.schema = options.schema;
+        }
+
+        if (typeof options.strict !== 'undefined') {
+            parameterOptions.strict = options.strict;
+        }
+
+        return { data, parameterOptions };
+    }
+
+    /**
+     * Relation paths of the other parameters are only gated by the
+     * relations parameter when the client actually supplied one.
+     */
+    protected gateRelations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        parameterOptions: ParseParameterOptions<RECORD>,
+        relationsInput: unknown,
+        relations: IRelations,
+    ) : void {
+        if (typeof relationsInput !== 'undefined') {
+            parameterOptions.relations = relations;
+        }
     }
 
     // -----------------------------------------------------

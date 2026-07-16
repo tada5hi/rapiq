@@ -25,7 +25,7 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 
 The `queryBuilder` (the builder to write into) is bound at construction; `execute(query)` then walks the parsed `Query`, collects the state into its sub-adapters, and applies it to that builder — returning the applied pagination (e.g. for the response `meta` block).
 
-Any `WHERE` conditions already present on the builder are preserved. Rapiq appends its filter tree with `AND`, so an application-owned tenant or authorization predicate remains the baseline even when the client sends no filters.
+Builder state you set before `execute` is preserved: `WHERE` conditions stay (rapiq appends its filter tree with `AND`, and binds its parameters under a private namespace so caller bindings are never rebound), and a query that carries no sorts or pagination leaves a caller-owned `ORDER BY` / `take` / `skip` untouched. An application-owned tenant or authorization predicate therefore remains the baseline even when the client sends no filters. When the client *does* send sorts, fields or pagination, those replace the corresponding builder state — that is the request's job.
 
 Construct the adapter **per request**, just like the `SelectQueryBuilder` you hand it — it holds per-call state. The shareable, long-lived part is your config, which you spread into the per-request options:
 

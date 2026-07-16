@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '../../constants';
+import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import { FieldsParseError } from '../../parser/parameter/fields/error';
@@ -58,7 +58,7 @@ const RELATION_NAME_REGEX = /^[a-zA-Z0-9_-]+([.]*[a-zA-Z0-9_-])*$/u;
  * level, so a cyclic mapping/schemaMapping configuration could otherwise
  * recurse without ever consuming input.
  */
-const MAX_DEPTH = 32;
+const MAX_DEPTH = MAX_TRAVERSAL_DEPTH;
 
 type ResolutionScopeOptions<
     P extends `${Parameter}`,

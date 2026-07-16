@@ -59,6 +59,16 @@ describe('regex', () => {
         ]);
     });
 
+    it('rejects values that are neither RegExp nor string', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
+        const visitor = new FiltersVisitor(adapter);
+
+        // e.g. a cross-realm RegExp or a plain number must fail typed
+        // instead of being bound raw as the pattern parameter.
+        expect(() => new Filter('regex', 'email', 42 as never).accept(visitor))
+            .toThrow(AdapterError);
+    });
+
     it('generates REGEXP_LIKE for Oracle', () => {
         const relationsAdapter = new RelationsAdapter();
         const adapter = new FiltersAdapter(

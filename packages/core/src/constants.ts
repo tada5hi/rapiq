@@ -16,3 +16,13 @@ export enum Parameter {
 // -----------------------------------------------------------
 
 export const DEFAULT_ID = '__DEFAULT__';
+
+// -----------------------------------------------------------
+
+/**
+ * Shared upper bound for recursive traversal: schema relation
+ * resolution, expression compound nesting and mongo document
+ * nesting all consume this cap, so every dialect accepts and
+ * rejects the same depth.
+ */
+export const MAX_TRAVERSAL_DEPTH = 32;

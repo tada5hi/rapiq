@@ -80,9 +80,12 @@ jobs:
             -   name: Build
                 uses: ./.github/actions/build
 
-            -   name: Run tests
+            -   name: Run tests with coverage
+                # coverage thresholds must fail HERE (pre-merge) — the release
+                # workflow re-checks them only after release-please has already
+                # created tags, where a failure strands the release unpublished.
                 run: |
-                    npm run test
+                    npm run test:coverage
 
 #    preview:
 #        name: Preview Package
