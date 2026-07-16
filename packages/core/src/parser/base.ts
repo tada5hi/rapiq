@@ -6,7 +6,8 @@
  */
 
 import { setPathValue } from 'pathtrace';
-import { DEFAULT_ID } from '../constants';
+import { DEFAULT_ID, MAX_TRAVERSAL_DEPTH } from '../constants';
+import { ParseError } from '../errors';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
@@ -62,17 +63,34 @@ export abstract class BaseParser<
         return schema;
     }
 
+    /**
+     * Expand dotted keys and nested objects into one canonical tree.
+     * Every leaf is written via its full dotted path, so a dotted key
+     * and a nested object sharing a prefix (`{'realm.id': 1, realm:
+     * {name: 'x'}}`) merge instead of the later key replacing the
+     * earlier subtree. Paths are capped at the shared traversal depth:
+     * a crafted deeply nested (or cyclic) input must fail typed instead
+     * of overflowing the call stack — no valid path exceeds the cap,
+     * since relation traversal is bounded by the same constant.
+     */
     protected expandObject(
         input: Record<string, any>,
+        output: Record<string, any> = {},
+        prefix?: string,
     ) {
-        const output : Record<string, any> = {};
+        const depth = prefix ? prefix.split('.').length : 0;
 
         const keys = Object.keys(input);
         for (const key of keys) {
+            if (depth + key.split('.').length > MAX_TRAVERSAL_DEPTH) {
+                throw ParseError.inputInvalid();
+            }
+
+            const path = prefix ? `${prefix}.${key}` : key;
             if (isObject(input[key])) {
-                setPathValue(output, key, this.expandObject(input[key]));
+                this.expandObject(input[key], output, path);
             } else {
-                setPathValue(output, key, input[key]);
+                setPathValue(output, path, input[key]);
             }
         }
 

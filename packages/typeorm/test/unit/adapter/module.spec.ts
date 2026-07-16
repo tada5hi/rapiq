@@ -51,22 +51,48 @@ describe('src/adapter/module.ts', () => {
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
     });
 
-    it('should reset stale pagination on a re-run whose query drops it', () => {
+    it('should apply an explicit zero offset instead of coercing it away', () => {
         const queryBuilder = dataSource
             .getRepository(User)
             .createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
 
-        // first run applies take/skip to the builder
-        adapter.execute(new Query({ pagination: new Pagination(10, 20) }));
-        expect(queryBuilder.expressionMap.take).toEqual(10);
+        adapter.execute(new Query({ pagination: new Pagination(10, 0) }));
 
-        // default clear:true makes the adapter re-runnable — a follow-up query
-        // without pagination must reset the builder, not leak the prior limit/offset
+        expect(queryBuilder.expressionMap.take).toEqual(10);
+        expect(queryBuilder.expressionMap.skip).toEqual(0);
+    });
+
+    it('should preserve caller-owned take/skip for a query without pagination', () => {
+        // the adapter/builder pair is per-request; a query that carries no
+        // pagination must not erase an application-owned safety cap —
+        // the same preservation contract filters apply to WHERE.
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user')
+            .take(100)
+            .skip(5);
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query());
-        expect(queryBuilder.expressionMap.take).toBeUndefined();
-        expect(queryBuilder.expressionMap.skip).toBeUndefined();
+
+        expect(queryBuilder.expressionMap.take).toEqual(100);
+        expect(queryBuilder.expressionMap.skip).toEqual(5);
+    });
+
+    it('should preserve a caller-owned order-by for a query without sorts', () => {
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user')
+            .orderBy('user.id', 'DESC');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query());
+
+        expect(queryBuilder.expressionMap.orderBys).toEqual({ 'user.id': 'DESC' });
     });
 
     it('should preserve a caller-owned where clause when applying filters', () => {
@@ -99,5 +125,51 @@ describe('src/adapter/module.ts', () => {
         adapter.execute(new Query());
 
         expect(queryBuilder.getSql()).toContain('WHERE "user"."id" = 1');
+    });
+
+    it('should not rebind caller-owned numeric parameters', () => {
+        // TypeORM parameters are builder-global; positional names such as
+        // `:0` are legal caller bindings and must survive rapiq's filters.
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user')
+            .where('user.id = :0', { 0: 1 });
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query({
+            filters: new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+            ]),
+        }));
+
+        const sql = queryBuilder.getSql();
+        expect(sql).toContain('WHERE "user"."id" = 1 AND');
+        expect(sql).toContain('"user"."age" = 18');
+    });
+
+    it('should keep distinct parameter bindings across re-runs', () => {
+        // a fresh adapter/builder per request is the documented contract,
+        // but a re-run must never rebind the previous run's parameters.
+        const queryBuilder = dataSource
+            .getRepository(User)
+            .createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+
+        adapter.execute(new Query({
+            filters: new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+            ]),
+        }));
+        adapter.execute(new Query({
+            filters: new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'age', 25),
+            ]),
+        }));
+
+        const sql = queryBuilder.getSql();
+        expect(sql).toContain('"user"."age" = 18');
+        expect(sql).toContain('"user"."age" = 25');
     });
 });

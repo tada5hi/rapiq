@@ -7,7 +7,6 @@
 
 import type {
     FiltersParseOptions,
-    FiltersSchema,
     ICondition,
     IFilters,
     ObjectLiteral,
@@ -21,11 +20,13 @@ import {
     Filters,
     FiltersParseError,
     KeyResolutionErrorCode,
+    MAX_TRAVERSAL_DEPTH,
     Parameter,
     ParseError,
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
+    buildFiltersDefaults,
     isFilters,
     isObject,
 } from '@rapiq/core';
@@ -52,7 +53,7 @@ type FieldResolution = {
  * body would escape as an untyped stack overflow instead of a
  * grammar error.
  */
-const MAX_DEPTH = 32;
+const MAX_DEPTH = MAX_TRAVERSAL_DEPTH;
 
 /**
  * Parses MongoDB-style filter documents into the rapiq Filters AST.
@@ -73,60 +74,14 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
-        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        }) as FiltersScope;
-
-        // absent input is not a failure — schema defaults still apply.
-        if (typeof input === 'undefined' || input === null) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+        const { scope, parsed } = this.prepare(input, options);
+        if (!parsed) {
+            return this.buildDefaultOutput(scope);
         }
-
-        // the dialect travels as a JSON document — anything that is not
-        // a plain object is a grammar error, independent of policy.
-        if (!isPlainObject(input)) {
-            throw FiltersParseError.inputInvalid();
-        }
-
-        // if allowed is an empty array nothing is permitted — the input
-        // is not walked and only the schema defaults apply.
-        if (
-            !scope.schema.allowedIsUndefined &&
-            scope.schema.allowed.length === 0
-        ) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        const conditions = this.parseDocument(input, scope, false, 0);
-        if (conditions.length === 0) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        // An explicit root compound is returned as-is; everything else wraps
-        // in a root AND. Validation runs over that final tree so replacement
-        // and rejection semantics are identical across parser dialects.
-        const [first] = conditions;
-        const parsed = conditions.length === 1 && first && isFilters(first) ?
-            first :
-            new Filters(FilterCompoundOperator.AND, conditions);
 
         const validated = applyFiltersSchemaValidation(parsed, scope.schema);
-        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+        if (!validated) {
+            return this.buildDefaultOutput(scope);
         }
 
         return validated as IFilters;
@@ -136,52 +91,14 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
-        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        }) as FiltersScope;
-
-        if (typeof input === 'undefined' || input === null) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+        const { scope, parsed } = this.prepare(input, options);
+        if (!parsed) {
+            return this.buildDefaultOutput(scope);
         }
-
-        if (!isPlainObject(input)) {
-            throw FiltersParseError.inputInvalid();
-        }
-
-        if (
-            !scope.schema.allowedIsUndefined &&
-            scope.schema.allowed.length === 0
-        ) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        const conditions = this.parseDocument(input, scope, false, 0);
-        if (conditions.length === 0) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        const [first] = conditions;
-        const parsed = conditions.length === 1 && first && isFilters(first) ?
-            first :
-            new Filters(FilterCompoundOperator.AND, conditions);
 
         const validated = await applyFiltersSchemaValidationAsync(parsed, scope.schema);
-        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+        if (!validated) {
+            return this.buildDefaultOutput(scope);
         }
 
         return validated as IFilters;
@@ -203,16 +120,63 @@ export class MongoFiltersParser extends BaseParser<
 
     // ---------------------------------------------------------
 
-    protected buildDefaults(schema: FiltersSchema) : ICondition[] {
-        if (!schema.default) {
-            return [];
+    /**
+     * The shared front-end of {@link parse} and {@link parseAsync}:
+     * scope construction, grammar/policy guards and the document walk —
+     * everything up to (but excluding) validation. `parsed: null`
+     * signals "fall back to the schema defaults".
+     */
+    private prepare<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+    ) : { scope: FiltersScope, parsed: IFilters | null } {
+        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        }) as FiltersScope;
+
+        // absent input is not a failure — schema defaults still apply.
+        if (typeof input === 'undefined' || input === null) {
+            return { scope, parsed: null };
         }
 
-        if (Array.isArray(schema.default)) {
-            return schema.default;
+        // the dialect travels as a JSON document — anything that is not
+        // a plain object is a grammar error, independent of policy.
+        if (!isPlainObject(input)) {
+            throw FiltersParseError.inputInvalid();
         }
 
-        return [schema.default];
+        // if allowed is an empty array nothing is permitted — the input
+        // is not walked and only the schema defaults apply.
+        if (
+            !scope.schema.allowedIsUndefined &&
+            scope.schema.allowed.length === 0
+        ) {
+            return { scope, parsed: null };
+        }
+
+        const conditions = this.parseDocument(input, scope, false, 0);
+        if (conditions.length === 0) {
+            return { scope, parsed: null };
+        }
+
+        // An explicit root compound is returned as-is; everything else wraps
+        // in a root AND. Validation runs over that final tree so replacement
+        // and rejection semantics are identical across parser dialects.
+        const [first] = conditions;
+        const parsed = conditions.length === 1 && first && isFilters(first) ?
+            first :
+            new Filters(FilterCompoundOperator.AND, conditions);
+
+        return { scope, parsed };
+    }
+
+    private buildDefaultOutput(scope: FiltersScope) : IFilters {
+        return new Filters(
+            FilterCompoundOperator.AND,
+            buildFiltersDefaults(scope.schema),
+        );
     }
 
     // ---------------------------------------------------------

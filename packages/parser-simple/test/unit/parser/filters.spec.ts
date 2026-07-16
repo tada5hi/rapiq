@@ -12,6 +12,7 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    ParseError,
     Relation,
     Relations,
     defineFiltersSchema,
@@ -152,6 +153,35 @@ describe('src/filter/index.ts', () => {
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
         );
+    });
+
+    it('should reject input nested beyond the shared traversal depth', () => {
+        let nested : Record<string, any> = { name: 'admin' };
+        for (let i = 0; i < 40; i++) {
+            nested = { child: nested };
+        }
+
+        expect(() => parser.parse(nested)).toThrow(ParseError);
+
+        // a single dotted key expands to the same depth — same cap.
+        const key = Array.from({ length: 40 }, () => 'child').join('.');
+        expect(() => parser.parse({ [key]: 'x' })).toThrow(ParseError);
+    });
+
+    it('should merge dotted keys and nested objects sharing a prefix', () => {
+        const expected = new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'realm.id', 1),
+            new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        ]);
+
+        expect(parser.parse({ 'realm.id': 1, realm: { name: 'master' } }))
+            .toEqual(expected);
+        // ... independent of key order
+        expect(parser.parse({ realm: { name: 'master' }, 'realm.id': 1 }))
+            .toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+                new Filter(FilterFieldOperator.EQUAL, 'realm.id', 1),
+            ]));
     });
 
     it('should not parse with non matching name', async () => {

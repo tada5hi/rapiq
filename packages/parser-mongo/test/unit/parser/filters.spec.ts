@@ -854,6 +854,40 @@ describe('filters/mongo-parser', () => {
                 new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
             ]));
         });
+
+        it('should apply schema defaults when validation empties a nested compound', () => {
+            const schema = defineFiltersSchema({
+                default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+                validate: () => undefined,
+            });
+
+            const output = parser.parse(
+                { $or: [{ $and: [{ name: 'admin' }] }] },
+                { schema },
+            );
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+            ]));
+        });
+
+        it('should validate the interior conditions of $elemMatch', () => {
+            const schema = defineFiltersSchema({
+                default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+                validate: (filter) => (filter.field === 'password' ? undefined : filter),
+            });
+
+            const output = parser.parse(
+                { items: { $elemMatch: { password: 'x' } } },
+                { schema },
+            );
+
+            // the interior leaf is rejected, dropping the whole
+            // elemMatch condition — defaults apply.
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+            ]));
+        });
     });
 
     describe('strict mode', () => {
