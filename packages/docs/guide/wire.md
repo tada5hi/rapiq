@@ -1,101 +1,104 @@
 # Queries over the Wire
 
-A `Query` crosses process boundaries through a **codec**: the encoder turns the AST into a URL query string, the decoder turns incoming wire input back into the AST — validated against a [schema](/guide/schemas) on the way in. This page covers the flow; the exact wire grammars live on the [codec package pages](/packages/codec-url-simple).
+A `Query` crosses process boundaries through `@rapiq/codec-url`: the façade encodes the AST as a self-described URL query string and decodes incoming wire input back into the AST, validating against a [schema](/guide/schemas) along the way.
 
 ## Encoding (caller)
 
 ```typescript
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
-const queryString = new URLEncoder().encode(query);
-// fields=id,name&filter[age]=>=18&page[limit]=25&include=realm&sort=-age
+const codec = createURLCodec();
+const queryString = codec.encode(query);
+// codec=url-expression&fields=id,name&filter=gte(age%2C'18')&page[limit]=25&...
 
 await fetch(`/users?${queryString}`);
 ```
 
-The wire uses the JSON:API-style parameter names:
+New payloads use the expression filter dialect and carry `codec=url-expression`. Pass `{ stamp: false }` to omit the reserved stamp for receivers outside rapiq (e.g. strict JSON:API endpoints) — untagged output is still recognized structurally on decode. The remaining URL parameters use JSON:API-style names:
 
 | Parameter | URL key | Example |
 |---|---|---|
 | fields | `fields` | `fields=id,name` / `fields[items]=id` |
-| filters | `filter` | `filter[age]=>=18` |
+| filters | `filter` | `filter=and(gte(age,'18'),eq(active,'true'))` |
 | pagination | `page` | `page[limit]=25&page[offset]=50` |
 | relations | `include` | `include=realm,items` |
 | sort | `sort` | `sort=name,-age` |
 
 ## Decoding (receiver)
 
-`URLDecoder` accepts a raw query string *or* an already-parsed object like express' `req.query`, maps the wire names to the canonical parameters, and validates against your schema:
+The same façade accepts a raw query string or an already-parsed object such as Express' `req.query`:
 
 ```typescript
-import { URLDecoder } from '@rapiq/codec-url-simple';
+const codec = createURLCodec(registry);
 
-const decoder = new URLDecoder(registry);
+const query = codec.decode(
+    "codec=url-expression&filter=gte(age,'18')&sort=-age",
+    { schema: 'user' },
+);
 
-// from a raw query string ...
-const query = decoder.decode('filter[age]=>=18&sort=-age', { schema: 'user' });
-
-// ... or straight from express
 app.get('/users', (req, res) => {
-    const query = decoder.decode(req.query, { schema: 'user' });
+    const query = codec.decode(req.query, { schema: 'user' });
     if (!query) {
-        return res.status(400).end(); // null for non-object input
+        return res.status(400).end();
     }
 });
 ```
 
 ::: tip Input that isn't URL-shaped
-If your input already uses the canonical parameter keys (`filters`, `pagination`, …) — say, a JSON request body — skip the codec and use a [parser](/packages/parser-simple) directly: `new SimpleParser(registry).parse(input, { schema: 'user' })`. MongoDB-style filter documents have their [own parser](/packages/parser-mongo).
+If your input already uses canonical parameter keys (`filters`, `pagination`, …), use a [parser](/packages/parser-simple) directly. MongoDB-style filter documents have their [own parser](/packages/parser-mongo).
 :::
+
+## Migration dispatch
+
+The v2 codec follows a read-both/write-expression migration:
+
+1. A stamped payload dispatches to its named dialect.
+2. An unstamped non-empty string `filter` is parsed as an expression.
+3. Any other unstamped defined `filter` — bracket/object input, or an empty `filter=` — is parsed as legacy simple input.
+4. An unknown stamped codec throws `CodecError` with `CODEC_UNRESOLVABLE`.
+
+This lets receiving applications upgrade before callers. Existing URLs such as `filter[age]=>=18` continue to decode, while upgraded callers begin producing expressions.
+
+Simple encoding is available temporarily and explicitly:
+
+```typescript
+import { URL_SIMPLE_CODEC } from '@rapiq/codec-url';
+
+codec.encode(query, { codec: URL_SIMPLE_CODEC });
+// codec=url-simple&filter[age]=>=18
+```
+
+`URL_SIMPLE_CODEC` and simple encoding are deprecated for removal in v3.
 
 ## What fits on the wire
 
-Every wire dialect expresses only a **subset** of the query AST. Inside its subset, a codec guarantees the round trip: `decode(encode(query))` gives the query back (up to scalar normalization — the wire is untyped, so `'5'` returns as `5`, `'true'` as `true`).
+Every wire dialect expresses a subset of the query AST. Inside that subset, `decode(encode(query))` restores the same query up to scalar normalization (`'5'` returns as `5`). Outside it, encoding throws a typed error instead of changing the query's meaning.
 
-Outside its subset, `encode` **throws a typed error instead of silently changing what the query means.** This is a deliberate design decision: a query that encodes is a query that arrives intact.
-
-Two URL dialects ship, with different subsets:
-
-| | [simple](/packages/codec-url-simple) | [expression](/packages/codec-url-expression) |
+| | [legacy simple](/packages/codec-url#legacy-simple-dialect) | [expression](/packages/codec-url#expression-dialect) |
 |---|---|---|
 | Wire shape | `filter[age]=>=18` per field | one `filter=and(gte(age,'18'),…)` expression |
 | Flat AND filters | ✓ | ✓ |
 | `or(...)`, nested groups | ✗ throws | ✓ |
 | Several conditions on one field | ✗ throws | ✓ |
-| Values containing commas / operator markers | ✗ throws | ✓ (quoted) |
+| Commas / simple operator markers in values | ✗ throws | ✓ (quoted) |
 | `regex` / `mod` / `exists` / `elemMatch` | ✗ throws | ✗ throws |
-| Human-writable by hand | very | somewhat |
 
-Rule of thumb: start with the simple dialect — it is what plain clients and hand-written URLs speak. Reach for the expression dialect when compound filter trees must cross the URL. The operators no URL dialect carries still work everywhere *behind* the wire: in-process queries hand the AST to an [adapter](/guide/executing-queries) directly.
+## Schema-aware transport
 
-## Schema-aware encoding
-
-Encoders optionally validate against the same schema the receiver will use — early feedback on the caller, identical semantics by construction:
+Use the same registry on both sides and select the schema per operation:
 
 ```typescript
-const encoder = new URLEncoder(registry);
-encoder.encode(query, { schema: 'user' });
+const codec = createURLCodec(registry);
+
+const wire = codec.encode(query, { schema: 'user' });
+const decoded = codec.decode(wire!, { schema: 'user' });
 ```
 
-Disallowed keys are dropped (or throw, with `throwOnFailure`), aliases resolve to canonical names, `maxLimit` clamps the emitted limit — and parameters absent from the query stay absent, so schema defaults are not materialized onto the wire.
+Disallowed keys are dropped or thrown according to the schema, aliases resolve, pagination limits clamp, and filter validators run with parser-exact semantics. Parameters absent from the source query remain absent from the wire.
 
-## Accepting multiple dialects
-
-When one endpoint must accept both dialects, [`@rapiq/codec-url`](/packages/codec-url) makes payloads self-describing: encoding through its registry stamps a reserved `codec` parameter, decoding dispatches on it. Unstamped payloads fall back to the default (simple) — plain clients keep working.
-
-```typescript
-import { createURLCodecRegistry } from '@rapiq/codec-url';
-
-const codecs = createURLCodecRegistry(schemaRegistry);
-
-codecs.encode(query, { codec: 'url-expression' });
-// codec=url-expression&filter=or(eq(name,'John'),gte(age,'18'))
-
-codecs.decode(req.query, { schema: 'user' }); // dispatches on the stamp
-```
+When validators are asynchronous, use `await codec.encodeAsync(...)` and `await codec.decodeAsync(...)`.
 
 ## Next steps
 
 - [Executing Queries](/guide/executing-queries) — what the receiver does with the decoded query.
-- [@rapiq/codec-url-simple](/packages/codec-url-simple) — full wire grammar & round-trip rules.
-- [@rapiq/codec-url-expression](/packages/codec-url-expression) — the expression wire format.
+- [@rapiq/codec-url](/packages/codec-url) — complete dialect, migration and extension reference.

@@ -6,9 +6,22 @@
  */
 
 /**
+ * JSON-API wire names of the query parameters,
+ * as they appear in a URL query string.
+ */
+export enum URLParameter {
+    FILTERS = 'filter',
+    FIELDS = 'fields',
+    PAGINATION = 'page',
+    RELATIONS = 'include',
+    SORT = 'sort',
+}
+
+/**
  * Reserved wire parameter carrying the codec identity of a payload.
- * Encoding through the registry stamps it; decoding dispatches on it
- * and falls back to the registry default when it is absent (plain
- * clients keep working without stamping anything).
+ * Encoding through the facade stamps it; decoding dispatches on it.
+ * When absent, registered dialects recognize their payloads
+ * structurally via their `detect` hooks (the bundled setup tells
+ * expression and legacy simple input apart by the filter wire shape).
  */
 export const CODEC_PARAMETER = 'codec';

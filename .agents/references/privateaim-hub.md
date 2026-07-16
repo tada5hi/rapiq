@@ -6,7 +6,7 @@ Federated-analytics platform with multiple backend services (core, storage, tele
 
 | hub code | v1 API used | v2 equivalent |
 |---|---|---|
-| `packages/core-http-kit/src/domains/*/module.ts` (~20 entity APIs: `getMany(record?: BuildInput<T>)` → `` get(`projects${buildQuery(record)}`) ``) | `BuildInput<T>`, `buildQuery()` | `QueryBuilder` + `URLEncoder` |
+| `packages/core-http-kit/src/domains/*/module.ts` (~20 entity APIs: `getMany(record?: BuildInput<T>)` → `` get(`projects${buildQuery(record)}`) ``) | `BuildInput<T>`, `buildQuery()` | `defineQuery()` + `createURLCodec().encode()` |
 | `packages/client-vue/src/core/list/module.ts` (generic list composable; merges input/pagination-state/context-query/props-query with `smob.createMerger`; `queryFilters` mutation callback) | `BuildInput`, `FiltersBuildInput` | needs typed merge (plan 010) |
 | `packages/client-vue/src/core/entity-manager/module.ts:294-404` (spread-composes `query`/`queryFields`/`queryFilters` props `as any`) | per-parameter build inputs | composite-input assignability (plan 010) |
 | `packages/client-vue/src/core/query/sort.ts` (`isQuerySortedDescByDate` inspects `SortBuildInput` string `-created_at` / object forms for realtime prepend decisions) | `SortBuildInput`, `SortDirection` | v2 `Sorts`/`Sort` AST makes this introspection trivial — but only if clients hold a `Query`, not a raw object |

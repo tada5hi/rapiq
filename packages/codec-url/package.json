@@ -1,7 +1,7 @@
 {
     "name": "@rapiq/codec-url",
     "version": "1.0.0",
-    "description": "A package containing a registry dispatching between url codec dialects via an in-band codec parameter.",
+    "description": "A URL query-string codec with expression filters and legacy simple-filter compatibility.",
     "type": "module",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",
@@ -19,15 +19,15 @@
         "qs": "^6.15.3"
     },
     "devDependencies": {
-        "@rapiq/codec-url-expression": "^1.0.0",
-        "@rapiq/codec-url-simple": "^1.0.0",
         "@rapiq/core": "^1.0.0",
+        "@rapiq/parser-expression": "^1.0.0",
+        "@rapiq/parser-simple": "^1.0.0",
         "@types/qs": "^6.14.0"
     },
     "peerDependencies": {
-        "@rapiq/codec-url-expression": "^1.0.0",
-        "@rapiq/codec-url-simple": "^1.0.0",
-        "@rapiq/core": "^1.0.0"
+        "@rapiq/core": "^1.0.0",
+        "@rapiq/parser-expression": "^1.0.0",
+        "@rapiq/parser-simple": "^1.0.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
@@ -55,7 +55,6 @@
         "rest",
         "api-utils",
         "codec",
-        "registry",
         "typescript"
     ],
     "repository": {

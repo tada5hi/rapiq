@@ -38,7 +38,7 @@ BaseError { code: ErrorCode }
 
 ### Parse time (client input)
 
-Parsers throw subclasses of `ParseError` — but **only when `throwOnFailure` is enabled**; the default policy silently drops disallowed input. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
+Most parser parameters throw subclasses of `ParseError` when `throwOnFailure` is enabled and otherwise drop disallowed input. Expression filters are stricter: schema-key violations always throw because an expression cannot be partially reinterpreted safely. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
 
 | Code | Trigger |
 |---|---|
@@ -50,7 +50,7 @@ Parsers throw subclasses of `ParseError` — but **only when `throwOnFailure` is
 | `SYNTAX_INVALID` | malformed expression / document grammar |
 | `INPUT_INVALID` | non-object top-level input |
 
-Two dialects are stricter than the drop policy: **grammar errors always throw**, regardless of schema settings — a malformed expression string ([expression parser](/packages/parser-expression)) or a broken `$`-operator document ([MongoDB-style parser](/packages/parser-mongo)) has no silent-drop reading.
+Two dialects are stricter than the drop policy for grammar: **grammar errors always throw**, regardless of schema settings — a malformed expression string ([expression parser](/packages/parser-expression)) or a broken `$`-operator document ([MongoDB-style parser](/packages/parser-mongo)) has no silent-drop reading.
 
 ### Encode/apply time (query exceeds the target)
 
@@ -87,7 +87,7 @@ import { ParseError } from '@rapiq/core';
 app.get('/users', async (req, res) => {
     let query;
     try {
-        query = decoder.decode(req.query, { schema: 'user' });
+        query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
         if (e instanceof ParseError) {
             // client sent something outside the contract

@@ -31,14 +31,14 @@ const packages: PackageCard[] = [
         ],
     },
     {
-        name: '@rapiq/codec-url-simple',
+        name: '@rapiq/codec-url',
         accent: 'var(--rq-color-warning)',
-        href: '/packages/codec-url-simple',
+        href: '/packages/codec-url',
         summary: 'URL query-string codec — the transport between caller and receiver.',
         bullets: [
-            'URLEncoder: Query AST → query string',
-            'URLDecoder: query string → Query AST',
-            'JSON:API-style parameter names',
+            'Expression filters by default',
+            'Legacy simple-filter decoding',
+            'Schema-aware encode & decode',
         ],
     },
     {

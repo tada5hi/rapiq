@@ -10,7 +10,7 @@ const tabs: Tab[] = [
     {
         label: 'Install',
         code: `# client side — build & encode queries
-npm install @rapiq/core @rapiq/codec-url-simple
+npm install @rapiq/core @rapiq/codec-url
 
 # server side — parse, validate & translate
 npm install @rapiq/core @rapiq/parser-simple @rapiq/sql`,
@@ -21,7 +21,7 @@ npm install @rapiq/core @rapiq/parser-simple @rapiq/sql`,
     Filter, FilterCompoundOperator, FilterFieldOperator,
     Filters, Pagination, Query, Sort, Sorts,
 } from '@rapiq/core';
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
 const query = new Query({
     filters: new Filters(FilterCompoundOperator.AND, [
@@ -31,14 +31,15 @@ const query = new Query({
     pagination: new Pagination(25, 0),
 });
 
-const encoder = new URLEncoder();
-const queryString = encoder.encode(query);
-// → filter[age]=>=18&sort=-age&page[limit]=25`,
+const codec = createURLCodec();
+const queryString = codec.encode(query);
+// → codec=url-expression&filter=gte(age,'18')&page[limit]=25&sort=-age
+//   (URI-decoded for readability)`,
     },
     {
         label: 'Parse (server)',
-        code: `import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { SimpleParser } from '@rapiq/parser-simple';
+        code: `import { createURLCodec } from '@rapiq/codec-url';
+import { SchemaRegistry, defineSchema } from '@rapiq/core';
 
 const registry = new SchemaRegistry();
 registry.add(defineSchema<User>({
@@ -49,8 +50,8 @@ registry.add(defineSchema<User>({
     pagination: { maxLimit: 50 },
 }));
 
-const parser = new SimpleParser(registry);
-const query = parser.parse(req.query, { schema: 'user' });
+const codec = createURLCodec(registry);
+const query = codec.decode(req.query, { schema: 'user' });
 // → typed Query AST, constrained by the schema`,
     },
 ];

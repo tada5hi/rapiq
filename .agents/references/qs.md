@@ -1,9 +1,9 @@
 # qs
 
 - **Repo**: https://github.com/ljharb/qs
-- **Used by**: `@rapiq/codec-url-simple` (dependency `qs@^6`)
+- **Used by**: `@rapiq/codec-url` (dependency `qs@^6`)
 
-`URLDecoder` (`packages/codec-url-simple/src/decoder/module.ts`) uses `qs.parse()` to turn a raw URL query string into the nested object structure that the `Simple*Parser` classes consume. `URLEncoder` produces `qs`-compatible bracket notation (`filter[name]=...`, `page[limit]=...`).
+`URLCodec.prepareDecode()` (`packages/codec-url/src/module.ts`) uses `qs.parse()` once to inspect the in-band codec identifier and filter shape before delegating. The internal simple/expression decoders consume the same parsed structure. Shared non-filter serializers produce `qs`-compatible bracket notation (`page[limit]=...`); legacy simple filters use `filter[name]=...`.
 
 ## Code Mappings
 

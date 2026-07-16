@@ -6,7 +6,7 @@ Peter's auth service. Uses rapiq **v1 (0.9)** in 43 files (63 direct call sites)
 
 | authup code | v1 API used | v2 equivalent |
 |---|---|---|
-| `packages/core-http-kit/src/domains/entities/*/module.ts` (21 entity APIs, identical shape: `getMany(options?: BuildInput<T>)` → `` this.client.get(`users${buildQuery(options)}`) ``) | `BuildInput<T>`, `buildQuery()` | `QueryBuilder` + `URLEncoder` (@rapiq/codec-url-simple) |
+| `packages/core-http-kit/src/domains/entities/*/module.ts` (21 entity APIs, identical shape: `getMany(options?: BuildInput<T>)` → `` this.client.get(`users${buildQuery(options)}`) ``) | `BuildInput<T>`, `buildQuery()` | `defineQuery()` + `createURLCodec().encode()` (`@rapiq/codec-url`) |
 | `packages/client-web-kit/src/components/utility/entity/collection/module.ts` (list composable; merges 4 query sources via `smob.createMerger({ priority: 'left' })`) | `BuildInput`, manual deep-merge | no v2 equivalent yet — needs typed Query/BuildInput merge (plan 010) |
 | `packages/client-web-kit/.../entity/record/module.ts:322-330` (`(query as any).filters = ctx.props.queryFilters` — casts to compose BuildInput parts) | `FiltersBuildInput`/`FieldsBuildInput` type mismatch | v2 must make per-parameter inputs assignable to the composite input |
 | `packages/client-web-kit/.../search/module.ts:67-76` (`filters: { name: `~${text}` }`) and `ACompositePolicyForm.vue` (`filters.id = [`!${id1}`, `!${id2}`]`) | operators as magic string prefixes (`~`, `!`), arrays-as-OR, `null` in arrays | v2 simple dialect `{ $contains: text }`-style operator objects; client builder needs the same typed operators |

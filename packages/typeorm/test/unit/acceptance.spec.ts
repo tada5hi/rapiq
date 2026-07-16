@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { URLDecoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 import {
     Query, 
     SchemaRegistry, 
@@ -38,14 +38,14 @@ function createUserRepository(schema: Schema<User>) {
     const registry = new SchemaRegistry();
     registry.add(schema);
 
-    const decoder = new URLDecoder(registry);
+    const codec = createURLCodec(registry);
 
     return {
         applyQuery(
             queryBuilder: SelectQueryBuilder<User>,
             input: string | Record<string, any>,
         ) {
-            const query = decoder.decode(input, { schema: 'user' });
+            const query = codec.decode(input, { schema: 'user' });
             expect(query).toBeDefined();
 
             const adapter = new TypeormAdapter({
@@ -172,10 +172,10 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
             name: 'user',
             filters: { allowed: ['first_name', 'realm_id'] },
         }));
-        const decoder = new URLDecoder(registry);
+        const codec = createURLCodec(registry);
 
         const applyScoped = (input: string) => {
-            const query = decoder.decode(input, { schema: 'user' });
+            const query = codec.decode(input, { schema: 'user' });
 
             // plan 012 layer 3: post-parse wrap & inject — immutable,
             // a later replace-merge cannot displace the condition.

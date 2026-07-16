@@ -21,7 +21,7 @@
             </div>
 
             <div class="rq-pipe-arrow">
-                <span class="rq-pipe-arrow-label">encode — <code>URLEncoder</code></span>
+                <span class="rq-pipe-arrow-label">encode — <code>URLCodec</code></span>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
             <span class="rq-pipe-zone-label">Receiver</span>
 
             <div class="rq-pipe-arrow">
-                <span class="rq-pipe-arrow-label">decode — <code>URLDecoder</code> / parsers</span>
+                <span class="rq-pipe-arrow-label">decode — <code>URLCodec</code> / parsers</span>
             </div>
 
             <div class="rq-pipe-node">

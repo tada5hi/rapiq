@@ -24,10 +24,10 @@ export type User = {
 import {
     defineFilters, defineQuery, mergeQueries,
 } from '@rapiq/core';
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 import type { User } from 'my-api-types';
 
-const encoder = new URLEncoder();
+const codec = createURLCodec();
 
 // 1. component defaults — shipped with the list
 const defaults = defineQuery<User>({
@@ -54,7 +54,7 @@ function buildQuery(realmId: string, search: string, page: number) {
 }
 
 async function fetchUsers(realmId: string, search: string, page: number) {
-    const queryString = encoder.encode(buildQuery(realmId, search, page));
+    const queryString = codec.encode(buildQuery(realmId, search, page));
     const response = await fetch(`/users?${queryString}`);
     return response.json();
 }
@@ -78,7 +78,7 @@ const search = ref('');
 const page = ref(1);
 
 const queryString = computed(() =>
-    encoder.encode(buildQuery(props.realmId, search.value, page.value)));
+    codec.encode(buildQuery(props.realmId, search.value, page.value)));
 
 watchEffect(async () => {
     users.value = (await (await fetch(`/users?${queryString.value}`)).json()).data;
@@ -92,7 +92,7 @@ function UserList({ realmId }: { realmId: string }) {
     const [page, setPage] = useState(1);
 
     const queryString = useMemo(
-        () => encoder.encode(buildQuery(realmId, search, page)),
+        () => codec.encode(buildQuery(realmId, search, page)),
         [realmId, search, page],
     );
 
@@ -112,9 +112,9 @@ Because the encoded string is derived state, it also makes a perfect cache key f
 
 ## Guarding the wire
 
-The simple URL dialect can't carry `or(...)` trees or values that collide with operator markers — `encode` throws a typed error rather than sending something that means the wrong thing. If your UI produces compound filters, encode with the [expression codec](/packages/codec-url-expression) instead; the rest of this recipe is unchanged.
+The default expression dialect carries nested `or(...)` trees and repeated-field conditions. Operators without a URL grammar still throw a typed error rather than sending something with different semantics. Legacy simple encoding is available only as an explicit migration option; see the [URL codec reference](/packages/codec-url#legacy-simple-dialect).
 
-Optionally, encode against the server's schema for early feedback — see [schema-aware encoding](/guide/wire#schema-aware-encoding).
+Optionally, encode against the server's schema for early feedback — see [schema-aware transport](/guide/wire#schema-aware-transport).
 
 ## Next steps
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { createURLCodec } from '@rapiq/codec-url';
 import { SimpleParser } from '@rapiq/parser-simple';
-import { URLEncoder } from '@rapiq/codec-url-simple';
 import {
     type DialectOptions,
     FiltersAdapter,
@@ -17,7 +17,7 @@ import {
 /*
  * The playground runs the real packages in the browser:
  * @rapiq/parser-simple turns the form state into a Query AST,
- * @rapiq/codec-url-simple encodes it as a URL query string and
+ * @rapiq/codec-url encodes it as a URL query string and
  * @rapiq/sql renders the WHERE clause for the selected dialect.
  */
 
@@ -36,7 +36,7 @@ const dialects: Dialect[] = [
 ];
 
 const parser = new SimpleParser();
-const encoder = new URLEncoder();
+const codec = createURLCodec();
 
 const name = ref('to');
 const age = ref(21);
@@ -55,7 +55,7 @@ const query = computed(() => parser.parse({
 }));
 
 const urlOutput = computed(() => {
-    const encoded = encoder.encode(query.value);
+    const encoded = codec.encode(query.value);
     if (!encoded) {
         return '/users';
     }
@@ -259,7 +259,7 @@ const sqlOutput = computed(() => {
                     </div>
 
                     <p class="rq-hero-card-hint">
-                        Live — <code>@rapiq/parser-simple</code>, <code>@rapiq/codec-url-simple</code>
+                        Live — <code>@rapiq/parser-simple</code>, <code>@rapiq/codec-url</code>
                         and <code>@rapiq/sql</code> are running in your browser.
                     </p>
                 </div>

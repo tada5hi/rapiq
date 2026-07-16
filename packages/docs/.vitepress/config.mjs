@@ -114,10 +114,8 @@ export default defineConfig({
                     ],
                 },
                 {
-                    text: 'URL Codecs',
+                    text: 'URL Codec',
                     items: [
-                        { text: '@rapiq/codec-url-simple', link: '/packages/codec-url-simple' },
-                        { text: '@rapiq/codec-url-expression', link: '/packages/codec-url-expression' },
                         { text: '@rapiq/codec-url', link: '/packages/codec-url' },
                     ],
                 },

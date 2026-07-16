@@ -5,7 +5,7 @@ Rapiq (**R**est **Api** **Q**uery) gives the two sides of an HTTP API **one shar
 The caller builds a **typed query**, sends it as an ordinary URL query string, and the receiving application validates it against an **allow-list schema** before turning it into a database query. No hand-rolled `req.query` parsing, no string concatenation, no guessing which parameters a client may touch.
 
 ```txt
-?filter[age]=>=18&include=realm&sort=-age&page[limit]=25&fields=id,name
+?codec=url-expression&filter=gte(age,'18')&include=realm&sort=-age&page[limit]=25&fields=id,name
 ```
 
 ## The 30-second tour
@@ -14,7 +14,7 @@ The caller builds a **typed query**, sends it as an ordinary URL query string, a
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
 const query = defineQuery<User>({
     filters: { age: { $gte: 18 } },
@@ -23,14 +23,14 @@ const query = defineQuery<User>({
     pagination: { limit: 25 },
 });
 
-const response = await fetch(`/users?${new URLEncoder().encode(query)}`);
+const response = await fetch(`/users?${createURLCodec().encode(query)}`);
 ```
 
 **Receiver** — decode it against a schema that says what clients may request, then hand it to your database:
 
 ```typescript
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { URLDecoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 import { TypeormAdapter } from '@rapiq/typeorm';
 
 const registry = new SchemaRegistry();
@@ -42,13 +42,13 @@ registry.add(defineSchema<User>({
     pagination: { maxLimit: 50 },
 }));
 
-const query = new URLDecoder(registry).decode(req.query, { schema: 'user' });
+const query = createURLCodec(registry).decode(req.query, { schema: 'user' });
 
 new TypeormAdapter({ queryBuilder }).execute(query);
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-Everything a client sends outside the allow-lists is dropped (or rejected — your choice) before it ever reaches the database.
+Everything a client sends is constrained before it reaches the database. Most parameters follow the schema's drop-vs-throw policy; expression filters reject contract violations precisely.
 
 ## How it works
 
@@ -81,7 +81,7 @@ Install only what each side of your application needs — `@rapiq/core` is the s
 |---|---|
 | **Build & compose** | [@rapiq/core](/packages/core) — the query AST, `defineQuery`, condition helpers, schemas |
 | **Parse input** | [@rapiq/parser-simple](/packages/parser-simple) · [@rapiq/parser-expression](/packages/parser-expression) · [@rapiq/parser-mongo](/packages/parser-mongo) |
-| **Cross the wire** | [@rapiq/codec-url-simple](/packages/codec-url-simple) · [@rapiq/codec-url-expression](/packages/codec-url-expression) · [@rapiq/codec-url](/packages/codec-url) |
+| **Cross the wire** | [@rapiq/codec-url](/packages/codec-url) |
 | **Execute** | [@rapiq/typeorm](/packages/typeorm) · [@rapiq/sql](/packages/sql) · [@rapiq/memory](/packages/memory) |
 
 See the [package overview](/packages/) for the full map and a "which packages do I need?" guide.

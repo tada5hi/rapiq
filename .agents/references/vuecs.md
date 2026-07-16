@@ -18,7 +18,7 @@ Reference implementation for the marketing-hero documentation landing pattern
 ## Behavioral differences
 
 - **Wow moment**: vuecs uses a live palette switcher (`useColorPalette()` re-tints the page).
-  rapiq instead runs a live query playground — `@rapiq/parser-simple` → `@rapiq/codec-url-simple`
+  rapiq instead runs a live query playground — `@rapiq/parser-simple` → `@rapiq/codec-url`
   (URL output) and `@rapiq/sql` (per-dialect SQL output) execute in the browser.
 - **Tokens**: vuecs tokens come from `@vuecs/design` + Tailwind; rapiq has no CSS framework —
   its `--rq-*` tokens alias VitePress theme variables, so no extra dependencies are needed.

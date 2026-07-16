@@ -29,7 +29,11 @@ import {
     isFilters,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
-import { FilterTokenType } from './constants';
+import {
+    FILTER_EXPRESSION_KEYWORDS,
+    FILTER_FIELD_SEGMENT_PATTERN,
+    FilterTokenType,
+} from './constants';
 import type { FilterToken } from './types';
 
 type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
@@ -218,10 +222,10 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private tokenize(input: string): FilterToken[] {
         const tokens: FilterToken[] = [];
-        // keywords are classified from whole identifiers (switch below) —
+        // keywords are classified from whole identifiers (lookup below) —
         // matching them in the regex would split identifiers that merely
         // start with a keyword (e.g. "order" -> "or" + "der").
-        const regex = /\s+|\(|\)|,|\.|'(?:''|[^'])*'|[A-Za-z0-9_](?:[A-Za-z0-9_-]*[A-Za-z0-9_])?/g;
+        const regex = new RegExp(`\\s+|\\(|\\)|,|\\.|'(?:''|[^'])*'|${FILTER_FIELD_SEGMENT_PATTERN}`, 'g');
 
         let match: RegExpExecArray | null;
         let cursor = 0;
@@ -236,26 +240,16 @@ export class ExpressionFiltersParser extends BaseParser<
             if (/^\s+$/.test(value)) continue;
 
             switch (value) {
-                case 'not': tokens.push({ type: FilterTokenType.NOT }); break;
-                case 'and': tokens.push({ type: FilterTokenType.AND }); break;
-                case 'or': tokens.push({ type: FilterTokenType.OR }); break;
-                case 'eq': tokens.push({ type: FilterTokenType.EQUAL }); break;
-                case 'gt': tokens.push({ type: FilterTokenType.GREATER_THAN }); break;
-                case 'gte': tokens.push({ type: FilterTokenType.GREATER_OR_EQUAL }); break;
-                case 'lt': tokens.push({ type: FilterTokenType.LESS_THAN }); break;
-                case 'lte': tokens.push({ type: FilterTokenType.LESS_OR_EQUAL }); break;
-                case 'contains': tokens.push({ type: FilterTokenType.CONTAINS }); break;
-                case 'startsWith': tokens.push({ type: FilterTokenType.STARTS_WITH }); break;
-                case 'endsWith': tokens.push({ type: FilterTokenType.ENDS_WITH }); break;
-                case 'in': tokens.push({ type: FilterTokenType.IN }); break;
-                case 'nin': tokens.push({ type: FilterTokenType.NIN }); break;
-                case 'null': tokens.push({ type: FilterTokenType.NULL }); break;
                 case '(': tokens.push({ type: FilterTokenType.LPAREN }); break;
                 case ')': tokens.push({ type: FilterTokenType.RPAREN }); break;
                 case ',': tokens.push({ type: FilterTokenType.COMMA }); break;
                 case '.': tokens.push({ type: FilterTokenType.DOT }); break;
                 default:
-                    if (
+                    // own-property check: exotic field names inherited from
+                    // Object.prototype (toString, constructor, ...) stay fields.
+                    if (Object.prototype.hasOwnProperty.call(FILTER_EXPRESSION_KEYWORDS, value)) {
+                        tokens.push({ type: FILTER_EXPRESSION_KEYWORDS[value as keyof typeof FILTER_EXPRESSION_KEYWORDS] });
+                    } else if (
                         value.startsWith('\'') &&
                         value.endsWith('\'')
                     ) {

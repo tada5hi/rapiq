@@ -42,7 +42,7 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 | Stage | What happens |
 |---|---|
 | **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })` — typed input in, query AST out |
-| **Transport** <sub>wire</sub> | encoded as a JSON-API-style query string: `?filter[age]=>=18&sort=-name` |
+| **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
 | **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema` — allow-lists, defaults, mappings |
 | **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`) or to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) |
 
@@ -51,7 +51,7 @@ an API gateway, for instance, validates an incoming query against its own schema
 (`query.filters.and(...)`) and re-encodes it for the upstream service.
 
 - 🧭 **Typed end to end** — every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
-- 🛡️ **The receiving side has the last word** — a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Anything outside it is dropped — or throws, opt-in — and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
+- 🛡️ **The receiving side has the last word** — a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
 - 🔁 **Loss-free transport** — within each codec dialect, `decode(encode(query))` restores the same query; outside its subset, encoding fails loudly with a typed error instead of silently changing semantics.
 - 🔌 **Any backend** — the AST is consumed through visitors: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, or applied straight to a TypeORM `SelectQueryBuilder`.
 - 📦 **Composable packages** — no monolith: install only what each side needs; `@rapiq/core` is the single shared foundation.
@@ -65,13 +65,13 @@ there is **no** `rapiq` umbrella package for v2, install only what you need
 Querying application — build queries and encode them as URL query strings:
 
 ```bash
-npm install @rapiq/core @rapiq/codec-url-simple
+npm install @rapiq/core @rapiq/codec-url
 ```
 
 Queried application — decode & validate incoming query input and apply it to the database:
 
 ```bash
-npm install @rapiq/core @rapiq/codec-url-simple @rapiq/sql @rapiq/typeorm
+npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
 ```
 
 ## Usage
@@ -87,12 +87,12 @@ Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects
 [condition helpers](https://rapiq.tada5hi.net/guide/building-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
 queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merging-queries).
 
-The query is serialized for transport by the URL codec (`@rapiq/codec-url-simple`) and decoded back
+The query is serialized for transport by `@rapiq/codec-url` and decoded back
 into the same AST on the receiving side.
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
-import { URLEncoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 
 export type Realm = {
     id: string,
@@ -128,9 +128,9 @@ const query = defineQuery<User>({
     relations: ['realm']
 });
 
-const encoder = new URLEncoder();
-const queryString = encoder.encode(query);
-// fields=id,name&filter[id]=1&page[limit]=20&page[offset]=10&include=realm&sort=-id
+const codec = createURLCodec();
+const queryString = codec.encode(query);
+// codec=url-expression&fields=id,name&filter=eq(id%2C'1')&page[limit]=20&...
 
 const response = await fetch(`/users?${queryString}`);
 ```
@@ -140,8 +140,8 @@ const response = await fetch(`/users?${queryString}`);
 On the receiving side the incoming query is decoded back into the same
 [Query](https://rapiq.tada5hi.net/guide/query-ast) AST. A
 [Schema](https://rapiq.tada5hi.net/guide/schemas) declares what a caller may request per parameter
-(allow-lists, defaults, mappings) — anything outside it is silently dropped
-(set `throwOnFailure: true` on the schema to get a `ParseError` instead).
+(allow-lists, defaults, mappings). Expression-filter violations reject the request;
+other parameters follow the schema's drop-vs-throw policy.
 The decoded query is then applied to the database by an adapter
 ([@rapiq/typeorm](https://rapiq.tada5hi.net/packages/typeorm) below;
 [@rapiq/sql](https://rapiq.tada5hi.net/packages/sql) renders parameterized SQL fragments for any other driver).
@@ -153,7 +153,7 @@ The following example assumes [express](https://www.npmjs.com/package/express) a
 ```typescript
 import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { URLDecoder } from '@rapiq/codec-url-simple';
+import { createURLCodec } from '@rapiq/codec-url';
 import { TypeormAdapter } from '@rapiq/typeorm';
 // your app's TypeORM DataSource instance
 import { dataSource } from './data-source';
@@ -175,13 +175,13 @@ registry.add(defineSchema<User>({
     schemaMapping: { realm: 'realm' },
 }));
 
-const decoder = new URLDecoder(registry);
+const codec = createURLCodec(registry);
 
 /**
  * Get many users.
  *
  * Request example
- * - url: /users?page[limit]=10&page[offset]=0&include=realm&filter[id]=1&fields=id,name
+ * - url: /users?codec=url-expression&page[limit]=10&include=realm&filter=eq(id,'1')&fields=id,name
  *
  * @param req
  * @param res
@@ -189,7 +189,7 @@ const decoder = new URLDecoder(registry);
 export async function getUsers(req: Request, res: Response) {
     // map the URL wire names (filter, page, include, ...) to their canonical
     // parameters and validate against the schema allow-lists.
-    const query = decoder.decode(req.query, { schema: 'user' });
+    const query = codec.decode(req.query, { schema: 'user' });
     if (!query) {
         return res.status(400).end();
     }
@@ -225,9 +225,7 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/parser-simple](packages/parser-simple) | Parses plain object/array input (the "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](packages/parser-expression) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
 | [@rapiq/parser-mongo](packages/parser-mongo) | Parses MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
-| [@rapiq/codec-url-simple](packages/codec-url-simple) | URL query-string encoder & decoder for the simple dialect |
-| [@rapiq/codec-url-expression](packages/codec-url-expression) | URL codec carrying nested filter compounds in a single `filter=and(...)` parameter |
-| [@rapiq/codec-url](packages/codec-url) | Registry dispatching between URL codec dialects via the reserved `codec` parameter |
+| [@rapiq/codec-url](packages/codec-url) | URL query-string codec; writes expression filters and reads expression plus legacy simple filters |
 | [@rapiq/sql](packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
 | [@rapiq/typeorm](packages/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
 | [@rapiq/memory](packages/memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
