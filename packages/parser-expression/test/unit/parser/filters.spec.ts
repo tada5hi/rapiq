@@ -268,6 +268,32 @@ describe('filters/expr-parser', () => {
         ]));
     });
 
+    it('should apply schema defaults when validation empties a nested compound', () => {
+        const schema = defineFiltersSchema({
+            default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+            validate: () => undefined,
+        });
+
+        const output = parser.parse('and(or(eq(name, \'admin\')))', { schema });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
+        ]));
+    });
+
+    it('should prune a nested compound whose every leaf is rejected', () => {
+        const schema = defineFiltersSchema({ validate: (filter) => (filter.field === 'name' ? filter : undefined) });
+
+        const output = parser.parse(
+            'or(eq(name, \'admin\'), and(eq(age, \'1\'), eq(age, \'2\')))',
+            { schema },
+        );
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.OR, [
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+        ]));
+    });
+
     it('should treat an empty string as invalid input, not as absent', () => {
         let error : unknown;
         try {

@@ -6,6 +6,7 @@
  */
 
 import {
+    Filter,
     Filters,
     isFilter,
     isFilters,
@@ -15,8 +16,25 @@ import type {
     IFilter,
     IFilters,
 } from '../../../parameter';
+import { FilterFieldOperator } from '../../../schema';
 import type { FiltersSchema } from '../../../schema';
 import { SchemaError } from '../../../errors';
+
+/**
+ * The conditions a parser falls back to when the input carries no
+ * (surviving) filters — the schema `default`, or nothing.
+ */
+export function buildFiltersDefaults(schema: FiltersSchema) : ICondition[] {
+    if (!schema.default) {
+        return [];
+    }
+
+    if (Array.isArray(schema.default)) {
+        return schema.default;
+    }
+
+    return [schema.default];
+}
 
 function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
     return (
@@ -27,10 +45,21 @@ function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
     );
 }
 
+function isConditionValue(input: unknown) : input is ICondition {
+    // isFilters guards structurally at runtime; the parameter type is
+    // merely narrower than this call site.
+    return isFilter(input) || isFilters(input as ICondition);
+}
+
 /**
  * Apply a filter schema's leaf validator without flattening or otherwise
  * changing the compound tree. Returning `undefined` from the validator drops
  * only that leaf; replacement filters are inserted in the same position.
+ * A compound whose every child is rejected is dropped entirely (`undefined`),
+ * so callers fall back to the schema defaults instead of keeping a vacuous
+ * node. An `elemMatch` leaf is validated inside-out: the interior condition
+ * tree first (dropping the whole leaf when nothing survives), then the
+ * rebuilt leaf itself.
  */
 export function applyFiltersSchemaValidation(
     input: IFilter | IFilters,
@@ -44,8 +73,27 @@ export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
 ) : ICondition | undefined {
+    if (!schema.hasValidator()) {
+        return input;
+    }
+
     if (isFilter(input)) {
-        const output = schema.validate(input);
+        let leaf = input;
+        if (
+            input.operator === FilterFieldOperator.ELEM_MATCH &&
+            isConditionValue(input.value)
+        ) {
+            const interior = applyFiltersSchemaValidation(input.value, schema);
+            if (!interior) {
+                return undefined;
+            }
+
+            if (interior !== input.value) {
+                leaf = new Filter(input.operator, input.field, interior);
+            }
+        }
+
+        const output = schema.validate(leaf);
         if (isPromiseLike(output)) {
             void Promise.resolve(output).catch(() => undefined);
             throw SchemaError.validatorAsyncRequiresAsyncParser();
@@ -64,6 +112,10 @@ export function applyFiltersSchemaValidation(
         if (validated) {
             conditions.push(validated);
         }
+    }
+
+    if (conditions.length === 0) {
+        return undefined;
     }
 
     return new Filters(input.operator, conditions);
@@ -86,8 +138,27 @@ export async function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
 ) : Promise<ICondition | undefined> {
+    if (!schema.hasValidator()) {
+        return input;
+    }
+
     if (isFilter(input)) {
-        return (await schema.validate(input)) || undefined;
+        let leaf = input;
+        if (
+            input.operator === FilterFieldOperator.ELEM_MATCH &&
+            isConditionValue(input.value)
+        ) {
+            const interior = await applyFiltersSchemaValidationAsync(input.value, schema);
+            if (!interior) {
+                return undefined;
+            }
+
+            if (interior !== input.value) {
+                leaf = new Filter(input.operator, input.field, interior);
+            }
+        }
+
+        return (await schema.validate(leaf)) || undefined;
     }
 
     if (!isFilters(input)) {
@@ -100,6 +171,10 @@ export async function applyFiltersSchemaValidationAsync(
         if (validated) {
             conditions.push(validated);
         }
+    }
+
+    if (conditions.length === 0) {
+        return undefined;
     }
 
     return new Filters(input.operator, conditions);

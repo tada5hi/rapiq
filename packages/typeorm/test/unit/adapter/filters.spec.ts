@@ -40,7 +40,11 @@ describe('src/adapter/filters.ts', () => {
 
         condition.accept(new FiltersVisitor(adapter.filters));
 
-        return adapter.filters.getQueryAndParameters();
+        const [sql, params] = adapter.filters.getQueryAndParameters();
+
+        // parameter names carry a per-run namespace (`:rapiq_<n>_<i>`);
+        // normalize it away for stable, readable assertions.
+        return [sql.replace(/:rapiq_\d+_/g, ':'), params];
     };
 
     it('should escape fields per dialect', () => {

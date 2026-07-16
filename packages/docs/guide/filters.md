@@ -154,7 +154,10 @@ defineSchema<User>({
         allowed: ['id', 'name', 'age'],
         mapping: { aliasId: 'id' },
         default: eq('status', 'active'),
-        validate: async (filter) => { /* inspect / replace / reject a parsed Filter */ },
+        // accept (return the filter), replace (return another Filter),
+        // or reject (return undefined) — a hook that returns nothing
+        // rejects every filter.
+        validate: async (filter) => filter,
     },
 });
 ```
@@ -167,7 +170,7 @@ defineSchema<User>({
 | `validate` | Sync or async per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 
-`validate` runs after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf. The return value may also be a Promise of any of those results.
+`validate` runs after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf — an inspect-only hook must still `return` the filter, otherwise every leaf is rejected. `$elemMatch` conditions are validated inside-out: every interior leaf passes the hook, then the `elemMatch` filter itself. The return value may also be a Promise of any of those results. On the server, [schema-aware encoding](/packages/codec-url) re-runs the schema-bound decoder, so a validator that is not idempotent (e.g. one that appends to the value) transforms a filter twice between a schema-aware `encode()` and the receiving `decode()` — keep validators idempotent.
 
 Use the synchronous `parse()` / `decode()` / schema-aware `encode()` methods when every validator is synchronous. Use their `Async` counterparts when a validator may be asynchronous:
 

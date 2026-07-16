@@ -16,6 +16,7 @@ import {
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
+    buildFiltersDefaults,
     isObject,
     parseKey,
     stringifyKey,
@@ -24,7 +25,6 @@ import {
 import type {
     FilterFieldOperator,
     FiltersParseOptions,
-    FiltersSchema,
     ICondition,
     IFilter,
     IFilters,
@@ -59,7 +59,7 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         if (items.length === 0) {
-            items = this.buildDefaults(scope.schema);
+            items = buildFiltersDefaults(scope.schema);
         }
 
         return new Filters(FilterCompoundOperator.AND, items);
@@ -86,7 +86,7 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         if (items.length === 0) {
-            items = this.buildDefaults(scope.schema);
+            items = buildFiltersDefaults(scope.schema);
         }
 
         return new Filters(FilterCompoundOperator.AND, items);
@@ -245,22 +245,6 @@ export class SimpleFiltersParser extends BaseParser<
 
         return output;
     }
-
-    protected buildDefaults<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(schema: FiltersSchema<RECORD>) : ICondition[] {
-        if (!schema.default) {
-            return [];
-        }
-
-        if (Array.isArray(schema.default)) {
-            return schema.default;
-        }
-
-        return [schema.default];
-    }
-
-    // ---------------------------------------------------------
 
     protected parseValue(input: unknown) : {
         value: unknown,

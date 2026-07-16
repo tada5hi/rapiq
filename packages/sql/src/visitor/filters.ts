@@ -149,6 +149,13 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
     visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp | string>): IFiltersAdapter {
         const isRegExp = expr.value instanceof RegExp;
+
+        // anything else (a cross-realm RegExp, a number, null) must not be
+        // bound raw as the pattern parameter — fail typed, like @rapiq/memory.
+        if (!isRegExp && typeof expr.value !== 'string') {
+            throw AdapterError.featureUnsupported('filters:regex:value');
+        }
+
         const source = isRegExp ? expr.value.source : expr.value;
         const ignoreCase = isRegExp ? expr.value.ignoreCase : false;
 

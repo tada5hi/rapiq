@@ -13,7 +13,15 @@ import type {
 } from '../../../types';
 import type { BaseSchemaOptions } from '../../types';
 
-export type Validator = (input: IFilter) => MaybeAsync<IFilter | undefined | void>;
+/**
+ * Per-leaf filter validation hook. The return value decides the leaf's fate:
+ * return the input filter to accept it, another `Filter` to replace it, or
+ * `undefined` to reject it. An inspect-only hook must therefore end with
+ * `return input` — a bare block body would reject every filter. The result
+ * may also be a Promise of any of those values; resolving it requires the
+ * `parseAsync()` / `decodeAsync()` / `encodeAsync()` entry points.
+ */
+export type Validator = (input: IFilter) => MaybeAsync<IFilter | undefined>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,

@@ -154,6 +154,22 @@ describe('src/filter/index.ts', () => {
         );
     });
 
+    it('should merge dotted keys and nested objects sharing a prefix', () => {
+        const expected = new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'realm.id', 1),
+            new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        ]);
+
+        expect(parser.parse({ 'realm.id': 1, realm: { name: 'master' } }))
+            .toEqual(expected);
+        // ... independent of key order
+        expect(parser.parse({ realm: { name: 'master' }, 'realm.id': 1 }))
+            .toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+                new Filter(FilterFieldOperator.EQUAL, 'realm.id', 1),
+            ]));
+    });
+
     it('should not parse with non matching name', async () => {
         // filter wrong allowed
         const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: ['name'] }) });

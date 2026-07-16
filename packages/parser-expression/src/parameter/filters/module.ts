@@ -7,8 +7,6 @@
 
 import type {
     FiltersParseOptions,
-    FiltersSchema,
-    ICondition,
     IFilter,
     IFilters,
     ObjectLiteral,
@@ -22,10 +20,12 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    MAX_TRAVERSAL_DEPTH,
     Parameter,
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
+    buildFiltersDefaults,
     isFilters,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -42,7 +42,7 @@ type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
  * Keep recursive expression parsing below the JavaScript call-stack limit and
  * aligned with the schema resolver and Mongo parser traversal caps.
  */
-const MAX_DEPTH = 32;
+const MAX_DEPTH = MAX_TRAVERSAL_DEPTH;
 
 /**
  * @see https://www.jsonapi.net/usage/reading/filtering.html
@@ -65,23 +65,10 @@ export class ExpressionFiltersParser extends BaseParser<
         // an empty string is NOT absent: the dialect is precise, so
         // input like `?filter=` must surface a syntax error.
         if (input === undefined || input === null) {
-            const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
-
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+            return this.buildAbsentOutput(options);
         }
 
-        const expr = this.parseExact(input, options);
-        if (
-            isFilters(expr, FilterCompoundOperator.AND) ||
-            isFilters(expr, FilterCompoundOperator.OR)
-        ) {
-            return expr;
-        }
-
-        return new Filters(FilterCompoundOperator.AND, [expr]);
+        return this.wrapRoot(this.parseExact(input, options));
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -89,29 +76,57 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         if (input === undefined || input === null) {
-            const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
-
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
+            return this.buildAbsentOutput(options);
         }
 
-        const expr = await this.parseExactAsync(input, options);
-        if (
-            isFilters(expr, FilterCompoundOperator.AND) ||
-            isFilters(expr, FilterCompoundOperator.OR)
-        ) {
-            return expr;
-        }
-
-        return new Filters(FilterCompoundOperator.AND, [expr]);
+        return this.wrapRoot(await this.parseExactAsync(input, options));
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters | IFilter {
+        const { expr, scope } = this.parseSource(input, options);
+        if (!scope) {
+            return expr;
+        }
+
+        const validated = applyFiltersSchemaValidation(expr, scope.schema);
+
+        return validated ?? new Filters(
+            FilterCompoundOperator.AND,
+            buildFiltersDefaults(scope.schema),
+        );
+    }
+
+    async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD> = {},
+    ) : Promise<IFilters | IFilter> {
+        const { expr, scope } = this.parseSource(input, options);
+        if (!scope) {
+            return expr;
+        }
+
+        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema);
+
+        return validated ?? new Filters(
+            FilterCompoundOperator.AND,
+            buildFiltersDefaults(scope.schema),
+        );
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * The shared front-end of {@link parseExact} and
+     * {@link parseExactAsync}: tokenize, bind the resolution scope and
+     * run the grammar — everything up to (but excluding) validation.
+     */
+    private parseSource<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+    ) : { expr: Filters | Filter, scope?: FiltersScope } {
         if (typeof input !== 'string') {
             throw FiltersParseError.inputInvalid();
         }
@@ -136,73 +151,29 @@ export class ExpressionFiltersParser extends BaseParser<
             throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
         }
 
-        if (!scope) {
+        return { expr, scope };
+    }
+
+    private buildAbsentOutput<RECORD extends ObjectLiteral = ObjectLiteral>(
+        options: FiltersParseOptions<RECORD>,
+    ) : IFilters {
+        const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, { relations: options.relations }) as FiltersScope;
+
+        return new Filters(
+            FilterCompoundOperator.AND,
+            buildFiltersDefaults(scope.schema),
+        );
+    }
+
+    private wrapRoot(expr: IFilters | IFilter) : IFilters {
+        if (
+            isFilters(expr, FilterCompoundOperator.AND) ||
+            isFilters(expr, FilterCompoundOperator.OR)
+        ) {
             return expr;
         }
 
-        const validated = applyFiltersSchemaValidation(expr, scope.schema);
-        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        return validated;
-    }
-
-    async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
-        input: unknown,
-        options: FiltersParseOptions<RECORD> = {},
-    ) : Promise<IFilters | IFilter> {
-        if (typeof input !== 'string') {
-            throw FiltersParseError.inputInvalid();
-        }
-
-        this.pos = 0;
-        this.tokens = this.tokenize(input);
-
-        let scope : FiltersScope | undefined;
-        if (options.schema || options.strict) {
-            scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
-                relations: options.relations,
-                throwOnFailure: true,
-                strict: options.strict,
-            }) as FiltersScope;
-        }
-
-        const expr = this.parseFilterExpression(scope);
-        if (this.peek().type !== FilterTokenType.EOF) {
-            throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
-        }
-
-        if (!scope) {
-            return expr;
-        }
-
-        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema);
-        if (!validated || (isFilters(validated) && validated.value.length === 0)) {
-            return new Filters(
-                FilterCompoundOperator.AND,
-                this.buildDefaults(scope.schema),
-            );
-        }
-
-        return validated;
-    }
-
-    // ---------------------------------------------------------
-
-    protected buildDefaults(schema: FiltersSchema) : ICondition[] {
-        if (!schema.default) {
-            return [];
-        }
-
-        if (Array.isArray(schema.default)) {
-            return schema.default;
-        }
-
-        return [schema.default];
+        return new Filters(FilterCompoundOperator.AND, [expr]);
     }
 
     // ---------------------------------------------------------
