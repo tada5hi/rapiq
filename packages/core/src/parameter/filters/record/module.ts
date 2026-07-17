@@ -65,6 +65,10 @@ export class Filter<
             return this.acceptWithFallback(visitor, 'visitFilterMod');
         }
 
+        if (this.operator === FilterFieldOperator.SIZE) {
+            return this.acceptWithFallback(visitor, 'visitFilterSize');
+        }
+
         if (this.operator === FilterFieldOperator.ELEM_MATCH) {
             return this.acceptWithFallback(visitor, 'visitFilterElemMatch');
         }
@@ -104,8 +108,9 @@ export class Filter<
         visitor: IFilterVisitor<R>,
         property: P,
     ) : R {
-        if (visitor[property]) {
-            return visitor[property](this as Filter<any, any>);
+        const method = visitor[property] as ((expr: IFilter) => R) | undefined;
+        if (method) {
+            return method.call(visitor, this);
         }
 
         return visitor.visitFilter(this);

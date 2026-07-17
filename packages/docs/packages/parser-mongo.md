@@ -20,6 +20,7 @@ Filters are plain objects with typed values — numbers stay numbers, there is n
 { items: { $elemMatch: { id: { $gt: 5 } } } }       // array-element match
 { scores: { $elemMatch: { $gt: 5 } } }              // element-level match (the element itself)
 { tags: { $all: ['a', 'b'] } }                      // every listed value has a matching element
+{ tags: { $size: 2 } }                              // array-length match
 ```
 
 Multiple document entries combine with an implicit AND. `$and` / `$or` / `$nor` take a non-empty array of sub-documents; `$nor` and `$not` desugar via De Morgan operator negation (`$eq` ↔ `$ne`, `$lt` ↔ `$gte`, AND ↔ OR, …).
@@ -40,6 +41,7 @@ Multiple document entries combine with an implicit AND. `$and` / `$or` / `$nor` 
 | `$regex` | `REGEX` | — (throws) | `RegExp` instance or pattern string |
 | `$options` | — (modifier) | — | flag string; only beside a string-valued `$regex` |
 | `$mod` | `MOD` | — (throws) | `[divisor, remainder]`, divisor ≠ 0 |
+| `$size` | `SIZE` | — (throws) | non-negative integer (array length) |
 | `$exists` | `EXISTS` | boolean flag flipped | boolean |
 | `$elemMatch` | `ELEM_MATCH` | — (throws) | nested filter document (fields relative to the array element) or element-level operator object (operators apply to the element itself, via the `ITSELF` marker) |
 | `$all` | AND of `ELEM_MATCH` | — (throws) | non-empty array of scalar/`null`/`Date`; desugars to one independently scoped element match per value |
@@ -52,7 +54,7 @@ Multiple document entries combine with an implicit AND. `$and` / `$or` / `$nor` 
 - A bare array value means `$in` instead of MongoDB's exact-array match.
 - Negation is algebraic (De Morgan operator flipping) — it does not replicate MongoDB's missing-field semantics, where `$not` also matches documents lacking the field.
 - `$all` never falls back to plain equality on non-array fields — MongoDB's `{ tags: { $all: ['a'] } }` matches `tags: 'a'`, the rapiq desugar does not (element matches require a real array).
-- `$where`, `$size`, `$type` and the other evaluation/geo/bitwise operators are unsupported and throw.
+- `$where`, `$type` and the other evaluation/geo/bitwise operators are unsupported and throw.
 - MongoDB's `x` regex flag has no JavaScript equivalent — `$options: 'x'` is rejected.
 - An empty sub-document `{}` inside a compound (MongoDB's match-all branch) is a grammar error.
 :::
@@ -99,4 +101,4 @@ Failures fall into two classes:
 
 Absent input, `{}` and an all-dropped document are not failures — the schema's `filters.default` applies, like with the other parsers.
 
-Error codes: malformed documents carry `ErrorCode.SYNTAX_INVALID`, invalid operator values `KEY_VALUE_INVALID`, non-object top-level input `INPUT_INVALID`, known-but-unsupported MongoDB operators (`$where`, `$size`, …) and non-negatable operators under `$not`/`$nor` (`$regex`, `$mod`, `$elemMatch`, `$all`) `OPERATOR_UNSUPPORTED`. See [Error Handling](/guide/errors).
+Error codes: malformed documents carry `ErrorCode.SYNTAX_INVALID`, invalid operator values `KEY_VALUE_INVALID`, non-object top-level input `INPUT_INVALID`, known-but-unsupported MongoDB operators (`$where`, `$type`, …) and non-negatable operators under `$not`/`$nor` (`$regex`, `$mod`, `$size`, `$elemMatch`, `$all`) `OPERATOR_UNSUPPORTED`. See [Error Handling](/guide/errors).

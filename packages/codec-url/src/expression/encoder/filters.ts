@@ -132,6 +132,19 @@ function serializeCondition(node: ICondition, insideElemMatch: boolean) : string
 
             return `elemMatch(${field},${serializeCondition(interior, true)})`;
         }
+        case FilterFieldOperator.SIZE: {
+            // the decoder rejects anything but a non-negative integer —
+            // fail loudly here instead of emitting an undecodable token.
+            if (
+                typeof node.value !== 'number' ||
+                !Number.isInteger(node.value) ||
+                node.value < 0
+            ) {
+                throw AdapterError.featureUnsupported('filters:size:value');
+            }
+
+            return `size(${field},${serializeValue(node.value)})`;
+        }
         default: {
             // REGEX, MOD, EXISTS, ... have no expression grammar
             // production.

@@ -15,6 +15,7 @@ import {
     lte,
     mod,
     ne,
+    size,
 } from '@rapiq/core';
 import { compileFilters } from '../../../src';
 
@@ -169,6 +170,32 @@ describe('filters: primitive operators', () => {
         it('should match some element of an array value', () => {
             expect(compileFilters(mod('scores', 2, 0))({ scores: [1, 4] })).toBeTruthy();
             expect(compileFilters(mod('scores', 2, 0))({ scores: [1, 3] })).toBeFalsy();
+        });
+    });
+
+    describe('size', () => {
+        it('should match arrays of exactly the given length', () => {
+            expect(compileFilters(size('tags', 2))({ tags: ['a', 'b'] })).toBeTruthy();
+            expect(compileFilters(size('tags', 2))({ tags: ['a'] })).toBeFalsy();
+            expect(compileFilters(size('tags', 0))({ tags: [] })).toBeTruthy();
+        });
+
+        it('should never match non-array or absent values', () => {
+            expect(compileFilters(size('tags', 2))({ tags: 'ab' })).toBeFalsy();
+            expect(compileFilters(size('tags', 0))({ tags: null })).toBeFalsy();
+            expect(compileFilters(size('tags', 0))({})).toBeFalsy();
+        });
+
+        it('should compare the array itself, never its elements', () => {
+            // element-wise application would match the inner array.
+            expect(compileFilters(size('matrix', 2))({ matrix: [[1, 2]] })).toBeFalsy();
+            expect(compileFilters(size('matrix', 1))({ matrix: [[1, 2]] })).toBeTruthy();
+        });
+
+        it('should totalize a malformed value to false', () => {
+            expect(compileFilters(new Filter('size', 'tags', -1))({ tags: [] })).toBeFalsy();
+            expect(compileFilters(new Filter('size', 'tags', 1.5))({ tags: ['a'] })).toBeFalsy();
+            expect(compileFilters(new Filter('size', 'tags', '1'))({ tags: ['a'] })).toBeFalsy();
         });
     });
 });

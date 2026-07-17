@@ -204,6 +204,20 @@ describe('filters/mongo-parser', () => {
             expectParseError(() => parser.parse({ age: { $mod: 3 } }), ErrorCode.KEY_VALUE_INVALID);
         });
 
+        it('should parse the size operator', () => {
+            expect(parseFlat({ items: { $size: 2 } }))
+                .toEqual(new Filter(FilterFieldOperator.SIZE, 'items', 2));
+            expect(parseFlat({ items: { $size: 0 } }))
+                .toEqual(new Filter(FilterFieldOperator.SIZE, 'items', 0));
+        });
+
+        it('should throw on invalid size values', () => {
+            expectParseError(() => parser.parse({ items: { $size: -1 } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ items: { $size: 2.5 } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ items: { $size: '2' } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ items: { $size: Number.NaN } }), ErrorCode.KEY_VALUE_INVALID);
+        });
+
         it('should parse the exists operator', () => {
             expect(parseFlat({ deleted: { $exists: true } }))
                 .toEqual(new Filter(FilterFieldOperator.EXISTS, 'deleted', true));
@@ -229,9 +243,9 @@ describe('filters/mongo-parser', () => {
         });
 
         it('should throw on a known but unsupported operator at field level', () => {
-            const error = FiltersParseError.operatorUnsupported('$size');
+            const error = FiltersParseError.operatorUnsupported('$where');
 
-            expect(() => parser.parse({ items: { $size: 2 } })).toThrow(error);
+            expect(() => parser.parse({ items: { $where: 'true' } })).toThrow(error);
 
             expectParseError(() => parser.parse({ age: { $type: 'number' } }), ErrorCode.OPERATOR_UNSUPPORTED);
         });
@@ -499,6 +513,10 @@ describe('filters/mongo-parser', () => {
                 ErrorCode.OPERATOR_UNSUPPORTED,
             );
             expectParseError(
+                () => parser.parse({ items: { $not: { $size: 2 } } }),
+                ErrorCode.OPERATOR_UNSUPPORTED,
+            );
+            expectParseError(
                 () => parser.parse({ items: { $not: { $elemMatch: { id: 1 } } } }),
                 ErrorCode.OPERATOR_UNSUPPORTED,
             );
@@ -515,6 +533,10 @@ describe('filters/mongo-parser', () => {
         it('should throw on non negatable operators under $nor', () => {
             expectParseError(
                 () => parser.parse({ $nor: [{ age: { $mod: [3, 1] } }] }),
+                ErrorCode.OPERATOR_UNSUPPORTED,
+            );
+            expectParseError(
+                () => parser.parse({ $nor: [{ items: { $size: 2 } }] }),
                 ErrorCode.OPERATOR_UNSUPPORTED,
             );
             expectParseError(
@@ -1055,9 +1077,18 @@ describe('filters/mongo-parser', () => {
                 ErrorCode.KEY_VALUE_INVALID,
             );
             expectParseError(
-                () => parser.parse({ scores: { $elemMatch: { $size: 2 } } }),
+                () => parser.parse({ scores: { $elemMatch: { $type: 'number' } } }),
                 ErrorCode.OPERATOR_UNSUPPORTED,
             );
+        });
+
+        it('should parse an element-level size onto the element itself', () => {
+            // array of arrays: some inner array has exactly two elements.
+            expect(parseFlat({ matrix: { $elemMatch: { $size: 2 } } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'matrix',
+                new Filter(FilterFieldOperator.SIZE, ITSELF, 2),
+            ));
         });
 
         it('should keep the element operator interior unbound under a schema', () => {

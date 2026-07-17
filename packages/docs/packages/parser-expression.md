@@ -29,8 +29,9 @@ elemMatch(scores, gt($this, '5'))
 | `startsWith(field, value)` | prefix | `STARTS_WITH` |
 | `endsWith(field, value)` | suffix | `ENDS_WITH` |
 | `elemMatch(field, expr)` | array element match | `ELEM_MATCH` |
+| `size(field, n)` | array length (non-negative integer) | `SIZE` |
 | `and(expr, …)` / `or(expr, …)` | compound | `Filters` node |
-| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or`; `elemMatch` has no complement and throws |
+| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or`; `elemMatch` and `size` have no complement and throw |
 
 Rules:
 

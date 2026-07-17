@@ -89,6 +89,17 @@ describe('src/build/parameter/filters/*.ts', () => {
         });
     });
 
+    it('should desugar a $size operator object to a size condition', () => {
+        const output = defineFilters<User>({ items: { $size: 2 } });
+
+        expect(leafs(output)).toHaveLength(1);
+        expect(leafs(output)[0]).toMatchObject({
+            operator: FilterFieldOperator.SIZE,
+            field: 'items',
+            value: 2,
+        });
+    });
+
     it('should desugar a bare RegExp to a regex condition', () => {
         const pattern = /^Jo/;
         const output = defineFilters<User>({ name: pattern });

@@ -43,6 +43,7 @@ export type FiltersBuildOperatorInput<V> = {
     $regex?: RegExp | string,
 
     $mod?: [number, number],
+    $size?: number,
     $exists?: boolean,
 };
 
@@ -56,11 +57,17 @@ export type FiltersBuildValueInput<V> = V | null |
     (V extends string ? RegExp : never) |
     FiltersBuildOperatorInput<V>;
 
+/**
+ * Array-level operators of an object-array field — element matching
+ * and the array-length check (scalar arrays reach both through the
+ * plain operator object).
+ */
 export type FiltersBuildElemMatchInput<
     T extends ObjectLiteral = ObjectLiteral,
     DEPTH extends number = 5,
 > = {
-    $elemMatch: FiltersBuildInput<T, DEPTH> | ICondition,
+    $elemMatch?: FiltersBuildInput<T, DEPTH> | ICondition,
+    $size?: number,
 };
 
 type FiltersBuildKeyValueInput<

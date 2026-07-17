@@ -135,3 +135,7 @@ Folding only happens for string filter values. Backends with column metadata can
 ### ITSELF (element-level conditions)
 
 The [`ITSELF` marker](/guide/filters#operators) — an `elemMatch` interior condition on the array element itself, produced e.g. by the mongo parser's element-level `$elemMatch` and `$all` — has no SQL rendering: `elemMatch` maps to a relation join, and a joined row is not a scalar column. Both `@rapiq/sql` and `@rapiq/typeorm` throw a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`). Dialect-level JSON-array support (`json_each` / `unnest`) may lift this later; evaluate such filters with [`@rapiq/memory`](/packages/memory) in the meantime.
+
+### size (array length)
+
+The [`size` operator](/guide/filters#operators) has no SQL rendering either — an array-length check needs per-dialect JSON-array support (`json_array_length` on Postgres/SQLite, `JSON_LENGTH` on MySQL, `cardinality` for Postgres arrays). Both `@rapiq/sql` and `@rapiq/typeorm` throw a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`); evaluate such filters with [`@rapiq/memory`](/packages/memory) in the meantime.

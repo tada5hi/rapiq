@@ -12,7 +12,7 @@ npm install @rapiq/core
 |---|---|---|
 | **Query AST** | `Query`, `Fields`/`Field`, `Filters`/`Filter`, `Relations`/`Relation`, `Sorts`/`Sort`, `Pagination`, operator constants (`FilterFieldOperator`, `FilterCompoundOperator`, `FieldOperator`, `SortDirection`, `Parameter`), visitor interfaces (`IQueryVisitor`, `IFiltersVisitor`, …) | [The Query AST](/guide/query-ast) |
 | **Build layer** | `defineQuery`, `defineFields`, `defineFilters`, `definePagination`, `defineRelations`, `defineSorts` | [Building Queries](/guide/building-queries) |
-| **Condition helpers** | `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `inArray`, `nin`, `startsWith`, `notStartsWith`, `endsWith`, `notEndsWith`, `contains`, `notContains`, `regex`, `mod`, `exists`, `elemMatch`, `and`, `or` | [Condition helpers](/guide/building-queries#condition-helpers) |
+| **Condition helpers** | `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `inArray`, `nin`, `startsWith`, `notStartsWith`, `endsWith`, `notEndsWith`, `contains`, `notContains`, `regex`, `mod`, `size`, `exists`, `elemMatch`, `and`, `or` | [Condition helpers](/guide/building-queries#condition-helpers) |
 | **Composition** | `mergeQueries`, `Filters.merge` / `.and` / `.or` | [Merging & Composition](/guide/merging-queries) |
 | **Schema system** | `defineSchema`, `Schema`, `SchemaRegistry`, per-parameter `define*Schema` factories, `ResolutionScope` | [Schemas & Validation](/guide/schemas) |
 | **Parser base** | `BaseParser`, per-parameter parse-option types | [Custom parsers](/guide/query-ast#writing-a-custom-parser-resolutionscope) |

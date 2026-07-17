@@ -290,6 +290,8 @@ export class ExpressionFiltersParser extends BaseParser<
                 return this.parseInExpression(scope, negation);
             case FilterTokenType.ELEM_MATCH:
                 return this.parseElemMatchExpression(scope, negation, depth);
+            case FilterTokenType.SIZE:
+                return this.parseSizeExpression(scope, negation);
             default:
                 throw FiltersParseError.syntaxInvalid(`Unexpected token in filter expression: ${token.type}`);
         }
@@ -518,6 +520,38 @@ export class ExpressionFiltersParser extends BaseParser<
             field,
             values,
         );
+    }
+
+    /**
+     * size(field, n): the field holds an array of exactly n elements
+     * (a non-negative integer — the wire is untyped, so the quoted
+     * value coerces back to a number). There is no complement — a
+     * negated size would silently widen and always throws.
+     */
+    private parseSizeExpression(
+        scope?: FiltersScope,
+        negation: boolean = false,
+    ): Filter {
+        if (negation) {
+            throw FiltersParseError.operatorUnsupported('size');
+        }
+
+        this.consume(FilterTokenType.SIZE);
+        this.consume(FilterTokenType.LPAREN);
+        const field = this.parseExpressionFieldChain(scope);
+        this.consume(FilterTokenType.COMMA);
+        const value = this.parseExpressionValue();
+        this.consume(FilterTokenType.RPAREN);
+
+        if (
+            typeof value !== 'number' ||
+            !Number.isInteger(value) ||
+            value < 0
+        ) {
+            throw FiltersParseError.keyValueInvalid(field);
+        }
+
+        return new Filter(FilterFieldOperator.SIZE, field, value);
     }
 
     /**

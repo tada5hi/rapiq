@@ -29,6 +29,7 @@ import {
     notStartsWith,
     or,
     regex,
+    size,
     startsWith,
 } from '../../../src';
 import type { User } from '../../data';
@@ -79,6 +80,14 @@ describe('src/parameter/filters/helpers/*.ts', () => {
 
         expect(output.operator).toBe(FilterFieldOperator.MOD);
         expect(output.value).toEqual([4, 0]);
+    });
+
+    it('should build a size condition', () => {
+        const output = size('items', 2);
+
+        expect(output.operator).toBe(FilterFieldOperator.SIZE);
+        expect(output.field).toBe('items');
+        expect(output.value).toBe(2);
     });
 
     it('should build an exists condition (default true)', () => {

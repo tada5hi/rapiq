@@ -29,6 +29,8 @@ export interface IFilterVisitor<R> {
 
     visitFilterMod?(expr: IFilter<FilterFieldOperator.MOD, [number, number]>) : R;
 
+    visitFilterSize?(expr: IFilter<FilterFieldOperator.SIZE, number>) : R;
+
     visitFilterElemMatch?(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : R;
 
     visitFilterContains?(expr: IFilter<FilterFieldOperator.CONTAINS, unknown>) : R;

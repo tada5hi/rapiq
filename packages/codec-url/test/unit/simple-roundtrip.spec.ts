@@ -39,6 +39,7 @@ import {
     notStartsWith,
     or,
     regex,
+    size,
     startsWith,
 } from '@rapiq/core';
 import type { IFilter, IQuery } from '@rapiq/core';
@@ -153,6 +154,7 @@ describe('round-trip', () => {
         it.each([
             ['regex', regex('name', /^Jo/)],
             ['mod', mod('age', [2, 0])],
+            ['size', size('tags', 2)],
             ['exists', exists('email', true)],
             ['elemMatch', elemMatch('items', eq('name', 'a'))],
             ['elemMatch with ITSELF interior', elemMatch('scores', gt(ITSELF, 5))],

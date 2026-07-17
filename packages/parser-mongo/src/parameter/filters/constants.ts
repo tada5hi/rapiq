@@ -51,6 +51,7 @@ export const MONGO_FIELD_OPERATORS : readonly string[] = [
     '$regex',
     '$options',
     '$mod',
+    '$size',
     '$exists',
     '$elemMatch',
     '$all',
@@ -62,7 +63,6 @@ export const MONGO_FIELD_OPERATORS : readonly string[] = [
  * operatorUnsupported error instead of the generic unknown-operator error.
  */
 export const MONGO_UNSUPPORTED_OPERATORS : readonly string[] = [
-    '$size',
     '$type',
     '$where',
     '$text',

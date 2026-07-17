@@ -42,10 +42,11 @@ export type MongoFieldQueryOperators<V = unknown> = {
     $regex?: RegExp | string,
     $options?: string,
     $mod?: [number, number],
+    $size?: number,
     $exists?: boolean,
     $elemMatch?: ObjectLiteral,
     $all?: (V | null)[],
-    $not?: Omit<MongoFieldQueryOperators<V>, '$not' | '$regex' | '$options' | '$mod' | '$elemMatch' | '$all'>,
+    $not?: Omit<MongoFieldQueryOperators<V>, '$not' | '$regex' | '$options' | '$mod' | '$size' | '$elemMatch' | '$all'>,
 };
 
 /**
@@ -73,7 +74,7 @@ type MongoFiltersParserInputSubLevel<
     T extends IsArray<T> ?
         ArrayItem<T> extends Record<PropertyKey, any> ?
             MongoFiltersParserInput<ArrayItem<T>, PrevIndex[DEPTH]> |
-            { $elemMatch?: MongoFiltersParserInput<ArrayItem<T>, PrevIndex[DEPTH]> } :
+            { $elemMatch?: MongoFiltersParserInput<ArrayItem<T>, PrevIndex[DEPTH]>, $size?: number } :
             MongoFiltersParserInputValue<ArrayItem<T>, PrevIndex[DEPTH]> :
         T extends Date ?
             MongoFiltersParserInputValue<T, PrevIndex[DEPTH]> :

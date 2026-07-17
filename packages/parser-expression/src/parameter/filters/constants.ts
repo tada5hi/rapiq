@@ -22,6 +22,7 @@ export enum FilterTokenType {
     IN = 'in',
     NIN = 'nin',
     ELEM_MATCH = 'elemMatch',
+    SIZE = 'size',
 
     FIELD = 'FIELD',
     ITSELF = 'ITSELF',
@@ -55,6 +56,7 @@ export const FILTER_EXPRESSION_KEYWORDS = {
     in: FilterTokenType.IN,
     nin: FilterTokenType.NIN,
     elemMatch: FilterTokenType.ELEM_MATCH,
+    size: FilterTokenType.SIZE,
     null: FilterTokenType.NULL,
 } as const satisfies Record<string, FilterTokenType>;
 
