@@ -8,10 +8,10 @@
 import type { ICondition, IFilters } from '@rapiq/core';
 import {
     AdapterError,
-    Filter,
     FilterFieldOperator,
-    Filters,
     ITSELF,
+    isFilter,
+    isFilters,
 } from '@rapiq/core';
 import {
     FILTER_EXPRESSION_KEYWORDS,
@@ -48,7 +48,7 @@ export function serializeFiltersExpression(input: IFilters) : string | null {
     // wraps bare conditions back into a root AND.
     if (
         input.value.length === 1 &&
-        input.value[0] instanceof Filter
+        isFilter(input.value[0])
     ) {
         return serializeCondition(input.value[0], false);
     }
@@ -71,11 +71,11 @@ function serializeCompound(input: IFilters, insideElemMatch: boolean) : string {
 }
 
 function serializeCondition(node: ICondition, insideElemMatch: boolean) : string {
-    if (node instanceof Filters) {
+    if (isFilters(node)) {
         return serializeCompound(node, insideElemMatch);
     }
 
-    if (!(node instanceof Filter)) {
+    if (!isFilter(node)) {
         throw AdapterError.featureUnsupported('filters:condition');
     }
 
@@ -125,14 +125,12 @@ function serializeCondition(node: ICondition, insideElemMatch: boolean) : string
             return `not(endsWith(${field},${serializeMatchText(node.value)}))`;
         }
         case FilterFieldOperator.ELEM_MATCH: {
-            if (
-                !(node.value instanceof Filter) &&
-                !(node.value instanceof Filters)
-            ) {
+            const interior = node.value as ICondition;
+            if (!isFilter(interior) && !isFilters(interior)) {
                 throw AdapterError.featureUnsupported('filters:elemMatch:value');
             }
 
-            return `elemMatch(${field},${serializeCondition(node.value, true)})`;
+            return `elemMatch(${field},${serializeCondition(interior, true)})`;
         }
         default: {
             // REGEX, MOD, EXISTS, ... have no expression grammar
