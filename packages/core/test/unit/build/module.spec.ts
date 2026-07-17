@@ -14,6 +14,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    ITSELF,
     SortDirection,
     defineFields,
     defineFilters,
@@ -21,6 +22,7 @@ import {
     defineQuery,
     defineRelations,
     defineSorts,
+    elemMatch,
     eq,
     gte,
     or,
@@ -123,6 +125,62 @@ describe('src/build/parameter/filters/*.ts', () => {
         const condition = eq('name', 'chess');
         const fromHelper = defineFilters<User>({ items: { $elemMatch: condition } });
         expect((leafs(fromHelper)[0] as IFilter).value).toBe(condition);
+    });
+
+    it('should desugar an element-level $elemMatch operator object onto ITSELF', () => {
+        const output = defineFilters({ scores: { $elemMatch: { $gt: 5 } } });
+
+        const leaf = leafs(output)[0] as IFilter;
+        expect(leaf.operator).toBe(FilterFieldOperator.ELEM_MATCH);
+        expect(leaf.field).toBe('scores');
+        expect(leaf.value).toMatchObject({
+            operator: FilterFieldOperator.GREATER_THAN,
+            field: ITSELF,
+            value: 5,
+        });
+
+        // several element-level operators form an implicit AND interior.
+        const range = defineFilters({ scores: { $elemMatch: { $gt: 5, $lt: 10 } } });
+        const interior = (leafs(range)[0] as IFilter).value as Filters;
+        expect(interior.operator).toBe(FilterCompoundOperator.AND);
+        expect(interior.value).toHaveLength(2);
+        expect(interior.value[0]).toMatchObject({ field: ITSELF, value: 5 });
+        expect(interior.value[1]).toMatchObject({ field: ITSELF, value: 10 });
+    });
+
+    it('should accept the ITSELF marker inside an elemMatch interior', () => {
+        const condition = elemMatch('tags', eq(ITSELF, 'a'));
+
+        const output = defineFilters(condition);
+        expect(leafs(output)[0]).toBe(condition);
+
+        // explicit ITSELF key in the interior document form.
+        const fromInput = defineFilters({ tags: { $elemMatch: { $this: 'a' } } });
+        expect((leafs(fromInput)[0] as IFilter).value).toMatchObject({
+            operator: FilterFieldOperator.EQUAL,
+            field: ITSELF,
+            value: 'a',
+        });
+    });
+
+    it('should throw a typed error on the ITSELF marker outside an elemMatch interior', () => {
+        const inputs = [
+            () => defineFilters(eq(ITSELF, 5)),
+            () => defineFilters({ $this: 5 } as never),
+            () => defineFilters({ 'items.$this': 5 } as never),
+            () => defineFilters(eq(`items.${ITSELF}`, 5)),
+            () => defineFilters(elemMatch(ITSELF, eq('name', 'x'))),
+        ];
+
+        for (const input of inputs) {
+            try {
+                input();
+                expect.fail('should have thrown');
+            } catch (e) {
+                expect(e).toBeInstanceOf(BuildError);
+                expect((e as BuildError).code).toBe(ErrorCode.KEY_INVALID);
+            }
+        }
     });
 
     it('should pass a compound helper value through unchanged', () => {

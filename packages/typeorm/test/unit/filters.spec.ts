@@ -6,10 +6,13 @@
  */
 
 import {
+    AdapterError,
+    ErrorCode,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    ITSELF,
     Query,
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
@@ -324,6 +327,24 @@ describe('src/filters', () => {
         const data = await queryBuilder.getMany();
 
         expect(data.length).toEqual(1);
+    });
+
+    it('should throw typed on an ITSELF leaf', () => {
+        // a joined relation row is not a scalar column — no rendering
+        // for the element itself (mirrors @rapiq/sql).
+        const condition = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'role',
+            new Filter(FilterFieldOperator.EQUAL, ITSELF, 'admin'),
+        );
+
+        try {
+            createQueryBuilder(condition);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+        }
     });
 
     it('should work with deep relation', async () => {

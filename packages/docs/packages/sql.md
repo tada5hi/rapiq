@@ -131,3 +131,7 @@ adapter.execute(query, { visitor: { caseSensitive: ['id'] } });
 On folding dialects, give hot string filter columns an expression index (`CREATE INDEX ... ON "user" (lower(name))`) — or opt them out.
 
 Folding only happens for string filter values. Backends with column metadata can exempt whole columns by overriding `isCaseFoldable(field)` on the filters adapter (default: `true`) — the [TypeORM adapter](/packages/typeorm) uses it to fold only string-typed columns.
+
+### ITSELF (element-level conditions)
+
+The [`ITSELF` marker](/guide/filters#operators) — an `elemMatch` interior condition on the array element itself, produced e.g. by the mongo parser's element-level `$elemMatch` and `$all` — has no SQL rendering: `elemMatch` maps to a relation join, and a joined row is not a scalar column. Both `@rapiq/sql` and `@rapiq/typeorm` throw a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`). Dialect-level JSON-array support (`json_each` / `unnest`) may lift this later; evaluate such filters with [`@rapiq/memory`](/packages/memory) in the meantime.

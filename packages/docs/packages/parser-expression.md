@@ -15,6 +15,8 @@ and(eq(name, 'John'), gte(age, '18'))
 or(in(status, 'active', 'pending'), gt(age, '65'))
 not(eq(name, 'foo'))
 contains(user.name, 'Bob')
+elemMatch(items, and(eq(id, '1'), eq(active, 'true')))
+elemMatch(scores, gt($this, '5'))
 ```
 
 | Function | Meaning | AST operator |
@@ -26,14 +28,16 @@ contains(user.name, 'Bob')
 | `contains(field, value)` | substring | `CONTAINS` |
 | `startsWith(field, value)` | prefix | `STARTS_WITH` |
 | `endsWith(field, value)` | suffix | `ENDS_WITH` |
+| `elemMatch(field, expr)` | array element match | `ELEM_MATCH` |
 | `and(expr, …)` / `or(expr, …)` | compound | `Filters` node |
-| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or` |
+| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or`; `elemMatch` has no complement and throws |
 
 Rules:
 
 - **Values are always single-quoted** — `gte(age, '18')`, not `gte(age, 18)`. Quoted numerals are coerced to numbers, `'true'`/`'false'` to booleans, `'null'` to `null`. Escape a quote by doubling it (`'it''s'`).
 - Quoted values are never comma-split — `eq(name, 'a,b')` is the literal string `'a,b'`; lists are separate arguments.
 - Field names allow `[A-Za-z0-9_-]` with dots for relation paths (`user.name`).
+- Inside an `elemMatch` interior, field paths are relative to the array element; the reserved `$this` marker (core's `ITSELF` constant) addresses the element itself. Outside an interior, `$this` is an error.
 
 The language mirrors the [condition helpers](/guide/building-queries#condition-helpers) one-to-one: `eq('name', 'John')` in code ≙ `eq(name, 'John')` on the wire.
 

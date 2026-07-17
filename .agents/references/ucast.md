@@ -15,7 +15,7 @@ package is the reference implementation for rapiq's mongo parser dialect
 | `DocumentCondition` (e.g. `$where`) | — | rapiq has no document-level conditions (and `$where` is a code-execution foot-gun; deliberately unsupported) |
 | `NULL_CONDITION` sentinel (dropped by `pushIfNonNullCondition`) | — | rapiq parsers just don't emit a node (e.g. `$options` is consumed by its `$regex` sibling) |
 | `optimizedCompoundCondition()` (`core/src/utils.ts`) — flattens same-operator nesting, unwraps single-child compounds | `Filters.flatten()` | rapiq's flatten does not unwrap single-child compounds |
-| `ITSELF` field sentinel (elemMatch on scalar arrays) | — | rapiq `elemMatch` values are conditions with fields relative to the array element |
+| `ITSELF` field sentinel (elemMatch on scalar arrays) | `ITSELF = '$this'` (`core/src/parameter/filters/constants.ts`, plan 016) | ucast uses a symbol; rapiq uses a reserved token string so the marker survives codec round-trips (expression wire form `elemMatch(scores,gt($this,'5'))`) |
 
 ## Parsing (`@ucast/core` ObjectQueryParser + `@ucast/mongo`)
 
@@ -38,10 +38,14 @@ package is the reference implementation for rapiq's mongo parser dialect
 - `$regex` + sibling `$options`: string is compiled to `new RegExp(value, $options)`; `$options`
   itself parses to `NULL_CONDITION` (consumed by the `$regex` instruction via `context.query`).
 - `$elemMatch`: `hasOperators(value)` ? parse as field operators on `ITSELF` : parse as nested
-  query; result nested inside a `FieldCondition`.
+  query; result nested inside a `FieldCondition`. rapiq mirrors the split since plan 016
+  (`MongoFiltersParser.buildElemMatch`: any `MONGO_FIELD_OPERATORS` key → element-level form on
+  `ITSELF`).
 - Value validation throws plain `Error` (`ensureIs*` helpers); rapiq uses typed
   `FiltersParseError` + `ErrorCode` members instead.
-- Operators with no rapiq AST equivalent: `$size`, `$all`, `$where`, `$type`.
+- `$all`: ucast keeps it as its own condition; rapiq desugars it to an AND of independently
+  scoped `elemMatch(f, eq(ITSELF, v))` conditions (plan 016 Q4, no dedicated operator).
+- Operators with no rapiq AST equivalent: `$size`, `$where`, `$type`.
 
 ## Interpretation
 
@@ -58,7 +62,7 @@ explicitly rejected its interpreter-registry shape in favor of the core visitor 
 |---|---|---|
 | `createJsInterpreter(operators, {get, compare})` → `interpret(condition, object)` | `FiltersVisitor`/`FiltersCompiler` (`parameter/filters/`), `compileFilters(condition)` → `Predicate` | rapiq compiles once to a reusable closure; extension = subclass `FiltersCompiler`, not an options bag |
 | interpreter registry (record of functions, unregistered op throws plain `Error`) | per-operator `visitFilterX` methods; `visitFilter` fallback throws `AdapterError.operatorUnsupported` | closed operator set over `FilterFieldOperator` |
-| `getObjectField`/`getValueByPath` (dot paths; array parent → map+**flatten**; numeric segments index arrays; `ITSELF` sentinel) | join-row binding (`parameter/filters/binding.ts`): dotted prefixes = relation paths, ∃-DFS binds one element per path (SQL LEFT-join parity); leaf lookup is own-property only | ucast quantifies each leaf independently; rapiq binds same-element across the tree (`elemMatch` = prefix composition, like `@rapiq/sql`) — settled by maintainer, plan 014 Q4. No numeric-index segments, no ITSELF |
+| `getObjectField`/`getValueByPath` (dot paths; array parent → map+**flatten**; numeric segments index arrays; `ITSELF` sentinel) | join-row binding (`parameter/filters/binding.ts`): dotted prefixes = relation paths, ∃-DFS binds one element per path (SQL LEFT-join parity); leaf lookup is own-property only; ITSELF leaves read the bound element (real array elements only, plan 016 Q5) | ucast quantifies each leaf independently; rapiq binds same-element across dotted paths (plan 014 Q4) but every `elemMatch` opens its own quantifier scope (plan 016 Q3, mongo parity). No numeric-index segments |
 | `eq` (whole-array equality ∨ membership; RegExp value acts as pattern; null matches missing own-prop) | `buildEqualTest` (`parameter/filters/compiler.ts`): strict equality after null-unification, Date by `getTime`, array leaf → membership only | no whole-array equality, no RegExp-as-eq-value; `undefined` ≡ `null` (ucast: explicit `undefined` does NOT match null) |
 | `ne`/`nin` = `!eq`/`!within` (complement) | same complement law (plan 014 Q3) | agreement — this is where rapiq deviates from SQL 3VL instead |
 | `exists` = `hasOwn` (undefined-valued key exists) | `exists` = is-not-null | SQL parity beats mongo presence semantics |

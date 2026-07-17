@@ -47,9 +47,13 @@ The default filter wire shape is one function-call expression:
 codec=url-expression&filter=and(gte(age,'18'),or(eq(status,'active'),eq(status,'pending')))
 ```
 
-It carries flat filters, repeated fields and nested `and`/`or` trees. Values are quoted, so commas and simple-dialect operator markers retain their literal meaning.
+It carries flat filters, repeated fields, nested `and`/`or` trees and `elemMatch` conditions. Values are quoted, so commas and simple-dialect operator markers retain their literal meaning. Inside an `elemMatch` interior the element itself is addressed by the reserved `$this` marker (core's `ITSELF` constant):
 
-Operators without an expression grammar production—`regex`, `mod`, `exists` and `elemMatch`—throw a typed unsupported error during encoding rather than changing semantics.
+```text
+filter=elemMatch(scores,gt($this,'5'))
+```
+
+Operators without an expression grammar production—`regex`, `mod` and `exists`—throw a typed unsupported error during encoding rather than changing semantics.
 
 ## Legacy simple dialect
 

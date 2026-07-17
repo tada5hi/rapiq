@@ -95,17 +95,37 @@ const user = {
 // no single item is both id=1 and active -> no match (sql join parity)
 compileFilters(and(eq('items.id', 1), eq('items.active', true)))(user); // false
 
-// same-element matching, stated explicitly — identical result in SQL and memory
+// same-element matching, stated explicitly
 compileFilters(elemMatch('items', and(eq('id', 1), eq('active', true))))(user); // false
 ```
 
-`elemMatch` is field-prefix composition (exactly like the SQL adapter), so an `elemMatch` and a dotted condition on the same path share their binding. Where SQL has no opinion — a *leaf* value that is an array, e.g. `tags: ['a', 'b']` — Mongo element semantics apply: `eq('tags', 'a')` is membership, `in` is intersection.
+Every `elemMatch` node opens its **own quantifier scope**: its interior conditions share one element, but two `elemMatch` nodes on the same field — or an `elemMatch` beside a dotted condition — bind independently (Mongo `$elemMatch` semantics). Where SQL has no opinion — a *leaf* value that is an array, e.g. `tags: ['a', 'b']` — Mongo element semantics apply: `eq('tags', 'a')` is membership, `in` is intersection.
+
+### ITSELF (element-level conditions)
+
+Inside an `elemMatch` interior, the `ITSELF` marker addresses the array element itself — the shape the mongo parser produces for element-level `$elemMatch` and `$all`:
+
+```typescript
+import { ITSELF, elemMatch, gt, eq, and } from '@rapiq/core';
+
+// { scores: { $elemMatch: { $gt: 5 } } }
+compileFilters(elemMatch('scores', gt(ITSELF, 5)))({ scores: [3, 7] }); // true
+
+// { tags: { $all: ['a', 'b'] } } — one independent element match per value
+compileFilters(and(
+    elemMatch('tags', eq(ITSELF, 'a')),
+    elemMatch('tags', eq(ITSELF, 'b')),
+))({ tags: ['a', 'b'] }); // true
+```
+
+`ITSELF` conditions only match **real array elements** — a missing field, a scalar, a to-one object or an empty array never matches (no NULL-row fallback, mirroring Mongo's `$elemMatch`). Outside an `elemMatch` interior the marker is a typed error.
 
 ### Divergences
 
 | Case | @rapiq/memory | Baseline |
 |---|---|---|
 | Per-leaf array quantification | same-element binding | Mongo/ucast quantify each dotted condition independently |
+| Multiple `elemMatch` on one field | independent element bindings | SQL adapter: one join alias, same row |
 | `exists` | is-not-null | Mongo: property presence |
 | `contains` family | case-insensitive | Mongo/ucast: case-sensitive |
 

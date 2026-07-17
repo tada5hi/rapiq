@@ -7,7 +7,13 @@
 
 import { BuildError } from '../../../errors';
 import type { Condition, ICondition, IFilters } from '../../../parameter';
-import { Filter, Filters, isFilters } from '../../../parameter';
+import {
+    Filter, 
+    Filters, 
+    ITSELF, 
+    isFilter, 
+    isFilters,
+} from '../../../parameter';
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
 import { isObject } from '../../../utils';
@@ -30,6 +36,8 @@ export function defineFilters<
 >(input: FiltersBuildInput<RECORD> | ICondition) : IFilters;
 export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | ICondition) : IFilters {
     if (isParameterNode<Filter | Filters>(input)) {
+        assertConditionFields(input, false);
+
         if (isFilters(input)) {
             return input;
         }
@@ -47,6 +55,7 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
 function buildConditions(
     input: unknown,
     prefix?: string,
+    insideElemMatch = false,
 ) : Condition[] {
     if (!isObject(input)) {
         throw BuildError.inputInvalid();
@@ -61,9 +70,17 @@ function buildConditions(
             continue;
         }
 
+        // a $-prefixed key is never a field name — with one exception:
+        // the ITSELF marker addresses the array element inside an
+        // elemMatch interior.
+        if (key.startsWith('$') && !(key === ITSELF && insideElemMatch && !prefix)) {
+            throw BuildError.keyInvalid(key);
+        }
+
         output.push(...buildFieldConditions(
             prefix ? `${prefix}.${key}` : key,
             value,
+            insideElemMatch,
         ));
     }
 
@@ -73,7 +90,14 @@ function buildConditions(
 function buildFieldConditions(
     field: string,
     value: unknown,
+    insideElemMatch = false,
 ) : Condition[] {
+    // the ITSELF marker is only legal as a complete field —
+    // it addresses the element itself and has no dotted form.
+    if (field !== ITSELF && field.split('.').includes(ITSELF)) {
+        throw BuildError.keyInvalid(field);
+    }
+
     // bare array = IN sugar; null is a legal element,
     // backend adapters own the `OR IS NULL` rewrite.
     if (Array.isArray(value)) {
@@ -113,8 +137,13 @@ function buildFieldConditions(
             return output;
         }
 
-        // nested record — relation traversal via dot-path prefixing.
-        return buildConditions(value, field);
+        // nested record — relation traversal via dot-path prefixing;
+        // the element itself has no properties to traverse into.
+        if (field === ITSELF) {
+            throw BuildError.keyValueInvalid(field);
+        }
+
+        return buildConditions(value, field, insideElemMatch);
     }
 
     // scalar (incl. null) = EQUAL sugar.
@@ -129,9 +158,23 @@ function buildOperatorCondition(
     if (key === `$${FilterFieldOperator.ELEM_MATCH}`) {
         let condition : Condition;
         if (isParameterNode<Filter | Filters>(value)) {
+            assertConditionFields(value, true);
+
             condition = value;
         } else {
-            const conditions = buildConditions(value);
+            let conditions : Condition[];
+            if (
+                isObject(value) &&
+                Object.keys(value).every((child) => child.startsWith('$') && child !== ITSELF)
+            ) {
+                // element-level operator object (mongo's
+                // { $elemMatch: { $gt: 5 } }) — the operators apply
+                // to the element itself.
+                conditions = buildFieldConditions(ITSELF, value, true);
+            } else {
+                conditions = buildConditions(value, undefined, true);
+            }
+
             const [first] = conditions;
             condition = first && conditions.length === 1 ?
                 first :
@@ -158,4 +201,43 @@ function buildOperatorCondition(
     }
 
     return new Filter(operator, field, value);
+}
+
+/**
+ * Verify the ITSELF marker contract on a pre-built condition tree:
+ * the marker is only legal as the complete field of a condition
+ * inside an elemMatch interior.
+ */
+function assertConditionFields(
+    input: ICondition,
+    insideElemMatch: boolean,
+) : void {
+    if (isFilters(input)) {
+        for (const child of input.value) {
+            if (isParameterNode<Filter | Filters>(child)) {
+                assertConditionFields(child, insideElemMatch);
+            }
+        }
+
+        return;
+    }
+
+    if (!isFilter(input)) {
+        return;
+    }
+
+    if (input.field === ITSELF) {
+        if (!insideElemMatch) {
+            throw BuildError.keyInvalid(input.field);
+        }
+    } else if (input.field.split('.').includes(ITSELF)) {
+        throw BuildError.keyInvalid(input.field);
+    }
+
+    if (
+        input.operator === FilterFieldOperator.ELEM_MATCH &&
+        isParameterNode<Filter | Filters>(input.value)
+    ) {
+        assertConditionFields(input.value, true);
+    }
 }

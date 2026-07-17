@@ -13,6 +13,7 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    ITSELF,
     Relation,
     Relations,
     SchemaRegistry,
@@ -1018,11 +1019,73 @@ describe('filters/mongo-parser', () => {
             ]));
         });
 
-        it('should throw on the element operator form', () => {
-            const error = FiltersParseError.featureUnsupported('$elemMatch (element-level operators)');
+        it('should parse the element operator form onto the ITSELF marker', () => {
+            expect(parseFlat({ scores: { $elemMatch: { $gte: 5 } } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'scores',
+                new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, ITSELF, 5),
+            ));
 
-            expect(() => parser.parse({ items: { $elemMatch: { $gte: 5 } } })).toThrow(error);
-            expect(() => parser.parse({ items: { $elemMatch: { $not: { $eq: 5 } } } })).toThrow(error);
+            // several element-level operators form an implicit AND interior.
+            expect(parseFlat({ scores: { $elemMatch: { $gt: 5, $lt: 10 } } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'scores',
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+                    new Filter(FilterFieldOperator.LESS_THAN, ITSELF, 10),
+                ]),
+            ));
+        });
+
+        it('should negate element operators locally under an interior $not', () => {
+            expect(parseFlat({ scores: { $elemMatch: { $not: { $eq: 5 } } } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'scores',
+                new Filter(FilterFieldOperator.NOT_EQUAL, ITSELF, 5),
+            ));
+        });
+
+        it('should validate the element operator interior as grammar', () => {
+            expectParseError(
+                () => parser.parse({ scores: { $elemMatch: { $gte: 5, name: 'x' } } }),
+                ErrorCode.SYNTAX_INVALID,
+            );
+            expectParseError(
+                () => parser.parse({ scores: { $elemMatch: { $gte: null } } }),
+                ErrorCode.KEY_VALUE_INVALID,
+            );
+            expectParseError(
+                () => parser.parse({ scores: { $elemMatch: { $size: 2 } } }),
+                ErrorCode.OPERATOR_UNSUPPORTED,
+            );
+        });
+
+        it('should keep the element operator interior unbound under a schema', () => {
+            const output = constrained.parse(
+                { meta: { $elemMatch: { $gte: 5 } } },
+                { schema: 'user', throwOnFailure: true },
+            );
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'meta',
+                    new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, ITSELF, 5),
+                ),
+            ]));
+        });
+
+        it('should parse a nested element-level elemMatch onto the element itself', () => {
+            // array of arrays: some inner array contains an element > 5.
+            expect(parseFlat({ matrix: { $elemMatch: { $elemMatch: { $gt: 5 } } } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'matrix',
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    ITSELF,
+                    new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+                ),
+            ));
         });
 
         it('should always throw on an empty $elemMatch object', () => {
@@ -1110,6 +1173,99 @@ describe('filters/mongo-parser', () => {
                 'items',
                 new Filter(FilterFieldOperator.EQUAL, 'name', 'x'),
             ));
+        });
+    });
+
+    describe('$all', () => {
+        it('should desugar to an AND of independently scoped element matches', () => {
+            const output = parser.parse({ tags: { $all: ['a', 'b'] } });
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'tags',
+                    new Filter(FilterFieldOperator.EQUAL, ITSELF, 'a'),
+                ),
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'tags',
+                    new Filter(FilterFieldOperator.EQUAL, ITSELF, 'b'),
+                ),
+            ]));
+        });
+
+        it('should desugar a single value to one element match', () => {
+            expect(parseFlat({ tags: { $all: ['a'] } })).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'tags',
+                new Filter(FilterFieldOperator.EQUAL, ITSELF, 'a'),
+            ));
+        });
+
+        it('should accept null and Date elements like $in', () => {
+            const date = new Date('2026-01-01T00:00:00.000Z');
+
+            const output = parser.parse({ tags: { $all: [null, date] } });
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'tags',
+                    new Filter(FilterFieldOperator.EQUAL, ITSELF, null),
+                ),
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'tags',
+                    new Filter(FilterFieldOperator.EQUAL, ITSELF, date),
+                ),
+            ]));
+        });
+
+        it('should combine with sibling operators through the enclosing document', () => {
+            const output = parser.parse({ tags: { $all: ['a'], $exists: true } });
+
+            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'tags',
+                    new Filter(FilterFieldOperator.EQUAL, ITSELF, 'a'),
+                ),
+                new Filter(FilterFieldOperator.EXISTS, 'tags', true),
+            ]));
+        });
+
+        it('should validate the value like $in', () => {
+            expectParseError(() => parser.parse({ tags: { $all: [] } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ tags: { $all: 'a' } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ tags: { $all: [{ a: 1 }] } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ tags: { $all: [/x/] } }), ErrorCode.KEY_VALUE_INVALID);
+        });
+
+        it('should throw on a negated $all', () => {
+            expectParseError(
+                () => parser.parse({ tags: { $not: { $all: ['a'] } } }),
+                ErrorCode.OPERATOR_UNSUPPORTED,
+            );
+            expectParseError(
+                () => parser.parse({ $nor: [{ tags: { $all: ['a'] } }] }),
+                ErrorCode.OPERATOR_UNSUPPORTED,
+            );
+        });
+
+        it('should follow the schema policy for the field key', () => {
+            const schema = defineFiltersSchema({ allowed: ['id'] });
+
+            const dropped = parser.parse({ tags: { $all: ['a'] } }, { schema });
+            expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
+
+            expectParseError(
+                () => parser.parse({ tags: { $all: ['a'] } }, { schema, throwOnFailure: true }),
+                ErrorCode.KEY_NOT_ALLOWED,
+            );
+        });
+
+        it('should throw at document level', () => {
+            expectParseError(() => parser.parse({ $all: ['a'] }), ErrorCode.SYNTAX_INVALID);
         });
     });
 

@@ -10,6 +10,7 @@ import {
     ErrorCode,
     Filter,
     FilterFieldOperator,
+    ITSELF,
     and,
     elemMatch,
     eq,
@@ -162,16 +163,18 @@ describe('filters: join-row binding', () => {
             expect(compileFilters(elemMatch('realm', eq('name', 'other')))(input)).toBeFalsy();
         });
 
-        it('should collapse two elemMatches on one field to the same element', () => {
-            // both reference the same join path — sql parity fallout,
-            // settled in plan 014.
+        it('should quantify two elemMatches on one field independently', () => {
+            // every elemMatch opens its own quantifier scope (plan 016,
+            // revising the plan 014 parity fallout): different elements
+            // may satisfy different elemMatches.
             const predicate = compileFilters(and(
                 elemMatch('items', eq('id', 1)),
                 elemMatch('items', eq('active', true)),
             ));
 
-            expect(predicate(user)).toBeFalsy();
+            expect(predicate(user)).toBeTruthy();
             expect(predicate({ items: [{ id: 1, active: true }] })).toBeTruthy();
+            expect(predicate({ items: [{ id: 1, active: false }] })).toBeFalsy();
         });
 
         it('should reject a non-condition value', () => {
@@ -186,16 +189,106 @@ describe('filters: join-row binding', () => {
             }
         });
 
-        it('should share the binding with dotted siblings on the same path', () => {
-            // elemMatch is prefix rewriting: both conditions reference
-            // the items join and therefore the same element (sql parity).
+        it('should bind independently of dotted siblings on the same path', () => {
+            // the elemMatch scope is its own quantifier — the dotted
+            // sibling keeps its implicit join-row binding (plan 016).
             const predicate = compileFilters(and(
                 elemMatch('items', eq('id', 1)),
                 eq('items.active', true),
             ));
 
-            expect(predicate(user)).toBeFalsy();
+            expect(predicate(user)).toBeTruthy();
             expect(predicate({ items: [{ id: 1, active: true }] })).toBeTruthy();
+            expect(predicate({ items: [{ id: 1, active: false }] })).toBeFalsy();
+        });
+    });
+
+    describe('ITSELF', () => {
+        it('should evaluate a leaf against the element itself', () => {
+            const input = { scores: [3, 7, 9] };
+
+            expect(compileFilters(elemMatch('scores', new Filter(
+                FilterFieldOperator.GREATER_THAN,
+                ITSELF,
+                8,
+            )))(input)).toBeTruthy();
+
+            expect(compileFilters(elemMatch('scores', new Filter(
+                FilterFieldOperator.GREATER_THAN,
+                ITSELF,
+                10,
+            )))(input)).toBeFalsy();
+        });
+
+        it('should bind interior ITSELF conditions to the same element', () => {
+            // mongo semantics: one element must satisfy the whole interior.
+            const predicate = compileFilters(elemMatch('scores', and(
+                new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+                new Filter(FilterFieldOperator.LESS_THAN, ITSELF, 8),
+            )));
+
+            expect(predicate({ scores: [3, 7] })).toBeTruthy();
+            expect(predicate({ scores: [3, 9] })).toBeFalsy();
+        });
+
+        it('should quantify per $all value independently', () => {
+            // the parser desugar of { tags: { $all: ['a', 'b'] } }.
+            const predicate = compileFilters(and(
+                elemMatch('tags', eq(ITSELF, 'a')),
+                elemMatch('tags', eq(ITSELF, 'b')),
+            ));
+
+            expect(predicate({ tags: ['a', 'b', 'c'] })).toBeTruthy();
+            expect(predicate({ tags: ['a', 'c'] })).toBeFalsy();
+            expect(predicate({ tags: [] })).toBeFalsy();
+        });
+
+        it('should never match missing, scalar or empty sources', () => {
+            const predicate = compileFilters(elemMatch('scores', eq(ITSELF, 5)));
+
+            expect(predicate({ scores: [5] })).toBeTruthy();
+            expect(predicate({ scores: [] })).toBeFalsy();
+            expect(predicate({ scores: 5 })).toBeFalsy();
+            expect(predicate({ scores: null })).toBeFalsy();
+            expect(predicate({})).toBeFalsy();
+
+            // not even a null test matches the empty-array NULL row.
+            expect(compileFilters(elemMatch('scores', eq(ITSELF, null)))({ scores: [] })).toBeFalsy();
+            expect(compileFilters(elemMatch('scores', eq(ITSELF, null)))({ scores: [null] })).toBeTruthy();
+        });
+
+        it('should evaluate nested element-level elemMatch on arrays of arrays', () => {
+            // { matrix: { $elemMatch: { $elemMatch: { $gt: 5 } } } }
+            const predicate = compileFilters(elemMatch('matrix', elemMatch(ITSELF, new Filter(
+                FilterFieldOperator.GREATER_THAN,
+                ITSELF,
+                5,
+            ))));
+
+            expect(predicate({ matrix: [[1, 2], [3, 9]] })).toBeTruthy();
+            expect(predicate({ matrix: [[1, 2], [3, 4]] })).toBeFalsy();
+            expect(predicate({ matrix: [1, 9] })).toBeFalsy();
+        });
+
+        it('should compare string elements case-insensitively by default', () => {
+            expect(compileFilters(elemMatch('tags', eq(ITSELF, 'Chess')))({ tags: ['chess'] })).toBeTruthy();
+        });
+
+        it('should throw typed outside an elemMatch interior', () => {
+            const inputs = [
+                () => compileFilters(eq(ITSELF, 5)),
+                () => compileFilters(elemMatch(ITSELF, eq('id', 1))),
+            ];
+
+            for (const input of inputs) {
+                try {
+                    input();
+                    expect.fail('should have thrown');
+                } catch (e) {
+                    expect(e).toBeInstanceOf(AdapterError);
+                    expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+                }
+            }
         });
     });
 });

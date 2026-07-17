@@ -15,13 +15,16 @@ import type {
 import {
     BaseParser,
     DEFAULT_ID,
+    ErrorCode,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    ITSELF,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
+    ParseError,
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
@@ -54,6 +57,12 @@ export class ExpressionFiltersParser extends BaseParser<
     private tokens: FilterToken[] = [];
 
     private pos = 0;
+
+    /**
+     * How many elemMatch interiors the parser is currently inside —
+     * the ITSELF marker is only legal at depth > 0.
+     */
+    private elemMatchDepth = 0;
 
     // ---------------------------------------------------------
 
@@ -132,6 +141,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         this.pos = 0;
+        this.elemMatchDepth = 0;
         this.tokens = this.tokenize(input);
 
         // expressions are precise — invalid keys always throw,
@@ -196,7 +206,8 @@ export class ExpressionFiltersParser extends BaseParser<
         // keywords are classified from whole identifiers (lookup below) —
         // matching them in the regex would split identifiers that merely
         // start with a keyword (e.g. "order" -> "or" + "der").
-        const regex = new RegExp(`\\s+|\\(|\\)|,|\\.|'(?:''|[^'])*'|${FILTER_FIELD_SEGMENT_PATTERN}`, 'g');
+        // $-words are reserved markers, never field segments.
+        const regex = new RegExp(`\\s+|\\(|\\)|,|\\.|'(?:''|[^'])*'|\\$[A-Za-z0-9_]*|${FILTER_FIELD_SEGMENT_PATTERN}`, 'g');
 
         let match: RegExpExecArray | null;
         let cursor = 0;
@@ -216,6 +227,15 @@ export class ExpressionFiltersParser extends BaseParser<
                 case ',': tokens.push({ type: FilterTokenType.COMMA }); break;
                 case '.': tokens.push({ type: FilterTokenType.DOT }); break;
                 default:
+                    if (value.startsWith('$')) {
+                        if (value !== ITSELF) {
+                            throw FiltersParseError.syntaxInvalid(`The marker ${value} is unknown.`);
+                        }
+
+                        tokens.push({ type: FilterTokenType.ITSELF });
+                        break;
+                    }
+
                     // own-property check: exotic field names inherited from
                     // Object.prototype (toString, constructor, ...) stay fields.
                     if (Object.prototype.hasOwnProperty.call(FILTER_EXPRESSION_KEYWORDS, value)) {
@@ -268,6 +288,8 @@ export class ExpressionFiltersParser extends BaseParser<
             case FilterTokenType.IN:
             case FilterTokenType.NIN:
                 return this.parseInExpression(scope, negation);
+            case FilterTokenType.ELEM_MATCH:
+                return this.parseElemMatchExpression(scope, negation, depth);
             default:
                 throw FiltersParseError.syntaxInvalid(`Unexpected token in filter expression: ${token.type}`);
         }
@@ -498,6 +520,123 @@ export class ExpressionFiltersParser extends BaseParser<
         );
     }
 
+    /**
+     * elemMatch(field, expr): field paths inside the interior are
+     * relative to the array element; the ITSELF marker addresses the
+     * element itself. There is no complement — a negated elemMatch
+     * would silently widen and always throws.
+     */
+    private parseElemMatchExpression(
+        scope?: FiltersScope,
+        negation: boolean = false,
+        depth: number = 0,
+    ): Filter {
+        if (negation) {
+            throw FiltersParseError.operatorUnsupported('elemMatch');
+        }
+
+        this.consume(FilterTokenType.ELEM_MATCH);
+        this.consume(FilterTokenType.LPAREN);
+
+        const target = this.parseElemMatchTarget(scope);
+
+        this.consume(FilterTokenType.COMMA);
+
+        this.elemMatchDepth += 1;
+
+        let condition : Filters | Filter;
+        try {
+            condition = this.parseFilterExpression(target.scope, false, depth + 1);
+        } finally {
+            this.elemMatchDepth -= 1;
+        }
+
+        this.consume(FilterTokenType.RPAREN);
+
+        return new Filter(FilterFieldOperator.ELEM_MATCH, target.field, condition);
+    }
+
+    /**
+     * The field an elemMatch binds plus the interior resolution scope:
+     * the related schema when resolvable, otherwise an unbound scope
+     * inheriting the current policy (e.g. a JSON array column).
+     */
+    private parseElemMatchTarget(
+        scope?: FiltersScope,
+    ): { field: string, scope?: FiltersScope } {
+        if (this.peek().type === FilterTokenType.ITSELF) {
+            // an elemMatch on the element itself (arrays of arrays);
+            // the chain parser enforces the interior-only contract.
+            const field = this.parseExpressionFieldChain(scope);
+
+            return {
+                field,
+                scope: scope ? this.buildUnboundScope(scope) : undefined,
+            };
+        }
+
+        const token = this.consume(FilterTokenType.FIELD);
+
+        const parts = [token.value!];
+        while (this.peek().type === FilterTokenType.DOT) {
+            this.consume(FilterTokenType.DOT);
+            parts.push(this.consume(FilterTokenType.FIELD).value!);
+        }
+
+        if (!scope) {
+            return { field: parts.join('.') };
+        }
+
+        // a leading segment matching the schema name addresses the
+        // schema itself (mirrors parseExpressionFieldChain).
+        if (
+            parts.length > 1 &&
+            (parts[0] === DEFAULT_ID || parts[0] === scope.schema.name)
+        ) {
+            parts.shift();
+        }
+
+        const resolved = scope.resolveKey(parts.join('.'));
+
+        /* istanbul ignore next -- the scope always throws */
+        if (!resolved.success) {
+            throw FiltersParseError.keyInvalid(resolved.input);
+        }
+
+        const field = [...resolved.path, resolved.name].join('.');
+
+        let interior : FiltersScope | undefined;
+        try {
+            const verdict = resolved.scope.descend(resolved.name);
+            if (verdict instanceof ResolutionScope) {
+                interior = verdict as FiltersScope;
+            }
+        } catch (e) {
+            // elemMatch on a non-relation field is legal — a missing
+            // related schema (thrown as keyPathInvalid, the scope is
+            // always throwing) falls back to the unbound scope; every
+            // other failure (e.g. relations gating) propagates.
+            if (
+                !(e instanceof ParseError) ||
+                e.code !== ErrorCode.KEY_PATH_INVALID
+            ) {
+                throw e;
+            }
+        }
+
+        return {
+            field,
+            scope: interior ?? this.buildUnboundScope(scope),
+        };
+    }
+
+    private buildUnboundScope(current: FiltersScope) : FiltersScope {
+        return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
+            throwOnFailure: true,
+            strict: current.strict,
+        }) as FiltersScope;
+    }
+
     private parseExpressionValue(): Scalar {
         const token = this.consume();
 
@@ -514,6 +653,18 @@ export class ExpressionFiltersParser extends BaseParser<
     private parseExpressionFieldChain(
         scope?: FiltersScope,
     ): string {
+        if (this.peek().type === FilterTokenType.ITSELF) {
+            this.consume(FilterTokenType.ITSELF);
+
+            // the marker addresses the element bound by the enclosing
+            // elemMatch interior and never resolves against the schema.
+            if (this.elemMatchDepth === 0) {
+                throw FiltersParseError.keyInvalid(ITSELF);
+            }
+
+            return ITSELF;
+        }
+
         const token = this.consume(FilterTokenType.FIELD);
         if (token.type !== FilterTokenType.FIELD) {
             throw FiltersParseError.syntaxInvalid(`Unexpected token in field chain: ${token.type}`);

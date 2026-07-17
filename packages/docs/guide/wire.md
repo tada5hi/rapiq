@@ -81,7 +81,8 @@ Every wire dialect expresses a subset of the query AST. Inside that subset, `dec
 | `or(...)`, nested groups | ✗ throws | ✓ |
 | Several conditions on one field | ✗ throws | ✓ |
 | Commas / simple operator markers in values | ✗ throws | ✓ (quoted) |
-| `regex` / `mod` / `exists` / `elemMatch` | ✗ throws | ✗ throws |
+| `elemMatch` (incl. the `ITSELF` element marker, wire spelling `$this`) | ✗ throws | ✓ |
+| `regex` / `mod` / `exists` | ✗ throws | ✗ throws |
 
 ## Schema-aware transport
 

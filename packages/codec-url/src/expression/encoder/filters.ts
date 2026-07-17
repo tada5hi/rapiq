@@ -11,6 +11,7 @@ import {
     Filter,
     FilterFieldOperator,
     Filters,
+    ITSELF,
 } from '@rapiq/core';
 import {
     FILTER_EXPRESSION_KEYWORDS,
@@ -32,8 +33,8 @@ const FIELD_SEGMENT = new RegExp(`^(?:${FILTER_FIELD_SEGMENT_PATTERN})$`);
 /**
  * Serialize a filters tree to its expression-dialect wire form,
  * e.g. and(eq(name,'John'),or(gte(age,'18'),eq(email,null))).
- * Nested compounds are first-class in this dialect; only operators
- * without a grammar production (REGEX, MOD, EXISTS, ELEM_MATCH)
+ * Nested compounds and elemMatch are first-class in this dialect;
+ * only operators without a grammar production (REGEX, MOD, EXISTS)
  * and non-wire-safe names/values are rejected.
  *
  * Returns null for an empty root (nothing to emit).
@@ -49,13 +50,13 @@ export function serializeFiltersExpression(input: IFilters) : string | null {
         input.value.length === 1 &&
         input.value[0] instanceof Filter
     ) {
-        return serializeCondition(input.value[0]);
+        return serializeCondition(input.value[0], false);
     }
 
-    return serializeCompound(input);
+    return serializeCompound(input, false);
 }
 
-function serializeCompound(input: IFilters) : string {
+function serializeCompound(input: IFilters, insideElemMatch: boolean) : string {
     if (input.value.length === 0) {
         // an empty compound has no grammar production — and() is a
         // syntax error on decode.
@@ -63,22 +64,22 @@ function serializeCompound(input: IFilters) : string {
     }
 
     const children = input.value.map(
-        (child) => serializeCondition(child),
+        (child) => serializeCondition(child, insideElemMatch),
     );
 
     return `${input.operator}(${children.join(',')})`;
 }
 
-function serializeCondition(node: ICondition) : string {
+function serializeCondition(node: ICondition, insideElemMatch: boolean) : string {
     if (node instanceof Filters) {
-        return serializeCompound(node);
+        return serializeCompound(node, insideElemMatch);
     }
 
     if (!(node instanceof Filter)) {
         throw AdapterError.featureUnsupported('filters:condition');
     }
 
-    const field = serializeField(node.field);
+    const field = serializeField(node.field, insideElemMatch);
 
     switch (node.operator) {
         case FilterFieldOperator.EQUAL: {
@@ -123,15 +124,35 @@ function serializeCondition(node: ICondition) : string {
         case FilterFieldOperator.NOT_ENDS_WITH: {
             return `not(endsWith(${field},${serializeMatchText(node.value)}))`;
         }
+        case FilterFieldOperator.ELEM_MATCH: {
+            if (
+                !(node.value instanceof Filter) &&
+                !(node.value instanceof Filters)
+            ) {
+                throw AdapterError.featureUnsupported('filters:elemMatch:value');
+            }
+
+            return `elemMatch(${field},${serializeCondition(node.value, true)})`;
+        }
         default: {
-            // REGEX, MOD, EXISTS, ELEM_MATCH, ... have no expression
-            // grammar production.
+            // REGEX, MOD, EXISTS, ... have no expression grammar
+            // production.
             throw AdapterError.operatorUnsupported(node.operator);
         }
     }
 }
 
-function serializeField(input: string) : string {
+function serializeField(input: string, insideElemMatch: boolean) : string {
+    // the ITSELF marker has a dedicated token — legal only inside an
+    // elemMatch interior, where it references the array element.
+    if (input === ITSELF) {
+        if (!insideElemMatch) {
+            throw AdapterError.featureUnsupported(`filters:field:${input}`);
+        }
+
+        return input;
+    }
+
     const segments = input.split('.');
 
     for (const segment of segments) {

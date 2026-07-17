@@ -44,7 +44,8 @@ export type MongoFieldQueryOperators<V = unknown> = {
     $mod?: [number, number],
     $exists?: boolean,
     $elemMatch?: ObjectLiteral,
-    $not?: Omit<MongoFieldQueryOperators<V>, '$not' | '$regex' | '$options' | '$mod' | '$elemMatch'>,
+    $all?: (V | null)[],
+    $not?: Omit<MongoFieldQueryOperators<V>, '$not' | '$regex' | '$options' | '$mod' | '$elemMatch' | '$all'>,
 };
 
 /**
