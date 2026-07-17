@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Filter } from '@rapiq/core';
+import { AdapterError, ErrorCode, Filter } from '@rapiq/core';
 import {
     FiltersAdapter, 
     type FiltersContainerOptions, 
@@ -109,5 +109,17 @@ describe('primitive operators', () => {
 
         expect(sql).toEqual('mod("qty", $1) = $2');
         expect(params).toStrictEqual([4, 0]);
+    });
+
+    it('throws a typed featureUnsupported error for "size"', () => {
+        const condition = new Filter('size', 'tags', 2);
+
+        try {
+            condition.accept(visitor);
+            expect.fail('size must throw');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+        }
     });
 });

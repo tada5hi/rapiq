@@ -577,6 +577,24 @@ export class MongoFiltersParser extends BaseParser<
 
                     break;
                 }
+                case '$size': {
+                    // no complement twin — negated $size can not be
+                    // expressed without silently widening.
+                    if (negated) {
+                        throw FiltersParseError.operatorUnsupported('$size');
+                    }
+
+                    const value = input[operator];
+                    if (
+                        typeof value !== 'number' ||
+                        !Number.isInteger(value) ||
+                        value < 0
+                    ) {
+                        throw FiltersParseError.keyValueInvalid(key);
+                    }
+
+                    break;
+                }
                 case '$exists': {
                     if (typeof input[operator] !== 'boolean') {
                         throw FiltersParseError.keyValueInvalid(key);
@@ -744,6 +762,15 @@ export class MongoFiltersParser extends BaseParser<
                 case '$mod': {
                     output.push(new Filter(
                         FilterFieldOperator.MOD,
+                        resolved.field,
+                        input[operator],
+                    ));
+
+                    break;
+                }
+                case '$size': {
+                    output.push(new Filter(
+                        FilterFieldOperator.SIZE,
                         resolved.field,
                         input[operator],
                     ));

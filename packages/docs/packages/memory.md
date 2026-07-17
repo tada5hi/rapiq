@@ -64,7 +64,7 @@ The package aims for **SQL parity**: the same query should select the same recor
 
 `undefined`, missing properties and `null` are one absent value (SQL has a single `NULL`).
 
-- Positive operators (`eq`, `lt`, `lte`, `gt`, `gte`, `in`, `mod`, `contains`, `startsWith`, `endsWith`, `regex`) never match absent values — except `eq(field, null)`, `in` with a `null` element, and `exists(field, false)`.
+- Positive operators (`eq`, `lt`, `lte`, `gt`, `gte`, `in`, `mod`, `size`, `contains`, `startsWith`, `endsWith`, `regex`) never match absent values — except `eq(field, null)`, `in` with a `null` element, and `exists(field, false)`.
 - **Negated operators are exact complements**: `ne`, `nin`, `notContains`, `notStartsWith` and `notEndsWith` *do* match absent values. `ne('name', 'Peter')` matches a record without a name.
 - `exists` means *has a non-null value* (SQL `IS NOT NULL`), not Mongo's "property present".
 - Type mismatches evaluate to `false` — never to an error.

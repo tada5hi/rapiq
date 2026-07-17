@@ -30,6 +30,7 @@ export enum FilterFieldOperator {
     REGEX = 'regex',
 
     MOD = 'mod',
+    SIZE = 'size',
     EXISTS = 'exists',
     ELEM_MATCH = 'elemMatch',
 }

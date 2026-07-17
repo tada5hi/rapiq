@@ -40,6 +40,7 @@ import {
     notStartsWith,
     or,
     regex,
+    size,
     startsWith,
 } from '@rapiq/core';
 import type { IFilter, IFilters, IQuery } from '@rapiq/core';
@@ -104,6 +105,9 @@ describe('round-trip', () => {
             ['elemMatch document form', elemMatch('items', eq('name', 'chess'))],
             ['elemMatch ITSELF leaf', elemMatch('scores', gt(ITSELF, 5))],
             ['nested elemMatch on the element itself', elemMatch('matrix', elemMatch(ITSELF, gt(ITSELF, 5)))],
+            ['size', size('tags', 2)],
+            ['size zero', size('tags', 0)],
+            ['element-level size on the element itself', elemMatch('matrix', size(ITSELF, 2))],
         ])('should round-trip %s', (_, filter) => {
             expect(roundTripFilter(filter)).toEqual(
                 new Filters(FilterCompoundOperator.AND, [filter]),
@@ -192,8 +196,11 @@ describe('round-trip', () => {
             ['whitespace-padded eq value (would decode trimmed)', eq('name', ' John ')],
             ['value-mutating numeric text (0xFF would decode to 255)', eq('code', '0xFF')],
             ['NaN value (would decode to the string NaN)', eq('age', Number.NaN)],
+            ['non-integer size value', size('tags', 2.5)],
+            ['negative size value', size('tags', -1)],
             ['keyword field segment', eq('null', 'x')],
             ['elemMatch keyword field segment', eq('elemMatch', 'x')],
+            ['size keyword field segment', eq('size', 'x')],
             ['non-tokenizable field segment', eq('a b', 'x')],
             ['empty nested compound', and(eq('name', 'x'), or())],
         ])('should throw for %s', (_, filter) => {
@@ -269,6 +276,16 @@ describe('round-trip', () => {
 
             expect(decodeURIComponent(encoded!)).toEqual(
                 'filter=elemMatch(scores,gt($this,\'5\'))',
+            );
+        });
+
+        it('should emit the documented size wire format', () => {
+            const query = defineQuery({ filters: size('tags', 2) });
+
+            const encoded = encoder.encode(query);
+
+            expect(decodeURIComponent(encoded!)).toEqual(
+                'filter=size(tags,\'2\')',
             );
         });
     });

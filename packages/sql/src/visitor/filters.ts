@@ -111,6 +111,12 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         return this.adapter.whereRaw(sql, ...expr.value);
     }
 
+    visitFilterSize(): IFiltersAdapter {
+        // no SQL rendering yet — an array-length check needs per-dialect
+        // JSON-array support (json_array_length/JSON_LENGTH/cardinality).
+        throw AdapterError.featureUnsupported('filters:size');
+    }
+
     visitFilterElemMatch(expr: Filter<FilterFieldOperator.ELEM_MATCH, Filter | Filters>): IFiltersAdapter {
         const oldPrefix = this.adapter.getFieldPrefix();
 

@@ -469,6 +469,44 @@ describe('filters/expr-parser', () => {
         });
     });
 
+    describe('size', () => {
+        it('should parse a size expression', () => {
+            const output = parser.parseExact('size(items,\'2\')');
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.SIZE, 'items', 2));
+        });
+
+        it('should coerce the quoted wire value back to a number', () => {
+            const output = parser.parseExact('size(items,\'0\')');
+
+            expect(output).toEqual(new Filter(FilterFieldOperator.SIZE, 'items', 0));
+        });
+
+        it('should parse an element-level size inside an elemMatch interior', () => {
+            // array of arrays: some inner array has exactly two elements.
+            const output = parser.parseExact('elemMatch(matrix,size($this,\'2\'))');
+
+            expect(output).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'matrix',
+                new Filter(FilterFieldOperator.SIZE, ITSELF, 2),
+            ));
+        });
+
+        it('should throw on a negated size', () => {
+            const error = FiltersParseError.operatorUnsupported('size');
+
+            expect(() => parser.parseExact('not(size(items,\'2\'))')).toThrow(error);
+        });
+
+        it('should throw on a non integer, negative or non numeric value', () => {
+            expect(() => parser.parseExact('size(items,\'2.5\')')).toThrow(FiltersParseError);
+            expect(() => parser.parseExact('size(items,\'-1\')')).toThrow(FiltersParseError);
+            expect(() => parser.parseExact('size(items,\'abc\')')).toThrow(FiltersParseError);
+            expect(() => parser.parseExact('size(items,null)')).toThrow(FiltersParseError);
+        });
+    });
+
     describe('elemMatch', () => {
         it('should parse the nested document form', () => {
             const output = parser.parseExact('elemMatch(items,eq(name,\'chess\'))');

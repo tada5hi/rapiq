@@ -17,6 +17,7 @@ import {
     exists,
     ne,
     or,
+    size,
 } from '@rapiq/core';
 import { compileFilters } from '../../../src';
 
@@ -255,6 +256,14 @@ describe('filters: join-row binding', () => {
             // not even a null test matches the empty-array NULL row.
             expect(compileFilters(elemMatch('scores', eq(ITSELF, null)))({ scores: [] })).toBeFalsy();
             expect(compileFilters(elemMatch('scores', eq(ITSELF, null)))({ scores: [null] })).toBeTruthy();
+        });
+
+        it('should evaluate an element-level size against the element itself', () => {
+            // { matrix: { $elemMatch: { $size: 2 } } }
+            const predicate = compileFilters(elemMatch('matrix', size(ITSELF, 2)));
+
+            expect(predicate({ matrix: [[1], [1, 2]] })).toBeTruthy();
+            expect(predicate({ matrix: [[1], [1, 2, 3]] })).toBeFalsy();
         });
 
         it('should evaluate nested element-level elemMatch on arrays of arrays', () => {

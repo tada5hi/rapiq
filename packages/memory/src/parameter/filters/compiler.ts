@@ -137,6 +137,23 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         ));
     }
 
+    visitFilterSize(expr: IFilter<FilterFieldOperator.SIZE, number>) : FilterCompileResult {
+        if (
+            typeof expr.value !== 'number' ||
+            !Number.isInteger(expr.value) ||
+            expr.value < 0
+        ) {
+            return this.leaf(expr.field, () => false);
+        }
+
+        const length = expr.value;
+
+        // the condition addresses the array itself, not its elements —
+        // missing or non-array values never match (mongo parity).
+        return this.leaf(expr.field, (value) => Array.isArray(value) &&
+            value.length === length);
+    }
+
     visitFilterElemMatch(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : FilterCompileResult {
         if (!isFilter(expr.value) && !isFilters(expr.value)) {
             throw AdapterError.featureUnsupported('filters:elemMatch:value');

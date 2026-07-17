@@ -329,6 +329,23 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
     });
 
+    it('should throw typed on a size condition', () => {
+        // no SQL rendering yet (mirrors @rapiq/sql).
+        const condition = new Filter(
+            FilterFieldOperator.SIZE,
+            'first_name',
+            2,
+        );
+
+        try {
+            createQueryBuilder(condition);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+        }
+    });
+
     it('should throw typed on an ITSELF leaf', () => {
         // a joined relation row is not a scalar column — no rendering
         // for the element itself (mirrors @rapiq/sql).

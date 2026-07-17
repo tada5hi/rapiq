@@ -144,6 +144,17 @@ export function mod<RECORD extends ObjectLiteral = ObjectLiteral>(
     return new Filter(FilterFieldOperator.MOD, field, [divisor, remainder]);
 }
 
+/**
+ * Match arrays with exactly the given number of elements
+ * (a non-negative integer); missing or non-array values never match.
+ */
+export function size<RECORD extends ObjectLiteral = ObjectLiteral>(
+    field: FieldKey<RECORD>,
+    value: number,
+) : Filter {
+    return new Filter(FilterFieldOperator.SIZE, field, value);
+}
+
 export function exists<RECORD extends ObjectLiteral = ObjectLiteral>(
     field: FieldKey<RECORD>,
     value: boolean = true,

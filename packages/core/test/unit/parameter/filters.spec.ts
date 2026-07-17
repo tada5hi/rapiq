@@ -62,6 +62,10 @@ class NamingFilterVisitor implements IFilterVisitor<string> {
         return 'visitFilterMod';
     }
 
+    visitFilterSize(_: IFilter) {
+        return 'visitFilterSize';
+    }
+
     visitFilterElemMatch(_: IFilter) {
         return 'visitFilterElemMatch';
     }
@@ -106,6 +110,7 @@ const OPERATOR_METHOD: [string, string][] = [
     [FilterFieldOperator.IN, 'visitFilterIn'],
     [FilterFieldOperator.NOT_IN, 'visitFilterNotIn'],
     [FilterFieldOperator.MOD, 'visitFilterMod'],
+    [FilterFieldOperator.SIZE, 'visitFilterSize'],
     [FilterFieldOperator.ELEM_MATCH, 'visitFilterElemMatch'],
     [FilterFieldOperator.CONTAINS, 'visitFilterContains'],
     [FilterFieldOperator.NOT_CONTAINS, 'visitFilterNotContains'],

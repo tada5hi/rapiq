@@ -37,7 +37,7 @@ Multiple keys combine with **and** (a flat root-AND). Nested records (`{ realm: 
 
 One key per [filter operator](/guide/filters#operators), prefixed with `$`:
 
-`$eq` `$ne` `$lt` `$lte` `$gt` `$gte` `$in` `$nin` `$startsWith` `$notStartsWith` `$endsWith` `$notEndsWith` `$contains` `$notContains` `$regex` `$mod` `$exists` `$elemMatch`
+`$eq` `$ne` `$lt` `$lte` `$gt` `$gte` `$in` `$nin` `$startsWith` `$notStartsWith` `$endsWith` `$notEndsWith` `$contains` `$notContains` `$regex` `$mod` `$size` `$exists` `$elemMatch`
 
 Most take the field's value type (`$eq`/`$ne` also accept `null`, `$in`/`$nin` take arrays, the string operators take strings). The remaining value shapes:
 
@@ -46,6 +46,7 @@ defineQuery<User>({
     filters: {
         name: { $regex: /^jo/i },              // RegExp or pattern string
         age: { $mod: [4, 0] },                 // [divisor, remainder]
+        tags: { $size: 2 },                    // array length
         email: { $exists: true },              // boolean
         items: {                               // match array elements;
             $elemMatch: { name: 'chess' },     // field paths are relative
@@ -78,12 +79,13 @@ const query = defineQuery<User>({
 });
 ```
 
-`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `exists` `elemMatch` — plus `and` / `or` compounds.
+`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch` — plus `and` / `or` compounds.
 
-Three helpers deviate from the uniform `(field, value)` signature:
+A few helpers deviate from the uniform `(field, value)` signature:
 
 ```typescript
 mod('age', 4, 0);                    // (field, divisor, remainder)
+size('tags', 2);                     // (field, length) — array length
 exists('email');                     // (field, value = true)
 elemMatch('items', eq('name', 'x')); // (field, condition) — condition
                                      // field paths are element-relative
