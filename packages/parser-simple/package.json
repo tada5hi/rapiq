@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-simple",
-    "version": "1.0.0",
+    "version": "2.0.0-beta.0",
     "description": "A package containing a simple parser",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,10 +16,10 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^1.0.0"
+        "@rapiq/core": "^2.0.0-beta.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^1.0.0"
+        "@rapiq/core": "^2.0.0-beta.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
