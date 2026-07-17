@@ -19,6 +19,7 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    ITSELF,
     KeyResolutionErrorCode,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
@@ -598,6 +599,17 @@ export class MongoFiltersParser extends BaseParser<
 
                     break;
                 }
+                case '$all': {
+                    // no complement twin — negated $all can not be
+                    // expressed without silently widening.
+                    if (negated) {
+                        throw FiltersParseError.operatorUnsupported('$all');
+                    }
+
+                    this.validateInValue(key, input[operator]);
+
+                    break;
+                }
                 case '$not': {
                     if (negated) {
                         throw FiltersParseError.syntaxInvalid(
@@ -755,6 +767,19 @@ export class MongoFiltersParser extends BaseParser<
 
                     break;
                 }
+                case '$all': {
+                    // for each listed value some element must equal it —
+                    // an AND of independently scoped element matches.
+                    for (const element of input[operator]) {
+                        output.push(new Filter(
+                            FilterFieldOperator.ELEM_MATCH,
+                            resolved.field,
+                            new Filter(FilterFieldOperator.EQUAL, ITSELF, element),
+                        ));
+                    }
+
+                    break;
+                }
                 case '$not': {
                     const conditions = this.buildOperatorObject(
                         input[operator],
@@ -783,53 +808,82 @@ export class MongoFiltersParser extends BaseParser<
     }
 
     /**
-     * Build an $elemMatch condition: the value re-enters document
-     * context, fields relative to the array element. The interior scope
-     * is the related schema when resolvable, otherwise an unbound scope
-     * inheriting the current policy (e.g. a JSON array column).
+     * Build an $elemMatch condition. A field-operator interior
+     * (`{ $gt: 5 }`) is the element-level form — the operators apply to
+     * the array element itself, referenced by the ITSELF marker. Any
+     * other value re-enters document context, fields relative to the
+     * array element. The document-form interior scope is the related
+     * schema when resolvable, otherwise an unbound scope inheriting the
+     * current policy (e.g. a JSON array column).
      */
     protected buildElemMatch(
         input: Record<string, any>,
         resolved: FieldResolution,
         depth: number,
     ) : ICondition | undefined {
-        // the element-level operator form (matching the scalar element
-        // itself) has no self-reference marker in the AST.
+        if (depth > MAX_DEPTH) {
+            throw FiltersParseError.syntaxInvalid('The maximum nesting depth was exceeded.');
+        }
+
         const keys = Object.keys(input);
-        for (const key of keys) {
-            if (MONGO_FIELD_OPERATORS.includes(key)) {
-                throw FiltersParseError.featureUnsupported('$elemMatch (element-level operators)');
+        if (keys.some((key) => MONGO_FIELD_OPERATORS.includes(key))) {
+            // grammar of the interior is validated like any other
+            // operator object (unknown operators, plain keys and
+            // misplaced compounds throw).
+            const regex = this.validateOperatorObject(resolved.field, input, false);
+
+            const conditions = this.buildOperatorObject(
+                input,
+                {
+                    field: ITSELF,
+                    name: ITSELF,
+                    scope: this.buildUnboundScope(resolved.scope),
+                },
+                false,
+                depth + 1,
+                regex,
+            );
+
+            const condition = this.combineDocument(conditions, false);
+
+            /* istanbul ignore next -- validation rejected empty interiors */
+            if (!condition) {
+                return undefined;
             }
+
+            return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
         }
 
         let child : FiltersScope | undefined;
-        try {
-            const verdict = resolved.scope.descend(resolved.name);
-            if (verdict instanceof ResolutionScope) {
-                child = verdict;
-            } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
-                // relations gating (pathNotPermitted) is a schema-policy
-                // failure for the entry — drop it.
-                return undefined;
-            }
-        } catch (e) {
-            // $elemMatch on a non-relation field is legal — a missing
-            // related schema (thrown as keyPathInvalid under
-            // throwOnFailure) falls back to the unbound scope;
-            // every other failure propagates.
-            if (
-                !(e instanceof ParseError) ||
-                e.code !== ErrorCode.KEY_PATH_INVALID
-            ) {
-                throw e;
+        if (resolved.name === ITSELF) {
+            // the element itself is never schema-resolvable.
+            child = this.buildUnboundScope(resolved.scope);
+        } else {
+            try {
+                const verdict = resolved.scope.descend(resolved.name);
+                if (verdict instanceof ResolutionScope) {
+                    child = verdict;
+                } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
+                    // relations gating (pathNotPermitted) is a schema-policy
+                    // failure for the entry — drop it.
+                    return undefined;
+                }
+            } catch (e) {
+                // $elemMatch on a non-relation field is legal — a missing
+                // related schema (thrown as keyPathInvalid under
+                // throwOnFailure) falls back to the unbound scope;
+                // every other failure propagates.
+                if (
+                    !(e instanceof ParseError) ||
+                    e.code !== ErrorCode.KEY_PATH_INVALID
+                ) {
+                    throw e;
+                }
             }
         }
 
         if (!child) {
-            child = ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
-                throwOnFailure: resolved.scope.throwOnFailure,
-                strict: resolved.scope.strict,
-            }) as FiltersScope;
+            child = this.buildUnboundScope(resolved.scope);
         }
 
         const conditions = this.parseDocument(input, child, false, depth + 1);
@@ -841,6 +895,13 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
+    }
+
+    protected buildUnboundScope(current: FiltersScope) : FiltersScope {
+        return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
+            throwOnFailure: current.throwOnFailure,
+            strict: current.strict,
+        }) as FiltersScope;
     }
 }
 

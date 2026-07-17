@@ -5,20 +5,39 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ITSELF } from '@rapiq/core';
 import { resolveProperty } from '../../helpers';
 import type { Predicate } from '../../types';
+import { BINDING_ELEMENT_FLAG, BINDING_SCOPE_SEPARATOR } from './constants';
 import type { BindingContext, ConditionEval } from './types';
 
 const EMPTY_CONTEXT : BindingContext = new Map();
 
 /**
- * The join-row candidates a relation path segment contributes:
- * every element of an array, the object itself, or a single
- * NULL row when the value is absent or the array is empty.
+ * The source value a binding-path segment reads off its parent
+ * binding. elemMatch segments carry a scope discriminator that is
+ * stripped before property resolution; an ITSELF segment (an
+ * elemMatch on the element itself) re-reads the parent binding.
  */
-function bindingCandidates(parent: unknown, segment: string) : unknown[] {
-    const raw = resolveProperty(parent, segment);
+function bindingSource(parent: unknown, segment: string) : unknown {
+    const separatorIndex = segment.indexOf(BINDING_SCOPE_SEPARATOR);
+    const name = separatorIndex === -1 ?
+        segment :
+        segment.slice(0, separatorIndex);
 
+    if (name === ITSELF) {
+        return parent;
+    }
+
+    return resolveProperty(parent, name);
+}
+
+/**
+ * The join-row candidates a binding path contributes: every element
+ * of an array, the object itself, or a single NULL row when the
+ * value is absent or the array is empty.
+ */
+function bindingCandidates(raw: unknown) : unknown[] {
     if (Array.isArray(raw)) {
         return raw.length > 0 ? raw : [null];
     }
@@ -28,7 +47,7 @@ function bindingCandidates(parent: unknown, segment: string) : unknown[] {
 
 /**
  * Quantify a compiled condition tree over all assignments of
- * elements to relation paths (LEFT-join row semantics): the input
+ * elements to binding paths (LEFT-join row semantics): the input
  * matches if some assignment satisfies the whole tree.
  */
 export function createBoundPredicate(
@@ -60,7 +79,13 @@ export function createBoundPredicate(
                 path :
                 path.slice(separatorIndex + 1);
 
-            const candidates = bindingCandidates(parent, segment);
+            const raw = bindingSource(parent, segment);
+
+            // ITSELF leaves only match real array elements — never a
+            // to-one object, a scalar or the NULL row.
+            ctx.set(`${path}${BINDING_ELEMENT_FLAG}`, Array.isArray(raw) && raw.length > 0);
+
+            const candidates = bindingCandidates(raw);
             for (const candidate of candidates) {
                 ctx.set(path, candidate);
 
@@ -70,6 +95,7 @@ export function createBoundPredicate(
             }
 
             ctx.delete(path);
+            ctx.delete(`${path}${BINDING_ELEMENT_FLAG}`);
 
             return false;
         };

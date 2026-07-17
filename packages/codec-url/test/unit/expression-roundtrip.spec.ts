@@ -12,7 +12,9 @@ import {
     Fields,
     FilterCompoundOperator,
     Filters,
+    ITSELF,
     Pagination,
+    Query,
     Relation,
     Relations,
     Sort,
@@ -21,6 +23,7 @@ import {
     and,
     contains,
     defineQuery,
+    elemMatch,
     endsWith,
     eq,
     exists,
@@ -98,6 +101,9 @@ describe('round-trip', () => {
             ['notContains', notContains('name', 'oh')],
             ['contains with comma', contains('name', 'a,b')],
             ['relation path condition', eq('items.name', 'a')],
+            ['elemMatch document form', elemMatch('items', eq('name', 'chess'))],
+            ['elemMatch ITSELF leaf', elemMatch('scores', gt(ITSELF, 5))],
+            ['nested elemMatch on the element itself', elemMatch('matrix', elemMatch(ITSELF, gt(ITSELF, 5)))],
         ])('should round-trip %s', (_, filter) => {
             expect(roundTripFilter(filter)).toEqual(
                 new Filters(FilterCompoundOperator.AND, [filter]),
@@ -123,6 +129,17 @@ describe('round-trip', () => {
             [
                 'same-field branches',
                 and(gte('age', 18), lt('age', 65)),
+            ],
+            [
+                'elemMatch compound interior',
+                and(elemMatch('items', and(eq('id', 1), eq('active', true)))),
+            ],
+            [
+                '$all desugar (independent element matches)',
+                and(
+                    elemMatch('tags', eq(ITSELF, 'a')),
+                    elemMatch('tags', eq(ITSELF, 'b')),
+                ),
             ],
         ])('should round-trip %s', (_, filters) => {
             expect(roundTripFilter(filters)).toEqual(filters);
@@ -176,10 +193,24 @@ describe('round-trip', () => {
             ['value-mutating numeric text (0xFF would decode to 255)', eq('code', '0xFF')],
             ['NaN value (would decode to the string NaN)', eq('age', Number.NaN)],
             ['keyword field segment', eq('null', 'x')],
+            ['elemMatch keyword field segment', eq('elemMatch', 'x')],
             ['non-tokenizable field segment', eq('a b', 'x')],
             ['empty nested compound', and(eq('name', 'x'), or())],
         ])('should throw for %s', (_, filter) => {
             expectTypedFailure(filter, ErrorCode.FEATURE_UNSUPPORTED);
+        });
+
+        it('should throw for the ITSELF marker outside an elemMatch interior', () => {
+            // hand-built — defineQuery already rejects this shape.
+            const query = new Query({ filters: new Filters(FilterCompoundOperator.AND, [eq(ITSELF, 'x')]) });
+
+            try {
+                encoder.encode(query);
+                expect.fail('should have thrown');
+            } catch (e) {
+                expect(e).toBeInstanceOf(AdapterError);
+                expect((e as AdapterError).code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
+            }
         });
     });
 
@@ -228,6 +259,16 @@ describe('round-trip', () => {
 
             expect(decodeURIComponent(encoded!)).toEqual(
                 'filter=and(eq(name,\'John\'),or(gte(age,\'18\'),eq(email,null)))&page[limit]=20',
+            );
+        });
+
+        it('should emit the documented elemMatch wire format', () => {
+            const query = defineQuery({ filters: elemMatch('scores', gt(ITSELF, 5)) });
+
+            const encoded = encoder.encode(query);
+
+            expect(decodeURIComponent(encoded!)).toEqual(
+                'filter=elemMatch(scores,gt($this,\'5\'))',
             );
         });
     });

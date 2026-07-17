@@ -16,6 +16,7 @@ import {
     AdapterError,
     FilterCompoundOperator,
     FilterRegexFlag,
+    ITSELF,
     createFilterRegex,
     isFilter,
     isFilters,
@@ -27,6 +28,7 @@ import {
     resolveProperty,
     toText,
 } from '../../helpers';
+import { BINDING_ELEMENT_FLAG, BINDING_SCOPE_SEPARATOR } from './constants';
 import type { FilterCompileResult, FiltersVisitorOptions, ValueTest } from './types';
 
 /**
@@ -55,11 +57,17 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
     protected fieldPrefix : string;
 
+    protected bindingPrefix : string;
+
+    protected scopeSequence : number;
+
     protected caseSensitiveFields : Set<string>;
 
     constructor(options: FiltersVisitorOptions = {}) {
         this.paths = new Set();
         this.fieldPrefix = '';
+        this.bindingPrefix = '';
+        this.scopeSequence = 0;
         this.caseSensitiveFields = new Set(options.caseSensitive || []);
     }
 
@@ -134,14 +142,28 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
             throw AdapterError.featureUnsupported('filters:elemMatch:value');
         }
 
-        const oldPrefix = this.fieldPrefix;
+        // an elemMatch on the element itself (arrays of arrays) is
+        // only meaningful inside another elemMatch scope.
+        if (expr.field === ITSELF && !this.bindingPrefix) {
+            throw AdapterError.featureUnsupported('filters:itself');
+        }
 
-        this.fieldPrefix = `${oldPrefix}${expr.field}.`;
+        const oldFieldPrefix = this.fieldPrefix;
+        const oldBindingPrefix = this.bindingPrefix;
+
+        // every elemMatch opens its own quantifier scope: the
+        // discriminated segment gives this interior an element binding
+        // of its own, so two elemMatches on one field quantify
+        // independently (e.g. one per $all value).
+        this.scopeSequence += 1;
+        this.fieldPrefix = `${oldFieldPrefix}${expr.field}.`;
+        this.bindingPrefix = `${oldBindingPrefix}${expr.field}${BINDING_SCOPE_SEPARATOR}${this.scopeSequence}.`;
 
         try {
             return expr.value.accept(this);
         } finally {
-            this.fieldPrefix = oldPrefix;
+            this.fieldPrefix = oldFieldPrefix;
+            this.bindingPrefix = oldBindingPrefix;
         }
     }
 
@@ -222,7 +244,23 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
     // -----------------------------------------------------------
 
     protected leaf(field: string, test: ValueTest) : FilterCompileResult {
-        const key = `${this.fieldPrefix}${field}`;
+        if (field === ITSELF) {
+            // the marker addresses the element bound by the enclosing
+            // elemMatch scope; outside one it has no referent.
+            if (!this.bindingPrefix) {
+                throw AdapterError.featureUnsupported('filters:itself');
+            }
+
+            const path = this.bindingPrefix.slice(0, -1);
+            const flag = `${path}${BINDING_ELEMENT_FLAG}`;
+
+            this.registerPath(path);
+
+            return (ctx) => ctx.get(flag) === true &&
+                test(normalizeValue(ctx.get(path)));
+        }
+
+        const key = `${this.bindingPrefix}${field}`;
         const separatorIndex = key.lastIndexOf('.');
 
         if (separatorIndex === -1) {

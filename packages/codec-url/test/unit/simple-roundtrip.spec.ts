@@ -12,6 +12,7 @@ import {
     Fields,
     FilterCompoundOperator,
     Filters,
+    ITSELF,
     Pagination,
     Relation,
     Relations,
@@ -154,6 +155,7 @@ describe('round-trip', () => {
             ['mod', mod('age', [2, 0])],
             ['exists', exists('email', true)],
             ['elemMatch', elemMatch('items', eq('name', 'a'))],
+            ['elemMatch with ITSELF interior', elemMatch('scores', gt(ITSELF, 5))],
         ])('should throw for the %s operator (no wire syntax)', (_, filter) => {
             expectTypedFailure(filter, ErrorCode.OPERATOR_UNSUPPORTED);
         });

@@ -21,8 +21,10 @@ export enum FilterTokenType {
     ENDS_WITH = 'endsWith',
     IN = 'in',
     NIN = 'nin',
+    ELEM_MATCH = 'elemMatch',
 
     FIELD = 'FIELD',
+    ITSELF = 'ITSELF',
     ESCAPED_TEXT = 'ESCAPED_TEXT',
     NULL = 'NULL',
     LPAREN = 'LPAREN',
@@ -52,6 +54,7 @@ export const FILTER_EXPRESSION_KEYWORDS = {
     endsWith: FilterTokenType.ENDS_WITH,
     in: FilterTokenType.IN,
     nin: FilterTokenType.NIN,
+    elemMatch: FilterTokenType.ELEM_MATCH,
     null: FilterTokenType.NULL,
 } as const satisfies Record<string, FilterTokenType>;
 

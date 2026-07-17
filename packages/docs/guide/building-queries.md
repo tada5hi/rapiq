@@ -50,6 +50,9 @@ defineQuery<User>({
         items: {                               // match array elements;
             $elemMatch: { name: 'chess' },     // field paths are relative
         },                                     // to the element
+        scores: {                              // element-level operators
+            $elemMatch: { $gt: 5 },            // apply to the element
+        },                                     // itself (ITSELF marker)
     },
 });
 ```
@@ -84,6 +87,8 @@ mod('age', 4, 0);                    // (field, divisor, remainder)
 exists('email');                     // (field, value = true)
 elemMatch('items', eq('name', 'x')); // (field, condition) — condition
                                      // field paths are element-relative
+elemMatch('scores', gt(ITSELF, 5));  // ITSELF addresses the element
+                                     // itself (scalar arrays)
 ```
 
 ::: info `inArray`

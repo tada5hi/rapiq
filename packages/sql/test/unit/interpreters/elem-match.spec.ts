@@ -5,7 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Filter, Filters } from '@rapiq/core';
+import {
+    AdapterError,
+    ErrorCode,
+    Filter,
+    Filters,
+    ITSELF,
+} from '@rapiq/core';
 import type { FiltersContainerOptions } from '../../../src';
 import {
     FiltersAdapter,
@@ -65,6 +71,24 @@ describe('elemMatch', () => {
         // the inner interior binds relative to the OUTER element —
         // the join path composes instead of resetting to the root.
         expect(relationsAdapter.getPaths()).toStrictEqual(['items', 'items.parts']);
+    });
+
+    it('throws typed on an ITSELF leaf', () => {
+        // a joined relation row is not a scalar column — SQL has no
+        // rendering for the element itself.
+        const condition = new Filter(
+            'elemMatch',
+            'tags',
+            new Filter('eq', ITSELF, 'a'),
+        );
+
+        try {
+            condition.accept(visitor);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+        }
     });
 
     it('generates query from a compound condition based on relation', () => {

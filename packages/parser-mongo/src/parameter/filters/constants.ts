@@ -53,6 +53,7 @@ export const MONGO_FIELD_OPERATORS : readonly string[] = [
     '$mod',
     '$exists',
     '$elemMatch',
+    '$all',
     '$not',
 ];
 
@@ -62,7 +63,6 @@ export const MONGO_FIELD_OPERATORS : readonly string[] = [
  */
 export const MONGO_UNSUPPORTED_OPERATORS : readonly string[] = [
     '$size',
-    '$all',
     '$type',
     '$where',
     '$text',

@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { AdapterError, ITSELF } from '@rapiq/core';
 import { ParamPlaceholderIndexer, parseField } from '../../helpers';
 import type { IRelationsAdapter } from '../relations';
 import type { IFiltersAdapter } from './types';
@@ -132,6 +133,13 @@ export abstract class FiltersBaseAdapter<
             inputNormalized = this.fieldPrefix + input;
         } else {
             inputNormalized = input;
+        }
+
+        // the ITSELF marker references an array element itself —
+        // a joined relation row is not a scalar column, so SQL has
+        // no rendering for it (dialect JSON support may follow).
+        if (inputNormalized.split('.').includes(ITSELF)) {
+            throw AdapterError.featureUnsupported('filters:itself');
         }
 
         const output = parseField(inputNormalized, this.rootAlias(), (path) => this.relations.buildAlias(path));

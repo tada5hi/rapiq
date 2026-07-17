@@ -12,9 +12,12 @@ import {
     FilterFieldOperator,
     Filters,
     FiltersParseError,
+    ITSELF,
     Relation,
     Relations,
+    SchemaRegistry,
     defineFiltersSchema,
+    defineSchema,
 } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
@@ -463,6 +466,146 @@ describe('filters/expr-parser', () => {
             const output = constrained.parseExact('eq(aliasId, \'1\')', { schema });
 
             expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'id', 1));
+        });
+    });
+
+    describe('elemMatch', () => {
+        it('should parse the nested document form', () => {
+            const output = parser.parseExact('elemMatch(items,eq(name,\'chess\'))');
+
+            expect(output).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'items',
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'chess'),
+            ));
+        });
+
+        it('should parse a compound interior', () => {
+            const output = parser.parseExact('elemMatch(items,and(eq(id,\'1\'),eq(active,\'true\')))');
+
+            expect(output).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'items',
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                    new Filter(FilterFieldOperator.EQUAL, 'active', true),
+                ]),
+            ));
+        });
+
+        it('should parse the ITSELF marker inside the interior', () => {
+            const output = parser.parseExact('elemMatch(scores,gt($this,\'5\'))');
+
+            expect(output).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'scores',
+                new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+            ));
+        });
+
+        it('should parse a nested elemMatch on the element itself', () => {
+            const output = parser.parseExact('elemMatch(matrix,elemMatch($this,gt($this,\'5\')))');
+
+            expect(output).toEqual(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'matrix',
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    ITSELF,
+                    new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+                ),
+            ));
+        });
+
+        it('should throw on a negated elemMatch', () => {
+            const error = FiltersParseError.operatorUnsupported('elemMatch');
+
+            expect(() => parser.parseExact('not(elemMatch(items,eq(id,\'1\')))')).toThrow(error);
+        });
+
+        it('should throw on the ITSELF marker outside an elemMatch interior', () => {
+            const error = FiltersParseError.keyInvalid(ITSELF);
+
+            expect(() => parser.parseExact('eq($this,\'5\')')).toThrow(error);
+            expect(() => parser.parseExact('elemMatch($this,eq(id,\'1\'))')).toThrow(error);
+        });
+
+        it('should throw on an unknown marker', () => {
+            expect(() => parser.parseExact('eq($foo,\'5\')')).toThrow(FiltersParseError);
+            expect(() => parser.parseExact('eq($,\'5\')')).toThrow(FiltersParseError);
+        });
+
+        it('should throw on a dotted ITSELF chain', () => {
+            expect(() => parser.parseExact('elemMatch(items,eq($this.name,\'x\'))')).toThrow(FiltersParseError);
+        });
+
+        describe('schema-constrained', () => {
+            let elemRegistry : SchemaRegistry;
+            let constrained : ExpressionFiltersParser;
+
+            beforeAll(() => {
+                elemRegistry = new SchemaRegistry();
+                elemRegistry.add(defineSchema({
+                    name: 'user',
+                    filters: { allowed: ['id', 'name', 'items', 'meta'] },
+                    relations: { allowed: ['items'] },
+                    schemaMapping: { items: 'item' },
+                }));
+                elemRegistry.add(defineSchema({
+                    name: 'item',
+                    filters: { allowed: ['id'] },
+                }));
+
+                constrained = new ExpressionFiltersParser(elemRegistry);
+            });
+
+            it('should validate interior keys against the related schema', () => {
+                const output = constrained.parseExact('elemMatch(items,eq(id,\'1\'))', { schema: 'user' });
+
+                expect(output).toEqual(new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                ));
+
+                const error = FiltersParseError.keyNotPermitted('name');
+                expect(() => constrained.parseExact('elemMatch(items,eq(name,\'x\'))', { schema: 'user' })).toThrow(error);
+            });
+
+            it('should throw on a non allowed elemMatch field', () => {
+                const error = FiltersParseError.keyNotPermitted('secret');
+
+                expect(() => constrained.parseExact('elemMatch(secret,eq(id,\'1\'))', { schema: 'user' })).toThrow(error);
+            });
+
+            it('should fall back to an unbound interior scope on a schemaless field', () => {
+                const output = constrained.parseExact('elemMatch(meta,eq(value,\'5\'))', { schema: 'user' });
+
+                expect(output).toEqual(new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'meta',
+                    new Filter(FilterFieldOperator.EQUAL, 'value', 5),
+                ));
+            });
+
+            it('should honor the relations context', () => {
+                const error = FiltersParseError.keyPathNotPermitted('items');
+
+                expect(() => constrained.parseExact('elemMatch(items,eq(id,\'1\'))', {
+                    schema: 'user',
+                    relations: new Relations([new Relation('realm')]),
+                })).toThrow(error);
+            });
+
+            it('should accept the ITSELF marker under a schema', () => {
+                const output = constrained.parseExact('elemMatch(meta,gt($this,\'5\'))', { schema: 'user' });
+
+                expect(output).toEqual(new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'meta',
+                    new Filter(FilterFieldOperator.GREATER_THAN, ITSELF, 5),
+                ));
+            });
         });
     });
 

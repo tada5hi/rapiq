@@ -33,7 +33,9 @@ Every dialect maps onto the same operator set (`FilterFieldOperator`):
 | `EXISTS` | is not null | `$exists` | `exists` | — |
 | `ELEM_MATCH` | array element match | `$elemMatch` | `elemMatch` | — |
 
-The last four have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries).
+`REGEX`, `MOD` and `EXISTS` have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries). `ELEM_MATCH` travels in the [expression dialect](/packages/parser-expression) only.
+
+Inside an `elemMatch` interior, the reserved `ITSELF` marker (wire spelling `$this`) may take the field position of a condition to address the array element itself: `elemMatch('scores', gt(ITSELF, 5))` matches when some score is greater than five. `@rapiq/memory` evaluates it element-wise; the SQL adapters throw a typed `featureUnsupported` (a joined relation row is not a scalar column). Anywhere outside an `elemMatch` interior the marker is a typed error.
 
 ## On the wire (expression dialect)
 
