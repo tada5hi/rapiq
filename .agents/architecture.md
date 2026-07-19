@@ -71,7 +71,7 @@ class Query implements IQuery {
     readonly filters: IFilters;      // compound node: FilterCompoundOperator.AND|OR over ICondition[]
     readonly pagination: IPagination;// { limit, offset }
     readonly relations: IRelations;  // Relation { name }
-    readonly sorts: ISorts;          // Sort { name, direction: SortDirection.ASC|DESC }
+    readonly sorts: ISorts;          // Sort { name, operator: SortDirection.ASC|DESC }
 }
 ```
 
