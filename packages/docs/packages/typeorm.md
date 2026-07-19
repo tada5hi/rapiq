@@ -78,6 +78,46 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 [Case-insensitive string equality](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns** — filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { visitor: { caseSensitive: [...] } })`.
 
+## Deriving schemas from entities
+
+Instead of hand-maintaining a [`Schema`](/guide/schemas) per resource, derive it from the TypeORM entity metadata. `createSchemaRegistryFromDataSource` walks all entities of a data source and returns a populated `SchemaRegistry` — one schema per entity, cross-linked automatically:
+
+```typescript
+import { createSchemaRegistryFromDataSource } from '@rapiq/typeorm';
+
+const registry = createSchemaRegistryFromDataSource(dataSource, {
+    schemas: {
+        user: {
+            filters: { allowed: 'columns' },
+            sort: { allowed: 'columns' },
+        },
+    },
+});
+```
+
+Every schema gets its **structure** derived unconditionally: the schema name (lower-camel entity name, `RoleDetail` → `roleDetail`), the allowed relations, and the `schemaMapping` linking each relation to its target entity's schema — so nested paths like `role.detail` resolve across the registry without any manual wiring.
+
+Column-based **allow-lists** are opt-in per parameter: `allowed: 'columns'` expands to the entity's column property paths. Hidden columns (`select: false`) and virtual join columns are always excluded; explicitly declared FK columns (e.g. `realmId`) are included. Any explicit option wins over its derived counterpart:
+
+```typescript
+import { defineSchemaFromEntity } from '@rapiq/typeorm';
+
+const schema = defineSchemaFromEntity(User, dataSource, {
+    strict: true,
+    fields: { allowed: 'columns' },
+    filters: { allowed: ['id', 'name'] },   // explicit list, nothing derived
+    sort: { default: { id: 'DESC' } },
+});
+```
+
+`defineSchemaFromEntity` also accepts an `EntityMetadata` directly (`defineSchemaFromEntity(dataSource.getMetadata(User))`), and the registry's `schemas` options can be keyed by entity class via a `Map` instead of the derived name. An options key that matches no entity throws, so entity renames fail loudly.
+
+Derivation never sets [`strict`](/guide/schemas#strict-mode) — combined with `strict: true`, a derived `allowed: 'columns'` opens **every** (non-hidden) column to clients, so opt sensitive resources into explicit lists instead.
+
+::: tip
+The data source only needs built metadata, not an open connection — deriving schemas at startup before `dataSource.initialize()` completes is fine as long as the metadata was built.
+:::
+
 ## Applying a single parameter
 
 A `Query` with only some parameters set applies just those — the rest are empty and become no-ops. To apply, say, only the filters of a parsed query:

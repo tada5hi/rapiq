@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) 2025.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+import type {
+    BaseSchemaOptions,
+    FieldsOptions,
+    FiltersOptions,
+    ObjectLiteral,
+    PaginationOptions,
+    RelationsOptions,
+    SortOptions,
+} from '@rapiq/core';
+import type { EntityTarget } from 'typeorm';
+
+/**
+ * Marks an `allowed` list to be derived from the entity's column
+ * property paths (hidden `select: false` columns and virtual join
+ * columns excluded).
+ */
+export type ColumnsSentinel = 'columns';
+
+type WithDerivableAllowed<OPTIONS extends { allowed?: unknown }> = Omit<OPTIONS, 'allowed'> & {
+    allowed?: NonNullable<OPTIONS['allowed']> | ColumnsSentinel,
+};
+
+export type EntitySchemaOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = BaseSchemaOptions & {
+    fields?: WithDerivableAllowed<FieldsOptions<RECORD>>,
+    filters?: WithDerivableAllowed<FiltersOptions<RECORD>>,
+    sort?: WithDerivableAllowed<SortOptions<RECORD>>,
+    relations?: RelationsOptions<RECORD>,
+    pagination?: PaginationOptions,
+};
+
+export type EntitySchemasOptions =    Record<string, EntitySchemaOptions<any>> |
+    Map<EntityTarget<any>, EntitySchemaOptions<any>>;
+
+export type SchemaRegistryFromDataSourceOptions = {
+    /**
+     * Per-entity options, keyed by the derived schema name
+     * (lower-camel entity name) or by the entity class itself.
+     */
+    schemas?: EntitySchemasOptions,
+};
