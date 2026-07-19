@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { SimpleParser } from '@rapiq/parser-simple';
 import type { DataSource } from 'typeorm';
 import {
@@ -156,6 +157,34 @@ describe('src/schema/*.ts', () => {
 
         const schema = registry.getOrFail('user');
         expect(schema.filters.allowed).toContain('email');
+    });
+
+    it('should extend an existing registry', () => {
+        const registry = new SchemaRegistry();
+        const realmSchema = defineSchema<Realm>({
+            name: 'realm',
+            filters: { allowed: ['id'] },
+        });
+        registry.add(realmSchema);
+
+        const output = createSchemaRegistryFromDataSource(dataSource, { registry });
+
+        expect(output).toBe(registry);
+        expect(registry.get('user')).toBeDefined();
+        expect(registry.get('roleDetail')).toBeDefined();
+
+        // the hand-written schema takes precedence over derivation
+        expect(registry.get('realm')).toBe(realmSchema);
+    });
+
+    it('should fail on schema options for an already registered schema', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({ name: 'realm' }));
+
+        expect(() => createSchemaRegistryFromDataSource(dataSource, {
+            registry,
+            schemas: { realm: {} },
+        })).toThrow('already registered');
     });
 
     it('should fail on schema options for an unknown entity', () => {

@@ -12,6 +12,7 @@ import type {
     ObjectLiteral,
     PaginationOptions,
     RelationsOptions,
+    SchemaRegistry,
     SortOptions,
 } from '@rapiq/core';
 import type { EntityTarget } from 'typeorm';
@@ -46,4 +47,11 @@ export type SchemaRegistryFromDataSourceOptions = {
      * (lower-camel entity name) or by the entity class itself.
      */
     schemas?: EntitySchemasOptions,
+
+    /**
+     * Registry to extend instead of creating a new one.
+     * Schemas already registered under a derived name take
+     * precedence — the entity is skipped.
+     */
+    registry?: SchemaRegistry,
 };

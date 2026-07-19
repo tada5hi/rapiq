@@ -112,6 +112,17 @@ const schema = defineSchemaFromEntity(User, dataSource, {
 
 `defineSchemaFromEntity` also accepts an `EntityMetadata` directly (`defineSchemaFromEntity(dataSource.getMetadata(User))`), and the registry's `schemas` options can be keyed by entity class via a `Map` instead of the derived name. An options key that matches no entity throws, so entity renames fail loudly.
 
+To mix hand-written and derived schemas, pass an existing registry — entities whose derived name is already registered are skipped, so the hand-written schema stays authoritative and derivation fills in the rest:
+
+```typescript
+const registry = new SchemaRegistry();
+registry.add(userSchema);   // curated by hand
+
+createSchemaRegistryFromDataSource(dataSource, { registry });
+```
+
+Passing `schemas` options for a skipped (already registered) name throws — options that would be silently ignored are treated as a mistake.
+
 Derivation never sets [`strict`](/guide/schemas#strict-mode) — combined with `strict: true`, a derived `allowed: 'columns'` opens **every** (non-hidden) column to clients, so opt sensitive resources into explicit lists instead.
 
 ::: tip

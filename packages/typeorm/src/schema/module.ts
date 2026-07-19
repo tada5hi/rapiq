@@ -142,7 +142,7 @@ export function createSchemaRegistryFromDataSource(
     dataSource: DataSource,
     options: SchemaRegistryFromDataSourceOptions = {},
 ) : SchemaRegistry {
-    const registry = new SchemaRegistry();
+    const registry = options.registry || new SchemaRegistry();
 
     const schemasOptions = new Map<string, EntitySchemaOptions<any>>();
     if (options.schemas instanceof Map) {
@@ -173,6 +173,15 @@ export function createSchemaRegistryFromDataSource(
         }
 
         names.add(name);
+
+        // an already registered schema (e.g. hand-written) takes precedence.
+        if (registry.get(name)) {
+            if (schemasOptions.has(name)) {
+                throw new Error(`The schemas option key "${name}" cannot be applied, since the schema is already registered.`);
+            }
+
+            continue;
+        }
 
         registry.add(defineSchemaFromEntity(metadata, schemasOptions.get(name)));
     }
