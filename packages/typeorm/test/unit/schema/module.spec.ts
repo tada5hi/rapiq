@@ -55,6 +55,8 @@ describe('src/schema/*.ts', () => {
 
     it('should derive lower-camel schema names', () => {
         expect(buildEntitySchemaName('RoleDetail')).toEqual('roleDetail');
+        expect(buildEntitySchemaName('HTTPRequestLog')).toEqual('httpRequestLog');
+        expect(buildEntitySchemaName('Role_Detail')).toEqual('roleDetail');
         expect(buildEntitySchemaName(dataSource.getMetadata(RoleDetail))).toEqual('roleDetail');
 
         const schema = defineSchemaWithEntity(RoleDetail, dataSource);

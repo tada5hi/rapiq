@@ -11,6 +11,7 @@ import type {
     SchemaOptions,
 } from '@rapiq/core';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { camelCase } from 'change-case';
 import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';
 import type {
@@ -19,9 +20,7 @@ import type {
 } from './types';
 
 export function buildEntitySchemaName(input: EntityMetadata | string) : string {
-    const name = typeof input === 'string' ? input : input.name;
-
-    return name.charAt(0).toLowerCase() + name.slice(1);
+    return camelCase(typeof input === 'string' ? input : input.name);
 }
 
 function deriveColumnKeys(metadata: EntityMetadata) : string[] {
