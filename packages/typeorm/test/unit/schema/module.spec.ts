@@ -16,8 +16,8 @@ import {
 } from 'typeorm';
 import {
     buildEntitySchemaName,
-    defineSchemaFromEntity,
     defineSchemaRegistryWithDataSource,
+    defineSchemaWithEntity,
 } from '../../../src';
 import { createDataSourceOptions, createUnconnectedDataSource } from '../../data/factory';
 import { Realm } from '../../data/entity/realm';
@@ -57,12 +57,12 @@ describe('src/schema/*.ts', () => {
         expect(buildEntitySchemaName('RoleDetail')).toEqual('roleDetail');
         expect(buildEntitySchemaName(dataSource.getMetadata(RoleDetail))).toEqual('roleDetail');
 
-        const schema = defineSchemaFromEntity(RoleDetail, dataSource);
+        const schema = defineSchemaWithEntity(RoleDetail, dataSource);
         expect(schema.name).toEqual('roleDetail');
     });
 
     it('should derive structure (relations + schemaMapping) by default', () => {
-        const schema = defineSchemaFromEntity(User, dataSource);
+        const schema = defineSchemaWithEntity(User, dataSource);
 
         expect(schema.name).toEqual('user');
         expect(schema.relations.allowed).toEqual(['role', 'realm']);
@@ -74,13 +74,13 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should accept entity metadata as input', () => {
-        const schema = defineSchemaFromEntity(dataSource.getMetadata(User));
+        const schema = defineSchemaWithEntity(dataSource.getMetadata(User));
 
         expect(schema.name).toEqual('user');
     });
 
     it('should derive column allow-lists on opt-in', () => {
-        const schema = defineSchemaFromEntity(User, dataSource, {
+        const schema = defineSchemaWithEntity(User, dataSource, {
             filters: { allowed: 'columns' },
             sort: { allowed: 'columns' },
         });
@@ -97,13 +97,13 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should exclude hidden and virtual join columns from derived lists', () => {
-        const schema = defineSchemaFromEntity(Article, articleDataSource, { filters: { allowed: 'columns' } });
+        const schema = defineSchemaWithEntity(Article, articleDataSource, { filters: { allowed: 'columns' } });
 
         expect(schema.filters.allowed).toEqual(['id', 'title']);
     });
 
     it('should prioritize explicit options over derived values', () => {
-        const schema = defineSchemaFromEntity(User, dataSource, {
+        const schema = defineSchemaWithEntity(User, dataSource, {
             name: 'account',
             strict: true,
             schemaMapping: { realm: 'customRealm' },

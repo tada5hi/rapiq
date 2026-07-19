@@ -100,9 +100,9 @@ Every schema gets its **structure** derived unconditionally: the schema name (lo
 Column-based **allow-lists** are opt-in per parameter: `allowed: 'columns'` expands to the entity's column property paths. Hidden columns (`select: false`) and virtual join columns are always excluded; explicitly declared FK columns (e.g. `realmId`) are included. Any explicit option wins over its derived counterpart:
 
 ```typescript
-import { defineSchemaFromEntity } from '@rapiq/typeorm';
+import { defineSchemaWithEntity } from '@rapiq/typeorm';
 
-const schema = defineSchemaFromEntity(User, dataSource, {
+const schema = defineSchemaWithEntity(User, dataSource, {
     strict: true,
     fields: { allowed: 'columns' },
     filters: { allowed: ['id', 'name'] },   // explicit list, nothing derived
@@ -110,7 +110,7 @@ const schema = defineSchemaFromEntity(User, dataSource, {
 });
 ```
 
-`defineSchemaFromEntity` also accepts an `EntityMetadata` directly (`defineSchemaFromEntity(dataSource.getMetadata(User))`), and the registry's `schemas` options can be keyed by entity class via a `Map` instead of the derived name. An options key that matches no entity throws, so entity renames fail loudly.
+`defineSchemaWithEntity` also accepts an `EntityMetadata` directly (`defineSchemaWithEntity(dataSource.getMetadata(User))`), and the registry's `schemas` options can be keyed by entity class via a `Map` instead of the derived name. An options key that matches no entity throws, so entity renames fail loudly.
 
 To mix hand-written and derived schemas, pass an existing registry — entities whose derived name is already registered are skipped, so the hand-written schema stays authoritative and derivation fills in the rest:
 

@@ -100,20 +100,20 @@ function buildSchemaOptions(
     return output;
 }
 
-export function defineSchemaFromEntity<
+export function defineSchemaWithEntity<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     metadata: EntityMetadata,
     options?: EntitySchemaOptions<RECORD>,
 ) : Schema<RECORD>;
-export function defineSchemaFromEntity<
+export function defineSchemaWithEntity<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     target: EntityTarget<RECORD>,
     dataSource: DataSource,
     options?: EntitySchemaOptions<RECORD>,
 ) : Schema<RECORD>;
-export function defineSchemaFromEntity<
+export function defineSchemaWithEntity<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     target: EntityMetadata | EntityTarget<RECORD>,
@@ -183,7 +183,7 @@ export function defineSchemaRegistryWithDataSource(
             continue;
         }
 
-        registry.add(defineSchemaFromEntity(metadata, schemasOptions.get(name)));
+        registry.add(defineSchemaWithEntity(metadata, schemasOptions.get(name)));
     }
 
     for (const name of schemasOptions.keys()) {
