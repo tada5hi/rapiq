@@ -28,7 +28,11 @@ export class User {
     @Column({ nullable: true })
     address : string;
 
-    @Column({ name: 'nick_name', nullable: true, type: 'varchar' })
+    @Column({
+        name: 'nick_name', 
+        nullable: true, 
+        type: 'varchar', 
+    })
     nickName: string | null;
 
     @Column()
