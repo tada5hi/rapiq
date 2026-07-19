@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-mongo",
-    "version": "2.0.0-beta.0",
+    "version": "2.0.0-beta.1",
     "description": "A package containing a mongodb style parser",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,12 +16,12 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.0",
-        "@rapiq/parser-simple": "^2.0.0-beta.0"
+        "@rapiq/core": "^2.0.0-beta.1",
+        "@rapiq/parser-simple": "^2.0.0-beta.1"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.0",
-        "@rapiq/parser-simple": "^2.0.0-beta.0"
+        "@rapiq/core": "^2.0.0-beta.1",
+        "@rapiq/parser-simple": "^2.0.0-beta.1"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
