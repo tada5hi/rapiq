@@ -27,7 +27,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            -   uses: google-github-actions/release-please-action@v4
+            -   uses: googleapis/release-please-action@v5
                 if: github.event_name == 'push'
                 id: release
                 with:
