@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.0...sql-v2.0.0-beta.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **typeorm:** resolve filter property paths to database column names ([eecb486](https://github.com/tada5hi/rapiq/commit/eecb4869a475571fab4c684f68359a78c3d474e3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.0 to ^2.0.0-beta.1
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.0 to ^2.0.0-beta.1
+
 ## [2.0.0-beta.0](https://github.com/tada5hi/rapiq/compare/sql-v1.0.0...sql-v2.0.0-beta.0) (2026-07-17)
 
 

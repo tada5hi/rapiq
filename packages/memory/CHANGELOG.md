@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/memory-v2.0.0-beta.0...memory-v2.0.0-beta.1) (2026-07-19)
+
+
+### Miscellaneous Chores
+
+* **memory:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.0 to ^2.0.0-beta.1
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.0 to ^2.0.0-beta.1
+
 ## [2.0.0-beta.0](https://github.com/tada5hi/rapiq/compare/memory-v1.0.0...memory-v2.0.0-beta.0) (2026-07-17)
 
 
