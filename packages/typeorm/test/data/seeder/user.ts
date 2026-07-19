@@ -24,6 +24,7 @@ export async function createUserSeed(dataSource: DataSource) : Promise<User[]> {
             last_name: 'Nel',
             age: 60,
             email: 'ashton.nel@gmail.com',
+            nickName: 'Ash',
         },
     ]);
 }

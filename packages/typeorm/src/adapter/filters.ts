@@ -161,6 +161,26 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         return isCaseFoldableColumnType(column.type);
     }
 
+    /**
+     * WHERE fragments are raw SQL — the SelectQueryBuilder dropped
+     * whole-query property-name replacement with typeorm 1.x, so
+     * property paths must resolve to their database column names here.
+     */
+    override resolveFieldName(name: string, relationPath?: string) : string {
+        const { mainAlias } = this.queryBuilder.expressionMap;
+        if (!mainAlias || !mainAlias.hasMetadata) {
+            return super.resolveFieldName(name, relationPath);
+        }
+
+        const path = relationPath ? `${relationPath}.${name}` : name;
+        const column = findColumnByPropertyPath(mainAlias.metadata, path);
+        if (!column) {
+            return super.resolveFieldName(name, relationPath);
+        }
+
+        return column.databaseName;
+    }
+
     child(): this {
         const child = new FiltersAdapter(this.queryBuilder, this.relations);
 

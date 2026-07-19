@@ -447,4 +447,36 @@ describe('src/filters', () => {
 
         expect(user.first_name).toEqual('Caleb');
     });
+
+    it('should resolve property names to database column names', async () => {
+        // nickName is stored as nick_name — WHERE fragments are raw SQL,
+        // so the adapter must map the property path itself (typeorm >= 1.x
+        // no longer rewrites property names in select query builders).
+        const condition = new Filter(
+            FilterFieldOperator.EQUAL,
+            'nickName',
+            'Ash',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+        expect(data[0].nickName).toEqual('Ash');
+    });
+
+    it('should resolve relation property names to database column names', async () => {
+        // role.displayName is stored as role.display_name.
+        const condition = new Filter(
+            FilterFieldOperator.EQUAL,
+            'role.displayName',
+            'Administrator',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+        expect(data[0].first_name).toEqual('Aston');
+    });
 });

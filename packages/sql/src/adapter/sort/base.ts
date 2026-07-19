@@ -36,6 +36,19 @@ export abstract class SortBaseAdapter implements ISortAdapter {
 
     protected abstract escapeField(field: string) : string;
 
+    /**
+     * Resolve a parsed field name to the identifier the database knows.
+     * Backends with column metadata override this to map property names
+     * to column names (e.g. `realmId` -> `realm_id`); the default is the
+     * identity, matching schemaless SQL usage.
+     *
+     * @param name last path segment (property name)
+     * @param relationPath dotted relation prefix, if any
+     */
+    resolveFieldName(name: string, _relationPath?: string) : string {
+        return name;
+    }
+
     abstract execute() : void;
 
     // -----------------------------------------------------------
@@ -67,10 +80,12 @@ export abstract class SortBaseAdapter implements ISortAdapter {
             this.relations.add(output.relation);
         }
 
+        const name = this.resolveFieldName(output.name, output.relation);
+
         if (output.prefix) {
-            return `${this.escapeField(output.prefix)}.${this.escapeField(output.name)}`;
+            return `${this.escapeField(output.prefix)}.${this.escapeField(name)}`;
         }
 
-        return this.escapeField(output.name);
+        return this.escapeField(name);
     }
 }
