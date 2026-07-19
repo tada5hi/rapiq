@@ -2,7 +2,6 @@
     "include-component-in-tag": true,
     "prerelease": true,
     "prerelease-type": "beta",
-    "release-as": "2.0.0-beta.0",
     "release-type": "node",
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
