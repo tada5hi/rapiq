@@ -19,6 +19,7 @@ import type { DataSource } from 'typeorm';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
 import { Role } from '../data/entity/role';
+import { RoleDetail } from '../data/entity/role-detail';
 import { createDataSource } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 import { createRoleSeed } from '../data/seeder/role';
@@ -463,6 +464,32 @@ describe('src/filters', () => {
 
         expect(data.length).toEqual(1);
         expect(data[0].nickName).toEqual('Ash');
+    });
+
+    it('should resolve nested relation property names to database column names', async () => {
+        // role.detail.internalNote descends two relation hops and is
+        // stored as internal_note.
+        const detailRepository = dataSource.getRepository(RoleDetail);
+        const detail = await detailRepository.save(
+            detailRepository.create({ internalNote: 'restricted' }),
+        );
+
+        const roleRepository = dataSource.getRepository(Role);
+        const admin = await roleRepository.findOneByOrFail({ name: 'admin' });
+        admin.detail = detail;
+        await roleRepository.save(admin);
+
+        const condition = new Filter(
+            FilterFieldOperator.EQUAL,
+            'role.detail.internalNote',
+            'restricted',
+        );
+
+        const queryBuilder = createQueryBuilder(condition);
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+        expect(data[0].first_name).toEqual('Aston');
     });
 
     it('should resolve relation property names to database column names', async () => {

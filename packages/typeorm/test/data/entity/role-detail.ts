@@ -18,4 +18,11 @@ export class RoleDetail {
 
     @Column({ nullable: true })
     description: string;
+
+    @Column({
+        name: 'internal_note',
+        nullable: true,
+        type: 'varchar',
+    })
+    internalNote: string | null;
 }
