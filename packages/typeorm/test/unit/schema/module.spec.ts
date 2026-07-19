@@ -16,8 +16,8 @@ import {
 } from 'typeorm';
 import {
     buildEntitySchemaName,
-    createSchemaRegistryFromDataSource,
     defineSchemaFromEntity,
+    defineSchemaRegistryWithDataSource,
 } from '../../../src';
 import { createDataSourceOptions, createUnconnectedDataSource } from '../../data/factory';
 import { Realm } from '../../data/entity/realm';
@@ -120,7 +120,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should build a registry for all data source entities', () => {
-        const registry = createSchemaRegistryFromDataSource(dataSource);
+        const registry = defineSchemaRegistryWithDataSource(dataSource);
 
         expect(registry.get('user')).toBeDefined();
         expect(registry.get('role')).toBeDefined();
@@ -129,7 +129,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should resolve relation traversal across derived schemas', () => {
-        const registry = createSchemaRegistryFromDataSource(dataSource);
+        const registry = defineSchemaRegistryWithDataSource(dataSource);
         const parser = new SimpleParser(registry);
 
         // "detail" resolves to the "roleDetail" schema via the derived schemaMapping
@@ -139,7 +139,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should apply per-entity options keyed by schema name', () => {
-        const registry = createSchemaRegistryFromDataSource(dataSource, { schemas: { user: { filters: { allowed: 'columns' } } } });
+        const registry = defineSchemaRegistryWithDataSource(dataSource, { schemas: { user: { filters: { allowed: 'columns' } } } });
 
         const schema = registry.getOrFail('user');
         expect(schema.filters.allowed).toContain('email');
@@ -149,7 +149,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should apply per-entity options keyed by entity class', () => {
-        const registry = createSchemaRegistryFromDataSource(dataSource, {
+        const registry = defineSchemaRegistryWithDataSource(dataSource, {
             schemas: new Map([
                 [User, { filters: { allowed: 'columns' as const } }],
             ]),
@@ -167,7 +167,7 @@ describe('src/schema/*.ts', () => {
         });
         registry.add(realmSchema);
 
-        const output = createSchemaRegistryFromDataSource(dataSource, { registry });
+        const output = defineSchemaRegistryWithDataSource(dataSource, { registry });
 
         expect(output).toBe(registry);
         expect(registry.get('user')).toBeDefined();
@@ -181,13 +181,13 @@ describe('src/schema/*.ts', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({ name: 'realm' }));
 
-        expect(() => createSchemaRegistryFromDataSource(dataSource, {
+        expect(() => defineSchemaRegistryWithDataSource(dataSource, {
             registry,
             schemas: { realm: {} },
         })).toThrow('already registered');
     });
 
     it('should fail on schema options for an unknown entity', () => {
-        expect(() => createSchemaRegistryFromDataSource(dataSource, { schemas: { unknownEntity: {} } })).toThrow('unknownEntity');
+        expect(() => defineSchemaRegistryWithDataSource(dataSource, { schemas: { unknownEntity: {} } })).toThrow('unknownEntity');
     });
 });

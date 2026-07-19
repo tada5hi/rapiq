@@ -15,7 +15,7 @@ import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';
 import type {
     EntitySchemaOptions,
-    SchemaRegistryFromDataSourceOptions,
+    SchemaRegistryWithDataSourceOptions,
 } from './types';
 
 export function buildEntitySchemaName(input: EntityMetadata | string) : string {
@@ -138,9 +138,9 @@ export function defineSchemaFromEntity<
     return defineSchema(buildSchemaOptions(metadata, schemaOptions) as SchemaOptions<RECORD>);
 }
 
-export function createSchemaRegistryFromDataSource(
+export function defineSchemaRegistryWithDataSource(
     dataSource: DataSource,
-    options: SchemaRegistryFromDataSourceOptions = {},
+    options: SchemaRegistryWithDataSourceOptions = {},
 ) : SchemaRegistry {
     const registry = options.registry || new SchemaRegistry();
 

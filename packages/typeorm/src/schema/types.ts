@@ -41,7 +41,7 @@ export type EntitySchemaOptions<
 export type EntitySchemasOptions =    Record<string, EntitySchemaOptions<any>> |
     Map<EntityTarget<any>, EntitySchemaOptions<any>>;
 
-export type SchemaRegistryFromDataSourceOptions = {
+export type SchemaRegistryWithDataSourceOptions = {
     /**
      * Per-entity options, keyed by the derived schema name
      * (lower-camel entity name) or by the entity class itself.

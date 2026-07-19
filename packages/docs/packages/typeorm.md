@@ -80,12 +80,12 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 ## Deriving schemas from entities
 
-Instead of hand-maintaining a [`Schema`](/guide/schemas) per resource, derive it from the TypeORM entity metadata. `createSchemaRegistryFromDataSource` walks all entities of a data source and returns a populated `SchemaRegistry` — one schema per entity, cross-linked automatically:
+Instead of hand-maintaining a [`Schema`](/guide/schemas) per resource, derive it from the TypeORM entity metadata. `defineSchemaRegistryWithDataSource` walks all entities of a data source and returns a populated `SchemaRegistry` — one schema per entity, cross-linked automatically:
 
 ```typescript
-import { createSchemaRegistryFromDataSource } from '@rapiq/typeorm';
+import { defineSchemaRegistryWithDataSource } from '@rapiq/typeorm';
 
-const registry = createSchemaRegistryFromDataSource(dataSource, {
+const registry = defineSchemaRegistryWithDataSource(dataSource, {
     schemas: {
         user: {
             filters: { allowed: 'columns' },
@@ -118,7 +118,7 @@ To mix hand-written and derived schemas, pass an existing registry — entities 
 const registry = new SchemaRegistry();
 registry.add(userSchema);   // curated by hand
 
-createSchemaRegistryFromDataSource(dataSource, { registry });
+defineSchemaRegistryWithDataSource(dataSource, { registry });
 ```
 
 Passing `schemas` options for a skipped (already registered) name throws — options that would be silently ignored are treated as a mistake.
