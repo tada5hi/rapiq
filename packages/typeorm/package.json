@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/typeorm",
-    "version": "1.0.0",
+    "version": "2.0.0-beta.0",
     "description": "A typeorm adapter for rapiq.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,9 +16,9 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^1.0.0",
-        "@rapiq/parser-simple": "^1.0.0",
-        "@rapiq/sql": "^1.0.0",
+        "@rapiq/core": "^2.0.0-beta.0",
+        "@rapiq/parser-simple": "^2.0.0-beta.0",
+        "@rapiq/sql": "^2.0.0-beta.0",
         "@swc/core": "^1.15.43",
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
@@ -28,8 +28,8 @@
         "unplugin-swc": "^1.5.9"
     },
     "peerDependencies": {
-        "@rapiq/core": "^1.0.0",
-        "@rapiq/sql": "^1.0.0",
+        "@rapiq/core": "^2.0.0-beta.0",
+        "@rapiq/sql": "^2.0.0-beta.0",
         "typeorm": "^1.1.0"
     },
     "scripts": {
