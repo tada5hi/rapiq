@@ -4,6 +4,7 @@ on:
     push:
         branches:
             - master
+    workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -27,49 +28,59 @@ jobs:
 
         steps:
             -   uses: google-github-actions/release-please-action@v4
+                if: github.event_name == 'push'
                 id: release
                 with:
                     token: ${{ secrets.GITHUB_TOKEN }}
 
+            -   name: Set publish flags
+                id: flags
+                run: |
+                    if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+                        echo "should_publish=true" >> "$GITHUB_OUTPUT"
+                    else
+                        echo "should_publish=${{ steps.release.outputs.releases_created }}" >> "$GITHUB_OUTPUT"
+                    fi
+
             -   name: Checkout
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 uses: actions/checkout@v7
                 with:
                     fetch-depth: 0
 
             -   name: Configure Git
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 run: |
                     git config user.name "$GITHUB_ACTOR"
                     git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
             -   name: Install
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 uses: ./.github/actions/install
                 with:
                     node-version: ${{ env.NODE_VERSION }}
 
             -   name: Build
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 uses: ./.github/actions/build
 
             -   name: Lint
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 run: npm run lint
 
             -   name: Test with coverage
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 run: npm run test:coverage
 
             -   name: Upload coverage report
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 uses: codecov/codecov-action@v7.0.0
                 with:
                     token: ${{ secrets.codecov }}
                     directory: ./packages
 
             -   name: Publish
-                if: steps.release.outputs.releases_created == 'true'
+                if: steps.flags.outputs.should_publish == 'true'
                 run: npx workspaces-publish
                 env:
                     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
