@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.4](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.3...core-v2.0.0-beta.4) (2026-07-20)
+
+
+### Features
+
+* **typeorm:** add assertSchemaMatchesEntity validation helper ([#805](https://github.com/tada5hi/rapiq/issues/805)) ([7600255](https://github.com/tada5hi/rapiq/commit/7600255849e822de10e72b431912b69938c22774)), closes [#800](https://github.com/tada5hi/rapiq/issues/800)
+
 ## [2.0.0-beta.3](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.2...core-v2.0.0-beta.3) (2026-07-20)
 
 
