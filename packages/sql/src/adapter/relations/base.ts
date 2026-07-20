@@ -47,6 +47,18 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
         return this.relationAlias(path);
     }
 
+    /**
+     * Whether a dotted field prefix refers to a chain of relations.
+     * Backends with entity metadata override this so dotted non-relation
+     * paths (e.g. embedded columns such as `profile.firstName`) render
+     * against their parent alias instead of registering a join; the
+     * default treats every prefix as a relation, matching schemaless
+     * SQL usage.
+     */
+    isRelationPath(_path: string) : boolean {
+        return true;
+    }
+
     // -----------------------------------------------------------
 
     clear() {

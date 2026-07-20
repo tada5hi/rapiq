@@ -13,6 +13,7 @@ import {
     PrimaryGeneratedColumn, 
     Unique,
 } from 'typeorm';
+import { Profile } from './profile';
 import { Realm } from './realm';
 import { Role } from './role';
 
@@ -43,6 +44,9 @@ export class User {
 
     @Column()
     email: string;
+
+    @Column(() => Profile)
+    profile: Profile;
 
     @Column({ nullable: true })
     role_id: number | null;

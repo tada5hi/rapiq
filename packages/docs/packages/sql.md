@@ -66,6 +66,10 @@ Construct the `Adapter` **per request** — it accumulates per-call state; the s
 Fragments reference joined columns through the exported `buildRelationAlias(path)` derivation. It length-prefixes every path segment (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`), so `role_realm` and `role.realm` cannot collapse onto one alias. Use the same helper when rendering `JOIN` clauses from `relations`, or inject one convention through the `relationAlias` adapter option. Keep a custom derivation collision-free and within your database's identifier length limit.
 :::
 
+### Dotted paths & relations
+
+A dotted field path (`realm.name`) references a joined relation by default: the prefix registers with the relations adapter and the fragment renders against the derived join alias. Backends where a dotted prefix is not necessarily a relation override `isRelationPath(path)` on the relations adapter (default: `true`) — segments only count as a relation path while the hook confirms them, and the remainder stays part of the column name, rendered against the parent alias (the root alias, or the last confirmed relation's join alias). The [TypeORM adapter](/packages/typeorm) implements the hook via entity metadata so [embedded column paths](/packages/typeorm#embedded-columns) such as `profile.firstName` don't produce a bogus join.
+
 ## Rendering filters standalone
 
 The filters adapter accumulates conditions while a visitor walks the tree, then hands back SQL plus bound parameters:

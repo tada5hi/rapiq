@@ -12,6 +12,8 @@ export interface IRelationsAdapter extends ISubAdapter {
     add(input: string): void;
 
     buildAlias(path: string): string;
+
+    isRelationPath(path: string): boolean;
 }
 
 export type JoinRelationFn = (

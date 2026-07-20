@@ -11,6 +11,7 @@ import {
     ManyToOne, 
     PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Profile } from './profile';
 import { Realm } from './realm';
 import { RoleDetail } from './role-detail';
 
@@ -28,6 +29,9 @@ export class Role {
         type: 'varchar', 
     })
     displayName: string | null;
+
+    @Column(() => Profile)
+    profile: Profile;
 
     @Column({ nullable: true })
     realm_id: number;

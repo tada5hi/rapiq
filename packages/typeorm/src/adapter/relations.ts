@@ -24,6 +24,37 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         this.options = options;
     }
 
+    /**
+     * A dotted prefix only counts as a relation when every segment
+     * resolves through the relation metadata — embedded column paths
+     * (e.g. `profile.firstName` for `@Column(() => Profile)`) are dotted
+     * too, but have nothing to join: they render against their parent
+     * alias with the embedded column's database name instead.
+     */
+    override isRelationPath(path: string) : boolean {
+        const { mainAlias } = this.queryBuilder.expressionMap;
+        if (!mainAlias || !mainAlias.hasMetadata) {
+            return super.isRelationPath(path);
+        }
+
+        let { metadata } = mainAlias;
+        let rest : string | undefined = path;
+
+        while (rest) {
+            let segment : string;
+            [segment, rest] = splitFirst(rest);
+
+            const relation = metadata.findRelationWithPropertyPath(segment);
+            if (!relation) {
+                return false;
+            }
+
+            metadata = relation.inverseEntityMetadata;
+        }
+
+        return true;
+    }
+
     execute() : void {
         for (const relation of this.value) {
             if (relation.executed) {
