@@ -22,5 +22,5 @@ export type RelationsBuildInput<
                 RelationsBuildInput<T[K], PrevIndex[DEPTH]> | boolean :
                 never
     } |
-    NestedResourceKeys<T>[] |
-    NestedResourceKeys<T>;
+    NestedResourceKeys<T, DEPTH>[] |
+    NestedResourceKeys<T, DEPTH>;

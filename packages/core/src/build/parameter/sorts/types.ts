@@ -40,5 +40,5 @@ export type SortsBuildInput<
         SortWithOperator<SimpleKeys<T>>[],
         SortsBuildRecordInput<T, PrevIndex[DEPTH]>,
     ] |
-    SortWithOperator<NestedKeys<T>>[] |
-    SortWithOperator<NestedKeys<T>>;
+    SortWithOperator<NestedKeys<T, DEPTH>>[] |
+    SortWithOperator<NestedKeys<T, DEPTH>>;

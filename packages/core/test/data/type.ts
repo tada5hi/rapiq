@@ -57,6 +57,24 @@ export type BagUserPermission = {
 
 // -----------------------------------------------------
 
+// A self-recursive entity graph (nullable + array relations pointing back
+// at themselves). Used to assert that the build-input DEPTH bound actually
+// truncates the key arms. See #790.
+export type Policy = {
+    id: string,
+    name: string,
+    children: Policy[],
+    parent: Policy | null,
+};
+
+export type Client = {
+    id: string,
+    name: string,
+    accessPolicy: Policy | null,
+};
+
+// -----------------------------------------------------
+
 export type GrandChildEntity = {
     id: string,
 
