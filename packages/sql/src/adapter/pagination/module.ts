@@ -7,8 +7,4 @@
 
 import { PaginationBaseAdapter } from './base';
 
-export class PaginationAdapter extends PaginationBaseAdapter {
-    execute() {
-
-    }
-}
+export class PaginationAdapter extends PaginationBaseAdapter {}

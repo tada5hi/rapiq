@@ -41,7 +41,11 @@ export abstract class FieldsBaseAdapter implements IFieldsAdapter {
 
     protected abstract escapeField(field: string) : string;
 
-    abstract execute() : void;
+    /**
+     * Apply the accumulated state to a backend target.
+     * Fragment-emitting backends have nothing to apply.
+     */
+    execute() : void {}
 
     // -----------------------------------------------------------
 

@@ -18,10 +18,4 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
         this.options = options;
     }
-
-    // -----------------------------------------------------------
-
-    execute() {
-
-    }
 }
