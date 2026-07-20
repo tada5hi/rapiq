@@ -77,8 +77,26 @@ describe('filters: compounds', () => {
         expect(predicate({ id: 2 })).toBeFalsy();
     });
 
+    it('should negate nor/not groups (plain boolean not, sql parity)', () => {
+        const nor = compileFilters(new Filters('nor', [
+            eq('id', 1),
+            eq('id', 2),
+        ]));
+
+        expect(nor({ id: 3 })).toBeTruthy();
+        expect(nor({ id: 1 })).toBeFalsy();
+        expect(nor({ id: 2 })).toBeFalsy();
+
+        const not = compileFilters(new Filters('not', [
+            and(eq('name', 'Peter'), gte('age', 18)),
+        ]));
+
+        expect(not({ name: 'Peter', age: 28 })).toBeFalsy();
+        expect(not({ name: 'Peter', age: 17 })).toBeTruthy();
+    });
+
     it('should throw on an unknown compound operator', () => {
-        expect(() => compileFilters(new Filters('nor', [eq('id', 1)])))
+        expect(() => compileFilters(new Filters('xor', [eq('id', 1)])))
             .toThrow(AdapterError);
 
         try {

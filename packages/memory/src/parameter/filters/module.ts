@@ -11,6 +11,10 @@ import type {
     IFilters,
     IFiltersVisitor,
 } from '@rapiq/core';
+import {
+    interpretPlan,
+    planCondition,
+} from '@rapiq/core';
 import type { Predicate } from '../../types';
 import { createBoundPredicate } from './binding';
 import { FiltersCompiler } from './compiler';
@@ -34,17 +38,18 @@ export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisito
     // -----------------------------------------------------------
 
     protected compile(expr: IFilter | IFilters) : Predicate {
-        const compiler = this.createCompiler();
-
-        const evaluate = expr.accept(compiler);
-        if (!evaluate) {
+        const plan = planCondition(expr, { caseSensitive: this.options.caseSensitive });
+        if (!plan) {
             return () => true;
         }
+
+        const compiler = this.createCompiler();
+        const evaluate = interpretPlan(plan, compiler);
 
         return createBoundPredicate(evaluate, compiler.paths);
     }
 
     protected createCompiler() : FiltersCompiler {
-        return new FiltersCompiler(this.options);
+        return new FiltersCompiler();
     }
 }
