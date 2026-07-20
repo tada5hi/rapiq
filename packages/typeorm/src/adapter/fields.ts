@@ -29,7 +29,7 @@ export class FieldsAdapter extends FieldsBaseAdapter {
         return field;
     }
 
-    execute() {
+    override execute() {
         const columns = this.getColumns();
         if (columns.length > 0) {
             this.queryBuilder.select(columns);

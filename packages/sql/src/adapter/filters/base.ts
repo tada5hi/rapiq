@@ -62,7 +62,11 @@ export abstract class FiltersBaseAdapter<
 
     abstract regexp(field: string, placeholder: string, ignoreCase: boolean) : string;
 
-    abstract execute(): void;
+    /**
+     * Apply the accumulated state to a backend target.
+     * Fragment-emitting backends have nothing to apply.
+     */
+    execute(): void {}
 
     abstract child() : this;
 

@@ -10,4 +10,3 @@ export * from './like';
 export * from './name-split';
 export * from './param-placeholder-indexer';
 export * from './relation-alias';
-export * from './root-alias';

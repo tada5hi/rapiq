@@ -192,7 +192,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         return child as this;
     }
 
-    execute() {
+    override execute() {
         const [sql, params] = this.getQueryAndParameters();
 
         if (sql) {

@@ -29,7 +29,7 @@ export class SortAdapter extends SortBaseAdapter {
         return field;
     }
 
-    execute() {
+    override execute() {
         // a query without sorts leaves a caller-owned ORDER BY untouched —
         // the same preservation contract the filters adapter applies to
         // WHERE. TypeORM's orderBy({}) would REPLACE the builder state.

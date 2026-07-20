@@ -73,8 +73,4 @@ export class FiltersAdapter extends FiltersBaseAdapter {
 
         return child as this;
     }
-
-    execute() {
-
-    }
 }

@@ -40,8 +40,4 @@ export class SortAdapter extends SortBaseAdapter {
 
         return undefined;
     }
-
-    execute() {
-
-    }
 }

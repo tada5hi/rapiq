@@ -67,7 +67,11 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
 
     // -----------------------------------------------------------
 
-    abstract execute() : void;
+    /**
+     * Apply the accumulated state to a backend target.
+     * Fragment-emitting backends have nothing to apply.
+     */
+    execute() : void {}
 
     // -----------------------------------------------------------
 

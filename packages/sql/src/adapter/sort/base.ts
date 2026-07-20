@@ -49,7 +49,11 @@ export abstract class SortBaseAdapter implements ISortAdapter {
         return name;
     }
 
-    abstract execute() : void;
+    /**
+     * Apply the accumulated state to a backend target.
+     * Fragment-emitting backends have nothing to apply.
+     */
+    execute() : void {}
 
     // -----------------------------------------------------------
 

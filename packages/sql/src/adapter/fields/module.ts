@@ -40,8 +40,4 @@ export class FieldsAdapter extends FieldsBaseAdapter {
 
         return undefined;
     }
-
-    execute() {
-
-    }
 }
