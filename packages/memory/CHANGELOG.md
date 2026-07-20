@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/tada5hi/rapiq/compare/memory-v2.0.0-beta.1...memory-v2.0.0-beta.2) (2026-07-20)
+
+
+### Features
+
+* **memory:** accept boolean for caseSensitive filter option ([#782](https://github.com/tada5hi/rapiq/issues/782)) ([96cbe60](https://github.com/tada5hi/rapiq/commit/96cbe60d2e8b709752c8d38dbcf03e2ff31ca31e)), closes [#775](https://github.com/tada5hi/rapiq/issues/775)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+
 ## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/memory-v2.0.0-beta.0...memory-v2.0.0-beta.1) (2026-07-19)
 
 

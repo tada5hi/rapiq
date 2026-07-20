@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-expression",
-    "version": "2.0.0-beta.1",
+    "version": "2.0.0-beta.2",
     "description": "A package containing an expression parser",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,12 +16,12 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.1",
-        "@rapiq/parser-simple": "^2.0.0-beta.1"
+        "@rapiq/core": "^2.0.0-beta.2",
+        "@rapiq/parser-simple": "^2.0.0-beta.2"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.1",
-        "@rapiq/parser-simple": "^2.0.0-beta.1"
+        "@rapiq/core": "^2.0.0-beta.2",
+        "@rapiq/parser-simple": "^2.0.0-beta.2"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

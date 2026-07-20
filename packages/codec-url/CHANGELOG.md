@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.1...codec-url-v2.0.0-beta.2) (2026-07-20)
+
+
+### Features
+
+* first-class parameter masking for parse and decode ([#786](https://github.com/tada5hi/rapiq/issues/786)) ([5a0c8ca](https://github.com/tada5hi/rapiq/commit/5a0c8ca7e41f282ad4594616968db3d0292889d6)), closes [#778](https://github.com/tada5hi/rapiq/issues/778)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+
 ## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.0...codec-url-v2.0.0-beta.1) (2026-07-19)
 
 

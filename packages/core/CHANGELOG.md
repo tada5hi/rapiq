@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.1...core-v2.0.0-beta.2) (2026-07-20)
+
+
+### Features
+
+* **core:** export AST node guard family ([#784](https://github.com/tada5hi/rapiq/issues/784)) ([001a24a](https://github.com/tada5hi/rapiq/commit/001a24a1ed9ed467e8bdce9d3a6383514c12d861)), closes [#774](https://github.com/tada5hi/rapiq/issues/774)
+* **core:** forward DEPTH generic through QueryBuildInput ([#783](https://github.com/tada5hi/rapiq/issues/783)) ([d621977](https://github.com/tada5hi/rapiq/commit/d621977a065dfaf3a5582d59674578415aca6191)), closes [#776](https://github.com/tada5hi/rapiq/issues/776)
+* **core:** widen schema key types for nullable relations and JSON columns ([#785](https://github.com/tada5hi/rapiq/issues/785)) ([afe2338](https://github.com/tada5hi/rapiq/commit/afe2338888aee658750552378c36f6924a0efb45)), closes [#777](https://github.com/tada5hi/rapiq/issues/777)
+* first-class parameter masking for parse and decode ([#786](https://github.com/tada5hi/rapiq/issues/786)) ([5a0c8ca](https://github.com/tada5hi/rapiq/commit/5a0c8ca7e41f282ad4594616968db3d0292889d6)), closes [#778](https://github.com/tada5hi/rapiq/issues/778)
+
 ## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.0...core-v2.0.0-beta.1) (2026-07-19)
 
 
