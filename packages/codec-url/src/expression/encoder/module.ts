@@ -16,12 +16,12 @@ import type {
     ParseQueryOptions,
     SchemaRegistry,
 } from '@rapiq/core';
+import { Parameter } from '@rapiq/core';
 import {
     SimpleURLEncoder,
 } from '../../simple/encoder';
 import { URLParameter } from '../../constants';
-import type { QueryParameterMask } from '../../utils';
-import { buildQueryParameterMask, isSchemaAware } from '../../utils';
+import { buildQueryParameters, intersectQueryParameters, isSchemaAware } from '../../utils';
 import { ExpressionURLDecoder } from '../decoder';
 import { serializeFiltersExpression } from './filters';
 
@@ -58,36 +58,46 @@ export class ExpressionURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
-        const encoded = this.encodeParts(input);
+        const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
-        const decoded = this.decoder.decode(encoded, options);
+        // decode only parameters present in the input — validation
+        // must not materialize schema defaults for absent ones.
+        const parameters = intersectQueryParameters(
+            buildQueryParameters(input),
+            options.parameters,
+        );
+
+        const decoded = this.decoder.decode(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
 
-        // re-emit only parameters present in the input — validation
-        // must not materialize schema defaults for absent ones.
-        return this.encodeParts(decoded, buildQueryParameterMask(input));
+        return this.encodeParts(decoded, parameters);
     }
 
     async encodeAsync(
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
-        const encoded = this.encodeParts(input);
+        const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeAsync(encoded, options);
+        const parameters = intersectQueryParameters(
+            buildQueryParameters(input),
+            options.parameters,
+        );
+
+        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
 
-        return this.encodeParts(decoded, buildQueryParameterMask(input));
+        return this.encodeParts(decoded, parameters);
     }
 
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
@@ -139,21 +149,21 @@ export class ExpressionURLEncoder {
 
     // --------------------------------------------------
 
-    protected encodeParts(query: IQuery, parameters?: QueryParameterMask) : string | null {
+    protected encodeParts(query: IQuery, parameters?: `${Parameter}`[]) : string | null {
         const parts = [
-            (!parameters || parameters.fields) ?
+            (!parameters || parameters.includes(Parameter.FIELDS)) ?
                 this.simple.encodeFields(query.fields) :
                 null,
-            (!parameters || parameters.filters) ?
+            (!parameters || parameters.includes(Parameter.FILTERS)) ?
                 this.serializeFilters(query.filters) :
                 null,
-            (!parameters || parameters.pagination) ?
+            (!parameters || parameters.includes(Parameter.PAGINATION)) ?
                 this.simple.encodePagination(query.pagination) :
                 null,
-            (!parameters || parameters.relations) ?
+            (!parameters || parameters.includes(Parameter.RELATIONS)) ?
                 this.simple.encodeRelations(query.relations) :
                 null,
-            (!parameters || parameters.sorts) ?
+            (!parameters || parameters.includes(Parameter.SORT)) ?
                 this.simple.encodeSort(query.sorts) :
                 null,
         ].filter(Boolean);

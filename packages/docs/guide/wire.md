@@ -48,6 +48,21 @@ app.get('/users', (req, res) => {
 If your input already uses canonical parameter keys (`filters`, `pagination`, …), use a [parser](/packages/parser-simple) directly. MongoDB-style filter documents have their [own parser](/packages/parser-mongo).
 :::
 
+### Decoding a subset of parameters
+
+Sometimes only part of a query should apply — a bulk delete, for example, must honor the request's filters but never its pagination. Pass `parameters` to decode only the listed parameters; everything else stays empty and, importantly, schema defaults such as `pagination.maxLimit` do **not** materialize for masked parameters:
+
+```typescript
+app.delete('/sessions', (req, res) => {
+    const query = codec.decode(req.query, {
+        schema: 'session',
+        parameters: ['filters'],
+    });
+    // query.pagination is empty — the schema's maxLimit cannot
+    // silently truncate the delete's row selection.
+});
+```
+
 ## Migration dispatch
 
 The v2 codec follows a read-both/write-expression migration:

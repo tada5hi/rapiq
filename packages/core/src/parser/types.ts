@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
@@ -25,6 +26,17 @@ export type ParseQueryOptions<
     pagination?: boolean,
     relations?: boolean,
     sort?: boolean,
+    /**
+     * Process only the listed parameters. A parameter that is not
+     * listed is neither parsed nor defaulted — the resulting query
+     * leaves it empty, exactly as if neither the input nor the schema
+     * had mentioned it (schema defaults such as `pagination.maxLimit`
+     * do not materialize). When relations are masked out, relation
+     * paths in the other parameters resolve as if the client had
+     * requested no relations. Omitting the option processes all
+     * parameters.
+     */
+    parameters?: `${Parameter}`[],
     schema?: Schema<RECORD> | string,
     /**
      * Strict-mode override: takes precedence over the schema-level setting.

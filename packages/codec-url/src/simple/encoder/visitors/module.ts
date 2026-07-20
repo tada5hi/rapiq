@@ -27,7 +27,7 @@ import type {
     ISorts,
     ISortsVisitor,
 } from '@rapiq/core';
-import type { QueryParameterMask } from '../../../utils';
+import { Parameter } from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
 import { FieldsVisitor } from './fields';
@@ -75,28 +75,27 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     }
 
     /**
-     * The optional mask limits which parameters are emitted —
-     * the schema-aware encode pass uses it to avoid materializing
-     * schema defaults for parameters absent from the input query.
+     * The optional parameter list limits which parameters are
+     * emitted — same semantics as `ParseQueryOptions.parameters`.
      */
-    visitQuery(expr: IQuery, parameters?: QueryParameterMask): QuerySerializer {
-        if (!parameters || parameters.fields) {
+    visitQuery(expr: IQuery, parameters?: `${Parameter}`[]): QuerySerializer {
+        if (!parameters || parameters.includes(Parameter.FIELDS)) {
             expr.fields.accept(this.fields);
         }
 
-        if (!parameters || parameters.filters) {
+        if (!parameters || parameters.includes(Parameter.FILTERS)) {
             expr.filters.accept(this.filters);
         }
 
-        if (!parameters || parameters.pagination) {
+        if (!parameters || parameters.includes(Parameter.PAGINATION)) {
             expr.pagination.accept(this.pagination);
         }
 
-        if (!parameters || parameters.relations) {
+        if (!parameters || parameters.includes(Parameter.RELATIONS)) {
             expr.relations.accept(this.relations);
         }
 
-        if (!parameters || parameters.sorts) {
+        if (!parameters || parameters.includes(Parameter.SORT)) {
             expr.sorts.accept(this.sort);
         }
 

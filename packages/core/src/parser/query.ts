@@ -48,7 +48,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const output : QueryContext = {};
         const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
-        if (!this.skipParameter(options.relations)) {
+        if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = this.parseRelations(relationsInput, parameterOptions);
@@ -56,28 +56,28 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
-        if (!this.skipParameter(options.fields)) {
+        if (!this.skipParameter(options, Parameter.FIELDS)) {
             output.fields = this.parseFields(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.filters)) {
+        if (!this.skipParameter(options, Parameter.FILTERS)) {
             output.filters = this.parseFilters(
                 this.readParameter(data, Parameter.FILTERS),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.pagination)) {
+        if (!this.skipParameter(options, Parameter.PAGINATION)) {
             output.pagination = this.parsePagination(
                 this.readParameter(data, Parameter.PAGINATION),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.sort)) {
+        if (!this.skipParameter(options, Parameter.SORT)) {
             output.sorts = this.parseSort(
                 this.readParameter(data, Parameter.SORT),
                 parameterOptions,
@@ -96,7 +96,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const output : QueryContext = {};
         const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
-        if (!this.skipParameter(options.relations)) {
+        if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = await this.parseRelationsAsync(relationsInput, parameterOptions);
@@ -104,28 +104,28 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
-        if (!this.skipParameter(options.fields)) {
+        if (!this.skipParameter(options, Parameter.FIELDS)) {
             output.fields = await this.parseFieldsAsync(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.filters)) {
+        if (!this.skipParameter(options, Parameter.FILTERS)) {
             output.filters = await this.parseFiltersAsync(
                 this.readParameter(data, Parameter.FILTERS),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.pagination)) {
+        if (!this.skipParameter(options, Parameter.PAGINATION)) {
             output.pagination = await this.parsePaginationAsync(
                 this.readParameter(data, Parameter.PAGINATION),
                 parameterOptions,
             );
         }
 
-        if (!this.skipParameter(options.sort)) {
+        if (!this.skipParameter(options, Parameter.SORT)) {
             output.sorts = await this.parseSortAsync(
                 this.readParameter(data, Parameter.SORT),
                 parameterOptions,
@@ -317,7 +317,27 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return undefined;
     }
 
-    protected skipParameter(input?: boolean) : boolean {
-        return typeof input === 'boolean' && !input;
+    /**
+     * A parameter is skipped when the `parameters` allow-list
+     * excludes it or its per-parameter option is `false`. A skipped
+     * parameter is neither parsed nor defaulted — the query leaves
+     * it empty, as if input and schema said nothing about it.
+     */
+    protected skipParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        options: ParseQueryOptions<RECORD>,
+        parameter: `${Parameter}`,
+    ) : boolean {
+        if (
+            typeof options.parameters !== 'undefined' &&
+            !options.parameters.includes(parameter)
+        ) {
+            return true;
+        }
+
+        const flag = options[parameter];
+
+        return typeof flag === 'boolean' && !flag;
     }
 }

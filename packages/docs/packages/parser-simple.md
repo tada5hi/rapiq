@@ -41,6 +41,7 @@ const query = parser.parse({
 |---|---|
 | `schema` | A `Schema` instance or the name of a registered schema. Omit to parse without validation. |
 | `strict` | Override the schema's [strict mode](/guide/schemas#strict-mode) for this call. |
+| `parameters` | Allow-list of parameters to parse, e.g. `['filters']`. A parameter not listed is neither parsed nor defaulted — the resulting `Query` leaves it empty, exactly as if neither input nor schema mentioned it. |
 | `fields` / `filters` / `relations` / `pagination` / `sort` | Set to `false` to skip a parameter entirely. |
 
 If `filters.validate` may return a Promise, use `await parser.parseAsync(input, options)`. `parse()` remains synchronous for schemas whose validators are synchronous and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` if it encounters an async result.
@@ -48,6 +49,19 @@ If `filters.validate` may return a Promise, use `await parser.parseAsync(input, 
 ## Schema defaults
 
 A parameter absent from the input is still parsed, so schema defaults always apply: `fields.default` (or, without one, the `fields.allowed` selection), `filters.default`, `sort.default` and `pagination.maxLimit` shape the resulting `Query` even when the input is empty.
+
+To keep schema defaults from materializing for parameters you do not intend to apply, mask them with the `parameters` option:
+
+```typescript
+// a bulk delete must apply filters only — masking pagination keeps
+// the schema's maxLimit from silently truncating the row selection.
+const query = parser.parse(input, {
+    schema: 'user',
+    parameters: ['filters'],
+});
+```
+
+Masked-out relations do not gate relation paths in the other parameters — they resolve exactly as if the client had requested no relations.
 
 ## Input formats
 
