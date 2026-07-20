@@ -94,5 +94,5 @@ export type FiltersBuildInput<
     {
         [K in keyof T & string]?: FiltersBuildKeyValueInput<T[K], PrevIndex[DEPTH]>
     } & {
-        [K in NestedKeys<T>]?: FiltersBuildValueInput<TypeFromNestedKeyPath<T, K>>
+        [K in NestedKeys<T, DEPTH>]?: FiltersBuildValueInput<TypeFromNestedKeyPath<T, K, DEPTH>>
     };

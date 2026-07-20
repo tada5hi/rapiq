@@ -22,7 +22,8 @@ export type FieldsBuildSimpleKeyInput<
 
 export type FieldsBuildNestedKeyInput<
     T extends ObjectLiteral = ObjectLiteral,
-> = FieldWithOperator<NestedKeys<T>>;
+    DEPTH extends number = 5,
+> = FieldWithOperator<NestedKeys<T, DEPTH>>;
 
 export type FieldsBuildRecordInput<
     T extends Record<PropertyKey, any>,
@@ -52,5 +53,5 @@ export type FieldsBuildInput<
 > = [DEPTH] extends [0] ? never :
     FieldsBuildRecordInput<T, PrevIndex[DEPTH]> |
     FieldsBuildTupleInput<T, PrevIndex[DEPTH]> |
-    FieldsBuildNestedKeyInput<T>[] |
-    FieldsBuildNestedKeyInput<T>;
+    FieldsBuildNestedKeyInput<T, DEPTH>[] |
+    FieldsBuildNestedKeyInput<T, DEPTH>;

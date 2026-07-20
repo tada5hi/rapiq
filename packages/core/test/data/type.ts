@@ -39,6 +39,42 @@ export type Event = {
 
 // -----------------------------------------------------
 
+// A relation target that carries a dynamic-attribute index signature
+// (e.g. authup's `User`). It is a valid relation target — only its
+// *expansion* must stop at the bag. See #789.
+export type BagUser = {
+    id: string,
+    name: string,
+    // dynamically loaded extra attributes
+    [key: string]: any,
+};
+
+export type BagUserPermission = {
+    id: string,
+    user: BagUser,
+    userId: string,
+};
+
+// -----------------------------------------------------
+
+// A self-recursive entity graph (nullable + array relations pointing back
+// at themselves). Used to assert that the build-input DEPTH bound actually
+// truncates the key arms. See #790.
+export type Policy = {
+    id: string,
+    name: string,
+    children: Policy[],
+    parent: Policy | null,
+};
+
+export type Client = {
+    id: string,
+    name: string,
+    accessPolicy: Policy | null,
+};
+
+// -----------------------------------------------------
+
 export type GrandChildEntity = {
     id: string,
 

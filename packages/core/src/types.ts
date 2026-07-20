@@ -46,6 +46,18 @@ export type SimpleKeys<
 }[keyof T & string];
 
 /**
+ * The keys of `T` that are explicitly declared, with the `string`/`number`
+ * index signatures of a "bag" type stripped out. A pure `Record<string, any>`
+ * has none; an entity that merely *carries* an index signature (e.g.
+ * `{ id: string; name: string; [key: string]: any }`) still keeps its literal
+ * keys. Relies on a homomorphic mapped type iterating the declared members, so
+ * the `as`-filter removes the index signature without collapsing the literals.
+ */
+type KnownKeys<T> = keyof {
+    [K in keyof T as string extends K ? never : number extends K ? never : K]: 0
+};
+
+/**
  * A property is traversed as a nested branch only when it is a record with
  * known literal keys. Index-signature records (e.g. JSON columns typed
  * Record<string, any>) stay leaves — recursing into them would produce
@@ -55,6 +67,23 @@ type IsRecursiveKeyValue<T> = T extends Date ?
     never :
     T extends Record<PropertyKey, any> ?
         string extends keyof T ?
+            never :
+            T :
+        never;
+
+/**
+ * A property is a *resource* (relation target) when it is a record that carries
+ * at least one explicitly-declared key. Proper records qualify, and so does an
+ * entity that additionally carries a dynamic-attribute index signature (see
+ * #789) — the bag guard {@link IsRecursiveKeyValue} still stops the recursion,
+ * but it must not drop the relation key itself. A pure index-signature bag
+ * (`Record<string, any>`, e.g. a JSON column) has no declared structure and is
+ * therefore not a relation — it stays a leaf field.
+ */
+type IsRecordKeyValue<T> = T extends Date ?
+    never :
+    T extends Record<PropertyKey, any> ?
+        [KnownKeys<T>] extends [never] ?
             never :
             T :
         never;
@@ -80,11 +109,11 @@ export type SimpleResourceKeys<
 > = {
     [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
         (
-            NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
+            NonNullable<ELEMENT> extends IsRecordKeyValue<NonNullable<ELEMENT>> ?
                 Key :
                 never
         ) :
-        NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
+        NonNullable<T[Key]> extends IsRecordKeyValue<NonNullable<T[Key]>> ?
             Key :
             never
 }[keyof T & string];
@@ -96,11 +125,19 @@ export type NestedResourceKeys<
     {
         [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
             (
-                NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
-                    Key | `${Key}.${NestedResourceKeys<NonNullable<ELEMENT>, PrevIndex[DEPTH]>}` :
+                NonNullable<ELEMENT> extends IsRecordKeyValue<NonNullable<ELEMENT>> ?
+                    (
+                        NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
+                            Key | `${Key}.${NestedResourceKeys<NonNullable<ELEMENT>, PrevIndex[DEPTH]>}` :
+                            Key
+                    ) :
                     never
-            ) : NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
-                Key | `${Key}.${NestedResourceKeys<ArrayItem<NonNullable<T[Key]>>, PrevIndex[DEPTH]>}` :
+            ) : NonNullable<T[Key]> extends IsRecordKeyValue<NonNullable<T[Key]>> ?
+                (
+                    NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
+                        Key | `${Key}.${NestedResourceKeys<ArrayItem<NonNullable<T[Key]>>, PrevIndex[DEPTH]>}` :
+                        Key
+                ) :
                 never
     }[keyof T & string];
 

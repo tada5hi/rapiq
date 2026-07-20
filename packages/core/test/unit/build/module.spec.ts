@@ -5,7 +5,14 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter, QueryBuildInput } from '../../../src';
+import type {
+    FieldsBuildInput,
+    FiltersBuildInput,
+    IFilter,
+    QueryBuildInput,
+    RelationsBuildInput,
+    SortsBuildInput,
+} from '../../../src';
 import {
     BuildError,
     ErrorCode,
@@ -27,7 +34,7 @@ import {
     gte,
     or,
 } from '../../../src';
-import type { User } from '../../data';
+import type { Client, User } from '../../data';
 
 const leafs = (filters: { value: unknown[] }) => filters.value as IFilter[];
 
@@ -453,5 +460,55 @@ describe('src/build/module.ts', () => {
         expect(output.sorts.value.map((el) => [el.name, el.operator])).toEqual([
             ['realm.name', SortDirection.DESC],
         ]);
+    });
+});
+
+describe('src/build/parameter/*/types.ts — DEPTH threads into the key arms (#790)', () => {
+    // `Client.accessPolicy` -> `Policy` is self-recursive. A DEPTH of 2 must
+    // truncate the string-key arms one segment past `accessPolicy`; a
+    // 3-segment path (`accessPolicy.children.*`) is only reachable at DEPTH 3+.
+    // Before the fix the string-key arms ran at their default depth (4) and
+    // admitted the deeper path regardless of the declared DEPTH.
+
+    it('should bound the fields nested-key arm by DEPTH', () => {
+        const ok: FieldsBuildInput<Client, 2> = 'accessPolicy.name';
+
+        // @ts-expect-error DEPTH=2 must not admit a 3-segment field path
+        const tooDeep: FieldsBuildInput<Client, 2> = 'accessPolicy.children.name';
+
+        expect(ok).toBeDefined();
+        expect(tooDeep).toBeDefined();
+    });
+
+    it('should bound the sort nested-key arm by DEPTH', () => {
+        const ok: SortsBuildInput<Client, 2> = '-accessPolicy.name';
+
+        // @ts-expect-error DEPTH=2 must not admit a 3-segment sort path
+        const tooDeep: SortsBuildInput<Client, 2> = '-accessPolicy.children.name';
+
+        expect(ok).toBeDefined();
+        expect(tooDeep).toBeDefined();
+    });
+
+    it('should bound the relations nested-key arm by DEPTH', () => {
+        const ok: RelationsBuildInput<Client, 2> = 'accessPolicy.children';
+
+        // @ts-expect-error DEPTH=2 must not admit a 3-segment relation path
+        const tooDeep: RelationsBuildInput<Client, 2> = 'accessPolicy.children.parent';
+
+        expect(ok).toBeDefined();
+        expect(tooDeep).toBeDefined();
+    });
+
+    it('should bound the filters nested-key arm by DEPTH', () => {
+        const ok: FiltersBuildInput<Client, 2> = { 'accessPolicy.name': 'root' };
+
+        const tooDeep: FiltersBuildInput<Client, 2> = {
+            // @ts-expect-error DEPTH=2 must not admit a 3-segment filter key
+            'accessPolicy.children.name': 'root',
+        };
+
+        expect(ok).toBeDefined();
+        expect(tooDeep).toBeDefined();
     });
 });
