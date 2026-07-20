@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.0.0-beta.2](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.1...typeorm-v2.0.0-beta.2) (2026-07-20)
+
+
+### Features
+
+* **typeorm:** derive schemas from entity metadata ([#780](https://github.com/tada5hi/rapiq/issues/780)) ([bbce8e1](https://github.com/tada5hi/rapiq/commit/bbce8e1ed27722b535c54cc83a72ab1afa8f1c55))
+
+
+### Bug Fixes
+
+* **sql:** let the backend decide whether a dotted prefix is a relation ([#787](https://github.com/tada5hi/rapiq/issues/787)) ([340f6e6](https://github.com/tada5hi/rapiq/commit/340f6e633eb0ced3e36e0850a29644e929a8ddfe)), closes [#779](https://github.com/tada5hi/rapiq/issues/779)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/sql bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+    * @rapiq/sql bumped from ^2.0.0-beta.1 to ^2.0.0-beta.2
+
 ## [2.0.0-beta.1](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.0...typeorm-v2.0.0-beta.1) (2026-07-19)
 
 
