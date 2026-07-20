@@ -75,7 +75,12 @@ export abstract class SortBaseAdapter implements ISortAdapter {
     }
 
     protected normalizeField(input: string) {
-        const output = parseField(input, this.rootAlias(), (path) => this.relations.buildAlias(path));
+        const output = parseField(
+            input,
+            this.rootAlias(),
+            (path) => this.relations.buildAlias(path),
+            (path) => this.relations.isRelationPath(path),
+        );
         if (output.relation) {
             this.relations.add(output.relation);
         }

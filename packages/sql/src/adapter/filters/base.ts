@@ -155,7 +155,12 @@ export abstract class FiltersBaseAdapter<
             throw AdapterError.featureUnsupported('filters:itself');
         }
 
-        const output = parseField(inputNormalized, this.rootAlias(), (path) => this.relations.buildAlias(path));
+        const output = parseField(
+            inputNormalized,
+            this.rootAlias(),
+            (path) => this.relations.buildAlias(path),
+            (path) => this.relations.isRelationPath(path),
+        );
         if (output.relation) {
             this.relations.add(output.relation);
         }
