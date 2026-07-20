@@ -64,6 +64,29 @@ query.filters.accept(myFiltersVisitor); // single parameter
 
 This is how all three adapters work — [`@rapiq/sql`](/packages/sql) accumulates SQL fragments, [`@rapiq/typeorm`](/packages/typeorm) writes into a query builder, [`@rapiq/memory`](/packages/memory) returns compiled functions (`R = Predicate`). New backends are added by implementing visitors; core never changes.
 
+## Type guards
+
+Every node has a matching guard: `isQuery`, `isFields` / `isField`, `isFilters` / `isFilter`, `isRelations` / `isRelation`, `isSorts` / `isSort` and `isPagination`. They identify nodes by their visitor dispatch instead of `instanceof`, so they work across package instances (e.g. a query built by one copy of `@rapiq/core` and inspected by another) and reliably tell structurally identical nodes apart (an empty `Fields` and an empty `Sorts` carry the same members).
+
+Their typical use is narrowing an SDK surface that accepts either raw build input or an already-built node:
+
+```typescript
+import type { IQuery, QueryBuildInput } from '@rapiq/core';
+import { defineQuery, isQuery } from '@rapiq/core';
+
+function toQuery<T extends Record<string, any>>(
+    input: QueryBuildInput<T> | IQuery,
+) : IQuery {
+    if (isQuery(input)) {
+        return input;
+    }
+
+    return defineQuery(input);
+}
+```
+
+`isParameterNode` is the generic escape hatch — it accepts *any* AST node (everything carrying an `accept` method) without identifying its kind, separating built fragments from plain build input.
+
 ## Writing a custom parser: ResolutionScope
 
 Parsers resolve raw client keys through a `ResolutionScope` — an immutable handle on *one parameter of one schema under one failure policy*. It owns alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware) and the throw-vs-drop policy, so a custom parser doesn't reimplement any of it:
