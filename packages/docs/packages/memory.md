@@ -88,6 +88,10 @@ compileFilters(condition, { caseSensitive: true });
 
 The boolean only governs the equality family — `contains`/`startsWith`/`endsWith` stay case-insensitive, exactly like the list form. `caseSensitive: false` equals the default.
 
+::: warning Regex patterns run as-is
+The `regex` operator compiles the query's pattern with JavaScript's backtracking `RegExp` engine and evaluates it against every record — a crafted pattern (nested quantifiers) over long field values can burn CPU (ReDoS). Compilation only rejects invalid syntax. The URL dialects cannot carry a regex, but the [mongo dialect](/packages/parser-mongo) accepts `$regex` — when queries originate from untrusted input, gate the operator with the schema's `filters.validate` hook. See the [regex trust model](/guide/filters#regex-trust-model).
+:::
+
 ### Join-row binding
 
 Dotted paths emulate the SQL adapter's joins: all conditions on one relation path bind to the **same array element**, and the record matches if *some* assignment of elements satisfies the whole filter tree. An empty or absent array contributes one all-`null` row, like a LEFT JOIN.
