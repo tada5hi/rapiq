@@ -59,6 +59,10 @@ Multiple document entries combine with an implicit AND. `$and` / `$or` / `$nor` 
 - An empty sub-document `{}` inside a compound (MongoDB's match-all branch) is a grammar error.
 :::
 
+::: warning Untrusted `$regex`
+`$regex` patterns pass through the parser verbatim — this is the only dialect that lets a client submit one. If filter documents come from untrusted clients and are evaluated in-process with [`@rapiq/memory`](/packages/memory), gate the operator with the schema's `filters.validate` hook — see the [regex trust model](/guide/filters#regex-trust-model).
+:::
+
 ## Usage
 
 ```typescript

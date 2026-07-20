@@ -34,7 +34,7 @@ Every dialect maps onto the same operator set (`FilterFieldOperator`):
 | `EXISTS` | is not null | `$exists` | `exists` | — |
 | `ELEM_MATCH` | array element match | `$elemMatch` | `elemMatch` | — |
 
-`REGEX`, `MOD` and `EXISTS` have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries). `ELEM_MATCH` and `SIZE` travel in the [expression dialect](/packages/parser-expression) only.
+`REGEX`, `MOD` and `EXISTS` have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries). Before accepting `regex` from untrusted input, read the [trust model](#regex-trust-model) below. `ELEM_MATCH` and `SIZE` travel in the [expression dialect](/packages/parser-expression) only.
 
 `SIZE` matches arrays with exactly the given number of elements (a non-negative integer); missing or non-array values never match, and there is no negated form. It evaluates in [`@rapiq/memory`](/packages/memory) — the SQL adapters throw a typed `featureUnsupported` until dialect-level JSON-array support lands.
 
@@ -186,6 +186,44 @@ const encoded = await codec.encodeAsync(query, { schema });
 ```
 
 The async path awaits validators sequentially in filter-tree order. Calling a synchronous method when a validator returns a Promise/thenable throws a `SchemaError` with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`. Compound `and`/`or` structure is preserved; if every submitted leaf is rejected, the schema default is applied.
+
+## Regex trust model
+
+The `regex` operator's pattern is **passed through to the consuming engine** — rapiq does not analyze, rewrite or sandbox it:
+
+- [`@rapiq/sql`](/packages/sql) and [`@rapiq/typeorm`](/packages/typeorm) hand the pattern to the database engine to interpret and validate — the engine's own syntax checks, limits and timeouts govern it.
+- [`@rapiq/memory`](/packages/memory) compiles the pattern with JavaScript's backtracking `RegExp` engine and evaluates it against every record — a crafted pattern (nested quantifiers such as `(a+)+$`) over long field values can burn CPU (ReDoS). Compilation rejects invalid syntax, not pathological patterns.
+
+Whether a hostile pattern can reach an evaluator depends on the input dialect:
+
+- The **URL dialects cannot carry one** — `regex` has no wire spelling, so queries decoded by [`@rapiq/codec-url`](/packages/codec-url) never contain a regex condition.
+- The **[MongoDB-style parser](/packages/parser-mongo) accepts `$regex`** (a pattern string or `RegExp`) from client documents.
+
+::: warning Gate `$regex` for untrusted clients
+An application that parses untrusted mongo-style filter documents and evaluates them in-process with `@rapiq/memory` must gate the operator — the `allowed` list does not help, since `$regex` applies to allowed fields.
+:::
+
+The [`validate` hook](#schema-options) sees every parsed leaf and can reject regex conditions:
+
+```typescript
+import { FilterFieldOperator, defineSchema } from '@rapiq/core';
+
+const schema = defineSchema<User>({
+    filters: {
+        allowed: ['id', 'name'],
+        validate: (filter) => {
+            // reject client-submitted regex conditions
+            if (filter.operator === FilterFieldOperator.REGEX) {
+                return undefined;
+            }
+
+            return filter;
+        },
+    },
+});
+```
+
+A leaf rejected by `validate` is silently dropped, independent of the `throwOnFailure` policy — throw from the hook to turn a client-submitted regex into an error response instead. Softer gates work the same way: cap the pattern's source length or match it against a vetted list, and return the filter when it passes.
 
 ## On violation
 
