@@ -61,6 +61,8 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
     protected scopeSequence : number;
 
+    protected caseSensitiveAll : boolean;
+
     protected caseSensitiveFields : Set<string>;
 
     constructor(options: FiltersVisitorOptions = {}) {
@@ -68,7 +70,10 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         this.fieldPrefix = '';
         this.bindingPrefix = '';
         this.scopeSequence = 0;
-        this.caseSensitiveFields = new Set(options.caseSensitive || []);
+        this.caseSensitiveAll = options.caseSensitive === true;
+        this.caseSensitiveFields = new Set(
+            Array.isArray(options.caseSensitive) ? options.caseSensitive : [],
+        );
     }
 
     // -----------------------------------------------------------
@@ -309,14 +314,15 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
     /**
      * Single-value equality: string conditions compare case-insensitively
      * (mirroring the SQL adapter's lower()-wrapped rendering) unless the
-     * field is opted out via the `caseSensitive` option.
+     * field is opted out via the `caseSensitive` option — either listed
+     * by key or globally via `caseSensitive: true`.
      */
     protected buildValueEqualTest(input: unknown, field: string) : ValueTest {
         const condition = normalizeValue(input);
 
         if (
             typeof condition === 'string' &&
-            !this.caseSensitiveFields.has(`${this.fieldPrefix}${field}`)
+            !this.isCaseSensitive(field)
         ) {
             const lowered = condition.toLowerCase();
 
@@ -325,6 +331,11 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         }
 
         return (value) => isValueEqual(value, condition);
+    }
+
+    protected isCaseSensitive(field: string) : boolean {
+        return this.caseSensitiveAll ||
+            this.caseSensitiveFields.has(`${this.fieldPrefix}${field}`);
     }
 
     protected buildCompareTest(input: unknown, min: number, max: number) : ValueTest {
