@@ -7,7 +7,7 @@
 
 import { isObject } from '../utils';
 
-type ParameterNode = { accept: (visitor: any) => any };
+export type ParameterNode = { accept: (visitor: any) => any };
 
 /**
  * Every AST parameter node (Fields, Filters, Filter, Pagination, ...)
