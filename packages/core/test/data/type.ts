@@ -27,6 +27,16 @@ export type User = {
     items: Item[]
 };
 
+export type Event = {
+    id: string,
+    data: Record<string, any> | null,
+    meta: Record<string, string>,
+    realm: Realm | null,
+    user?: User,
+    items: Item[] | null,
+    created_at: Date,
+};
+
 // -----------------------------------------------------
 
 export type GrandChildEntity = {
