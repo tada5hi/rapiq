@@ -54,7 +54,7 @@ export class SimpleFiltersParser extends BaseParser<
 
         if (items.length > 0) {
             items = items
-                .map((item) => applyFiltersSchemaValidation(item, scope.schema))
+                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context))
                 .filter((item): item is ICondition => typeof item !== 'undefined');
         }
 
@@ -79,7 +79,7 @@ export class SimpleFiltersParser extends BaseParser<
         const parsed = this.run(input, scope);
 
         for (const item of parsed) {
-            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema);
+            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context);
             if (validated) {
                 items.push(validated);
             }

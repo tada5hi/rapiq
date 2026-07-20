@@ -9,18 +9,18 @@ import { SchemaError } from '../../errors';
 import { Schema } from '../module';
 import type { ObjectLiteral } from '../../types';
 
-export class SchemaRegistry {
-    protected entities : Map<string, Schema<any>>;
+export class SchemaRegistry<CONTEXT = any> {
+    protected entities : Map<string, Schema<any, CONTEXT>>;
 
     // ----------------------------------------------------
 
     constructor() {
-        this.entities = new Map<string, Schema<any>>();
+        this.entities = new Map<string, Schema<any, CONTEXT>>();
     }
 
     // ----------------------------------------------------
 
-    add<T extends ObjectLiteral>(schema: Schema<T>) {
+    add<T extends ObjectLiteral>(schema: Schema<T, CONTEXT>) {
         if (typeof schema.name === 'undefined') {
             throw SchemaError.nameUndefined();
         }
@@ -36,7 +36,7 @@ export class SchemaRegistry {
 
     get<
         T extends ObjectLiteral = ObjectLiteral,
-    >(name: Schema<T> | string): Schema<T> | undefined {
+    >(name: Schema<T, CONTEXT> | string): Schema<T, CONTEXT> | undefined {
         if (typeof name === 'string') {
             return this.entities.get(name);
         }
@@ -46,7 +46,7 @@ export class SchemaRegistry {
 
     getOrFail<
         T extends ObjectLiteral = ObjectLiteral,
-    >(name: string | Schema<T>): Schema<T> {
+    >(name: string | Schema<T, CONTEXT>): Schema<T, CONTEXT> {
         const schema = this.get(name);
         if (typeof schema === 'undefined') {
             throw SchemaError.notResolvable(name as string);

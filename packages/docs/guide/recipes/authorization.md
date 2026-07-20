@@ -1,9 +1,39 @@
 # Authorization & Scoping
 
-Two recurring authorization problems, one query language:
+Three recurring authorization problems, one query language:
 
-1. **Scoping a collection** — a user may only ever see records of their own realm, no matter what they ask for.
-2. **Guarding a single record** — an ability like *"may edit users where `realm_id = X`"* must be checked against one object in memory, and must agree exactly with what the database query would return.
+1. **Gating the request** — a client may only *ask for* what its actor is permitted to see: including a relation must require the permission to read the related entity.
+2. **Scoping a collection** — a user may only ever see records of their own realm, no matter what they ask for.
+3. **Guarding a single record** — an ability like *"may edit users where `realm_id = X`"* must be checked against one object in memory, and must agree exactly with what the database query would return.
+
+## Gating: per-actor checks at decode time
+
+Schema allow-lists say what *any* client may request. The [validate hooks](/guide/schemas#validate-hooks--parse-context) say what *this* actor may request: pass the actor as the parse `context`, and let the schema run a permission check per requested relation (or field, or sort key):
+
+```typescript
+type Actor = { can: (permission: string) => Promise<boolean> };
+
+const clientPermissionSchema = defineSchema<ClientPermission, Actor>({
+    name: 'client-permission',
+    relations: {
+        allowed: ['client', 'permission'],
+        // ?include=client requires the permission to read clients
+        validate: (relation, actor) => actor.can(`${relation}_read`),
+    },
+    schemaMapping: { client: 'client', permission: 'permission' },
+});
+
+app.get('/client-permissions', async (req, res) => {
+    const query = await codec.decodeAsync(req.query, {
+        schema: 'client-permission',
+        context: req.actor,
+    });
+    // includes the actor may not read are gone before the query
+    // ever reaches the database.
+});
+```
+
+Hooks run against the **target schema** of each path segment — `include=client.realm` checks `client` on this schema and `realm` on the client schema — so an include can never widen access past the related schema's own gate. Rejections follow the schema failure policy: dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) with `throwOnFailure`. An absent context reaches the hook as `undefined`, so a permission hook written like the one above fails closed.
 
 ## Scoping: inject conditions the client can't displace
 
@@ -80,6 +110,7 @@ compiled.apply(users);     // apply the full query to loaded data
 | Layer | Mechanism | Stops |
 |---|---|---|
 | Schema allow-list | `filters.allowed` without `realm_id` | clients referencing the scope field at all |
+| Validate hooks + context | `relations.validate: (name, actor) => ...` | actors requesting includes/fields they lack permissions for |
 | Injected condition | `query.filters.and(...)` | any query escaping the actor's scope |
 | Memory guard | `compileFilters(ability)` | single-record actions disagreeing with query semantics |
 

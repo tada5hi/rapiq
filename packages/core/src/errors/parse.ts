@@ -70,6 +70,13 @@ export class ParseError extends BaseError {
         });
     }
 
+    static keyValidateRejected(key: string) {
+        return new this({
+            message: `The key ${key} was rejected by the schema validator.`,
+            code: ErrorCode.KEY_VALIDATE_REJECTED,
+        });
+    }
+
     static operatorUnsupported(operator: string) {
         return new this({
             message: `The operator ${operator} is not supported.`,

@@ -20,16 +20,24 @@ import type { BaseSchemaOptions } from '../../types';
  * `return input` — a bare block body would reject every filter. The result
  * may also be a Promise of any of those values; resolving it requires the
  * `parseAsync()` / `decodeAsync()` / `encodeAsync()` entry points.
+ *
+ * The second argument is the value passed to `parse()` / `decode()` via
+ * the `context` option (`undefined` when the caller supplied none), so a
+ * shared schema can make per-request decisions (e.g. actor permissions).
  */
-export type Validator = (input: IFilter) => MaybeAsync<IFilter | undefined>;
+export type Validator<CONTEXT = any> = (
+    input: IFilter,
+    context: CONTEXT,
+) => MaybeAsync<IFilter | undefined>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
     default?: ICondition,
-    validate?: Validator,
+    validate?: Validator<CONTEXT>,
     /**
      * Field keys whose equality comparisons (eq/ne/in/nin) stay
      * case-sensitive instead of the case-insensitive default —

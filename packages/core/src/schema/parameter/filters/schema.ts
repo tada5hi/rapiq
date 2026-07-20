@@ -14,7 +14,8 @@ import { BaseSchema } from '../../base';
 
 export class FiltersSchema<
     T extends ObjectLiteral = ObjectLiteral,
-> extends BaseSchema<FiltersOptions<T>> {
+    CONTEXT = any,
+> extends BaseSchema<FiltersOptions<T, CONTEXT>> {
     public default : ICondition | undefined;
 
     public defaultIsUndefined : boolean;
@@ -61,12 +62,12 @@ export class FiltersSchema<
         return typeof this.options.validate !== 'undefined';
     }
 
-    validate(input: IFilter) : MaybeAsync<IFilter | undefined> {
+    validate(input: IFilter, context: CONTEXT) : MaybeAsync<IFilter | undefined> {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }
 
-        return this.options.validate(input);
+        return this.options.validate(input, context);
     }
 
     // ---------------------------------------------------------

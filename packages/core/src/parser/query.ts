@@ -159,6 +159,10 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             parameterOptions.strict = options.strict;
         }
 
+        if (typeof options.context !== 'undefined') {
+            parameterOptions.context = options.context;
+        }
+
         return { data, parameterOptions };
     }
 

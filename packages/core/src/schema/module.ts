@@ -26,20 +26,21 @@ import { BaseSchema } from './base';
 
 export class Schema<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> extends BaseSchema<SchemaOptions<RECORD>> {
-    public readonly fields : FieldsSchema<RECORD>;
+    CONTEXT = any,
+> extends BaseSchema<SchemaOptions<RECORD, CONTEXT>> {
+    public readonly fields : FieldsSchema<RECORD, CONTEXT>;
 
-    public readonly filters : FiltersSchema<RECORD>;
+    public readonly filters : FiltersSchema<RECORD, CONTEXT>;
 
     public readonly pagination : PaginationSchema;
 
-    public readonly relations: RelationsSchema<RECORD>;
+    public readonly relations: RelationsSchema<RECORD, CONTEXT>;
 
-    public readonly sort: SortSchema<RECORD>;
+    public readonly sort: SortSchema<RECORD, CONTEXT>;
 
     // ---------------------------------------------------------
 
-    constructor(options: SchemaOptions<RECORD> = {}) {
+    constructor(options: SchemaOptions<RECORD, CONTEXT> = {}) {
         super(options);
 
         if (options.fields instanceof FieldsSchema) {

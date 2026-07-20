@@ -16,6 +16,12 @@ export type ParseParameterOptions<
     schema?: Schema<RECORD> | string,
     relations?: Relations,
     strict?: boolean,
+    /**
+     * Caller-defined context forwarded to the schema validate hooks
+     * (relations/fields/sort key validators, filters leaf validator).
+     * Opaque to the parser.
+     */
+    context?: unknown,
 };
 
 export type ParseQueryOptions<
@@ -44,6 +50,14 @@ export type ParseQueryOptions<
      * every client key instead of falling back to the syntactic name check.
      */
     strict?: boolean,
+    /**
+     * Caller-defined context (e.g. the authenticated actor) forwarded to
+     * every schema validate hook this parse run invokes. Hooks receive
+     * `undefined` when no context is supplied. Opaque to the parser;
+     * typing happens at the schema definition site
+     * (`defineSchema<RECORD, CONTEXT>`).
+     */
+    context?: unknown,
 };
 
 export type IParserOptions = {

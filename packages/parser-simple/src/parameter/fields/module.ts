@@ -14,11 +14,14 @@ import {
     FieldsParseError,
     Parameter,
     ResolutionScope,
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
     isObject,
 } from '@rapiq/core';
 import type {
     IFields,
     ObjectLiteral,
+    PendingKeyValidation,
 } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
 
@@ -35,7 +38,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             strict: options.strict,
         });
 
-        return this.parseWithScope(input, scope);
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = applyKeySchemaValidation(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: FieldsParseError,
+        });
+
+        return this.prune(output, rejected);
     }
 
     override async parseAsync<
@@ -44,12 +55,40 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
-        return this.parse(input, options);
+        const scope = ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        });
+
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: FieldsParseError,
+        });
+
+        return this.prune(output, rejected);
+    }
+
+    protected prune(fields: IFields, rejected: string[]) : IFields {
+        if (rejected.length === 0) {
+            return fields;
+        }
+
+        return new Fields(fields.value.filter(
+            (field) => !rejected.includes(field.name),
+        ));
     }
 
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>) : IFields {
+    >(
+        input: unknown,
+        scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>,
+        pending: PendingKeyValidation[],
+    ) : IFields {
         const { schema } = scope;
 
         // If it is an empty array, nothing is allowed
@@ -104,6 +143,11 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 }
 
                 fields.value.push(new Field(resolved.name, operator));
+                pending.push({
+                    key: resolved.name,
+                    path: resolved.name,
+                    schema: resolved.scope.schema,
+                });
             }
         }
 
@@ -151,11 +195,19 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 continue;
             }
 
-            const relationOutput = this.parseWithScope(grouped[key], child);
+            const childPending : PendingKeyValidation[] = [];
+            const relationOutput = this.parseWithScope(grouped[key], child, childPending);
 
             output.value.push(...relationOutput.value.map(
                 (element) => new Field(`${child.segment}.${element.name}`, element.operator),
             ));
+
+            for (const entry of childPending) {
+                pending.push({
+                    ...entry,
+                    path: `${child.segment}.${entry.path}`,
+                });
+            }
         }
 
         // alias groups and the relations sub-tree may materialize

@@ -45,6 +45,7 @@ Most parser parameters throw subclasses of `ParseError` when `throwOnFailure` is
 |---|---|
 | `KEY_NOT_ALLOWED` | key outside the schema's allow-list |
 | `KEY_PATH_NOT_ALLOWED` | relation path rejected by an allow-list or the relations context |
+| `KEY_VALIDATE_REJECTED` | key rejected by a schema [`validate` hook](/guide/schemas#validate-hooks--parse-context) |
 | `KEY_INVALID` | syntactically invalid key under an open schema |
 | `KEY_PATH_INVALID` | unresolvable relation path |
 | `KEY_VALUE_INVALID` | malformed value for an operator |

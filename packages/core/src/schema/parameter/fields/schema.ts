@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral, SimpleKeys } from '../../../types';
+import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
@@ -14,7 +14,7 @@ import { BaseSchema } from '../../base';
 
 export class FieldsSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
-    CONTEXT extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
 > extends BaseSchema<FieldsOptions<RECORD, CONTEXT>> {
     public default : string[];
 
@@ -89,6 +89,20 @@ export class FieldsSchema<
 
     hasDefaults() {
         return !this.defaultIsUndefined && this.default.length > 0;
+    }
+
+    // ---------------------------------------------------------
+
+    hasValidator() {
+        return typeof this.options.validate !== 'undefined';
+    }
+
+    validate(name: string, context: CONTEXT) : MaybeAsync<boolean | undefined> {
+        if (typeof this.options.validate === 'undefined') {
+            return true;
+        }
+
+        return this.options.validate(name, context);
     }
 
     /**

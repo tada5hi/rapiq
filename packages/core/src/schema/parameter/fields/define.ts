@@ -11,6 +11,7 @@ import { FieldsSchema } from './schema';
 
 export function defineFieldsSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
->(options: FieldsOptions<RECORD> = {}) : FieldsSchema<RECORD> {
+    CONTEXT = any,
+>(options: FieldsOptions<RECORD, CONTEXT> = {}) : FieldsSchema<RECORD, CONTEXT> {
     return new FieldsSchema(options);
 }

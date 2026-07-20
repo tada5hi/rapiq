@@ -17,7 +17,7 @@ import type {
     SortOptions,
     SortSchema,
 } from './parameter';
-import type { ObjectLiteral } from '../types';
+import type { MaybeAsync, ObjectLiteral } from '../types';
 
 export type BaseSchemaOptions = {
     /**
@@ -45,24 +45,40 @@ export type BaseSchemaOptions = {
     schemaMapping?: Record<string, string>
 };
 
-export type VerifyFn<
-    VALUE = unknown,
-    CONTEXT extends Record<PropertyKey, any> = Record<string, any>,
-> = (
-    value: VALUE,
+/**
+ * Per-key validation hook shared by the relations, fields and sort
+ * parameters. Invoked once per resolved (alias-mapped, allow-listed)
+ * client key against the schema that governs it — for dotted keys that
+ * is the target schema of the relation path, not the root. The context
+ * is the value passed to `parse()` / `decode()` via the `context`
+ * option (`undefined` when the caller supplied none).
+ *
+ * Return a truthy value to accept the key. Returning `false` or
+ * `undefined` rejects it — an inspect-only hook must therefore end
+ * with `return true`. The result may also be a Promise of either;
+ * resolving it requires the `parseAsync()` / `decodeAsync()` entry
+ * points. Rejections follow the schema failure policy: dropped by
+ * default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under
+ * `throwOnFailure`. Schema defaults are server-authored and bypass
+ * the hook.
+ */
+export type KeyValidator<CONTEXT = any> = (
+    name: string,
     context: CONTEXT,
-) => Promise<VALUE>;
+) => MaybeAsync<boolean | undefined>;
 
 export type SchemaOptionsNormalized<
     RECORD extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
 > = BaseSchemaOptions & {
-    fields: FieldsOptions<RECORD> | FieldsSchema<RECORD>,
-    filters: FiltersOptions<RECORD> | FiltersSchema<RECORD>,
-    relations: RelationsOptions<RECORD> | RelationsSchema<RECORD>,
+    fields: FieldsOptions<RECORD, CONTEXT> | FieldsSchema<RECORD, CONTEXT>,
+    filters: FiltersOptions<RECORD, CONTEXT> | FiltersSchema<RECORD, CONTEXT>,
+    relations: RelationsOptions<RECORD, CONTEXT> | RelationsSchema<RECORD, CONTEXT>,
     pagination: PaginationOptions | PaginationSchema
-    sort : SortOptions<RECORD> | SortSchema<RECORD>,
+    sort : SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT>,
 };
 
 export type SchemaOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = Partial<SchemaOptionsNormalized<RECORD>>;
+    CONTEXT = any,
+> = Partial<SchemaOptionsNormalized<RECORD, CONTEXT>>;
