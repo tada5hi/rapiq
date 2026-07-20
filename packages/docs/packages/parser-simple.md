@@ -77,6 +77,35 @@ Per-parameter input shapes and the wire operator syntax are documented on the pa
 
 Each parameter also has a standalone parser class — `SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser` — with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
 
+### Typed filter input
+
+`SimpleFiltersParser.parseTyped<RECORD>(input, options)` behaves exactly like `parse()`, but checks field keys and value spellings against the record type. The value union is derived from the same wire-grammar table that drives decoding, so it advertises every spelling the runtime accepts. For a scalar value `V`:
+
+| Spelling | Operator |
+|---|---|
+| `V` / `!V` | equal / not equal |
+| `<V`, `<=V`, `>V`, `>=V` | comparisons |
+| `~V~` / `!~V~` | contains / not contains |
+| `V~` / `!V~` | starts with / not starts with |
+| `~V` / `!~V` | ends with / not ends with |
+| `null` / `'!null'` | is null / is not null |
+| array of values | in list (`!` on the first element → not in) |
+
+```typescript
+const filtersParser = new SimpleFiltersParser(registry);
+
+const filters = filtersParser.parseTyped<User>({
+    name: 'jo~',   // starts with; '~jo~' (contains) & '~jo' (ends with) type-check too
+    age: '>=18',
+}, { schema: 'user' });
+```
+
+Two deliberate gaps: the comparison family advertises no `!` spellings — a leading `!` before `<`/`>` markers is discarded on decode (a frozen v1 quirk) — and boolean fields accept no marker forms at all, only `true`/`false`/`null`/`'!null'`, because `'!true'` decodes to *not equal `true`*, which as an [exact complement](/guide/filters#null-semantics) also matches `null`/missing — it is not *equal `false`*.
+
+::: info Widened in v2
+Earlier v2 betas hand-wrote this union with prefix spellings only — `~V~` (contains), `V~` (starts with) and their negated forms `!~V~` / `!V~` were compile-time errors, even though the wire grammar always decoded them. The union now derives from the wire table, so those spellings type-check. This is a type-level widening only: the wire format is byte-for-byte unchanged and stays v1-compatible.
+:::
+
 ## Errors
 
 Schema violations follow the [drop-vs-throw policy](/guide/schemas#failure-behavior-drop-vs-throw); with `throwOnFailure`, the per-parameter `ParseError` subclasses are thrown. See [Error Handling](/guide/errors).
