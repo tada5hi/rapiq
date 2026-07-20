@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/codec-url",
-    "version": "2.0.0-beta.2",
+    "version": "2.0.0-beta.3",
     "description": "A URL query-string codec with expression filters and legacy simple-filter compatibility.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -19,15 +19,15 @@
         "qs": "^6.15.3"
     },
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.2",
-        "@rapiq/parser-expression": "^2.0.0-beta.2",
-        "@rapiq/parser-simple": "^2.0.0-beta.2",
+        "@rapiq/core": "^2.0.0-beta.3",
+        "@rapiq/parser-expression": "^2.0.0-beta.3",
+        "@rapiq/parser-simple": "^2.0.0-beta.3",
         "@types/qs": "^6.14.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.2",
-        "@rapiq/parser-expression": "^2.0.0-beta.2",
-        "@rapiq/parser-simple": "^2.0.0-beta.2"
+        "@rapiq/core": "^2.0.0-beta.3",
+        "@rapiq/parser-expression": "^2.0.0-beta.3",
+        "@rapiq/parser-simple": "^2.0.0-beta.3"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

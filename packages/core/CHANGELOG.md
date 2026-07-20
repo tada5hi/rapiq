@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.3](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.2...core-v2.0.0-beta.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **core:** restore index-signature relation keys & thread build-input DEPTH ([#793](https://github.com/tada5hi/rapiq/issues/793)) ([ccef05d](https://github.com/tada5hi/rapiq/commit/ccef05d36519cecb16b926879226a25d0529d657)), closes [#790](https://github.com/tada5hi/rapiq/issues/790)
+
 ## [2.0.0-beta.2](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.1...core-v2.0.0-beta.2) (2026-07-20)
 
 

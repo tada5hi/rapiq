@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/sql",
-    "version": "2.0.0-beta.2",
+    "version": "2.0.0-beta.3",
     "description": "A SQL extension for rapiq.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,10 +16,10 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.2"
+        "@rapiq/core": "^2.0.0-beta.3"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.2"
+        "@rapiq/core": "^2.0.0-beta.3"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
