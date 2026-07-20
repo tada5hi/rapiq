@@ -42,7 +42,7 @@ const userSchema = defineSchema<User>({
 });
 ```
 
-Field keys are typed against `RECORD` via recursive key paths — `allowed` and `default` autocomplete and type-check.
+Field keys are typed against `RECORD` via recursive key paths — `allowed` and `default` autocomplete and type-check. `null`/`undefined` are unwrapped before traversal, so nullable or optional relations (`realm: Realm | null`) type-check like their non-nullable counterparts. Index-signature records (JSON columns such as `data: Record<string, any>`) count as selectable/filterable leaf keys and are not traversed as nested branches.
 
 ## Top-level options
 

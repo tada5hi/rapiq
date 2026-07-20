@@ -22,16 +22,41 @@ export type KeyWithOptionalPrefix<T, O extends string> = T extends string ? (`${
 
 export type PrevIndex = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
+/**
+ * A property counts as a leaf when it is scalar-like (Scalar, Date) or an
+ * index-signature record with no known literal keys (e.g. a JSON column
+ * typed Record<string, any>). `null`/`undefined` are stripped before the
+ * structural checks so nullable/optional columns resolve like their
+ * non-nullable counterparts.
+ */
+type IsLeafKeyValue<T> = T extends Scalar | Date ?
+    T :
+    T extends Record<PropertyKey, any> ?
+        string extends keyof T ?
+            T :
+            never :
+        never;
+
 export type SimpleKeys<
     T extends Record<PropertyKey, any>,
 > = {
-    [Key in keyof T & string]: T[Key] extends Scalar | Date ? `${Key}` : never;
+    [Key in keyof T & string]: NonNullable<T[Key]> extends IsLeafKeyValue<NonNullable<T[Key]>> ?
+        `${Key}` :
+        never;
 }[keyof T & string];
 
+/**
+ * A property is traversed as a nested branch only when it is a record with
+ * known literal keys. Index-signature records (e.g. JSON columns typed
+ * Record<string, any>) stay leaves — recursing into them would produce
+ * unbounded `${string}` key unions.
+ */
 type IsRecursiveKeyValue<T> = T extends Date ?
     never :
     T extends Record<PropertyKey, any> ?
-        T :
+        string extends keyof T ?
+            never :
+            T :
         never;
 
 export type NestedKeys<
@@ -39,27 +64,27 @@ export type NestedKeys<
     DEPTH extends number = 4,
 > = [DEPTH] extends [0] ? never :
     {
-        [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
+        [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
             (
-                ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
-                    `${Key}.${NestedKeys<ELEMENT, PrevIndex[DEPTH]>}` :
+                NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
+                    `${Key}.${NestedKeys<NonNullable<ELEMENT>, PrevIndex[DEPTH]>}` :
                     `${Key}`
             ) :
-            T[Key] extends IsRecursiveKeyValue<T[Key]> ?
-                `${Key}.${NestedKeys<T[Key], PrevIndex[DEPTH]>}` :
+            NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
+                `${Key}.${NestedKeys<NonNullable<T[Key]>, PrevIndex[DEPTH]>}` :
                 `${Key}`
     }[keyof T & string];
 
 export type SimpleResourceKeys<
     T extends Record<PropertyKey, any>,
 > = {
-    [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
+    [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
         (
-            ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
+            NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
                 Key :
                 never
         ) :
-        T[Key] extends IsRecursiveKeyValue<T[Key]> ?
+        NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
             Key :
             never
 }[keyof T & string];
@@ -69,13 +94,13 @@ export type NestedResourceKeys<
     DEPTH extends number = 4,
 > = [DEPTH] extends [0] ? never :
     {
-        [Key in keyof T & string]: T[Key] extends Array<infer ELEMENT> ?
+        [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
             (
-                ELEMENT extends IsRecursiveKeyValue<ELEMENT> ?
-                    Key | `${Key}.${NestedResourceKeys<ELEMENT, PrevIndex[DEPTH]>}` :
+                NonNullable<ELEMENT> extends IsRecursiveKeyValue<NonNullable<ELEMENT>> ?
+                    Key | `${Key}.${NestedResourceKeys<NonNullable<ELEMENT>, PrevIndex[DEPTH]>}` :
                     never
-            ) : T[Key] extends IsRecursiveKeyValue<T[Key]> ?
-                Key | `${Key}.${NestedResourceKeys<ArrayItem<T[Key]>, PrevIndex[DEPTH]>}` :
+            ) : NonNullable<T[Key]> extends IsRecursiveKeyValue<NonNullable<T[Key]>> ?
+                Key | `${Key}.${NestedResourceKeys<ArrayItem<NonNullable<T[Key]>>, PrevIndex[DEPTH]>}` :
                 never
     }[keyof T & string];
 
@@ -87,21 +112,21 @@ export type TypeFromNestedKeyPath<
     {
         [Key in Path & string]: Key extends keyof T ?
             (
-                T[Key] extends Array<infer ELEMENT> ?
+                NonNullable<T[Key]> extends Array<infer ELEMENT> ?
                     ELEMENT :
                     T[Key]
             ) :
             Key extends `${infer P}.${infer S}` ?
                 (P extends keyof T ?
                     (
-                        T[P] extends Array<infer ELEMENT> ?
+                        NonNullable<T[P]> extends Array<infer ELEMENT> ?
                             (
-                                ELEMENT extends Record<PropertyKey, any> ?
-                                    TypeFromNestedKeyPath<ELEMENT, S, PrevIndex[DEPTH]> :
+                                NonNullable<ELEMENT> extends Record<PropertyKey, any> ?
+                                    TypeFromNestedKeyPath<NonNullable<ELEMENT>, S, PrevIndex[DEPTH]> :
                                     never
                             ) :
-                            T[P] extends Record<PropertyKey, any> ?
-                                TypeFromNestedKeyPath<T[P], S, PrevIndex[DEPTH]> :
+                            NonNullable<T[P]> extends Record<PropertyKey, any> ?
+                                TypeFromNestedKeyPath<NonNullable<T[P]>, S, PrevIndex[DEPTH]> :
                                 never
                     ) :
                     never
