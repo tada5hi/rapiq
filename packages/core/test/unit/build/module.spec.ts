@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter } from '../../../src';
+import type { IFilter, QueryBuildInput } from '../../../src';
 import {
     BuildError,
     ErrorCode,
@@ -408,5 +408,50 @@ describe('src/build/module.ts', () => {
 
         const output = defineQuery<User>({ filters });
         expect(output.filters).toBe(filters);
+    });
+
+    it('should accept a shallow DEPTH for self-recursive record types', () => {
+        type TreeNode = {
+            id: string,
+            name: string,
+            children: TreeNode[],
+        };
+
+        // compile-level: an explicit shallow DEPTH bounds the recursive
+        // input types while flat keys stay expressible.
+        const input : QueryBuildInput<TreeNode, 1> = {
+            fields: ['id', 'name'],
+            filters: { name: 'root' },
+            relations: { children: true },
+            sort: '-name',
+            pagination: { limit: 5 },
+        };
+
+        const output = defineQuery<TreeNode, 1>(input);
+
+        expect(output.fields.value.map((el) => el.name)).toEqual(['id', 'name']);
+        expect(leafs(output.filters)).toHaveLength(1);
+        expect(output.relations.value.map((el) => el.name)).toEqual(['children']);
+        expect(output.sorts.value.map((el) => [el.name, el.operator])).toEqual([
+            ['name', SortDirection.DESC],
+        ]);
+        expect(output.pagination.limit).toBe(5);
+    });
+
+    it('should keep the default DEPTH when the generic is omitted', () => {
+        // compile-level: QueryBuildInput<RECORD> still equals
+        // QueryBuildInput<RECORD, 5> — nested notations keep working.
+        const input : QueryBuildInput<User> = {
+            filters: { 'realm.id': 1 },
+            sort: { realm: { name: 'DESC' } },
+        };
+        const explicit : QueryBuildInput<User, 5> = input;
+
+        const output = defineQuery<User>(explicit);
+
+        expect(leafs(output.filters)).toHaveLength(1);
+        expect(output.sorts.value.map((el) => [el.name, el.operator])).toEqual([
+            ['realm.name', SortDirection.DESC],
+        ]);
     });
 });

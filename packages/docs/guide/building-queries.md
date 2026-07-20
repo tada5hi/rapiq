@@ -16,6 +16,8 @@ const query = defineQuery<User>({
 
 Supplying a record generic (`defineQuery<User>`) types every field path (`'realm.name'`, …) with autocomplete; without one, plain strings are accepted.
 
+The input types recurse through nested records up to a default depth of 5. For self-recursive record types (`type Category = { children: Category[] }`) the inferred input type can outgrow what the compiler will serialize — pass an explicit depth as the second generic to bound it: `defineQuery<Category, 2>(...)`, `QueryBuildInput<Category, 2>`.
+
 ::: info No validation here
 The build layer constructs the query verbatim. What a client *may* request is decided on the receiving side, where parsers validate against a [Schema](/guide/schemas). Keeping the two concerns apart is deliberate: the caller doesn't need the schema, and the receiver never trusts the caller.
 :::
