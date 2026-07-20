@@ -99,6 +99,15 @@ const decoded = codec.decode(wire!, { schema: 'user' });
 
 Allow-lists, aliases, defaults, pagination clamps and filter validation then use parser-exact semantics. Parameters absent from the input query remain absent from the wire.
 
+Both directions accept a `parameters` allow-list to process only a subset of the query. On decode, an unlisted parameter is neither parsed nor defaulted (no `pagination.maxLimit` cap, no `sort.default`); on encode, only the listed parameters are emitted:
+
+```typescript
+const decoded = codec.decode(req.query, {
+    schema: 'user',
+    parameters: ['filters'],
+});
+```
+
 Schema-aware encoding validates by piping the output through the schema-bound decoder — a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
 
 ## Custom codecs

@@ -139,6 +139,122 @@ describe('src/parser', () => {
         });
     });
 
+    describe('parameter masking', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'foo',
+            fields: { allowed: ['id', 'name'] },
+            filters: { allowed: ['id', 'name'] },
+            relations: { allowed: ['realm'] },
+            sort: { default: { id: 'DESC' } },
+            pagination: { maxLimit: 25 },
+        }));
+
+        const input = {
+            fields: ['id'],
+            filters: { name: 'admin' },
+            relations: ['realm'],
+            sort: '-id',
+            pagination: { limit: 100 },
+        };
+
+        it('should parse only the listed parameters', async () => {
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse(input, {
+                schema: 'foo',
+                parameters: ['filters'],
+            });
+
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            ]));
+            expect(output.fields).toEqual(new Fields());
+            expect(output.relations).toEqual(new Relations());
+            expect(output.sorts).toEqual(new Sorts());
+            expect(output.pagination.limit).toBeUndefined();
+            expect(output.pagination.offset).toBeUndefined();
+        });
+
+        it('should not materialize schema defaults for masked parameters', async () => {
+            const parser = new SimpleParser(registry);
+
+            // without a mask, maxLimit and the sort default apply.
+            let output = parser.parse({}, { schema: 'foo' });
+            expect(output.pagination.limit).toEqual(25);
+            expect(output.sorts).toEqual(new Sorts([
+                new Sort('id', SortDirection.DESC),
+            ]));
+
+            // with the mask, masked parameters stay empty.
+            output = parser.parse({}, { schema: 'foo', parameters: ['filters'] });
+            expect(output.pagination.limit).toBeUndefined();
+            expect(output.sorts).toEqual(new Sorts());
+        });
+
+        it('should intersect with the per-parameter skip options', async () => {
+            const parser = new SimpleParser(registry);
+
+            const output = parser.parse(input, {
+                schema: 'foo',
+                parameters: ['filters', 'pagination'],
+                pagination: false,
+            });
+
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            ]));
+            expect(output.pagination.limit).toBeUndefined();
+        });
+
+        it('should honor the mask through parseAsync', async () => {
+            const parser = new SimpleParser(registry);
+
+            const output = await parser.parseAsync(input, {
+                schema: 'foo',
+                parameters: ['filters'],
+            });
+
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+            ]));
+            expect(output.pagination.limit).toBeUndefined();
+            expect(output.relations).toEqual(new Relations());
+        });
+
+        it('should resolve relation paths as if no relations were requested', async () => {
+            // masked-out relations do not gate relation paths in the
+            // other parameters — exactly as when the client requests
+            // no relations at all.
+            const relationRegistry = new SchemaRegistry();
+            relationRegistry.add(defineSchema({
+                name: 'realm',
+                filters: { allowed: ['id'] },
+            }));
+            relationRegistry.add(defineSchema({
+                name: 'user',
+                filters: { allowed: ['id'] },
+                relations: { allowed: ['realm'] },
+                schemaMapping: { realm: 'realm' },
+            }));
+
+            const parser = new SimpleParser(relationRegistry);
+
+            const output = parser.parse({
+                filters: { 'realm.id': 1 },
+                relations: ['realm'],
+            }, {
+                schema: 'user',
+                parameters: ['filters'],
+            });
+
+            expect(output.relations).toEqual(new Relations());
+            expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'realm.id', 1),
+            ]));
+        });
+    });
+
     it('should enforce the relations allow-list in full-query parsing', async () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({

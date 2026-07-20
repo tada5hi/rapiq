@@ -18,7 +18,7 @@ import type {
     ParseQueryOptions,
     SchemaRegistry,
 } from '@rapiq/core';
-import { buildQueryParameterMask, isSchemaAware } from '../../utils';
+import { buildQueryParameters, intersectQueryParameters, isSchemaAware } from '../../utils';
 import { SimpleURLDecoder } from '../decoder';
 import type { ISerializer } from './serializer';
 import { QueryVisitor } from './visitors';
@@ -50,22 +50,27 @@ export class SimpleURLEncoder {
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
         this.visitor.reset();
 
-        const encoded = this.runSerializer(this.visitor.visitQuery(input));
+        const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
-        const decoded = this.decoder.decode(encoded, options);
+        // decode only parameters present in the input — validation
+        // must not materialize schema defaults for absent ones.
+        const parameters = intersectQueryParameters(
+            buildQueryParameters(input),
+            options.parameters,
+        );
+
+        const decoded = this.decoder.decode(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
 
         this.visitor.reset();
 
-        // re-emit only parameters present in the input — validation
-        // must not materialize schema defaults for absent ones.
         return this.runSerializer(
-            this.visitor.visitQuery(decoded, buildQueryParameterMask(input)),
+            this.visitor.visitQuery(decoded, parameters),
         );
     }
 
@@ -75,12 +80,17 @@ export class SimpleURLEncoder {
     ) : Promise<string | null> {
         this.visitor.reset();
 
-        const encoded = this.runSerializer(this.visitor.visitQuery(input));
+        const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeAsync(encoded, options);
+        const parameters = intersectQueryParameters(
+            buildQueryParameters(input),
+            options.parameters,
+        );
+
+        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
@@ -88,7 +98,7 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         return this.runSerializer(
-            this.visitor.visitQuery(decoded, buildQueryParameterMask(input)),
+            this.visitor.visitQuery(decoded, parameters),
         );
     }
 

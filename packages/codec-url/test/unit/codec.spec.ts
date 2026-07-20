@@ -10,6 +10,7 @@ import {
     ErrorCode,
     Filters,
     FiltersParseError,
+    SchemaRegistry,
     defineQuery,
     defineSchema,
     eq,
@@ -135,6 +136,72 @@ describe('URLCodec', () => {
         });
 
         expect(decoded!.filters).toEqual(or(eq('name', 'John'), gte('age', 18)));
+    });
+
+    describe('parameter masking', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'user',
+            filters: { allowed: ['id', 'name'] },
+            sort: { default: { id: 'DESC' } },
+            pagination: { maxLimit: 10 },
+        }));
+
+        const aware = createURLCodec(registry);
+
+        it('should decode only the listed parameters', () => {
+            const decoded = aware.decode('filter[name]=John&page[limit]=50&sort=-id', {
+                schema: 'user',
+                parameters: ['filters'],
+            });
+
+            expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'John')]));
+            // masked parameters are neither parsed nor defaulted —
+            // no maxLimit-capped pagination, no default sort.
+            expect(decoded!.pagination.limit).toBeUndefined();
+            expect(decoded!.pagination.offset).toBeUndefined();
+            expect(decoded!.sorts.value).toHaveLength(0);
+        });
+
+        it('should skip masked schema defaults through decodeAsync', async () => {
+            const decoded = await aware.decodeAsync('filter[name]=John', {
+                schema: 'user',
+                parameters: ['filters'],
+            });
+
+            expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'John')]));
+            expect(decoded!.pagination.limit).toBeUndefined();
+            expect(decoded!.sorts.value).toHaveLength(0);
+        });
+
+        it('should encode only the listed parameters', () => {
+            const query = defineQuery({
+                filters: { name: 'John' },
+                pagination: { limit: 50 },
+            });
+
+            const encoded = codec.encode(query, {
+                parameters: ['filters'],
+                stamp: false,
+            });
+
+            expect(decodeURIComponent(encoded!)).toEqual('filter=eq(name,\'John\')');
+        });
+
+        it('should intersect the mask with schema-aware encoding', () => {
+            const query = defineQuery({
+                filters: { name: 'John' },
+                pagination: { limit: 50 },
+            });
+
+            const encoded = aware.encode(query, {
+                schema: 'user',
+                parameters: ['filters'],
+                stamp: false,
+            });
+
+            expect(decodeURIComponent(encoded!)).toEqual('filter=eq(name,\'John\')');
+        });
     });
 
     it('should fail loudly for an unregistered stamped codec', () => {
