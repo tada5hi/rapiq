@@ -6,23 +6,18 @@
  */
 
 import type {
-    ArrayItem, 
-    IsArray, 
-    IsScalar, 
-    NestedKeys, 
-    PrevIndex, 
+    ArrayItem,
+    IsArray,
+    IsScalar,
+    NestedKeys,
+    PrevIndex,
     TypeFromNestedKeyPath,
 } from '@rapiq/core';
-
-type ValueWithOperator<V> = V extends string | number ?
-    V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}` | null | '!null' :
-    V extends boolean ?
-        V | null | '!null' :
-        never;
+import type { FilterWireValueInput } from './wire';
 
 type Value<V> = V extends Array<infer Item> ?
-    ValueWithOperator<Item> | Array<ValueWithOperator<Item>> :
-    ValueWithOperator<V> | Array<ValueWithOperator<V>>;
+    FilterWireValueInput<Item> | Array<FilterWireValueInput<Item>> :
+    FilterWireValueInput<V> | Array<FilterWireValueInput<V>>;
 
 export type SimpleFiltersParserInputValue<
     T,

@@ -34,7 +34,7 @@ import type {
 } from '@rapiq/core';
 
 import type { SimpleFiltersParserInput } from './types';
-import { parseFilterWireValue } from './value';
+import { decodeFilterWireValue } from './wire';
 
 export class SimpleFiltersParser extends BaseParser<
     FiltersParseOptions,
@@ -181,8 +181,11 @@ export class SimpleFiltersParser extends BaseParser<
 
             const resolvedName = [...resolved.path, resolved.name].join('.');
 
-            const valueParsed = this.parseValue(data.attributes[key_]);
-            if (!valueParsed) {
+            // the wire grammar owns value decoding, including the
+            // empty-value verdict — the parser only applies the
+            // schema drop-vs-throw policy.
+            const decoded = decodeFilterWireValue(data.attributes[key_]);
+            if (!decoded.success) {
                 if (scope.throwOnFailure) {
                     throw FiltersParseError.keyValueInvalid(resolvedName);
                 }
@@ -190,25 +193,12 @@ export class SimpleFiltersParser extends BaseParser<
                 continue;
             }
 
-            if (!Array.isArray(valueParsed.value)) {
-                if (
-                    typeof valueParsed.value === 'string' &&
-                    valueParsed.value.length === 0
-                ) {
-                    if (scope.throwOnFailure) {
-                        throw FiltersParseError.keyValueInvalid(resolvedName);
-                    }
-
-                    continue;
-                }
-            }
-
             const filter = new Filter(
-                valueParsed.operator,
+                decoded.condition.operator,
                 currentKey === DEFAULT_ID ?
                     resolvedName :
                     stringifyKey({ path: currentKey, name: resolvedName }),
-                valueParsed.value,
+                decoded.condition.value,
             );
 
             output.push(filter);
@@ -244,16 +234,5 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         return output;
-    }
-
-    protected parseValue(input: unknown) : {
-        value: unknown,
-        operator: `${FilterFieldOperator}`
-    } | undefined {
-        try {
-            return parseFilterWireValue(input);
-        } catch {
-            return undefined;
-        }
     }
 }
