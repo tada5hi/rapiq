@@ -30,6 +30,8 @@ export enum ErrorCode {
 
     CODEC_UNRESOLVABLE = 'codecUnresolvable',
 
+    SCHEMA_ENTITY_MISMATCH = 'schemaEntityMismatch',
+
     SCHEMA_NAME_INVALID = 'schemaNameInvalid',
 
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',

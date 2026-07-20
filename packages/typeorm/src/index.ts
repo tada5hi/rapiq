@@ -7,4 +7,5 @@
 
 export * from './adapter';
 export * from './dialect';
+export * from './errors';
 export * from './schema';

@@ -133,6 +133,41 @@ Derivation never sets [`strict`](/guide/schemas#strict-mode) — combined with `
 The data source only needs built metadata, not an open connection — deriving schemas at startup before `dataSource.initialize()` completes is fine as long as the metadata was built.
 :::
 
+## Validating schemas against entities
+
+Hand-written schemas drift silently: a renamed column leaves a dead key in an allow-list that either never matches again or surfaces as a runtime adapter error on first client use. `assertSchemaMatchesEntity` checks every key a schema references against the entity metadata — call it at boot so drift fails the deploy, not a request:
+
+```typescript
+import { assertSchemaMatchesEntity } from '@rapiq/typeorm';
+
+assertSchemaMatchesEntity(userSchema, User, dataSource);
+// or, mirroring defineSchemaWithEntity, with metadata directly:
+assertSchemaMatchesEntity(userSchema, dataSource.getMetadata(User));
+```
+
+Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sort.allowed` (tuple groups included) and the keys of `sort.default`, and `relations.allowed`. The rules:
+
+- Plain keys must be column property paths — embedded paths like `profile.firstName` included.
+- Dotted keys that aren't a column path must be headed by a relation. Only the head is checked; the remainder belongs to the related entity — validate that schema against its own entity.
+- `relations.allowed` keys must be relation property names (dotted keys headed by a relation).
+
+On a mismatch the helper throws a `SchemaEntityMismatchError` (code `schemaEntityMismatch`, a `SchemaError` subclass) that collects **every** offending key rather than stopping at the first, and exposes `schema`, `entity` and `keys` as properties:
+
+```typescript
+import { SchemaEntityMismatchError } from '@rapiq/typeorm';
+
+try {
+    assertSchemaMatchesEntity(userSchema, User, dataSource);
+} catch (e) {
+    if (e instanceof SchemaEntityMismatchError) {
+        console.error(e.schema, e.entity, e.keys); // 'user', 'User', ['renamedAway']
+    }
+    throw e;
+}
+```
+
+Schemas produced by `defineSchemaWithEntity` don't need this — their structure comes from the metadata in the first place. The helper targets curated, hand-written schemas kept next to derived ones.
+
 ## Applying a single parameter
 
 A `Query` with only some parameters set applies just those — the rest are empty and become no-ops. To apply, say, only the filters of a parsed query:

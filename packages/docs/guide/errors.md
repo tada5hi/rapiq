@@ -17,6 +17,7 @@ BaseError { code: ErrorCode }
 ├── AdapterError          backends & encoders — query exceeds the target's subset
 ├── CodecError            codec registry — unresolvable dialect
 └── SchemaError           schema registry — misconfigured or unresolvable schema
+    └── SchemaEntityMismatchError   @rapiq/typeorm — schema keys unknown to the entity
 ```
 
 ## Where errors come from
@@ -76,6 +77,7 @@ The URL encoders throw these too — a codec never silently changes what a query
 | `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
 | `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async filter validator; use the corresponding `Async` method |
+| `SCHEMA_ENTITY_MISMATCH` | `assertSchemaMatchesEntity` (`@rapiq/typeorm`) found schema keys unknown to the entity — thrown as `SchemaEntityMismatchError`, which carries the offending `schema`, `entity` and `keys`; see [validating schemas against entities](/packages/typeorm#validating-schemas-against-entities) |
 
 ## Mapping to HTTP responses
 
