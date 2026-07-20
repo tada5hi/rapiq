@@ -25,7 +25,8 @@ import type { QueryBuildInput } from './types';
 export function defineQuery(input?: QueryBuildInput<ObjectLiteral>) : Query;
 export function defineQuery<
     RECORD extends ObjectLiteral,
->(input?: QueryBuildInput<RECORD>) : Query;
+    DEPTH extends number = 5,
+>(input?: QueryBuildInput<RECORD, DEPTH>) : Query;
 export function defineQuery(input: QueryBuildInput<ObjectLiteral> = {}) : Query {
     const context : QueryContext = {};
 
