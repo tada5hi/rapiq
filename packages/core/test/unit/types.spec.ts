@@ -14,7 +14,11 @@ import type {
     SimpleResourceKeys,
     TypeFromNestedKeyPath,
 } from '../../src';
-import type { Event, User } from '../data/type';
+import type {
+    BagUserPermission, 
+    Event, 
+    User,
+} from '../data/type';
 
 describe('src/types.ts', () => {
     describe('SimpleKeys', () => {
@@ -91,7 +95,29 @@ describe('src/types.ts', () => {
         });
     });
 
+    describe('SimpleResourceKeys (index-signature target, #789)', () => {
+        it('should keep a relation whose target carries an index signature', () => {
+            const keys: SimpleResourceKeys<BagUserPermission>[] = ['user'];
+
+            // @ts-expect-error a scalar column is not a resource key
+            const invalid: SimpleResourceKeys<BagUserPermission>[] = ['userId'];
+
+            expect(keys).toBeDefined();
+            expect(invalid).toBeDefined();
+        });
+    });
+
     describe('NestedResourceKeys', () => {
+        it('should keep a relation whose target carries an index signature but not recurse into the bag (#789)', () => {
+            const keys: NestedResourceKeys<BagUserPermission>[] = ['user'];
+
+            // @ts-expect-error a bag relation target exposes no nested resource paths
+            const invalid: NestedResourceKeys<BagUserPermission>[] = ['user.realm'];
+
+            expect(keys).toBeDefined();
+            expect(invalid).toBeDefined();
+        });
+
         it('should cover nullable & optional relations (incl. nested)', () => {
             const keys: NestedResourceKeys<Event>[] = [
                 'realm',
@@ -147,6 +173,12 @@ describe('src/types.ts', () => {
             });
 
             expect(schema).toBeDefined();
+        });
+
+        it('should accept a relation whose target carries an index signature (#789)', () => {
+            const schema = defineSchema<BagUserPermission>({ relations: { allowed: ['user'] } });
+
+            expect(schema.relations.allowed).toEqual(['user']);
         });
     });
 });

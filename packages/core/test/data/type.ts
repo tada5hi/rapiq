@@ -39,6 +39,24 @@ export type Event = {
 
 // -----------------------------------------------------
 
+// A relation target that carries a dynamic-attribute index signature
+// (e.g. authup's `User`). It is a valid relation target — only its
+// *expansion* must stop at the bag. See #789.
+export type BagUser = {
+    id: string,
+    name: string,
+    // dynamically loaded extra attributes
+    [key: string]: any,
+};
+
+export type BagUserPermission = {
+    id: string,
+    user: BagUser,
+    userId: string,
+};
+
+// -----------------------------------------------------
+
 export type GrandChildEntity = {
     id: string,
 
