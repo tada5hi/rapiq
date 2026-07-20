@@ -335,6 +335,27 @@ describe('src/filter/index.ts', () => {
         );
     });
 
+    it('should parse boolean input', async () => {
+        const schema = defineFiltersSchema({ allowed: ['active'] });
+
+        // genuine boolean (parseTyped advertises it for boolean record fields)
+        let output = parseFlat({ active: true }, { schema });
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'active', true),
+        );
+
+        output = parseFlat({ active: false }, { schema });
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.EQUAL, 'active', false),
+        );
+
+        // boolean array (false survives the falsy-value filter)
+        output = parseFlat({ active: [true, false] }, { schema });
+        expect(output).toEqual(
+            new Filter(FilterFieldOperator.IN, 'active', [true, false]),
+        );
+    });
+
     it('should parse different string match inputs', async () => {
         const schema = defineFiltersSchema({ allowed: ['name'] });
 

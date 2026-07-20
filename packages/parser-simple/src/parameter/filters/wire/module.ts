@@ -71,7 +71,10 @@ function normalizeFilterValue(input: unknown) : Scalar | Scalar[] {
         return parseFilterScalar(trimmed);
     }
 
-    if (typeof input === 'number') {
+    if (
+        typeof input === 'number' ||
+        typeof input === 'boolean'
+    ) {
         return input;
     }
 
@@ -142,8 +145,9 @@ function decodeToken(input: string) : FilterWireCondition {
 }
 
 /**
- * Decode a complete simple-dialect wire value (string, number, or
- * qs-produced array) into the condition it expresses. Applies
+ * Decode a complete simple-dialect wire value (string, number,
+ * boolean, or qs-produced array) into the condition it expresses.
+ * Applies
  * value-shape normalization first (commas beat markers), then the
  * membership lifting (G3): an array decodes as in, lifted to nin
  * when its first element carries the negation modifier — later

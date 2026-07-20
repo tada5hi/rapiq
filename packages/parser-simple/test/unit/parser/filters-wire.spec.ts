@@ -27,6 +27,8 @@ describe('src/parameter/filters/wire/*.ts', () => {
             ['null value', 'null', 'eq', null],
             ['negated null value', '!null', 'ne', null],
             ['boolean coercion', 'true', 'eq', true],
+            ['genuine boolean true (object input)', true, 'eq', true],
+            ['genuine boolean false (object input)', false, 'eq', false],
             ['contains with raw inner text', '~oh~', 'contains', 'oh'],
             ['negated contains', '!~oh~', 'notContains', 'oh'],
             ['startsWith', 'Jo~', 'startsWith', 'Jo'],
@@ -50,6 +52,7 @@ describe('src/parameter/filters/wire/*.ts', () => {
             ['negated first element lifts to nin', '!a,b', 'nin', ['a', 'b']],
             ['later elements stay unparsed', '!a,!b', 'nin', ['a', '!b']],
             ['markers are inert inside lists', '<5,10', 'in', ['<5', 10]],
+            ['genuine boolean array (false survives the falsy filter)', [true, false], 'in', [true, false]],
             ['empty comma list', ',', 'in', []],
         ])('should decode %s (membership is a value shape)', (_, wire, operator, value) => {
             expect(decodeFilterWireValue(wire)).toEqual({
@@ -86,7 +89,6 @@ describe('src/parameter/filters/wire/*.ts', () => {
 
         it.each([
             ['plain object', { nested: true }],
-            ['boolean input', true],
         ])('should return the valueInvalid verdict for %s', (_, input) => {
             expect(decodeFilterWireValue(input)).toEqual({
                 success: false,
