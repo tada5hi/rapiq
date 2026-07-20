@@ -27,6 +27,10 @@ export type FiltersVisitorOptions = {
      * case-sensitive instead of the case-insensitive default —
      * e.g. identifier or token columns. Typically forwarded from
      * a schema's `filters.caseSensitive` list.
+     *
+     * `true` keeps every equality comparison case-sensitive
+     * (byte-exact), for evaluating arbitrary condition trees whose
+     * field keys aren't known upfront. `false` equals the default.
      */
-    caseSensitive?: string[],
+    caseSensitive?: string[] | boolean,
 };

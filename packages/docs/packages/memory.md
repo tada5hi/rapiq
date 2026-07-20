@@ -80,6 +80,14 @@ applyQuery(query, users, { filters: { caseSensitive: ['id'] } });
 compileFilters(eq('id', 'aBc'), { caseSensitive: ['id'] });
 ```
 
+`caseSensitive: true` keeps **every** equality comparison exact (byte-exact strings) — for evaluating arbitrary condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies:
+
+```typescript
+compileFilters(condition, { caseSensitive: true });
+```
+
+The boolean only governs the equality family — `contains`/`startsWith`/`endsWith` stay case-insensitive, exactly like the list form. `caseSensitive: false` equals the default.
+
 ### Join-row binding
 
 Dotted paths emulate the SQL adapter's joins: all conditions on one relation path bind to the **same array element**, and the record matches if *some* assignment of elements satisfies the whole filter tree. An empty or absent array contributes one all-`null` row, like a LEFT JOIN.
