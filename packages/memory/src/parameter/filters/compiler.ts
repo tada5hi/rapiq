@@ -5,21 +5,23 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { 
-    FilterFieldOperator, 
-    IFilter, 
-    IFilterVisitor, 
-    IFilters, 
-    IFiltersVisitor, 
+import type {
+    ComparePlan,
+    CompoundPlan,
+    ConstantPlan,
+    ElemMatchPlan,
+    IPlanInterpreter,
+    MatchPlan,
+    ModPlan,
+    NullCheckPlan,
+    OneOfPlan,
+    SizePlan,
 } from '@rapiq/core';
 import {
     AdapterError,
-    FilterCompoundOperator,
-    FilterRegexFlag,
+    FILTER_OPERATOR_SEMANTICS,
     ITSELF,
-    createFilterRegex,
-    isFilter,
-    isFilters,
+    interpretPlan,
 } from '@rapiq/core';
 import {
     compareValues,
@@ -29,7 +31,7 @@ import {
     toText,
 } from '../../helpers';
 import { BINDING_ELEMENT_FLAG, BINDING_SCOPE_SEPARATOR } from './constants';
-import type { FilterCompileResult, FiltersVisitorOptions, ValueTest } from './types';
+import type { ConditionEval, ValueTest } from './types';
 
 /**
  * Positive leaf tests treat an array value by element
@@ -46,131 +48,134 @@ function anyValue(test: ValueTest) : ValueTest {
 }
 
 /**
- * Compiles a condition tree into per-binding evaluation functions and
- * collects the relation paths the tree references. Field prefixes compose
- * through elemMatch exactly like the SQL adapter, so conditions sharing a
- * relation path bind to the same array element.
+ * Compiles a condition plan into per-binding evaluation functions and
+ * collects the relation paths the tree references. Operator semantics
+ * (complement law, IN decomposition, case-fold policy, pattern
+ * derivation, value validation) are decided by the core lowering —
+ * this interpreter only compiles primitives into value tests. Field
+ * prefixes compose through elemMatch exactly like the SQL adapter, so
+ * conditions sharing a relation path bind to the same array element.
  */
-export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
-    IFilterVisitor<FilterCompileResult> {
+export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
     public readonly paths : Set<string>;
 
-    protected fieldPrefix : string;
+    public readonly itself = true;
 
     protected bindingPrefix : string;
 
     protected scopeSequence : number;
 
-    protected caseSensitiveAll : boolean;
-
-    protected caseSensitiveFields : Set<string>;
-
-    constructor(options: FiltersVisitorOptions = {}) {
+    constructor() {
         this.paths = new Set();
-        this.fieldPrefix = '';
         this.bindingPrefix = '';
         this.scopeSequence = 0;
-        this.caseSensitiveAll = options.caseSensitive === true;
-        this.caseSensitiveFields = new Set(
-            Array.isArray(options.caseSensitive) ? options.caseSensitive : [],
-        );
     }
 
     // -----------------------------------------------------------
 
-    visitFilterEqual(expr: IFilter<FilterFieldOperator.EQUAL>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildEqualTest(expr.value, expr.field));
-    }
+    compound(plan: CompoundPlan) : ConditionEval {
+        const children = plan.children.map(
+            (child) => interpretPlan(child, this),
+        );
 
-    visitFilterNotEqual(expr: IFilter<FilterFieldOperator.NOT_EQUAL>) : FilterCompileResult {
-        const test = this.buildEqualTest(expr.value, expr.field);
-
-        return this.leaf(expr.field, (value) => !test(value));
-    }
-
-    visitFilterLessThan(expr: IFilter<FilterFieldOperator.LESS_THAN>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildCompareTest(expr.value, -1, -1));
-    }
-
-    visitFilterLessThanEqual(expr: IFilter<FilterFieldOperator.LESS_THAN_EQUAL>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildCompareTest(expr.value, -1, 0));
-    }
-
-    visitFilterGreaterThan(expr: IFilter<FilterFieldOperator.GREATER_THAN>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildCompareTest(expr.value, 1, 1));
-    }
-
-    visitFilterGreaterThanEqual(expr: IFilter<FilterFieldOperator.GREATER_THAN_EQUAL>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildCompareTest(expr.value, 0, 1));
-    }
-
-    visitFilterExists(expr: IFilter<FilterFieldOperator.EXISTS, boolean>) : FilterCompileResult {
-        if (expr.value) {
-            return this.leaf(expr.field, (value) => value !== null);
+        let combined : ConditionEval;
+        if (plan.operator === 'or') {
+            combined = (ctx, root) => children.some((child) => child(ctx, root));
+        } else {
+            combined = (ctx, root) => children.every((child) => child(ctx, root));
         }
 
-        return this.leaf(expr.field, (value) => value === null);
-    }
-
-    visitFilterIn(expr: IFilter<FilterFieldOperator.IN, unknown[]>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildInTest(expr.value, expr.field));
-    }
-
-    visitFilterNotIn(expr: IFilter<FilterFieldOperator.NOT_IN, unknown[]>) : FilterCompileResult {
-        const test = this.buildInTest(expr.value, expr.field);
-
-        return this.leaf(expr.field, (value) => !test(value));
-    }
-
-    visitFilterMod(expr: IFilter<FilterFieldOperator.MOD, [number, number]>) : FilterCompileResult {
-        if (
-            !Array.isArray(expr.value) ||
-            expr.value.length !== 2 ||
-            !Number.isFinite(expr.value[0]) ||
-            !Number.isFinite(expr.value[1]) ||
-            expr.value[0] === 0
-        ) {
-            return this.leaf(expr.field, () => false);
+        if (plan.negated) {
+            return (ctx, root) => !combined(ctx, root);
         }
 
-        const [divisor, remainder] = expr.value;
+        return combined;
+    }
 
-        return this.leaf(expr.field, anyValue(
+    constant(plan: ConstantPlan) : ConditionEval {
+        return () => plan.verdict;
+    }
+
+    nullCheck(plan: NullCheckPlan) : ConditionEval {
+        const base : ValueTest = (value) => normalizeValue(value) === null;
+        const test = plan.elementwise ? anyValue(base) : base;
+
+        return this.leaf(plan.field, this.negate(test, plan.negated));
+    }
+
+    compare(plan: ComparePlan) : ConditionEval {
+        if (plan.op === 'eq') {
+            const test = anyValue(this.buildValueEqualTest(plan.value, plan.caseFold));
+
+            return this.leaf(plan.field, this.negate(test, plan.negated));
+        }
+
+        const range = FILTER_OPERATOR_SEMANTICS[plan.op].compare;
+
+        return this.leaf(plan.field, this.buildCompareTest(plan.value, range.min, range.max));
+    }
+
+    oneOf(plan: OneOfPlan) : ConditionEval {
+        const tests = plan.values.map(
+            (value) => this.buildValueEqualTest(value, plan.caseFold),
+        );
+        if (plan.includesNull) {
+            tests.push((value) => isValueEqual(value, null));
+        }
+
+        const test = anyValue(
+            (value) => tests.some((item) => item(value)),
+        );
+
+        return this.leaf(plan.field, this.negate(test, plan.negated));
+    }
+
+    match(plan: MatchPlan) : ConditionEval {
+        let regex : RegExp;
+        if (plan.pattern.mode === 'regex') {
+            try {
+                regex = new RegExp(plan.pattern.source, plan.pattern.flags);
+            } catch {
+                throw AdapterError.featureUnsupported('filters:regex:value');
+            }
+        } else {
+            regex = new RegExp(plan.regexSource, 'i');
+        }
+
+        const test = anyValue((value) => {
+            const text = toText(value);
+            if (text === undefined) {
+                return false;
+            }
+
+            return regex.test(text);
+        });
+
+        return this.leaf(plan.field, this.negate(test, plan.negated));
+    }
+
+    mod(plan: ModPlan) : ConditionEval {
+        return this.leaf(plan.field, anyValue(
             (value) => typeof value === 'number' &&
                 Number.isFinite(value) &&
-                value % divisor === remainder,
+                value % plan.divisor === plan.remainder,
         ));
     }
 
-    visitFilterSize(expr: IFilter<FilterFieldOperator.SIZE, number>) : FilterCompileResult {
-        if (
-            typeof expr.value !== 'number' ||
-            !Number.isInteger(expr.value) ||
-            expr.value < 0
-        ) {
-            return this.leaf(expr.field, () => false);
+    size(plan: SizePlan) : ConditionEval {
+        if (plan.count === null) {
+            return this.leaf(plan.field, () => false);
         }
 
-        const length = expr.value;
+        const { count } = plan;
 
         // the condition addresses the array itself, not its elements —
         // missing or non-array values never match (mongo parity).
-        return this.leaf(expr.field, (value) => Array.isArray(value) &&
-            value.length === length);
+        return this.leaf(plan.field, (value) => Array.isArray(value) &&
+            value.length === count);
     }
 
-    visitFilterElemMatch(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : FilterCompileResult {
-        if (!isFilter(expr.value) && !isFilters(expr.value)) {
-            throw AdapterError.featureUnsupported('filters:elemMatch:value');
-        }
-
-        // an elemMatch on the element itself (arrays of arrays) is
-        // only meaningful inside another elemMatch scope.
-        if (expr.field === ITSELF && !this.bindingPrefix) {
-            throw AdapterError.featureUnsupported('filters:itself');
-        }
-
-        const oldFieldPrefix = this.fieldPrefix;
+    elemMatch(plan: ElemMatchPlan) : ConditionEval {
         const oldBindingPrefix = this.bindingPrefix;
 
         // every elemMatch opens its own quantifier scope: the
@@ -178,94 +183,18 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         // of its own, so two elemMatches on one field quantify
         // independently (e.g. one per $all value).
         this.scopeSequence += 1;
-        this.fieldPrefix = `${oldFieldPrefix}${expr.field}.`;
-        this.bindingPrefix = `${oldBindingPrefix}${expr.field}${BINDING_SCOPE_SEPARATOR}${this.scopeSequence}.`;
+        this.bindingPrefix = `${oldBindingPrefix}${plan.field}${BINDING_SCOPE_SEPARATOR}${this.scopeSequence}.`;
 
         try {
-            return expr.value.accept(this);
+            return interpretPlan(plan.condition, this);
         } finally {
-            this.fieldPrefix = oldFieldPrefix;
             this.bindingPrefix = oldBindingPrefix;
         }
     }
 
-    visitFilterStartsWith(expr: IFilter<FilterFieldOperator.STARTS_WITH>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.STARTS_WITH));
-    }
-
-    visitFilterNotStartsWith(expr: IFilter<FilterFieldOperator.NOT_STARTS_WITH>) : FilterCompileResult {
-        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.STARTS_WITH);
-
-        return this.leaf(expr.field, (value) => !test(value));
-    }
-
-    visitFilterEndsWith(expr: IFilter<FilterFieldOperator.ENDS_WITH>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.ENDS_WITH));
-    }
-
-    visitFilterNotEndsWith(expr: IFilter<FilterFieldOperator.NOT_ENDS_WITH>) : FilterCompileResult {
-        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.ENDS_WITH);
-
-        return this.leaf(expr.field, (value) => !test(value));
-    }
-
-    visitFilterContains(expr: IFilter<FilterFieldOperator.CONTAINS>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildAnchoredTest(expr.value, FilterRegexFlag.CONTAINS));
-    }
-
-    visitFilterNotContains(expr: IFilter<FilterFieldOperator.NOT_CONTAINS>) : FilterCompileResult {
-        const test = this.buildAnchoredTest(expr.value, FilterRegexFlag.CONTAINS);
-
-        return this.leaf(expr.field, (value) => !test(value));
-    }
-
-    visitFilterRegex(expr: IFilter<FilterFieldOperator.REGEX, RegExp | string>) : FilterCompileResult {
-        return this.leaf(expr.field, this.buildRegexTest(this.buildRegex(expr.value)));
-    }
-
-    visitFilter(expr: IFilter) : FilterCompileResult {
-        throw AdapterError.operatorUnsupported(expr.operator);
-    }
-
-    visitFilters(expr: IFilters) : FilterCompileResult {
-        if (
-            expr.operator !== FilterCompoundOperator.AND &&
-            expr.operator !== FilterCompoundOperator.OR
-        ) {
-            throw AdapterError.operatorUnsupported(expr.operator);
-        }
-
-        const children : NonNullable<FilterCompileResult>[] = [];
-        for (let i = 0; i < expr.value.length; i++) {
-            const child = expr.value[i];
-            if (!child) {
-                continue;
-            }
-
-            if (isFilter(child) || isFilters(child)) {
-                const compiled = child.accept(this);
-                if (compiled) {
-                    children.push(compiled);
-                }
-            }
-        }
-
-        // an empty compound vanishes, exactly like an empty
-        // child adapter in the SQL merge step.
-        if (children.length === 0) {
-            return null;
-        }
-
-        if (expr.operator === FilterCompoundOperator.OR) {
-            return (ctx, root) => children.some((child) => child(ctx, root));
-        }
-
-        return (ctx, root) => children.every((child) => child(ctx, root));
-    }
-
     // -----------------------------------------------------------
 
-    protected leaf(field: string, test: ValueTest) : FilterCompileResult {
+    protected leaf(field: string, test: ValueTest) : ConditionEval {
         if (field === ITSELF) {
             // the marker addresses the element bound by the enclosing
             // elemMatch scope; outside one it has no referent.
@@ -307,22 +236,31 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
     // -----------------------------------------------------------
 
-    protected buildEqualTest(input: unknown, field: string) : ValueTest {
-        return anyValue(this.buildValueEqualTest(input, field));
+    /**
+     * Complement law: the negation wraps OUTSIDE element
+     * quantification, so a negated leaf is the exact complement of
+     * its positive twin — null/missing values match.
+     */
+    protected negate(test: ValueTest, negated: boolean) : ValueTest {
+        if (negated) {
+            return (value) => !test(value);
+        }
+
+        return test;
     }
 
     /**
-     * Single-value equality: string conditions compare case-insensitively
-     * (mirroring the SQL adapter's lower()-wrapped rendering) unless the
-     * field is opted out via the `caseSensitive` option — either listed
-     * by key or globally via `caseSensitive: true`.
+     * Single-value equality: `caseFold` carries the settled policy
+     * verdict (string condition, field not opted out) — string
+     * comparisons then fold on both sides, mirroring the SQL
+     * adapter's lower()-wrapped rendering.
      */
-    protected buildValueEqualTest(input: unknown, field: string) : ValueTest {
+    protected buildValueEqualTest(input: unknown, caseFold: boolean) : ValueTest {
         const condition = normalizeValue(input);
 
         if (
-            typeof condition === 'string' &&
-            !this.isCaseSensitive(field)
+            caseFold &&
+            typeof condition === 'string'
         ) {
             const lowered = condition.toLowerCase();
 
@@ -331,11 +269,6 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
         }
 
         return (value) => isValueEqual(value, condition);
-    }
-
-    protected isCaseSensitive(field: string) : boolean {
-        return this.caseSensitiveAll ||
-            this.caseSensitiveFields.has(`${this.fieldPrefix}${field}`);
     }
 
     protected buildCompareTest(input: unknown, min: number, max: number) : ValueTest {
@@ -349,50 +282,5 @@ export class FiltersCompiler implements IFiltersVisitor<FilterCompileResult>,
 
             return result >= min && result <= max;
         });
-    }
-
-    protected buildInTest(input: unknown[], field: string) : ValueTest {
-        if (!Array.isArray(input)) {
-            return () => false;
-        }
-
-        const tests = input.map((item) => this.buildValueEqualTest(item, field));
-
-        return anyValue(
-            (value) => tests.some((test) => test(value)),
-        );
-    }
-
-    protected buildAnchoredTest(input: unknown, flag: number) : ValueTest {
-        return this.buildRegexTest(createFilterRegex(`${input}`, flag));
-    }
-
-    protected buildRegexTest(regex: RegExp) : ValueTest {
-        return anyValue((value) => {
-            const text = toText(value);
-            if (text === undefined) {
-                return false;
-            }
-
-            return regex.test(text);
-        });
-    }
-
-    protected buildRegex(input: unknown) : RegExp {
-        if (input instanceof RegExp) {
-            // rebuild without the stateful flags, so repeated
-            // test() calls never depend on lastIndex.
-            return new RegExp(input.source, input.flags.replace(/[gy]/g, ''));
-        }
-
-        if (typeof input === 'string') {
-            try {
-                return new RegExp(input);
-            } catch {
-                throw AdapterError.featureUnsupported('filters:regex:value');
-            }
-        }
-
-        throw AdapterError.featureUnsupported('filters:regex:value');
     }
 }

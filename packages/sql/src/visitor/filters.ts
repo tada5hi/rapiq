@@ -6,29 +6,49 @@
  */
 
 import type {
+    ComparePlan,
+    CompoundPlan,
+    ConstantPlan,
+    ElemMatchPlan,
+    ICondition,
     IFilterVisitor,
     IFiltersVisitor,
+    IPlanInterpreter,
+    MatchPlan,
+    ModPlan,
+    NullCheckPlan,
+    OneOfPlan,
+    PlanCompareOperator,
 } from '@rapiq/core';
 import {
-    AdapterError,
-    Filter,
-    FilterFieldOperator,
-
-    FilterRegexFlag,
-    Filters,
-    createFilterRegex,
+    interpretPlan,
+    planCondition,
 } from '@rapiq/core';
 import type { IFiltersAdapter } from '../adapter';
 import { escapeLikePattern } from '../helpers';
 import type { VisitorOptions } from './types';
 
+const COMPARE_SYMBOLS : Record<PlanCompareOperator, string> = {
+    eq: '=',
+    lt: '<',
+    lte: '<=',
+    gt: '>',
+    gte: '>=',
+};
+
+/**
+ * Renders a condition tree into SQL fragments by interpreting its
+ * {@link ConditionPlan}: operator semantics (complement law, IN
+ * decomposition, case-fold policy, pattern derivation, value
+ * validation) are decided by the core lowering — this visitor only
+ * renders primitives through the adapter's dialect hooks.
+ */
 export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
-    IFilterVisitor<IFiltersAdapter> {
+    IFilterVisitor<IFiltersAdapter>,
+    IPlanInterpreter<IFiltersAdapter> {
     protected adapter : IFiltersAdapter;
 
     protected options : VisitorOptions;
-
-    protected caseSensitiveFields : Set<string>;
 
     constructor(
         adapter: IFiltersAdapter,
@@ -36,235 +56,104 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     ) {
         this.adapter = adapter;
         this.options = options;
-
-        this.caseSensitiveFields = new Set(options.caseSensitive || []);
-    }
-
-    visitFilterEqual(expr: Filter<FilterFieldOperator.EQUAL>): IFiltersAdapter {
-        if (expr.value === null) {
-            return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is null`);
-        }
-
-        if (this.isCaseInsensitive(expr.field, expr.value)) {
-            const field = this.adapter.buildField(expr.field);
-            return this.adapter.whereRaw(
-                `${this.adapter.caseFold(field)} = ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
-                expr.value,
-            );
-        }
-
-        return this.adapter.where(expr.field, '=', expr.value);
-    }
-
-    visitFilterNotEqual(expr: Filter<FilterFieldOperator.NOT_EQUAL>): IFiltersAdapter {
-        const field = this.adapter.buildField(expr.field);
-        if (expr.value === null) {
-            return this.adapter.whereRaw(`${field} is not null`);
-        }
-
-        if (this.isCaseInsensitive(expr.field, expr.value)) {
-            return this.whereComplement(
-                field,
-                `${this.adapter.caseFold(field)} <> ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
-                expr.value,
-            );
-        }
-
-        return this.whereComplement(
-            field,
-            `${field} <> ${this.adapter.buildParamPlaceholder()}`,
-            expr.value,
-        );
-    }
-
-    visitFilterLessThan(expr: Filter<FilterFieldOperator.LESS_THAN>): IFiltersAdapter {
-        return this.adapter.where(expr.field, '<', expr.value);
-    }
-
-    visitFilterLessThanEqual(expr: Filter<FilterFieldOperator.LESS_THAN_EQUAL>): IFiltersAdapter {
-        return this.adapter.where(expr.field, '<=', expr.value);
-    }
-
-    visitFilterGreaterThan(expr: Filter<FilterFieldOperator.GREATER_THAN>): IFiltersAdapter {
-        return this.adapter.where(expr.field, '>', expr.value);
-    }
-
-    visitFilterGreaterThanEqual(expr: Filter<FilterFieldOperator.GREATER_THAN_EQUAL>): IFiltersAdapter {
-        return this.adapter.where(expr.field, '>=', expr.value);
-    }
-
-    visitFilterExists(expr: Filter<FilterFieldOperator.EXISTS, boolean>): IFiltersAdapter {
-        return this.adapter.whereRaw(`${this.adapter.buildField(expr.field)} is ${expr.value ? 'not ' : ''}null`);
-    }
-
-    visitFilterIn(expr: Filter<FilterFieldOperator.IN, unknown[]>): IFiltersAdapter {
-        return this.whereIn(expr.field, expr.value, false);
-    }
-
-    visitFilterNotIn(expr: Filter<FilterFieldOperator.NOT_IN, unknown[]>): IFiltersAdapter {
-        return this.whereIn(expr.field, expr.value, true);
-    }
-
-    visitFilterMod(expr: Filter<FilterFieldOperator.MOD, [number, number]>): IFiltersAdapter {
-        const params = this.adapter.buildParamsPlaceholders(expr.value);
-        const sql = `mod(${this.adapter.buildField(expr.field)}, ${params[0]}) = ${params[1]}`;
-        return this.adapter.whereRaw(sql, ...expr.value);
-    }
-
-    visitFilterSize(): IFiltersAdapter {
-        // no SQL rendering yet — an array-length check needs per-dialect
-        // JSON-array support (json_array_length/JSON_LENGTH/cardinality).
-        throw AdapterError.featureUnsupported('filters:size');
-    }
-
-    visitFilterElemMatch(expr: Filter<FilterFieldOperator.ELEM_MATCH, Filter | Filters>): IFiltersAdapter {
-        const oldPrefix = this.adapter.getFieldPrefix();
-
-        this.adapter.setFieldPrefix(`${oldPrefix}${expr.field}.`);
-
-        expr.value.accept(this);
-
-        this.adapter.setFieldPrefix(oldPrefix);
-
-        return this.adapter;
-    }
-
-    visitFilterStartsWith(expr: Filter<FilterFieldOperator.STARTS_WITH, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.STARTS_WITH);
-    }
-
-    visitFilterNotStartsWith(expr: Filter<FilterFieldOperator.NOT_STARTS_WITH, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.STARTS_WITH | FilterRegexFlag.NEGATION);
-    }
-
-    visitFilterEndsWith(expr: Filter<FilterFieldOperator.ENDS_WITH, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.ENDS_WITH);
-    }
-
-    visitFilterNotEndsWith(expr: Filter<FilterFieldOperator.NOT_ENDS_WITH, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.ENDS_WITH | FilterRegexFlag.NEGATION);
-    }
-
-    visitFilterContains(expr: Filter<FilterFieldOperator.CONTAINS, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.CONTAINS);
-    }
-
-    visitFilterNotContains(expr: Filter<FilterFieldOperator.NOT_CONTAINS, unknown>): IFiltersAdapter {
-        return this.whereAnchored(expr.field, expr.value, FilterRegexFlag.CONTAINS | FilterRegexFlag.NEGATION);
-    }
-
-    visitFilterRegex(expr: Filter<FilterFieldOperator.REGEX, RegExp | string>): IFiltersAdapter {
-        const isRegExp = expr.value instanceof RegExp;
-
-        // anything else (a cross-realm RegExp, a number, null) must not be
-        // bound raw as the pattern parameter — fail typed, like @rapiq/memory.
-        if (!isRegExp && typeof expr.value !== 'string') {
-            throw AdapterError.featureUnsupported('filters:regex:value');
-        }
-
-        const source = isRegExp ? expr.value.source : expr.value;
-        const ignoreCase = isRegExp ? expr.value.ignoreCase : false;
-
-        const sql = this.adapter.regexp(
-            this.adapter.buildField(expr.field),
-            this.adapter.buildParamPlaceholder(),
-            ignoreCase,
-        );
-
-        return this.adapter.whereRaw(sql, source);
-    }
-
-    visitFilters(expr: Filters): IFiltersAdapter {
-        const adapter = this.adapter.child();
-        const visitor = new FiltersVisitor(
-            adapter,
-            this.options,
-        );
-
-        for (let i = 0; i < expr.value.length; i++) {
-            const child = expr.value[i];
-            if (child instanceof Filter) {
-                child.accept(visitor);
-            }
-
-            if (child instanceof Filters) {
-                child.accept(visitor);
-            }
-        }
-
-        switch (expr.operator) {
-            case 'or': {
-                this.adapter.merge(
-                    adapter,
-                    'or',
-                );
-                break;
-            }
-            case 'nor': {
-                this.adapter.merge(
-                    adapter,
-                    'or',
-                    true,
-                );
-                break;
-            }
-            case 'not': {
-                this.adapter.merge(
-                    adapter,
-                    'and',
-                    true,
-                );
-                break;
-            }
-            default: {
-                this.adapter.merge(
-                    adapter,
-                    'and',
-                );
-            }
-        }
-
-        return adapter;
-    }
-
-    visitFilter(expr: Filter): IFiltersAdapter {
-        throw AdapterError.operatorUnsupported(expr.operator);
     }
 
     // -----------------------------------------------------------
 
-    /**
-     * Render an IN/NOT IN condition.
-     * A null element also matches the absence of a value (IS NULL);
-     * an empty list matches no row (every row when negated).
-     */
-    protected whereIn(fieldName: string, input: unknown[], negated: boolean) : IFiltersAdapter {
-        if (input.length === 0) {
-            return this.adapter.whereRaw(negated ? '1 = 1' : '1 = 0');
+    visitFilters(expr: ICondition): IFiltersAdapter {
+        return this.run(expr);
+    }
+
+    visitFilter(expr: ICondition): IFiltersAdapter {
+        return this.run(expr);
+    }
+
+    protected run(expr: ICondition) : IFiltersAdapter {
+        const plan = planCondition(expr, { caseSensitive: this.options.caseSensitive });
+        if (!plan) {
+            return this.adapter;
         }
 
-        const values = input.filter((value) => value !== null);
-        const field = this.adapter.buildField(fieldName);
-        const nullCondition = `${field} is ${negated ? 'not ' : ''}null`;
-        if (values.length === 0) {
-            return this.adapter.whereRaw(nullCondition);
+        return interpretPlan(plan, this);
+    }
+
+    // -----------------------------------------------------------
+
+    compound(plan: CompoundPlan): IFiltersAdapter {
+        const adapter = this.adapter.child();
+        const visitor = new FiltersVisitor(adapter, this.options);
+
+        for (const child of plan.children) {
+            interpretPlan(child, visitor);
         }
+
+        this.adapter.merge(adapter, plan.operator, plan.negated);
+
+        return adapter;
+    }
+
+    constant(plan: ConstantPlan): IFiltersAdapter {
+        return this.adapter.whereRaw(plan.verdict ? '1 = 1' : '1 = 0');
+    }
+
+    nullCheck(plan: NullCheckPlan): IFiltersAdapter {
+        return this.adapter.whereRaw(
+            `${this.adapter.buildField(plan.field)} is ${plan.negated ? 'not ' : ''}null`,
+        );
+    }
+
+    compare(plan: ComparePlan): IFiltersAdapter {
+        const fold = plan.caseFold && this.isCaseFoldableField(plan.field);
+
+        if (plan.negated) {
+            const field = this.adapter.buildField(plan.field);
+            const placeholder = this.adapter.buildParamPlaceholder();
+            const sql = fold ?
+                `${this.adapter.caseFold(field)} <> ${this.adapter.caseFold(placeholder)}` :
+                `${field} <> ${placeholder}`;
+
+            return this.whereComplement(field, sql, plan.value);
+        }
+
+        if (fold) {
+            const field = this.adapter.buildField(plan.field);
+
+            return this.adapter.whereRaw(
+                `${this.adapter.caseFold(field)} = ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
+                plan.value,
+            );
+        }
+
+        return this.adapter.where(plan.field, COMPARE_SYMBOLS[plan.op], plan.value);
+    }
+
+    /**
+     * Render the IN/NOT IN four-case contract: a null member also
+     * matches the absence of a value (IS NULL); the negated form is
+     * the exact complement.
+     */
+    oneOf(plan: OneOfPlan): IFiltersAdapter {
+        const { values } = plan;
+        const field = this.adapter.buildField(plan.field);
+        const nullCondition = `${field} is ${plan.negated ? 'not ' : ''}null`;
 
         let inCondition : string;
         if (
-            this.isCaseFoldableField(fieldName) &&
+            plan.caseFold &&
+            this.isCaseFoldableField(plan.field) &&
             values.some((value) => typeof value === 'string')
         ) {
             const placeholders = values.map((value) => {
                 const placeholder = this.adapter.buildParamPlaceholder();
                 return typeof value === 'string' ? this.adapter.caseFold(placeholder) : placeholder;
             });
-            inCondition = `${this.adapter.caseFold(field)} ${negated ? 'not ' : ''}in(${placeholders.join(', ')})`;
+            inCondition = `${this.adapter.caseFold(field)} ${plan.negated ? 'not ' : ''}in(${placeholders.join(', ')})`;
         } else {
-            inCondition = `${field} ${negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
+            inCondition = `${field} ${plan.negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
         }
-        if (values.length === input.length) {
-            if (negated) {
+
+        if (!plan.includesNull) {
+            if (plan.negated) {
                 return this.whereComplement(field, inCondition, ...values);
             }
 
@@ -272,47 +161,72 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         }
 
         return this.adapter.whereRaw(
-            `(${inCondition} ${negated ? 'and' : 'or'} ${nullCondition})`,
+            `(${inCondition} ${plan.negated ? 'and' : 'or'} ${nullCondition})`,
             ...values,
         );
     }
 
-    /**
-     * Render a startsWith/endsWith/contains condition (or its negation)
-     * as a regexp condition, falling back to LIKE on regexp-less dialects.
-     */
-    protected whereAnchored(field: string, value: unknown, flag: number) : IFiltersAdapter {
-        if (!this.adapter.isRegexpSupported()) {
-            const escaped = escapeLikePattern(`${value}`);
+    match(plan: MatchPlan): IFiltersAdapter {
+        if (
+            plan.pattern.mode !== 'regex' &&
+            !this.adapter.isRegexpSupported()
+        ) {
+            const escaped = escapeLikePattern(plan.pattern.text);
 
             let pattern : string;
-            if (flag & FilterRegexFlag.STARTS_WITH) {
+            if (plan.pattern.mode === 'starts') {
                 pattern = `${escaped}%`;
-            } else if (flag & FilterRegexFlag.ENDS_WITH) {
+            } else if (plan.pattern.mode === 'ends') {
                 pattern = `%${escaped}`;
             } else {
                 pattern = `%${escaped}%`;
             }
 
-            return this.whereLike(field, pattern, !!(flag & FilterRegexFlag.NEGATION));
+            return this.whereLike(plan.field, pattern, plan.negated);
         }
 
-        const regex = createFilterRegex(`${value}`, flag);
-        if (!(flag & FilterRegexFlag.NEGATION)) {
-            return this.visitFilterRegex(new Filter(FilterFieldOperator.REGEX, field, regex));
-        }
-
-        const fieldBuilt = this.adapter.buildField(field);
+        const field = this.adapter.buildField(plan.field);
         const sql = this.adapter.regexp(
-            fieldBuilt,
+            field,
             this.adapter.buildParamPlaceholder(),
-            regex.ignoreCase,
+            plan.ignoreCase,
         );
 
-        return this.whereComplement(fieldBuilt, sql, regex.source);
+        if (plan.negated) {
+            return this.whereComplement(field, `not (${sql})`, plan.regexSource);
+        }
+
+        return this.adapter.whereRaw(sql, plan.regexSource);
     }
 
-    protected whereLike(field: string, pattern: string, negated = false) : IFiltersAdapter {
+    mod(plan: ModPlan): IFiltersAdapter {
+        const values : [number, number] = [plan.divisor, plan.remainder];
+        const params = this.adapter.buildParamsPlaceholders(values);
+        const sql = `mod(${this.adapter.buildField(plan.field)}, ${params[0]}) = ${params[1]}`;
+
+        return this.adapter.whereRaw(sql, ...values);
+    }
+
+    // no `size` handler: an array-length check needs per-dialect
+    // JSON-array support (json_array_length/JSON_LENGTH/cardinality).
+    // no `itself` declaration: a joined relation row is not a scalar
+    // column, so SQL has no rendering for the element itself.
+
+    elemMatch(plan: ElemMatchPlan): IFiltersAdapter {
+        const oldPrefix = this.adapter.getFieldPrefix();
+
+        this.adapter.setFieldPrefix(`${oldPrefix}${plan.field}.`);
+
+        try {
+            return interpretPlan(plan.condition, this);
+        } finally {
+            this.adapter.setFieldPrefix(oldPrefix);
+        }
+    }
+
+    // -----------------------------------------------------------
+
+    protected whereLike(field: string, pattern: string, negated: boolean) : IFiltersAdapter {
         const fieldBuilt = this.adapter.buildField(field);
         const condition = `${fieldBuilt} ${negated ? 'not ' : ''}like ${this.adapter.buildParamPlaceholder()} escape '\\'`;
         if (negated) {
@@ -323,28 +237,20 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     /**
-     * Render a negated condition null-inclusively. Negated operators are
-     * exact complements of their positive twins (complement law), but the
-     * bare SQL negation follows three-valued logic and drops NULL rows.
+     * Render a negated condition null-inclusively. Negated operators
+     * are exact complements of their positive twins (complement
+     * law), but the bare SQL negation follows three-valued logic
+     * and drops NULL rows.
      */
     protected whereComplement(field: string, sql: string, ...values: unknown[]) : IFiltersAdapter {
         return this.adapter.whereRaw(`(${sql} or ${field} is null)`, ...values);
     }
 
     /**
-     * Equality-family comparisons (eq/ne/in/nin) match string values
-     * case-insensitively unless the field is opted out via the
-     * `caseSensitive` visitor option or the adapter exempts it
-     * (non-string columns never fold).
+     * The adapter-side capability veto on the fold policy: backends
+     * with column metadata exempt non-string columns.
      */
-    protected isCaseInsensitive(field: string, value: unknown) : boolean {
-        return typeof value === 'string' && this.isCaseFoldableField(field);
-    }
-
     protected isCaseFoldableField(field: string) : boolean {
-        const path = `${this.adapter.getFieldPrefix()}${field}`;
-
-        return !this.caseSensitiveFields.has(path) &&
-            this.adapter.isCaseFoldable(path);
+        return this.adapter.isCaseFoldable(`${this.adapter.getFieldPrefix()}${field}`);
     }
 }

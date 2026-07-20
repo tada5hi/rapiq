@@ -200,13 +200,16 @@ describe('regex', () => {
     });
 
     it('generates anchored patterns for anchored operators on regexp dialects', () => {
+        // negations render a plain `not` over the POSITIVE pattern
+        // (null-inclusive via the complement arm) — never a
+        // negative-lookahead pattern.
         const cases : [string, string, boolean][] = [
             ['startsWith', '^foo', false],
             ['endsWith', 'foo$', false],
             ['contains', 'foo', false],
-            ['notStartsWith', '^(?!foo).*', true],
-            ['notEndsWith', '^(?!.*foo$).*', true],
-            ['notContains', '^(?!.*foo).*', true],
+            ['notStartsWith', '^foo', true],
+            ['notEndsWith', 'foo$', true],
+            ['notContains', 'foo', true],
         ];
 
         for (const [operator, pattern, negated] of cases) {
@@ -217,7 +220,7 @@ describe('regex', () => {
 
             const [sql, params] = adapter.getQueryAndParameters();
             expect(sql, operator).toEqual(negated ?
-                '("name" ~* $1 or "name" is null)' :
+                '(not ("name" ~* $1) or "name" is null)' :
                 '"name" ~* $1');
             expect(params, operator).toStrictEqual([pattern]);
         }
