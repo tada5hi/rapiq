@@ -62,7 +62,7 @@ function buildSchemaOptions(
 
     let columnKeys : string[] | undefined;
     const resolveAllowed = (allowed: unknown) => {
-        if (allowed === 'columns') {
+        if (allowed === 'inherit') {
             columnKeys = columnKeys || deriveColumnKeys(metadata);
             return columnKeys;
         }

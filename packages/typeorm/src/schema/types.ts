@@ -18,14 +18,14 @@ import type {
 import type { EntityTarget } from 'typeorm';
 
 /**
- * Marks an `allowed` list to be derived from the entity's column
+ * Marks an `allowed` list to be inherited from the entity's column
  * property paths (hidden `select: false` columns and virtual join
  * columns excluded).
  */
-export type ColumnsSentinel = 'columns';
+export type InheritSentinel = 'inherit';
 
 type WithDerivableAllowed<OPTIONS extends { allowed?: unknown }> = Omit<OPTIONS, 'allowed'> & {
-    allowed?: NonNullable<OPTIONS['allowed']> | ColumnsSentinel,
+    allowed?: NonNullable<OPTIONS['allowed']> | InheritSentinel,
 };
 
 export type EntitySchemaOptions<

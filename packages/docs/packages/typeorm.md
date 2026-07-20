@@ -88,8 +88,8 @@ import { defineSchemaRegistryWithDataSource } from '@rapiq/typeorm';
 const registry = defineSchemaRegistryWithDataSource(dataSource, {
     schemas: {
         user: {
-            filters: { allowed: 'columns' },
-            sort: { allowed: 'columns' },
+            filters: { allowed: 'inherit' },
+            sort: { allowed: 'inherit' },
         },
     },
 });
@@ -97,14 +97,14 @@ const registry = defineSchemaRegistryWithDataSource(dataSource, {
 
 Every schema gets its **structure** derived unconditionally: the schema name (lower-camel entity name, `RoleDetail` → `roleDetail`), the allowed relations, and the `schemaMapping` linking each relation to its target entity's schema — so nested paths like `role.detail` resolve across the registry without any manual wiring.
 
-Column-based **allow-lists** are opt-in per parameter: `allowed: 'columns'` expands to the entity's column property paths. Hidden columns (`select: false`) and virtual join columns are always excluded; explicitly declared FK columns (e.g. `realmId`) are included. Any explicit option wins over its derived counterpart:
+Column-based **allow-lists** are opt-in per parameter: `allowed: 'inherit'` expands to the entity's column property paths. Hidden columns (`select: false`) and virtual join columns are always excluded; explicitly declared FK columns (e.g. `realmId`) are included. Any explicit option wins over its derived counterpart:
 
 ```typescript
 import { defineSchemaWithEntity } from '@rapiq/typeorm';
 
 const schema = defineSchemaWithEntity(User, dataSource, {
     strict: true,
-    fields: { allowed: 'columns' },
+    fields: { allowed: 'inherit' },
     filters: { allowed: ['id', 'name'] },   // explicit list, nothing derived
     sort: { default: { id: 'DESC' } },
 });
@@ -123,7 +123,7 @@ defineSchemaRegistryWithDataSource(dataSource, { registry });
 
 Passing `schemas` options for a skipped (already registered) name throws — options that would be silently ignored are treated as a mistake.
 
-Derivation never sets [`strict`](/guide/schemas#strict-mode) — combined with `strict: true`, a derived `allowed: 'columns'` opens **every** (non-hidden) column to clients, so opt sensitive resources into explicit lists instead.
+Derivation never sets [`strict`](/guide/schemas#strict-mode) — combined with `strict: true`, a derived `allowed: 'inherit'` opens **every** (non-hidden) column to clients, so opt sensitive resources into explicit lists instead.
 
 ::: tip
 The data source only needs built metadata, not an open connection — deriving schemas at startup before `dataSource.initialize()` completes is fine as long as the metadata was built.

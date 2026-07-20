@@ -83,8 +83,8 @@ describe('src/schema/*.ts', () => {
 
     it('should derive column allow-lists on opt-in', () => {
         const schema = defineSchemaWithEntity(User, dataSource, {
-            filters: { allowed: 'columns' },
-            sort: { allowed: 'columns' },
+            filters: { allowed: 'inherit' },
+            sort: { allowed: 'inherit' },
         });
 
         expect(schema.filters.allowed).toContain('id');
@@ -99,7 +99,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should exclude hidden and virtual join columns from derived lists', () => {
-        const schema = defineSchemaWithEntity(Article, articleDataSource, { filters: { allowed: 'columns' } });
+        const schema = defineSchemaWithEntity(Article, articleDataSource, { filters: { allowed: 'inherit' } });
 
         expect(schema.filters.allowed).toEqual(['id', 'title']);
     });
@@ -141,7 +141,7 @@ describe('src/schema/*.ts', () => {
     });
 
     it('should apply per-entity options keyed by schema name', () => {
-        const registry = defineSchemaRegistryWithDataSource(dataSource, { schemas: { user: { filters: { allowed: 'columns' } } } });
+        const registry = defineSchemaRegistryWithDataSource(dataSource, { schemas: { user: { filters: { allowed: 'inherit' } } } });
 
         const schema = registry.getOrFail('user');
         expect(schema.filters.allowed).toContain('email');
@@ -153,7 +153,7 @@ describe('src/schema/*.ts', () => {
     it('should apply per-entity options keyed by entity class', () => {
         const registry = defineSchemaRegistryWithDataSource(dataSource, {
             schemas: new Map([
-                [User, { filters: { allowed: 'columns' as const } }],
+                [User, { filters: { allowed: 'inherit' as const } }],
             ]),
         });
 
