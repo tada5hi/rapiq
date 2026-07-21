@@ -77,6 +77,22 @@ describe('filters/expr-parser', () => {
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'));
     });
 
+    it('should keep a negated ordering comparison as a first-class NOT node', () => {
+        // the complement of gt is null-inclusive — lte is NOT its
+        // negation, so no twin rewrite applies.
+        const output = parser.parseExact('not(gt(age, \'18\'))');
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.NOT, [
+            new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18),
+        ]));
+    });
+
+    it('should cancel a double negation around an ordering comparison', () => {
+        const output = parser.parseExact('not(not(gt(age, \'18\')))');
+
+        expect(output).toEqual(new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18));
+    });
+
     it('should parse lt expression', () => {
         const output = parser.parseExact('lt(age, \'18\')');
 
@@ -384,19 +400,23 @@ describe('filters/expr-parser', () => {
     it('should negated nested expression', () => {
         const output = parser.parseExact('not(and(eq(name, \'foo\'), lt(age, \'15\')))');
 
+        // a negated group stays first-class — no De Morgan rewrite,
+        // its meaning is the exact complement of the interior.
         expect(output).toEqual(new Filters(
-            FilterCompoundOperator.OR,
+            FilterCompoundOperator.NOT,
             [
-                new Filter(
-                    FilterFieldOperator.NOT_EQUAL,
-                    'name',
-                    'foo',
-                ),
-                new Filter(
-                    FilterFieldOperator.GREATER_THAN_EQUAL,
-                    'age',
-                    15,
-                ),
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(
+                        FilterFieldOperator.EQUAL,
+                        'name',
+                        'foo',
+                    ),
+                    new Filter(
+                        FilterFieldOperator.LESS_THAN,
+                        'age',
+                        15,
+                    ),
+                ]),
             ],
         ));
     });
@@ -493,10 +513,12 @@ describe('filters/expr-parser', () => {
             ));
         });
 
-        it('should throw on a negated size', () => {
-            const error = FiltersParseError.operatorUnsupported('size');
+        it('should keep a negated size as a first-class NOT node', () => {
+            const output = parser.parseExact('not(size(items,\'2\'))');
 
-            expect(() => parser.parseExact('not(size(items,\'2\'))')).toThrow(error);
+            expect(output).toEqual(new Filters(FilterCompoundOperator.NOT, [
+                new Filter(FilterFieldOperator.SIZE, 'items', 2),
+            ]));
         });
 
         it('should throw on a non integer, negative or non numeric value', () => {
@@ -555,10 +577,16 @@ describe('filters/expr-parser', () => {
             ));
         });
 
-        it('should throw on a negated elemMatch', () => {
-            const error = FiltersParseError.operatorUnsupported('elemMatch');
+        it('should keep a negated elemMatch as a first-class NOT node', () => {
+            const output = parser.parseExact('not(elemMatch(items,eq(id,\'1\')))');
 
-            expect(() => parser.parseExact('not(elemMatch(items,eq(id,\'1\')))')).toThrow(error);
+            expect(output).toEqual(new Filters(FilterCompoundOperator.NOT, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                ),
+            ]));
         });
 
         it('should throw on the ITSELF marker outside an elemMatch interior', () => {

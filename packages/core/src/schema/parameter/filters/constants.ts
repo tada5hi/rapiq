@@ -38,4 +38,5 @@ export enum FilterFieldOperator {
 export enum FilterCompoundOperator {
     AND = 'and',
     OR = 'or',
+    NOT = 'not',
 }

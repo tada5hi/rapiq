@@ -164,8 +164,9 @@ class ConditionLowering {
                 operator = 'or';
                 break;
             }
-            // plain boolean NOT over the group; the null-inclusive
-            // complement law applies to negated LEAF operators only.
+            // group negation is the exact complement of the group
+            // verdict — the null-inclusive complement law extended
+            // from negated leaf operators to whole trees.
             case 'nor': {
                 operator = 'or';
                 negated = true;
@@ -201,11 +202,61 @@ class ConditionLowering {
             return null;
         }
 
+        // a single-child negation normalizes onto the child's own
+        // negated form where one exists (not(eq) ≙ ne — identical
+        // plan, identical rendering); only interiors without a
+        // negatable leaf form stay wrapped in a negated compound.
+        const [firstChild] = children;
+        if (negated && children.length === 1 && firstChild) {
+            return this.negatePlan(firstChild);
+        }
+
         return {
-            kind: 'compound', 
-            operator, 
-            negated, 
+            kind: 'compound',
+            operator,
+            negated,
             children,
+        };
+    }
+
+    /**
+     * The exact complement of a plan node. Leaf kinds carrying a
+     * `negated` flag flip it (their negated contract already IS the
+     * null-inclusive complement); a constant flips its verdict; a
+     * compound flips its group negation. Kinds without a negated
+     * form (ordering compare, mod, size, elemMatch) wrap in a
+     * negated single-child compound for the backend to complement.
+     */
+    protected negatePlan(plan: ConditionPlan) : ConditionPlan {
+        switch (plan.kind) {
+            case 'constant': {
+                return { ...plan, verdict: !plan.verdict };
+            }
+            case 'null-check':
+            case 'one-of':
+            case 'match': {
+                return { ...plan, negated: !plan.negated };
+            }
+            case 'compare': {
+                if (plan.op === 'eq') {
+                    return { ...plan, negated: !plan.negated };
+                }
+
+                break;
+            }
+            case 'compound': {
+                return { ...plan, negated: !plan.negated };
+            }
+            default: {
+                break;
+            }
+        }
+
+        return {
+            kind: 'compound',
+            operator: 'and',
+            negated: true,
+            children: [plan],
         };
     }
 

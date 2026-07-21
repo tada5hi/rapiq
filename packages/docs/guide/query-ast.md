@@ -7,7 +7,7 @@ Under every rapiq feature sits one data structure: the `Query` — a tree of nod
 | Collection node | Record node | Holds |
 |---|---|---|
 | `Fields` | `Field` | `name`, optional `operator` (`FieldOperator.INCLUDE` / `EXCLUDE`) |
-| `Filters` | `Filter` | compound (`and` / `or`) tree of `{ operator, field, value }` conditions |
+| `Filters` | `Filter` | compound (`and` / `or` / `not`) tree of `{ operator, field, value }` conditions |
 | `Relations` | `Relation` | `name` (dot-notation for nested paths) |
 | `Sorts` | `Sort` | `name`, `operator` (`'ASC'` / `'DESC'`) |
 | `Pagination` | — | `limit`, `offset` |

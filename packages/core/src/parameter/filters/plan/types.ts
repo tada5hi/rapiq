@@ -66,9 +66,12 @@ export type FilterOperatorSemantics = {
 export type PlanCompareOperator = 'eq' | 'lt' | 'lte' | 'gt' | 'gte';
 
 /**
- * and/or group. `negated` is a plain boolean NOT over the whole
- * group (`nor`/`not` input compounds) — unlike negated leaves it is
- * NOT null-inclusive; SQL renders it with three-valued semantics.
+ * and/or group. `negated` (from `not`/`nor` input compounds) is the
+ * EXACT complement of the group verdict — the null-inclusive
+ * complement law of negated leaves, extended to whole trees. A
+ * backend must render it two-valued: rows where the interior does
+ * not evaluate to a match — including null-bearing rows — match the
+ * negation (SQL therefore cannot use a bare three-valued `not (…)`).
  */
 export type CompoundPlan = {
     kind: 'compound',
