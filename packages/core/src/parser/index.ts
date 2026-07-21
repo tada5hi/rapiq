@@ -9,4 +9,5 @@ export * from './parameter';
 
 export * from './base';
 export * from './query';
+export * from './relation-prune';
 export * from './types';

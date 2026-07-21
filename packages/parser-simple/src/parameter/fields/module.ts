@@ -13,17 +13,22 @@ import {
     Fields,
     FieldsParseError,
     Parameter,
+    RelationsParseError,
     ResolutionScope,
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
     isObject,
+    pruneFieldsByRelations,
 } from '@rapiq/core';
 import type {
     IFields,
     ObjectLiteral,
     PendingKeyValidation,
+    RelationLedger,
 } from '@rapiq/core';
 import type { SimpleFieldsParseOptions } from './types';
+
+type FieldsScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.FIELDS}`, RECORD>;
 
 export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFields> {
     parse<
@@ -32,21 +37,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
-        const scope = ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        });
+        const ledger : RelationLedger = [];
+        const { output, scope } = this.build(input, options, ledger);
 
-        const pending : PendingKeyValidation[] = [];
-        const output = this.parseWithScope(input, scope, pending);
-
-        const rejected = applyKeySchemaValidation(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
-            errors: FieldsParseError,
-        });
-
-        return this.prune(output, rejected);
+        return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }));
     }
 
     override async parseAsync<
@@ -55,21 +52,93 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
-        const scope = ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        });
+        const ledger : RelationLedger = [];
+        const { output, scope } = await this.buildAsync(input, options, ledger);
 
+        return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }));
+    }
+
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : IFields {
+        return this.build(input, options, ledger).output;
+    }
+
+    async parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<IFields> {
+        return (await this.buildAsync(input, options, ledger)).output;
+    }
+
+    /**
+     * Resolve + leaf-validate into the (leaf-pruned) node, recording the relation
+     * obligations it traverses into `ledger` (the scope's obligation sink).
+     * Relation authorization stays with the caller: standalone `parse` self-
+     * authorizes; the query orchestrator pools the ledger and authorizes once.
+     */
+    protected build<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : { output: IFields, scope: FieldsScope<RECORD> } {
+        const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
 
-        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
-            errors: FieldsParseError,
-        });
+        return {
+            output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
+                throwOnFailure: scope.throwOnFailure,
+                errors: FieldsParseError,
+            })),
+            scope,
+        };
+    }
 
-        return this.prune(output, rejected);
+    protected async buildAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<{ output: IFields, scope: FieldsScope<RECORD> }> {
+        const scope = this.scopeFor(options, ledger);
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        return {
+            output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
+                throwOnFailure: scope.throwOnFailure,
+                errors: FieldsParseError,
+            })),
+            scope,
+        };
+    }
+
+    protected scopeFor<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : FieldsScope<RECORD> {
+        return ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+            obligationSink: ledger,
+        });
     }
 
     protected prune(fields: IFields, rejected: string[]) : IFields {
@@ -144,8 +213,10 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
                 fields.value.push(new Field(resolved.name, operator));
 
-                // an excluded field never reaches the output — validating
-                // read access for it would be backwards (and could throw).
+                // an excluded field never reaches the output — validating its
+                // read access would be backwards (and could throw). The relations
+                // it traverses are still authorized: the scope records them on
+                // resolveKey above (the adapters auto-join any dotted field).
                 if (operator !== FieldOperator.EXCLUDE) {
                     pending.push({
                         key: resolved.name,

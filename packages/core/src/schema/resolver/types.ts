@@ -8,6 +8,7 @@
 import type { Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
+import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import type {
     FieldsSchema,
@@ -91,4 +92,12 @@ export type ResolutionScopeContext = {
      * Error class used when throwing; defaults to the parameter's ParseError subclass.
      */
     errors?: typeof ParseError,
+    /**
+     * Relation-authorization ledger. When present, every relation a resolved key
+     * traverses (and a relation targeted directly, e.g. by `$size`/`$elemMatch`)
+     * is appended as a {@link PendingKeyValidation} obligation, so the caller can
+     * evaluate the relations validate hook once per distinct relation and prune
+     * the dependent keys. Absent: resolution records nothing.
+     */
+    obligationSink?: PendingKeyValidation[],
 };

@@ -7,9 +7,11 @@
 
 import type {
     FiltersParseOptions,
+    FiltersSchema,
     ICondition,
     IFilters,
     ObjectLiteral,
+    RelationLedger,
 } from '@rapiq/core';
 import {
     BaseParser,
@@ -24,12 +26,16 @@ import {
     MAX_TRAVERSAL_DEPTH,
     Parameter,
     ParseError,
+    RelationsParseError,
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
     buildFiltersDefaults,
     isFilters,
     isObject,
+    pruneFiltersByRelations,
 } from '@rapiq/core';
 import type { MongoComparisonOperator, MongoCompoundOperator } from './constants';
 import {
@@ -75,34 +81,60 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
-        const { scope, parsed } = this.prepare(input, options);
-        if (!parsed) {
-            return this.buildDefaultOutput(scope);
-        }
+        const ledger : RelationLedger = [];
+        const { scope, parsed } = this.prepare(input, options, ledger);
+        const output = !parsed ?
+            this.buildDefaultOutput(scope) :
+            (applyFiltersSchemaValidation(parsed, scope.schema, options.context) as IFilters | undefined ??
+                this.buildDefaultOutput(scope));
 
-        const validated = applyFiltersSchemaValidation(parsed, scope.schema, options.context);
-        if (!validated) {
-            return this.buildDefaultOutput(scope);
-        }
-
-        return validated as IFilters;
+        return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as FiltersSchema<RECORD>);
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
-        const { scope, parsed } = this.prepare(input, options);
-        if (!parsed) {
-            return this.buildDefaultOutput(scope);
-        }
+        const ledger : RelationLedger = [];
+        const { scope, parsed } = this.prepare(input, options, ledger);
+        const output = !parsed ?
+            this.buildDefaultOutput(scope) :
+            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context) as IFilters | undefined ??
+                this.buildDefaultOutput(scope));
 
-        const validated = await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context);
-        if (!validated) {
-            return this.buildDefaultOutput(scope);
-        }
+        return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as FiltersSchema<RECORD>);
+    }
 
-        return validated as IFilters;
+    parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : IFilters {
+        const { scope, parsed } = this.prepare(input, options, ledger);
+
+        return !parsed ?
+            this.buildDefaultOutput(scope) :
+            (applyFiltersSchemaValidation(parsed, scope.schema, options.context) as IFilters | undefined ??
+                this.buildDefaultOutput(scope));
+    }
+
+    async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<IFilters> {
+        const { scope, parsed } = this.prepare(input, options, ledger);
+
+        return !parsed ?
+            this.buildDefaultOutput(scope) :
+            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context) as IFilters | undefined ??
+                this.buildDefaultOutput(scope));
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -122,19 +154,21 @@ export class MongoFiltersParser extends BaseParser<
     // ---------------------------------------------------------
 
     /**
-     * The shared front-end of {@link parse} and {@link parseAsync}:
-     * scope construction, grammar/policy guards and the document walk —
-     * everything up to (but excluding) validation. `parsed: null`
-     * signals "fall back to the schema defaults".
+     * The shared front-end of {@link parse}/{@link parseParameter}: scope
+     * construction (recording relation obligations into `ledger`), grammar/policy
+     * guards and the document walk — everything up to (but excluding) validation.
+     * `parsed: null` signals "fall back to the schema defaults".
      */
     private prepare<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
     ) : { scope: FiltersScope, parsed: IFilters | null } {
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
+            obligationSink: ledger,
         }) as FiltersScope;
 
         // absent input is not a failure — schema defaults still apply.
@@ -889,6 +923,9 @@ export class MongoFiltersParser extends BaseParser<
             try {
                 const verdict = resolved.scope.descend(resolved.name);
                 if (verdict instanceof ResolutionScope) {
+                    // the target relation's obligation was recorded when
+                    // resolveField resolved it; here we only need the child
+                    // scope for the interior conditions.
                     child = verdict;
                 } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
                     // relations gating (pathNotPermitted) is a schema-policy

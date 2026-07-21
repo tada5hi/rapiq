@@ -18,6 +18,7 @@ import type {
     ObjectLiteral,
     PaginationParseOptions,
     PaginationSchema,
+    RelationLedger,
 } from '@rapiq/core';
 
 export class SimplePaginationParser<
@@ -81,6 +82,27 @@ export class SimplePaginationParser<
         options: PaginationParseOptions<RECORD> = {},
     ) : Promise<IPagination> {
         return this.parse(input, options);
+    }
+
+    // pagination traverses no relations — the ledger is unused.
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        _ledger?: RelationLedger,
+    ) : IPagination {
+        return this.parse(input, options);
+    }
+
+    parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        _ledger?: RelationLedger,
+    ) : Promise<IPagination> {
+        return this.parseAsync(input, options);
     }
 
     protected finalizePagination(
