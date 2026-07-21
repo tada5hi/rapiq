@@ -131,6 +131,29 @@ export class SimpleRelationsParser extends BaseParser<
                 const name = [...resolved.path, resolved.name].join('.');
 
                 output.value.push(new Relation(name));
+
+                // a mapping alias may expand to a dotted path — every
+                // traversed segment must pass its own schema's validate
+                // hook, exactly like literal dotted input does via its
+                // parent entries.
+                let segmentScope = scope;
+                const prefix : string[] = [];
+                for (const segment of resolved.path) {
+                    prefix.push(segment);
+                    pending.push({
+                        key: segment,
+                        path: prefix.join('.'),
+                        schema: segmentScope.schema,
+                    });
+
+                    const next = segmentScope.descend(segment);
+                    if (!(next instanceof ResolutionScope)) {
+                        break;
+                    }
+
+                    segmentScope = next;
+                }
+
                 pending.push({
                     key: resolved.name,
                     path: name,

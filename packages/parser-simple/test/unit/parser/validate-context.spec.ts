@@ -126,6 +126,44 @@ describe('schema validate hooks with parse context', () => {
             expect(relationNames(output)).toEqual([]);
         });
 
+        it('should validate intermediate segments of a dotted mapping target', () => {
+            const validate = vi.fn((name: string) => name !== 'items');
+            const schema = defineSchema({
+                relations: {
+                    allowed: ['items', 'items.realm'],
+                    mapping: { abc: 'items.realm' },
+                    validate,
+                },
+            });
+
+            const output = parser.parse(['abc'], { schema, context: actor });
+            expect(relationNames(output)).toEqual([]);
+            expect(validate).toHaveBeenCalledWith('items', actor);
+        });
+
+        it('should keep a dotted mapping target accepted by the hook', () => {
+            const validate = vi.fn(() => true);
+            const schema = defineSchema({
+                relations: {
+                    allowed: ['items', 'items.realm'],
+                    mapping: { abc: 'items.realm' },
+                    validate,
+                },
+            });
+
+            const output = parser.parse(['abc'], { schema, context: actor });
+            expect(relationNames(output)).toEqual(['items.realm']);
+            expect(validate).toHaveBeenCalledWith('items', actor);
+        });
+
+        it('should invoke the hook once for duplicated input', () => {
+            const validate = vi.fn(() => true);
+            const schema = defineSchema({ relations: { allowed: ['realm'], validate } });
+
+            parser.parse(['realm', 'realm'], { schema, context: actor });
+            expect(validate).toHaveBeenCalledTimes(1);
+        });
+
         it('should throw on rejection under throwOnFailure', () => {
             const schema = defineSchema({
                 throwOnFailure: true,
@@ -207,6 +245,23 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(undefined, { schema, context: actor });
+            expect(output.value.map((field) => field.name)).toEqual(['id']);
+            expect(validate).not.toHaveBeenCalled();
+        });
+
+        it('should not invoke the hook for excluded fields', () => {
+            const validate = vi.fn(() => false);
+            const schema = defineSchema({
+                throwOnFailure: true,
+                fields: {
+                    allowed: ['id', 'email'],
+                    validate,
+                },
+            });
+
+            // excluding a field the actor may not read is harmless —
+            // it never reaches the output, so no check (and no throw).
+            const output = parser.parse(['-email'], { schema, context: actor });
             expect(output.value.map((field) => field.name)).toEqual(['id']);
             expect(validate).not.toHaveBeenCalled();
         });

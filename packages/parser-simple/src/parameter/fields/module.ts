@@ -143,11 +143,16 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 }
 
                 fields.value.push(new Field(resolved.name, operator));
-                pending.push({
-                    key: resolved.name,
-                    path: resolved.name,
-                    schema: resolved.scope.schema,
-                });
+
+                // an excluded field never reaches the output — validating
+                // read access for it would be backwards (and could throw).
+                if (operator !== FieldOperator.EXCLUDE) {
+                    pending.push({
+                        key: resolved.name,
+                        path: resolved.name,
+                        schema: resolved.scope.schema,
+                    });
+                }
             }
         }
 
