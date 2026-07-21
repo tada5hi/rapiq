@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/memory",
-    "version": "2.0.0-beta.5",
+    "version": "2.0.0-beta.6",
     "description": "A package to evaluate queries against in-memory objects and arrays.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -19,10 +19,10 @@
         "smob": "^1.6.2"
     },
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.5"
+        "@rapiq/core": "^2.0.0-beta.6"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.5"
+        "@rapiq/core": "^2.0.0-beta.6"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
