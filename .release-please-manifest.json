@@ -1,10 +1,10 @@
 {
-    "packages/core": "2.0.0-beta.4",
-    "packages/parser-simple": "2.0.0-beta.4",
-    "packages/parser-expression": "2.0.0-beta.4",
-    "packages/parser-mongo": "2.0.0-beta.4",
-    "packages/codec-url": "2.0.0-beta.4",
-    "packages/sql": "2.0.0-beta.4",
-    "packages/typeorm": "2.0.0-beta.4",
-    "packages/memory": "2.0.0-beta.4"
+    "packages/core": "2.0.0-beta.5",
+    "packages/parser-simple": "2.0.0-beta.5",
+    "packages/parser-expression": "2.0.0-beta.5",
+    "packages/parser-mongo": "2.0.0-beta.5",
+    "packages/codec-url": "2.0.0-beta.5",
+    "packages/sql": "2.0.0-beta.5",
+    "packages/typeorm": "2.0.0-beta.5",
+    "packages/memory": "2.0.0-beta.5"
 }

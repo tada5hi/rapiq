@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.5](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.4...core-v2.0.0-beta.5) (2026-07-21)
+
+
+### Features
+
+* **core:** request-context threading & per-parameter schema validate hooks ([#807](https://github.com/tada5hi/rapiq/issues/807)) ([605993c](https://github.com/tada5hi/rapiq/commit/605993c8a5ef120e1a0c931eba88971ca3ee052f))
+
 ## [2.0.0-beta.4](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.3...core-v2.0.0-beta.4) (2026-07-20)
 
 
