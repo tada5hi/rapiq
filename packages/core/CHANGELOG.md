@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.5...core-v2.0.0-beta.6) (2026-07-21)
+
+
+### Features
+
+* first-class not() negation in the public condition IR ([#812](https://github.com/tada5hi/rapiq/issues/812)) ([d63e0a3](https://github.com/tada5hi/rapiq/commit/d63e0a33776e6d9ad8a8a16fde9423a6ad0ff3b5)), closes [#811](https://github.com/tada5hi/rapiq/issues/811)
+
 ## [2.0.0-beta.5](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.4...core-v2.0.0-beta.5) (2026-07-21)
 
 

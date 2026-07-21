@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.5...sql-v2.0.0-beta.6) (2026-07-21)
+
+
+### Features
+
+* first-class not() negation in the public condition IR ([#812](https://github.com/tada5hi/rapiq/issues/812)) ([d63e0a3](https://github.com/tada5hi/rapiq/commit/d63e0a33776e6d9ad8a8a16fde9423a6ad0ff3b5)), closes [#811](https://github.com/tada5hi/rapiq/issues/811)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.5 to ^2.0.0-beta.6
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.5 to ^2.0.0-beta.6
+
 ## [2.0.0-beta.5](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.4...sql-v2.0.0-beta.5) (2026-07-21)
 
 

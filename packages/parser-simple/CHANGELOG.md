@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.5...parser-simple-v2.0.0-beta.6) (2026-07-21)
+
+
+### Miscellaneous Chores
+
+* **parser-simple:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.5 to ^2.0.0-beta.6
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.5 to ^2.0.0-beta.6
+
 ## [2.0.0-beta.5](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.4...parser-simple-v2.0.0-beta.5) (2026-07-21)
 
 
