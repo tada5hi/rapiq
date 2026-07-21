@@ -38,6 +38,16 @@ IFilterVisitor<RecordSerializer> {
             throw AdapterError.featureUnsupported('filters:or');
         }
 
+        // a negated group (or any non-and/or compound) has no simple
+        // wire form at all — serializing its children positively would
+        // silently drop the negation.
+        if (
+            expr.operator !== FilterCompoundOperator.AND &&
+            expr.operator !== FilterCompoundOperator.OR
+        ) {
+            throw AdapterError.featureUnsupported(`filters:${expr.operator}`);
+        }
+
         for (let i = 0; i < expr.value.length; i++) {
             const value = expr.value[i];
             if (value instanceof Filters) {

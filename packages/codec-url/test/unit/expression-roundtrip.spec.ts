@@ -30,11 +30,13 @@ import {
     gt,
     gte,
     inArray,
+    isFilters,
     lt,
     lte,
     mod,
     ne,
     nin,
+    not,
     notContains,
     notEndsWith,
     notStartsWith,
@@ -43,7 +45,12 @@ import {
     size,
     startsWith,
 } from '@rapiq/core';
-import type { IFilter, IFilters, IQuery } from '@rapiq/core';
+import type {
+    ICondition, 
+    IFilter, 
+    IFilters, 
+    IQuery,
+} from '@rapiq/core';
 import { ExpressionURLDecoder, ExpressionURLEncoder } from '../../src/expression';
 
 /**
@@ -164,6 +171,54 @@ describe('round-trip', () => {
             expect(roundTripFilter(filter)).toEqual(
                 new Filters(FilterCompoundOperator.AND, [expected]),
             );
+        });
+
+        it.each([
+            [
+                'not over an ordering comparison',
+                not(gt('age', 18)),
+            ],
+            [
+                'not over a group',
+                not(and(eq('name', 'John'), lt('age', 15))),
+            ],
+            [
+                'not over size',
+                not(size('tags', 2)),
+            ],
+            [
+                'not over elemMatch',
+                not(elemMatch('items', eq('name', 'chess'))),
+            ],
+            [
+                'not nested inside a group',
+                and(eq('realm_id', 'master'), not(gt('age', 18))),
+            ],
+        ])('should round-trip %s as a first-class NOT node', (_, filters) => {
+            expect(roundTripFilter(filters)).toEqual(
+                isFilters(filters as ICondition, FilterCompoundOperator.NOT) ?
+                    new Filters(FilterCompoundOperator.AND, [filters]) :
+                    filters,
+            );
+        });
+
+        it('should normalize a wire not() around a twin-able leaf to the twin', () => {
+            // not(eq) and ne lower to the identical plan — the twin is
+            // the canonical decoded form.
+            expect(roundTripFilter(not(eq('name', 'John')))).toEqual(
+                new Filters(FilterCompoundOperator.AND, [ne('name', 'John')]),
+            );
+
+            expect(roundTripFilter(not(inArray('id', [1, 2])))).toEqual(
+                new Filters(FilterCompoundOperator.AND, [nin('id', [1, 2])]),
+            );
+        });
+
+        it('should serialize a multi-child NOT as the negated conjunction', () => {
+            const encoded = encoder.encode(defineQuery({ filters: not(gt('age', 18), lt('age', 65)) }));
+
+            expect(decodeURIComponent(encoded!))
+                .toContain('not(and(gt(age,\'18\'),lt(age,\'65\')))');
         });
     });
 

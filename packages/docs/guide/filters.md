@@ -91,11 +91,35 @@ defineQuery<User>({
 
 ## OR & compound trees
 
-The simple object/wire dialect only expresses flat **and** sets. For `or` and nested groups:
+The simple object/wire dialect only expresses flat **and** sets. For `or`, `not` and nested groups:
 
-- **in code** — condition helpers: `or(...)`, `and(...)`, arbitrarily nested;
+- **in code** — condition helpers: `or(...)`, `and(...)`, `not(...)`, arbitrarily nested;
 - **over a URL** — the [expression codec](/packages/codec-url#expression-dialect): `filter=or(gte(age,'18'),eq(status,'active'))`;
 - **in a request body** — the [MongoDB-style parser](/packages/parser-mongo): `{ $or: [...] }`.
+
+### Negation
+
+`not(condition)` matches exactly the records its interior does **not** match — the
+[complement law](#null-semantics) extended from the negated leaf operators to arbitrary trees:
+
+```typescript
+import { and, defineQuery, eq, gt, not } from '@rapiq/core';
+
+defineQuery<User>({
+    filters: not(and(eq('status', 'active'), gt('age', 65))),
+});
+```
+
+Where a negated leaf operator exists, `not` is the same condition (`not(eq(…))` ≡ `ne(…)`);
+its value is negating conditions **without** a negated twin — ordering comparisons
+(`not(gt(…))`), `size`, `elemMatch` and whole groups. Multiple arguments negate their
+conjunction: `not(a, b)` ≡ `not(and(a, b))`.
+
+On the wire, the expression dialect carries it as `filter=not(gt(age,'65'))`; the legacy
+simple dialect cannot express it (encoding throws a typed error). SQL adapters render the
+negation **null-inclusively** (a `CASE` wrapper collapses SQL's three-valued `UNKNOWN` to
+false), so a record with `age = NULL` matches `not(gt('age', 65))` on every backend — the
+same verdict `@rapiq/memory` produces.
 
 ## Nested fields
 
@@ -113,6 +137,8 @@ The simple object/wire dialect only expresses flat **and** sets. For `or` and ne
 | `exists(field)` | `field IS NOT NULL` |
 
 Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) are **exact complements** of their positive twins — they also match records where the field is `NULL`/absent. Adapters render them null-inclusively, e.g. `ne(field, a)` → `(field <> ? OR field IS NULL)`.
+
+The same complement law governs [`not(...)`](#negation) over whole trees: `not(c)` selects exactly the records `c` does not, on every backend.
 
 ## Case sensitivity
 

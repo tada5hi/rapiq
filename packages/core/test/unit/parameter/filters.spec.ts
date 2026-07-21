@@ -199,5 +199,18 @@ describe('src/parameter/filters/collection/*.ts', () => {
 
             expect(flat.value).toEqual([a, b]);
         });
+
+        it('should never hoist through a NOT group (not associative)', () => {
+            const a = new Filter(FilterFieldOperator.EQUAL, 'a', 1);
+
+            const inner = new Filters(FilterCompoundOperator.NOT, [a]);
+            const outer = new Filters(FilterCompoundOperator.NOT, [inner]);
+
+            // hoisting would turn not(not(a)) into not(a) — the
+            // opposite meaning.
+            const flat = outer.flatten();
+            expect(flat.operator).toBe(FilterCompoundOperator.NOT);
+            expect(flat.value).toEqual([inner]);
+        });
     });
 });

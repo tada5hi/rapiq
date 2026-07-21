@@ -197,7 +197,17 @@ export abstract class FiltersBaseAdapter<
                 sql = `(${sql})`;
             }
 
-            this.conditions.push(`${isInverted ? 'not ' : ''}${sql}`);
+            if (isInverted) {
+                // group negation is the exact complement of the group
+                // verdict (null-inclusive complement law). A bare
+                // `not (…)` follows three-valued logic and drops rows
+                // where the interior is UNKNOWN (null comparisons); the
+                // CASE wrapper collapses UNKNOWN to false first and is
+                // portable across all shipped dialects.
+                sql = `case when ${sql} then 1 else 0 end = 0`;
+            }
+
+            this.conditions.push(sql);
             this.params.push(...query.params);
         }
 

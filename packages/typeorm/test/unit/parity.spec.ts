@@ -262,7 +262,7 @@ const CASES : ParityCase[] = [
     },
     {
         operator: 'nor',
-        label: 'compound nor (plain boolean not)',
+        label: 'compound nor (exact complement)',
         condition: new Filters('nor', [
             new Filter(FilterFieldOperator.EQUAL, 'age', 18),
             new Filter(FilterFieldOperator.GREATER_THAN, 'age', 50),
@@ -271,11 +271,43 @@ const CASES : ParityCase[] = [
     },
     {
         operator: 'not',
-        label: 'compound not (plain boolean not)',
+        label: 'compound not (exact complement)',
         condition: new Filters('not', [
             new Filter(FilterFieldOperator.GREATER_THAN, 'age', 50),
         ]),
         expected: [1],
+    },
+    {
+        operator: 'not',
+        label: 'not matches null-bearing rows (complement law)',
+        // address is 'Hogwarts' (1) and NULL (2) — the negation must
+        // select the null row on every backend, where a bare SQL
+        // `not (…)` would drop it (three-valued logic).
+        condition: new Filters(FilterCompoundOperator.NOT, [
+            new Filter(FilterFieldOperator.CONTAINS, 'address', 'warts'),
+        ]),
+        expected: [2],
+    },
+    {
+        operator: 'not',
+        label: 'not over a group with null participants',
+        condition: new Filters(FilterCompoundOperator.NOT, [
+            new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'first_name', 'Caleb'),
+                new Filter(FilterFieldOperator.CONTAINS, 'address', 'warts'),
+            ]),
+        ]),
+        expected: [2],
+    },
+    {
+        operator: 'not',
+        label: 'double negation cancels',
+        condition: new Filters(FilterCompoundOperator.NOT, [
+            new Filters(FilterCompoundOperator.NOT, [
+                new Filter(FilterFieldOperator.GREATER_THAN, 'age', 50),
+            ]),
+        ]),
+        expected: [2],
     },
 ];
 

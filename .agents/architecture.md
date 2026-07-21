@@ -68,14 +68,16 @@ A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`
 // packages/core/src/parameter/module.ts
 class Query implements IQuery {
     readonly fields: IFields;        // Field { name, operator?: FieldOperator.INCLUDE|EXCLUDE }
-    readonly filters: IFilters;      // compound node: FilterCompoundOperator.AND|OR over ICondition[]
+    readonly filters: IFilters;      // compound node: FilterCompoundOperator.AND|OR|NOT over ICondition[]
     readonly pagination: IPagination;// { limit, offset }
     readonly relations: IRelations;  // Relation { name }
     readonly sorts: ISorts;          // Sort { name, operator: SortDirection.ASC|DESC }
 }
 ```
 
-Filters form a two-level tree: `Filters` (and/or compound, children are `ICondition[]` — nested `Filters` or leaf `Filter`) and `Filter` (leaf condition `{ field, operator, value }`, operators from `FilterFieldOperator`: `EQUAL`, `LT(E)`, `GT(E)`, `IN`, `CONTAINS`, `STARTS_WITH`, `REGEX`, …).
+Filters form a two-level tree: `Filters` (and/or/not compound, children are `ICondition[]` — nested `Filters` or leaf `Filter`) and `Filter` (leaf condition `{ field, operator, value }`, operators from `FilterFieldOperator`: `EQUAL`, `LT(E)`, `GT(E)`, `IN`, `CONTAINS`, `STARTS_WITH`, `REGEX`, …).
+
+**Negation semantics (settled 2026-07-21, issue #811)**: `not(condition)` (builder + `FilterCompoundOperator.NOT`) is the **exact null-inclusive complement** — it matches exactly the rows/bindings its interior does not, the leaf complement law extended to whole trees, identical across memory/sql/typeorm (pinned by the typeorm parity + complement suites). `planCondition` normalizes a single-child `not` onto the child plan's own negated form (`not(eq)` ≙ `ne`; constants flip verdict; double negation cancels); only interiors without a negated leaf form (ordering compares, mod, size, elemMatch, multi-child groups) stay a `CompoundPlan` with `negated: true`, which SQL renders two-valued via `case when (…) then 1 else 0 end = 0` (a bare `not (…)` would drop null-bearing rows per three-valued logic). The expression dialect parses/serializes `not(…)` first-class (single twin-able leaves normalize to their twin on decode); the legacy simple dialect throws typed. `Filters.flatten()` never hoists through NOT (not associative). Do not re-litigate: group negation is NOT SQL-three-valued, and `nor` stays an internal lowering alias (not public API, no wire form).
 
 ### Visitor interfaces (core)
 

@@ -8,6 +8,7 @@
 import type { ICondition, IFilters } from '@rapiq/core';
 import {
     AdapterError,
+    FilterCompoundOperator,
     FilterFieldOperator,
     ITSELF,
     isFilter,
@@ -45,10 +46,15 @@ export function serializeFiltersExpression(input: IFilters) : string | null {
     }
 
     // a single root condition needs no compound wrapper — the parser
-    // wraps bare conditions back into a root AND.
+    // wraps bare conditions back into a root AND. Only and/or roots
+    // may unwrap: a NOT root changes the child's meaning.
     if (
         input.value.length === 1 &&
-        isFilter(input.value[0])
+        isFilter(input.value[0]) &&
+        (
+            input.operator === FilterCompoundOperator.AND ||
+            input.operator === FilterCompoundOperator.OR
+        )
     ) {
         return serializeCondition(input.value[0], false);
     }
@@ -67,7 +73,26 @@ function serializeCompound(input: IFilters, insideElemMatch: boolean) : string {
         (child) => serializeCondition(child, insideElemMatch),
     );
 
-    return `${input.operator}(${children.join(',')})`;
+    switch (input.operator) {
+        case FilterCompoundOperator.AND:
+        case FilterCompoundOperator.OR: {
+            return `${input.operator}(${children.join(',')})`;
+        }
+        case FilterCompoundOperator.NOT: {
+            // the grammar production takes a single interior —
+            // multiple children negate their conjunction.
+            if (children.length === 1) {
+                return `not(${children[0]})`;
+            }
+
+            return `not(and(${children.join(',')}))`;
+        }
+        default: {
+            // e.g. 'nor' — no expression grammar production; emitting
+            // it verbatim would produce an undecodable token.
+            throw AdapterError.operatorUnsupported(input.operator);
+        }
+    }
 }
 
 function serializeCondition(node: ICondition, insideElemMatch: boolean) : string {

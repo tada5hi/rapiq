@@ -180,3 +180,13 @@ export function and(...conditions: Condition[]) : Filters {
 export function or(...conditions: Condition[]) : Filters {
     return new Filters(FilterCompoundOperator.OR, conditions);
 }
+
+/**
+ * Negation: matches exactly what the interior does not match — the
+ * null-inclusive complement law extended from negated leaf operators
+ * to arbitrary condition trees. Multiple conditions negate their
+ * conjunction: not(a, b) ≙ not(and(a, b)).
+ */
+export function not(...conditions: Condition[]) : Filters {
+    return new Filters(FilterCompoundOperator.NOT, conditions);
+}

@@ -34,6 +34,7 @@ import {
     mod,
     ne,
     nin,
+    not,
     notContains,
     notEndsWith,
     notStartsWith,
@@ -165,6 +166,8 @@ describe('round-trip', () => {
         it.each([
             ['or compound', or(gte('age', 18), eq('email', null))],
             ['nested compound', and(eq('name', 'John'), or(gte('age', 18), eq('email', null)))],
+            ['not compound (serializing children positively would drop the negation)', not(gt('age', 18))],
+            ['nested not compound', and(eq('name', 'John'), not(gt('age', 18)))],
             ['two conditions on the same field', and(gte('age', 18), lt('age', 65))],
             ['eq comma string (would decode as in)', eq('name', 'a,b')],
             ['in element with comma', inArray('name', ['a,b', 'c'])],

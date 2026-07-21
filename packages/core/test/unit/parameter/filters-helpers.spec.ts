@@ -24,6 +24,7 @@ import {
     mod,
     ne,
     nin,
+    not,
     notContains,
     notEndsWith,
     notStartsWith,
@@ -117,6 +118,19 @@ describe('src/parameter/filters/helpers/*.ts', () => {
         const disjunction = or(left, right);
         expect(disjunction.operator).toBe(FilterCompoundOperator.OR);
         expect(disjunction.value).toEqual([left, right]);
+    });
+
+    it('should build a not compound', () => {
+        const interior = eq('name', 'John');
+
+        const negation = not(interior);
+        expect(negation).toBeInstanceOf(Filters);
+        expect(negation.operator).toBe(FilterCompoundOperator.NOT);
+        expect(negation.value).toEqual([interior]);
+
+        // multiple conditions negate their conjunction.
+        const multi = not(interior, gte('age', 18));
+        expect(multi.value).toHaveLength(2);
     });
 
     it('should support nesting compounds', () => {

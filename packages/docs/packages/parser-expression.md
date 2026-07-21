@@ -31,7 +31,7 @@ elemMatch(scores, gt($this, '5'))
 | `elemMatch(field, expr)` | array element match | `ELEM_MATCH` |
 | `size(field, n)` | array length (non-negative integer) | `SIZE` |
 | `and(expr, …)` / `or(expr, …)` | compound | `Filters` node |
-| `not(expr, …)` | negation | flips operators (`eq` → `NOT_EQUAL`, `contains` → `NOT_CONTAINS`, …), `and` ↔ `or`; `elemMatch` and `size` have no complement and throw |
+| `not(expr)` | [negation](/guide/filters#negation) — the exact complement of the interior | a single leaf with a negated twin normalizes to it (`not(eq(…))` → `NOT_EQUAL`, `not(in(…))` → `NOT_IN`, …), a double `not` cancels; everything else (ordering comparisons, `size`, `elemMatch`, groups) stays a first-class `NOT` `Filters` node |
 
 Rules:
 

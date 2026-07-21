@@ -16,6 +16,7 @@ import {
     BaseParser,
     DEFAULT_ID,
     ErrorCode,
+    FILTER_OPERATOR_SEMANTICS,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
@@ -29,6 +30,7 @@ import {
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     buildFiltersDefaults,
+    isFilter,
     isFilters,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -46,6 +48,21 @@ type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
  * aligned with the schema resolver and Mongo parser traversal caps.
  */
 const MAX_DEPTH = MAX_TRAVERSAL_DEPTH;
+
+/**
+ * Bidirectional complement twins derived from the semantics table:
+ * a not(…) around a single leaf normalizes to the leaf's twin
+ * (not(eq) → ne, not(nin) → in) instead of a symbolic NOT node —
+ * both lower to the identical plan, the twin is the canonical form.
+ */
+const COMPLEMENT_TWINS : Record<string, string> = {};
+for (const [operator, semantics] of Object.entries(FILTER_OPERATOR_SEMANTICS)) {
+    const twin = (semantics as { complementOf?: string }).complementOf;
+    if (twin) {
+        COMPLEMENT_TWINS[operator] = twin;
+        COMPLEMENT_TWINS[twin] = operator;
+    }
+}
 
 /**
  * @see https://www.jsonapi.net/usage/reading/filtering.html
@@ -261,7 +278,6 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private parseFilterExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
         depth: number = 0,
     ) : Filters | Filter {
         if (depth > MAX_DEPTH) {
@@ -271,70 +287,80 @@ export class ExpressionFiltersParser extends BaseParser<
         const token = this.peek();
         switch (token.type) {
             case FilterTokenType.NOT:
-                return this.parseNotExpression(scope, negation, depth);
+                return this.parseNotExpression(scope, depth);
             case FilterTokenType.AND:
             case FilterTokenType.OR:
-                return this.parseLogicalExpression(scope, negation, depth);
+                return this.parseLogicalExpression(scope, depth);
             case FilterTokenType.EQUAL:
             case FilterTokenType.GREATER_THAN:
             case FilterTokenType.GREATER_OR_EQUAL:
             case FilterTokenType.LESS_THAN:
             case FilterTokenType.LESS_OR_EQUAL:
-                return this.parseComparisonExpression(scope, negation);
+                return this.parseComparisonExpression(scope);
             case FilterTokenType.CONTAINS:
             case FilterTokenType.STARTS_WITH:
             case FilterTokenType.ENDS_WITH:
-                return this.parseMatchExpression(scope, negation);
+                return this.parseMatchExpression(scope);
             case FilterTokenType.IN:
             case FilterTokenType.NIN:
-                return this.parseInExpression(scope, negation);
+                return this.parseInExpression(scope);
             case FilterTokenType.ELEM_MATCH:
-                return this.parseElemMatchExpression(scope, negation, depth);
+                return this.parseElemMatchExpression(scope, depth);
             case FilterTokenType.SIZE:
-                return this.parseSizeExpression(scope, negation);
+                return this.parseSizeExpression(scope);
             default:
                 throw FiltersParseError.syntaxInvalid(`Unexpected token in filter expression: ${token.type}`);
         }
     }
 
+    /**
+     * not(expr): the exact complement of the interior (null-inclusive
+     * complement law). A single leaf with a complement twin normalizes
+     * to the twin, a double negation cancels; everything else stays a
+     * first-class NOT node.
+     */
     private parseNotExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
         depth: number = 0,
     ): Filters | Filter {
         this.consume(FilterTokenType.NOT);
         this.consume(FilterTokenType.LPAREN);
-        const expr = this.parseFilterExpression(scope, !negation, depth + 1);
+        const expr = this.parseFilterExpression(scope, depth + 1);
         this.consume(FilterTokenType.RPAREN);
 
-        return expr;
+        if (isFilter(expr)) {
+            const twin = COMPLEMENT_TWINS[expr.operator];
+            if (twin) {
+                return new Filter(twin as FilterFieldOperator, expr.field, expr.value);
+            }
+        }
+
+        if (
+            isFilters(expr, FilterCompoundOperator.NOT) &&
+            expr.value.length === 1
+        ) {
+            return expr.value[0] as Filters | Filter;
+        }
+
+        return new Filters(FilterCompoundOperator.NOT, [expr]);
     }
 
     private parseLogicalExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
         depth: number = 0,
     ): Filters | Filter {
-        let op = this.consume().type; // AND / OR
+        const op = this.consume().type; // AND / OR
         if (op !== FilterTokenType.AND && op !== FilterTokenType.OR) {
             throw FiltersParseError.syntaxInvalid('Expected AND or OR token type.');
         }
 
         this.consume(FilterTokenType.LPAREN);
-        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, negation, depth + 1)];
+        const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, depth + 1)];
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
-            expressions.push(this.parseFilterExpression(scope, negation, depth + 1));
+            expressions.push(this.parseFilterExpression(scope, depth + 1));
         }
         this.consume(FilterTokenType.RPAREN);
-
-        if (negation) {
-            if (op === FilterTokenType.AND) {
-                op = FilterTokenType.OR;
-            } else {
-                op = FilterTokenType.AND;
-            }
-        }
 
         if (op === FilterTokenType.AND) {
             return new Filters(
@@ -348,7 +374,6 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private parseComparisonExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
     ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
@@ -359,14 +384,6 @@ export class ExpressionFiltersParser extends BaseParser<
 
         switch (op) {
             case FilterTokenType.EQUAL: {
-                if (negation) {
-                    return new Filter(
-                        FilterFieldOperator.NOT_EQUAL,
-                        left as string,
-                        right as string,
-                    );
-                }
-
                 return new Filter(
                     FilterFieldOperator.EQUAL,
                     left as string,
@@ -374,13 +391,6 @@ export class ExpressionFiltersParser extends BaseParser<
                 );
             }
             case FilterTokenType.GREATER_THAN: {
-                if (negation) {
-                    return new Filter(
-                        FilterFieldOperator.LESS_THAN_EQUAL,
-                        left as string,
-                        right as string,
-                    );
-                }
                 return new Filter(
                     FilterFieldOperator.GREATER_THAN,
                     left as string,
@@ -388,13 +398,6 @@ export class ExpressionFiltersParser extends BaseParser<
                 );
             }
             case FilterTokenType.GREATER_OR_EQUAL: {
-                if (negation) {
-                    return new Filter(
-                        FilterFieldOperator.LESS_THAN,
-                        left as string,
-                        right as string,
-                    );
-                }
                 return new Filter(
                     FilterFieldOperator.GREATER_THAN_EQUAL,
                     left as string,
@@ -402,13 +405,6 @@ export class ExpressionFiltersParser extends BaseParser<
                 );
             }
             case FilterTokenType.LESS_THAN: {
-                if (negation) {
-                    return new Filter(
-                        FilterFieldOperator.GREATER_THAN_EQUAL,
-                        left as string,
-                        right as string,
-                    );
-                }
                 return new Filter(
                     FilterFieldOperator.LESS_THAN,
                     left as string,
@@ -416,13 +412,6 @@ export class ExpressionFiltersParser extends BaseParser<
                 );
             }
             case FilterTokenType.LESS_OR_EQUAL: {
-                if (negation) {
-                    return new Filter(
-                        FilterFieldOperator.GREATER_THAN,
-                        left as string,
-                        right as string,
-                    );
-                }
                 return new Filter(
                     FilterFieldOperator.LESS_THAN_EQUAL,
                     left as string,
@@ -436,7 +425,6 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private parseMatchExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
     ): Filters | Filter {
         const op = this.consume().type;
         this.consume(FilterTokenType.LPAREN);
@@ -453,27 +441,21 @@ export class ExpressionFiltersParser extends BaseParser<
         switch (op) {
             case FilterTokenType.CONTAINS: {
                 return new Filter(
-                    negation ?
-                        FilterFieldOperator.NOT_CONTAINS :
-                        FilterFieldOperator.CONTAINS,
+                    FilterFieldOperator.CONTAINS,
                     field,
                     normalized,
                 );
             }
             case FilterTokenType.ENDS_WITH: {
                 return new Filter(
-                    negation ?
-                        FilterFieldOperator.NOT_ENDS_WITH :
-                        FilterFieldOperator.ENDS_WITH,
+                    FilterFieldOperator.ENDS_WITH,
                     field,
                     normalized,
                 );
             }
             default: {
                 return new Filter(
-                    negation ?
-                        FilterFieldOperator.NOT_STARTS_WITH :
-                        FilterFieldOperator.STARTS_WITH,
+                    FilterFieldOperator.STARTS_WITH,
                     field,
                     normalized,
                 );
@@ -483,7 +465,6 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private parseInExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
     ): Filters | Filter {
         const token = this.peek();
         if (token.type === FilterTokenType.NIN) {
@@ -504,10 +485,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
         this.consume(FilterTokenType.RPAREN);
 
-        const notIn = (token.type === FilterTokenType.NIN && !negation) ||
-            (token.type === FilterTokenType.IN && negation);
-
-        if (notIn) {
+        if (token.type === FilterTokenType.NIN) {
             return new Filter(
                 FilterFieldOperator.NOT_IN,
                 field,
@@ -525,17 +503,11 @@ export class ExpressionFiltersParser extends BaseParser<
     /**
      * size(field, n): the field holds an array of exactly n elements
      * (a non-negative integer — the wire is untyped, so the quoted
-     * value coerces back to a number). There is no complement — a
-     * negated size would silently widen and always throws.
+     * value coerces back to a number).
      */
     private parseSizeExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
     ): Filter {
-        if (negation) {
-            throw FiltersParseError.operatorUnsupported('size');
-        }
-
         this.consume(FilterTokenType.SIZE);
         this.consume(FilterTokenType.LPAREN);
         const field = this.parseExpressionFieldChain(scope);
@@ -557,18 +529,12 @@ export class ExpressionFiltersParser extends BaseParser<
     /**
      * elemMatch(field, expr): field paths inside the interior are
      * relative to the array element; the ITSELF marker addresses the
-     * element itself. There is no complement — a negated elemMatch
-     * would silently widen and always throws.
+     * element itself.
      */
     private parseElemMatchExpression(
         scope?: FiltersScope,
-        negation: boolean = false,
         depth: number = 0,
     ): Filter {
-        if (negation) {
-            throw FiltersParseError.operatorUnsupported('elemMatch');
-        }
-
         this.consume(FilterTokenType.ELEM_MATCH);
         this.consume(FilterTokenType.LPAREN);
 
@@ -580,7 +546,7 @@ export class ExpressionFiltersParser extends BaseParser<
 
         let condition : Filters | Filter;
         try {
-            condition = this.parseFilterExpression(target.scope, false, depth + 1);
+            condition = this.parseFilterExpression(target.scope, depth + 1);
         } finally {
             this.elemMatchDepth -= 1;
         }

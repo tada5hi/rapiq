@@ -41,8 +41,35 @@ describe('compound operators', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('not ("age" = $1 or "age" = $2)');
+        // exact complement: the CASE wrapper collapses UNKNOWN to
+        // false, so null-bearing rows match the negation.
+        expect(sql).toEqual('case when ("age" = $1 or "age" = $2) then 1 else 0 end = 0');
         expect([12, 13]).toStrictEqual(params);
+    });
+
+    it('generates a null-inclusive complement for a negated ordering condition', () => {
+        const condition = new Filters('not', [
+            new Filter('gt', 'age', 50),
+        ]);
+        condition.accept(visitor);
+
+        const [sql, params] = adapter.getQueryAndParameters();
+
+        expect(sql).toEqual('case when "age" > $1 then 1 else 0 end = 0');
+        expect(params).toStrictEqual([50]);
+    });
+
+    it('renders a single-child negated equality via its complement twin', () => {
+        const condition = new Filters('not', [
+            new Filter('eq', 'age', 18),
+        ]);
+        condition.accept(visitor);
+
+        const [sql, params] = adapter.getQueryAndParameters();
+
+        // not(eq) normalizes onto the ne plan — identical rendering.
+        expect(sql).toEqual('("age" <> $1 or "age" is null)');
+        expect(params).toStrictEqual([18]);
     });
 
     it('generates query combined by logical `and` for "and"', () => {
@@ -83,7 +110,7 @@ describe('compound operators', () => {
 
         const [sql, params] = adapter.getQueryAndParameters();
 
-        expect(sql).toEqual('not ("age" = $1 or "active" = $2)');
+        expect(sql).toEqual('case when ("age" = $1 or "active" = $2) then 1 else 0 end = 0');
         expect(params).toStrictEqual([1, true]);
     });
 
@@ -113,8 +140,8 @@ describe('compound operators', () => {
         expect(sql).toEqual(`(${[
             '("age" = $1 or "age" = $2)',
             'or ("qty" > $3 and "qty" < $4)',
-            'or not ("qty" > $5 or "qty" < $6)',
-            'or not ("active" = $7 and "age" > $8)',
+            'or case when ("qty" > $5 or "qty" < $6) then 1 else 0 end = 0',
+            'or case when ("active" = $7 and "age" > $8) then 1 else 0 end = 0',
         ].join(' ')})`);
         expect(params).toStrictEqual([1, 2, 1, 20, 10, 20, false, 18]);
     });

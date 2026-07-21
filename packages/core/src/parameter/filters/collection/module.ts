@@ -46,7 +46,12 @@ export class Filters<
         const flatConditions: F[] = aggregatedResult || [];
 
         for (const currentNode of conditions) {
-            if (isFilters(currentNode, operator)) {
+            // merging same-operator children relies on associativity —
+            // NOT groups are not associative (not(not(x)) ≠ not(x)).
+            if (
+                isFilters(currentNode, operator) &&
+                operator !== FilterCompoundOperator.NOT
+            ) {
                 currentNode.flatten(flatConditions);
             } else {
                 flatConditions.push(currentNode);

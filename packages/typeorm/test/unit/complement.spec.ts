@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Filter } from '@rapiq/core';
+import type { Condition, Filter } from '@rapiq/core';
 import {
     FilterCompoundOperator,
     Filters,
@@ -17,6 +17,7 @@ import {
     inArray,
     ne,
     nin,
+    not,
     notContains,
     notEndsWith,
     notStartsWith,
@@ -69,7 +70,7 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
         await dataSource.destroy();
     });
 
-    const fetchIds = async (condition: Filter) : Promise<number[]> => {
+    const fetchIds = async (condition: Condition) : Promise<number[]> => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
@@ -79,8 +80,8 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
         return data.map((user) => user.id).sort((a, b) => a - b);
     };
 
-    const evaluateIds = (condition: Filter) : number[] => {
-        const predicate = compileFilters(condition);
+    const evaluateIds = (condition: Condition) : number[] => {
+        const predicate = compileFilters(condition as Filter | Filters);
 
         return records
             .filter((record) => predicate(record))
@@ -113,6 +114,12 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
             // the negation selects exactly the remaining records.
             const allIds = records.map((user) => user.id).sort((a, b) => a - b);
             expect([...positiveIds, ...negativeIds].sort((a, b) => a - b)).toEqual(allIds);
+
+            // the first-class NOT node is the same complement: not(c)
+            // selects exactly the rows c does not — on both backends.
+            const symbolicIds = await fetchIds(not(positive));
+            expect(symbolicIds).toEqual(negativeIds);
+            expect(evaluateIds(not(positive))).toEqual(negativeIds);
         });
     });
 });

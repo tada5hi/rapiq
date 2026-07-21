@@ -373,14 +373,94 @@ describe('src/parameter/filters/plan/module.ts', () => {
             expect(plan.children[1]).toMatchObject({ kind: 'compound', operator: 'and' });
         });
 
-        it('should lower nor/not to negated groups', () => {
+        it('should lower nor/not with multiple children to negated groups', () => {
             expect(planCondition(new Filters('nor', [
                 new Filter('eq', 'age', 1),
+                new Filter('eq', 'age', 2),
             ]))).toMatchObject({ operator: 'or', negated: true });
 
             expect(planCondition(new Filters('not', [
-                new Filter('eq', 'age', 1),
+                new Filter('gt', 'age', 1),
+                new Filter('lt', 'age', 9),
             ]))).toMatchObject({ operator: 'and', negated: true });
+        });
+
+        it('should normalize a single-child negation onto the leaf plan', () => {
+            // not(eq) lowers to the identical plan as ne (complement law).
+            expect(planCondition(new Filters('not', [
+                new Filter('eq', 'age', 1),
+            ]))).toEqual(planCondition(new Filter('ne', 'age', 1)));
+
+            expect(planCondition(new Filters('nor', [
+                new Filter('in', 'age', [1, 2]),
+            ]))).toEqual(planCondition(new Filter('nin', 'age', [1, 2])));
+
+            expect(planCondition(new Filters('not', [
+                new Filter('contains', 'name', 'pe'),
+            ]))).toEqual(planCondition(new Filter('notContains', 'name', 'pe')));
+
+            expect(planCondition(new Filters('not', [
+                new Filter('exists', 'name', true),
+            ]))).toEqual(planCondition(new Filter('exists', 'name', false)));
+
+            // a negated regex has no operator twin — the plan-level
+            // negated flag is its only surface.
+            expect(planCondition(new Filters('not', [
+                new Filter('regex', 'name', 'pe.*'),
+            ]))).toMatchObject({ kind: 'match', negated: true });
+
+            // constants flip their verdict: not(in([])) matches everything.
+            expect(planCondition(new Filters('not', [
+                new Filter('in', 'age', []),
+            ]))).toEqual({ kind: 'constant', verdict: true });
+        });
+
+        it('should cancel a double negation', () => {
+            expect(planCondition(new Filters('not', [
+                new Filters('not', [new Filter('gt', 'age', 1)]),
+            ]))).toEqual({
+                kind: 'compound',
+                operator: 'and',
+                negated: false,
+                children: [planCondition(new Filter('gt', 'age', 1))],
+            });
+        });
+
+        it('should wrap negations without a negated leaf form in a negated group', () => {
+            // ordering complements are null-inclusive — gte is NOT the
+            // complement of lt, so no twin normalization applies.
+            expect(planCondition(new Filters('not', [
+                new Filter('lt', 'age', 5),
+            ]))).toEqual({
+                kind: 'compound',
+                operator: 'and',
+                negated: true,
+                children: [planCondition(new Filter('lt', 'age', 5))],
+            });
+
+            expect(planCondition(new Filters('not', [
+                new Filter('mod', 'age', [2, 0]),
+            ]))).toMatchObject({
+                kind: 'compound',
+                negated: true,
+                children: [{ kind: 'mod' }],
+            });
+
+            expect(planCondition(new Filters('not', [
+                new Filter('size', 'items', 2),
+            ]))).toMatchObject({
+                kind: 'compound',
+                negated: true,
+                children: [{ kind: 'size' }],
+            });
+
+            expect(planCondition(new Filters('not', [
+                new Filter('elemMatch', 'items', new Filter('eq', 'id', 1)),
+            ]))).toMatchObject({
+                kind: 'compound',
+                negated: true,
+                children: [{ kind: 'elem-match' }],
+            });
         });
 
         it('should vanish empty compounds', () => {

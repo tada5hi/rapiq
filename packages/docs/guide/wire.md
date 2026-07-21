@@ -93,7 +93,7 @@ Every wire dialect expresses a subset of the query AST. Inside that subset, `dec
 |---|---|---|
 | Wire shape | `filter[age]=>=18` per field | one `filter=and(gte(age,'18'),…)` expression |
 | Flat AND filters | ✓ | ✓ |
-| `or(...)`, nested groups | ✗ throws | ✓ |
+| `or(...)`, `not(...)`, nested groups | ✗ throws | ✓ |
 | Several conditions on one field | ✗ throws | ✓ |
 | Commas / simple operator markers in values | ✗ throws | ✓ (quoted) |
 | `elemMatch` (incl. the `ITSELF` element marker, wire spelling `$this`) | ✗ throws | ✓ |

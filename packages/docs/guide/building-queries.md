@@ -81,7 +81,7 @@ const query = defineQuery<User>({
 });
 ```
 
-`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch` — plus `and` / `or` compounds.
+`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch` — plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction.
 
 A few helpers deviate from the uniform `(field, value)` signature:
 
