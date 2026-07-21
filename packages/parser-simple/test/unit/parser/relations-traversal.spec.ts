@@ -291,4 +291,35 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             expect(output.value.map((sort) => sort.name)).not.toContain('items.id');
         });
     });
+
+    // Tripwire for the resolveKey choke point (plan 022): every wire operator
+    // resolves its field through resolveKey, so it must fire the relations hook.
+    describe('filter operator matrix — no wire operator escapes the gate', () => {
+        const cases : Array<{ label: string, value: string }> = [
+            { label: 'eq', value: '1' },
+            { label: 'ne', value: '!1' },
+            { label: 'gt', value: '>1' },
+            { label: 'gte', value: '>=1' },
+            { label: 'lt', value: '<9' },
+            { label: 'lte', value: '<=9' },
+            { label: 'contains', value: '~a~' },
+            { label: 'startsWith', value: 'a~' },
+            { label: 'endsWith', value: '~a' },
+            { label: 'in', value: '1,2' },
+            { label: 'nin', value: '!1,2' },
+        ];
+
+        for (const { label, value } of cases) {
+            it(`fires the hook and prunes a rejected relation for ${label}`, () => {
+                const validate = vi.fn((name: string) => name !== 'items');
+                const output = new SimpleFiltersParser(buildRegistry(validate)).parse(
+                    { 'items.id': value },
+                    { schema: 'user', context: actor },
+                );
+
+                expect(validate).toHaveBeenCalledWith('items', actor);
+                expect(filterFields(output)).toEqual([]);
+            });
+        }
+    });
 });

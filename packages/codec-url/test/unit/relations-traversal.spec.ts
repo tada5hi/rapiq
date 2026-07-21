@@ -6,7 +6,7 @@
  */
 
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import type { IFilters, IQuery } from '@rapiq/core';
+import type { IFilters } from '@rapiq/core';
 import { createURLCodec } from '../../src';
 
 type Actor = { permissions: string[] };
@@ -66,7 +66,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { filter: { 'user.name': 'admin' } },
                 { schema: 'userRole', context: actor },
-            ) as IQuery;
+            )!;
 
             expect(filterFields(query.filters)).toEqual([]);
         });
@@ -77,7 +77,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { fields: { user: 'email' } },
                 { schema: 'userRole', context: actor },
-            ) as IQuery;
+            )!;
 
             expect(query.fields.value.map((field) => field.name)).not.toContain('user.email');
         });
@@ -88,7 +88,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { sort: 'user.name' },
                 { schema: 'userRole', context: actor },
-            ) as IQuery;
+            )!;
 
             expect(query.sorts.value.map((sort) => sort.name)).not.toContain('user.name');
         });
@@ -99,7 +99,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { filter: { 'user.name': 'admin' } },
                 { schema: 'userRole', context: { permissions: ['userRole_read', 'user_read'] } },
-            ) as IQuery;
+            )!;
 
             expect(filterFields(query.filters)).toEqual(['user.name']);
         });
@@ -112,7 +112,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { filter: "eq(user.name, 'admin')" },
                 { schema: 'userRole', context: actor },
-            ) as IQuery;
+            )!;
 
             expect(filterFields(query.filters)).toEqual([]);
         });
@@ -123,9 +123,34 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             const query = codec.decode(
                 { filter: "eq(user.name, 'admin')" },
                 { schema: 'userRole', context: { permissions: ['userRole_read', 'user_read'] } },
-            ) as IQuery;
+            )!;
 
             expect(filterFields(query.filters)).toEqual(['user.name']);
+        });
+    });
+
+    describe('async decode path', () => {
+        it('awaits an async hook and prunes the traversed relation', async () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<Record<string, any>, Actor>({
+                name: 'userRole',
+                fields: { allowed: ['id'] },
+                filters: { allowed: ['id'] },
+                relations: {
+                    allowed: ['user'],
+                    validate: async (name, context) => context.permissions.includes(`${name}_read`),
+                },
+                schemaMapping: { user: 'user' },
+            }));
+            registry.add(defineSchema({ name: 'user', filters: { allowed: ['id', 'name'] } }));
+
+            const codec = createURLCodec(registry);
+            const query = (await codec.decodeAsync(
+                { filter: { 'user.name': 'admin' } },
+                { schema: 'userRole', context: actor },
+            ))!;
+
+            expect(filterFields(query.filters)).toEqual([]);
         });
     });
 });

@@ -118,4 +118,37 @@ describe('expression filters honour relations.validate for traversed paths (#815
         expect(validate).toHaveBeenCalledWith('items', actor);
         expect(filterFields(output)).toEqual([]);
     });
+
+    // Tripwire for the resolveKey choke point (plan 022): every expression
+    // operator resolves its field chain through resolveKey, so it must fire the
+    // relations hook.
+    describe('operator matrix — no expression operator escapes the gate', () => {
+        const cases : Array<{ label: string, expression: string }> = [
+            { label: 'eq', expression: "eq(items.id, '1')" },
+            { label: 'gt', expression: "gt(items.id, '1')" },
+            { label: 'gte', expression: "gte(items.id, '1')" },
+            { label: 'lt', expression: "lt(items.id, '9')" },
+            { label: 'lte', expression: "lte(items.id, '9')" },
+            { label: 'in', expression: "in(items.id, '1', '2')" },
+            { label: 'nin', expression: "nin(items.id, '1')" },
+            { label: 'contains', expression: "contains(items.id, 'a')" },
+            { label: 'startsWith', expression: "startsWith(items.id, 'a')" },
+            { label: 'endsWith', expression: "endsWith(items.id, 'a')" },
+            { label: 'size (direct relation)', expression: "size(items, '2')" },
+            { label: 'elemMatch (direct relation)', expression: "elemMatch(items, eq(id, '1'))" },
+        ];
+
+        for (const { label, expression } of cases) {
+            it(`fires the hook and prunes a rejected relation for ${label}`, () => {
+                const validate = vi.fn((name: string) => name !== 'items');
+                const output = new ExpressionFiltersParser(buildRegistry(validate)).parse(
+                    expression,
+                    { schema: 'user', context: actor },
+                );
+
+                expect(validate).toHaveBeenCalledWith('items', actor);
+                expect(filterFields(output)).toEqual([]);
+            });
+        }
+    });
 });
