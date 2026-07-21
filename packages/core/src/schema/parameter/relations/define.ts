@@ -11,8 +11,9 @@ import type { RelationsOptions } from './types';
 
 export function defineRelationsSchema<
     T extends ObjectLiteral= ObjectLiteral,
+    CONTEXT = any,
 >(
-    options: RelationsOptions<T> = {},
-) : RelationsSchema<T> {
+    options: RelationsOptions<T, CONTEXT> = {},
+) : RelationsSchema<T, CONTEXT> {
     return new RelationsSchema(options);
 }

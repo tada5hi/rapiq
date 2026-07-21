@@ -11,6 +11,7 @@ import { FiltersSchema } from './schema';
 
 export function defineFiltersSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
->(options: FiltersOptions<RECORD> = {}) : FiltersSchema<RECORD> {
+    CONTEXT = any,
+>(options: FiltersOptions<RECORD, CONTEXT> = {}) : FiltersSchema<RECORD, CONTEXT> {
     return new FiltersSchema(options);
 }

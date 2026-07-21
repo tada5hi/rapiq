@@ -59,10 +59,10 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 
 | Parameter | Options |
 |---|---|
-| `fields` | `allowed`, `default`, `mapping` (alias → field) |
+| `fields` | `allowed`, `default`, `mapping` (alias → field), `validate` ([per-key hook](#validate-hooks--parse-context)) |
 | `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)) |
-| `relations` | `allowed`, `mapping` |
-| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping` |
+| `relations` | `allowed`, `mapping`, `validate` ([per-key hook](#validate-hooks--parse-context)) |
+| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` ([per-key hook](#validate-hooks--parse-context)) |
 | `pagination` | `maxLimit` |
 
 Standalone factories exist for each parameter — `defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema` — useful when calling a single parameter parser directly.
@@ -116,6 +116,38 @@ parser.parse(input, { schema: 'user', strict: true });
 ::: warning Migrating from typeorm-extension?
 typeorm-extension **disables** any parameter whose `allowed`/`default` options are missing. rapiq's default is the opposite (open). Enable `strict: true` to keep closed-by-default semantics — see the [migration guide](/guide/migration-typeorm-extension).
 :::
+
+## Validate hooks & parse context
+
+Allow-lists are static — decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sort` sub-schemas may declare a hook that accepts or rejects each client-requested key with that context in hand:
+
+```typescript
+type Actor = { can: (permission: string) => Promise<boolean> };
+
+const userSchema = defineSchema<User, Actor>({
+    name: 'user',
+    relations: {
+        allowed: ['realm', 'items'],
+        // may THIS actor include THIS relation?
+        validate: (relation, actor) => actor.can(`${relation}_read`),
+    },
+    schemaMapping: { items: 'item' },
+});
+
+const query = await parser.parseAsync(input, { schema: 'user', context: actor });
+// or, at the transport boundary:
+const query = await codec.decodeAsync(req.query, { schema: 'user', context: actor });
+```
+
+Semantics:
+
+- **Target-schema authorization.** Hooks run on the canonical (alias-resolved) key against the schema that governs it: `include=items.realm` invokes the *user* schema's hook with `items` and the *item* schema's hook with `realm` (resolved via `schemaMapping`). An include can never bypass the related schema's own gate.
+- **Rejection follows the failure policy.** Return a truthy value to accept; `false`/`undefined` rejects — dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw). A rejected relation also drops every deeper relation reached through it.
+- **Client input only.** Schema `default`s are server-authored and bypass the hooks. Rejected keys are removed *after* parameter assembly, so `fields`/`sort` defaults do **not** re-materialize when a hook empties the selection.
+- **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
+- **The context is opaque** — typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
+
+The [filters `validate` hook](/guide/filters#schema-options) participates too: it now receives the same context as its second argument.
 
 ## The registry & relations
 

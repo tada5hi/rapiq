@@ -80,7 +80,7 @@ export class MongoFiltersParser extends BaseParser<
             return this.buildDefaultOutput(scope);
         }
 
-        const validated = applyFiltersSchemaValidation(parsed, scope.schema);
+        const validated = applyFiltersSchemaValidation(parsed, scope.schema, options.context);
         if (!validated) {
             return this.buildDefaultOutput(scope);
         }
@@ -97,7 +97,7 @@ export class MongoFiltersParser extends BaseParser<
             return this.buildDefaultOutput(scope);
         }
 
-        const validated = await applyFiltersSchemaValidationAsync(parsed, scope.schema);
+        const validated = await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context);
         if (!validated) {
             return this.buildDefaultOutput(scope);
         }

@@ -13,5 +13,6 @@ export type RelationsParseOptions<
 > = {
     throwOnFailure?: boolean,
     strict?: boolean,
-    schema?: string | Schema<RECORD> | RelationsSchema<RECORD>
+    schema?: string | Schema<RECORD> | RelationsSchema<RECORD>,
+    context?: unknown,
 };

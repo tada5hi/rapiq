@@ -100,7 +100,7 @@ export class ExpressionFiltersParser extends BaseParser<
             return expr;
         }
 
-        const validated = applyFiltersSchemaValidation(expr, scope.schema);
+        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context);
 
         return validated ?? new Filters(
             FilterCompoundOperator.AND,
@@ -117,7 +117,7 @@ export class ExpressionFiltersParser extends BaseParser<
             return expr;
         }
 
-        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema);
+        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema, options.context);
 
         return validated ?? new Filters(
             FilterCompoundOperator.AND,

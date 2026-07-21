@@ -16,5 +16,6 @@ export type FiltersParseOptions<
     relations?: Relations,
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
     throwOnFailure?: boolean,
-    strict?: boolean
+    strict?: boolean,
+    context?: unknown,
 };

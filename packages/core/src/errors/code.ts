@@ -22,6 +22,8 @@ export enum ErrorCode {
 
     KEY_VALUE_INVALID = 'keyValueInvalid',
 
+    KEY_VALIDATE_REJECTED = 'keyValidateRejected',
+
     OPERATOR_UNSUPPORTED = 'operatorUnsupported',
 
     FEATURE_UNSUPPORTED = 'featureUnsupported',

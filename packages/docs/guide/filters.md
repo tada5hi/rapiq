@@ -172,10 +172,10 @@ defineSchema<User>({
 | `allowed` | Filterable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Condition applied when the client sends no filters. |
 | `mapping` | Alias → field translation applied before validation. |
-| `validate` | Sync or async per-filter hook — inspect/replace a parsed `Filter`, or reject it. |
+| `validate` | Sync or async per-filter hook — inspect/replace a parsed `Filter`, or reject it. Receives the [parse context](/guide/schemas#validate-hooks--parse-context) as its second argument. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 
-`validate` runs after key resolution, mapping and value coercion. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf — an inspect-only hook must still `return` the filter, otherwise every leaf is rejected. `$elemMatch` conditions are validated inside-out: every interior leaf passes the hook, then the `elemMatch` filter itself. The return value may also be a Promise of any of those results. On the server, [schema-aware encoding](/packages/codec-url) re-runs the schema-bound decoder, so a validator that is not idempotent (e.g. one that appends to the value) transforms a filter twice between a schema-aware `encode()` and the receiving `decode()` — keep validators idempotent.
+`validate` runs after key resolution, mapping and value coercion, and receives the caller-supplied [`context`](/guide/schemas#validate-hooks--parse-context) (e.g. the authenticated actor) as its second argument. Return the original filter to accept it, another `Filter` to replace it, or `undefined` to reject that leaf — an inspect-only hook must still `return` the filter, otherwise every leaf is rejected. `$elemMatch` conditions are validated inside-out: every interior leaf passes the hook, then the `elemMatch` filter itself. The return value may also be a Promise of any of those results. On the server, [schema-aware encoding](/packages/codec-url) re-runs the schema-bound decoder, so a validator that is not idempotent (e.g. one that appends to the value) transforms a filter twice between a schema-aware `encode()` and the receiving `decode()` — keep validators idempotent.
 
 Use the synchronous `parse()` / `decode()` / schema-aware `encode()` methods when every validator is synchronous. Use their `Async` counterparts when a validator may be asynchronous:
 

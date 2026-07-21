@@ -5,15 +5,21 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { BaseSchemaOptions, VerifyFn } from '../../types';
-import type { ObjectLiteral, SimpleKeys } from '../../../types';
+import type { BaseSchemaOptions, KeyValidator } from '../../types';
+import type { SimpleKeys } from '../../../types';
 
 export type FieldsOptions<
     T extends Record<string, any> = Record<string, any>,
-    CONTEXT extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
     allowed?: SimpleKeys<T>[],
     default?: SimpleKeys<T>[],
-    verify?: VerifyFn<string[], CONTEXT>
+    /**
+     * Dynamic per-field gate, e.g. an actor permission check.
+     * Runs once per client-requested field against the schema that
+     * governs it (the target schema for dotted keys). Schema defaults
+     * bypass the hook.
+     */
+    validate?: KeyValidator<CONTEXT>,
 };

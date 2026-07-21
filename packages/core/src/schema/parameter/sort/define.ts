@@ -11,8 +11,9 @@ import type { ObjectLiteral } from '../../../types';
 
 export function defineSortSchema<
     T extends ObjectLiteral= ObjectLiteral,
+    CONTEXT = any,
 >(
-    options: SortOptions<T> = {},
-) : SortSchema<T> {
+    options: SortOptions<T, CONTEXT> = {},
+) : SortSchema<T, CONTEXT> {
     return new SortSchema(options);
 }

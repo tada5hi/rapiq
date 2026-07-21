@@ -14,12 +14,15 @@ import {
     SortDirection,
     SortParseError,
     Sorts,
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
     isObject,
     parseKey,
 } from '@rapiq/core';
 import type {
     ISorts,
     ObjectLiteral,
+    PendingKeyValidation,
     SortParseOptions,
     SortSchema,
 } from '@rapiq/core';
@@ -34,7 +37,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
             strict: options.strict,
         });
 
-        return this.parseWithScope(input, scope);
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = applyKeySchemaValidation(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: SortParseError,
+        });
+
+        return this.prune(output, rejected);
     }
 
     override async parseAsync<
@@ -43,12 +54,40 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         input: unknown,
         options: SortParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
-        return this.parse(input, options);
+        const scope = ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        });
+
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: SortParseError,
+        });
+
+        return this.prune(output, rejected);
+    }
+
+    protected prune(sorts: Sorts, rejected: string[]) : Sorts {
+        if (rejected.length === 0) {
+            return sorts;
+        }
+
+        return new Sorts(sorts.value.filter(
+            (sort) => !rejected.includes(sort.name),
+        ));
     }
 
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, scope: ResolutionScope<`${Parameter.SORT}`, RECORD>) : Sorts {
+    >(
+        input: unknown,
+        scope: ResolutionScope<`${Parameter.SORT}`, RECORD>,
+        pending: PendingKeyValidation[],
+    ) : Sorts {
         const { schema } = scope;
 
         // If it is an empty array nothing is allowed
@@ -86,10 +125,14 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                     continue;
                 }
 
-                output.value.push(new Sort(
-                    [...resolved.path, resolved.name].join('.'),
-                    data[key_],
-                ));
+                const name = [...resolved.path, resolved.name].join('.');
+
+                output.value.push(new Sort(name, data[key_]));
+                pending.push({
+                    key: resolved.name,
+                    path: name,
+                    schema: resolved.scope.schema,
+                });
             }
 
             if (this.isMultiDimensionalArray(schema.allowed)) {
@@ -130,12 +173,20 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                 continue;
             }
 
-            const relationOutput = this.parseWithScope(relationsData[key], child);
+            const childPending : PendingKeyValidation[] = [];
+            const relationOutput = this.parseWithScope(relationsData[key], child, childPending);
 
             for (const relation of relationOutput.value) {
                 output.value.push(
                     new Sort(`${child.segment}.${relation.name}`, relation.operator),
                 );
+            }
+
+            for (const entry of childPending) {
+                pending.push({
+                    ...entry,
+                    path: `${child.segment}.${entry.path}`,
+                });
             }
         }
 

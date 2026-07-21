@@ -64,14 +64,17 @@ function isConditionValue(input: unknown) : input is ICondition {
 export function applyFiltersSchemaValidation(
     input: IFilter | IFilters,
     schema: FiltersSchema,
+    context?: unknown,
 ) : IFilter | IFilters | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
+    context?: unknown,
 ) : ICondition | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
+    context?: unknown,
 ) : ICondition | undefined {
     if (!schema.hasValidator()) {
         return input;
@@ -83,7 +86,7 @@ export function applyFiltersSchemaValidation(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isConditionValue(input.value)
         ) {
-            const interior = applyFiltersSchemaValidation(input.value, schema);
+            const interior = applyFiltersSchemaValidation(input.value, schema, context);
             if (!interior) {
                 return undefined;
             }
@@ -93,7 +96,7 @@ export function applyFiltersSchemaValidation(
             }
         }
 
-        const output = schema.validate(leaf);
+        const output = schema.validate(leaf, context);
         if (isPromiseLike(output)) {
             void Promise.resolve(output).catch(() => undefined);
             throw SchemaError.validatorAsyncRequiresAsyncParser();
@@ -108,7 +111,7 @@ export function applyFiltersSchemaValidation(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = applyFiltersSchemaValidation(child, schema);
+        const validated = applyFiltersSchemaValidation(child, schema, context);
         if (validated) {
             conditions.push(validated);
         }
@@ -129,14 +132,17 @@ export function applyFiltersSchemaValidation(
 export function applyFiltersSchemaValidationAsync(
     input: IFilter | IFilters,
     schema: FiltersSchema,
+    context?: unknown,
 ) : Promise<IFilter | IFilters | undefined>;
 export function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
+    context?: unknown,
 ) : Promise<ICondition | undefined>;
 export async function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
+    context?: unknown,
 ) : Promise<ICondition | undefined> {
     if (!schema.hasValidator()) {
         return input;
@@ -148,7 +154,7 @@ export async function applyFiltersSchemaValidationAsync(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isConditionValue(input.value)
         ) {
-            const interior = await applyFiltersSchemaValidationAsync(input.value, schema);
+            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context);
             if (!interior) {
                 return undefined;
             }
@@ -158,7 +164,7 @@ export async function applyFiltersSchemaValidationAsync(
             }
         }
 
-        return (await schema.validate(leaf)) || undefined;
+        return (await schema.validate(leaf, context)) || undefined;
     }
 
     if (!isFilters(input)) {
@@ -167,7 +173,7 @@ export async function applyFiltersSchemaValidationAsync(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = await applyFiltersSchemaValidationAsync(child, schema);
+        const validated = await applyFiltersSchemaValidationAsync(child, schema, context);
         if (validated) {
             conditions.push(validated);
         }

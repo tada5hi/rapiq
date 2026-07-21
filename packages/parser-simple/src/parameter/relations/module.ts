@@ -13,12 +13,15 @@ import {
     Relations,
     RelationsParseError,
     ResolutionScope,
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
     isObject,
     parseKey,
 } from '@rapiq/core';
 import type {
     IRelations,
     ObjectLiteral,
+    PendingKeyValidation,
     RelationsParseOptions,
 } from '@rapiq/core';
 
@@ -39,7 +42,15 @@ export class SimpleRelationsParser extends BaseParser<
             strict: options.strict,
         });
 
-        return this.parseWithScope(input, scope);
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = applyKeySchemaValidation(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: RelationsParseError,
+        });
+
+        return this.prune(output, rejected);
     }
 
     override async parseAsync<
@@ -48,12 +59,46 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
-        return this.parse(input, options);
+        const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+        });
+
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: RelationsParseError,
+        });
+
+        return this.prune(output, rejected);
+    }
+
+    /**
+     * A rejected relation also drops every deeper relation reached
+     * through it.
+     */
+    protected prune(relations: Relations, rejected: string[]) : Relations {
+        if (rejected.length === 0) {
+            return relations;
+        }
+
+        return new Relations(relations.value.filter(
+            (relation) => !rejected.some(
+                (name) => relation.name === name ||
+                    relation.name.startsWith(`${name}.`),
+            ),
+        ));
     }
 
     protected parseWithScope<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>) : Relations {
+    >(
+        input: unknown,
+        scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
+        pending: PendingKeyValidation[],
+    ) : Relations {
         const { schema } = scope;
 
         const output = new Relations();
@@ -83,9 +128,37 @@ export class SimpleRelationsParser extends BaseParser<
                     continue;
                 }
 
-                output.value.push(new Relation(
-                    [...resolved.path, resolved.name].join('.'),
-                ));
+                const name = [...resolved.path, resolved.name].join('.');
+
+                output.value.push(new Relation(name));
+
+                // a mapping alias may expand to a dotted path — every
+                // traversed segment must pass its own schema's validate
+                // hook, exactly like literal dotted input does via its
+                // parent entries.
+                let segmentScope = scope;
+                const prefix : string[] = [];
+                for (const segment of resolved.path) {
+                    prefix.push(segment);
+                    pending.push({
+                        key: segment,
+                        path: prefix.join('.'),
+                        schema: segmentScope.schema,
+                    });
+
+                    const next = segmentScope.descend(segment);
+                    if (!(next instanceof ResolutionScope)) {
+                        break;
+                    }
+
+                    segmentScope = next;
+                }
+
+                pending.push({
+                    key: resolved.name,
+                    path: name,
+                    schema: resolved.scope.schema,
+                });
             }
         }
 
@@ -96,12 +169,20 @@ export class SimpleRelationsParser extends BaseParser<
                 continue;
             }
 
-            const relationOutput = this.parseWithScope(relationsData[key], child);
+            const childPending : PendingKeyValidation[] = [];
+            const relationOutput = this.parseWithScope(relationsData[key], child, childPending);
 
             for (const relation of relationOutput.value) {
                 output.value.push(
                     new Relation(`${child.segment}.${relation.name}`),
                 );
+            }
+
+            for (const entry of childPending) {
+                pending.push({
+                    ...entry,
+                    path: `${child.segment}.${entry.path}`,
+                });
             }
         }
 
