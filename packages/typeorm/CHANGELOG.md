@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0-beta.5](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.4...typeorm-v2.0.0-beta.5) (2026-07-21)
+
+
+### Miscellaneous Chores
+
+* **typeorm:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.4 to ^2.0.0-beta.5
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.4 to ^2.0.0-beta.5
+    * @rapiq/sql bumped from ^2.0.0-beta.4 to ^2.0.0-beta.5
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.4 to ^2.0.0-beta.5
+    * @rapiq/sql bumped from ^2.0.0-beta.4 to ^2.0.0-beta.5
+
 ## [2.0.0-beta.4](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.3...typeorm-v2.0.0-beta.4) (2026-07-20)
 
 
