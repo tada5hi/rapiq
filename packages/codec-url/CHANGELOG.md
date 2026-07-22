@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.7](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.6...codec-url-v2.0.0-beta.7) (2026-07-22)
+
+
+### Features
+
+* **core:** authorize relation paths traversed by filters/fields/sort ([#815](https://github.com/tada5hi/rapiq/issues/815)) ([#816](https://github.com/tada5hi/rapiq/issues/816)) ([1f98ff3](https://github.com/tada5hi/rapiq/commit/1f98ff3f577eb702d1b55ee6e7b3a3a166d5c44a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+
 ## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.5...codec-url-v2.0.0-beta.6) (2026-07-21)
 
 

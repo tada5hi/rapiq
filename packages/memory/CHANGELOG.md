@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.7](https://github.com/tada5hi/rapiq/compare/memory-v2.0.0-beta.6...memory-v2.0.0-beta.7) (2026-07-22)
+
+
+### Features
+
+* **memory:** accept ICondition in compileFilters ([#818](https://github.com/tada5hi/rapiq/issues/818)) ([65a4115](https://github.com/tada5hi/rapiq/commit/65a4115402a6eece0a7e59ef28e57b92c854122e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+
 ## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/memory-v2.0.0-beta.5...memory-v2.0.0-beta.6) (2026-07-21)
 
 
