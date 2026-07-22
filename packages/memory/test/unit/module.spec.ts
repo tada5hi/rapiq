@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { ICondition } from '@rapiq/core';
 import {
     Field,
     Fields,
@@ -19,7 +20,7 @@ import {
     eq,
     gte,
 } from '@rapiq/core';
-import { applyQuery, compileQuery } from '../../src';
+import { applyQuery, compileFilters, compileQuery } from '../../src';
 
 type User = {
     id: number,
@@ -135,5 +136,18 @@ describe('module', () => {
         expect(output.total).toEqual(users.length);
         expect(output.data[0]).toBe(users[0]);
         expect(output.pagination).toEqual({ limit: undefined, offset: undefined });
+    });
+
+    it('should compile a condition held abstractly as ICondition without a cast', () => {
+        // Consumers (schema `default`, builder output, lowered policy residuals)
+        // traffic in the `ICondition` interface, not the concrete union.
+        const leaf : ICondition = eq('age', 18);
+        const compound : ICondition = and(gte('age', 18), eq('realm.name', 'master'));
+
+        expect(compileFilters(leaf)(users[0])).toBeTruthy();
+        expect(compileFilters(leaf)(users[2])).toBeFalsy();
+
+        expect(compileFilters(compound)(users[0])).toBeTruthy();
+        expect(compileFilters(compound)(users[3])).toBeFalsy();
     });
 });
