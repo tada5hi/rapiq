@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.7](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.6...sql-v2.0.0-beta.7) (2026-07-22)
+
+
+### Miscellaneous Chores
+
+* **sql:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.6 to ^2.0.0-beta.7
+
 ## [2.0.0-beta.6](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.5...sql-v2.0.0-beta.6) (2026-07-21)
 
 
