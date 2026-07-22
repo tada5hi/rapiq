@@ -6,9 +6,8 @@
  */
 
 import type {
+    ICondition,
     IFields,
-    IFilter,
-    IFilters,
     IPagination,
     IQuery,
     IQueryVisitor,
@@ -90,10 +89,10 @@ export function applyQuery<T = Record<string, any>>(
 }
 
 export function compileFilters(
-    input: IFilter | IFilters,
+    input: ICondition,
     options: FiltersVisitorOptions = {},
 ) : Predicate {
-    return input.accept<Predicate>(new FiltersVisitor(options));
+    return new FiltersVisitor(options).compile(input);
 }
 
 export function compileSorts<T = Record<string, any>>(input: ISorts) : Comparator<T> {

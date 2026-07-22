@@ -56,6 +56,8 @@ const slicer = compilePagination(query.pagination); // (data) => page
 
 Under the hood each `compile*` helper wraps a visitor class (`FiltersVisitor`, `SortsVisitor`, `FieldsVisitor`, `PaginationVisitor`, `QueryVisitor`) — subclass those for custom behavior. Compilation validates the AST (unknown operators throw); the compiled functions themselves never throw.
 
+`compileFilters` accepts any condition node — a leaf `IFilter`, a compound `IFilters`, or the `ICondition` interface both implement. Conditions held abstractly (builder output, a schema's `filters.default`, a lowered authorization residual) pass straight through, no narrowing cast required.
+
 ## Filter semantics
 
 The package aims for **SQL parity**: the same query should select the same records in memory as `@rapiq/sql`/`@rapiq/typeorm` select from the database.
