@@ -7,9 +7,11 @@
 
 import type {
     FiltersParseOptions,
+    FiltersSchema,
     IFilter,
     IFilters,
     ObjectLiteral,
+    RelationLedger,
     Scalar,
 } from '@rapiq/core';
 import {
@@ -26,12 +28,16 @@ import {
     MAX_TRAVERSAL_DEPTH,
     Parameter,
     ParseError,
+    RelationsParseError,
     ResolutionScope,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
     buildFiltersDefaults,
     isFilter,
     isFilters,
+    pruneFiltersByRelations,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
 import {
@@ -87,71 +93,160 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
-        // absent input is not a failure — schema defaults still apply.
-        // an empty string is NOT absent: the dialect is precise, so
-        // input like `?filter=` must surface a syntax error.
-        if (input === undefined || input === null) {
-            return this.buildAbsentOutput(options);
+        const ledger : RelationLedger = [];
+        const { output, scope } = this.build(input, options, ledger);
+        if (!scope) {
+            return output;
         }
 
-        return this.wrapRoot(this.parseExact(input, options));
+        return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as FiltersSchema<RECORD>);
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
-        if (input === undefined || input === null) {
-            return this.buildAbsentOutput(options);
+        const ledger : RelationLedger = [];
+        const { output, scope } = await this.buildAsync(input, options, ledger);
+        if (!scope) {
+            return output;
         }
 
-        return this.wrapRoot(await this.parseExactAsync(input, options));
+        return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as FiltersSchema<RECORD>);
+    }
+
+    parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : IFilters {
+        return this.build(input, options, ledger).output;
+    }
+
+    async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<IFilters> {
+        return (await this.buildAsync(input, options, ledger)).output;
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters | IFilter {
-        const { expr, scope } = this.parseSource(input, options);
-        if (!scope) {
-            return expr;
-        }
-
-        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context);
-
-        return validated ?? new Filters(
-            FilterCompoundOperator.AND,
-            buildFiltersDefaults(scope.schema),
-        );
+        // raw exact tree; a standalone caller wanting relation authorization
+        // uses parse(). Obligations are discarded, not pooled.
+        return this.parseValidated(input, options, []).result;
     }
 
     async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters | IFilter> {
-        const { expr, scope } = this.parseSource(input, options);
-        if (!scope) {
-            return expr;
-        }
-
-        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema, options.context);
-
-        return validated ?? new Filters(
-            FilterCompoundOperator.AND,
-            buildFiltersDefaults(scope.schema),
-        );
+        return (await this.parseValidatedAsync(input, options, [])).result;
     }
 
     // ---------------------------------------------------------
 
     /**
-     * The shared front-end of {@link parseExact} and
-     * {@link parseExactAsync}: tokenize, bind the resolution scope and
-     * run the grammar — everything up to (but excluding) validation.
+     * Resolve + leaf-validate + wrap into the root filters node, recording the
+     * relation obligations it traverses into `ledger` (the scope's sink). Relation
+     * authorization stays with the caller. `scope` is undefined for a schemaless
+     * parse (nothing to authorize).
+     */
+    protected build<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : { output: IFilters, scope?: FiltersScope } {
+        if (input === undefined || input === null) {
+            return { output: this.buildAbsentOutput(options) };
+        }
+
+        const { result, scope } = this.parseValidated(input, options, ledger);
+
+        return { output: this.wrapRoot(result), scope };
+    }
+
+    protected async buildAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<{ output: IFilters, scope?: FiltersScope }> {
+        if (input === undefined || input === null) {
+            return { output: this.buildAbsentOutput(options) };
+        }
+
+        const { result, scope } = await this.parseValidatedAsync(input, options, ledger);
+
+        return { output: this.wrapRoot(result), scope };
+    }
+
+    /**
+     * The shared validated-parse of {@link parse} and {@link parseExact}:
+     * tokenize + resolve + apply the filters leaf validator, returning the
+     * bound scope so the caller can additionally authorize traversed relations.
+     */
+    private parseValidated<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : { result: IFilters | IFilter, scope?: FiltersScope } {
+        const { expr, scope } = this.parseSource(input, options, ledger);
+        if (!scope) {
+            return { result: expr };
+        }
+
+        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context);
+
+        return {
+            result: validated ?? new Filters(
+                FilterCompoundOperator.AND,
+                buildFiltersDefaults(scope.schema),
+            ),
+            scope,
+        };
+    }
+
+    private async parseValidatedAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
+        input: unknown,
+        options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<{ result: IFilters | IFilter, scope?: FiltersScope }> {
+        const { expr, scope } = this.parseSource(input, options, ledger);
+        if (!scope) {
+            return { result: expr };
+        }
+
+        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema, options.context);
+
+        return {
+            result: validated ?? new Filters(
+                FilterCompoundOperator.AND,
+                buildFiltersDefaults(scope.schema),
+            ),
+            scope,
+        };
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * The shared front-end of {@link parseValidated}: tokenize, bind the
+     * resolution scope (recording relation obligations into `ledger`) and run
+     * the grammar — everything up to (but excluding) validation.
      */
     private parseSource<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
+        ledger: RelationLedger,
     ) : { expr: Filters | Filter, scope?: FiltersScope } {
         if (typeof input !== 'string') {
             throw FiltersParseError.inputInvalid();
@@ -170,6 +265,7 @@ export class ExpressionFiltersParser extends BaseParser<
                 relations: options.relations,
                 throwOnFailure: true,
                 strict: options.strict,
+                obligationSink: ledger,
             }) as FiltersScope;
         }
 

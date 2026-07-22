@@ -9,6 +9,7 @@ import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
+import type { PendingKeyValidation } from './parameter/validate';
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -23,6 +24,16 @@ export type ParseParameterOptions<
      */
     context?: unknown,
 };
+
+/**
+ * The pooled relation-authorization ledger the query orchestrator threads
+ * through {@link IQueryParameterParser.parseParameter}: each sub-parser appends
+ * the relation obligations it traverses, and `BaseQueryParser` evaluates the
+ * relations validate hook once per distinct relation across all parameters and
+ * prunes the assembled query. An explicit driver argument, never part of the
+ * public parse options.
+ */
+export type RelationLedger = PendingKeyValidation[];
 
 export type ParseQueryOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -78,6 +89,13 @@ export interface IParser<
 /**
  * Contract of a per-parameter sub-parser, as consumed by the
  * query parse orchestration.
+ *
+ * `parse`/`parseAsync` are the public standalone entry points — they authorize
+ * and prune the relations they traverse themselves. `parseParameter`/
+ * `parseParameterAsync` are the internal driver the query orchestrator uses:
+ * they build the node and append relation obligations to the shared
+ * {@link RelationLedger} but defer the single authorization pass (and cross-
+ * parameter pruning) to `BaseQueryParser`.
  */
 export interface IQueryParameterParser<Output = unknown> {
     parse<
@@ -87,4 +105,12 @@ export interface IQueryParameterParser<Output = unknown> {
     parseAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options?: ParseParameterOptions<RECORD>): Promise<Output>;
+
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Output;
+
+    parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Promise<Output>;
 }

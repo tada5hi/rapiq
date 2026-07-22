@@ -9,6 +9,7 @@ import {
     BaseParser,
     DEFAULT_ID,
     Parameter,
+    RelationsParseError,
     ResolutionScope,
     Sort,
     SortDirection,
@@ -18,34 +19,30 @@ import {
     applyKeySchemaValidationAsync,
     isObject,
     parseKey,
+    pruneSortsByRelations,
 } from '@rapiq/core';
 import type {
     ISorts,
     ObjectLiteral,
     PendingKeyValidation,
+    RelationLedger,
     SortParseOptions,
     SortSchema,
 } from '@rapiq/core';
+
+type SortScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORT}`, RECORD>;
 
 export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortParseOptions<RECORD> = {}) : Sorts {
-        const scope = ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        });
+        const ledger : RelationLedger = [];
+        const { output, scope } = this.build(input, options, ledger);
 
-        const pending : PendingKeyValidation[] = [];
-        const output = this.parseWithScope(input, scope, pending);
-
-        const rejected = applyKeySchemaValidation(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
-            errors: SortParseError,
-        });
-
-        return this.prune(output, rejected);
+        return pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as SortSchema<RECORD>);
     }
 
     override async parseAsync<
@@ -54,21 +51,87 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         input: unknown,
         options: SortParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
-        const scope = ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
-            relations: options.relations,
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        });
+        const ledger : RelationLedger = [];
+        const { output, scope } = await this.buildAsync(input, options, ledger);
 
+        return pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }), scope.schema as SortSchema<RECORD>);
+    }
+
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SortParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : ISorts {
+        return this.build(input, options, ledger).output;
+    }
+
+    async parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SortParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<ISorts> {
+        return (await this.buildAsync(input, options, ledger)).output;
+    }
+
+    protected build<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SortParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : { output: Sorts, scope: SortScope<RECORD> } {
+        const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
 
-        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
-            errors: SortParseError,
-        });
+        return {
+            output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
+                throwOnFailure: scope.throwOnFailure,
+                errors: SortParseError,
+            })),
+            scope,
+        };
+    }
 
-        return this.prune(output, rejected);
+    protected async buildAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: SortParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<{ output: Sorts, scope: SortScope<RECORD> }> {
+        const scope = this.scopeFor(options, ledger);
+        const pending : PendingKeyValidation[] = [];
+        const output = this.parseWithScope(input, scope, pending);
+
+        return {
+            output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
+                throwOnFailure: scope.throwOnFailure,
+                errors: SortParseError,
+            })),
+            scope,
+        };
+    }
+
+    protected scopeFor<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        options: SortParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : SortScope<RECORD> {
+        return ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
+            relations: options.relations,
+            throwOnFailure: options.throwOnFailure,
+            strict: options.strict,
+            obligationSink: ledger,
+        });
     }
 
     protected prune(sorts: Sorts, rejected: string[]) : Sorts {

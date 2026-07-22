@@ -8,6 +8,7 @@
 import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
+import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import { FieldsParseError } from '../../parser/parameter/fields/error';
 import { FiltersParseError } from '../../parser/parameter/filters/error';
 import { PaginationParseError } from '../../parser/parameter/pagination/error';
@@ -69,8 +70,11 @@ type ResolutionScopeOptions<
     schema: ParameterSchema<P, RECORD>,
     bound: boolean,
     base?: Schema<RECORD>,
+    rootBase?: Schema<RECORD>,
     relations?: IRelations,
     segment?: string,
+    path?: string[],
+    obligationSink?: PendingKeyValidation[],
     depth?: number,
     throwOnFailure?: boolean,
     strict?: boolean,
@@ -107,9 +111,30 @@ export class ResolutionScope<
      */
     readonly segment: string | undefined;
 
+    /**
+     * Canonical (alias-resolved) relation path from the parameter root to this
+     * scope (root: `[]`). Drives absolute obligation/prune paths across the
+     * grouping recursion — see {@link relationObligations}.
+     */
+    readonly path: string[];
+
     protected registry: SchemaRegistry;
 
     protected base: Schema<RECORD> | undefined;
+
+    /**
+     * The parameter root record schema, propagated unchanged through descents.
+     * The anchor {@link relationObligations} walks to reach the relations
+     * sub-schema governing each traversed segment.
+     */
+    protected rootBase: Schema<RECORD> | undefined;
+
+    /**
+     * Relation-authorization ledger this scope records into on every successful
+     * {@link resolveKey}; propagated to descendants. Undefined for scopes whose
+     * caller does not authorize relations.
+     */
+    protected obligationSink: PendingKeyValidation[] | undefined;
 
     protected bound: boolean;
 
@@ -129,8 +154,11 @@ export class ResolutionScope<
         this.schema = options.schema;
         this.bound = options.bound;
         this.base = options.base;
+        this.rootBase = options.rootBase;
         this.relations = options.relations;
         this.segment = options.segment;
+        this.path = options.path ?? [];
+        this.obligationSink = options.obligationSink;
         this.depth = options.depth ?? 0;
         this.throwOnFailureContext = options.throwOnFailure;
         this.strictContext = options.strict;
@@ -144,6 +172,19 @@ export class ResolutionScope<
      */
     get throwOnFailure() : boolean {
         return this.throwOnFailureContext ?? this.schema.throwOnFailure ?? false;
+    }
+
+    /**
+     * Failure policy governing relation authorization for this scope's record:
+     * the relations sub-schema's own `throwOnFailure` (schema-level intent),
+     * independent of a parameter's key-resolution strictness — a dialect that
+     * forces throwing key resolution (expression) must still *drop* an
+     * unauthorized relation unless the relations schema opts into throwing.
+     * Mirrors the query pass, which authorizes under `schema.relations` too, so
+     * standalone and query parses agree.
+     */
+    get relationsThrowOnFailure() : boolean {
+        return this.rootBase?.relations.throwOnFailure ?? false;
     }
 
     /**
@@ -183,15 +224,24 @@ export class ResolutionScope<
             parameterSchema = buildEmptyParameterSchema<P, RECORD>(parameter);
         }
 
+        // the record anchor for relation-authorization obligations: the bound
+        // schema, or the one the parameter sub-schema names (registered).
+        let rootBase = base;
+        if (!rootBase && parameterSchema.name) {
+            rootBase = registry.get(parameterSchema.name);
+        }
+
         return new ResolutionScope<P, RECORD>({
             registry,
             parameter,
             schema: parameterSchema,
             bound: typeof schema !== 'undefined',
             base,
+            rootBase,
             relations: context.relations,
             throwOnFailure: context.throwOnFailure,
             strict: context.strict,
+            obligationSink: context.obligationSink,
             errors: context.errors ?? PARAMETER_ERROR_CLASSES[parameter as `${Parameter}`],
         });
     }
@@ -216,6 +266,13 @@ export class ResolutionScope<
             if (code) {
                 return this.fail(code, key, mapped);
             }
+
+            // resolution reached the leaf: record the authorization obligations
+            // for the relations it traversed (this scope's absolute path) plus a
+            // leaf that is itself a relation (an array operator's target). This
+            // is the single choke point — every dialect resolves through here, so
+            // no join source can silently escape the relations gate.
+            this.recordObligations(mapped);
 
             return {
                 success: true,
@@ -334,13 +391,106 @@ export class ResolutionScope<
             schema,
             bound: !!childBase,
             base: childBase,
+            rootBase: this.rootBase,
             relations,
             segment,
+            path: [...this.path, segment],
+            obligationSink: this.obligationSink,
             depth: this.depth + 1,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,
             errors: this.errors,
         });
+    }
+
+    /**
+     * Record — into {@link obligationSink}, when present — the relation-
+     * authorization obligations a resolved leaf `name` implies: every relation on
+     * this scope's absolute {@link path}, plus `name` itself when it is a relation
+     * an operator targets directly. Invoked from the {@link resolveKey} leaf case,
+     * so it fires exactly once per resolved key across every dialect.
+     */
+    protected recordObligations(name: string) : void {
+        if (!this.obligationSink) {
+            return;
+        }
+
+        this.obligationSink.push(...this.relationObligations([]));
+        this.obligationSink.push(...this.relationObligationForTerminal(name));
+    }
+
+    /**
+     * The relation-authorization obligations incurred by traversing a resolved
+     * relation path: one {@link PendingKeyValidation} per segment, against the
+     * governing record's relations sub-schema. The emitted `schema` is the very
+     * `RelationsSchema` instance the relations parser records for the same
+     * relation (registry identity), so the query-level pass dedups include-driven
+     * and traversal-driven obligations for one relation into a single hook call.
+     *
+     * `relativeSegments` are canonical (alias-resolved) relation names relative to
+     * this scope; they are joined onto this scope's absolute {@link path} so the
+     * obligation paths are absolute and prune the dependent keys directly — no
+     * per-recursion prefixing. Returns `[]` for an unbound scope (no record
+     * identity, nothing to authorize). Obligations against a validator-less
+     * relations schema are harmless — the evaluation pass skips them.
+     */
+    protected relationObligations(relativeSegments: string[]) : PendingKeyValidation[] {
+        const segments = [...this.path, ...relativeSegments];
+        if (segments.length === 0) {
+            return [];
+        }
+
+        const output : PendingKeyValidation[] = [];
+        let base = this.rootBase;
+        const prefix : string[] = [];
+        for (const segment of segments) {
+            if (!base) {
+                break;
+            }
+
+            prefix.push(segment);
+            output.push({
+                key: segment,
+                path: prefix.join('.'),
+                schema: base.relations,
+            });
+
+            base = this.registry.get(base.mapSchema(segment));
+        }
+
+        return output;
+    }
+
+    /**
+     * The obligation for a leaf `name` that is *itself* a relation of this
+     * scope's record. For the relations parameter the leaf always is one (an
+     * include). For fields/filters/sort it is one only when it maps to a related
+     * schema — an operator applied directly to a relation array
+     * (`$size`/`$all`/`$elemMatch`) that the backends join; unlike a dotted path,
+     * {@link resolveKey} classifies such a leaf as the terminal `name` (empty
+     * `path`), so {@link relationObligations} would miss it. Returns `[]` for a
+     * scalar / JSON-array leaf (no join). A pure registry lookup — no relation
+     * gating, never throws (so it is safe on every resolved leaf, including
+     * scalars, regardless of the failure policy).
+     */
+    protected relationObligationForTerminal(name: string) : PendingKeyValidation[] {
+        const base = this.resolveBase();
+        if (!base) {
+            return [];
+        }
+
+        if (
+            this.parameter !== Parameter.RELATIONS &&
+            !this.registry.get(base.mapSchema(name))
+        ) {
+            return [];
+        }
+
+        return [{
+            key: name,
+            path: [...this.path, name].join('.'),
+            schema: base.relations,
+        }];
     }
 
     /**
@@ -474,8 +624,11 @@ export class ResolutionScope<
             schema: this.schema,
             bound: this.bound,
             base: this.base,
+            rootBase: this.rootBase,
             relations: this.relations,
             segment,
+            path: this.path,
+            obligationSink: this.obligationSink,
             depth: this.depth,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,

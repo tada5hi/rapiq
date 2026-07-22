@@ -21,11 +21,13 @@ import {
 import type {
     IRelations,
     ObjectLiteral,
-    PendingKeyValidation,
+    RelationLedger,
     RelationsParseOptions,
 } from '@rapiq/core';
 
 // --------------------------------------------------
+
+type RelationsScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.RELATIONS}`, RECORD>;
 
 export class SimpleRelationsParser extends BaseParser<
     RelationsParseOptions,
@@ -37,20 +39,13 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
-        const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
-            throwOnFailure: options.throwOnFailure,
-            strict: options.strict,
-        });
+        const ledger : RelationLedger = [];
+        const { output, scope } = this.build(input, options, ledger);
 
-        const pending : PendingKeyValidation[] = [];
-        const output = this.parseWithScope(input, scope, pending);
-
-        const rejected = applyKeySchemaValidation(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
+        return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
-        });
-
-        return this.prune(output, rejected);
+        }));
     }
 
     override async parseAsync<
@@ -59,20 +54,55 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
+        const ledger : RelationLedger = [];
+        const { output, scope } = this.build(input, options, ledger);
+
+        return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: scope.relationsThrowOnFailure,
+            errors: RelationsParseError,
+        }));
+    }
+
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: RelationsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : IRelations {
+        return this.build(input, options, ledger).output;
+    }
+
+    async parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: RelationsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : Promise<IRelations> {
+        return this.build(input, options, ledger).output;
+    }
+
+    /**
+     * Resolve the requested relations, recording the include obligations into
+     * `ledger` (the scope's sink). These pool with the fields/filters/sort
+     * traversal obligations so the query orchestrator authorizes each relation
+     * once; standalone `parse` authorizes and prunes them itself.
+     */
+    protected build<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: RelationsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : { output: Relations, scope: RelationsScope<RECORD> } {
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
+            obligationSink: ledger,
         });
 
-        const pending : PendingKeyValidation[] = [];
-        const output = this.parseWithScope(input, scope, pending);
-
-        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
-            throwOnFailure: scope.throwOnFailure,
-            errors: RelationsParseError,
-        });
-
-        return this.prune(output, rejected);
+        return { output: this.parseWithScope(input, scope), scope };
     }
 
     /**
@@ -97,7 +127,6 @@ export class SimpleRelationsParser extends BaseParser<
     >(
         input: unknown,
         scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
-        pending: PendingKeyValidation[],
     ) : Relations {
         const { schema } = scope;
 
@@ -123,42 +152,16 @@ export class SimpleRelationsParser extends BaseParser<
             for (const datum of data) {
                 const key = parseKey(datum);
 
+                // resolveKey records the include's authorization obligations —
+                // every traversed segment plus the target relation itself (a
+                // mapping alias may expand to a dotted path) — into the scope's
+                // ledger, exactly like a literal dotted key.
                 const resolved = scope.resolveKey(key.name);
                 if (!resolved.success) {
                     continue;
                 }
 
-                const name = [...resolved.path, resolved.name].join('.');
-
-                output.value.push(new Relation(name));
-
-                // a mapping alias may expand to a dotted path — every
-                // traversed segment must pass its own schema's validate
-                // hook, exactly like literal dotted input does via its
-                // parent entries.
-                let segmentScope = scope;
-                const prefix : string[] = [];
-                for (const segment of resolved.path) {
-                    prefix.push(segment);
-                    pending.push({
-                        key: segment,
-                        path: prefix.join('.'),
-                        schema: segmentScope.schema,
-                    });
-
-                    const next = segmentScope.descend(segment);
-                    if (!(next instanceof ResolutionScope)) {
-                        break;
-                    }
-
-                    segmentScope = next;
-                }
-
-                pending.push({
-                    key: resolved.name,
-                    path: name,
-                    schema: resolved.scope.schema,
-                });
+                output.value.push(new Relation([...resolved.path, resolved.name].join('.')));
             }
         }
 
@@ -169,20 +172,12 @@ export class SimpleRelationsParser extends BaseParser<
                 continue;
             }
 
-            const childPending : PendingKeyValidation[] = [];
-            const relationOutput = this.parseWithScope(relationsData[key], child, childPending);
+            const relationOutput = this.parseWithScope(relationsData[key], child);
 
             for (const relation of relationOutput.value) {
                 output.value.push(
                     new Relation(`${child.segment}.${relation.name}`),
                 );
-            }
-
-            for (const entry of childPending) {
-                pending.push({
-                    ...entry,
-                    path: `${child.segment}.${entry.path}`,
-                });
             }
         }
 

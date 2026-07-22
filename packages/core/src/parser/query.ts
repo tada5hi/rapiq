@@ -15,10 +15,27 @@ import type {
     QueryContext,
 } from '../parameter';
 import { Query } from '../parameter';
+import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { isObject, isPropertySet } from '../utils';
 import { BaseParser } from './base';
-import type { IQueryParameterParser, ParseParameterOptions, ParseQueryOptions } from './types';
+import { RelationsParseError } from './parameter/relations/error';
+import {
+    applyKeySchemaValidation,
+    applyKeySchemaValidationAsync,
+} from './parameter/validate';
+import {
+    pruneFieldsByRelations,
+    pruneFiltersByRelations,
+    pruneRelationsByRelations,
+    pruneSortsByRelations,
+} from './relation-prune';
+import type {
+    IQueryParameterParser,
+    ParseParameterOptions,
+    ParseQueryOptions,
+    RelationLedger,
+} from './types';
 
 /**
  * Shared query parse orchestration. Dialect packages supply the
@@ -48,41 +65,54 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const output : QueryContext = {};
         const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
+        // pooled relation-authorization obligations across every parameter, so
+        // the relations validate hook runs once per distinct relation and prunes
+        // the whole query (see plan 022 / #815). The ledger is an explicit driver
+        // argument, never part of the public parse options.
+        const ledger : RelationLedger = [];
+
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = this.parseRelations(relationsInput, parameterOptions);
+            const relations = this.relationsParser.parseParameter(relationsInput, parameterOptions, ledger);
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = this.parseFields(
+            output.fields = this.fieldsParser.parseParameter(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = this.parseFilters(
+            output.filters = this.filtersParser.parseParameter(
                 this.readParameter(data, Parameter.FILTERS),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
-            output.pagination = this.parsePagination(
+            output.pagination = this.paginationParser.parseParameter(
                 this.readParameter(data, Parameter.PAGINATION),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.SORT)) {
-            output.sorts = this.parseSort(
+            output.sorts = this.sortParser.parseParameter(
                 this.readParameter(data, Parameter.SORT),
                 parameterOptions,
+                ledger,
             );
         }
+
+        const rejected = this.applyRelationValidations(ledger, options);
+        this.pruneByRelations(output, rejected, options);
 
         return new Query(output);
     }
@@ -96,41 +126,50 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const output : QueryContext = {};
         const { data, parameterOptions } = this.prepareQueryContext(input, options);
 
+        const ledger : RelationLedger = [];
+
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = await this.parseRelationsAsync(relationsInput, parameterOptions);
+            const relations = await this.relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger);
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = await this.parseFieldsAsync(
+            output.fields = await this.fieldsParser.parseParameterAsync(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = await this.parseFiltersAsync(
+            output.filters = await this.filtersParser.parseParameterAsync(
                 this.readParameter(data, Parameter.FILTERS),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
-            output.pagination = await this.parsePaginationAsync(
+            output.pagination = await this.paginationParser.parseParameterAsync(
                 this.readParameter(data, Parameter.PAGINATION),
                 parameterOptions,
+                ledger,
             );
         }
 
         if (!this.skipParameter(options, Parameter.SORT)) {
-            output.sorts = await this.parseSortAsync(
+            output.sorts = await this.sortParser.parseParameterAsync(
                 this.readParameter(data, Parameter.SORT),
                 parameterOptions,
+                ledger,
             );
         }
+
+        const rejected = await this.applyRelationValidationsAsync(ledger, options);
+        this.pruneByRelations(output, rejected, options);
 
         return new Query(output);
     }
@@ -179,6 +218,86 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : void {
         if (typeof relationsInput !== 'undefined') {
             parameterOptions.relations = relations;
+        }
+    }
+
+    /**
+     * Evaluate the pooled relation-authorization obligations once — deduped
+     * across every parameter — under the relations schema's failure policy.
+     * Returns the canonical relation paths the hook rejected, for
+     * {@link pruneByRelations}. A rejection under `throwOnFailure` throws
+     * `RelationsParseError`, regardless of which parameter forced the join.
+     */
+    protected applyRelationValidations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        ledger: RelationLedger,
+        options: ParseQueryOptions<RECORD>,
+    ) : string[] {
+        if (ledger.length === 0 || !options.schema) {
+            return [];
+        }
+
+        const schema = this.registry.getOrFail(options.schema);
+
+        return applyKeySchemaValidation(ledger, options.context, {
+            throwOnFailure: schema.relations.throwOnFailure ?? false,
+            errors: RelationsParseError,
+        });
+    }
+
+    protected async applyRelationValidationsAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        ledger: RelationLedger,
+        options: ParseQueryOptions<RECORD>,
+    ) : Promise<string[]> {
+        if (ledger.length === 0 || !options.schema) {
+            return [];
+        }
+
+        const schema = this.registry.getOrFail(options.schema);
+
+        return applyKeySchemaValidationAsync(ledger, options.context, {
+            throwOnFailure: schema.relations.throwOnFailure ?? false,
+            errors: RelationsParseError,
+        });
+    }
+
+    /**
+     * Drop every field/filter/sort/relation traversing a rejected relation from
+     * the assembled query. Filters and sort fall back to their schema defaults
+     * when pruning empties them, matching the parser's own default fallback.
+     */
+    protected pruneByRelations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        output: QueryContext,
+        rejected: string[],
+        options: ParseQueryOptions<RECORD>,
+    ) : void {
+        if (rejected.length === 0) {
+            return;
+        }
+
+        const schema : Schema<RECORD> | undefined = options.schema ?
+            this.registry.getOrFail(options.schema) :
+            undefined;
+
+        if (output.relations) {
+            output.relations = pruneRelationsByRelations(output.relations, rejected);
+        }
+
+        if (output.fields) {
+            output.fields = pruneFieldsByRelations(output.fields, rejected);
+        }
+
+        if (output.sorts) {
+            output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort);
+        }
+
+        if (output.filters) {
+            output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters);
         }
     }
 
