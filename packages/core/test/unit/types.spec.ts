@@ -8,6 +8,7 @@
 import { expectTypeOf } from 'vitest';
 import { defineSchema } from '../../src';
 import type {
+    FieldKeys,
     NestedKeys,
     NestedResourceKeys,
     SimpleKeys,
@@ -62,6 +63,30 @@ describe('src/types.ts', () => {
 
             expect(keys).toBeDefined();
             expect(invalid).toBeDefined();
+        });
+    });
+
+    describe('FieldKeys', () => {
+        it('should admit a concrete-typed json column that SimpleKeys rejects (#824)', () => {
+            type Row = {
+                id: string,
+                name: string,
+                args: { k: string }[] | null,
+            };
+
+            const keys: FieldKeys<Row>[] = ['id', 'name', 'args'];
+
+            // @ts-expect-error a concrete-shaped json column is not a SimpleKey
+            const rejected: SimpleKeys<Row>[] = ['args'];
+
+            expect(keys).toBeDefined();
+            expect(rejected).toBeDefined();
+        });
+
+        it('should union leaf columns and resource-shaped keys', () => {
+            const keys: FieldKeys<Event>[] = ['id', 'data', 'meta', 'created_at', 'realm', 'user', 'items'];
+
+            expect(keys).toBeDefined();
         });
     });
 

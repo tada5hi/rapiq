@@ -118,6 +118,22 @@ export type SimpleResourceKeys<
             never
 }[keyof T & string];
 
+/**
+ * Keys a `fields` projection may list: scalar/leaf columns ({@link SimpleKeys})
+ * plus record/array-shaped keys ({@link SimpleResourceKeys}). The latter covers
+ * concrete-typed json columns (e.g. `{ k: string }[]`) — single columns at the
+ * database level that {@link SimpleKeys} would otherwise reject. Index-signature
+ * json (`Record<string, any>`) is already a {@link SimpleKeys}.
+ *
+ * A json column and a relation are structurally identical at the type level, so
+ * relation keys are admitted here too. List only column-backed keys in `fields`;
+ * relations belong in the `relations` allow-list (`include`). A relation key that
+ * reaches a backend's `fields` is caller error — it is not a selectable column.
+ */
+export type FieldKeys<
+    T extends Record<PropertyKey, any>,
+> = SimpleKeys<T> | SimpleResourceKeys<T>;
+
 export type NestedResourceKeys<
     T extends Record<PropertyKey, any>,
     DEPTH extends number = 4,

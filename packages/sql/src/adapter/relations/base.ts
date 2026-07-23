@@ -7,7 +7,7 @@
 
 import type { RelationAliasFn } from '../../helpers';
 import { buildRelationAlias, splitFirst } from '../../helpers';
-import type { IRelationsAdapter, RelationsAdapterBaseOptions } from './types';
+import type { IRelationsAdapter, RelationAddOptions, RelationsAdapterBaseOptions } from './types';
 
 export abstract class RelationsBaseAdapter implements IRelationsAdapter {
     /**
@@ -23,7 +23,12 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
     protected value : {
         path: string,
         name: string,
-        executed?: boolean
+        executed?: boolean,
+        /**
+         * Explicitly requested via `include`/`relations` (vs. only
+         * traversed by a field/filter/sort path). See {@link RelationAddOptions}.
+         */
+        include?: boolean,
     }[];
 
     protected relationAlias : RelationAliasFn;
@@ -75,10 +80,8 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
 
     // -----------------------------------------------------------
 
-    add(relation: string) {
-        if (this.has(relation)) {
-            return true;
-        }
+    add(relation: string, options: RelationAddOptions = {}) {
+        const include = options.include ?? false;
 
         let path : string | undefined;
         let last : string | undefined = relation;
@@ -91,13 +94,22 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
                 `${path}.${relationName}` :
                 relationName;
 
-            if (this.has(path)) {
+            const existing = this.value.find((join) => join.path === path);
+            if (existing) {
+                // A path already registered by a field/filter/sort traversal
+                // is upgraded to an explicit include when re-added as one;
+                // never downgrade an existing include.
+                if (include) {
+                    existing.include = true;
+                }
+
                 continue;
             }
 
             this.value.push({
                 path,
                 name: relationName,
+                include,
             });
         }
 
