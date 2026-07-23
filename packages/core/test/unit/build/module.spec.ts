@@ -128,6 +128,39 @@ describe('src/build/parameter/filters/*.ts', () => {
         });
     });
 
+    it('should keep both notations but drop the redundant mixed filter form (#821)', () => {
+        // the flat dotted form and the fully-nested form both type-check and
+        // desugar to the same dot-path condition ...
+        const flat: FiltersBuildInput<User> = { 'items.realm.id': 1 };
+        const nested: FiltersBuildInput<User> = { items: { realm: { id: 1 } } };
+
+        expect(leafs(defineFilters<User>(flat))[0]).toMatchObject({
+            field: 'items.realm.id',
+            value: 1,
+        });
+        expect(leafs(defineFilters<User>(nested))[0]).toMatchObject({
+            field: 'items.realm.id',
+            value: 1,
+        });
+
+        // ... but the redundant mixed shape — a dotted key *inside* a nested
+        // object — no longer type-checks. The flat arm already covers those
+        // paths once; keeping the two arms disjoint is what keeps the inferred
+        // type serializable for deeply/cyclically related records. The runtime
+        // still accepts the mixed form, so the parser stays lenient.
+        const mixed: FiltersBuildInput<User> = {
+            items: {
+                // @ts-expect-error redundant mixed form: write 'items.realm.id' instead
+                'realm.id': 1,
+            },
+        };
+
+        expect(leafs(defineFilters<User>(mixed))[0]).toMatchObject({
+            field: 'items.realm.id',
+            value: 1,
+        });
+    });
+
     it('should desugar $elemMatch with build input and with a helper condition', () => {
         const fromInput = defineFilters<User>({ items: { $elemMatch: { name: 'chess' } } });
 

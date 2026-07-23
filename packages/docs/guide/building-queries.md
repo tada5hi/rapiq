@@ -33,7 +33,7 @@ Four equivalent notations, freely mixable:
 | operator object | `{ age: { $gte: 18, $lt: 65 } }` | explicit operators, combined with **and** |
 | condition helpers | `or(gte('age', 18), eq('deleted_at', null))` | arbitrary condition trees |
 
-Multiple keys combine with **and** (a flat root-AND). Nested records (`{ realm: { name: 'master' } }`) and dot-paths (`{ 'realm.name': 'master' }`) are interchangeable. A bare `RegExp` value builds a `regex` condition.
+Multiple keys combine with **and** (a flat root-AND). A relation reads either fully nested (`{ realm: { name: 'master' } }`) or as a dot-path (`{ 'realm.name': 'master' }`) — the two are interchangeable but not mixable within one key (write `{ 'realm.x.y': v }`, not `{ realm: { 'x.y': v } }`); keeping them disjoint bounds the inferred input type for deeply/cyclically related records. A bare `RegExp` value builds a `regex` condition.
 
 ### Operator objects
 

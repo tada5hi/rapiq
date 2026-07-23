@@ -70,7 +70,19 @@ export type FiltersBuildElemMatchInput<
     $size?: number,
 };
 
-type FiltersBuildKeyValueInput<
+/**
+ * Value grammar for a single key of the nested-object arm. Record-valued
+ * keys recurse into {@link FiltersBuildNestedInput} — the nested-object
+ * form only — rather than the full {@link FiltersBuildInput}. Recursing
+ * into the full input would re-enumerate the child's dotted relation paths
+ * at every nesting level, but the flat arm of {@link FiltersBuildInput}
+ * already lists each of those paths once; the repetition is pure redundancy
+ * that grows the inferred type super-linearly and, for deeply/cyclically
+ * related records, overflows declaration-emit serialization (#821). The
+ * `$elemMatch` interior deliberately keeps the full input — it opens a
+ * fresh filter scope over the element type.
+ */
+type FiltersBuildNestedKeyValueInput<
     V,
     DEPTH extends number,
 > = V extends Array<infer ELEMENT> ?
@@ -78,21 +90,49 @@ type FiltersBuildKeyValueInput<
         ELEMENT extends Date ?
             FiltersBuildValueInput<ELEMENT> :
             ELEMENT extends Record<PropertyKey, any> ?
-                FiltersBuildInput<ELEMENT, DEPTH> | FiltersBuildElemMatchInput<ELEMENT, DEPTH> :
+                FiltersBuildNestedInput<ELEMENT, DEPTH> | FiltersBuildElemMatchInput<ELEMENT, DEPTH> :
                 FiltersBuildValueInput<ELEMENT>
     ) :
     V extends Date ?
         FiltersBuildValueInput<V> :
         V extends Record<PropertyKey, any> ?
-            FiltersBuildInput<V, DEPTH> :
+            FiltersBuildNestedInput<V, DEPTH> :
             FiltersBuildValueInput<V>;
 
-export type FiltersBuildInput<
+/**
+ * The nested-object arm: every declared key of `T`, with record-valued keys
+ * recursing into the nested form only (dotted relation paths are the flat
+ * arm's job, see {@link FiltersBuildInput}). DEPTH bounds the recursion the
+ * same way the flat arm does.
+ */
+type FiltersBuildNestedInput<
     T extends ObjectLiteral = ObjectLiteral,
     DEPTH extends number = 5,
 > = [DEPTH] extends [0] ? never :
     {
-        [K in keyof T & string]?: FiltersBuildKeyValueInput<T[K], PrevIndex[DEPTH]>
-    } & {
+        [K in keyof T & string]?: FiltersBuildNestedKeyValueInput<T[K], PrevIndex[DEPTH]>
+    };
+
+/**
+ * Filter input for a record — two complementary arms, intersected:
+ *
+ *  - the nested-object arm ({@link FiltersBuildNestedInput}) —
+ *    `{ realm: { name: 'x' } }`;
+ *  - the flat dotted-key arm — `{ 'realm.name': 'x' }`, every relation path
+ *    reachable within DEPTH.
+ *
+ * The arms are kept disjoint: the nested arm does not re-enumerate its
+ * children's dotted paths (the flat arm already does, once). The only shape
+ * this drops versus a naive full recursion is the redundant mixed form
+ * `{ realm: { 'x.y': v } }` — write `{ 'realm.x.y': v }` (flat) or
+ * `{ realm: { x: { y: v } } }` (nested) instead. That disjointness is what
+ * keeps the inferred type serializable for deeply/cyclically related
+ * records (#821); the runtime still accepts the mixed form.
+ */
+export type FiltersBuildInput<
+    T extends ObjectLiteral = ObjectLiteral,
+    DEPTH extends number = 5,
+> = [DEPTH] extends [0] ? never :
+    FiltersBuildNestedInput<T, DEPTH> & {
         [K in NestedKeys<T, DEPTH>]?: FiltersBuildValueInput<TypeFromNestedKeyPath<T, K, DEPTH>>
     };
