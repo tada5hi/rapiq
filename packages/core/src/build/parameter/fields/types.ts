@@ -12,18 +12,25 @@ import type {
     ObjectLiteral,
     PrevIndex,
     SimpleKeys,
+    SimpleResourceKeys,
 } from '../../../types';
 
 type FieldWithOperator<T extends string> = KeyWithOptionalPrefix<T, FieldOperator>;
 
+// `SimpleResourceKeys` admits record/array-shaped keys — concrete-typed json
+// columns (e.g. `{ k: string }[]`), which are single columns at the database
+// level but which `SimpleKeys`/`NestedKeys` treat as recursable resources.
+// Listing the bare key selects the whole column, mirroring `defineSchema`
+// `fields` (FieldKeys). Relation keys are admitted too (structurally identical
+// at the type level) — list only column-backed keys; relations use `include`.
 export type FieldsBuildSimpleKeyInput<
     T extends ObjectLiteral = ObjectLiteral,
-> = FieldWithOperator<SimpleKeys<T>>;
+> = FieldWithOperator<SimpleKeys<T> | SimpleResourceKeys<T>>;
 
 export type FieldsBuildNestedKeyInput<
     T extends ObjectLiteral = ObjectLiteral,
     DEPTH extends number = 5,
-> = FieldWithOperator<NestedKeys<T, DEPTH>>;
+> = FieldWithOperator<NestedKeys<T, DEPTH> | SimpleResourceKeys<T>>;
 
 export type FieldsBuildRecordInput<
     T extends Record<PropertyKey, any>,

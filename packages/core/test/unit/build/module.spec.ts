@@ -317,6 +317,23 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
         expect(tuple.value.map((el) => el.name)).toEqual(['id', 'realm.name']);
     });
 
+    it('should select a concrete-typed json column as a whole field (#826)', () => {
+        type Row = {
+            id: string, 
+            name: string, 
+            args: { k: string }[] | null 
+        };
+
+        // the json column is a single DB column: listing the bare key selects it
+        // whole (previously rejected because it is not a SimpleKey / NestedKeys
+        // recurses into it as `args.k`).
+        const array = defineFields<Row>(['id', 'args']);
+        expect(array.value.map((el) => el.name)).toEqual(['id', 'args']);
+
+        const tuple = defineFields<Row>([['id', 'args'], {}]);
+        expect(tuple.value.map((el) => el.name)).toEqual(['id', 'args']);
+    });
+
     it('should desugar sort strings, arrays and records', () => {
         const single = defineSorts<User>('-age');
         expect(single.value.map((el) => [el.name, el.operator])).toEqual([
