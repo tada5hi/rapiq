@@ -12,6 +12,8 @@ import {
     FilterFieldOperator,
     Filters,
     Query,
+    Relation,
+    Relations,
     Sort,
     Sorts,
 } from '@rapiq/core';
@@ -172,5 +174,28 @@ describe('src/adapter (embedded columns)', () => {
             buildRelationAlias('role'),
             buildRelationAlias('role.realm'),
         ]);
+    });
+
+    it('should project an included relation once when a dotted embedded column behind it is selected (#831)', async () => {
+        // `role.profile.firstName` behind an included `role` builds the column
+        // string `<roleAlias>.profile.firstName` — a dotted embedded path. The
+        // join alias is the FIRST segment; the fields adapter must recognize it
+        // and drop the column, because `role` is join-and-selected as a whole
+        // subtree. Splitting on the last dot would keep it and re-project the
+        // embedded column, duplicating its output alias (MySQL rejects it).
+        const queryBuilder = createQueryBuilder(new Query({
+            fields: new Fields([new Field('id'), new Field('role.profile.firstName')]),
+            relations: new Relations([new Relation('role')]),
+        }));
+
+        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)].map((m) => m[1]);
+        const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+        expect(duplicates).toEqual([]);
+
+        // the included relation still hydrates as a whole subtree
+        const data = await queryBuilder.getMany();
+        const aston = data.find((user) => !!user.role);
+        expect(aston).toBeDefined();
+        expect(aston!.role.profile.firstName).toEqual('Ada');
     });
 });
