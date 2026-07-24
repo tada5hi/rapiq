@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.8](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.7...sql-v2.0.0-beta.8) (2026-07-24)
+
+
+### Bug Fixes
+
+* **typeorm:** hydrate included relations & allow json columns in fields ([#824](https://github.com/tada5hi/rapiq/issues/824)) ([#825](https://github.com/tada5hi/rapiq/issues/825)) ([6552d51](https://github.com/tada5hi/rapiq/commit/6552d518a755f27c0a3508e237a161050be67074))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.7 to ^2.0.0-beta.8
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.7 to ^2.0.0-beta.8
+
 ## [2.0.0-beta.7](https://github.com/tada5hi/rapiq/compare/sql-v2.0.0-beta.6...sql-v2.0.0-beta.7) (2026-07-22)
 
 

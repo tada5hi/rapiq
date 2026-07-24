@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.0-beta.8](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.7...core-v2.0.0-beta.8) (2026-07-24)
+
+
+### Bug Fixes
+
+* **core:** allow concrete-typed json columns in the fields build input ([#826](https://github.com/tada5hi/rapiq/issues/826)) ([#827](https://github.com/tada5hi/rapiq/issues/827)) ([39ee80b](https://github.com/tada5hi/rapiq/commit/39ee80b39df0cc3c78fd2d898a5ce8f8aec3c928))
+* **core:** stop filters build-input re-enumerating nested dotted paths ([#821](https://github.com/tada5hi/rapiq/issues/821)) ([#822](https://github.com/tada5hi/rapiq/issues/822)) ([ba4356e](https://github.com/tada5hi/rapiq/commit/ba4356ec98e8d59aa29b523d5321ddc2b88bfa63))
+* **typeorm:** hydrate included relations & allow json columns in fields ([#824](https://github.com/tada5hi/rapiq/issues/824)) ([#825](https://github.com/tada5hi/rapiq/issues/825)) ([6552d51](https://github.com/tada5hi/rapiq/commit/6552d518a755f27c0a3508e237a161050be67074))
+
 ## [2.0.0-beta.7](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.6...core-v2.0.0-beta.7) (2026-07-22)
 
 
