@@ -9,16 +9,13 @@ import { FieldsBaseAdapter } from '@rapiq/sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class FieldsAdapter extends FieldsBaseAdapter {
+export class FieldsAdapter extends FieldsBaseAdapter<RelationsAdapter> {
     protected queryBuilder : SelectQueryBuilder<any>;
-
-    protected relationsAdapter : RelationsAdapter;
 
     constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
         super(relations);
 
         this.queryBuilder = queryBuilder;
-        this.relationsAdapter = relations;
     }
 
     rootAlias(): string | undefined {
@@ -39,7 +36,7 @@ export class FieldsAdapter extends FieldsBaseAdapter {
         // the output alias (MySQL rejects it, #831). A relation joined only for a
         // filter/sort, or hydrated id-only ('key' mode), is NOT auto-selected, so
         // a field that references it stays and is projected sparsely.
-        const selected = this.relationsAdapter.fullySelectedRelationAliases();
+        const selected = this.relations.fullySelectedRelationAliases();
 
         const columns = this.getColumns().filter((column) => {
             // The join alias is always the FIRST dotted segment: relation aliases
