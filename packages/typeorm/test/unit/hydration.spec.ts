@@ -228,6 +228,104 @@ describe('src/adapter/relations (hydration)', () => {
         expect(schema.fields.default).toEqual(['id', 'name', 'data']);
     });
 
+    it('should hydrate an included relation id-only with hydrationMode: key', async () => {
+        // #828 escape: the relation is defined, but only its primary key is
+        // selected — the whole-subtree columns (name/args) stay unhydrated so
+        // the relation survives GROUP BY <root>.id on strict dialects.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('name')]),
+            relations: new Relations([new Relation('child')]),
+        }), { hydrationMode: 'key' });
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.name).toBeUndefined();
+        expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should emit a plain leftJoin selecting only the key under hydrationMode: key', () => {
+        const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+        new TypeormAdapter({ queryBuilder, relations: { hydrationMode: 'key' } })
+            .execute(new Query({ relations: new Relations([new Relation('child')]) }));
+
+        const sql = queryBuilder.getQuery();
+        const alias = queryBuilder.expressionMap.joinAttributes[0].alias.name;
+
+        // the child's key is selected, but its other columns are not
+        expect(sql).toContain(`"${alias}"."id"`);
+        expect(sql).not.toContain(`"${alias}"."name"`);
+        expect(sql).not.toContain(`"${alias}"."args"`);
+    });
+
+    it('should not re-select the key when a field already names it under hydrationMode: key', async () => {
+        // relations run after fields, so a `child.id` field path already selects
+        // the key the id-only mode would add. The guard must not add it a second
+        // time (otherwise the adapter multiplies duplicate SELECT columns).
+        const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+        new TypeormAdapter({ queryBuilder, relations: { hydrationMode: 'key' } })
+            .execute(new Query({
+                fields: new Fields([new Field('id'), new Field('child.id')]),
+                relations: new Relations([new Relation('child')]),
+            }));
+
+        const alias = queryBuilder.expressionMap.joinAttributes[0].alias.name;
+        const keySelects = queryBuilder.expressionMap.selects
+            .filter((select) => select.selection === `${alias}.id`);
+
+        // the adapter contributes exactly one key selection — the field's — and
+        // does not stack another on top
+        expect(keySelects).toHaveLength(1);
+
+        const parent = await queryBuilder.getOneOrFail();
+        expect(parent.child.id).toBeDefined();
+    });
+
+    it('should hydrate a nested include id-only with hydrationMode: key', async () => {
+        const parent = await run(
+            new Query({ relations: new Relations([new Relation('child.pet')]) }),
+            { hydrationMode: 'key' },
+        );
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.name).toBeUndefined();
+        expect(parent.child.pet).toBeDefined();
+        expect(parent.child.pet.id).toBeDefined();
+        expect(parent.child.pet.name).toBeUndefined();
+    });
+
+    it('should keep an id-only include defined under GROUP BY <root>.id', async () => {
+        // the motivating case (#828): grouped-root pagination + include. With the
+        // full subtree, postgres rejects the joined columns; id-only keeps the
+        // relation defined and every selected join column groupable.
+        const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+        new TypeormAdapter({
+            queryBuilder,
+            relations: {
+                hydrationMode: 'key',
+                onJoin: (_path, alias, qb) => qb.addGroupBy(`${alias}.id`),
+            },
+        }).execute(new Query({ relations: new Relations([new Relation('child')]) }));
+        queryBuilder.addGroupBy('parent.id');
+
+        const parent = await queryBuilder.getOneOrFail();
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.name).toBeUndefined();
+    });
+
+    it('should hydrate the whole subtree with hydrationMode: full (default)', async () => {
+        const parent = await run(
+            new Query({ relations: new Relations([new Relation('child')]) }),
+            { hydrationMode: 'full' },
+        );
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.name).toEqual('c');
+        expect(parent.child.args).toEqual([{ k: 'a' }]);
+    });
+
     it('should hydrate an include end-to-end when the target schema has no fields block', async () => {
         // mirrors the downstream crash (authup #3313 / FLAME Hub): a schema used
         // purely as an `include` target with no `fields` declaration, consumed

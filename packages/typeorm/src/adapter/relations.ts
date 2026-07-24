@@ -6,8 +6,10 @@
  */
 
 import { RelationsBaseAdapter, splitFirst } from '@rapiq/sql';
-import type { SelectQueryBuilder } from 'typeorm';
+import type { EntityMetadata, SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapterOptions } from './types';
+
+type RelationSelectMode = 'none' | 'full' | 'key';
 
 export class RelationsAdapter extends RelationsBaseAdapter {
     protected queryBuilder : SelectQueryBuilder<any>;
@@ -98,7 +100,8 @@ export class RelationsAdapter extends RelationsBaseAdapter {
                 this.applyJoin(
                     `${parentAlias}.${relationName}`,
                     alias,
-                    this.shouldSelect(path),
+                    this.selectMode(path),
+                    relation.inverseEntityMetadata,
                 );
 
                 if (this.options.onJoin) {
@@ -131,19 +134,64 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         return !!entry && !!entry.include;
     }
 
-    protected applyJoin(property: string, alias: string, andSelect: boolean) : void {
+    /**
+     * Resolve how a joined relation is materialized: `'none'` (plain join,
+     * unselected), `'full'` (whole subtree) or `'key'` (id-only). The
+     * `hydrationMode` option narrows every *hydrated* relation to its primary
+     * key so it survives `GROUP BY <root>.id` on strict dialects.
+     */
+    protected selectMode(path: string): RelationSelectMode {
+        if (!this.shouldSelect(path)) {
+            return 'none';
+        }
+
+        return this.options.hydrationMode === 'key' ? 'key' : 'full';
+    }
+
+    protected applyJoin(
+        property: string,
+        alias: string,
+        mode: RelationSelectMode,
+        target: EntityMetadata,
+    ) : void {
         const inner = this.options.joinType === 'inner';
 
-        if (andSelect) {
+        if (mode === 'full') {
             if (inner) {
                 this.queryBuilder.innerJoinAndSelect(property, alias);
             } else {
                 this.queryBuilder.leftJoinAndSelect(property, alias);
             }
-        } else if (inner) {
+
+            return;
+        }
+
+        // 'none' (filter/sort-only) or 'key' (id-only hydration): a plain join.
+        if (inner) {
             this.queryBuilder.innerJoin(property, alias);
         } else {
             this.queryBuilder.leftJoin(property, alias);
+        }
+
+        if (mode === 'key') {
+            // Selecting the primary key alone hydrates the relation object
+            // id-only (TypeORM's JoinAttribute.isSelected matches any selected
+            // `<alias>.<column>`), which strict dialects accept under GROUP BY.
+            // Guarded because relations run after fields: a `<relation>.<pk>`
+            // field path (or a full `<alias>` select) already covers the key,
+            // and re-adding it multiplies duplicate SELECT columns.
+            const { selects } = this.queryBuilder.expressionMap;
+
+            for (const column of target.primaryColumns) {
+                const selection = `${alias}.${column.propertyPath}`;
+                const selected = selects.some(
+                    (select) => select.selection === selection || select.selection === alias,
+                );
+
+                if (!selected) {
+                    this.queryBuilder.addSelect(selection);
+                }
+            }
         }
     }
 }
