@@ -31,7 +31,7 @@ IRelationVisitor<IRelationsAdapter> {
     }
 
     visitRelation(expr: Relation): IRelationsAdapter {
-        this.adapter.add(expr.name);
+        this.adapter.add(expr.name, { include: true });
 
         return this.adapter;
     }

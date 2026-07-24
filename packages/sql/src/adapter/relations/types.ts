@@ -8,8 +8,18 @@
 import type { RelationAliasFn } from '../../helpers';
 import type { ISubAdapter } from '../types';
 
+export type RelationAddOptions = {
+    /**
+     * Whether the relation was explicitly requested (`include`/`relations`)
+     * rather than only traversed by a field/filter/sort path. Explicit
+     * includes are hydrated by backends that materialize an object graph
+     * (e.g. `@rapiq/typeorm`), a join-for-filter is not.
+     */
+    include?: boolean,
+};
+
 export interface IRelationsAdapter extends ISubAdapter {
-    add(input: string): void;
+    add(input: string, options?: RelationAddOptions): void;
 
     buildAlias(path: string): string;
 

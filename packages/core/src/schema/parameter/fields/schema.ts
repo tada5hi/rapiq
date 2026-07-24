@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
+import type { FieldKeys, MaybeAsync, ObjectLiteral } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
@@ -63,7 +63,7 @@ export class FieldsSchema<
 
     // ---------------------------------------------------------
 
-    setDefault(input?: SimpleKeys<RECORD>[]) {
+    setDefault(input?: FieldKeys<RECORD>[]) {
         if (typeof input === 'undefined') {
             this.default = [];
             this.defaultIsUndefined = true;
@@ -74,7 +74,7 @@ export class FieldsSchema<
         this.defaultIsUndefined = false;
     }
 
-    setAllowed(input?: SimpleKeys<RECORD>[]) {
+    setAllowed(input?: FieldKeys<RECORD>[]) {
         if (typeof input === 'undefined') {
             this.allowed = [];
             this.allowedIsUndefined = true;

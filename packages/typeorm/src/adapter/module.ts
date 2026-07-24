@@ -56,6 +56,9 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
         query.accept(new QueryVisitor(this, options.visitor));
 
+        // ordering is load-bearing: fields.execute() calls queryBuilder.select()
+        // (which resets the select list), while relations.execute() *appends*
+        // join-and-selected relation columns — so fields must run first.
         this.fields.execute();
         this.filters.execute();
         this.pagination.execute();

@@ -6,15 +6,15 @@
  */
 
 import type { BaseSchemaOptions, KeyValidator } from '../../types';
-import type { SimpleKeys } from '../../../types';
+import type { FieldKeys } from '../../../types';
 
 export type FieldsOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
 > = BaseSchemaOptions & {
     mapping?: Record<string, string>,
-    allowed?: SimpleKeys<T>[],
-    default?: SimpleKeys<T>[],
+    allowed?: FieldKeys<T>[],
+    default?: FieldKeys<T>[],
     /**
      * Dynamic per-field gate, e.g. an actor permission check.
      * Runs once per client-requested field against the schema that

@@ -95,7 +95,11 @@ export class RelationsAdapter extends RelationsBaseAdapter {
             );
 
             if (!joined) {
-                this.applyJoin(`${parentAlias}.${relationName}`, alias);
+                this.applyJoin(
+                    `${parentAlias}.${relationName}`,
+                    alias,
+                    this.shouldSelect(path),
+                );
 
                 if (this.options.onJoin) {
                     this.options.onJoin(path, alias, this.queryBuilder);
@@ -109,10 +113,28 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         return true;
     }
 
-    protected applyJoin(property: string, alias: string) : void {
+    /**
+     * Whether the joined relation's columns should be selected (hydrated).
+     * An explicitly `include`d relation is always join-and-selected as a whole
+     * subtree — a sparse `relation.column` field never narrows it, matching the
+     * `@rapiq/memory` projection contract (#824). A relation joined purely for a
+     * filter/sort (not `include`d) stays a plain `leftJoin`, so its columns are
+     * selected only when a field references them.
+     */
+    protected shouldSelect(path: string): boolean {
+        if (this.options.joinAndSelect) {
+            return true;
+        }
+
+        const entry = this.value.find((join) => join.path === path);
+
+        return !!entry && !!entry.include;
+    }
+
+    protected applyJoin(property: string, alias: string, andSelect: boolean) : void {
         const inner = this.options.joinType === 'inner';
 
-        if (this.options.joinAndSelect) {
+        if (andSelect) {
             if (inner) {
                 this.queryBuilder.innerJoinAndSelect(property, alias);
             } else {
