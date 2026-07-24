@@ -10,6 +10,20 @@ import type { SelectQueryBuilder } from 'typeorm';
 
 export type RelationsAdapterJoinType = 'left' | 'inner';
 
+/**
+ * How much of a hydrated relation is selected.
+ *
+ * - `'full'` (default): the whole subtree — every column of the joined
+ *   relation is selected (`leftJoinAndSelect`), matching the
+ *   `@rapiq/memory` projection contract.
+ * - `'key'`: only the relation's primary key column(s) — a plain
+ *   `leftJoin` plus `addSelect(<alias>.<pk>)`, so the relation object is
+ *   hydrated **id-only**. Use this to keep an `include`d relation defined
+ *   under `GROUP BY <root>.id` on strict dialects (postgres), where the
+ *   full subtree's non-grouped columns are rejected.
+ */
+export type RelationsAdapterHydrationMode = 'full' | 'key';
+
 export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
     /**
      * Join strategy for relations.
@@ -17,6 +31,15 @@ export type RelationsAdapterOptions = RelationsAdapterBaseOptions & {
      * (matches typeorm-extension's leftJoinAndSelect behavior).
      */
     joinType?: RelationsAdapterJoinType,
+
+    /**
+     * Select granularity for relations the adapter hydrates (both
+     * `include`d relations and, with `joinAndSelect`, every joined one).
+     * Defaults to `'full'` (whole subtree). Set to `'key'` to select only
+     * the primary key so a hydrated relation survives `GROUP BY <root>.id`
+     * on strict dialects — see {@link RelationsAdapterHydrationMode}.
+     */
+    hydrationMode?: RelationsAdapterHydrationMode,
 
     /**
      * Invoked for every join this adapter applies (skipped joins,
