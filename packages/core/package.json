@@ -1,7 +1,7 @@
 {
     "name": "@rapiq/core",
     "version": "2.0.0-beta.9",
-    "description": "A tiny library which provides utility types/functions for request and response query handling.",
+    "description": "The rapiq foundation: typed query AST, defineQuery build layer, schema allow-list system & visitor interfaces.",
     "type": "module",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",
