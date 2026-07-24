@@ -87,6 +87,75 @@ jobs:
                 run: |
                     npm run test:coverage
 
+    tests-db:
+        # Runs the @rapiq/typeorm live-database specs (`*.db.spec.ts`, executed
+        # via `getMany()` against a real engine) so an engine-specific regression
+        # like MySQL rejecting a duplicate output alias (#831) can no longer hide
+        # behind the sqlite-only `tests` job. Scoped to the `.db.spec` files on
+        # purpose: the rest of the suite asserts dialect-specific SQL strings
+        # (escaping, placeholders, collation) that only hold on sqlite. The
+        # default `tests` job keeps sqlite + coverage on the Docker-free path.
+        name: Test Package (Database)
+        needs: [build]
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -   db: mysql
+                        port: 3306
+                        username: root
+                    -   db: postgres
+                        port: 5432
+                        username: postgres
+        services:
+            mysql:
+                image: mysql:9
+                env:
+                    MYSQL_ROOT_PASSWORD: start123
+                    MYSQL_DATABASE: test
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping -h 127.0.0.1 -pstart123"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+            postgres:
+                image: postgres:18
+                env:
+                    POSTGRES_PASSWORD: start123
+                    POSTGRES_DB: test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd="pg_isready -U postgres"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
+        env:
+            DB_TYPE: ${{ matrix.db }}
+            DB_HOST: 127.0.0.1
+            DB_PORT: ${{ matrix.port }}
+            DB_USERNAME: ${{ matrix.username }}
+            DB_PASSWORD: start123
+            DB_DATABASE: test
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Install
+                uses: ./.github/actions/install
+                with:
+                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+            -   name: Build
+                uses: ./.github/actions/build
+
+            -   name: Run tests
+                run: |
+                    npm run test:db --workspace=packages/typeorm
+
 #    preview:
 #        name: Preview Package
 #        needs: [build]

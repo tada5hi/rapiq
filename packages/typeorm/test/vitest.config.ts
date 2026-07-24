@@ -20,6 +20,12 @@ export default defineConfig({
         environment: 'node',
         setupFiles: ['reflect-metadata'],
         include: ['test/unit/**/*.{spec,test}.{ts,js}'],
+        // Against a real DB (DB_TYPE set) the specs share one persistent
+        // database, so run files serially to avoid workers racing each other's
+        // dropSchema/synchronize, and allow more time for container round-trips.
+        // sqlite (:memory:, per-worker) keeps the default parallel fast path.
+        fileParallelism: !process.env.DB_TYPE,
+        testTimeout: process.env.DB_TYPE ? 30000 : 5000,
         coverage: {
             provider: 'v8',
             include: ['src/**/*.{ts,tsx,js,jsx}'],
