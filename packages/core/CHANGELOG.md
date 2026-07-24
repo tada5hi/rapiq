@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.9](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.8...core-v2.0.0-beta.9) (2026-07-24)
+
+
+### Miscellaneous Chores
+
+* **core:** Synchronize rapiq versions
+
 ## [2.0.0-beta.8](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.7...core-v2.0.0-beta.8) (2026-07-24)
 
 
