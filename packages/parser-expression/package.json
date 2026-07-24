@@ -1,7 +1,7 @@
 {
     "name": "@rapiq/parser-expression",
     "version": "2.0.0-beta.9",
-    "description": "A package containing an expression parser",
+    "description": "Parse a function-call filter language (e.g. and(eq(name,'John'), gte(age,'18'))) into a rapiq query AST.",
     "type": "module",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",

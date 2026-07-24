@@ -1,7 +1,7 @@
 {
     "name": "@rapiq/sql",
     "version": "2.0.0-beta.9",
-    "description": "A SQL extension for rapiq.",
+    "description": "Render a rapiq query into parameterized SQL fragments (pg, mysql, sqlite, mssql & oracle presets).",
     "type": "module",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",
