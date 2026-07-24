@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.0.0-beta.9](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.8...typeorm-v2.0.0-beta.9) (2026-07-24)
+
+
+### Features
+
+* **typeorm:** add id-only relation hydration for grouped pagination ([#832](https://github.com/tada5hi/rapiq/issues/832)) ([2907723](https://github.com/tada5hi/rapiq/commit/2907723a09ced7145e4b8e256b4bb407ad754297)), closes [#828](https://github.com/tada5hi/rapiq/issues/828)
+
+
+### Bug Fixes
+
+* **typeorm:** stop double-projecting included relations ([#831](https://github.com/tada5hi/rapiq/issues/831)) ([#834](https://github.com/tada5hi/rapiq/issues/834)) ([842b96c](https://github.com/tada5hi/rapiq/commit/842b96c956c485ba945bd4a030f7206e57b8957e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.8 to ^2.0.0-beta.9
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.8 to ^2.0.0-beta.9
+    * @rapiq/sql bumped from ^2.0.0-beta.8 to ^2.0.0-beta.9
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.8 to ^2.0.0-beta.9
+    * @rapiq/sql bumped from ^2.0.0-beta.8 to ^2.0.0-beta.9
+
 ## [2.0.0-beta.8](https://github.com/tada5hi/rapiq/compare/typeorm-v2.0.0-beta.7...typeorm-v2.0.0-beta.8) (2026-07-24)
 
 
