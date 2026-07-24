@@ -5,8 +5,8 @@
 <h1 align="center">rapiq</h1>
 
 <p align="center">
-  <b>Typed REST queries — build, transport, validate, execute.</b><br>
-  Rapiq (<b>R</b>est <b>Api</b> <b>Q</b>uery) builds an efficient interface between applications —<br>
+  <b>Typed REST queries: build, transport, validate, execute.</b><br>
+  Rapiq (<b>R</b>est <b>Api</b> <b>Q</b>uery) builds an efficient interface between applications:<br>
   browser&nbsp;↔&nbsp;API just as well as service&nbsp;↔&nbsp;service. It defines a scheme for the request, but <b>not</b> for the response.
 </p>
 
@@ -41,34 +41,34 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 
 | Stage | What happens |
 |---|---|
-| **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })` — typed input in, query AST out |
+| **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })`: typed input in, query AST out |
 | **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
-| **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema` — allow-lists, defaults, mappings |
+| **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
 | **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`) or to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) |
 
-The two ends are just applications. A browser querying an API is the common case, but services compose the same way —
+The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
 an API gateway, for instance, validates an incoming query against its own schema, scopes it
 (`query.filters.and(...)`) and re-encodes it for the upstream service.
 
-- 🧭 **Typed end to end** — every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
-- 🛡️ **The receiving side has the last word** — a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
-- 🔁 **Loss-free transport** — within each codec dialect, `decode(encode(query))` restores the same query; outside its subset, encoding fails loudly with a typed error instead of silently changing semantics.
-- 🔌 **Any backend** — the AST is consumed through visitors: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, or applied straight to a TypeORM `SelectQueryBuilder`.
-- 📦 **Composable packages** — no monolith: install only what each side needs; `@rapiq/core` is the single shared foundation.
+- 🧭 **Typed end to end**: every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
+- 🛡️ **The receiving side has the last word**: a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
+- 🔁 **Loss-free transport**: within each codec dialect, `decode(encode(query))` restores the same query; outside its subset, encoding fails loudly with a typed error instead of silently changing semantics.
+- 🔌 **Any backend**: the AST is consumed through visitors: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, or applied straight to a TypeORM `SelectQueryBuilder`.
+- 📦 **Composable packages**: no monolith, install only what each side needs; `@rapiq/core` is the single shared foundation.
 
 ## Installation
 
-Version 2 splits the former single `rapiq` package into focused, composable `@rapiq/*` packages —
+Version 2 splits the former single `rapiq` package into focused, composable `@rapiq/*` packages:
 there is **no** `rapiq` umbrella package for v2, install only what you need
 (see [Packages](#packages) below; `@rapiq/core` is a peer dependency of every other package).
 
-Querying application — build queries and encode them as URL query strings:
+Querying application, build queries and encode them as URL query strings:
 
 ```bash
 npm install @rapiq/core @rapiq/codec-url
 ```
 
-Queried application — decode & validate incoming query input and apply it to the database:
+Queried application, decode & validate incoming query input and apply it to the database:
 
 ```bash
 npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
@@ -82,7 +82,7 @@ read the [docs](https://rapiq.tada5hi.net).
 ### Build 🔧
 
 The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query-ast) for a generic Record `<T>` with
-[defineQuery](https://rapiq.tada5hi.net/guide/building-queries) — typed input in, AST out, no magic value strings.
+[defineQuery](https://rapiq.tada5hi.net/guide/building-queries): typed input in, AST out, no magic value strings.
 Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects and
 [condition helpers](https://rapiq.tada5hi.net/guide/building-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
 queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merging-queries).

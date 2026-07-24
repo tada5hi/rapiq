@@ -1,7 +1,7 @@
 {
     "name": "@rapiq/memory",
     "version": "2.0.0-beta.9",
-    "description": "A package to evaluate queries against in-memory objects and arrays.",
+    "description": "Evaluate a rapiq query against in-memory objects & arrays by compiling the AST into plain functions.",
     "type": "module",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",

@@ -25,6 +25,7 @@
 - **Indentation**: 4 spaces.
 - **Linting**: `@tada5hi/eslint-config` (flat); locally disabled rules: `class-methods-use-this`, `no-continue`, `no-shadow`, `no-use-before-define`, `no-useless-constructor` (see root `eslint.config.mjs`).
 - Every source file starts with the copyright header block (copy it from a neighboring file).
+- **Prose & Markdown**: do not use em dashes (`—`) or en dashes (`–`) in written text (`README.md`, docs pages, code comments, commit/PR bodies). Reach for a colon when a clause explains or introduces, a semicolon or a full stop between independent clauses, or commas/parentheses for an aside. This keeps the READMEs especially consistent.
 
 ## Naming Conventions
 
