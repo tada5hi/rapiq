@@ -59,7 +59,7 @@ new TypeormAdapter({
 
 | Option | Description |
 |---|---|
-| `relations.joinAndSelect` | Hydrate **every** joined relation, including those joined only for a filter or sort. Off by default — an `include`d relation is still hydrated on its own (join-and-selected, or via its columns when a `fields` projection already covers it), while a relation joined purely for filtering/sorting stays unselected. |
+| `relations.joinAndSelect` | Hydrate **every** joined relation, including those joined only for a filter or sort. Off by default — an `include`d relation is always hydrated as a complete subtree (a sparse `fields` entry such as `child.name` never narrows it), while a relation joined purely for filtering/sorting stays unselected (its columns are hydrated only when a `fields` path references them). |
 | `relations.joinType` | `'left'` (default) or `'inner'`. Left joins keep records whose relation is absent. |
 | `relations.onJoin` | Invoked as `(path, alias, queryBuilder)` for every join the adapter applies — e.g. to `addGroupBy` per join when the root query is grouped. Skipped (pre-existing) joins don't trigger it. |
 | `relations.relationAlias` | Derive the join alias for a relation path (default: collision-free length-prefixed segments, e.g. `role.realm` → `r4_role_5_realm`). Filter/sort/field references resolve against the same derivation. |
