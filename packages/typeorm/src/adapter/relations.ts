@@ -69,6 +69,29 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         }
     }
 
+    /**
+     * Aliases of the relations `execute()` will join-*and-select* as a whole
+     * subtree — i.e. `selectMode(path) === 'full'`. Such a relation contributes
+     * every one of its columns through the join, so a field that also projects
+     * into it is redundant, and re-selecting the column duplicates its output
+     * alias, which MySQL rejects (#831). The fields adapter drops those columns.
+     *
+     * Deliberately keyed on `'full'`, not `shouldSelect`: an id-only `'key'`
+     * relation is a plain `leftJoin` that does NOT auto-select its columns, so a
+     * `<relation>.<column>` field there must stay in the explicit select.
+     */
+    fullySelectedRelationAliases() : Set<string> {
+        const output = new Set<string>();
+
+        for (const relation of this.value) {
+            if (this.selectMode(relation.path) === 'full') {
+                output.add(this.buildAlias(relation.path));
+            }
+        }
+
+        return output;
+    }
+
     protected join(input: string): boolean {
         let relationFullName : string | undefined = input;
         let path : string | undefined;

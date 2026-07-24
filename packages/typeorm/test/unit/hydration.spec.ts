@@ -243,6 +243,23 @@ describe('src/adapter/relations (hydration)', () => {
         expect(parent.child.args).toBeUndefined();
     });
 
+    it('should keep a projected relation column under hydrationMode: key', async () => {
+        // reconciliation guard between #831 and #828/#832: a 'key'-mode relation
+        // is a plain leftJoin that does NOT auto-select its columns, so a sparse
+        // `child.name` field must STAY projected. The #831 drop applies only to
+        // 'full' mode, where leftJoinAndSelect already emits every column — if it
+        // keyed on `shouldSelect` (true for both modes) it would wrongly strip
+        // this column and hydrate the relation without its requested field.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.name')]),
+            relations: new Relations([new Relation('child')]),
+        }), { hydrationMode: 'key' });
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.name).toEqual('c');    // sparse column kept
+        expect(parent.child.args).toBeUndefined(); // otherwise still id-only
+    });
+
     it('should emit a plain leftJoin selecting only the key under hydrationMode: key', () => {
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
         new TypeormAdapter({ queryBuilder, relations: { hydrationMode: 'key' } })
@@ -321,6 +338,41 @@ describe('src/adapter/relations (hydration)', () => {
             { hydrationMode: 'full' },
         );
 
+        expect(parent.child).toBeDefined();
+        expect(parent.child.name).toEqual('c');
+        expect(parent.child.args).toEqual([{ k: 'a' }]);
+    });
+
+    it('should project an included relation exactly once (no duplicate output alias)', async () => {
+        // Regression for #831: a schema with an explicit root `fields.default`
+        // (authup junction pattern) + an `include` used to project the joined
+        // relation TWICE — once via the schema-projected child fields in the
+        // explicit `select()`, once via `leftJoinAndSelect`'s full-entity
+        // expansion. MySQL rejects the duplicate output alias; sqlite/pg tolerate
+        // it, so this asserts on the generated SQL directly.
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<HChild>({ name: 'child', fields: { default: ['id', 'name'] } }));
+        registry.add(defineSchema<HParent>({
+            name: 'parent',
+            fields: { default: ['id', 'name'] },
+            relations: { allowed: ['child'] },
+            schemaMapping: { child: 'child' },
+        }));
+
+        const query = new SimpleParser(registry).parse(
+            { relations: ['child'] },
+            { schema: 'parent' },
+        );
+
+        const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+        new TypeormAdapter({ queryBuilder }).execute(query);
+
+        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)].map((m) => m[1]);
+        const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+        expect(duplicates).toEqual([]);
+
+        // the include still hydrates as a whole subtree (the json column comes through)
+        const parent = await queryBuilder.getOneOrFail();
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
         expect(parent.child.args).toEqual([{ k: 'a' }]);
