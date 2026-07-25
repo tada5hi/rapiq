@@ -96,6 +96,8 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 A schema's `fields` [validate hook](/guide/schemas#condition-verdicts) may gate a column with a condition, meaning *visible only on rows satisfying it*. The adapter cannot express that: a selection has to stay a bare `alias.property` for entity hydration, so the column is projected for **every** row and the gate has to be enforced on the fetched entities.
 
+The gate is compiled from the same AST the adapter walks, so the helper that applies it lives in [`@rapiq/memory`](/packages/memory), the package that evaluates conditions against plain objects. Install it alongside this one when a schema gates a field:
+
 ```typescript
 import { applyFieldConditions } from '@rapiq/memory';
 

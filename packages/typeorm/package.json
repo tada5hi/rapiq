@@ -33,6 +33,7 @@
     },
     "peerDependencies": {
         "@rapiq/core": "^2.0.0-beta.9",
+        "@rapiq/memory": "^2.0.0-beta.9",
         "@rapiq/sql": "^2.0.0-beta.9",
         "typeorm": "^1.1.0"
     },
@@ -64,5 +65,10 @@
     "bugs": {
         "url": "https://github.com/Tada5hi/rapiq/issues"
     },
-    "homepage": "https://github.com/Tada5hi/rapiq#readme"
+    "homepage": "https://github.com/Tada5hi/rapiq#readme",
+    "peerDependenciesMeta": {
+        "@rapiq/memory": {
+            "optional": true
+        }
+    }
 }
