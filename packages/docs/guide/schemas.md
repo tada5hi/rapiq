@@ -59,10 +59,10 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 
 | Parameter | Options |
 |---|---|
-| `fields` | `allowed`, `default`, `mapping` (alias → field), `validate` ([per-key hook](#validate-hooks--parse-context)) |
+| `fields` | `allowed`, `default`, `mapping` (alias → field), `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
 | `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)) |
-| `relations` | `allowed`, `mapping`, `validate` ([per-key hook](#validate-hooks--parse-context)) |
-| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` ([per-key hook](#validate-hooks--parse-context)) |
+| `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
+| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
 | `pagination` | `maxLimit` |
 
 Standalone factories exist for each parameter — `defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema` — useful when calling a single parameter parser directly.
@@ -119,7 +119,7 @@ typeorm-extension **disables** any parameter whose `allowed`/`default` options a
 
 ## Validate hooks & parse context
 
-Allow-lists are static — decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sort` sub-schemas may declare a hook that accepts or rejects each client-requested key with that context in hand:
+Allow-lists are static, decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sort` sub-schemas may declare a hook that answers for each client-requested key with that context in hand:
 
 ```typescript
 type Actor = { can: (permission: string) => Promise<boolean> };
@@ -139,16 +139,136 @@ const query = await parser.parseAsync(input, { schema: 'user', context: actor })
 const query = await codec.decodeAsync(req.query, { schema: 'user', context: actor });
 ```
 
-Semantics:
+### The verdict
+
+A hook is invoked once per resolved (alias-mapped, allow-listed) key and answers with one of:
+
+| Return value | Meaning |
+|---|---|
+| `true` (any truthy value that isn't a condition) | Accept the key. |
+| `false` / `undefined` (any falsy value) | Reject it: dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw). |
+| an `ICondition` | Accept the key, but mark its column **visible only on rows satisfying that condition**. `fields` only; see [Condition verdicts](#condition-verdicts). |
+| a `Promise` of any of the above | Same meaning, but the call must go through `parseAsync()` / `decodeAsync()`. |
+
+An inspect-only hook must therefore end with `return true`: a hook that falls off the end returns `undefined` and rejects every key.
+
+### Where the key sits: the scope argument
+
+Every hook receives a third argument describing *where* the key sits, so it can branch on position and not only on name:
+
+```typescript
+type KeyValidationScope = {
+    parameter: 'fields' | 'filters' | 'pagination' | 'relations' | 'sort',
+    path: string,       // dotted relation path of the governing schema; '' at the query root
+    schema?: string,    // registered name of that schema; undefined for an inline schema
+};
+```
+
+`parameter` lets one hook factory serve `fields` and `sort`. `path` distinguishes the positions a single schema occupies in one query: the root, `'items'`, `'items.realm'`. Here the `user` schema is reachable twice, and `email` is readable only on the collection itself, not when the same record hangs off an item:
+
+```typescript
+const userSchema = defineSchema<User, Actor>({
+    name: 'user',
+    fields: {
+        allowed: ['id', 'name', 'email'],
+        validate: (field, actor, scope) => field !== 'email' || scope.path === '',
+    },
+    relations: { allowed: ['items'] },
+    schemaMapping: { items: 'item' },
+});
+
+const itemSchema = defineSchema<Item, Actor>({
+    name: 'item',
+    fields: { allowed: ['id', 'title'] },
+    relations: { allowed: ['owner'] },
+    schemaMapping: { owner: 'user' },
+});
+
+// fields=email                 -> scope.path === ''             -> accepted
+// fields[items.owner]=email    -> scope.path === 'items.owner'  -> rejected
+```
+
+### Batched validation with `validateMany`
+
+Instead of `validate`, a sub-schema may declare `validateMany`, invoked **once per position** with every client key resolved there, so an authorization policy is compiled once instead of once per key:
+
+```typescript
+const userSchema = defineSchema<User, Actor>({
+    name: 'user',
+    fields: {
+        allowed: ['id', 'name', 'email', 'salary'],
+        validateMany: async (names, actor, scope) => {
+            const permitted = await actor.permittedFields(scope.schema, names);
+
+            return Object.fromEntries(
+                names.map((name) => [name, permitted.includes(name)]),
+            );
+        },
+    },
+});
+```
+
+- **The batching unit is (governing schema, relation path).** One registered schema governing two positions of the same query (the root and `items.owner`) is asked twice; each position is a distinct authorization question, and each call sees its own `scope`.
+- **`names` is the requested key set, not the effective projection.** Client-requested keys only, deduplicated, in the order they were recorded: never schema `default`s, never excluded fields (`-email`), never keys the allow-list already rejected.
+- **A key absent from the returned record is rejected**, mirroring the `undefined`-rejects rule of the per-key hook. Accepted keys must be echoed explicitly. Keys you were not asked about are ignored.
+- **The two hooks are mutually exclusive.** Declaring `validate` and `validateMany` on the same sub-schema throws a `SchemaError` (`ErrorCode.SCHEMA_KEY_VALIDATOR_CONFLICT`) when the schema is constructed, rather than silently shadowing one of them.
+
+### Condition verdicts
+
+A `fields` hook may answer with an `ICondition` instead of a boolean. The field is accepted and stays projected, but the condition rides along on the resulting `Field` node (`Field.condition`) and means: *this column is visible only on rows satisfying the condition*.
+
+```typescript
+import { eq } from '@rapiq/core';
+
+const userSchema = defineSchema<User, Actor>({
+    name: 'user',
+    fields: {
+        allowed: ['id', 'name', 'email', 'salary'],
+        // everyone may ask for salary; only same-realm rows reveal it
+        validate: (field, actor) => field !== 'salary' ||
+            eq('realm_id', actor.realmId),
+    },
+});
+```
+
+::: warning A condition gates the value of a column, never the row set
+The condition constrains **the value of that one field**. It never changes which rows the query returns, at the query root or under any relation path. Two rows that differ only in whether they satisfy the condition both come back; the gated column is simply absent from the one that doesn't. Anything else would turn a projection rule into a silent row filter.
+:::
+
+Where the gate is actually applied depends on the backend:
+
+| Backend | Behavior |
+|---|---|
+| [`@rapiq/memory`](/packages/memory) | Honours `Field.condition` **while projecting**: the property is dropped from records that don't satisfy it. |
+| [`@rapiq/sql`](/packages/sql), [`@rapiq/typeorm`](/packages/typeorm) | Project the column **unconditionally**. A selection has to stay a bare `alias.property` for entity hydration, so the gate cannot be pushed into the statement; it is applied **after the fetch**. |
+
+::: danger The SQL backends fail open
+On `@rapiq/sql` / `@rapiq/typeorm` the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
+
+```typescript
+import { applyFieldConditions } from '@rapiq/memory';
+
+const rows = await queryBuilder.getMany();
+const guarded = applyFieldConditions(query.fields, rows);
+```
+
+For genuinely secret columns, prefer rejecting the field outright (`return false`) over gating it: a rejected field never leaves the database.
+:::
+
+`sort` and `relations` have no column to gate, so a condition returned there is refused rather than silently ignored: it counts as a rejection and follows the failure policy. Narrowing the *rows* of an included relation is a separate, unrelated feature.
+
+A gate is server-side state and has no wire form, so a query carrying one cannot be encoded: `encode()` throws `FEATURE_UNSUPPORTED` (`fields:condition`) on both URL dialects rather than emitting the bare field name, which would hand the next hop an ungated column. This only affects re-encoding a query you decoded server-side, for example to build pagination links; strip the gated fields first, or rebuild the link from the original input. The schema-aware encode pass is unaffected, since it discards the conditions its own validation round trip derives.
+
+### Rules that apply to every hook
 
 - **Target-schema authorization.** Hooks run on the canonical (alias-resolved) key against the schema that governs it: `include=items.realm` invokes the *user* schema's hook with `items` and the *item* schema's hook with `realm` (resolved via `schemaMapping`). An include can never bypass the related schema's own gate.
 - **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sort` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches — evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
-- **Rejection follows the failure policy.** Return a truthy value to accept; `false`/`undefined` rejects — dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw). A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy — even when the relation was reached through a `filters`/`fields`/`sort` key.
+- **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sort` key.
 - **Client input only.** Schema `default`s are server-authored and bypass the hooks. Rejected keys are removed *after* parameter assembly, so `fields`/`sort` defaults do **not** re-materialize when a hook empties the selection.
 - **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
 - **The context is opaque** — typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
 
-The [filters `validate` hook](/guide/filters#schema-options) participates too: it now receives the same context as its second argument.
+The [filters `validate` hook](/guide/filters#schema-options) participates too: it receives the same context as its second argument. It has its own signature (it inspects, replaces or rejects a parsed `Filter`) and is not part of the key-validation hook pair described above.
 
 ## The registry & relations
 

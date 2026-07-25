@@ -5,8 +5,8 @@ Select which resource fields are returned — or extend/shrink the server's defa
 | | |
 |---|---|
 | URL key | `fields` |
-| AST nodes | `Fields` / `Field { name, operator? }` |
-| Schema options | `allowed`, `default`, `mapping` |
+| AST nodes | `Fields` / `Field { name, operator?, condition? }` |
+| Schema options | `allowed`, `default`, `mapping`, `validate` / `validateMany` |
 
 ## On the wire
 
@@ -82,6 +82,26 @@ defineSchema<User>({
 | `allowed` | Selectable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Selection when the client sends nothing (or only `+`/`-` modifiers). |
 | `mapping` | Alias → field translation applied before validation. |
+| `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks--parse-context): accept, reject, or gate a field per actor. |
+
+## Row-scoped fields
+
+A `validate` / `validateMany` hook may answer with a condition instead of a boolean. The field stays selected, but the condition lands on the `Field` node as `Field.condition` and marks the column **visible only on rows satisfying it**:
+
+```typescript
+import { eq } from '@rapiq/core';
+
+defineSchema<User, Actor>({
+    name: 'user',
+    fields: {
+        allowed: ['id', 'name', 'salary'],
+        validate: (field, actor) => field !== 'salary' ||
+            eq('realm_id', actor.realmId),
+    },
+});
+```
+
+The gate never removes a row; it only blanks a column on the rows that fail it. `@rapiq/memory` applies it while projecting; the SQL backends project the column and rely on a post-fetch pass. Details and the fail-open caveat: [Condition verdicts](/guide/schemas#condition-verdicts).
 
 ## On violation
 

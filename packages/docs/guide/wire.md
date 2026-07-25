@@ -98,6 +98,7 @@ Every wire dialect expresses a subset of the query AST. Inside that subset, `dec
 | Commas / simple operator markers in values | ✗ throws | ✓ (quoted) |
 | `elemMatch` (incl. the `ITSELF` element marker, wire spelling `$this`) | ✗ throws | ✓ |
 | `regex` / `mod` / `exists` | ✗ throws | ✗ throws |
+| [`Field.condition`](/guide/schemas#condition-verdicts) (row-scoped fields) | ✗ throws | ✗ throws |
 
 ## Schema-aware transport
 
