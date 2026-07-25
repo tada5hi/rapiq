@@ -21,7 +21,12 @@ import {
     SimpleURLEncoder,
 } from '../../simple/encoder';
 import { URLParameter } from '../../constants';
-import { buildQueryParameters, intersectQueryParameters, isSchemaAware } from '../../utils';
+import {
+    buildQueryParameters,
+    intersectQueryParameters,
+    isSchemaAware,
+    stripQueryFieldConditions,
+} from '../../utils';
 import { ExpressionURLDecoder } from '../decoder';
 import { serializeFiltersExpression } from './filters';
 
@@ -75,7 +80,7 @@ export class ExpressionURLEncoder {
             return null;
         }
 
-        return this.encodeParts(decoded, parameters);
+        return this.encodeParts(stripQueryFieldConditions(decoded), parameters);
     }
 
     async encodeAsync(
@@ -97,7 +102,7 @@ export class ExpressionURLEncoder {
             return null;
         }
 
-        return this.encodeParts(decoded, parameters);
+        return this.encodeParts(stripQueryFieldConditions(decoded), parameters);
     }
 
     encodeFields(input: IFields, options: ParseParameterOptions = {}) {
