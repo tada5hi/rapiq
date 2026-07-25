@@ -43,6 +43,7 @@ export class SimpleRelationsParser extends BaseParser<
         const { output, scope } = this.build(input, options, ledger);
 
         return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));
@@ -58,6 +59,7 @@ export class SimpleRelationsParser extends BaseParser<
         const { output, scope } = this.build(input, options, ledger);
 
         return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));

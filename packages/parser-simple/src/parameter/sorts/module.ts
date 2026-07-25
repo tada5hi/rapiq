@@ -40,6 +40,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const { output, scope } = this.build(input, options, ledger);
 
         return pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as SortSchema<RECORD>);
@@ -55,6 +56,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
         return pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as SortSchema<RECORD>);
@@ -93,6 +95,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
 
         return {
             output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
+                parameter: Parameter.SORT,
                 throwOnFailure: scope.throwOnFailure,
                 errors: SortParseError,
             })),
@@ -113,6 +116,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
 
         return {
             output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
+                parameter: Parameter.SORT,
                 throwOnFailure: scope.throwOnFailure,
                 errors: SortParseError,
             })),

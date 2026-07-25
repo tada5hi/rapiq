@@ -100,6 +100,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as FiltersSchema<RECORD>);
@@ -116,6 +117,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as FiltersSchema<RECORD>);

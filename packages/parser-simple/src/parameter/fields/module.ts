@@ -21,6 +21,7 @@ import {
     pruneFieldsByRelations,
 } from '@rapiq/core';
 import type {
+    ICondition,
     IFields,
     ObjectLiteral,
     PendingKeyValidation,
@@ -41,6 +42,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const { output, scope } = this.build(input, options, ledger);
 
         return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));
@@ -56,6 +58,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
         return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));
@@ -97,12 +100,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
+        const conditions = new Map<string, ICondition>();
 
         return {
             output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
+                parameter: Parameter.FIELDS,
                 throwOnFailure: scope.throwOnFailure,
                 errors: FieldsParseError,
-            })),
+                conditions,
+            }), conditions),
             scope,
         };
     }
@@ -117,12 +123,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
+        const conditions = new Map<string, ICondition>();
 
         return {
             output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
+                parameter: Parameter.FIELDS,
                 throwOnFailure: scope.throwOnFailure,
                 errors: FieldsParseError,
-            })),
+                conditions,
+            }), conditions),
             scope,
         };
     }
@@ -141,14 +150,31 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         });
     }
 
-    protected prune(fields: IFields, rejected: string[]) : IFields {
-        if (rejected.length === 0) {
+    /**
+     * Drop the rejected fields and attach the visibility condition of every
+     * condition-gated one. The gated field stays projected: its condition
+     * only restricts on which rows the value is visible, and is applied
+     * after the fetch (`@rapiq/memory` honours it while projecting).
+     */
+    protected prune(
+        fields: IFields,
+        rejected: string[],
+        conditions: Map<string, ICondition>,
+    ) : IFields {
+        if (rejected.length === 0 && conditions.size === 0) {
             return fields;
         }
 
-        return new Fields(fields.value.filter(
-            (field) => !rejected.includes(field.name),
-        ));
+        return new Fields(fields.value
+            .filter((field) => !rejected.includes(field.name))
+            .map((field) => {
+                const condition = conditions.get(field.name);
+                if (!condition) {
+                    return field;
+                }
+
+                return new Field(field.name, field.operator, condition);
+            }));
     }
 
     protected parseWithScope<

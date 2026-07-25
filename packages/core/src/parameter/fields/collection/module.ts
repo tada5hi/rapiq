@@ -71,10 +71,10 @@ export class Fields implements IFields {
             options.allowed.length === 0
         ) {
             if (explicates.length > 0) {
-                return new Fields(this.toUnique(explicates).map((item) => new Field(item)));
+                return new Fields(this.toUnique(explicates).map((item) => this.rebuild(item)));
             }
 
-            return new Fields(this.toUnique(includes).map((item) => new Field(item)));
+            return new Fields(this.toUnique(includes).map((item) => this.rebuild(item)));
         }
 
         const output : string[] = [];
@@ -95,8 +95,20 @@ export class Fields implements IFields {
             this.applyExcludes(
                 this.toUnique(output),
                 excludes,
-            ).map((el) => new Field(el)),
+            ).map((el) => this.rebuild(el)),
         );
+    }
+
+    /**
+     * Rebuild the resolved field `name`. The include/exclude operator is
+     * deliberately consumed (execute() resolves it), but a visibility
+     * condition is orthogonal metadata and must survive, so a gated field
+     * cannot lose its gate by being run through the projection resolver.
+     */
+    protected rebuild(name: string) : IField {
+        const source = this.value.find((item) => item.name === name);
+
+        return new Field(name, undefined, source?.condition);
     }
 
     protected toUnique(input: string[]) : string[] {

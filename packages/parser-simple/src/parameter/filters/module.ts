@@ -56,6 +56,7 @@ export class SimpleFiltersParser extends BaseParser<
         const { output, scope } = this.build(input, options, ledger);
 
         return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as FiltersSchema<RECORD>);
@@ -69,6 +70,7 @@ export class SimpleFiltersParser extends BaseParser<
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
         return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }), scope.schema as FiltersSchema<RECORD>);
