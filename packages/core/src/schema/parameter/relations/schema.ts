@@ -5,31 +5,24 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { MaybeAsync, ObjectLiteral } from '../../../types';
-import { BaseSchema } from '../../base';
+import { Parameter } from '../../../constants';
+import type { ObjectLiteral } from '../../../types';
+import { BaseKeyValidatableSchema } from '../../key-validatable';
 import type { RelationsOptions } from './types';
 
 export class RelationsSchema<
     T extends ObjectLiteral = ObjectLiteral,
     CONTEXT = any,
-> extends BaseSchema<RelationsOptions<T, CONTEXT>> {
+> extends BaseKeyValidatableSchema<RelationsOptions<T, CONTEXT>> {
+    constructor(input: RelationsOptions<T, CONTEXT> = {}) {
+        super(input, Parameter.RELATIONS);
+    }
+
     get allowed() {
         return this.options.allowed;
     }
 
     get mapping() {
         return this.options.mapping || {};
-    }
-
-    hasValidator() {
-        return typeof this.options.validate !== 'undefined';
-    }
-
-    validate(name: string, context: CONTEXT) : MaybeAsync<boolean | undefined> {
-        if (typeof this.options.validate === 'undefined') {
-            return true;
-        }
-
-        return this.options.validate(name, context);
     }
 }

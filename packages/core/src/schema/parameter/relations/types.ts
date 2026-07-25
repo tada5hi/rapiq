@@ -6,12 +6,12 @@
  */
 
 import type { SimpleResourceKeys } from '../../../types';
-import type { BaseSchemaOptions, KeyValidator } from '../../types';
+import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
 
 export type RelationsOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
-> = BaseSchemaOptions & {
+> = KeyValidatableSchemaOptions<CONTEXT> & {
     allowed?: SimpleResourceKeys<T>[],
     includeParents?: boolean | string[] | string,
     // maps input name to local name
@@ -24,6 +24,18 @@ export type RelationsOptions<
      * `include=client.realm` invokes the root schema's hook with
      * `client` and the client schema's hook with `realm`. Rejecting
      * a relation also drops every deeper relation reached through it.
+     *
+     * A relation is not a column, so there is nothing for an
+     * `ICondition` answer to gate and it counts as a rejection.
+     * Row-level narrowing of an included relation is tracked in #810.
+     * Mutually exclusive with {@link RelationsOptions.validateMany}.
      */
     validate?: KeyValidator<CONTEXT>,
+    /**
+     * Batched form of {@link RelationsOptions.validate}: called once per
+     * relation position with every relation this schema governs there.
+     * A relation missing from the returned record is rejected.
+     * Mutually exclusive with `validate`.
+     */
+    validateMany?: KeyValidatorMany<CONTEXT>,
 };

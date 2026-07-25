@@ -5,17 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { FieldKeys, MaybeAsync, ObjectLiteral } from '../../../types';
+import { Parameter } from '../../../constants';
+import type { FieldKeys, ObjectLiteral } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
 import type { FieldsOptions } from './types';
-import { BaseSchema } from '../../base';
+import { BaseKeyValidatableSchema } from '../../key-validatable';
 
 export class FieldsSchema<
     RECORD extends ObjectLiteral = ObjectLiteral,
     CONTEXT = any,
-> extends BaseSchema<FieldsOptions<RECORD, CONTEXT>> {
+> extends BaseKeyValidatableSchema<FieldsOptions<RECORD, CONTEXT>> {
     public default : string[];
 
     public defaultIsUndefined : boolean;
@@ -29,7 +30,7 @@ export class FieldsSchema<
     // ---------------------------------------------------------
 
     constructor(input: FieldsOptions<RECORD, CONTEXT> = {}) {
-        super(input);
+        super(input, Parameter.FIELDS);
 
         this.allowed = [];
         this.allowedIsUndefined = true;
@@ -92,18 +93,6 @@ export class FieldsSchema<
     }
 
     // ---------------------------------------------------------
-
-    hasValidator() {
-        return typeof this.options.validate !== 'undefined';
-    }
-
-    validate(name: string, context: CONTEXT) : MaybeAsync<boolean | undefined> {
-        if (typeof this.options.validate === 'undefined') {
-            return true;
-        }
-
-        return this.options.validate(name, context);
-    }
 
     /**
      * Check whether a name exists for a group.

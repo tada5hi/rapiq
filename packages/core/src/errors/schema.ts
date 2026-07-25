@@ -33,6 +33,13 @@ export class SchemaError extends BaseError {
         });
     }
 
+    static keyValidatorConflict(parameter: string) {
+        return new this({
+            message: `The ${parameter} schema declares both validate and validateMany.`,
+            code: ErrorCode.SCHEMA_KEY_VALIDATOR_CONFLICT,
+        });
+    }
+
     static validatorAsyncRequiresAsyncParser() {
         return new this({
             message: 'Asynchronous schema validators require parseAsync().',

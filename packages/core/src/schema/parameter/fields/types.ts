@@ -5,13 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { BaseSchemaOptions, KeyValidator } from '../../types';
+import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
 import type { FieldKeys } from '../../../types';
 
 export type FieldsOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
-> = BaseSchemaOptions & {
+> = KeyValidatableSchemaOptions<CONTEXT> & {
     mapping?: Record<string, string>,
     allowed?: FieldKeys<T>[],
     default?: FieldKeys<T>[],
@@ -20,6 +20,19 @@ export type FieldsOptions<
      * Runs once per client-requested field against the schema that
      * governs it (the target schema for dotted keys). Schema defaults
      * bypass the hook.
+     *
+     * Answering with an `ICondition` keeps the field and marks it
+     * visible only on rows satisfying that condition. The condition is
+     * carried on the resulting `Field` node and never narrows the row
+     * set. Mutually exclusive with {@link FieldsOptions.validateMany}.
      */
     validate?: KeyValidator<CONTEXT>,
+    /**
+     * Batched form of {@link FieldsOptions.validate}: called once per
+     * relation position with every client-requested field this schema
+     * governs there, so an authorization policy can be compiled once
+     * instead of once per field. A field missing from the returned
+     * record is rejected. Mutually exclusive with `validate`.
+     */
+    validateMany?: KeyValidatorMany<CONTEXT>,
 };

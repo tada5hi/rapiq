@@ -34,6 +34,8 @@ export enum ErrorCode {
 
     SCHEMA_ENTITY_MISMATCH = 'schemaEntityMismatch',
 
+    SCHEMA_KEY_VALIDATOR_CONFLICT = 'schemaKeyValidatorConflict',
+
     SCHEMA_NAME_INVALID = 'schemaNameInvalid',
 
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
