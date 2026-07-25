@@ -12,11 +12,12 @@ import {
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
-import type { 
-    IFilter, 
-    ISorts, 
-    Relations, 
-    SchemaError, 
+import type {
+    IFilter,
+    ISorts,
+    KeyValidationScope,
+    Relations,
+    SchemaError,
 } from '@rapiq/core';
 import {
     SimpleFieldsParser,
@@ -31,6 +32,25 @@ type Actor = {
 };
 
 const actor : Actor = { permissions: ['realm_read'] };
+
+/**
+ * The scope handed to a relations hook for a root-level relation of an
+ * inline (unregistered, therefore unnamed) schema.
+ */
+const INLINE_ROOT_SCOPE : KeyValidationScope = {
+    parameter: 'relations',
+    path: '',
+    schema: undefined,
+};
+
+/**
+ * Same position, but governed by the registered `user` schema.
+ */
+const USER_ROOT_SCOPE : KeyValidationScope = {
+    parameter: 'relations',
+    path: '',
+    schema: 'user',
+};
 
 function relationNames(input: Relations) : string[] {
     return input.value.map((relation) => relation.name);
@@ -67,8 +87,8 @@ describe('schema validate hooks with parse context', () => {
             const output = parser.parse(['realm', 'items'], { schema, context: actor });
             expect(relationNames(output)).toEqual(['realm', 'items']);
             expect(validate).toHaveBeenCalledTimes(2);
-            expect(validate).toHaveBeenCalledWith('realm', actor);
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('realm', actor, INLINE_ROOT_SCOPE);
+            expect(validate).toHaveBeenCalledWith('items', actor, INLINE_ROOT_SCOPE);
         });
 
         it('should invoke the hook with an undefined context by default', () => {
@@ -76,7 +96,7 @@ describe('schema validate hooks with parse context', () => {
             const schema = defineSchema({ relations: { allowed: ['realm'], validate } });
 
             parser.parse(['realm'], { schema });
-            expect(validate).toHaveBeenCalledWith('realm', undefined);
+            expect(validate).toHaveBeenCalledWith('realm', undefined, INLINE_ROOT_SCOPE);
         });
 
         it('should validate deep paths against the target schema', () => {
@@ -101,9 +121,14 @@ describe('schema validate hooks with parse context', () => {
             });
 
             expect(relationNames(output)).toEqual(['items', 'items.realm']);
-            expect(rootValidate).toHaveBeenCalledWith('realm', actor);
-            expect(rootValidate).toHaveBeenCalledWith('items', actor);
-            expect(itemValidate).toHaveBeenCalledWith('realm', actor);
+            expect(rootValidate).toHaveBeenCalledWith('realm', actor, USER_ROOT_SCOPE);
+            expect(rootValidate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
+            // the nested hook sees the path of its own (governing) schema.
+            expect(itemValidate).toHaveBeenCalledWith('realm', actor, {
+                parameter: 'relations',
+                path: 'items',
+                schema: 'item',
+            });
         });
 
         it('should drop descendants of a rejected relation', () => {
@@ -138,7 +163,7 @@ describe('schema validate hooks with parse context', () => {
 
             const output = parser.parse(['abc'], { schema, context: actor });
             expect(relationNames(output)).toEqual([]);
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, INLINE_ROOT_SCOPE);
         });
 
         it('should keep a dotted mapping target accepted by the hook', () => {
@@ -153,7 +178,7 @@ describe('schema validate hooks with parse context', () => {
 
             const output = parser.parse(['abc'], { schema, context: actor });
             expect(relationNames(output)).toEqual(['items.realm']);
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, INLINE_ROOT_SCOPE);
         });
 
         it('should invoke the hook once for duplicated input', () => {
@@ -356,8 +381,8 @@ describe('schema validate hooks with parse context', () => {
             );
 
             expect(relationNames(output.relations as Relations)).toEqual(['realm']);
-            expect(validate).toHaveBeenCalledWith('realm', actor);
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('realm', actor, USER_ROOT_SCOPE);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
         });
     });
 });

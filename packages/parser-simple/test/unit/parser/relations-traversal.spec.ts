@@ -11,7 +11,7 @@ import {
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
-import type { IFilters, IQuery } from '@rapiq/core';
+import type { IFilters, IQuery, KeyValidationScope } from '@rapiq/core';
 import {
     SimpleFieldsParser,
     SimpleFiltersParser,
@@ -24,11 +24,25 @@ type Actor = { permissions: string[] };
 const actor : Actor = { permissions: ['realm_read'] };
 
 /**
+ * Every relation below sits directly on the (registered) user schema, so the
+ * hook always sees the relations parameter at the query root.
+ */
+const USER_ROOT_SCOPE : KeyValidationScope = {
+    parameter: 'relations',
+    path: '',
+    schema: 'user',
+};
+
+/**
  * user → { realm, items(item) }, item → { realm }. The relations validate hook
  * of the user schema is supplied per test; item/realm relations are open.
  */
 function buildRegistry(
-    validate: (name: string, context: Actor) => boolean | undefined | Promise<boolean | undefined>,
+    validate: (
+        name: string,
+        context: Actor,
+        scope: KeyValidationScope,
+    ) => boolean | undefined | Promise<boolean | undefined>,
     throwOnFailure = false,
 ) : SchemaRegistry {
     const registry = new SchemaRegistry();
@@ -100,7 +114,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(filterFields(query.filters)).toEqual([]);
         });
 
@@ -113,7 +127,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(fieldNames(query)).not.toContain('items.id');
         });
 
@@ -126,7 +140,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(sortNames(query)).not.toContain('items.id');
         });
 
@@ -141,7 +155,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(fieldNames(query)).not.toContain('items.id');
         });
 
@@ -192,7 +206,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(filterFields(query.filters)).toEqual([]);
             expect(sortNames(query)).not.toContain('items.realm.name');
         });
@@ -254,7 +268,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 { schema: 'user', context: actor },
             );
 
-            expect(validate).toHaveBeenCalledWith('items', actor);
+            expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
             expect(filterFields(query.filters)).toEqual([]);
             expect(fieldNames(query)).not.toContain('items.id');
         });
@@ -317,7 +331,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                     { schema: 'user', context: actor },
                 );
 
-                expect(validate).toHaveBeenCalledWith('items', actor);
+                expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
                 expect(filterFields(output)).toEqual([]);
             });
         }
