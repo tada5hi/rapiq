@@ -110,12 +110,8 @@ describe('src/adapter/module.ts (runners)', () => {
 
         // rejections, never synchronous throws: every runner returns a
         // promise, so a .catch() must observe the failure.
-        await expect(adapter.findMany(query)).rejects.toMatchObject({
-            code: ErrorCode.FEATURE_UNSUPPORTED,
-        });
-        await expect(adapter.count(query)).rejects.toMatchObject({
-            code: ErrorCode.FEATURE_UNSUPPORTED,
-        });
+        await expect(adapter.findMany(query)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
+        await expect(adapter.count(query)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
     });
 
     it('should reject typed for a model object that cannot run', async () => {
@@ -132,9 +128,7 @@ describe('src/adapter/module.ts (runners)', () => {
         });
 
         expect(adapter.execute(query).args.where).toBeDefined();
-        await expect(adapter.findMany(query)).rejects.toMatchObject({
-            code: ErrorCode.FEATURE_UNSUPPORTED,
-        });
+        await expect(adapter.findMany(query)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
     });
 });
 
