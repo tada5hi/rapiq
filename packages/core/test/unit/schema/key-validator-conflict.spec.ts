@@ -90,10 +90,8 @@ describe('src/schema/base.ts', () => {
         it('should accept every key when no hook is declared', () => {
             const schema = defineSortSchema({ allowed: ['id'] });
 
-            const scope = { parameter: Parameter.SORT, path: '' };
-
-            expect(schema.validate('id', undefined, scope)).toBe(true);
-            expect(schema.validateMany(['id'], undefined, scope)).toEqual({});
+            expect(schema.validate('id', undefined)).toBe(true);
+            expect(schema.validateMany(['id'], undefined)).toEqual({});
         });
     });
 });

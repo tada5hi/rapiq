@@ -11,7 +11,6 @@ import type { ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
 import { isFilter, isFilters } from '../../parameter';
 import type {
-    KeyValidationScope,
     KeyValidationVerdict,
     KeyValidationVerdictRecord,
 } from '../../schema';
@@ -28,23 +27,28 @@ export type KeyValidatableSchema = {
     /**
      * The parameter this schema governs. Declared once by the schema
      * (the sub-schema classes set it in their constructors) — the
-     * driver derives {@link KeyValidationScope.parameter} and the
-     * condition rules from it, per entry, so mixed obligation pools
-     * (a relation ledger fed by every parameter) need no caller-side
-     * annotation.
+     * driver derives the condition rules from it per entry, so mixed
+     * obligation pools (a relation ledger fed by every parameter) need
+     * no caller-side annotation.
      */
     readonly parameter: `${Parameter}`,
     hasValidator() : boolean,
     hasManyValidator?() : boolean,
+    /**
+     * The caller supplies only the dotted relation path of the position
+     * being validated (`''`, the default, at the query root); the schema
+     * completes the {@link KeyValidationScope} its hook receives from
+     * what it already knows about itself.
+     */
     validate(
         name: string,
         context: any,
-        scope: KeyValidationScope,
+        path?: string,
     ) : MaybeAsync<KeyValidationVerdict>,
     validateMany?(
         names: string[],
         context: any,
-        scope: KeyValidationScope,
+        path?: string,
     ) : MaybeAsync<KeyValidationVerdictRecord>,
 };
 
@@ -110,13 +114,13 @@ export function applyKeySchemaValidation(
             const record = batches.resolve(
                 entry,
                 entries,
-                (schema, names, scope) => refuseAsync(schema.validateMany!(names, context, scope)),
+                (schema, names, path) => refuseAsync(schema.validateMany!(names, context, path)),
             );
 
             verdict = refuseAsync(readVerdict(record, entry.key));
         } else {
             verdict = refuseAsync(
-                entry.schema.validate(entry.key, context, scopeOf(entry)),
+                entry.schema.validate(entry.key, context, scopePathOf(entry)),
             );
         }
 
@@ -157,12 +161,12 @@ export async function applyKeySchemaValidationAsync(
             const record = await batches.resolveAsync(
                 entry,
                 entries,
-                (schema, names, scope) => schema.validateMany!(names, context, scope),
+                (schema, names, path) => schema.validateMany!(names, context, path),
             );
 
             verdict = await readVerdict(record, entry.key);
         } else {
-            verdict = await entry.schema.validate(entry.key, context, scopeOf(entry));
+            verdict = await entry.schema.validate(entry.key, context, scopePathOf(entry));
         }
 
         if (!settle(verdict, entry, options)) {
@@ -198,7 +202,7 @@ class BatchCache {
         run: (
             schema: KeyValidatableSchema,
             names: string[],
-            scope: KeyValidationScope,
+            path: string,
         ) => KeyValidationVerdictRecord,
     ) : KeyValidationVerdictRecord {
         const path = scopePathOf(entry);
@@ -210,7 +214,7 @@ class BatchCache {
         const record = run(
             entry.schema,
             batchKeys(entries, entry.schema, path),
-            scopeOf(entry),
+            path,
         );
 
         return this.write(entry.schema, path, record);
@@ -222,7 +226,7 @@ class BatchCache {
         run: (
             schema: KeyValidatableSchema,
             names: string[],
-            scope: KeyValidationScope,
+            path: string,
         ) => MaybeAsync<KeyValidationVerdictRecord>,
     ) : Promise<KeyValidationVerdictRecord> {
         const path = scopePathOf(entry);
@@ -234,7 +238,7 @@ class BatchCache {
         const record = await run(
             entry.schema,
             batchKeys(entries, entry.schema, path),
-            scopeOf(entry),
+            path,
         );
 
         return this.write(entry.schema, path, record);
@@ -290,14 +294,6 @@ function scopePathOf(entry: PendingKeyValidation) : string {
     }
 
     return entry.path.slice(0, offset);
-}
-
-function scopeOf(entry: PendingKeyValidation) : KeyValidationScope {
-    return {
-        parameter: entry.schema.parameter,
-        path: scopePathOf(entry),
-        schema: entry.schema.name,
-    };
 }
 
 /**

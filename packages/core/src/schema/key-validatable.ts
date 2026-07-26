@@ -58,27 +58,41 @@ export class BaseKeyValidatableSchema<
         return typeof this.options.validateMany !== 'undefined';
     }
 
+    /**
+     * Invoke the per-key hook for `name`. The caller supplies only the
+     * dotted relation path of the position being validated (`''` at the
+     * query root) — the schema completes the hook scope from what it
+     * already knows about itself (its parameter, its registered name).
+     */
     validate(
         name: string,
         context: any,
-        scope: KeyValidationScope,
+        path = '',
     ) : MaybeAsync<KeyValidationVerdict> {
         if (typeof this.options.validate === 'undefined') {
             return true;
         }
 
-        return this.options.validate(name, context, scope);
+        return this.options.validate(name, context, this.scope(path));
     }
 
     validateMany(
         names: string[],
         context: any,
-        scope: KeyValidationScope,
+        path = '',
     ) : MaybeAsync<KeyValidationVerdictRecord> {
         if (typeof this.options.validateMany === 'undefined') {
             return {};
         }
 
-        return this.options.validateMany(names, context, scope);
+        return this.options.validateMany(names, context, this.scope(path));
+    }
+
+    protected scope(path: string) : KeyValidationScope {
+        return {
+            parameter: this.parameter,
+            path,
+            schema: this.name,
+        };
     }
 }
