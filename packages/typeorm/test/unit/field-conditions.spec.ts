@@ -9,7 +9,10 @@ import {
     Field,
     Fields,
     Query,
+    Relation,
+    Relations,
     eq,
+    ne,
 } from '@rapiq/core';
 import { applyFieldConditions } from '@rapiq/memory';
 import type { DataSource } from 'typeorm';
@@ -29,6 +32,11 @@ import { createUserSeed } from '../data/seeder/user';
  * against a live database: the gated column really does come back unredacted
  * (so nobody mistakes the parser-level gate for enforcement), and the
  * documented remedy really does redact it without dropping a row.
+ *
+ * The post-fetch gate reads its operands from the fetched entities, so the
+ * adapter force-projects every column a condition references even under a
+ * sparse fieldset: a missing operand would over-redact an eq-style gate and
+ * let a negated gate disclose (negations match missing operands).
  */
 describe('src/adapter/module.ts (field visibility gates)', () => {
     let dataSource : DataSource;
@@ -52,12 +60,12 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         new Field('email', undefined, eq('age', 60)),
     ]);
 
-    const fetch = async () => {
+    const fetch = async (fields: Fields = buildFields()) => {
         const queryBuilder = dataSource.getRepository(User)
             .createQueryBuilder('user');
 
         new TypeormAdapter({ queryBuilder })
-            .execute(new Query({ fields: buildFields() }));
+            .execute(new Query({ fields }));
 
         return queryBuilder.getMany();
     };
@@ -87,6 +95,77 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         expect(byAge(60)?.email).toBe('ashton.nel@gmail.com');
         expect(byAge(18)).not.toHaveProperty('email');
         // redaction never removes a row
+        expect(guarded).toHaveLength(2);
+    });
+
+    // the gate reads `age`, which the sparse fieldset does not request.
+    const buildSparseFields = () => new Fields([
+        new Field('id'),
+        new Field('email', undefined, eq('age', 60)),
+    ]);
+
+    it('should force-project the operand a gate reads', async () => {
+        const rows = await fetch(buildSparseFields());
+
+        // without the forced operand the fetched entities would lack `age`
+        // and the post-fetch gate would evaluate against nothing.
+        expect(rows).toHaveLength(2);
+        for (const row of rows) {
+            expect(typeof row.age).toBe('number');
+        }
+    });
+
+    it('should redact exactly the failing rows under a sparse fieldset', async () => {
+        const guarded = applyFieldConditions(buildSparseFields(), await fetch(buildSparseFields()));
+
+        const byAge = (age: number) => guarded.find((row) => row.age === age);
+
+        expect(byAge(60)?.email).toBe('ashton.nel@gmail.com');
+        expect(byAge(18)).not.toHaveProperty('email');
+        expect(guarded).toHaveLength(2);
+    });
+
+    it('should not re-project an operand behind an included relation (#831)', async () => {
+        // the operand `realm.name` sits behind a fully-selected include: the
+        // join already fetches it, so the forced operand column must be
+        // dropped from the explicit select instead of duplicating the
+        // output alias (which MySQL rejects, #831).
+        const queryBuilder = dataSource.getRepository(User)
+            .createQueryBuilder('user');
+
+        new TypeormAdapter({ queryBuilder }).execute(new Query({
+            fields: new Fields([
+                new Field('id'),
+                new Field('email', undefined, eq('realm.name', 'Master')),
+            ]),
+            relations: new Relations([new Relation('realm')]),
+        }));
+
+        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)]
+            .map((match) => match[1]);
+        const duplicates = aliases.filter(
+            (alias, index) => aliases.indexOf(alias) !== index,
+        );
+        expect(duplicates).toEqual([]);
+
+        // the row set itself stays untouched
+        expect(await queryBuilder.getMany()).toHaveLength(2);
+    });
+
+    it('should keep a negated sparse gate from disclosing', async () => {
+        // a negated gate MATCHES a missing operand (complement law): with the
+        // operand dropped from the fetch, EVERY row would keep `email`.
+        const fields = new Fields([
+            new Field('id'),
+            new Field('email', undefined, ne('age', 60)),
+        ]);
+
+        const guarded = applyFieldConditions(fields, await fetch(fields));
+
+        const byAge = (age: number) => guarded.find((row) => row.age === age);
+
+        expect(byAge(18)?.email).toBe('caleb.barrows@gmail.com');
+        expect(byAge(60)).not.toHaveProperty('email');
         expect(guarded).toHaveLength(2);
     });
 });
