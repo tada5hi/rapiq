@@ -79,7 +79,7 @@ const adapter = new PrismaAdapter({
 Between the two sit `{ client: prisma, model: 'User' }` and per-option overrides (`provider`, `metadata`) on the client-bound shape.
 
 ::: warning
-The client-bound form reads `_activeProvider`, the delegate's `$name`/`$parent` backrefs and, on Prisma 6 classic builds, `_runtimeDataModel`: private but long-stable client internals (Prisma has no public reflection API, [prisma#19392](https://github.com/prisma/prisma/issues/19392)). The engine-backed test suite pins them against real generated clients, and every read fails typed rather than guessing. The explicit form is the private-API-free path.
+The client-bound form reads `_activeProvider`, the delegate's `$name`/`$parent` backrefs and, on Prisma 6 classic builds, `_runtimeDataModel`: private but long-stable client internals (Prisma has no public reflection API, [prisma#19392](https://github.com/prisma/prisma/issues/19392)). The engine-backed test suite pins them against real generated clients, and every read fails typed rather than guessing. The explicit form is the private-API-free path. When a client exposes the public `$datamodel`/`$provider` reflection surface proposed there ([prisma#29792](https://github.com/prisma/prisma/pull/29792)), the adapter prefers it over the private reads.
 :::
 
 ::: tip

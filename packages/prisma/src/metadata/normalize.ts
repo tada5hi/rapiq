@@ -13,14 +13,16 @@ import type { Datamodel, DatamodelField, DatamodelModel } from './types';
  *
  * - `Prisma.dmmf.datamodel` (models as an array), or any hand-written
  *   object of the same shape,
- * - `client._runtimeDataModel` (models as a record keyed by name),
+ * - `client.$datamodel` / `client._runtimeDataModel` (models as a
+ *   record keyed by name),
  * - a `PrismaClient` instance, which carries the latter.
  *
- * The client paths read `_runtimeDataModel`, a private but
- * long-stable client internal (prisma has no public reflection API,
- * prisma/prisma#19392); the engine-backed test suite verifies it
- * against real generated clients. The datamodel shapes are the
- * private-API-free fallback.
+ * The client paths prefer the public `$datamodel` reflection surface
+ * (proposed in prisma/prisma#19392, implemented by prisma/prisma#29792)
+ * and fall back to `_runtimeDataModel`, a private but long-stable
+ * client internal verified against real generated clients by the
+ * engine-backed test suite. The datamodel shapes are the
+ * private-API-free path.
  */
 export type DatamodelInput = Datamodel | object;
 
@@ -70,7 +72,14 @@ export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
     if (typeof input === 'object' && input !== null) {
         const source = input as Record<string, any>;
 
-        // a client instance carries the runtime datamodel
+        // a client instance carries the runtime datamodel: through the
+        // public `$datamodel` reflection surface where a client ships
+        // it (prisma/prisma#29792), through the private internal
+        // otherwise
+        if (source.$datamodel) {
+            return normalizeDatamodel(source.$datamodel as object);
+        }
+
         if (source._runtimeDataModel) {
             return normalizeDatamodel(source._runtimeDataModel as object);
         }

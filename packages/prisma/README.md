@@ -78,7 +78,7 @@ The merge rules behind `base` are exported as `mergeArgs(base, override)` for us
 
 ## Model binding
 
-A model delegate binds the model name, the active provider and the runners, read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). On Prisma 6 classic builds the datamodel is derived the same way; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate. The private-API-free alternative supplies the same facts explicitly:
+A model delegate binds the model name, the active provider and the runners, read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). On Prisma 6 classic builds the datamodel is derived the same way; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate. When a client exposes the public `$datamodel`/`$provider` reflection surface (prisma#29792), the adapter prefers it over the private reads. The private-API-free alternative supplies the same facts explicitly:
 
 ```typescript
 import { Prisma } from '@prisma/client';

@@ -72,6 +72,33 @@ describe('src/metadata/normalize.ts', () => {
         }
     });
 
+    it('should prefer the public $datamodel reflection surface', () => {
+        // prisma#29792 exposes `$datamodel`; the private read stays a
+        // fallback. The private shadow here is pruned, so consulting
+        // it first would throw instead of resolving.
+        const client = createFakeClient();
+        const surfaced = {
+            $datamodel: client._runtimeDataModel,
+            _runtimeDataModel: {
+                models: {
+                    User: {
+                        fields: [{
+                            name: 'id', 
+                            kind: 'scalar', 
+                            type: 'Int', 
+                        }], 
+                    }, 
+                },
+            },
+        };
+
+        const metadata = defineMetadata(surfaced, 'User');
+
+        expect(metadata.isRelation('items')).toBeTruthy();
+        expect(metadata.isToMany('items')).toBeTruthy();
+        expect(metadata.isNullable('address')).toBeTruthy();
+    });
+
     it('should resolve a model name from a delegate', () => {
         const client = createFakeClient();
 
@@ -130,6 +157,10 @@ describe('src/provider/module.ts (client)', () => {
     it('should read the active provider off a client', () => {
         expect(resolveClientProvider(createFakeClient('mysql'))).toEqual('mysql');
         expect(resolveClientProvider({ _engineConfig: { activeProvider: 'sqlite' } })).toEqual('sqlite');
+    });
+
+    it('should prefer the public $provider reflection surface', () => {
+        expect(resolveClientProvider({ $provider: 'postgresql', _activeProvider: 'mysql' })).toEqual('postgresql');
     });
 
     it('should fail typed when the provider is unreadable', () => {

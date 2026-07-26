@@ -61,16 +61,18 @@ export function resolveProviderOptions(
 }
 
 /**
- * Read the active provider off a prisma client instance
- * (`_activeProvider`, a private but long-stable client internal;
- * verified against real generated clients by the engine suite).
- * Fails typed instead of guessing: a wrong provider breaks every
- * case-insensitive filter.
+ * Read the active provider off a prisma client instance: the public
+ * `$provider` reflection surface where a client ships it
+ * (prisma/prisma#29792), otherwise `_activeProvider`, a private but
+ * long-stable client internal verified against real generated clients
+ * by the engine suite. Fails typed instead of guessing: a wrong
+ * provider breaks every case-insensitive filter.
  */
 export function resolveClientProvider(client: object) : `${Provider}` {
     const source = client as Record<string, any>;
 
-    const name = source._activeProvider ??
+    const name = source.$provider ??
+        source._activeProvider ??
         source._engineConfig?.activeProvider;
 
     if (typeof name === 'string') {
