@@ -107,7 +107,9 @@ const entities = await queryBuilder.getMany();
 const output = applyFieldConditions(query.fields, entities);
 ```
 
-The gate never removes a row; it omits the property from the entities that fail it. Skipping the post-fetch call ships the gated value to the client, so treat this as fail-open: for columns that must never leave the database, reject the field in the hook instead of gating it.
+The gate never removes a row; it omits the property from the entities that fail it, and a redacted entity keeps its class prototype. The adapter force-projects every column a gate reads, so the post-fetch pass always has its operands, even when the client requested a sparse fieldset that omits them. `hasFieldConditions(query)` (from `@rapiq/core`) tells a response path whether the post-fetch call is needed at all.
+
+Skipping the post-fetch call ships the gated value to the client, so treat this as fail-open. Note that on this adapter a plain `return false` from the hook is weaker than a condition for *included* relations: an include is fully hydrated, so a boolean denial removes the field from the query while the column still arrives on the entity, with nothing left for the post-fetch pass to act on. A condition keeps the gate on the field, and `applyFieldConditions` strips the value wherever the row came from.
 
 ## Embedded columns
 

@@ -246,13 +246,16 @@ Where the gate is actually applied depends on the backend:
 On `@rapiq/sql` / `@rapiq/typeorm` the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
 
 ```typescript
+import { hasFieldConditions } from '@rapiq/core';
 import { applyFieldConditions } from '@rapiq/memory';
 
 const rows = await queryBuilder.getMany();
 const guarded = applyFieldConditions(query.fields, rows);
 ```
 
-For genuinely secret columns, prefer rejecting the field outright (`return false`) over gating it: a rejected field never leaves the database.
+`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset.
+
+For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while an include may still hydrate the column (TypeORM fully hydrates included relations), leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
 :::
 
 `sort` and `relations` have no column to gate, so a condition returned there is refused rather than silently ignored: it counts as a rejection and follows the failure policy. Narrowing the *rows* of an included relation is a separate, unrelated feature.
@@ -264,7 +267,7 @@ A gate is server-side state and has no wire form, so a query carrying one cannot
 - **Target-schema authorization.** Hooks run on the canonical (alias-resolved) key against the schema that governs it: `include=items.realm` invokes the *user* schema's hook with `items` and the *item* schema's hook with `realm` (resolved via `schemaMapping`). An include can never bypass the related schema's own gate.
 - **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sort` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches — evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
 - **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sort` key.
-- **Client input only.** Schema `default`s are server-authored and bypass the hooks. Rejected keys are removed *after* parameter assembly, so `fields`/`sort` defaults do **not** re-materialize when a hook empties the selection.
+- **Client input only.** Schema `default`s are server-authored and bypass the hooks. For `sort`, a hook that empties the selection leaves it empty (no ORDER BY). For `fields`, an empty selection would be read by every backend as *project everything*, so a hook that empties it falls back to the input-less projection (defaults, or the allow-list expansion) **minus the rejected names**: a denial never resurrects, and it never widens the projection either. A schema that uses a deny-capable fields hook should declare `fields.default` so the fallback has something safe to land on.
 - **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
 - **The context is opaque** — typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
 
