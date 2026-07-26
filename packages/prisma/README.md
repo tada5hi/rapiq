@@ -64,6 +64,18 @@ npm install @rapiq/core @rapiq/prisma
 
 `pagination` is echoed back from `execute()` as the limit/offset actually applied, ready for a response `meta` block.
 
+## Running the query
+
+A model-bound adapter can run what it serialized: `findMany` pipes the arguments into the delegate, `count` reports the pre-pagination total, and both accept the same `base` option. `execute()` stays the pure serializer.
+
+```typescript
+const rows = await adapter.findMany(query, {
+    base: { where: { realm_id: realmId } },
+});
+```
+
+The merge rules behind `base` are exported as `mergeArgs(base, override)` for use outside the adapter; prisma itself ships no per-call args composition.
+
 ## Model binding
 
 A model delegate binds everything: the model name, the datamodel and the active provider are read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). The private-API-free alternative supplies the same facts explicitly:

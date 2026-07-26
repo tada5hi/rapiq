@@ -30,6 +30,29 @@ const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ /* … */ });
 
 Because the adapter produces a value instead of writing into a builder, it is **stateless**: construct one instance per model and share it across requests. To combine several queries, compose them *before* serializing with [`mergeQueries`](/guide/merging-queries) or `query.filters.and(...)`; the adapter deliberately has no accumulation API.
 
+## Running the query
+
+A model-bound adapter can also run what it serialized, the counterpart of the typeorm adapter applying its state to the bound query builder:
+
+```typescript
+const rows = await adapter.findMany(query);
+const total = await adapter.count(query);
+```
+
+`count` sees the query's filters (and any baseline `where`) but never the page window: the pre-pagination total a response meta block reports. The two compose however your endpoint needs them; there is deliberately no bundled rows-plus-total call, because it would hide a second query and, without a transaction, could pair mutually inconsistent results. On an adapter constructed with explicit `{ provider, metadata }` the runners reject with a typed error, since there is nothing to run against; `execute()` stays the pure serializer either way.
+
+## Merging arguments
+
+Prisma ships no per-call args composition (`$extends` intercepts every call globally), so the merge rules the adapter applies to its `base` option are exported as a standalone helper:
+
+```typescript
+import { mergeArgs } from '@rapiq/prisma';
+
+const args = mergeArgs(baseline, produced);
+```
+
+`where` conditions are conjoined (`AND`), an overriding `include` joins a baseline `select` instead of replacing it (a caller-owned projection is never widened), `orderBy`/`take`/`skip` follow the override, and unknown keys (`cursor`, `distinct`, ...) pass through. The adapter's `execute(query, { base })` is this merge applied to what the query produced, with one exception: an unsatisfiable condition (e.g. `in([])`) keeps its root-level `{ OR: [] }` form beside the baseline instead of being conjoined, because prisma strips empty groups below the root.
+
 ## Model metadata
 
 The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:

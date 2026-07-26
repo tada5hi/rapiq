@@ -8,10 +8,11 @@
 import type { IQuery, IQueryVisitor } from '@rapiq/core';
 import { AdapterError, ErrorCode } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
-import { defineMetadata, resolveDelegateClient } from '../metadata';
+import { defineMetadata, resolveDelegateClient, resolveModelName } from '../metadata';
 import type { ProviderOptions } from '../provider';
 import { resolveClientProvider, resolveProviderOptions } from '../provider';
 import { buildSelection } from './fields';
+import { mergeArgs } from './merge';
 import { collectRelationPaths } from './relations';
 import { buildOrderBy } from './sort';
 import { WhereRenderer } from './where';
@@ -21,7 +22,6 @@ import type {
     PrismaAdapterClientOptions,
     PrismaAdapterOptions,
     PrismaAdapterOutput,
-    Where,
 } from './types';
 
 /**
@@ -53,6 +53,37 @@ function resolveClientOptions(options: PrismaAdapterClientOptions) : {
 }
 
 /**
+ * The delegate to run against: the model itself when one was passed,
+ * otherwise the client property named after the model (prisma
+ * lowercases exactly the first letter: `RoleDetail` becomes
+ * `client.roleDetail`).
+ */
+function resolveDelegate(options: PrismaAdapterClientOptions, client?: object) : Record<string, any> | undefined {
+    if (typeof options.model === 'object' && options.model !== null) {
+        const delegate = options.model as Record<string, any>;
+
+        // a delegate that cannot run is not a binding: leaving it
+        // unbound keeps the runners' typed error instead of a raw
+        // TypeError from inside findMany.
+        return typeof delegate.findMany === 'function' ? delegate : undefined;
+    }
+
+    if (!client) {
+        return undefined;
+    }
+
+    const name = resolveModelName(options.model);
+    const property = name.charAt(0).toLowerCase() + name.slice(1);
+    const delegate = (client as Record<string, any>)[property];
+
+    if (delegate && typeof delegate.findMany === 'function') {
+        return delegate;
+    }
+
+    return undefined;
+}
+
+/**
  * Serializes a parsed query into a prisma `findMany` argument object.
  *
  * A pure serializer: `execute` maps a value to a value, holds no
@@ -79,6 +110,8 @@ export class PrismaAdapter<
 
     protected options : PrismaAdapterOptions;
 
+    protected model : Record<string, any> | undefined;
+
     constructor(options: PrismaAdapterOptions) {
         this.options = options;
 
@@ -88,6 +121,11 @@ export class PrismaAdapter<
             this.renderer = new WhereRenderer(
                 resolved.metadata,
                 resolved.provider,
+            );
+
+            this.model = resolveDelegate(
+                options,
+                options.client ?? resolveDelegateClient(options.model),
             );
 
             return;
@@ -106,27 +144,26 @@ export class PrismaAdapter<
         options: ExecuteOptions<ARGS> = {},
     ) : PrismaAdapterOutput<ARGS> {
         const base = options.base as Args | undefined;
-        const args = { ...(base || {}) } as Args;
 
         const filters = this.renderer.build(
             query.filters,
             options.filters || this.options.filters || {},
         );
 
-        const where = this.buildWhere(filters, base?.where);
-        if (where) {
-            args.where = where;
+        const produced : Args = {};
+
+        if (!filters.impossible && filters.where) {
+            produced.where = filters.where;
         }
 
-        this.applySelection(
-            args,
+        Object.assign(
+            produced,
             buildSelection(query.fields, collectRelationPaths(query.relations)),
-            base,
         );
 
         const orderBy = buildOrderBy(query.sorts);
         if (orderBy.length > 0) {
-            args.orderBy = orderBy;
+            produced.orderBy = orderBy;
         }
 
         // a query without pagination leaves caller-owned take/skip
@@ -135,11 +172,24 @@ export class PrismaAdapter<
         const { limit, offset } = query.pagination;
 
         if (typeof limit !== 'undefined') {
-            args.take = limit;
+            produced.take = limit;
         }
 
         if (typeof offset !== 'undefined') {
-            args.skip = offset;
+            produced.skip = offset;
+        }
+
+        const args = base ? mergeArgs(base, produced) : produced;
+
+        if (filters.impossible) {
+            // `{ OR: [] }` is prisma's `1 = 0`, but only at the ROOT;
+            // a nested empty group is stripped, so this cannot go
+            // through the generic where conjunction. Sibling operator
+            // keys are conjoined, so a caller-owned predicate rides
+            // along instead of being dropped.
+            args.where = base && base.where ?
+                { OR: [], AND: [base.where] } :
+                { OR: [] };
         }
 
         return {
@@ -154,69 +204,44 @@ export class PrismaAdapter<
 
     // -----------------------------------------------------------
 
-    protected buildWhere(
-        filters: { where?: Where, impossible: boolean },
-        base?: Where,
-    ) : Where | undefined {
-        if (filters.impossible) {
-            // `{ OR: [] }` is prisma's `1 = 0`, but only at the root;
-            // a nested empty group is stripped. Sibling operator keys
-            // are conjoined, so a caller-owned predicate rides along
-            // instead of being dropped.
-            return base ? { OR: [], AND: [base] } : { OR: [] };
-        }
+    /**
+     * Serialize and run in one step: `execute` piped into the bound
+     * model's `findMany`. Only available on a model-bound adapter,
+     * the counterpart of the typeorm adapter applying its state to
+     * the bound query builder.
+     */
+    async findMany<T = Record<string, any>>(
+        query: IQuery,
+        options: ExecuteOptions<ARGS> = {},
+    ) : Promise<T[]> {
+        const { args } = this.execute(query, options);
 
-        const { where } = filters;
-
-        if (!where) {
-            return base;
-        }
-
-        if (!base) {
-            return where;
-        }
-
-        // rapiq filters narrow the query; they never replace an
-        // application-owned tenant or authorization predicate.
-        return { AND: [base, where] };
+        return this.delegate().findMany(args);
     }
 
     /**
-     * Prisma rejects `select` next to `include` (and next to `omit`)
-     * on the same level, so exactly one of them survives.
-     *
-     * A baseline `select` is a deliberate projection restriction and
-     * is therefore never dropped: relations the query hydrates join
-     * it instead. Widening a caller-owned projection would expose
-     * columns the application chose to withhold.
+     * Records matching the query's filters (and the baseline `where`),
+     * BEFORE pagination: the total a response meta block reports.
      */
-    protected applySelection(
-        args: Args,
-        selection: { select?: Record<string, any>, include?: Record<string, any> },
-        base?: Args,
-    ) : void {
-        if (selection.select) {
-            args.select = selection.select;
-            delete args.include;
-            delete (args as Record<string, unknown>).omit;
+    async count(
+        query: IQuery,
+        options: ExecuteOptions<ARGS> = {},
+    ) : Promise<number> {
+        const { args } = this.execute(query, options);
 
-            return;
+        return this.delegate().count(args.where ? { where: args.where } : {});
+    }
+
+    protected delegate() : Record<string, any> {
+        if (!this.model) {
+            throw new AdapterError({
+                message: 'The adapter is not bound to a model; ' +
+                    'construct it with `{ model }` to run queries.',
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+            });
         }
 
-        if (!selection.include) {
-            return;
-        }
-
-        if (base && base.select) {
-            args.select = { ...base.select, ...selection.include };
-            delete args.include;
-            delete (args as Record<string, unknown>).omit;
-
-            return;
-        }
-
-        args.include = selection.include;
-        delete args.select;
+        return this.model;
     }
 }
 

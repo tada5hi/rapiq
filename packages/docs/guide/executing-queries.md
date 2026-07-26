@@ -37,18 +37,25 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
-import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+import { PrismaAdapter } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
-});
+const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ model: prisma.user });
 
 const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
 
-An application-owned predicate is preserved the same way, by passing it as the baseline: `execute(query, { base: { where: { realm_id } } })` conjoins the client's filters with your scope. Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
+Because this adapter is model-bound, it can also run the request itself:
+
+```typescript
+const rows = await adapter.findMany(query, {
+    base: { where: { realm_id } },  // an application-owned scope, conjoined
+});
+const total = await adapter.count(query);  // pre-pagination, for the meta block
+```
+
+Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
 
 ## Raw SQL
 
