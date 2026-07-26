@@ -19,9 +19,9 @@
         "change-case": "^5.4.4"
     },
     "devDependencies": {
-        "@prisma/client": "^6.19.3",
+        "@prisma/client": "^7.9.0",
         "@rapiq/core": "^2.0.0-beta.9",
-        "prisma": "^6.19.3"
+        "prisma": "^7.9.0"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.0.0-beta.9"
