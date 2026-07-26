@@ -167,6 +167,56 @@ type DialectOptions = {
 
 `@rapiq/typeorm`: `TypeormAdapter` mirrors the SQL adapter but mutates a TypeORM query builder. The builder is bound at construction (`new TypeormAdapter({ queryBuilder: qb })`); `adapter.execute(query)` then walks the query and applies the accumulated state to that builder in a single call. Filters use `andWhere`, preserving application-owned tenant/auth predicates already present on the builder. Relation aliases come from @rapiq/sql's shared, injective length-prefixed `buildRelationAlias` derivation; fields, filters, sorts and joins must all use that same function.
 
+`@rapiq/prisma`: pure IR **serializer**. `PrismaAdapter.execute(query)` is stateless (one
+instance per app, not per request; composition happens BEFORE serialization via
+`mergeQueries`/`filters.and()`, so there is no accumulation API) and returns a plain
+`findMany` args object (`{ where, select | include, orderBy, take, skip }`) plus the applied
+pagination; `@prisma/client` is not a dependency (model facts come through the local
+`IMetadata` interface, fed by `defineMetadata(Prisma.dmmf.datamodel, ...)`). The `where` is
+produced by a pipeline of pure passes: `planCondition` then core's `distributeNegation`
+then quantifier factoring then a leaf-literal table (`adapter/where.ts`). Settled during
+plan 024, do not re-litigate:
+
+- **Negation is eliminated before rendering.** Prisma's `not`/`NOT` are three-valued and
+  drop null rows, so the renderer consumes `distributeNegation` (in CORE, next to the
+  semantics table, because complement selection is operator semantics, not rendering) and
+  only ever sees leaves in final form. The settled contract behind the transform: group
+  negation is the two-valued complement PER BINDING with the quantifier outermost (sql
+  wraps CASE per join row, memory negates per binding context), so De Morgan applies and
+  negation commutes through `elemMatch`: `not(elemMatch(c))` selects records with an
+  element FAILING c, not records without a matching element. The null arm of a complement
+  is dropped only when metadata proves the column non-nullable; a null check on a
+  *relation* renders as a presence test (`{ rel: { is: {} } }` and its `NOT`, both
+  two-valued), and `exists()` on a to-many is constantly true (a collection is never
+  absent).
+- **Same-element binding holds.** Conditions sharing a to-many path inside a conjunction
+  are factored into ONE `some` scope, reproducing the per-join-row semantics of sql/typeorm
+  and memory's shared binding; `∃` distributes over OR so disjunctions need none; mixed
+  root/relation trees are expanded distributively first (capped at 64 conjuncts, typed
+  error beyond: loud beats a silent semantic downgrade). Every quantifier (and to-one hop)
+  gains a `{ none: {} }`/absence arm exactly when its interior evaluates true at the
+  all-null binding an empty collection contributes: ONE rule replaces all previous ad-hoc
+  null-arm cases.
+- **`metadata` and `provider` are required options.** The four metadata questions
+  (`isRelation` / `isToMany` / `isNullable` / `isString`) each change what a *valid* prisma
+  filter looks like, so a wrong guess is a runtime validation error, never graceful
+  degradation. Do not re-add fallbacks: an earlier cut had them and every one was an
+  unverified assumption sold as a "documented limitation".
+- **The parity gate is a real engine**, not a model: `@prisma/client` is a devDependency and
+  `npm run test:db` (CI's `tests-db` job, where ALL engine specs live so the default job
+  stays codegen-free) replays the matrix through a query engine: SQLite by default,
+  PostgreSQL under `DB_TYPE=postgres`: cross-checked against `@rapiq/memory`. Findings that
+  came from measurement, not reasoning: `exists()` on a to-many relation is constantly true
+  (a collection is never *absent*), and the `%`/`_` case-fold veto belongs on the equality
+  family ONLY: `equals` lowers to ILIKE and wildcards, `in`/`notIn` never do.
+- **Case folding** is `mode: 'insensitive'`, gated on a per-connector preset
+  (`provider/`: postgres/cockroach/mongo only; mysql/sqlserver are already collation-CI,
+  the same reasoning as `@rapiq/sql`'s identity `caseFold`), on string-typedness, and on the
+  value carrying no `%`/`_` (an insensitive `equals` lowers to `ILIKE`, where those would
+  widen an exact comparison).
+- **Unsupported by construction**: `regex`, `mod`, `size`, ITSELF, and `elemMatch` on a
+  to-one relation raise a typed `AdapterError`, never approximated.
+
 `@rapiq/memory`: compile-once functional visitors — the core visitor interfaces implemented with `R = compiled function` (`IFiltersVisitor<Predicate>`, `ISortsVisitor<Comparator>`, `IFieldsVisitor<Projector>`, `IPaginationVisitor<Slicer>`, `IQueryVisitor<CompiledQuery>`): `compileFilters(condition)` → `(input) => boolean`, `applyQuery(query, data)` → `{ data, total, pagination }`. The semantics contract (SQL parity for positive operators, complement law for negations — `ne`/`nin`/`not*` match null/missing —, same-element join-row binding for dotted paths over arrays, keep-tree projection where relations widen a sparse field selection) is settled in `.agents/plans/014-memory.md`; do not re-litigate decisions recorded there.
 
 **Case semantics (settled 2026-07-14)**: string matching is case-insensitive by default and uniform across backends — the anchored operators (`contains`/`startsWith`/`endsWith`, `i`-flag regex) *and* the equality family (`eq`/`ne`/`in`/`nin`). `@rapiq/sql` folds both comparison sides through the `caseFold` dialect callback (default `lower(...)`; the mysql/mssql presets use identity because their default `*_ci` collations already compare case-insensitively and skipping `lower()` keeps plain indexes usable). Per-field opt-out: `filters.caseSensitive` on the schema, forwarded as `{ visitor: { caseSensitive } }` (sql/typeorm) or `{ filters: { caseSensitive } }` (memory). Folding is further gated on the value being a string and on `IFiltersAdapter.isCaseFoldable(field)` (default true) — `@rapiq/typeorm` overrides it via entity metadata so only string-typed columns fold (an int column filtered with a wire string `'18'` renders plain `=`, avoiding `lower(integer)` errors on pg). Range comparisons and sort ordering stay collation-governed. Do not re-litigate: `eq` stays typed/exact for non-strings, and no `ilike`-style extra operators.

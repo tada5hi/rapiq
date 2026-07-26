@@ -1,0 +1,44 @@
+// The postgres twin of schema.prisma. Prisma fixes the datasource
+// provider at generate time, so the connector-specific matrix needs its
+// own schema and its own generated client.
+//
+// The models are deliberately identical to schema.prisma: the engine
+// suite asserts both datamodels against the same fixture, so a drift
+// between the two files fails the run rather than passing silently.
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../../node_modules/.prisma-test-client-postgres"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("PRISMA_TEST_DATABASE_URL")
+}
+
+model User {
+    id         Int     @id
+    first_name String
+    last_name  String
+    email      String
+    age        Int
+    address    String?
+    realm_id   Int?
+    realm      Realm?  @relation(fields: [realm_id], references: [id])
+    items      Item[]
+}
+
+model Realm {
+    id          Int     @id
+    name        String
+    description String?
+    users       User[]
+}
+
+model Item {
+    id      Int     @id
+    title   String
+    color   String?
+    user_id Int
+    user    User    @relation(fields: [user_id], references: [id])
+}

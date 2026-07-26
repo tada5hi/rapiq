@@ -1,0 +1,42 @@
+// Fixture schema for the engine-backed parity suite. SQLite keeps the
+// tests dependency-free: no server, no container, just a file.
+//
+// The models mirror test/data/type.ts, so the same fixture records feed
+// the in-memory backend and the real database.
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../../node_modules/.prisma-test-client"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("PRISMA_TEST_DATABASE_URL")
+}
+
+model User {
+    id         Int     @id
+    first_name String
+    last_name  String
+    email      String
+    age        Int
+    address    String?
+    realm_id   Int?
+    realm      Realm?  @relation(fields: [realm_id], references: [id])
+    items      Item[]
+}
+
+model Realm {
+    id          Int     @id
+    name        String
+    description String?
+    users       User[]
+}
+
+model Item {
+    id      Int     @id
+    title   String
+    color   String?
+    user_id Int
+    user    User    @relation(fields: [user_id], references: [id])
+}
