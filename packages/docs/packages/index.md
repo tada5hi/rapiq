@@ -13,6 +13,7 @@ rapiq is a family of small packages around one shared data structure — the [`Q
 | [@rapiq/codec-url](/packages/codec-url) | URL codec façade; writes expressions and reads expression plus legacy simple filters |
 | [@rapiq/sql](/packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql, oracle presets) |
 | [@rapiq/typeorm](/packages/typeorm) | Applies a `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/prisma](/packages/prisma) | Serializes a `Query` into a Prisma argument object |
 | [@rapiq/memory](/packages/memory) | Evaluates a `Query` against in-memory objects & arrays |
 
 ## Which packages do I need?
@@ -27,6 +28,12 @@ npm install @rapiq/core @rapiq/codec-url
 
 ```sh
 npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
+```
+
+**An HTTP API backed by Prisma:**
+
+```sh
+npm install @rapiq/core @rapiq/codec-url @rapiq/prisma
 ```
 
 **An HTTP API composing SQL by hand:**

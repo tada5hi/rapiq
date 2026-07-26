@@ -13,6 +13,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/codec-url](../packages/codec-url)                 | Library  | URL transport façade: expression-default encoding, expression + legacy simple decoding, in-band dialect dispatch; uses `qs` |
 | [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
+| [@rapiq/prisma](../packages/prisma)                       | Library  | Adapter serializing a parsed `Query` into a Prisma `findMany` args object (pure value, no prisma dependency) |
 | [@rapiq/memory](../packages/memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
 
@@ -28,6 +29,7 @@ Layer 1 (depend on core):
   @rapiq/parser-simple
   @rapiq/sql
   @rapiq/memory
+  @rapiq/prisma
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
@@ -86,6 +88,11 @@ packages/sql/src/
 packages/typeorm/src/
 └── adapter/              # TypeormAdapter + sub-adapters targeting SelectQueryBuilder
 
+packages/prisma/src/
+├── adapter/              # PrismaAdapter + per-parameter sub-adapters building the args object
+├── metadata/             # IMetadata + Metadata/defineMetadata over a prisma datamodel (DMMF-shaped)
+└── provider/             # per-connector capability presets (mode: 'insensitive' support)
+
 packages/memory/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/  # visitors compiling AST nodes into functions
 ├── query/                # CompiledQuery (matches/apply, pagination echo)
@@ -127,5 +134,5 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 - **What a client may request (allow-lists, defaults, mappings)** → `@rapiq/core` (`schema/`)
 - **Turning raw URL input into the AST** → `@rapiq/codec-url` (dispatch + decode through parser-simple/parser-expression)
 - **Turning the AST into URL transport format** → `@rapiq/codec-url` (expression-default encode; deprecated explicit simple encode)
-- **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`
+- **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`, `@rapiq/prisma`
 - **Evaluating the AST against in-memory data** → `@rapiq/memory` (predicates/comparators/projectors compiled from the AST)

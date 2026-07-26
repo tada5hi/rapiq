@@ -27,6 +27,7 @@ const layers: Layer[] = [
         packages: [
             { name: '@rapiq/parser-simple', href: '/packages/parser-simple', deps: 'core' },
             { name: '@rapiq/sql', href: '/packages/sql', deps: 'core' },
+            { name: '@rapiq/prisma', href: '/packages/prisma', deps: 'core' },
             { name: '@rapiq/memory', href: '/packages/memory', deps: 'core' },
         ],
     },

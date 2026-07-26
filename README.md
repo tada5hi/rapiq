@@ -44,7 +44,7 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 | **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })`: typed input in, query AST out |
 | **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
 | **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
-| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`) or to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) |
+| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) or as Prisma arguments (`@rapiq/prisma`) |
 
 The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
 an API gateway, for instance, validates an incoming query against its own schema, scopes it
@@ -228,6 +228,7 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/codec-url](packages/codec-url) | URL query-string codec; writes expression filters and reads expression plus legacy simple filters |
 | [@rapiq/sql](packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
 | [@rapiq/typeorm](packages/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/prisma](packages/prisma) | Serializes a parsed `Query` into a Prisma argument object |
 | [@rapiq/memory](packages/memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
 
 ## Parameters
