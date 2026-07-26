@@ -11,20 +11,16 @@ Unlike the TypeORM adapter there is nothing to mutate: the adapter is a pure ser
 ## Usage
 
 ```typescript
-import { Prisma } from '@prisma/client';
-import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+import { PrismaAdapter } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter({
-    provider: 'postgresql',
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
-});
+const adapter = new PrismaAdapter({ model: prisma.user });
 
 const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
 
-`pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
+A model delegate is all it takes: the model name, the datamodel (relations, cardinality, nullability, column types) and the active provider are read off the client the delegate belongs to. `pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
 
 Bind your generated argument type so the call site stays type-checked:
 
@@ -36,7 +32,7 @@ Because the adapter produces a value instead of writing into a builder, it is **
 
 ## Model metadata
 
-`metadata` is **required**. The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
+The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
 
 | fact | what it decides |
 |---|---|
@@ -45,17 +41,26 @@ Because the adapter produces a value instead of writing into a builder, it is **
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
 
-Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter asks for them up front. It is bound to one model anyway:
+Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. The client-bound form above derives all of it; the fully explicit form takes the same facts by hand:
 
 ```typescript
+import { Prisma } from '@prisma/client';
+import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+
 const adapter = new PrismaAdapter({
     provider: 'postgresql',
     metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
 });
 ```
 
+Between the two sit `{ client: prisma, model: 'User' }` and per-option overrides (`provider`, `metadata`) on the client-bound shape.
+
+::: warning
+The client-bound form reads `_runtimeDataModel`, `_activeProvider` and the delegate's `$parent` backref: private but long-stable client internals (Prisma has no public reflection API, [prisma#19392](https://github.com/prisma/prisma/issues/19392)). The engine-backed test suite pins them against real generated clients, and every read fails typed rather than guessing. The explicit form is the private-API-free path.
+:::
+
 ::: tip
-`Prisma.dmmf` is unavailable in some builds (edge/wasm targets, the new `prisma-client` generator). `defineMetadata` accepts any object of the same shape, `{ models: [{ name, fields: [{ name, kind, isList, isRequired, type }] }] }`, so a hand-written datamodel works just as well.
+`Prisma.dmmf` is unavailable in some builds (edge/wasm targets, the new `prisma-client` generator), and edge/wasm runtime datamodels are *pruned* (no cardinality or nullability); the adapter rejects those typed. `defineMetadata` accepts any object of the shape `{ models: [{ name, fields: [{ name, kind, isList, isRequired, type }] }] }`, so a hand-written datamodel works everywhere.
 :::
 
 ## Parameter mapping
@@ -79,6 +84,34 @@ Prisma rejects `select` and `include` on the same level, so the adapter emits ex
 
 // relations: ['items', 'items.realm']
 { include: { items: { include: { realm: true } } } }
+```
+
+## Schema derivation
+
+The datamodel can also supply the *shape* of your schemas, the same staging as [@rapiq/typeorm](/packages/typeorm)'s entity derivation: the schema name, the relation allow-list and the `schemaMapping` used for relation traversal are derived, while authorization stays explicit. A derived schema without per-parameter options allows nothing.
+
+```typescript
+import { defineSchemaRegistryWithDatamodel } from '@rapiq/prisma';
+
+const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+    schemas: {
+        user: {
+            fields: { allowed: 'inherit' },       // the model's field names
+            filters: { allowed: ['id', 'name'] }, // authorization stays yours
+        },
+    },
+});
+```
+
+One schema per model is registered under the lower-camel model name; hand-written schemas already in the registry take precedence. `defineSchemaWithModel(datamodel, 'User', options)` derives a single schema, and the `'inherit'` sentinel expands to the model's scalar and enum field names.
+
+To catch schema/model drift (a renamed field, a stale allow-list entry) at boot time instead of as a dead entry:
+
+```typescript
+import { assertSchemaMatchesModel } from '@rapiq/prisma';
+
+assertSchemaMatchesModel(schema, Prisma.dmmf.datamodel, 'User');
+// throws SchemaModelMismatchError carrying EVERY offending key
 ```
 
 ## Preserving an application-owned predicate
