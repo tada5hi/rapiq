@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { AdapterError, ErrorCode } from '@rapiq/core';
+import { AdapterError, ErrorCode, isObject } from '@rapiq/core';
 import type { Datamodel, DatamodelField, DatamodelModel } from './types';
 
 /**
@@ -34,18 +34,16 @@ export type DatamodelInput = Datamodel | object;
 export type ModelInput = string | { fields: object };
 
 function isField(input: unknown) : input is DatamodelField {
-    return typeof input === 'object' &&
-        input !== null &&
-        typeof (input as DatamodelField).name === 'string' &&
-        typeof (input as DatamodelField).kind === 'string';
+    return isObject(input) &&
+        typeof input.name === 'string' &&
+        typeof input.kind === 'string';
 }
 
 function isModel(input: unknown) : input is DatamodelModel {
-    return typeof input === 'object' &&
-        input !== null &&
-        typeof (input as DatamodelModel).name === 'string' &&
-        Array.isArray((input as DatamodelModel).fields) &&
-        (input as DatamodelModel).fields.every(isField);
+    return isObject(input) &&
+        typeof input.name === 'string' &&
+        Array.isArray(input.fields) &&
+        input.fields.every(isField);
 }
 
 /**
@@ -77,7 +75,7 @@ function assertComplete(models: DatamodelModel[]) : void {
  * the metadata and schema modules consume.
  */
 export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
-    if (typeof input === 'object' && input !== null) {
+    if (isObject(input)) {
         const source = input as Record<string, any>;
 
         // a client instance carries the runtime datamodel: through the
@@ -104,12 +102,9 @@ export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
 
         // the runtime datamodel keys models by name and strips it
         // from the entries; an array that failed the shape guard above
-        // must not leak in here (its indices would become model names)
-        if (
-            typeof source.models === 'object' &&
-            source.models !== null &&
-            !Array.isArray(source.models)
-        ) {
+        // must not leak in here (its indices would become model names),
+        // which isObject rules out
+        if (isObject(source.models)) {
             const models : DatamodelModel[] = [];
 
             for (const [name, model] of Object.entries(source.models as Record<string, any>)) {
@@ -145,14 +140,14 @@ export function resolveModelName(input: ModelInput) : string {
         return input;
     }
 
-    if (typeof input === 'object' && input !== null) {
+    if (isObject(input)) {
         const source = input as Record<string, any>;
 
         if (typeof source.$name === 'string') {
             return source.$name;
         }
 
-        if (typeof source.fields === 'object' && source.fields !== null) {
+        if (isObject(source.fields)) {
             for (const field of Object.values(source.fields as Record<string, any>)) {
                 if (field && typeof field.modelName === 'string') {
                     return field.modelName;
@@ -176,12 +171,7 @@ export function resolveModelName(input: ModelInput) : string {
  * `prisma`), through the runtime `$parent` backref.
  */
 export function resolveDelegateClient(input: ModelInput) : object | undefined {
-    if (
-        typeof input === 'object' &&
-        input !== null &&
-        typeof (input as Record<string, any>).$parent === 'object' &&
-        (input as Record<string, any>).$parent !== null
-    ) {
+    if (isObject(input) && isObject((input as Record<string, any>).$parent)) {
         return (input as Record<string, any>).$parent;
     }
 
