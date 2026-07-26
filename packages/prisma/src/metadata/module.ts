@@ -6,6 +6,8 @@
  */
 
 import { AdapterError, ErrorCode } from '@rapiq/core';
+import type { DatamodelInput, ModelInput } from './normalize';
+import { normalizeDatamodel, resolveModelName } from './normalize';
 import type {
     Datamodel,
     DatamodelField,
@@ -126,14 +128,17 @@ export class Metadata implements IMetadata {
 }
 
 /**
- * Bind a prisma datamodel to the model a query targets.
+ * Bind a datamodel to the model a query targets. Accepts a prisma
+ * client instance, its runtime datamodel, `Prisma.dmmf.datamodel` or
+ * any hand-written object of the same shape; the model is a name or
+ * a model delegate.
  *
  * ```typescript
- * import { Prisma } from '@prisma/client';
- *
+ * const metadata = defineMetadata(prisma, prisma.user);
+ * // or, private-API-free:
  * const metadata = defineMetadata(Prisma.dmmf.datamodel, 'User');
  * ```
  */
-export function defineMetadata(datamodel: Datamodel, model: string) : Metadata {
-    return new Metadata(datamodel, model);
+export function defineMetadata(datamodel: DatamodelInput, model: ModelInput) : Metadata {
+    return new Metadata(normalizeDatamodel(datamodel), resolveModelName(model));
 }

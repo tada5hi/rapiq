@@ -17,7 +17,13 @@ import {
     defineSchema,
 } from '@rapiq/core';
 import { camelCase } from 'change-case';
-import type { Datamodel, DatamodelModel } from '../metadata';
+import type {
+    Datamodel,
+    DatamodelInput,
+    DatamodelModel,
+    ModelInput,
+} from '../metadata';
+import { normalizeDatamodel, resolveModelName } from '../metadata';
 import type {
     ModelSchemaOptions,
     SchemaRegistryWithDatamodelOptions,
@@ -142,12 +148,12 @@ function buildSchemaOptions(
 export function defineSchemaWithModel<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
-    datamodel: Datamodel,
-    model: string,
+    datamodel: DatamodelInput,
+    model: ModelInput,
     options?: ModelSchemaOptions<RECORD>,
 ) : Schema<RECORD> {
     return defineSchema(buildSchemaOptions(
-        resolveModel(datamodel, model),
+        resolveModel(normalizeDatamodel(datamodel), resolveModelName(model)),
         options,
     ) as SchemaOptions<RECORD>);
 }
@@ -159,9 +165,10 @@ export function defineSchemaWithModel<
  * derived name.
  */
 export function defineSchemaRegistryWithDatamodel(
-    datamodel: Datamodel,
+    input: DatamodelInput,
     options: SchemaRegistryWithDatamodelOptions = {},
 ) : SchemaRegistry {
+    const datamodel = normalizeDatamodel(input);
     const registry = options.registry || new SchemaRegistry();
     const schemasOptions = options.schemas || {};
 

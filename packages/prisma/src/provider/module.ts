@@ -59,3 +59,26 @@ export function resolveProviderOptions(
 
     return input;
 }
+
+/**
+ * Read the active provider off a prisma client instance
+ * (`_activeProvider`, a private but long-stable client internal;
+ * verified against real generated clients by the engine suite).
+ * Fails typed instead of guessing: a wrong provider breaks every
+ * case-insensitive filter.
+ */
+export function resolveClientProvider(client: object) : `${Provider}` {
+    const source = client as Record<string, any>;
+
+    const name = source._activeProvider ??
+        source._engineConfig?.activeProvider;
+
+    if (typeof name === 'string') {
+        return name as `${Provider}`;
+    }
+
+    throw new AdapterError({
+        message: 'The provider could not be resolved from the client; pass it explicitly.',
+        code: ErrorCode.FEATURE_UNSUPPORTED,
+    });
+}

@@ -13,7 +13,8 @@ import {
     isFilters,
 } from '@rapiq/core';
 import { SchemaModelMismatchError } from '../errors';
-import type { Datamodel } from '../metadata';
+import type { DatamodelInput, ModelInput } from '../metadata';
+import { normalizeDatamodel, resolveModelName } from '../metadata';
 
 const RELATION_KIND = 'object';
 
@@ -32,10 +33,12 @@ export function assertSchemaMatchesModel<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     schema: Schema<RECORD>,
-    datamodel: Datamodel,
-    model: string,
+    input: DatamodelInput,
+    modelInput: ModelInput,
 ) : void {
-    const target = datamodel.models.find((item) => item.name === model);
+    const model = resolveModelName(modelInput);
+
+    const target = normalizeDatamodel(input).models.find((item) => item.name === model);
     if (!target) {
         throw new AdapterError({
             message: `The model "${model}" is not part of the datamodel.`,
