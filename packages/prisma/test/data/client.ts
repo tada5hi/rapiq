@@ -5,6 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -87,13 +89,15 @@ export async function createDatabase(records: User[]) : Promise<TestDatabase> {
     const directory = mkdtempSync(join(tmpdir(), 'rapiq-prisma-'));
     const url = resolveUrl(provider, directory);
 
-    process.env.PRISMA_TEST_DATABASE_URL = url;
-
     const generated = provider === 'sqlite' ?
         await import('../../node_modules/.prisma-test-client/index.js') :
         await import('../../node_modules/.prisma-test-client-postgres/index.js');
 
-    const client = new generated.PrismaClient({ datasourceUrl: url });
+    const adapter = provider === 'sqlite' ?
+        new PrismaBetterSqlite3({ url }) :
+        new PrismaPg(url);
+
+    const client = new generated.PrismaClient({ adapter });
 
     for (const statement of DDL) {
         await client.$executeRawUnsafe(statement);

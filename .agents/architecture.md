@@ -172,7 +172,9 @@ instance per app, not per request; composition happens BEFORE serialization via
 `mergeQueries`/`filters.and()`, so there is no accumulation API) and returns a plain
 `findMany` args object (`{ where, select | include, orderBy, take, skip }`) plus the applied
 pagination; `@prisma/client` is not a dependency (model facts come through the local
-`IMetadata` interface, fed by `defineMetadata(Prisma.dmmf.datamodel, ...)`). The `where` is
+`IMetadata` interface, fed by `defineMetadata(...)`; prisma 7 prunes every runtime
+datamodel to names and kinds, `Prisma.dmmf` included, so on v7 the datamodel is
+hand-written and pruned input is rejected typed). The `where` is
 produced by a pipeline of pure passes: `planCondition` then core's `distributeNegation`
 then quantifier factoring then a leaf-literal table (`adapter/where.ts`). Settled during
 plan 024, do not re-litigate:

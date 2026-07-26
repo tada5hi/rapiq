@@ -20,7 +20,7 @@ const { args, pagination } = adapter.execute(query);
 const users = await prisma.user.findMany(args);
 ```
 
-A model delegate is all it takes: the model name, the datamodel (relations, cardinality, nullability, column types) and the active provider are read off the client the delegate belongs to. `pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
+A model delegate binds the model name, the active provider and the runners. On Prisma 6 classic builds the datamodel (relations, cardinality, nullability, column types) is read off the client as well; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate (see [Model metadata](#model-metadata)). `pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
 
 Bind your generated argument type so the call site stays type-checked:
 
@@ -64,7 +64,7 @@ The adapter needs four facts about your model that a `Query` cannot carry, and e
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
 
-Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. The client-bound form above derives all of it; the fully explicit form takes the same facts by hand:
+Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. On Prisma 6 classic builds the client-bound form above derives all of it; on Prisma 7 the runtime datamodel no longer carries cardinality or nullability, so the binding takes `metadata` alongside the delegate. The fully explicit form takes the same facts by hand:
 
 ```typescript
 import { Prisma } from '@prisma/client';
@@ -79,11 +79,11 @@ const adapter = new PrismaAdapter({
 Between the two sit `{ client: prisma, model: 'User' }` and per-option overrides (`provider`, `metadata`) on the client-bound shape.
 
 ::: warning
-The client-bound form reads `_runtimeDataModel`, `_activeProvider` and the delegate's `$parent` backref: private but long-stable client internals (Prisma has no public reflection API, [prisma#19392](https://github.com/prisma/prisma/issues/19392)). The engine-backed test suite pins them against real generated clients, and every read fails typed rather than guessing. The explicit form is the private-API-free path.
+The client-bound form reads `_activeProvider`, the delegate's `$name`/`$parent` backrefs and, on Prisma 6 classic builds, `_runtimeDataModel`: private but long-stable client internals (Prisma has no public reflection API, [prisma#19392](https://github.com/prisma/prisma/issues/19392)). The engine-backed test suite pins them against real generated clients, and every read fails typed rather than guessing. The explicit form is the private-API-free path.
 :::
 
 ::: tip
-`Prisma.dmmf` is unavailable in some builds (edge/wasm targets, the new `prisma-client` generator), and edge/wasm runtime datamodels are *pruned* (no cardinality or nullability); the adapter rejects those typed. `defineMetadata` accepts any object of the shape `{ models: [{ name, fields: [{ name, kind, isList, isRequired, type }] }] }`, so a hand-written datamodel works everywhere.
+Prisma 7 prunes every runtime datamodel to names and kinds (`Prisma.dmmf` included), as the v6 edge/wasm builds and the new `prisma-client` generator already did; the adapter rejects pruned input typed. `defineMetadata` accepts any object of the shape `{ models: [{ name, fields: [{ name, kind, isList, isRequired, type }] }] }`, so a hand-written datamodel works everywhere, on every Prisma version.
 :::
 
 ## Parameter mapping

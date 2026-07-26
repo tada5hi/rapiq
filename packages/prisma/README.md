@@ -78,7 +78,7 @@ The merge rules behind `base` are exported as `mergeArgs(base, override)` for us
 
 ## Model binding
 
-A model delegate binds everything: the model name, the datamodel and the active provider are read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). The private-API-free alternative supplies the same facts explicitly:
+A model delegate binds the model name, the active provider and the runners, read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). On Prisma 6 classic builds the datamodel is derived the same way; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate. The private-API-free alternative supplies the same facts explicitly:
 
 ```typescript
 import { Prisma } from '@prisma/client';
@@ -99,7 +99,7 @@ The adapter needs four facts about your model that a `Query` cannot carry, and e
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
 
-Guessing any of them produces a runtime validation error rather than graceful degradation. `defineMetadata` accepts a client, a runtime datamodel or any object shaped like a Prisma datamodel, so a hand-written one works where `Prisma.dmmf` is unavailable (edge and wasm builds, the new `prisma-client` generator; pruned edge/wasm runtime datamodels are rejected typed).
+Guessing any of them produces a runtime validation error rather than graceful degradation. `defineMetadata` accepts a client, a runtime datamodel or any object shaped like a Prisma datamodel, so a hand-written one works everywhere. Prisma 7 prunes every runtime datamodel to names and kinds (`Prisma.dmmf` included, as the v6 edge/wasm builds already did); pruned input is rejected typed rather than guessed.
 
 ## Schema derivation
 

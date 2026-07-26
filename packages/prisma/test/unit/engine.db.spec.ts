@@ -7,6 +7,7 @@
 
 import type { Condition, Filter, Filters } from '@rapiq/core';
 import {
+    AdapterError,
     FilterCompoundOperator,
     Filters as FiltersNode,
     Pagination,
@@ -139,11 +140,13 @@ describe('engine parity (prisma vs memory)', () => {
     beforeAll(async () => {
         database = await createDatabase(records);
 
-        // the metadata the adapter consumes comes from the REAL
-        // datamodel of the engine under test, not the fixture.
+        // prisma 7 prunes the runtime datamodel to names and kinds,
+        // so the metadata comes from the hand-written fixture; the
+        // drift spec below holds the fixture against the real
+        // datamodel of the engine under test.
         adapter = new PrismaAdapter({
             provider: database.provider,
-            metadata: defineMetadata(database.datamodel, 'User'),
+            metadata: defineMetadata(datamodel, 'User'),
         });
     }, 120_000);
 
@@ -257,10 +260,17 @@ describe('engine parity (prisma vs memory)', () => {
     });
 
     it('should bind from a real model delegate', async () => {
-        // the one-argument form reads model name, datamodel and
-        // provider off the delegate's runtime backref; this pins those
-        // private internals against the real generated client.
-        const bound = new PrismaAdapter({ model: database.client.user });
+        // the bound form reads model name and provider off the
+        // delegate's runtime backref; this pins those private
+        // internals against the real generated client. The metadata
+        // stays explicit: prisma 7 prunes the runtime datamodel the
+        // one-argument form would derive it from.
+        const bound = new PrismaAdapter({
+            model: database.client.user,
+            metadata: defineMetadata(datamodel, 'User'),
+        });
+
+        expect(() => new PrismaAdapter({ model: database.client.user })).toThrow(AdapterError);
 
         const conditions : Condition[] = [
             eq('address', 'Hogwarts'),
@@ -286,7 +296,10 @@ describe('engine parity (prisma vs memory)', () => {
     });
 
     it('should run the whole request through the bound model', async () => {
-        const bound = new PrismaAdapter({ model: database.client.user });
+        const bound = new PrismaAdapter({
+            model: database.client.user,
+            metadata: defineMetadata(datamodel, 'User'),
+        });
 
         const request = new Query({
             filters: new FiltersNode(FilterCompoundOperator.AND, [gte('age', 21)]),
@@ -306,7 +319,10 @@ describe('engine parity (prisma vs memory)', () => {
     });
 
     it('should conjoin a baseline where when running', async () => {
-        const bound = new PrismaAdapter({ model: database.client.user });
+        const bound = new PrismaAdapter({
+            model: database.client.user,
+            metadata: defineMetadata(datamodel, 'User'),
+        });
 
         const rows = await bound.findMany(new Query({
             filters: new FiltersNode(FilterCompoundOperator.AND, [gte('age', 21)]),
@@ -317,31 +333,30 @@ describe('engine parity (prisma vs memory)', () => {
         expect(rows.map((row: any) => row.id)).toEqual([3]);
     });
 
+    it('should reject the pruned runtime datamodel of the engine', () => {
+        // prisma 7 strips cardinality and nullability from every
+        // runtime datamodel (the wasm build is the only build);
+        // deriving metadata from it would guess, so it throws.
+        expect(() => defineMetadata(database.datamodel, 'User')).toThrow(AdapterError);
+    });
+
     it('should keep the engine-free fixture datamodel faithful', () => {
-        // the engine-free specs run against a hand-written datamodel;
-        // if it drifts from the real one they prove nothing.
-        const real = defineMetadata(database.datamodel, 'User');
-        const fixture = defineMetadata(datamodel, 'User');
+        // the specs run against a hand-written datamodel; the pruned
+        // real one still names every model, field, kind and type, so
+        // structural drift from the live schema fails here (the
+        // cardinality and nullability the fixture adds are covered
+        // behaviorally by the parity assertions above).
+        for (const model of datamodel.models) {
+            const real = database.datamodel.models.find((entry: any) => entry.name === model.name);
 
-        const paths = [
-            'id', 
-            'first_name', 
-            'address', 
-            'age', 
-            'realm_id',
-            'realm', 
-            'items', 
-            'realm.name', 
-            'realm.description',
-            'items.title', 
-            'items.color',
-        ];
+            expect(real).toBeDefined();
 
-        for (const path of paths) {
-            expect([path, fixture.isRelation(path)]).toEqual([path, real.isRelation(path)]);
-            expect([path, fixture.isToMany(path)]).toEqual([path, real.isToMany(path)]);
-            expect([path, fixture.isNullable(path)]).toEqual([path, real.isNullable(path)]);
-            expect([path, fixture.isString(path)]).toEqual([path, real.isString(path)]);
+            for (const field of model.fields) {
+                const match = real.fields.find((entry: any) => entry.name === field.name);
+
+                expect([model.name, field.name, match?.kind, match?.type])
+                    .toEqual([model.name, field.name, field.kind, field.type]);
+            }
         }
     });
 
