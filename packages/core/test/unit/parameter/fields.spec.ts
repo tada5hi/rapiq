@@ -5,7 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Field, FieldOperator, Fields } from '../../../src';
+import {
+    Field, 
+    FieldOperator, 
+    Fields, 
+    Query, 
+    eq, 
+    hasFieldConditions,
+} from '../../../src';
 
 function names(fields: { value: { name: string }[] }) : string[] {
     return fields.value.map((field) => field.name);
@@ -102,6 +109,32 @@ describe('src/parameter/fields/*.ts', () => {
 
             const output = fields.execute({ default: ['name', 'email'], allowed: ['id'] });
             expect(names(output)).toEqual(['id']);
+        });
+    });
+
+    describe('hasFieldConditions', () => {
+        it('should detect a gated field on a fields node and a query', () => {
+            const gated = new Fields([
+                new Field('id'),
+                new Field('secret', undefined, eq('visible', true)),
+            ]);
+            const plain = new Fields([new Field('id')]);
+
+            expect(hasFieldConditions(gated)).toBe(true);
+            expect(hasFieldConditions(plain)).toBe(false);
+            expect(hasFieldConditions(new Query({ fields: gated }))).toBe(true);
+            expect(hasFieldConditions(new Query({ fields: plain }))).toBe(false);
+            expect(hasFieldConditions(new Query({}))).toBe(false);
+        });
+
+        it('should survive the projection resolver and relation pruning helpers', () => {
+            const gated = new Fields([
+                new Field('secret', undefined, eq('visible', true)),
+            ]);
+
+            expect(hasFieldConditions(
+                gated.execute({ default: [], allowed: ['secret'] }),
+            )).toBe(true);
         });
     });
 });

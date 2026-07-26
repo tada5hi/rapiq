@@ -17,3 +17,20 @@ import type { IFields, IFieldsVisitor } from './types';
 export function isFields(input: unknown) : input is IFields {
     return dispatchesTo<IFieldsVisitor<unknown>>(input, 'visitFields');
 }
+
+/**
+ * Whether any field of the selection carries a visibility condition
+ * (see `IField.condition`). The gate is only applied while projecting
+ * by `@rapiq/memory`; the SQL backends fetch the column for every row
+ * and rely on the consumer running the fetched rows through
+ * `applyFieldConditions` before serializing them. This is the check a
+ * response path can assert on to guarantee no gated column ships
+ * unredacted.
+ */
+export function hasFieldConditions(input: IFields | { fields: IFields }) : boolean {
+    const fields = isFields(input) ? input : input.fields;
+
+    return fields.value.some(
+        (field) => typeof field.condition !== 'undefined',
+    );
+}
