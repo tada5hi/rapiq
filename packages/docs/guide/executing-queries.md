@@ -48,7 +48,15 @@ const { args, pagination } = adapter.execute(query);
 const users = await prisma.user.findMany(args);
 ```
 
-An application-owned predicate is preserved the same way, by passing it as the baseline: `execute(query, { base: { where: { realm_id } } })` conjoins the client's filters with your scope. Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
+A model-bound adapter can also run the request in one call, rows plus the pre-pagination total:
+
+```typescript
+const { data, total, pagination } = await adapter.apply(query, {
+    base: { where: { realm_id } },  // an application-owned scope, conjoined
+});
+```
+
+Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
 
 ## Raw SQL
 

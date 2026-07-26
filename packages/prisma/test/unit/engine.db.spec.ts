@@ -9,7 +9,11 @@ import type { Condition, Filter, Filters } from '@rapiq/core';
 import {
     FilterCompoundOperator,
     Filters as FiltersNode,
+    Pagination,
     Query,
+    Sort,
+    SortDirection,
+    Sorts,
     and,
     contains,
     elemMatch,
@@ -279,6 +283,33 @@ describe('engine parity (prisma vs memory)', () => {
             expect(rows.map((row: any) => row.id).sort((a: number, b: number) => a - b))
                 .toEqual(memoryIds(condition));
         }
+    });
+
+    it('should run the whole request through the bound model', async () => {
+        const bound = new PrismaAdapter({ model: database.client.user });
+
+        const output = await bound.apply(new Query({
+            filters: new FiltersNode(FilterCompoundOperator.AND, [gte('age', 21)]),
+            sorts: new Sorts([new Sort('id', SortDirection.ASC)]),
+            pagination: new Pagination(2, 0),
+        }));
+
+        // ages: 18, 60, 33, 21 -> matched ids [2, 3, 4], page of 2
+        expect(output.data.map((row: any) => row.id)).toEqual([2, 3]);
+        expect(output.total).toEqual(3);
+        expect(output.pagination).toEqual({ limit: 2, offset: 0 });
+    });
+
+    it('should conjoin a baseline where when running', async () => {
+        const bound = new PrismaAdapter({ model: database.client.user });
+
+        const rows = await bound.findMany(new Query({
+            filters: new FiltersNode(FilterCompoundOperator.AND, [gte('age', 21)]),
+            sorts: new Sorts([new Sort('id', SortDirection.ASC)]),
+        }), { base: { where: { address: { not: null } } } });
+
+        // of ids [2, 3, 4], only 3 has an address
+        expect(rows.map((row: any) => row.id)).toEqual([3]);
     });
 
     it('should keep the engine-free fixture datamodel faithful', () => {

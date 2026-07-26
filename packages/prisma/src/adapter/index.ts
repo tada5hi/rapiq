@@ -6,6 +6,7 @@
  */
 
 export * from './fields';
+export * from './merge';
 export * from './module';
 export * from './relations';
 export * from './sort';

@@ -30,6 +30,31 @@ const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ /* … */ });
 
 Because the adapter produces a value instead of writing into a builder, it is **stateless**: construct one instance per model and share it across requests. To combine several queries, compose them *before* serializing with [`mergeQueries`](/guide/merging-queries) or `query.filters.and(...)`; the adapter deliberately has no accumulation API.
 
+## Running the query
+
+A model-bound adapter can also run what it serialized, the counterpart of the typeorm adapter applying its state to the bound query builder:
+
+```typescript
+const { data, total, pagination } = await adapter.apply(query);
+// or individually:
+const rows = await adapter.findMany(query);
+const total = await adapter.count(query);
+```
+
+`apply` returns rows, the pre-pagination total and the applied pagination in one call, shaped like [@rapiq/memory](/packages/memory)'s `applyQuery`; `count` sees the query's filters (and any baseline `where`) but never the page window. On an adapter constructed with explicit `{ provider, metadata }` the runners raise a typed error, since there is nothing to run against; `execute()` stays the pure serializer either way.
+
+## Merging arguments
+
+Prisma ships no per-call args composition (`$extends` intercepts every call globally), so the merge rules the adapter applies to its `base` option are exported as a standalone helper:
+
+```typescript
+import { mergeArgs } from '@rapiq/prisma';
+
+const args = mergeArgs(baseline, produced);
+```
+
+`where` conditions are conjoined (`AND`), an overriding `include` joins a baseline `select` instead of replacing it (a caller-owned projection is never widened), `orderBy`/`take`/`skip` follow the override, and unknown keys (`cursor`, `distinct`, ...) pass through. The adapter's `execute(query, { base })` is exactly this merge applied to what the query produced.
+
 ## Model metadata
 
 The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
