@@ -156,6 +156,17 @@ jobs:
                 run: |
                     npm run test:db --workspace=packages/typeorm
 
+            # @rapiq/prisma keeps ALL engine-backed specs here: they need a
+            # generated client (`prisma generate`), so the default `tests` job
+            # stays codegen-free. The postgres matrix entry is the only place
+            # `mode: 'insensitive'` exists at all, so the case contract and the
+            # ILIKE-wildcard veto can only be measured there. Under mysql the
+            # suite falls back to its own sqlite file, which still exercises
+            # the full parity matrix.
+            -   name: Run tests (prisma)
+                run: |
+                    npm run test:db --workspace=packages/prisma
+
 #    preview:
 #        name: Preview Package
 #        needs: [build]
