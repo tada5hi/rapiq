@@ -100,12 +100,14 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const output = this.parseWithScope(input, scope, pending);
         const conditions = new Map<string, ICondition>();
 
+        const rejected = applyKeySchemaValidation(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: FieldsParseError,
+            conditions,
+        });
+
         return {
-            output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
-                throwOnFailure: scope.throwOnFailure,
-                errors: FieldsParseError,
-                conditions,
-            }), conditions),
+            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger),
             scope,
         };
     }
@@ -122,14 +124,49 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const output = this.parseWithScope(input, scope, pending);
         const conditions = new Map<string, ICondition>();
 
+        const rejected = await applyKeySchemaValidationAsync(pending, options.context, {
+            throwOnFailure: scope.throwOnFailure,
+            errors: FieldsParseError,
+            conditions,
+        });
+
         return {
-            output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
-                throwOnFailure: scope.throwOnFailure,
-                errors: FieldsParseError,
-                conditions,
-            }), conditions),
+            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger),
             scope,
         };
+    }
+
+    /**
+     * Every backend reads an empty fields node as "project everything", so a
+     * validation pass that empties a client-narrowed projection would WIDEN
+     * it to every column, including the rejected ones. Fall back to the
+     * projection an input-less parse yields (defaults, or the allow-list
+     * expansion), mirroring how an allow-list rejection already behaves and
+     * the filters parser's defaults fallback. The rejected names are
+     * subtracted from the fallback: unlike an allow-list failure, a validate
+     * hook can deny a field the allow-list expansion would re-materialize,
+     * and a denial must never resurrect. Defaults are server-authored and
+     * bypass the hooks, so the re-derivation runs no validator and records
+     * no obligations (nothing resolves client input).
+     */
+    protected fallback<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        pruned: IFields,
+        parsed: IFields,
+        rejected: string[],
+        options: SimpleFieldsParseOptions<RECORD>,
+        ledger: RelationLedger,
+    ) : IFields {
+        if (pruned.value.length > 0 || parsed.value.length === 0) {
+            return pruned;
+        }
+
+        const output = this.parseWithScope(undefined, this.scopeFor(options, ledger), []);
+
+        return new Fields(output.value.filter(
+            (field) => !rejected.includes(field.name),
+        ));
     }
 
     protected scopeFor<
@@ -244,6 +281,10 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                         key: resolved.name,
                         path: resolved.name,
                         schema: resolved.scope.schema,
+                        // the governing scope's own policy, so a child schema's
+                        // throwOnFailure applies to its validate rejections just
+                        // as it already does to its allow-list failures.
+                        throwOnFailure: resolved.scope.throwOnFailure,
                     });
                 }
             }

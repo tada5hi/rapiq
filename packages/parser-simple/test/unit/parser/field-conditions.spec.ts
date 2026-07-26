@@ -358,3 +358,109 @@ describe('src/parameter/fields/module.ts', () => {
         });
     });
 });
+
+describe('src/parameter/fields/module.ts (rejection safety)', () => {
+    let parser : SimpleFieldsParser;
+
+    beforeAll(() => {
+        parser = new SimpleFieldsParser();
+    });
+
+    it('should fall back to the schema defaults when validation empties the selection', () => {
+        // an empty fields node reads as "project everything" in every
+        // backend, so rejecting the only requested field must not widen
+        // the projection - it falls back to the server-authored defaults.
+        const schema = defineSchema({
+            fields: {
+                default: ['id', 'name'],
+                allowed: ['secret'],
+                validate: (name: string) => name !== 'secret',
+            },
+        });
+
+        const output = parser.parse(['secret'], { schema });
+
+        expect(fieldNames(output)).toEqual(['id', 'name']);
+    });
+
+    it('should fall back to the schema defaults on the async path', async () => {
+        const schema = defineSchema({
+            fields: {
+                default: ['id', 'name'],
+                allowed: ['secret'],
+                validate: async (name: string) => name !== 'secret',
+            },
+        });
+
+        const output = await parser.parseAsync(['secret'], { schema });
+
+        expect(fieldNames(output)).toEqual(['id', 'name']);
+    });
+
+    it('should keep a partial rejection partial', () => {
+        const schema = defineSchema({
+            fields: {
+                default: ['id', 'name'],
+                allowed: ['secret'],
+                validate: (name: string) => name !== 'secret',
+            },
+        });
+
+        expect(fieldNames(parser.parse(['id', 'secret'], { schema }))).toEqual(['id']);
+    });
+
+    it('should never resurrect a denied field through the fallback', () => {
+        // the input-less projection expands the allow-list when no defaults
+        // exist; a validate hook can deny a field that IS allowed, so the
+        // fallback subtracts the rejected names instead of re-materializing
+        // them.
+        const schema = defineSchema({
+            fields: {
+                allowed: ['secret', 'token'],
+                validate: (name: string) => name !== 'secret',
+            },
+        });
+
+        expect(fieldNames(parser.parse(['secret'], { schema }))).toEqual(['token']);
+    });
+
+    it('should stay empty when every fallback field is denied too', () => {
+        const schema = defineSchema({
+            fields: {
+                allowed: ['secret'],
+                validate: (name: string) => name !== 'secret',
+            },
+        });
+
+        expect(fieldNames(parser.parse(['secret'], { schema }))).toEqual([]);
+    });
+
+    it('should honour the child schema throwOnFailure for a validate rejection', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'user',
+            fields: { default: ['id', 'name'] },
+            relations: { allowed: ['items'] },
+            schemaMapping: { items: 'item' },
+        }));
+        registry.add(defineSchema({
+            name: 'item',
+            throwOnFailure: true,
+            fields: {
+                default: ['id'],
+                allowed: ['secret'],
+                validate: (name: string) => name !== 'secret',
+            },
+        }));
+
+        const scoped = new SimpleFieldsParser(registry);
+
+        // the child schema opted into fail-loud validation; the pooled
+        // pending list must honour its flag, exactly as the allow-list
+        // failure path of the same schema already does.
+        expect(() => scoped.parse(
+            { user: ['id'], items: ['secret'] },
+            { schema: 'user' },
+        )).toThrow('items.secret');
+    });
+});
