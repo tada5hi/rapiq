@@ -37,9 +37,13 @@ Where the TypeORM adapter writes into a query builder, this one returns a plain 
 - 🔬 **Measured, not modelled**: the parity suite runs every condition through a real Prisma engine (SQLite by default, PostgreSQL in CI) and cross-checks it against `@rapiq/memory`.
 
 ```typescript
-import { PrismaAdapter } from '@rapiq/prisma';
+import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter({ model: prisma.user });
+const adapter = new PrismaAdapter({
+    model: prisma.user,
+    // the model facts; hand-written on prisma 7 (see Model binding)
+    metadata: defineMetadata(datamodel, 'User'),
+});
 
 const { args, pagination } = adapter.execute(query);
 

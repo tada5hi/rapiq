@@ -11,16 +11,20 @@ Unlike the TypeORM adapter there is nothing to mutate: the adapter is a pure ser
 ## Usage
 
 ```typescript
-import { PrismaAdapter } from '@rapiq/prisma';
+import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter({ model: prisma.user });
+const adapter = new PrismaAdapter({
+    model: prisma.user,
+    // the model facts; hand-written on prisma 7 (see Model metadata)
+    metadata: defineMetadata(datamodel, 'User'),
+});
 
 const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
 
-A model delegate binds the model name, the active provider and the runners. On Prisma 6 classic builds the datamodel (relations, cardinality, nullability, column types) is read off the client as well; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate (see [Model metadata](#model-metadata)). `pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
+A model delegate binds the model name, the active provider and the runners; `metadata` supplies the model facts the serializer needs (see [Model metadata](#model-metadata) for the shape and why). On Prisma 6 classic builds the datamodel can also be read off the client, so the delegate alone suffices there; Prisma 7 prunes the runtime datamodel, which is why the example passes it explicitly. `pagination` echoes the limit/offset actually applied, e.g. for a response `meta` block.
 
 Bind your generated argument type so the call site stays type-checked:
 
