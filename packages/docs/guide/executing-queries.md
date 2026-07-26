@@ -1,14 +1,15 @@
 # Executing Queries
 
-A validated `Query` becomes results through an **adapter**. Three ship with rapiq — pick by where your data lives:
+A validated `Query` becomes results through an **adapter**. Four ship with rapiq; pick by where your data lives:
 
 | Adapter | Target | Returns |
 |---|---|---|
 | [@rapiq/typeorm](/packages/typeorm) | TypeORM `SelectQueryBuilder` | mutates the builder in place |
+| [@rapiq/prisma](/packages/prisma) | Prisma Client | a `findMany` argument object |
 | [@rapiq/sql](/packages/sql) | any SQL driver | parameterized SQL fragments |
 | [@rapiq/memory](/packages/memory) | plain objects & arrays | compiled functions / filtered data |
 
-All three consume the same AST, and they agree on semantics: the records a query selects in memory are the records it selects in the database.
+All four consume the same AST, and they agree on semantics: the records a query selects in memory are the records it selects in the database.
 
 ## TypeORM
 
@@ -30,6 +31,24 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
 `execute` returns the applied pagination — handy for the response `meta` block. Existing builder state is preserved: rapiq filters are appended with `AND` (under namespaced parameter bindings), and a query without sorts or pagination leaves a caller-owned `ORDER BY`/`take`/`skip` untouched — so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/typeorm).
+
+## Prisma
+
+Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
+
+```typescript
+import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+
+const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
+    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+});
+
+const { args, pagination } = adapter.execute(query);
+
+const users = await prisma.user.findMany(args);
+```
+
+An application-owned predicate is preserved the same way, by passing it as the baseline: `execute(query, { base: { where: { realm_id } } })` conjoins the client's filters with your scope. Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
 
 ## Raw SQL
 

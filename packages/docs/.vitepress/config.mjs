@@ -124,6 +124,7 @@ export default defineConfig({
                     items: [
                         { text: '@rapiq/sql', link: '/packages/sql' },
                         { text: '@rapiq/typeorm', link: '/packages/typeorm' },
+                        { text: '@rapiq/prisma', link: '/packages/prisma' },
                         { text: '@rapiq/memory', link: '/packages/memory' },
                     ],
                 },

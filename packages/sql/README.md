@@ -93,6 +93,7 @@ The package deliberately stops at fragments: composing the final `SELECT`, in pa
 | [@rapiq/codec-url](https://github.com/tada5hi/rapiq/tree/master/packages/codec-url) | URL query-string transport codec |
 | **[@rapiq/sql](https://github.com/tada5hi/rapiq/tree/master/packages/sql)** | Dialect-agnostic SQL fragment adapter (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/typeorm](https://github.com/tada5hi/rapiq/tree/master/packages/typeorm) | Apply a query to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/prisma](https://github.com/tada5hi/rapiq/tree/master/packages/prisma) | Serialize a query into a Prisma argument object |
 | [@rapiq/memory](https://github.com/tada5hi/rapiq/tree/master/packages/memory) | Evaluate a query against in-memory objects & arrays |
 
 ## Documentation

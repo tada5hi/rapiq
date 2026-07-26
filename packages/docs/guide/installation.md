@@ -28,6 +28,10 @@ Then add the backend that executes queries against your data:
 npm install @rapiq/sql @rapiq/typeorm
 ```
 
+```sh [Prisma]
+npm install @rapiq/prisma
+```
+
 ```sh [Raw SQL]
 npm install @rapiq/sql
 ```
