@@ -130,6 +130,18 @@ describe('src/metadata/normalize.ts', () => {
             expect.objectContaining({ code: ErrorCode.SCHEMA_UNRESOLVABLE }),
         );
     });
+
+    it('should fail typed for a malformed datamodel', () => {
+        // a model without a fields array must not surface as a raw
+        // TypeError from the completeness walk
+        expect(() => normalizeDatamodel({ models: [{ name: 'User' }] } as any)).toThrowError(
+            expect.objectContaining({ code: ErrorCode.SCHEMA_UNRESOLVABLE }),
+        );
+
+        expect(() => normalizeDatamodel({ models: [{ name: 'User', fields: [null] }] } as any)).toThrowError(
+            expect.objectContaining({ code: ErrorCode.SCHEMA_UNRESOLVABLE }),
+        );
+    });
 });
 
 describe('src/schema (client sources)', () => {

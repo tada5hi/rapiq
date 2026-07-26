@@ -40,6 +40,14 @@ function isField(input: unknown) : input is DatamodelField {
         typeof (input as DatamodelField).kind === 'string';
 }
 
+function isModel(input: unknown) : input is DatamodelModel {
+    return typeof input === 'object' &&
+        input !== null &&
+        typeof (input as DatamodelModel).name === 'string' &&
+        Array.isArray((input as DatamodelModel).fields) &&
+        (input as DatamodelModel).fields.every(isField);
+}
+
 /**
  * Edge and wasm builds (`engineType = "client"`) strip the runtime
  * datamodel down to names and kinds: no cardinality, no nullability.
@@ -84,7 +92,10 @@ export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
             return normalizeDatamodel(source._runtimeDataModel as object);
         }
 
-        if (Array.isArray(source.models)) {
+        // a malformed model (no name, no fields array, junk entries)
+        // falls through to the typed throw below instead of surfacing
+        // a raw TypeError from the completeness walk
+        if (Array.isArray(source.models) && source.models.every(isModel)) {
             const models = source.models as DatamodelModel[];
             assertComplete(models);
 
@@ -92,8 +103,13 @@ export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
         }
 
         // the runtime datamodel keys models by name and strips it
-        // from the entries
-        if (typeof source.models === 'object' && source.models !== null) {
+        // from the entries; an array that failed the shape guard above
+        // must not leak in here (its indices would become model names)
+        if (
+            typeof source.models === 'object' &&
+            source.models !== null &&
+            !Array.isArray(source.models)
+        ) {
             const models : DatamodelModel[] = [];
 
             for (const [name, model] of Object.entries(source.models as Record<string, any>)) {
