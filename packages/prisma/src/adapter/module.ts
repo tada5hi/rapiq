@@ -61,7 +61,12 @@ function resolveClientOptions(options: PrismaAdapterClientOptions) : {
  */
 function resolveDelegate(options: PrismaAdapterClientOptions, client?: object) : Record<string, any> | undefined {
     if (typeof options.model === 'object' && options.model !== null) {
-        return options.model as Record<string, any>;
+        const delegate = options.model as Record<string, any>;
+
+        // a delegate that cannot run is not a binding: leaving it
+        // unbound keeps the runners' typed error instead of a raw
+        // TypeError from inside findMany.
+        return typeof delegate.findMany === 'function' ? delegate : undefined;
     }
 
     if (!client) {
@@ -206,7 +211,7 @@ export class PrismaAdapter<
      * the counterpart of the typeorm adapter applying its state to
      * the bound query builder.
      */
-    findMany<T = Record<string, any>>(
+    async findMany<T = Record<string, any>>(
         query: IQuery,
         options: ExecuteOptions<ARGS> = {},
     ) : Promise<T[]> {
@@ -219,7 +224,7 @@ export class PrismaAdapter<
      * Records matching the query's filters (and the baseline `where`),
      * BEFORE pagination: the total a response meta block reports.
      */
-    count(
+    async count(
         query: IQuery,
         options: ExecuteOptions<ARGS> = {},
     ) : Promise<number> {

@@ -117,15 +117,42 @@ describe('src/adapter/module.ts (runners)', () => {
         expect(calls.findMany).toHaveLength(1);
     });
 
-    it('should fail typed on an unbound adapter', () => {
+    it('should reject typed on an unbound adapter', async () => {
         const adapter = new PrismaAdapter({
             provider: 'postgresql',
             metadata: defineMetadata(datamodel, 'User'),
         });
 
-        expect(() => adapter.findMany(query)).toThrowError(
-            expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED }),
-        );
+        // rejections, never synchronous throws: every runner returns a
+        // promise, so a .catch() must observe the failure.
+        await expect(adapter.findMany(query)).rejects.toMatchObject({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
+        await expect(adapter.count(query)).rejects.toMatchObject({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
+        await expect(adapter.apply(query)).rejects.toMatchObject({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
+    });
+
+    it('should reject typed for a model object that cannot run', async () => {
+        const { client } = createRecordingClient();
+
+        // metadata and provider resolve through the backref, but an
+        // object without findMany is not a runnable binding.
+        const adapter = new PrismaAdapter({
+            model: {
+                $name: 'User',
+                $parent: client,
+                fields: { id: { modelName: 'User', name: 'id' } },
+            },
+        });
+
+        expect(adapter.execute(query).args.where).toBeDefined();
+        await expect(adapter.findMany(query)).rejects.toMatchObject({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
     });
 });
 

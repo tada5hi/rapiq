@@ -53,7 +53,7 @@ import { mergeArgs } from '@rapiq/prisma';
 const args = mergeArgs(baseline, produced);
 ```
 
-`where` conditions are conjoined (`AND`), an overriding `include` joins a baseline `select` instead of replacing it (a caller-owned projection is never widened), `orderBy`/`take`/`skip` follow the override, and unknown keys (`cursor`, `distinct`, ...) pass through. The adapter's `execute(query, { base })` is exactly this merge applied to what the query produced.
+`where` conditions are conjoined (`AND`), an overriding `include` joins a baseline `select` instead of replacing it (a caller-owned projection is never widened), `orderBy`/`take`/`skip` follow the override, and unknown keys (`cursor`, `distinct`, ...) pass through. The adapter's `execute(query, { base })` is this merge applied to what the query produced, with one exception: an unsatisfiable condition (e.g. `in([])`) keeps its root-level `{ OR: [] }` form beside the baseline instead of being conjoined, because prisma strips empty groups below the root.
 
 ## Model metadata
 

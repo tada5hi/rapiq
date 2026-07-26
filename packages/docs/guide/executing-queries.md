@@ -37,18 +37,16 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
-import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+import { PrismaAdapter } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
-});
+const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ model: prisma.user });
 
 const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
 
-A model-bound adapter can also run the request in one call, rows plus the pre-pagination total:
+Because this adapter is model-bound, it can also run the request in one call, rows plus the pre-pagination total:
 
 ```typescript
 const { data, total, pagination } = await adapter.apply(query, {
