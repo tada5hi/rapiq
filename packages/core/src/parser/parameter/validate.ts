@@ -26,7 +26,7 @@ export type KeyValidatableSchema = {
     readonly name?: string,
     /**
      * The parameter this schema governs. Declared once by the schema
-     * (the sub-schema classes set it in their constructors) — the
+     * (the sub-schema classes set it in their constructors); the
      * driver derives the condition rules from it per entry, so mixed
      * obligation pools (a relation ledger fed by every parameter) need
      * no caller-side annotation.
@@ -36,19 +36,23 @@ export type KeyValidatableSchema = {
     hasManyValidator?() : boolean,
     /**
      * The caller supplies only the dotted relation path of the position
-     * being validated (`''`, the default, at the query root); the schema
-     * completes the {@link KeyValidationScope} its hook receives from
-     * what it already knows about itself.
+     * being validated (`''` at the query root); the schema completes the
+     * {@link KeyValidationScope} its hook receives from what it already
+     * knows about itself. The path is REQUIRED on this driver contract:
+     * an omitted path would silently claim the root position, which
+     * fails open for an allow-at-root hook. (The schema classes default
+     * it for direct human calls; a defaulted method still satisfies the
+     * required signature.)
      */
     validate(
         name: string,
         context: any,
-        path?: string,
+        path: string,
     ) : MaybeAsync<KeyValidationVerdict>,
     validateMany?(
         names: string[],
         context: any,
-        path?: string,
+        path: string,
     ) : MaybeAsync<KeyValidationVerdictRecord>,
 };
 
@@ -70,6 +74,15 @@ export type PendingKeyValidation = {
      */
     path: string,
     schema: KeyValidatableSchema,
+    /**
+     * The failure policy of the scope that resolved this key, recorded
+     * at push time so a child schema's own `throwOnFailure` governs its
+     * rejections even inside a pooled pending list. Falls back to the
+     * pass-wide {@link KeyValidationOptions.throwOnFailure} when absent
+     * (the relation ledger, whose policy is the root relations schema's
+     * by contract).
+     */
+    throwOnFailure?: boolean,
 };
 
 export type KeyValidationOptions = {
@@ -125,7 +138,7 @@ export function applyKeySchemaValidation(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (options.throwOnFailure) {
+            if (entry.throwOnFailure ?? options.throwOnFailure) {
                 throw options.errors.keyValidateRejected(entry.path);
             }
 
@@ -170,7 +183,7 @@ export async function applyKeySchemaValidationAsync(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (options.throwOnFailure) {
+            if (entry.throwOnFailure ?? options.throwOnFailure) {
                 throw options.errors.keyValidateRejected(entry.path);
             }
 
