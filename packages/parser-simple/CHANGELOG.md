@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-beta.10](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.9...parser-simple-v2.0.0-beta.10) (2026-07-26)
+
+
+### Features
+
+* condition-returning and batched key validation hooks ([#830](https://github.com/tada5hi/rapiq/issues/830)) ([#837](https://github.com/tada5hi/rapiq/issues/837)) ([ceda0b4](https://github.com/tada5hi/rapiq/commit/ceda0b4f6ef51f2ac1f68b17da1fa7f635d44532))
+* **prisma:** add prisma adapter ([#838](https://github.com/tada5hi/rapiq/issues/838)) ([83c9c94](https://github.com/tada5hi/rapiq/commit/83c9c94db1d178b17798c9b106f99cdf027cfb65))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.9 to ^2.0.0-beta.10
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.9 to ^2.0.0-beta.10
+
 ## [2.0.0-beta.9](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.8...parser-simple-v2.0.0-beta.9) (2026-07-24)
 
 
