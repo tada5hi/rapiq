@@ -300,4 +300,69 @@ describe('applyFieldConditions', () => {
             },
         ]);
     });
+
+    it('should keep a parent-level deletion when a nested gate also redacts', () => {
+        // regression: the children pass descended via the INPUT, so a deeper
+        // redaction resurrected a property this level's own gate had removed.
+        const fields = new Fields([
+            new Field('client', undefined, eq('visible', true)),
+            new Field('client.secret', undefined, eq('admin', true)),
+        ]);
+
+        const rows = [
+            {
+                id: 1,
+                visible: false,
+                client: {
+                    secret: 'top',
+                    admin: false,
+                },
+            },
+            {
+                id: 2,
+                visible: false,
+                client: {
+                    secret: 'top',
+                    admin: true,
+                },
+            },
+        ];
+
+        expect(applyFieldConditions(fields, rows)).toEqual([
+            { id: 1, visible: false },
+            { id: 2, visible: false },
+        ]);
+    });
+
+    it('should preserve the prototype of a redacted row', () => {
+        class UserEntity {
+            id : number;
+
+            email : string;
+
+            role : string;
+
+            constructor(id: number, email: string, role: string) {
+                this.id = id;
+                this.email = email;
+                this.role = role;
+            }
+
+            get display() {
+                return `#${this.id}`;
+            }
+        }
+
+        const fields = new Fields([
+            new Field('email', undefined, eq('role', 'admin')),
+        ]);
+
+        const [redacted] = applyFieldConditions(fields, [
+            new UserEntity(1, 'a@b.c', 'user'),
+        ]);
+
+        expect(redacted).toBeInstanceOf(UserEntity);
+        expect(redacted).not.toHaveProperty('email');
+        expect((redacted as UserEntity).display).toEqual('#1');
+    });
 });

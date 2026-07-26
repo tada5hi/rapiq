@@ -73,7 +73,14 @@ function redact(node: GateNode, input: unknown) : unknown {
     let output : Record<string, any> = input;
     const detach = () : Record<string, any> => {
         if (output === input) {
-            output = { ...input };
+            // keep the prototype: on the sql/typeorm post-fetch path the
+            // inputs are entity class instances, and a redacted row must
+            // not silently degrade to a plain object while its untouched
+            // siblings stay instances.
+            output = Object.assign(
+                Object.create(Object.getPrototypeOf(input)),
+                input,
+            );
         }
 
         return output;
@@ -88,7 +95,10 @@ function redact(node: GateNode, input: unknown) : unknown {
     });
 
     node.children.forEach((child, segment) => {
-        if (!isPropertySet(input, segment)) {
+        // presence is checked on OUTPUT: a property this level's own gate
+        // just deleted must stay deleted; descending via the input would
+        // resurrect it in child-redacted form.
+        if (!isPropertySet(output, segment)) {
             return;
         }
 
