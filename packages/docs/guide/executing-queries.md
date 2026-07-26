@@ -46,12 +46,13 @@ const { args, pagination } = adapter.execute(query);
 const users = await prisma.user.findMany(args);
 ```
 
-Because this adapter is model-bound, it can also run the request in one call, rows plus the pre-pagination total:
+Because this adapter is model-bound, it can also run the request itself:
 
 ```typescript
-const { data, total, pagination } = await adapter.apply(query, {
+const rows = await adapter.findMany(query, {
     base: { where: { realm_id } },  // an application-owned scope, conjoined
 });
+const total = await adapter.count(query);  // pre-pagination, for the meta block
 ```
 
 Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.

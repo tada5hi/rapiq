@@ -17,7 +17,6 @@ import { collectRelationPaths } from './relations';
 import { buildOrderBy } from './sort';
 import { WhereRenderer } from './where';
 import type {
-    ApplyOutput,
     Args,
     ExecuteOptions,
     PrismaAdapterClientOptions,
@@ -231,30 +230,6 @@ export class PrismaAdapter<
         const { args } = this.execute(query, options);
 
         return this.delegate().count(args.where ? { where: args.where } : {});
-    }
-
-    /**
-     * The whole request in one call: rows and the pre-pagination
-     * total, shaped like `@rapiq/memory`'s `applyQuery`.
-     */
-    async apply<T = Record<string, any>>(
-        query: IQuery,
-        options: ExecuteOptions<ARGS> = {},
-    ) : Promise<ApplyOutput<T>> {
-        const { args, pagination } = this.execute(query, options);
-
-        const model = this.delegate();
-
-        const [data, total] = await Promise.all([
-            model.findMany(args),
-            model.count(args.where ? { where: args.where } : {}),
-        ]);
-
-        return {
-            data, 
-            total, 
-            pagination, 
-        };
     }
 
     protected delegate() : Record<string, any> {

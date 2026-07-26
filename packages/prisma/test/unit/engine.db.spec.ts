@@ -288,16 +288,21 @@ describe('engine parity (prisma vs memory)', () => {
     it('should run the whole request through the bound model', async () => {
         const bound = new PrismaAdapter({ model: database.client.user });
 
-        const output = await bound.apply(new Query({
+        const request = new Query({
             filters: new FiltersNode(FilterCompoundOperator.AND, [gte('age', 21)]),
             sorts: new Sorts([new Sort('id', SortDirection.ASC)]),
             pagination: new Pagination(2, 0),
-        }));
+        });
+
+        // the rows-plus-total composition a list endpoint runs
+        const [data, total] = await Promise.all([
+            bound.findMany(request),
+            bound.count(request),
+        ]);
 
         // ages: 18, 60, 33, 21 -> matched ids [2, 3, 4], page of 2
-        expect(output.data.map((row: any) => row.id)).toEqual([2, 3]);
-        expect(output.total).toEqual(3);
-        expect(output.pagination).toEqual({ limit: 2, offset: 0 });
+        expect(data.map((row: any) => row.id)).toEqual([2, 3]);
+        expect(total).toEqual(3);
     });
 
     it('should conjoin a baseline where when running', async () => {

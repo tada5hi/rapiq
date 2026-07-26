@@ -66,10 +66,10 @@ npm install @rapiq/core @rapiq/prisma
 
 ## Running the query
 
-A model-bound adapter can run what it serialized: `apply` returns `{ data, total, pagination }` in one call (rows plus the pre-pagination total), `findMany` and `count` run individually, and every runner accepts the same `base` option. `execute()` stays the pure serializer.
+A model-bound adapter can run what it serialized: `findMany` pipes the arguments into the delegate, `count` reports the pre-pagination total, and both accept the same `base` option. `execute()` stays the pure serializer.
 
 ```typescript
-const { data, total, pagination } = await adapter.apply(query, {
+const rows = await adapter.findMany(query, {
     base: { where: { realm_id: realmId } },
 });
 ```

@@ -83,27 +83,12 @@ describe('src/adapter/module.ts (runners)', () => {
         expect(calls.count).toEqual([{ where: { age: { gte: 18 } } }]);
     });
 
-    it('should apply rows, total and pagination together', async () => {
-        const { client, calls } = createRecordingClient();
-
-        const output = await new PrismaAdapter({ model: client.user }).apply(query);
-
-        expect(output).toEqual({
-            data: [{ id: 1 }],
-            total: 7,
-            pagination: { limit: 10, offset: 20 },
-        });
-
-        // the count sees the where, never the page window
-        expect(calls.count).toEqual([{ where: { age: { gte: 18 } } }]);
-        expect(calls.findMany[0].take).toEqual(10);
-    });
-
     it('should conjoin a baseline where into every runner', async () => {
         const { client, calls } = createRecordingClient();
         const adapter = new PrismaAdapter({ model: client.user });
 
-        await adapter.apply(query, { base: { where: { realm_id: 1 } } });
+        await adapter.findMany(query, { base: { where: { realm_id: 1 } } });
+        await adapter.count(query, { base: { where: { realm_id: 1 } } });
 
         expect(calls.findMany[0].where).toEqual({ AND: [{ realm_id: 1 }, { age: { gte: 18 } }] });
         expect(calls.count[0].where).toEqual({ AND: [{ realm_id: 1 }, { age: { gte: 18 } }] });
@@ -129,9 +114,6 @@ describe('src/adapter/module.ts (runners)', () => {
             code: ErrorCode.FEATURE_UNSUPPORTED,
         });
         await expect(adapter.count(query)).rejects.toMatchObject({
-            code: ErrorCode.FEATURE_UNSUPPORTED,
-        });
-        await expect(adapter.apply(query)).rejects.toMatchObject({
             code: ErrorCode.FEATURE_UNSUPPORTED,
         });
     });

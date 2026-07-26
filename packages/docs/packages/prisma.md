@@ -35,13 +35,11 @@ Because the adapter produces a value instead of writing into a builder, it is **
 A model-bound adapter can also run what it serialized, the counterpart of the typeorm adapter applying its state to the bound query builder:
 
 ```typescript
-const { data, total, pagination } = await adapter.apply(query);
-// or individually:
 const rows = await adapter.findMany(query);
 const total = await adapter.count(query);
 ```
 
-`apply` returns rows, the pre-pagination total and the applied pagination in one call, shaped like [@rapiq/memory](/packages/memory)'s `applyQuery`; `count` sees the query's filters (and any baseline `where`) but never the page window. On an adapter constructed with explicit `{ provider, metadata }` the runners raise a typed error, since there is nothing to run against; `execute()` stays the pure serializer either way.
+`count` sees the query's filters (and any baseline `where`) but never the page window: the pre-pagination total a response meta block reports. The two compose however your endpoint needs them; there is deliberately no bundled rows-plus-total call, because it would hide a second query and, without a transaction, could pair mutually inconsistent results. On an adapter constructed with explicit `{ provider, metadata }` the runners reject with a typed error, since there is nothing to run against; `execute()` stays the pure serializer either way.
 
 ## Merging arguments
 

@@ -112,20 +112,6 @@ export type ExecuteOptions<ARGS extends Args = Args> = {
     filters?: FiltersAdapterOptions,
 };
 
-/**
- * Output of {@link PrismaAdapter.apply}: the rows, the
- * pre-pagination total and the applied pagination, shaped like
- * `@rapiq/memory`'s `applyQuery`.
- */
-export type ApplyOutput<T = Record<string, any>> = {
-    data: T[],
-    total: number,
-    pagination: {
-        limit: number | undefined,
-        offset: number | undefined,
-    },
-};
-
 export type PrismaAdapterOutput<ARGS extends Args = Args> = {
     /**
      * The argument object to hand to `prisma.<model>.findMany()`.
