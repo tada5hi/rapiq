@@ -81,6 +81,34 @@ Prisma rejects `select` and `include` on the same level, so the adapter emits ex
 { include: { items: { include: { realm: true } } } }
 ```
 
+## Schema derivation
+
+The datamodel can also supply the *shape* of your schemas, the same staging as [@rapiq/typeorm](/packages/typeorm)'s entity derivation: the schema name, the relation allow-list and the `schemaMapping` used for relation traversal are derived, while authorization stays explicit. A derived schema without per-parameter options allows nothing.
+
+```typescript
+import { defineSchemaRegistryWithDatamodel } from '@rapiq/prisma';
+
+const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+    schemas: {
+        user: {
+            fields: { allowed: 'inherit' },       // the model's field names
+            filters: { allowed: ['id', 'name'] }, // authorization stays yours
+        },
+    },
+});
+```
+
+One schema per model is registered under the lower-camel model name; hand-written schemas already in the registry take precedence. `defineSchemaWithModel(datamodel, 'User', options)` derives a single schema, and the `'inherit'` sentinel expands to the model's scalar and enum field names.
+
+To catch schema/model drift (a renamed field, a stale allow-list entry) at boot time instead of as a dead entry:
+
+```typescript
+import { assertSchemaMatchesModel } from '@rapiq/prisma';
+
+assertSchemaMatchesModel(schema, Prisma.dmmf.datamodel, 'User');
+// throws SchemaModelMismatchError carrying EVERY offending key
+```
+
 ## Preserving an application-owned predicate
 
 Rapiq filters **narrow** a query, they never replace it. Hand the adapter a baseline argument object and the client's conditions are conjoined with your tenant or authorization scope:

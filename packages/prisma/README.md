@@ -81,6 +81,20 @@ Both `provider` and `metadata` are required. The adapter needs four facts about 
 
 Guessing any of them produces a runtime validation error rather than graceful degradation. `defineMetadata` accepts any object shaped like a Prisma datamodel, so a hand-written one works where `Prisma.dmmf` is unavailable (edge and wasm builds, the new `prisma-client` generator).
 
+## Schema derivation
+
+The datamodel can also supply the *shape* of your schemas: derived name, relation allow-list and `schemaMapping`, with authorization staying explicit (`allowed: 'inherit'` opts a parameter into the model's field names). Hand-written schemas take precedence, and `assertSchemaMatchesModel` turns schema/model drift into a boot-time failure carrying every offending key.
+
+```typescript
+import { defineSchemaRegistryWithDatamodel } from '@rapiq/prisma';
+
+const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+    schemas: {
+        user: { filters: { allowed: ['id', 'name'] } },
+    },
+});
+```
+
 ## Preserving an application-owned predicate
 
 Rapiq filters **narrow** a query, they never replace it. Pass a baseline argument object and the caller's conditions are conjoined with your tenant or authorization scope:
