@@ -6,7 +6,11 @@
  */
 
 import type { IQuery, IQueryVisitor } from '@rapiq/core';
-import { resolveProviderOptions } from '../provider';
+import { AdapterError, ErrorCode } from '@rapiq/core';
+import type { IMetadata } from '../metadata';
+import { defineMetadata, resolveDelegateClient } from '../metadata';
+import type { ProviderOptions } from '../provider';
+import { resolveClientProvider, resolveProviderOptions } from '../provider';
 import { buildSelection } from './fields';
 import { collectRelationPaths } from './relations';
 import { buildOrderBy } from './sort';
@@ -14,10 +18,39 @@ import { WhereRenderer } from './where';
 import type {
     Args,
     ExecuteOptions,
+    PrismaAdapterClientOptions,
     PrismaAdapterOptions,
     PrismaAdapterOutput,
     Where,
 } from './types';
+
+/**
+ * Resolve the client-bound options shape: the client comes from the
+ * delegate's runtime backref (or explicitly), metadata from its
+ * runtime datamodel and the provider from its active connector, each
+ * overridable.
+ */
+function resolveClientOptions(options: PrismaAdapterClientOptions) : {
+    metadata: IMetadata,
+    provider: ProviderOptions,
+} {
+    const client = options.client ?? resolveDelegateClient(options.model);
+
+    if (!client && !(options.metadata && options.provider)) {
+        throw new AdapterError({
+            message: 'The client could not be resolved from the model delegate; ' +
+                'pass it explicitly.',
+            code: ErrorCode.SCHEMA_UNRESOLVABLE,
+        });
+    }
+
+    return {
+        metadata: options.metadata ?? defineMetadata(client as object, options.model),
+        provider: resolveProviderOptions(
+            options.provider ?? resolveClientProvider(client as object),
+        ),
+    };
+}
 
 /**
  * Serializes a parsed query into a prisma `findMany` argument object.
@@ -48,6 +81,18 @@ export class PrismaAdapter<
 
     constructor(options: PrismaAdapterOptions) {
         this.options = options;
+
+        if ('model' in options) {
+            const resolved = resolveClientOptions(options);
+
+            this.renderer = new WhereRenderer(
+                resolved.metadata,
+                resolved.provider,
+            );
+
+            return;
+        }
+
         this.renderer = new WhereRenderer(
             options.metadata,
             resolveProviderOptions(options.provider),

@@ -14,9 +14,10 @@ import {
     eq, 
 } from '@rapiq/core';
 import type { Args } from '../../src';
-import { PrismaAdapter } from '../../src';
+import { PrismaAdapter, defineSchemaRegistryWithDatamodel } from '../../src';
 import { selectRows } from '../data/evaluate';
 import { createAdapterOptions, createRegistry } from '../data/schema';
+import { datamodel } from '../data/datamodel';
 import type { User } from '../data/type';
 
 const records : User[] = [
@@ -79,6 +80,48 @@ function createUserRepository(schema?: Schema<User>) {
         },
     };
 }
+
+describe('acceptance: derived registry to prisma arguments', () => {
+    it('should decode against a derived schema and serialize', () => {
+        // shape from the datamodel, authorization explicit per model.
+        const registry = defineSchemaRegistryWithDatamodel(datamodel, {
+            schemas: {
+                user: {
+                    fields: { default: ['id', 'first_name'] },
+                    filters: { allowed: ['age', 'realm.name'] },
+                    sort: { allowed: ['age'] },
+                },
+                realm: {
+                    fields: { allowed: 'inherit' },
+                    filters: { allowed: ['name'] },
+                },
+            },
+        });
+
+        const codec = createURLCodec(registry);
+        const adapter = new PrismaAdapter(createAdapterOptions());
+
+        const query = codec.decode(
+            'filter[age]=18&filter[realm.name]=master&include=realm&sort=-age',
+            { schema: 'user' },
+        );
+
+        const { args } = adapter.execute(query!);
+
+        expect(args.where).toEqual({
+            AND: [
+                { age: { equals: 18 } },
+                { realm: { is: { name: { equals: 'master', mode: 'insensitive' } } } },
+            ],
+        });
+        expect(args.select).toEqual({
+            id: true, 
+            first_name: true, 
+            realm: true, 
+        });
+        expect(args.orderBy).toEqual([{ age: 'desc' }]);
+    });
+});
 
 describe('acceptance: request query to prisma arguments', () => {
     const repository = createUserRepository();

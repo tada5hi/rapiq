@@ -37,13 +37,9 @@ Where the TypeORM adapter writes into a query builder, this one returns a plain 
 - 🔬 **Measured, not modelled**: the parity suite runs every condition through a real Prisma engine (SQLite by default, PostgreSQL in CI) and cross-checks it against `@rapiq/memory`.
 
 ```typescript
-import { Prisma } from '@prisma/client';
-import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+import { PrismaAdapter } from '@rapiq/prisma';
 
-const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
-    provider: 'postgresql',
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
-});
+const adapter = new PrismaAdapter({ model: prisma.user });
 
 const { args, pagination } = adapter.execute(query);
 
@@ -68,9 +64,21 @@ npm install @rapiq/core @rapiq/prisma
 
 `pagination` is echoed back from `execute()` as the limit/offset actually applied, ready for a response `meta` block.
 
-## Required options
+## Model binding
 
-Both `provider` and `metadata` are required. The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
+A model delegate binds everything: the model name, the datamodel and the active provider are read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). The private-API-free alternative supplies the same facts explicitly:
+
+```typescript
+import { Prisma } from '@prisma/client';
+import { PrismaAdapter, defineMetadata } from '@rapiq/prisma';
+
+const adapter = new PrismaAdapter({
+    provider: 'postgresql',
+    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+});
+```
+
+The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
 
 | fact | what it decides |
 |---|---|
@@ -79,7 +87,21 @@ Both `provider` and `metadata` are required. The adapter needs four facts about 
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
 
-Guessing any of them produces a runtime validation error rather than graceful degradation. `defineMetadata` accepts any object shaped like a Prisma datamodel, so a hand-written one works where `Prisma.dmmf` is unavailable (edge and wasm builds, the new `prisma-client` generator).
+Guessing any of them produces a runtime validation error rather than graceful degradation. `defineMetadata` accepts a client, a runtime datamodel or any object shaped like a Prisma datamodel, so a hand-written one works where `Prisma.dmmf` is unavailable (edge and wasm builds, the new `prisma-client` generator; pruned edge/wasm runtime datamodels are rejected typed).
+
+## Schema derivation
+
+The datamodel can also supply the *shape* of your schemas: derived name, relation allow-list and `schemaMapping`, with authorization staying explicit (`allowed: 'inherit'` opts a parameter into the model's field names). Hand-written schemas take precedence, and `assertSchemaMatchesModel` turns schema/model drift into a boot-time failure carrying every offending key.
+
+```typescript
+import { defineSchemaRegistryWithDatamodel } from '@rapiq/prisma';
+
+const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+    schemas: {
+        user: { filters: { allowed: ['id', 'name'] } },
+    },
+});
+```
 
 ## Preserving an application-owned predicate
 

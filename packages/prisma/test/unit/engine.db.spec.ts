@@ -252,6 +252,35 @@ describe('engine parity (prisma vs memory)', () => {
         expect(rows).toHaveLength(4);
     });
 
+    it('should bind from a real model delegate', async () => {
+        // the one-argument form reads model name, datamodel and
+        // provider off the delegate's runtime backref; this pins those
+        // private internals against the real generated client.
+        const bound = new PrismaAdapter({ model: database.client.user });
+
+        const conditions : Condition[] = [
+            eq('address', 'Hogwarts'),
+            ne('items.title', 'book'),
+            not(and(eq('realm.name', 'master'), gte('age', 18))),
+        ];
+
+        for (const condition of conditions) {
+            const expected = adapter.execute(new Query({ filters: new FiltersNode(FilterCompoundOperator.AND, [condition]) })).args;
+
+            const derived = bound.execute(new Query({ filters: new FiltersNode(FilterCompoundOperator.AND, [condition]) })).args;
+
+            expect(derived).toEqual(expected);
+
+            const rows = await database.client.user.findMany({
+                where: derived.where,
+                select: { id: true },
+            });
+
+            expect(rows.map((row: any) => row.id).sort((a: number, b: number) => a - b))
+                .toEqual(memoryIds(condition));
+        }
+    });
+
     it('should keep the engine-free fixture datamodel faithful', () => {
         // the engine-free specs run against a hand-written datamodel;
         // if it drifts from the real one they prove nothing.
