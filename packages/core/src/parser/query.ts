@@ -241,7 +241,6 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const schema = this.registry.getOrFail(options.schema);
 
         return applyKeySchemaValidation(ledger, options.context, {
-            parameter: Parameter.RELATIONS,
             throwOnFailure: schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
         });
@@ -260,7 +259,6 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const schema = this.registry.getOrFail(options.schema);
 
         return applyKeySchemaValidationAsync(ledger, options.context, {
-            parameter: Parameter.RELATIONS,
             throwOnFailure: schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
         });

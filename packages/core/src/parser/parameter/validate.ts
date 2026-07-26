@@ -25,6 +25,15 @@ import type { MaybeAsync } from '../../types';
  */
 export type KeyValidatableSchema = {
     readonly name?: string,
+    /**
+     * The parameter this schema governs. Declared once by the schema
+     * (the sub-schema classes set it in their constructors) — the
+     * driver derives {@link KeyValidationScope.parameter} and the
+     * condition rules from it, per entry, so mixed obligation pools
+     * (a relation ledger fed by every parameter) need no caller-side
+     * annotation.
+     */
+    readonly parameter: `${Parameter}`,
     hasValidator() : boolean,
     hasManyValidator?() : boolean,
     validate(
@@ -60,12 +69,6 @@ export type PendingKeyValidation = {
 };
 
 export type KeyValidationOptions = {
-    /**
-     * The parameter whose keys are validated. Forwarded to the hooks as
-     * {@link KeyValidationScope.parameter} and used to decide whether an
-     * `ICondition` verdict has a column to gate at all.
-     */
-    parameter: `${Parameter}`,
     throwOnFailure: boolean,
     errors: typeof ParseError,
     /**
@@ -107,14 +110,13 @@ export function applyKeySchemaValidation(
             const record = batches.resolve(
                 entry,
                 entries,
-                options,
                 (schema, names, scope) => refuseAsync(schema.validateMany!(names, context, scope)),
             );
 
             verdict = refuseAsync(readVerdict(record, entry.key));
         } else {
             verdict = refuseAsync(
-                entry.schema.validate(entry.key, context, scopeOf(entry, options.parameter)),
+                entry.schema.validate(entry.key, context, scopeOf(entry)),
             );
         }
 
@@ -155,13 +157,12 @@ export async function applyKeySchemaValidationAsync(
             const record = await batches.resolveAsync(
                 entry,
                 entries,
-                options,
                 (schema, names, scope) => schema.validateMany!(names, context, scope),
             );
 
             verdict = await readVerdict(record, entry.key);
         } else {
-            verdict = await entry.schema.validate(entry.key, context, scopeOf(entry, options.parameter));
+            verdict = await entry.schema.validate(entry.key, context, scopeOf(entry));
         }
 
         if (!settle(verdict, entry, options)) {
@@ -194,7 +195,6 @@ class BatchCache {
     resolve(
         entry: PendingKeyValidation,
         entries: PendingKeyValidation[],
-        options: KeyValidationOptions,
         run: (
             schema: KeyValidatableSchema,
             names: string[],
@@ -210,7 +210,7 @@ class BatchCache {
         const record = run(
             entry.schema,
             batchKeys(entries, entry.schema, path),
-            scopeOf(entry, options.parameter),
+            scopeOf(entry),
         );
 
         return this.write(entry.schema, path, record);
@@ -219,7 +219,6 @@ class BatchCache {
     async resolveAsync(
         entry: PendingKeyValidation,
         entries: PendingKeyValidation[],
-        options: KeyValidationOptions,
         run: (
             schema: KeyValidatableSchema,
             names: string[],
@@ -235,7 +234,7 @@ class BatchCache {
         const record = await run(
             entry.schema,
             batchKeys(entries, entry.schema, path),
-            scopeOf(entry, options.parameter),
+            scopeOf(entry),
         );
 
         return this.write(entry.schema, path, record);
@@ -293,12 +292,9 @@ function scopePathOf(entry: PendingKeyValidation) : string {
     return entry.path.slice(0, offset);
 }
 
-function scopeOf(
-    entry: PendingKeyValidation,
-    parameter: `${Parameter}`,
-) : KeyValidationScope {
+function scopeOf(entry: PendingKeyValidation) : KeyValidationScope {
     return {
-        parameter,
+        parameter: entry.schema.parameter,
         path: scopePathOf(entry),
         schema: entry.schema.name,
     };
@@ -373,7 +369,7 @@ function settle(
     if (isCondition(verdict)) {
         if (
             options.conditions &&
-            options.parameter === Parameter.FIELDS
+            entry.schema.parameter === Parameter.FIELDS
         ) {
             options.conditions.set(entry.path, verdict);
 

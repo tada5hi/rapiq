@@ -42,7 +42,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const { output, scope } = this.build(input, options, ledger);
 
         return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));
@@ -58,7 +57,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
         return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            parameter: Parameter.RELATIONS,
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
         }));
@@ -104,7 +102,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
         return {
             output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
-                parameter: Parameter.FIELDS,
                 throwOnFailure: scope.throwOnFailure,
                 errors: FieldsParseError,
                 conditions,
@@ -127,7 +124,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
         return {
             output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
-                parameter: Parameter.FIELDS,
                 throwOnFailure: scope.throwOnFailure,
                 errors: FieldsParseError,
                 conditions,

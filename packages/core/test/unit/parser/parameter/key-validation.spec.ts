@@ -45,7 +45,6 @@ function fieldsOptions(
     throwOnFailure = false,
 ) : KeyValidationOptions {
     return {
-        parameter: Parameter.FIELDS,
         throwOnFailure,
         errors: FieldsParseError,
         conditions,
@@ -209,7 +208,6 @@ describe('src/parser/parameter/validate.ts', () => {
                 [entry(schema, 'name')],
                 undefined,
                 {
-                    parameter: Parameter.SORT,
                     throwOnFailure: false,
                     errors: SortParseError,
                     conditions,
@@ -226,7 +224,6 @@ describe('src/parser/parameter/validate.ts', () => {
                 [entry(schema, 'items')],
                 undefined,
                 {
-                    parameter: Parameter.RELATIONS,
                     throwOnFailure: false,
                     errors: RelationsParseError,
                     conditions,
@@ -304,7 +301,6 @@ describe('src/parser/parameter/validate.ts', () => {
             });
 
             applyKeySchemaValidation([entry(schema, 'id')], undefined, {
-                parameter: Parameter.SORT,
                 throwOnFailure: false,
                 errors: SortParseError,
             });

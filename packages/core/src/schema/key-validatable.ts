@@ -25,8 +25,17 @@ import type {
 export class BaseKeyValidatableSchema<
     OPTIONS extends KeyValidatableSchemaOptions = KeyValidatableSchemaOptions,
 > extends BaseSchema<OPTIONS> {
+    /**
+     * The parameter this sub-schema governs. Declared once, by the
+     * subclass — the validation driver derives the hook scope and the
+     * condition rules from it, so call sites never respecify it.
+     */
+    readonly parameter: `${Parameter}`;
+
     constructor(options: OPTIONS, parameter: `${Parameter}`) {
         super(options);
+
+        this.parameter = parameter;
 
         // a schema carrying both hooks has no sensible precedence, so fail at
         // definition time rather than silently shadowing one of them.
