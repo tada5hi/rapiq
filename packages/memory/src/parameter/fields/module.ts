@@ -8,6 +8,7 @@
 import type { IField, IFields, IFieldsVisitor } from '@rapiq/core';
 import { FieldOperator, isObject, isPropertySet } from '@rapiq/core';
 import type { Projector } from '../../types';
+import { createFieldConditionRedactor } from './condition';
 import type { FieldsVisitorOptions } from './types';
 
 type KeepNode = {
@@ -92,12 +93,19 @@ export class FieldsVisitor<T = Record<string, any>> implements IFieldsVisitor<Pr
     }
 
     visitFields(expr: IFields) : Projector<T> {
+        // the gates run BEFORE the projection: a gate condition may read
+        // a property the field selection does not keep.
+        const redactor = createFieldConditionRedactor<T>(
+            expr.value,
+            this.options.filters,
+        );
+
         const picks = expr.value.filter(
             (field) => field.operator !== FieldOperator.EXCLUDE,
         );
 
         if (picks.length === 0) {
-            return (input) => input;
+            return redactor || ((input) => input);
         }
 
         const root = createKeepNode();
@@ -114,6 +122,10 @@ export class FieldsVisitor<T = Record<string, any>> implements IFieldsVisitor<Pr
             const [segment] = (relation as string).split('.');
 
             descend(root, [segment as string]).keepAll = true;
+        }
+
+        if (redactor) {
+            return (input) => project(root, redactor(input)) as T;
         }
 
         return (input) => project(root, input) as T;

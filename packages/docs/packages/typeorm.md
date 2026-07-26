@@ -92,6 +92,25 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 [Case-insensitive string equality](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns** — filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { visitor: { caseSensitive: [...] } })`.
 
+## Field visibility gates
+
+A schema's `fields` [validate hook](/guide/schemas#condition-verdicts) may gate a column with a condition, meaning *visible only on rows satisfying it*. The adapter cannot express that: a selection has to stay a bare `alias.property` for entity hydration, so the column is projected for **every** row and the gate has to be enforced on the fetched entities.
+
+The gate is compiled from the same AST the adapter walks, so the helper that applies it lives in [`@rapiq/memory`](/packages/memory), the package that evaluates conditions against plain objects. Install it alongside this one when a schema gates a field:
+
+```typescript
+import { applyFieldConditions } from '@rapiq/memory';
+
+new TypeormAdapter({ queryBuilder }).execute(query);
+
+const entities = await queryBuilder.getMany();
+const output = applyFieldConditions(query.fields, entities);
+```
+
+The gate never removes a row; it omits the property from the entities that fail it, and a redacted entity keeps its class prototype. The adapter force-projects every column a gate reads, so the post-fetch pass always has its operands, even when the client requested a sparse fieldset that omits them. `hasFieldConditions(query)` (from `@rapiq/core`) tells a response path whether the post-fetch call is needed at all.
+
+Skipping the post-fetch call ships the gated value to the client, so treat this as fail-open. Note that on this adapter a plain `return false` from the hook is weaker than a condition for *included* relations: an include is fully hydrated, so a boolean denial removes the field from the query while the column still arrives on the entity, with nothing left for the post-fetch pass to act on. A condition keeps the gate on the field, and `applyFieldConditions` strips the value wherever the row came from.
+
 ## Embedded columns
 
 Dotted field paths resolve against the entity metadata segment by segment — only real relations join. A path into an [embedded entity](https://typeorm.io/docs/entity/embedded-entities/) (`@Column(() => Profile)`), e.g. `profile.firstName`, is dotted without anything to join: it renders against its parent alias with the embedded column's database name (`"user"."profileFirstname"`) instead of producing a bogus `LEFT JOIN`. This applies uniformly to filters, sort and field selection, and composes with relations — `role.profile.firstName` joins only `role` and resolves the embedded remainder against that join's alias.

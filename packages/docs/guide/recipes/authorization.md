@@ -1,10 +1,11 @@
 # Authorization & Scoping
 
-Three recurring authorization problems, one query language:
+Four recurring authorization problems, one query language:
 
 1. **Gating the request** — a client may only *ask for* what its actor is permitted to see: including a relation must require the permission to read the related entity.
 2. **Scoping a collection** — a user may only ever see records of their own realm, no matter what they ask for.
-3. **Guarding a single record** — an ability like *"may edit users where `realm_id = X`"* must be checked against one object in memory, and must agree exactly with what the database query would return.
+3. **Scoping a column**: a field is readable, but only on *some* of the rows the actor is otherwise allowed to see.
+4. **Guarding a single record**: an ability like *"may edit users where `realm_id = X`"* must be checked against one object in memory, and must agree exactly with what the database query would return.
 
 ## Gating: per-actor checks at decode time
 
@@ -72,6 +73,60 @@ Why `and()` and not a merge? `and()` **wraps** the client's tree as a sibling of
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
+## Row-scoped column access
+
+Some columns aren't a yes/no decision. An actor may read `email` on users of its own realm and nothing else, but the users of other realms must still be listed. A `fields` [validate hook](/guide/schemas#condition-verdicts) answering with a **condition** expresses exactly that: the field stays selected, and the condition marks it visible only on the rows that satisfy it.
+
+`validateMany` is the shape to reach for here, because the policy is usually one lookup for the whole request rather than one per field:
+
+```typescript
+import { defineSchema, eq } from '@rapiq/core';
+
+const userSchema = defineSchema<User, Actor>({
+    name: 'user',
+    fields: {
+        allowed: ['id', 'name', 'email'],
+        // one call per (schema, relation path): compile the policy once
+        validateMany: async (names, actor, scope) => {
+            const abilities = await actor.abilitiesFor(scope.schema);
+
+            return Object.fromEntries(names.map((name) => {
+                const ability = abilities.read(name);
+                if (!ability) {
+                    return [name, false];               // not readable at all
+                }
+
+                return [name, ability.unconditional ||
+                    eq('realm_id', actor.realmId)];     // readable, row-scoped
+            }));
+        },
+    },
+});
+```
+
+Three verdicts, three outcomes: `false` drops the field from the query, `true` selects it plainly, a condition selects it *and* gates its value. Note the third argument: `scope.path` is `''` at the query root and `'items.owner'` for the same schema reached through an include, so one policy lookup can answer differently per position.
+
+::: danger The gate is applied after the fetch
+A condition gates the **value of a column, never the row set**: a user whose `email` is hidden is still returned, without that property. `@rapiq/memory` enforces this while projecting. `@rapiq/sql` and `@rapiq/typeorm` **cannot**: a selection must stay a bare `alias.property` for entity hydration, so they project the column for every row and the gate has to run on the result:
+
+```typescript
+import { applyFieldConditions } from '@rapiq/memory';
+
+const query = await codec.decodeAsync(req.query, {
+    schema: 'user',
+    context: req.actor,
+});
+
+new TypeormAdapter({ queryBuilder }).execute(query);
+const rows = await queryBuilder.getMany();
+
+// without this line the gated column ships to the client
+res.json(applyFieldConditions(query.fields, rows));
+```
+
+This is fail-open by construction. If the column must never reach the process at all, reject the field (`return false`) instead of gating it.
+:::
+
 ## Guarding: the same query, in memory
 
 Authorization rules often live as conditions (think CASL-style abilities). Because rapiq filters compile to plain predicates, the *same* condition tree guards single records in memory and scopes queries in the database:
@@ -117,6 +172,7 @@ compiled.apply(users);     // apply the full query to loaded data
 |---|---|---|
 | Schema allow-list | `filters.allowed` without `realm_id` | clients referencing the scope field at all |
 | Validate hooks + context | `relations.validate: (name, actor) => ...` | actors requesting includes/fields they lack permissions for |
+| Condition verdict + post-fetch pass | `fields.validateMany` returning a condition | a readable column leaking on rows outside the actor's scope |
 | Injected condition | `query.filters.and(...)` | any query escaping the actor's scope |
 | Memory guard | `compileFilters(ability)` | single-record actions disagreeing with query semantics |
 

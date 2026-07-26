@@ -21,6 +21,7 @@ import {
     PaginationVisitor,
     RelationsVisitor,
     SortsVisitor,
+    createFieldConditionRedactor,
 } from './parameter';
 import { CompiledQuery } from './query';
 import type {
@@ -49,8 +50,16 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         const hasPicks = expr.fields.value.some(
             (field) => field.operator !== FieldOperator.EXCLUDE,
         );
-        if (hasPicks) {
-            projector = expr.fields.accept(new FieldsVisitor<T>({ relations }));
+        // a gated field needs the projector even without a pick,
+        // to redact it out of the otherwise untouched record.
+        const hasConditions = expr.fields.value.some(
+            (field) => !!field.condition,
+        );
+        if (hasPicks || hasConditions) {
+            projector = expr.fields.accept(new FieldsVisitor<T>({
+                relations,
+                filters: this.options.filters,
+            }));
         }
 
         let comparator : Comparator<T> | undefined;
@@ -108,4 +117,55 @@ export function compileFields<T = Record<string, any>>(
 
 export function compilePagination(input: IPagination) : Slicer {
     return input.accept(new PaginationVisitor());
+}
+
+/**
+ * Compile the visibility gates carried by a fields parameter
+ * (`Field.condition`) into a redactor for a single record.
+ *
+ * A gated field is only visible on records satisfying its condition; on a
+ * record that fails it, the key is omitted from the output. The condition
+ * never removes the record itself. Records with nothing to hide are
+ * returned by reference; otherwise a shallow redacted copy is built along
+ * the affected path. The input is never mutated.
+ *
+ * `@rapiq/memory`'s own projector applies this automatically. It is
+ * exported for `@rapiq/sql` / `@rapiq/typeorm` consumers, which project
+ * the column unconditionally (a selection must stay a bare column for
+ * entity hydration) and therefore have to enforce the gates after the
+ * fetch. See {@link applyFieldConditions} for the array form.
+ */
+export function compileFieldConditions<T = Record<string, any>>(
+    input: IFields,
+    options: FiltersVisitorOptions = {},
+) : Projector<T> {
+    const redactor = createFieldConditionRedactor<T>(input.value, options);
+
+    return redactor || ((record) => record);
+}
+
+/**
+ * Apply the visibility gates carried by a fields parameter
+ * (`Field.condition`) to already-fetched records.
+ *
+ * Returns a new array; each record is either passed through by reference
+ * (nothing to hide) or replaced by a redacted copy with the failing keys
+ * omitted. No record is ever removed and the input is never mutated.
+ *
+ * ```ts
+ * const entities = await queryBuilder.getMany();
+ * const output = applyFieldConditions(query.fields, entities);
+ * ```
+ */
+export function applyFieldConditions<T = Record<string, any>>(
+    input: IFields,
+    data: T[],
+    options: FiltersVisitorOptions = {},
+) : T[] {
+    const redactor = createFieldConditionRedactor<T>(input.value, options);
+    if (!redactor) {
+        return [...data];
+    }
+
+    return data.map(redactor);
 }

@@ -6,15 +6,29 @@
  */
 
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import type { IFilters } from '@rapiq/core';
+import type { IFilters, KeyValidationScope } from '@rapiq/core';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
 
 type Actor = { permissions: string[] };
 
 const actor : Actor = { permissions: ['realm_read'] };
 
+/**
+ * Every relation below sits directly on the (registered) user schema, so the
+ * hook always sees the relations parameter at the query root.
+ */
+const USER_ROOT_SCOPE : KeyValidationScope = {
+    parameter: 'relations',
+    path: '',
+    schema: 'user',
+};
+
 function buildRegistry(
-    validate: (name: string, context: Actor) => boolean | undefined,
+    validate: (
+        name: string,
+        context: Actor,
+        scope: KeyValidationScope,
+    ) => boolean | undefined,
 ) : SchemaRegistry {
     const registry = new SchemaRegistry();
     registry.add(defineSchema<Record<string, any>, Actor>({
@@ -64,7 +78,7 @@ describe('expression filters honour relations.validate for traversed paths (#815
             { schema: 'user', context: actor },
         );
 
-        expect(validate).toHaveBeenCalledWith('items', actor);
+        expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
         expect(filterFields(query.filters)).toEqual([]);
     });
 
@@ -89,7 +103,7 @@ describe('expression filters honour relations.validate for traversed paths (#815
             { schema: 'user', context: actor },
         );
 
-        expect(validate).toHaveBeenCalledWith('items', actor);
+        expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
         expect(filterFields(output)).toEqual([]);
     });
 
@@ -102,7 +116,7 @@ describe('expression filters honour relations.validate for traversed paths (#815
             { schema: 'user', context: actor },
         );
 
-        expect(validate).toHaveBeenCalledWith('items', actor);
+        expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
         expect(filterFields(output)).toEqual(['items']);
     });
 
@@ -115,7 +129,7 @@ describe('expression filters honour relations.validate for traversed paths (#815
             { schema: 'user', context: actor },
         );
 
-        expect(validate).toHaveBeenCalledWith('items', actor);
+        expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
         expect(filterFields(output)).toEqual([]);
     });
 
@@ -146,7 +160,7 @@ describe('expression filters honour relations.validate for traversed paths (#815
                     { schema: 'user', context: actor },
                 );
 
-                expect(validate).toHaveBeenCalledWith('items', actor);
+                expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
                 expect(filterFields(output)).toEqual([]);
             });
         }

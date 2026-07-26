@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { ICondition } from '../../filters';
 import type { IField, IFieldVisitor } from './types';
 
 export class Field implements IField {
@@ -12,9 +13,12 @@ export class Field implements IField {
 
     readonly operator: string | undefined;
 
-    constructor(name: string, operator?: string) {
+    readonly condition: ICondition | undefined;
+
+    constructor(name: string, operator?: string, condition?: ICondition) {
         this.name = name;
         this.operator = operator;
+        this.condition = condition;
     }
 
     accept<R>(visitor: IFieldVisitor<R>): R {

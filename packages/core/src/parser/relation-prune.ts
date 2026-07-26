@@ -58,7 +58,9 @@ export function pruneFieldsByRelations(fields: IFields, rejected: string[]) : IF
     return new Fields(
         fields.value
             .filter((field) => !isRelationRejected(field.name, rejected))
-            .map((field) => new Field(field.name, field.operator)),
+            // the visibility condition must survive the rebuild: dropping it
+            // would turn a gated field into an ungated one.
+            .map((field) => new Field(field.name, field.operator, field.condition)),
     );
 }
 

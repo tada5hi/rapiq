@@ -61,7 +61,7 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 | Code | Trigger |
 |---|---|
 | `OPERATOR_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
-| `FEATURE_UNSUPPORTED` | e.g. `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip |
+| `FEATURE_UNSUPPORTED` | e.g. `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
 
 The URL encoders throw these too — a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
 
@@ -77,7 +77,8 @@ The URL encoders throw these too — a codec never silently changes what a query
 |---|---|
 | `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
-| `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async filter validator; use the corresponding `Async` method |
+| `SCHEMA_KEY_VALIDATOR_CONFLICT` | a `fields`/`relations`/`sort` sub-schema declares both [`validate` and `validateMany`](/guide/schemas#batched-validation-with-validatemany); thrown while the schema is constructed, since there is no sensible precedence between them |
+| `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async validator (a filter validator or a key validation hook); use the corresponding `Async` method |
 | `SCHEMA_ENTITY_MISMATCH` | `assertSchemaMatchesEntity` (`@rapiq/typeorm`) found schema keys unknown to the entity — thrown as `SchemaEntityMismatchError`, which carries the offending `schema`, `entity` and `keys`; see [validating schemas against entities](/packages/typeorm#validating-schemas-against-entities) |
 
 ## Mapping to HTTP responses

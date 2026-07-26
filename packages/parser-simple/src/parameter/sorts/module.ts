@@ -195,6 +195,10 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                     key: resolved.name,
                     path: name,
                     schema: resolved.scope.schema,
+                    // the governing scope's own policy, so a child schema's
+                    // throwOnFailure applies to its validate rejections just
+                    // as it already does to its allow-list failures.
+                    throwOnFailure: resolved.scope.throwOnFailure,
                 });
             }
 

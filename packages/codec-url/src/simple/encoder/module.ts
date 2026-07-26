@@ -18,7 +18,13 @@ import type {
     ParseQueryOptions,
     SchemaRegistry,
 } from '@rapiq/core';
-import { buildQueryParameters, intersectQueryParameters, isSchemaAware } from '../../utils';
+import {
+    buildQueryParameters,
+    intersectQueryParameters,
+    isSchemaAware,
+    stripFieldConditions,
+    stripQueryFieldConditions,
+} from '../../utils';
 import { SimpleURLDecoder } from '../decoder';
 import type { ISerializer } from './serializer';
 import { QueryVisitor } from './visitors';
@@ -70,7 +76,7 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         return this.runSerializer(
-            this.visitor.visitQuery(decoded, parameters),
+            this.visitor.visitQuery(stripQueryFieldConditions(decoded), parameters),
         );
     }
 
@@ -98,7 +104,7 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         return this.runSerializer(
-            this.visitor.visitQuery(decoded, parameters),
+            this.visitor.visitQuery(stripQueryFieldConditions(decoded), parameters),
         );
     }
 
@@ -117,7 +123,7 @@ export class SimpleURLEncoder {
 
         this.visitor.reset();
 
-        return this.runSerializer(this.visitor.visitFields(decoded));
+        return this.runSerializer(this.visitor.visitFields(stripFieldConditions(decoded)));
     }
 
     encodeField(input: IField) {

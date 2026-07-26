@@ -34,6 +34,7 @@ import type {
     IQueryParameterParser,
     IRelations,
     ISorts,
+    KeyValidationScope,
     PendingKeyValidation,
     RelationLedger,
     RelationsSchema,
@@ -42,6 +43,16 @@ import type {
 type Actor = { permissions: string[] };
 
 const actor : Actor = { permissions: ['realm_read'] };
+
+/**
+ * The obligation below is recorded at the query root of the registered
+ * `record` schema, so every hook call carries this scope.
+ */
+const RECORD_ROOT_SCOPE : KeyValidationScope = {
+    parameter: 'relations',
+    path: '',
+    schema: 'record',
+};
 
 /**
  * A sub-parser stub: records a fixed obligation into whatever ledger the query
@@ -110,7 +121,11 @@ class StubQueryParser extends BaseQueryParser {
 }
 
 function buildRegistry(
-    validate: (name: string, context: Actor) => boolean | undefined | Promise<boolean | undefined>,
+    validate: (
+        name: string,
+        context: Actor,
+        scope: KeyValidationScope,
+    ) => boolean | undefined | Promise<boolean | undefined>,
     throwOnFailure = false,
 ) : { registry: SchemaRegistry, relations: RelationsSchema } {
     const registry = new SchemaRegistry();
@@ -185,6 +200,9 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
 
         // three parameters referenced `user` — the hook fired exactly once.
         expect(validate.mock.calls.filter(([n]) => n === 'user')).toHaveLength(1);
+        // the pooled ledger reports the relations parameter, whichever
+        // parameter recorded the obligation.
+        expect(validate).toHaveBeenCalledWith('user', actor, RECORD_ROOT_SCOPE);
 
         expect(query.relations.value.map((r) => r.name)).toEqual(['realm']);
         expect(query.fields.value.map((f) => f.name)).toEqual(['id']);

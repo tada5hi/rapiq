@@ -5,16 +5,17 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { MaybeAsync, ObjectLiteral } from '../../../types';
+import { Parameter } from '../../../constants';
+import type { ObjectLiteral } from '../../../types';
 import type {
     SortOptions,
 } from './types';
-import { BaseSchema } from '../../base';
+import { BaseKeyValidatableSchema } from '../../key-validatable';
 
 export class SortSchema<
     T extends ObjectLiteral = ObjectLiteral,
     CONTEXT = any,
-> extends BaseSchema<SortOptions<T, CONTEXT>> {
+> extends BaseKeyValidatableSchema<SortOptions<T, CONTEXT>> {
     public default : Record<string, any>;
 
     public defaultKeys : string[];
@@ -27,8 +28,8 @@ export class SortSchema<
 
     // ---------------------------------------------------------
 
-    constructor(input: SortOptions<T> = {}) {
-        super(input);
+    constructor(input: SortOptions<T, CONTEXT> = {}) {
+        super(input, Parameter.SORT);
 
         this.allowed = [];
         this.allowedIsUndefined = true;
@@ -45,20 +46,6 @@ export class SortSchema<
 
     get mapping() : Record<string, string> | undefined {
         return this.options.mapping;
-    }
-
-    // ---------------------------------------------------------
-
-    hasValidator() {
-        return typeof this.options.validate !== 'undefined';
-    }
-
-    validate(name: string, context: CONTEXT) : MaybeAsync<boolean | undefined> {
-        if (typeof this.options.validate === 'undefined') {
-            return true;
-        }
-
-        return this.options.validate(name, context);
     }
 
     // ---------------------------------------------------------

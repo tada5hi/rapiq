@@ -9,7 +9,7 @@ import type {
     SimpleKeys,
 } from '../../../types';
 import type { SortDirection } from './constants';
-import type { BaseSchemaOptions, KeyValidator } from '../../types';
+import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
 
 export type SortOptionDefault<T extends Record<string, any>> = {
     [K in SimpleKeys<T>]?: `${SortDirection}`
@@ -18,7 +18,7 @@ export type SortOptionDefault<T extends Record<string, any>> = {
 export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
-> = BaseSchemaOptions & {
+> = KeyValidatableSchemaOptions<CONTEXT> & {
     allowed?: SimpleKeys<T>[] | SimpleKeys<T>[][],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
@@ -27,6 +27,17 @@ export type SortOptions<
      * Runs once per client-requested sort key against the schema that
      * governs it (the target schema for dotted keys), after tuple-group
      * matching. Schema defaults bypass the hook.
+     *
+     * An ordering is not a row set, so there is nothing for an
+     * `ICondition` answer to gate and it counts as a rejection.
+     * Mutually exclusive with {@link SortOptions.validateMany}.
      */
     validate?: KeyValidator<CONTEXT>,
+    /**
+     * Batched form of {@link SortOptions.validate}: called once per
+     * relation position with every sort key this schema governs there.
+     * A key missing from the returned record is rejected.
+     * Mutually exclusive with `validate`.
+     */
+    validateMany?: KeyValidatorMany<CONTEXT>,
 };

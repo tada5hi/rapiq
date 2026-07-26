@@ -142,6 +142,7 @@ compileFilters(and(
 | Multiple `elemMatch` on one field | independent element bindings | SQL adapter: one join alias, same row |
 | `exists` | is-not-null | Mongo: property presence |
 | `contains` family | case-insensitive | Mongo/ucast: case-sensitive |
+| `Field.condition` gates | applied while projecting | SQL adapters: column projected unconditionally, gate runs [post-fetch](#field-visibility-gates) |
 
 ## Fields & relations projection
 
@@ -151,6 +152,27 @@ The data is already in memory, so `relations` never *adds* anything — and it n
 - Selected fields → only the picked properties survive; dotted picks (`items.title`) project into nested objects and arrays.
 - `-`-flagged entries are dropped, never subtracted — subtract-from-default is resolved at parse time by the schema.
 - An **included relation keeps its whole subtree** alongside a sparse field selection (`joinAndSelect` parity).
+
+### Field visibility gates
+
+A schema's `fields` [validate hook](/guide/schemas#condition-verdicts) may answer with a condition instead of a boolean, which lands on the `Field` node as `Field.condition`: *this column is visible only on records satisfying the condition*. The projector applies those gates automatically: on a record that fails one, the key is omitted from the projected output. **No record is ever removed**: a gate constrains a value, never the row set.
+
+The SQL backends cannot express that in a statement (a selection has to stay a bare column for entity hydration), so they project the column for every row and enforce the gates afterwards. Two helpers are exported for that post-fetch pass:
+
+```typescript
+import { applyFieldConditions, compileFieldConditions } from '@rapiq/memory';
+
+const entities = await queryBuilder.getMany();
+
+// array form: returns a new array, input untouched
+const output = applyFieldConditions(query.fields, entities);
+
+// single-record form: (record) => redacted record
+const redact = compileFieldConditions(query.fields);
+const one = redact(entity);
+```
+
+Records with nothing to hide are passed through **by reference**; only affected records are replaced by a shallow redacted copy. Both helpers take the same options as `compileFilters` as their last argument (e.g. `{ caseSensitive: [...] }`), so a gate evaluates exactly like the equivalent filter would.
 
 ## Sorting & pagination
 
