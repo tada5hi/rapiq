@@ -66,10 +66,22 @@ describe('src/adapter/fields.ts', () => {
         expect(build(['id'], ['realm'])).toEqual({ select: { id: true, realm: true } });
     });
 
-    it('should keep an included relation whole despite a sparse pick', () => {
-        // relations widen a sparse field selection: the projection
-        // contract shared with @rapiq/memory.
-        expect(build(['id', 'realm.name'], ['realm'])).toEqual({ select: { id: true, realm: true } });
+    it('should narrow an included relation to its direct field picks (#847)', () => {
+        // revised projection contract (#847), shared with @rapiq/memory and
+        // @rapiq/typeorm: a per-relation fieldset governs the projection of
+        // an included relation; only a pick-free include hydrates whole.
+        expect(build(['id', 'realm.name'], ['realm'])).toEqual({ select: { id: true, realm: { select: { name: true } } } });
+    });
+
+    it('should keep an included relation whole when only a deeper relation is picked (#847)', () => {
+        // a pick belongs to the relation that owns the column: `items.realm.id`
+        // narrows `items.realm`, never the traversed prefix `items`.
+        expect(build(['id', 'items.realm.id'], ['items'])).toEqual({
+            select: {
+                id: true,
+                items: { include: { realm: { select: { id: true } } } },
+            },
+        });
     });
 
     it('should project a relation sparsely when it is not included', () => {

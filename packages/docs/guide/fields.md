@@ -65,6 +65,8 @@ Fields of a relation use the relation name as key (or a `relation.field` path) a
 }
 ```
 
+A per-relation fieldset governs the projection of an included relation: the backends hydrate `items` with exactly the listed columns. When the related schema declares `fields.default` (or an `allowed` list), those apply to the include the same way. Only an include without any fieldset, against a schema without a `fields` block, hydrates the whole record.
+
 ## Schema options
 
 ```typescript

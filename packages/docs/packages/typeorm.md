@@ -60,7 +60,7 @@ new TypeormAdapter({
 
 | Option | Description |
 |---|---|
-| `relations.joinAndSelect` | Hydrate **every** joined relation, including those joined only for a filter or sort. Off by default — an `include`d relation is always hydrated as a complete subtree (a sparse `fields` entry such as `child.name` never narrows it), while a relation joined purely for filtering/sorting stays unselected (its columns are hydrated only when a `fields` path references them). |
+| `relations.joinAndSelect` | Hydrate **every** joined relation, including those joined only for a filter or sort. Off by default — an `include`d relation is hydrated as a complete subtree only while the query carries no direct fieldset for it: a per-relation fieldset (a client-sent `fields[child]=...` or the child schema's `fields.default`/`allowed`) narrows the include to exactly those columns. A relation joined purely for filtering/sorting stays unselected (its columns are hydrated only when a `fields` path references them). |
 | `relations.hydrationMode` | `'full'` (default) or `'key'`. Select granularity for the relations the adapter hydrates. `'full'` selects the whole subtree (`leftJoinAndSelect`); `'key'` selects only the relation's primary key (plain `leftJoin` + `addSelect(<alias>.<pk>)`), so the relation object is hydrated **id-only**. Use `'key'` to keep an `include`d relation defined under `GROUP BY <root>.id` on strict dialects — see the warning below. |
 | `relations.joinType` | `'left'` (default) or `'inner'`. Left joins keep records whose relation is absent. |
 | `relations.onJoin` | Invoked as `(path, alias, queryBuilder)` for every join the adapter applies — e.g. to `addGroupBy` per join when the root query is grouped. Skipped (pre-existing) joins don't trigger it. |
@@ -73,11 +73,11 @@ The exported `buildRelationAlias(path)` helper length-prefixes every segment: `r
 :::
 
 ::: warning `include` + `GROUP BY <root>.id`
-An `include`d relation is join-and-**selected as a complete subtree**, which adds *all* of the child's columns to the `SELECT` (this matches the [`@rapiq/memory`](/packages/memory) projection contract). Strict SQL dialects (postgres) reject those columns under a `GROUP BY <root>.id` pagination pattern — a `relations.onJoin` hook that adds `addGroupBy(alias + '.id')` per join — because each joined column is neither grouped nor aggregated. Hydrating an arbitrary subtree and collapsing to distinct roots are fundamentally incompatible there, regardless of how the columns are selected (the same applies to `relations.joinAndSelect: true`).
+An `include`d relation **without a fieldset** is join-and-**selected as a complete subtree**, which adds *all* of the child's columns to the `SELECT` (this matches the [`@rapiq/memory`](/packages/memory) projection contract). Strict SQL dialects (postgres) reject those columns under a `GROUP BY <root>.id` pagination pattern — a `relations.onJoin` hook that adds `addGroupBy(alias + '.id')` per join — because each joined column is neither grouped nor aggregated. Hydrating an arbitrary subtree and collapsing to distinct roots are fundamentally incompatible there, regardless of how the columns are selected (the same applies to `relations.joinAndSelect: true`).
 
 Pick one:
 
-- **Sparse selection via a field path** — `fields=<relation>.<column>` joins the relation with a plain `leftJoin` and selects only the referenced (groupable) column, no `leftJoinAndSelect`. Use this when you only need a few columns of the relation under a grouped root.
+- **A per-relation fieldset** — `include=<relation>` combined with `fields[<relation>]=<columns>` (or a child schema declaring `fields.default`/`allowed`) narrows the include to a plain `leftJoin` selecting exactly the requested (groupable) columns. Use this when you only need a few columns of the relation under a grouped root; a bare `fields=<relation>.<column>` path without the include behaves identically.
 - **Id-only hydration** — set `relations.hydrationMode: 'key'` to select only the relation's primary key, so the relation object is at least *defined* (id-only) and every selected join column is groupable. The subtree is not materialized — reach for this when a caller relies on the relation being present but does not need its columns.
 - **A non-grouping pagination strategy** — a distinct-root subquery or a two-phase *ids-then-load* when you genuinely need the full include alongside pagination.
 

@@ -152,6 +152,40 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         expect(await queryBuilder.getMany()).toHaveLength(2);
     });
 
+    it('should keep a forced operand selected under a narrowed include (#847)', async () => {
+        // `realm.id` is a direct pick, so the include narrows to the fieldset
+        // instead of full-selecting the join. The gate operand `realm.name`
+        // must ride along in the per-column select — it is what keeps the
+        // post-fetch gate honest — while never widening the narrowing back up.
+        const queryBuilder = dataSource.getRepository(User)
+            .createQueryBuilder('user');
+
+        new TypeormAdapter({ queryBuilder }).execute(new Query({
+            fields: new Fields([
+                new Field('id'),
+                new Field('realm.id'),
+                new Field('email', undefined, eq('realm.name', 'Master')),
+            ]),
+            relations: new Relations([new Relation('realm')]),
+        }));
+
+        const alias = queryBuilder.expressionMap.joinAttributes[0].alias.name;
+        const selections = queryBuilder.expressionMap.selects
+            .map((select) => select.selection);
+        expect(selections).toContain(`${alias}.id`);
+        expect(selections).toContain(`${alias}.name`);
+        expect(selections).not.toContain(alias);
+
+        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)]
+            .map((match) => match[1]);
+        const duplicates = aliases.filter(
+            (alias, index) => aliases.indexOf(alias) !== index,
+        );
+        expect(duplicates).toEqual([]);
+
+        expect(await queryBuilder.getMany()).toHaveLength(2);
+    });
+
     it('should keep a negated sparse gate from disclosing', async () => {
         // a negated gate MATCHES a missing operand (complement law): with the
         // operand dropped from the fetch, EVERY row would keep `email`.

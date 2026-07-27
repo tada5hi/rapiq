@@ -114,10 +114,18 @@ describe('acceptance: derived registry to prisma arguments', () => {
                 { realm: { is: { name: { equals: 'master', mode: 'insensitive' } } } },
             ],
         });
+        // the include narrows to the realm schema's fieldset — here the
+        // inherited datamodel columns (#847)
         expect(args.select).toEqual({
-            id: true, 
-            first_name: true, 
-            realm: true, 
+            id: true,
+            first_name: true,
+            realm: {
+                select: {
+                    id: true, 
+                    name: true, 
+                    description: true, 
+                }, 
+            },
         });
         expect(args.orderBy).toEqual([{ age: 'desc' }]);
     });
@@ -147,14 +155,21 @@ describe('acceptance: request query to prisma arguments', () => {
         });
 
         // the sensitive field is projected only because the client
-        // opted in; the hydrated relation joins the same select level.
+        // opted in; the hydrated relation joins the same select level,
+        // narrowed to the realm schema's allow-listed fieldset (#847).
         expect(args.select).toEqual({
             id: true,
             first_name: true,
             last_name: true,
             age: true,
             email: true,
-            realm: true,
+            realm: {
+                select: {
+                    id: true, 
+                    name: true, 
+                    description: true, 
+                }, 
+            },
         });
 
         expect(selectRows(args.where, records).map((record) => record.id)).toEqual([1, 2]);

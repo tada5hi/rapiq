@@ -18,8 +18,9 @@ type SelectionNode = {
 
     /**
      * Explicitly requested through `relations`: hydrated as a whole
-     * record. A sparse `<relation>.<field>` pick never narrows it,
-     * matching the `@rapiq/memory` projection contract.
+     * record unless direct `<relation>.<field>` picks exist — those
+     * narrow it to the fieldset (#847), matching the `@rapiq/memory`
+     * projection contract.
      */
     whole : boolean,
 
@@ -89,10 +90,11 @@ function materialize(node: SelectionNode) : true | Record<string, any> {
     const children = materializeChildren(node);
     const hasChildren = Object.keys(children).length > 0;
 
-    // an explicitly included relation is hydrated whole; deeper
-    // relations still have to be declared, and `include` keeps every
-    // scalar of the level alongside them.
-    if (node.whole) {
+    // an explicitly included relation without direct picks is hydrated
+    // whole; deeper relations still have to be declared, and `include`
+    // keeps every scalar of the level alongside them. Direct picks
+    // narrow the include to the fieldset instead (#847).
+    if (node.whole && node.picks.size === 0) {
         if (hasChildren) {
             return { include: children };
         }

@@ -123,7 +123,7 @@ IFieldVisitor<IFieldsAdapter> {
                 }
 
                 selected.add(column);
-                this.adapter.add(column);
+                this.adapter.add(column, undefined, { operand: true });
             }
         }
     }
