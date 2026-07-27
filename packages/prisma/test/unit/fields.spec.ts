@@ -12,6 +12,7 @@ import {
     Query,
     Relation,
     Relations,
+    eq,
 } from '@rapiq/core';
 import { createAdapterOptions } from '../data/schema';
 import { PrismaAdapter } from '../../src';
@@ -99,5 +100,62 @@ describe('src/adapter/fields.ts', () => {
 
     it('should project through a relation without root picks', () => {
         expect(build(['realm.name'])).toEqual({ select: { realm: { select: { name: true } } } });
+    });
+
+    const buildGated = (fields: Field[], relations: string[] = []) => {
+        const adapter = new PrismaAdapter(createAdapterOptions());
+
+        const { args } = adapter.execute(new Query({
+            fields: new Fields(fields),
+            relations: new Relations(relations.map((relation) => new Relation(relation))),
+        }));
+
+        return args;
+    };
+
+    it('should force-project the operand a visibility gate reads (#830)', () => {
+        // the gate is enforced post-fetch (applyFieldConditions); a missing
+        // operand would over-redact an eq-gate and let a negated gate disclose.
+        expect(buildGated([
+            new Field('id'),
+            new Field('email', undefined, eq('age', 60)),
+        ])).toEqual({
+            select: {
+                id: true, 
+                email: true, 
+                age: true, 
+            }, 
+        });
+    });
+
+    it('should keep a forced operand selected under a narrowed include (#847)', () => {
+        // the `realm.id` pick narrows the include; the gate operand
+        // `realm.name` rides along without widening the narrowing back up.
+        expect(buildGated([
+            new Field('id'),
+            new Field('realm.id'),
+            new Field('email', undefined, eq('realm.name', 'master')),
+        ], ['realm'])).toEqual({
+            select: {
+                id: true,
+                email: true,
+                realm: { select: { id: true, name: true } },
+            },
+        });
+    });
+
+    it('should leave a pick-free whole include covering its operands (#830/#847)', () => {
+        // no direct pick: the include hydrates whole, which already fetches
+        // the operand — the forced entry must not narrow the relation.
+        expect(buildGated([
+            new Field('id'),
+            new Field('email', undefined, eq('realm.name', 'master')),
+        ], ['realm'])).toEqual({
+            select: {
+                id: true, 
+                email: true, 
+                realm: true, 
+            }, 
+        });
     });
 });

@@ -55,11 +55,14 @@ class HChild {
     args: { k: string }[] | null;
 
     @Column({
-        nullable: true, 
-        select: false, 
-        type: 'varchar', 
+        nullable: true,
+        select: false,
+        type: 'varchar',
     })
     secret: string | null;
+
+    @Column({ nullable: true, type: 'varchar' })
+    note: string | null;
 
     @Column({ nullable: true })
     pet_id: number | null;
@@ -164,7 +167,39 @@ describe('src/adapter/relations (hydration)', () => {
 
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
+        // the 'key' baseline adds the primary key alongside the fieldset
+        expect(parent.child.id).toBeDefined();
         expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should hydrate a narrowed include whose fieldset is all NULL on the row (#847)', async () => {
+        // the fieldset alone cannot answer "is the relation present?": with
+        // every picked column NULL, TypeORM would treat the join as a miss and
+        // hydrate `child: null`. The narrowed include therefore rides on the
+        // 'key' baseline — requested columns plus the (guarded) primary key.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.note')]),
+            relations: new Relations([new Relation('child')]),
+        }));
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child).not.toBeNull();
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.note).toBeNull();
+        expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should hydrate every joined relation fully under joinAndSelect despite a fieldset (#847)', async () => {
+        // `joinAndSelect: true` is the legacy blanket override: narrowing
+        // applies to the default include behavior only, never under it.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.name')]),
+            relations: new Relations([new Relation('child')]),
+        }), { joinAndSelect: true });
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.name).toEqual('c');
+        expect(parent.child.args).toEqual([{ k: 'a' }]);
     });
 
     it('should keep an included relation whole when only a deeper relation is picked (#847)', async () => {

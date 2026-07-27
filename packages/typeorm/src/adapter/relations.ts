@@ -161,15 +161,18 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
     /**
      * Resolve how a joined relation is materialized: `'none'` (plain join,
-     * unselected), `'full'` (whole subtree) or `'key'` (id-only). The
-     * `hydrationMode` option narrows every *hydrated* relation to its primary
-     * key so it survives `GROUP BY <root>.id` on strict dialects.
+     * unselected), `'full'` (whole subtree) or `'key'` (id-only baseline).
+     * The `hydrationMode` option narrows every *hydrated* relation to its
+     * primary key so it survives `GROUP BY <root>.id` on strict dialects.
      *
-     * A hydrated relation with direct field picks is projected sparsely by
+     * An `include`d relation with direct field picks is projected sparsely by
      * that fieldset (#847): the fields adapter already selects the requested
-     * `<alias>.<column>` references, so the join stays plain and hydration
-     * rides on those selections, exactly like the fields-only auto-join path.
-     * Without any direct pick the whole subtree is selected (#824).
+     * `<alias>.<column>` references, and the `'key'` baseline adds the primary
+     * key when the fieldset misses it — an all-NULL fieldset would otherwise
+     * be indistinguishable from a join miss and hydrate the relation as null.
+     * Without any direct pick the whole subtree is selected (#824). The
+     * legacy `joinAndSelect` option remains a blanket override: it hydrates
+     * every joined relation fully, narrowing does not apply under it.
      */
     protected selectMode(path: string): RelationSelectMode {
         if (!this.shouldSelect(path)) {
@@ -180,9 +183,13 @@ export class RelationsAdapter extends RelationsBaseAdapter {
             return 'key';
         }
 
+        if (this.options.joinAndSelect) {
+            return 'full';
+        }
+
         const entry = this.value.find((join) => join.path === path);
         if (entry && entry.projected) {
-            return 'none';
+            return 'key';
         }
 
         return 'full';

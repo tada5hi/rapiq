@@ -39,7 +39,17 @@ export class FieldsAdapter extends FieldsBaseAdapter<RelationsAdapter> {
         // field that references it stays and is projected sparsely.
         const selected = this.relations.fullySelectedRelationAliases();
 
+        // Duplicates collapse to their first occurrence: a repeated column
+        // (e.g. a hand-built IR naming a field twice) would render a duplicate
+        // output alias, which MySQL rejects (#831).
+        const seen = new Set<string>();
+
         const columns = this.getColumns().filter((column) => {
+            if (seen.has(column)) {
+                return false;
+            }
+            seen.add(column);
+
             // The join alias is always the FIRST dotted segment: relation aliases
             // never contain '.', and a column behind a relation may carry a dotted
             // embedded path (e.g. `r4_role.profile.firstName`). Splitting on the

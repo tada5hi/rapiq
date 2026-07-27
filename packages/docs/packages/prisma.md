@@ -102,6 +102,8 @@ Prisma 7 prunes every runtime datamodel to names and kinds (`Prisma.dmmf` includ
 
 Prisma rejects `select` and `include` on the same level, so the adapter emits exactly one of them per level: a level that picks fields is projected sparsely with `select`, a level that only widens with relations uses `include`. An explicitly included relation without direct picks is hydrated whole; a per-relation fieldset (direct `relation.field` picks) narrows the include to exactly those columns, matching the projection contract of [@rapiq/memory](/packages/memory) ([#847](https://github.com/tada5hi/rapiq/issues/847)). Picks belonging to a deeper relation never narrow the traversed prefix.
 
+Every column a [field visibility gate](/guide/schemas#condition-verdicts) reads is force-projected into the `select` (the gates themselves are enforced post-fetch via `@rapiq/memory`'s `applyFieldConditions`, exactly as with the SQL backends). Those operand entries never narrow an include: behind a pick-free whole relation the hydration covers them anyway.
+
 ```typescript
 // fields: ['id', 'realm.name']
 { select: { id: true, realm: { select: { name: true } } } }
