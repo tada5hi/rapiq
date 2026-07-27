@@ -165,14 +165,15 @@ export class RelationsAdapter extends RelationsBaseAdapter {
      * The `hydrationMode` option narrows every *hydrated* relation to its
      * primary key so it survives `GROUP BY <root>.id` on strict dialects.
      *
-     * An `include`d relation with direct field picks is projected sparsely by
+     * A hydrated relation with direct field picks is projected sparsely by
      * that fieldset (#847): the fields adapter already selects the requested
      * `<alias>.<column>` references, and the `'key'` baseline adds the primary
      * key when the fieldset misses it — an all-NULL fieldset would otherwise
      * be indistinguishable from a join miss and hydrate the relation as null.
-     * Without any direct pick the whole subtree is selected (#824). The
-     * legacy `joinAndSelect` option remains a blanket override: it hydrates
-     * every joined relation fully, narrowing does not apply under it.
+     * Without any direct pick the whole subtree is selected (#824). This is
+     * uniform across the hydration triggers: `joinAndSelect` widens WHICH
+     * relations hydrate (every joined one), never how much of a
+     * fieldset-carrying one is selected.
      */
     protected selectMode(path: string): RelationSelectMode {
         if (!this.shouldSelect(path)) {
@@ -181,10 +182,6 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
         if (this.options.hydrationMode === 'key') {
             return 'key';
-        }
-
-        if (this.options.joinAndSelect) {
-            return 'full';
         }
 
         const entry = this.value.find((join) => join.path === path);

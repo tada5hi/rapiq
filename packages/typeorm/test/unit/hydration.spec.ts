@@ -189,9 +189,10 @@ describe('src/adapter/relations (hydration)', () => {
         expect(parent.child.args).toBeUndefined();
     });
 
-    it('should hydrate every joined relation fully under joinAndSelect despite a fieldset (#847)', async () => {
-        // `joinAndSelect: true` is the legacy blanket override: narrowing
-        // applies to the default include behavior only, never under it.
+    it('should narrow a fieldset-carrying relation under joinAndSelect too (#847)', async () => {
+        // narrowing is uniform across the hydration triggers: joinAndSelect
+        // widens WHICH relations hydrate, never how much of a
+        // fieldset-carrying one is selected.
         const parent = await run(new Query({
             fields: new Fields([new Field('id'), new Field('child.name')]),
             relations: new Relations([new Relation('child')]),
@@ -199,7 +200,8 @@ describe('src/adapter/relations (hydration)', () => {
 
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
-        expect(parent.child.args).toEqual([{ k: 'a' }]);
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.args).toBeUndefined();
     });
 
     it('should keep an included relation whole when only a deeper relation is picked (#847)', async () => {
