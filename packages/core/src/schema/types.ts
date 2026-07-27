@@ -189,10 +189,11 @@ export type SchemaDescribeOptions = {
  * the introspection surface an API can hand to its consumers so the
  * queryable vocabulary is discoverable without reading server code.
  *
- * Reading rules, uniform across parameters:
+ * The shape is NORMALIZED so every schema describes identically:
  * - a parameter key is present iff the description covers that
- *   parameter ({@link SchemaDescribeOptions.parameters});
- * - within a parameter, an absent constraint was never declared
+ *   parameter ({@link SchemaDescribeOptions.parameters}; all of them
+ *   by default), and always carries every constraint key;
+ * - within a parameter, a `null` constraint was never declared
  *   (fallback semantics apply — by default the syntactic property-name
  *   check, under {@link BaseSchemaOptions.strict} a full reject);
  * - an empty array is an explicit "nothing allowed".
@@ -206,8 +207,8 @@ export type SchemaDescribeOptions = {
  * description is the static upper bound.
  */
 export type SchemaDescription = {
-    name?: string,
-    strict?: boolean,
+    name: string | null,
+    strict: boolean,
     fields?: FieldsSchemaDescription,
     filters?: FiltersSchemaDescription,
     pagination?: PaginationSchemaDescription,

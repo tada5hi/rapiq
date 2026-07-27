@@ -54,7 +54,7 @@ Parsed queries are immutable-ish node objects (`Query`, `Filters`, `Filter`, `Fi
 
 ### 2. Schema as server-side allow-list
 
-A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`, `default`, `mapping`, `schemaMapping`). Parsers consult it during parsing and either drop or throw on disallowed input (`throwOnFailure`). The `SchemaRegistry` stores schemas by name so relation traversal (`schemaMapping: { items: 'item' }`) resolves nested records. `schema.describe({ parameters? })` serializes the declared constraints into a JSON-safe `SchemaDescription` (each sub-schema contributes its own `describe()`; the relation→schema target map is composed on `Schema` via `mapSchema`) — absent key = never declared, `[]` = explicitly nothing; dynamic validate hooks and the filters `default` condition are deliberately not represented.
+A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`, `default`, `mapping`, `schemaMapping`). Parsers consult it during parsing and either drop or throw on disallowed input (`throwOnFailure`). The `SchemaRegistry` stores schemas by name so relation traversal (`schemaMapping: { items: 'item' }`) resolves nested records. `schema.describe({ parameters? })` serializes the declared constraints into a JSON-safe, shape-NORMALIZED `SchemaDescription` (each sub-schema contributes its own `describe()`; the relation→schema target map is composed on `Schema` via `mapSchema`) — every covered parameter carries every constraint key: `null` = never declared, `[]` = explicitly nothing, `strict` normalized to effective `false`; dynamic validate hooks and the filters `default` condition are deliberately not represented.
 
 ### 3. Dialects as small option objects, not subclasses
 

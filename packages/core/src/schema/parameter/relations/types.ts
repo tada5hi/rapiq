@@ -47,10 +47,12 @@ export type RelationsOptions<
  * parent `schemaMapping`; an unmapped relation maps to itself,
  * mirroring registry resolution) — nested capabilities are looked up
  * on that schema's own description instead of being expanded inline.
- * An absent `allowed` was never declared (fallback semantics apply);
- * an empty array is an explicit "nothing".
+ * The shape is uniform across schemas: a `null` allow-list was never
+ * declared (fallback semantics apply; the targets cannot be
+ * enumerated then, so `schemas` is `null` alongside it), an empty
+ * array is an explicit "nothing" (with an empty `schemas` record).
  */
 export type RelationsSchemaDescription = {
-    allowed?: string[],
-    schemas?: Record<string, string>,
+    allowed: string[] | null,
+    schemas: Record<string, string> | null,
 };

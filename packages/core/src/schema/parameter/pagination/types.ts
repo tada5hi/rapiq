@@ -13,8 +13,9 @@ export type PaginationOptions = BaseSchemaOptions & {
 
 /**
  * JSON-serializable snapshot of the pagination constraints a schema
- * declares. An absent `maxLimit` means no cap was declared.
+ * declares. The shape is uniform across schemas: a `null` `maxLimit`
+ * means no cap was declared.
  */
 export type PaginationSchemaDescription = {
-    maxLimit?: number,
+    maxLimit: number | null,
 };

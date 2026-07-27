@@ -45,10 +45,11 @@ export type SortOptions<
 /**
  * JSON-serializable snapshot of the sort constraints a schema
  * declares. `allowed` may hold tuple groups (keys only usable
- * together, in order). An absent key was never declared (fallback
- * semantics apply); an empty array is an explicit "nothing".
+ * together, in order). The shape is uniform across schemas: a `null`
+ * constraint was never declared (fallback semantics apply); an empty
+ * array is an explicit "nothing".
  */
 export type SortSchemaDescription = {
-    allowed?: string[] | string[][],
-    default?: Record<string, `${SortDirection}`>,
+    allowed: string[] | string[][] | null,
+    default: Record<string, `${SortDirection}`> | null,
 };

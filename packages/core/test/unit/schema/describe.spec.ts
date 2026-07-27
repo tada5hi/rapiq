@@ -31,6 +31,7 @@ describe('src/schema/**/describe', () => {
 
         expect(schema.describe()).toEqual({
             name: 'user',
+            strict: false,
             fields: {
                 default: ['id', 'name'],
                 allowed: ['email'],
@@ -51,15 +52,17 @@ describe('src/schema/**/describe', () => {
         });
     });
 
-    it('should omit undeclared constraints instead of normalizing them', () => {
+    it('should keep the shape uniform: undeclared constraints serialize as null', () => {
         const schema = defineSchema<User>({});
 
         expect(schema.describe()).toEqual({
-            fields: {},
-            filters: {},
-            pagination: {},
-            relations: {},
-            sort: {},
+            name: null,
+            strict: false,
+            fields: { default: null, allowed: null },
+            filters: { allowed: null },
+            pagination: { maxLimit: null },
+            relations: { allowed: null, schemas: null },
+            sort: { allowed: null, default: null },
         });
     });
 
@@ -71,9 +74,9 @@ describe('src/schema/**/describe', () => {
 
         const output = schema.describe();
 
-        expect(output.fields).toEqual({ allowed: [] });
-        expect(output.relations).toEqual({ allowed: [] });
-        expect(output.filters).toEqual({});
+        expect(output.fields).toEqual({ default: null, allowed: [] });
+        expect(output.relations).toEqual({ allowed: [], schemas: {} });
+        expect(output.filters).toEqual({ allowed: null });
     });
 
     it('should restrict the description to the selected parameters', () => {
@@ -88,7 +91,8 @@ describe('src/schema/**/describe', () => {
 
         expect(schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })).toEqual({
             name: 'user',
-            fields: { allowed: ['id', 'name'] },
+            strict: false,
+            fields: { default: null, allowed: ['id', 'name'] },
             relations: {
                 allowed: ['realm'],
                 schemas: { realm: 'realm' },
@@ -110,7 +114,7 @@ describe('src/schema/**/describe', () => {
 
         const output = schema.describe();
 
-        expect(output.sort).toEqual({ allowed: [['realm.id', 'id'], ['name']] });
+        expect(output.sort).toEqual({ allowed: [['realm.id', 'id'], ['name']], default: null });
 
         (output.sort!.allowed as string[][])[0].push('mutated');
         expect(schema.sort.allowed[0]).toEqual(['realm.id', 'id']);
@@ -139,8 +143,8 @@ describe('src/schema/**/describe', () => {
         expect(schema.sort.default).toEqual({ name: 'DESC' });
     });
 
-    it('should include the strict flag only when declared', () => {
-        expect(defineSchema<User>({}).describe().strict).toBeUndefined();
+    it('should normalize the strict flag to its effective default', () => {
+        expect(defineSchema<User>({}).describe().strict).toBe(false);
         expect(defineSchema<User>({ strict: true }).describe().strict).toBe(true);
     });
 

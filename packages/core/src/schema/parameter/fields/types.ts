@@ -39,10 +39,11 @@ export type FieldsOptions<
 
 /**
  * JSON-serializable snapshot of the fields constraints a schema
- * declares. An absent key was never declared (fallback semantics
- * apply); an empty array is an explicit "nothing".
+ * declares. The shape is uniform across schemas: a `null` constraint
+ * was never declared (fallback semantics apply); an empty array is an
+ * explicit "nothing".
  */
 export type FieldsSchemaDescription = {
-    default?: string[],
-    allowed?: string[],
+    default: string[] | null,
+    allowed: string[] | null,
 };

@@ -89,15 +89,10 @@ export class Schema<
      * itself, mirroring registry resolution.
      */
     describe(options: SchemaDescribeOptions = {}) : SchemaDescription {
-        const output : SchemaDescription = {};
-
-        if (typeof this.options.name !== 'undefined') {
-            output.name = this.options.name;
-        }
-
-        if (typeof this.options.strict !== 'undefined') {
-            output.strict = this.options.strict;
-        }
+        const output : SchemaDescription = {
+            name: this.options.name ?? null,
+            strict: this.options.strict ?? false,
+        };
 
         const parameters : string[] = options.parameters || Object.values(Parameter);
 
@@ -116,10 +111,7 @@ export class Schema<
         if (parameters.includes(Parameter.RELATIONS)) {
             output.relations = this.relations.describe();
 
-            if (
-                output.relations.allowed &&
-                output.relations.allowed.length > 0
-            ) {
+            if (output.relations.allowed) {
                 const schemas : Record<string, string> = {};
                 for (const relation of output.relations.allowed) {
                     schemas[relation] = this.mapSchema(relation);

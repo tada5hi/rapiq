@@ -64,13 +64,7 @@ export class FiltersSchema<
      * consumer mutating the description never touches the schema.
      */
     describe() : FiltersSchemaDescription {
-        const output : FiltersSchemaDescription = {};
-
-        if (!this.allowedIsUndefined) {
-            output.allowed = [...this.allowed];
-        }
-
-        return output;
+        return { allowed: this.allowedIsUndefined ? null : [...this.allowed] };
     }
 
     // ---------------------------------------------------------

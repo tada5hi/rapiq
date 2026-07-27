@@ -58,19 +58,14 @@ export class SortSchema<
      * {@link SortSchema.buildAllowed}) serializes like a declared one.
      */
     describe() : SortSchemaDescription {
-        const output : SortSchemaDescription = {};
-
-        if (!this.allowedIsUndefined) {
-            output.allowed = this.allowed.map(
-                (el) => (Array.isArray(el) ? [...el] : el),
-            ) as string[] | string[][];
-        }
-
-        if (!this.defaultIsUndefined) {
-            output.default = { ...this.default };
-        }
-
-        return output;
+        return {
+            allowed: this.allowedIsUndefined ?
+                null :
+                this.allowed.map(
+                    (el) => (Array.isArray(el) ? [...el] : el),
+                ) as string[] | string[][],
+            default: this.defaultIsUndefined ? null : { ...this.default },
+        };
     }
 
     // ---------------------------------------------------------

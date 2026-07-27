@@ -309,6 +309,7 @@ is discoverable without reading server code:
 userSchema.describe();
 // {
 //     name: 'user',
+//     strict: false,
 //     fields: { default: ['id', 'name'], allowed: ['email'] },
 //     filters: { allowed: ['id', 'name'] },
 //     pagination: { maxLimit: 50 },
@@ -316,19 +317,22 @@ userSchema.describe();
 //         allowed: ['realm', 'items'],
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
-//     sort: { allowed: ['id', 'name'] },
+//     sort: { allowed: ['id', 'name'], default: null },
 // }
 ```
 
-Reading rules, uniform across parameters:
+The shape is **normalized** — every schema describes identically, so
+consumers can rely on a stable structure:
 
 - a parameter key is present iff the description covers that parameter —
   pass `parameters` to mirror a surface that only processes some of them
   (e.g. a single-record read handling `fields` and `relations` only):
-  `schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })`;
-- within a parameter, an **absent** constraint was never declared, so the
+  `schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })`.
+  A covered parameter always carries every constraint key;
+- within a parameter, a **`null`** constraint was never declared, so the
   fallback semantics apply (syntactic property-name check, or a full
-  reject under [strict mode](#strict-mode));
+  reject under [strict mode](#strict-mode) — `strict` is normalized to
+  its effective default, `false`);
 - an **empty array** is an explicit "nothing allowed".
 
 Relation capabilities are not expanded inline: `relations.schemas` names

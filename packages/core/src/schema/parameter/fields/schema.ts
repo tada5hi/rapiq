@@ -99,17 +99,10 @@ export class FieldsSchema<
      * consumer mutating the description never touches the schema.
      */
     describe() : FieldsSchemaDescription {
-        const output : FieldsSchemaDescription = {};
-
-        if (!this.defaultIsUndefined) {
-            output.default = [...this.default];
-        }
-
-        if (!this.allowedIsUndefined) {
-            output.allowed = [...this.allowed];
-        }
-
-        return output;
+        return {
+            default: this.defaultIsUndefined ? null : [...this.default],
+            allowed: this.allowedIsUndefined ? null : [...this.allowed],
+        };
     }
 
     // ---------------------------------------------------------

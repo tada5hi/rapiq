@@ -35,12 +35,11 @@ export class RelationsSchema<
      * since the schema mapping lives on the parent schema.
      */
     describe() : RelationsSchemaDescription {
-        const output : RelationsSchemaDescription = {};
-
-        if (typeof this.options.allowed !== 'undefined') {
-            output.allowed = [...this.options.allowed];
-        }
-
-        return output;
+        return {
+            allowed: typeof this.options.allowed === 'undefined' ?
+                null :
+                [...this.options.allowed],
+            schemas: null,
+        };
     }
 }

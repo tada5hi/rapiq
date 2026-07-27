@@ -19,12 +19,6 @@ export class PaginationSchema extends BaseSchema<PaginationOptions> {
      * Serialize the declared constraints.
      */
     describe() : PaginationSchemaDescription {
-        const output : PaginationSchemaDescription = {};
-
-        if (typeof this.options.maxLimit !== 'undefined') {
-            output.maxLimit = this.options.maxLimit;
-        }
-
-        return output;
+        return { maxLimit: this.options.maxLimit ?? null };
     }
 }
