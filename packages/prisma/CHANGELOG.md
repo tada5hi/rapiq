@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.11](https://github.com/tada5hi/rapiq/compare/prisma-v2.0.0-beta.10...prisma-v2.0.0-beta.11) (2026-07-27)
+
+
+### Bug Fixes
+
+* narrow an included relation to its per-relation fieldset ([#847](https://github.com/tada5hi/rapiq/issues/847)) ([#850](https://github.com/tada5hi/rapiq/issues/850)) ([bc6acef](https://github.com/tada5hi/rapiq/commit/bc6acefdb855a24af68d142e9e14010825794ca4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+
 ## [2.0.0-beta.10](https://github.com/tada5hi/rapiq/compare/prisma-v2.0.0-beta.9...prisma-v2.0.0-beta.10) (2026-07-26)
 
 
