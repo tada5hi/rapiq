@@ -73,6 +73,8 @@ Why `and()` and not a merge? `and()` **wraps** the client's tree as a sibling of
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
+When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `and(filter, inArray('realm_id', actor.realmIds))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges.
+
 ## Row-scoped column access
 
 Some columns aren't a yes/no decision. An actor may read `email` on users of its own realm and nothing else, but the users of other realms must still be listed. A `fields` [validate hook](/guide/schemas#condition-verdicts) answering with a **condition** expresses exactly that: the field stays selected, and the condition marks it visible only on the rows that satisfy it.

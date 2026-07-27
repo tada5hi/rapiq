@@ -13,7 +13,6 @@ import {
 } from '../../../parameter';
 import type {
     ICondition,
-    IFilter,
     IFilters,
 } from '../../../parameter';
 import { FilterFieldOperator } from '../../../schema';
@@ -54,7 +53,8 @@ function isConditionValue(input: unknown) : input is ICondition {
 /**
  * Apply a filter schema's leaf validator without flattening or otherwise
  * changing the compound tree. Returning `undefined` from the validator drops
- * only that leaf; replacement filters are inserted in the same position.
+ * only that leaf; replacement conditions (a leaf or a whole compound, e.g.
+ * `and(<leaf>, <policy residual>)`) are inserted in the same position.
  * A compound whose every child is rejected is dropped entirely (`undefined`),
  * so callers fall back to the schema defaults instead of keeping a vacuous
  * node. An `elemMatch` leaf is validated inside-out: the interior condition
@@ -62,10 +62,10 @@ function isConditionValue(input: unknown) : input is ICondition {
  * rebuilt leaf itself.
  */
 export function applyFiltersSchemaValidation(
-    input: IFilter | IFilters,
+    input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
-) : IFilter | IFilters | undefined;
+) : IFilters | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
@@ -130,10 +130,10 @@ export function applyFiltersSchemaValidation(
  * identical to the synchronous traversal.
  */
 export function applyFiltersSchemaValidationAsync(
-    input: IFilter | IFilters,
+    input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
-) : Promise<IFilter | IFilters | undefined>;
+) : Promise<IFilters | undefined>;
 export function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,

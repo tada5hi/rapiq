@@ -8,7 +8,7 @@
 import type {
     FiltersParseOptions,
     FiltersSchema,
-    IFilter,
+    ICondition,
     IFilters,
     ObjectLiteral,
     RelationLedger,
@@ -140,7 +140,7 @@ export class ExpressionFiltersParser extends BaseParser<
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : IFilters | IFilter {
+    ) : ICondition {
         // raw exact tree; a standalone caller wanting relation authorization
         // uses parse(). Obligations are discarded, not pooled.
         return this.parseValidated(input, options, []).result;
@@ -149,7 +149,7 @@ export class ExpressionFiltersParser extends BaseParser<
     async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
-    ) : Promise<IFilters | IFilter> {
+    ) : Promise<ICondition> {
         return (await this.parseValidatedAsync(input, options, [])).result;
     }
 
@@ -198,7 +198,7 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { result: IFilters | IFilter, scope?: FiltersScope } {
+    ) : { result: ICondition, scope?: FiltersScope } {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
             return { result: expr };
@@ -219,7 +219,7 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : Promise<{ result: IFilters | IFilter, scope?: FiltersScope }> {
+    ) : Promise<{ result: ICondition, scope?: FiltersScope }> {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
             return { result: expr };
@@ -288,7 +288,7 @@ export class ExpressionFiltersParser extends BaseParser<
         );
     }
 
-    private wrapRoot(expr: IFilters | IFilter) : IFilters {
+    private wrapRoot(expr: ICondition) : IFilters {
         if (
             isFilters(expr, FilterCompoundOperator.AND) ||
             isFilters(expr, FilterCompoundOperator.OR)

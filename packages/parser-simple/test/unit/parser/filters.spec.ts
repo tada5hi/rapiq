@@ -113,6 +113,45 @@ describe('src/filter/index.ts', () => {
         ]));
     });
 
+    it('should let the schema validator replace a leaf with a compound condition', () => {
+        const output = parseFlat({ realm_id: 'a', age: 18 }, {
+            schema: defineFiltersSchema({
+                validate: (filter) => (filter.field === 'realm_id' ?
+                    new Filters(FilterCompoundOperator.AND, [
+                        filter,
+                        new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+                    ]) :
+                    filter),
+            }),
+        });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filters(FilterCompoundOperator.AND, [
+                new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+                new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+            ]),
+            new Filter(FilterFieldOperator.EQUAL, 'age', 18),
+        ]));
+    });
+
+    it('should await a compound-returning validator through parseAsync', async () => {
+        const output = await parser.parseAsync({ realm_id: 'a' }, {
+            schema: defineFiltersSchema({
+                validate: async (filter) => new Filters(FilterCompoundOperator.OR, [
+                    filter,
+                    new Filter(FilterFieldOperator.EQUAL, 'realm_id', null),
+                ]),
+            }),
+        });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filters(FilterCompoundOperator.OR, [
+                new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+                new Filter(FilterFieldOperator.EQUAL, 'realm_id', null),
+            ]),
+        ]));
+    });
+
     it('should apply schema defaults when validation rejects every filter', () => {
         const output = parseFlat({ name: 'admin' }, {
             schema: defineFiltersSchema({
