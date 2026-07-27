@@ -9,6 +9,7 @@ import type { ICondition, IFilter } from '../../../parameter';
 import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
 import type {
     FiltersOptions,
+    FiltersSchemaDescription,
 } from './types';
 import { BaseSchema } from '../../base';
 
@@ -54,6 +55,16 @@ export class FiltersSchema<
 
     hasDefaults() {
         return !this.defaultIsUndefined;
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Serialize the declared constraints. Arrays are cloned, so a
+     * consumer mutating the description never touches the schema.
+     */
+    describe() : FiltersSchemaDescription {
+        return { allowed: this.allowedIsUndefined ? null : [...this.allowed] };
     }
 
     // ---------------------------------------------------------

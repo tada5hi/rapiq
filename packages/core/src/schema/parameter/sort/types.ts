@@ -41,3 +41,15 @@ export type SortOptions<
      */
     validateMany?: KeyValidatorMany<CONTEXT>,
 };
+
+/**
+ * JSON-serializable snapshot of the sort constraints a schema
+ * declares. `allowed` may hold tuple groups (keys only usable
+ * together, in order). The shape is uniform across schemas: a `null`
+ * constraint was never declared (fallback semantics apply); an empty
+ * array is an explicit "nothing".
+ */
+export type SortSchemaDescription = {
+    allowed: string[] | string[][] | null,
+    default: Record<string, `${SortDirection}`> | null,
+};

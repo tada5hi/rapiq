@@ -8,7 +8,7 @@
 import { Parameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import { BaseKeyValidatableSchema } from '../../key-validatable';
-import type { RelationsOptions } from './types';
+import type { RelationsOptions, RelationsSchemaDescription } from './types';
 
 export class RelationsSchema<
     T extends ObjectLiteral = ObjectLiteral,
@@ -24,5 +24,22 @@ export class RelationsSchema<
 
     get mapping() {
         return this.options.mapping || {};
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Serialize the declared constraints. The array is cloned, so a
+     * consumer mutating the description never touches the schema.
+     * The `schemas` target map is composed by {@link Schema.describe},
+     * since the schema mapping lives on the parent schema.
+     */
+    describe() : RelationsSchemaDescription {
+        return {
+            allowed: typeof this.options.allowed === 'undefined' ?
+                null :
+                [...this.options.allowed],
+            schemas: null,
+        };
     }
 }

@@ -298,6 +298,55 @@ const query = parser.parse(input, { schema: 'user' });
 
 With the mapping above, input like `fields: { realm: ['name'] }` or `filters: { 'realm.name': 'master' }` is validated against the **realm** schema's allow-lists — each relation owner decides what may be requested of it.
 
+## Describing a schema
+
+`schema.describe()` serializes the declared constraints into a JSON-safe
+`SchemaDescription` — the introspection surface an API can return to its
+consumers (e.g. under a response `meta` key), so the queryable vocabulary
+is discoverable without reading server code:
+
+```typescript
+userSchema.describe();
+// {
+//     name: 'user',
+//     strict: false,
+//     fields: { default: ['id', 'name'], allowed: ['email'] },
+//     filters: { allowed: ['id', 'name'] },
+//     pagination: { maxLimit: 50 },
+//     relations: {
+//         allowed: ['realm', 'items'],
+//         schemas: { realm: 'realm', items: 'item' },
+//     },
+//     sort: { allowed: ['id', 'name'], default: null },
+// }
+```
+
+The shape is **normalized** — every schema describes identically, so
+consumers can rely on a stable structure:
+
+- a parameter key is present iff the description covers that parameter —
+  pass `parameters` to mirror a surface that only processes some of them
+  (e.g. a single-record read handling `fields` and `relations` only):
+  `schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })`.
+  A covered parameter always carries every constraint key;
+- within a parameter, a **`null`** constraint was never declared, so the
+  fallback semantics apply (syntactic property-name check, or a full
+  reject under [strict mode](#strict-mode) — `strict` is normalized to
+  its effective default, `false`);
+- an **empty array** is an explicit "nothing allowed".
+
+Relation capabilities are not expanded inline: `relations.schemas` names
+the schema governing each relation (via `schemaMapping`; an unmapped
+relation maps to itself, mirroring registry resolution) — nested
+vocabulary is looked up on that schema's own description.
+
+Deliberately absent from the output: the filters `default` condition (a
+server-injected baseline, not client vocabulary) and the dynamic
+`validate`/`validateMany` hooks (e.g. per-actor authorization gates) —
+the description is the **static upper bound** of what a client may send,
+not a per-request effective view. Arrays are cloned, so mutating a
+description never touches the schema.
+
 ## Failure behavior: drop vs. throw
 
 By default, parsers **drop** what the schema doesn't allow — the query still parses, minus the offending parts. That is the forgiving mode: old clients sending a removed field keep working.

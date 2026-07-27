@@ -10,3 +10,12 @@ import type { BaseSchemaOptions } from '../../types';
 export type PaginationOptions = BaseSchemaOptions & {
     maxLimit?: number
 };
+
+/**
+ * JSON-serializable snapshot of the pagination constraints a schema
+ * declares. The shape is uniform across schemas: a `null` `maxLimit`
+ * means no cap was declared.
+ */
+export type PaginationSchemaDescription = {
+    maxLimit: number | null,
+};

@@ -19,8 +19,11 @@ import {
     defineSortSchema,
 } from './parameter';
 import type {
+    SchemaDescribeOptions,
+    SchemaDescription,
     SchemaOptions,
 } from './types';
+import { Parameter } from '../constants';
 import type { ObjectLiteral } from '../types';
 import { BaseSchema } from './base';
 
@@ -74,6 +77,55 @@ export class Schema<
         }
 
         this.extendSchemasOptions();
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Serialize the declared constraints of every (selected)
+     * parameter into a JSON-safe {@link SchemaDescription}. The
+     * relation target map is composed here, since the schema
+     * mapping lives on this schema — an unmapped relation maps to
+     * itself, mirroring registry resolution.
+     */
+    describe(options: SchemaDescribeOptions = {}) : SchemaDescription {
+        const output : SchemaDescription = {
+            name: this.options.name ?? null,
+            strict: this.options.strict ?? false,
+        };
+
+        const parameters : string[] = options.parameters || Object.values(Parameter);
+
+        if (parameters.includes(Parameter.FIELDS)) {
+            output.fields = this.fields.describe();
+        }
+
+        if (parameters.includes(Parameter.FILTERS)) {
+            output.filters = this.filters.describe();
+        }
+
+        if (parameters.includes(Parameter.PAGINATION)) {
+            output.pagination = this.pagination.describe();
+        }
+
+        if (parameters.includes(Parameter.RELATIONS)) {
+            output.relations = this.relations.describe();
+
+            if (output.relations.allowed) {
+                const schemas : Record<string, string> = {};
+                for (const relation of output.relations.allowed) {
+                    schemas[relation] = this.mapSchema(relation);
+                }
+
+                output.relations.schemas = schemas;
+            }
+        }
+
+        if (parameters.includes(Parameter.SORT)) {
+            output.sort = this.sort.describe();
+        }
+
+        return output;
     }
 
     // ---------------------------------------------------------

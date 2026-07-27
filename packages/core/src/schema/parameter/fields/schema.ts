@@ -10,7 +10,7 @@ import type { FieldKeys, ObjectLiteral } from '../../../types';
 import {
     isPropertyNameValid,
 } from '../../../utils';
-import type { FieldsOptions } from './types';
+import type { FieldsOptions, FieldsSchemaDescription } from './types';
 import { BaseKeyValidatableSchema } from '../../key-validatable';
 
 export class FieldsSchema<
@@ -90,6 +90,19 @@ export class FieldsSchema<
 
     hasDefaults() {
         return !this.defaultIsUndefined && this.default.length > 0;
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Serialize the declared constraints. Arrays are cloned, so a
+     * consumer mutating the description never touches the schema.
+     */
+    describe() : FieldsSchemaDescription {
+        return {
+            default: this.defaultIsUndefined ? null : [...this.default],
+            allowed: this.allowedIsUndefined ? null : [...this.allowed],
+        };
     }
 
     // ---------------------------------------------------------

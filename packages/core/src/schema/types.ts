@@ -8,14 +8,19 @@
 import type {
     FieldsOptions,
     FieldsSchema,
+    FieldsSchemaDescription,
     FiltersOptions,
     FiltersSchema,
+    FiltersSchemaDescription,
     PaginationOptions,
-    PaginationSchema, 
+    PaginationSchema,
+    PaginationSchemaDescription,
     RelationsOptions,
     RelationsSchema,
+    RelationsSchemaDescription,
     SortOptions,
     SortSchema,
+    SortSchemaDescription,
 } from './parameter';
 import type { Parameter } from '../constants';
 import type { ICondition } from '../parameter';
@@ -165,3 +170,48 @@ export type SchemaOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
     CONTEXT = any,
 > = Partial<SchemaOptionsNormalized<RECORD, CONTEXT>>;
+
+/**
+ * Options for {@link Schema.describe}.
+ */
+export type SchemaDescribeOptions = {
+    /**
+     * Restrict the description to a subset of parameters, mirroring
+     * a parse/decode surface that only processes some of them (e.g.
+     * a single-record read handling `fields` and `relations` only).
+     * Defaults to every parameter.
+     */
+    parameters?: `${Parameter}`[],
+};
+
+/**
+ * JSON-serializable snapshot of the constraints a schema declares —
+ * the introspection surface an API can hand to its consumers so the
+ * queryable vocabulary is discoverable without reading server code.
+ *
+ * The shape is NORMALIZED so every schema describes identically:
+ * - a parameter key is present iff the description covers that
+ *   parameter ({@link SchemaDescribeOptions.parameters}; all of them
+ *   by default), and always carries every constraint key;
+ * - within a parameter, a `null` constraint was never declared
+ *   (fallback semantics apply — by default the syntactic property-name
+ *   check, under {@link BaseSchemaOptions.strict} a full reject);
+ * - an empty array is an explicit "nothing allowed".
+ *
+ * Relation capabilities are not expanded inline: `relations.schemas`
+ * names the schema governing each relation, whose own description
+ * covers the dotted vocabulary reachable through it.
+ *
+ * Dynamic constraints (validate/validateMany hooks, e.g. per-actor
+ * authorization gates) are deliberately not represented — the
+ * description is the static upper bound.
+ */
+export type SchemaDescription = {
+    name: string | null,
+    strict: boolean,
+    fields?: FieldsSchemaDescription,
+    filters?: FiltersSchemaDescription,
+    pagination?: PaginationSchemaDescription,
+    relations?: RelationsSchemaDescription,
+    sort?: SortSchemaDescription,
+};
