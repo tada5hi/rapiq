@@ -26,4 +26,12 @@ export class MergeError extends BaseError {
             code: ErrorCode.FILTERS_NOT_FLAT,
         });
     }
+
+    static fieldsConditionDiscarded(name: string) {
+        return new this({
+            message: `Merging fields would discard the visibility condition on "${name}". ` +
+                'A gated field cannot be displaced; keep the gated query as the receiver or remove the colliding field first.',
+            code: ErrorCode.FIELDS_CONDITION_DISCARDED,
+        });
+    }
 }

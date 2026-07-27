@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { MergeError } from '../../../errors';
 import type { IField } from '../record';
 import { Field } from '../record';
 import { FieldOperator } from '../../../schema';
@@ -29,17 +30,32 @@ export class Fields implements IFields {
     /**
      * Keyed by name, left/receiver priority; order = first occurrence.
      * Immutable — returns a new collection.
+     *
+     * A name collision that would discard a visibility condition (see
+     * `IField.condition`) throws a typed MergeError instead: a gate is a
+     * server-authored authorization decision, and dropping it silently
+     * would widen disclosure. The surviving node keeping the identical
+     * condition instance is fine; anything else refuses, mirroring how
+     * a non-flat filter tree refuses `Filters.merge()`.
      */
     merge(other: IFields) : IFields {
         const output : IField[] = [];
 
-        const seen = new Set<string>();
+        const seen = new Map<string, IField>();
         for (const item of [...this.value, ...other.value]) {
-            if (seen.has(item.name)) {
+            const survivor = seen.get(item.name);
+            if (survivor) {
+                if (
+                    typeof item.condition !== 'undefined' &&
+                    item.condition !== survivor.condition
+                ) {
+                    throw MergeError.fieldsConditionDiscarded(item.name);
+                }
+
                 continue;
             }
 
-            seen.add(item.name);
+            seen.set(item.name, item);
             output.push(item);
         }
 

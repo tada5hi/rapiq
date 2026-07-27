@@ -105,6 +105,8 @@ defineSchema<User, Actor>({
 
 The gate never removes a row; it only blanks a column on the rows that fail it. `@rapiq/memory` applies it while projecting; the SQL backends project the column and rely on a post-fetch pass. Details and the fail-open caveat: [Condition verdicts](/guide/schemas#condition-verdicts).
 
+A gate also resists composition: a [merge](/guide/merging-queries) collision that would replace a gated field with an ungated one (or with a different gate) throws a `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently widening disclosure.
+
 ## On violation
 
 Disallowed or invalid field input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `FieldsParseError` instead.

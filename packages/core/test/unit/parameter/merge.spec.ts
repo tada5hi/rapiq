@@ -8,9 +8,12 @@
 import type { IFilter } from '../../../src';
 import {
     ErrorCode,
+    Field,
+    Fields,
     FilterCompoundOperator,
     Filters,
     MergeError,
+    Query,
     contains,
     defineQuery,
     eq,
@@ -111,6 +114,29 @@ describe('src/parameter/merge.ts', () => {
             expect(e).toBeInstanceOf(MergeError);
             expect((e as MergeError).code).toBe(ErrorCode.FILTERS_NOT_FLAT);
         }
+    });
+
+    it('should throw a typed error when a merge would discard a field visibility gate', () => {
+        const ungated = defineQuery<User>({ fields: ['email'] });
+        const gated = new Query({ fields: new Fields([new Field('email', undefined, eq('realm_id', 'a'))]) });
+
+        try {
+            mergeQueries(ungated, gated);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(MergeError);
+            expect((e as MergeError).code).toBe(ErrorCode.FIELDS_CONDITION_DISCARDED);
+        }
+    });
+
+    it('should keep a receiver-side field visibility gate on collision', () => {
+        const gated = new Query({ fields: new Fields([new Field('email', undefined, eq('realm_id', 'a'))]) });
+        const ungated = defineQuery<User>({ fields: ['email', 'id'] });
+
+        const output = mergeQueries(gated, ungated);
+
+        expect(output.fields.value.map((el) => el.name)).toEqual(['email', 'id']);
+        expect(output.fields.value[0].condition).toBeDefined();
     });
 });
 
