@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/typeorm",
-    "version": "2.0.0-beta.10",
+    "version": "2.0.0-beta.11",
     "description": "Apply a rapiq query directly to a TypeORM SelectQueryBuilder (filters, relations, fields, sort & pagination).",
     "type": "module",
     "main": "dist/index.mjs",
@@ -19,22 +19,22 @@
         "change-case": "^5.4.4"
     },
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.10",
-        "@rapiq/parser-simple": "^2.0.0-beta.10",
-        "@rapiq/sql": "^2.0.0-beta.10",
-        "@swc/core": "^1.15.46",
+        "@rapiq/core": "^2.0.0-beta.11",
+        "@rapiq/parser-simple": "^2.0.0-beta.11",
+        "@rapiq/sql": "^2.0.0-beta.11",
+        "@swc/core": "^1.15.43",
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
-        "mysql2": "^3.23.1",
+        "mysql2": "^3.22.6",
         "pg": "^8.13.0",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^1.1.0",
         "unplugin-swc": "^1.5.9"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.10",
-        "@rapiq/memory": "^2.0.0-beta.10",
-        "@rapiq/sql": "^2.0.0-beta.10",
+        "@rapiq/core": "^2.0.0-beta.11",
+        "@rapiq/memory": "^2.0.0-beta.11",
+        "@rapiq/sql": "^2.0.0-beta.11",
         "typeorm": "^1.1.0"
     },
     "scripts": {

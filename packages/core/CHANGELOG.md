@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.11](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.10...core-v2.0.0-beta.11) (2026-07-27)
+
+
+### Features
+
+* **core:** add schema describe() serialization API ([#851](https://github.com/tada5hi/rapiq/issues/851)) ([5415acb](https://github.com/tada5hi/rapiq/commit/5415acbfcf22e0ef16bfca6078f1afde0805886b))
+
 ## [2.0.0-beta.10](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.9...core-v2.0.0-beta.10) (2026-07-26)
 
 

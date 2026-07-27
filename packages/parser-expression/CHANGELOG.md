@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0-beta.11](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.0.0-beta.10...parser-expression-v2.0.0-beta.11) (2026-07-27)
+
+
+### Miscellaneous Chores
+
+* **parser-expression:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.10 to ^2.0.0-beta.11
+
 ## [2.0.0-beta.10](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.0.0-beta.9...parser-expression-v2.0.0-beta.10) (2026-07-26)
 
 
