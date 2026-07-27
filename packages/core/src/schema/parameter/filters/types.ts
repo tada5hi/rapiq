@@ -46,3 +46,15 @@ export type FiltersOptions<
      */
     caseSensitive?: SimpleKeys<T>[],
 };
+
+/**
+ * JSON-serializable snapshot of the filter constraints a schema
+ * declares. Only the consumer-facing vocabulary is exposed — the
+ * `default` condition is a server-injected baseline, not something
+ * a client can send, so it is deliberately absent. An absent
+ * `allowed` was never declared (fallback semantics apply); an
+ * empty array is an explicit "nothing".
+ */
+export type FiltersSchemaDescription = {
+    allowed?: string[],
+};

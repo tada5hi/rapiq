@@ -9,6 +9,7 @@ import { Parameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import type {
     SortOptions,
+    SortSchemaDescription,
 } from './types';
 import { BaseKeyValidatableSchema } from '../../key-validatable';
 
@@ -46,6 +47,30 @@ export class SortSchema<
 
     get mapping() : Record<string, string> | undefined {
         return this.options.mapping;
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Serialize the declared constraints. Arrays and records are
+     * cloned, so a consumer mutating the description never touches
+     * the schema. An allow-list derived from `default` keys (see
+     * {@link SortSchema.buildAllowed}) serializes like a declared one.
+     */
+    describe() : SortSchemaDescription {
+        const output : SortSchemaDescription = {};
+
+        if (!this.allowedIsUndefined) {
+            output.allowed = this.allowed.map(
+                (el) => (Array.isArray(el) ? [...el] : el),
+            ) as string[] | string[][];
+        }
+
+        if (!this.defaultIsUndefined) {
+            output.default = { ...this.default };
+        }
+
+        return output;
     }
 
     // ---------------------------------------------------------

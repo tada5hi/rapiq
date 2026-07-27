@@ -39,3 +39,18 @@ export type RelationsOptions<
      */
     validateMany?: KeyValidatorMany<CONTEXT>,
 };
+
+/**
+ * JSON-serializable snapshot of the relation constraints a schema
+ * declares. `schemas` maps each allowed relation to the name of the
+ * schema governing it (composed by {@link Schema.describe} via the
+ * parent `schemaMapping`; an unmapped relation maps to itself,
+ * mirroring registry resolution) — nested capabilities are looked up
+ * on that schema's own description instead of being expanded inline.
+ * An absent `allowed` was never declared (fallback semantics apply);
+ * an empty array is an explicit "nothing".
+ */
+export type RelationsSchemaDescription = {
+    allowed?: string[],
+    schemas?: Record<string, string>,
+};
