@@ -38,6 +38,9 @@ class HPet {
 
     @Column()
     name: string;
+
+    @Column({ nullable: true, type: 'int' })
+    weight: number | null;
 }
 
 @Entity()
@@ -50,6 +53,16 @@ class HChild {
 
     @Column({ type: 'simple-json', nullable: true })
     args: { k: string }[] | null;
+
+    @Column({
+        nullable: true,
+        select: false,
+        type: 'varchar',
+    })
+    secret: string | null;
+
+    @Column({ nullable: true, type: 'varchar' })
+    note: string | null;
 
     @Column({ nullable: true })
     pet_id: number | null;
@@ -95,10 +108,11 @@ describe('src/adapter/relations (hydration)', () => {
         await dataSource.initialize();
         await dataSource.synchronize();
 
-        const pet = await dataSource.getRepository(HPet).save({ name: 'rex' });
+        const pet = await dataSource.getRepository(HPet).save({ name: 'rex', weight: 12 });
         const child = await dataSource.getRepository(HChild).save({
             name: 'c',
             args: [{ k: 'a' }],
+            secret: 'key-under-the-doormat',
             pet_id: (pet as any).id,
         });
         await dataSource.getRepository(HParent).save({
@@ -139,9 +153,13 @@ describe('src/adapter/relations (hydration)', () => {
         expect(parent.data).toEqual([{ k: 'b' }]);
     });
 
-    it('should widen an included relation to the whole subtree even with a projected child field', async () => {
-        // @rapiq/memory contract: an included relation contributes ALL its
-        // columns; a sparse `child.name` never narrows an included relation.
+    it('should narrow an included relation to its direct field picks (#847)', async () => {
+        // revised projection contract (#847, shared with @rapiq/memory and
+        // @rapiq/prisma): a per-relation fieldset governs the projection of an
+        // included relation; only a pick-free include hydrates the whole
+        // subtree. `include=child` + `fields[child]=name` therefore matches
+        // the fields-only auto-join path instead of silently ignoring the
+        // fieldset.
         const parent = await run(new Query({
             fields: new Fields([new Field('id'), new Field('child.name')]),
             relations: new Relations([new Relation('child')]),
@@ -149,7 +167,72 @@ describe('src/adapter/relations (hydration)', () => {
 
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
+        // the 'key' baseline adds the primary key alongside the fieldset
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should hydrate a narrowed include whose fieldset is all NULL on the row (#847)', async () => {
+        // the fieldset alone cannot answer "is the relation present?": with
+        // every picked column NULL, TypeORM would treat the join as a miss and
+        // hydrate `child: null`. The narrowed include therefore rides on the
+        // 'key' baseline — requested columns plus the (guarded) primary key.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.note')]),
+            relations: new Relations([new Relation('child')]),
+        }));
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child).not.toBeNull();
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.note).toBeNull();
+        expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should narrow a fieldset-carrying relation under joinAndSelect too (#847)', async () => {
+        // narrowing is uniform across the hydration triggers: joinAndSelect
+        // widens WHICH relations hydrate, never how much of a
+        // fieldset-carrying one is selected.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.name')]),
+            relations: new Relations([new Relation('child')]),
+        }), { joinAndSelect: true });
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.name).toEqual('c');
+        expect(parent.child.id).toBeDefined();
+        expect(parent.child.args).toBeUndefined();
+    });
+
+    it('should keep an included relation whole when only a deeper relation is picked (#847)', async () => {
+        // a pick belongs to the relation that owns the column: `child.pet.name`
+        // narrows `child.pet`, never the traversed prefix `child`.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.pet.name')]),
+            relations: new Relations([new Relation('child')]),
+        }));
+
+        expect(parent.child).toBeDefined();
         expect(parent.child.args).toEqual([{ k: 'a' }]);
+        expect(parent.child.pet).toBeDefined();
+        expect(parent.child.pet.name).toEqual('rex');
+        expect(parent.child.pet.weight).toBeUndefined();
+    });
+
+    it('should project a select-false column through an explicit include with a fieldset (#847)', async () => {
+        // before #847 the include form full-selected the relation and dropped
+        // the per-column selects, so a `select: false` column could never ship
+        // through it; the narrowed join selects it explicitly, matching the
+        // fields-only auto-join form.
+        const parent = await run(new Query({
+            fields: new Fields([new Field('id'), new Field('child.id'), new Field('child.secret')]),
+            relations: new Relations([new Relation('child')]),
+        }));
+
+        expect(parent.child).toBeDefined();
+        expect(parent.child.secret).toEqual('key-under-the-doormat');
+        expect(parent.child.name).toBeUndefined();
+        expect(parent.child.args).toBeUndefined();
     });
 
     it('should keep a relation sparse when a field traverses it WITHOUT an include', async () => {
@@ -348,8 +431,10 @@ describe('src/adapter/relations (hydration)', () => {
         // (authup junction pattern) + an `include` used to project the joined
         // relation TWICE — once via the schema-projected child fields in the
         // explicit `select()`, once via `leftJoinAndSelect`'s full-entity
-        // expansion. MySQL rejects the duplicate output alias; sqlite/pg tolerate
-        // it, so this asserts on the generated SQL directly.
+        // expansion. Since #847 the materialized child fieldset (the schema's
+        // `fields.default`) narrows the included relation instead, so the
+        // duplication cannot arise in the first place: the child projects its
+        // defaults, and the schema's field governance applies to includes too.
         const registry = new SchemaRegistry();
         registry.add(defineSchema<HChild>({ name: 'child', fields: { default: ['id', 'name'] } }));
         registry.add(defineSchema<HParent>({
@@ -371,11 +456,11 @@ describe('src/adapter/relations (hydration)', () => {
         const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
         expect(duplicates).toEqual([]);
 
-        // the include still hydrates as a whole subtree (the json column comes through)
+        // the include hydrates narrowed to the child schema's default fieldset
         const parent = await queryBuilder.getOneOrFail();
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
-        expect(parent.child.args).toEqual([{ k: 'a' }]);
+        expect(parent.child.args).toBeUndefined();
     });
 
     it('should hydrate an include end-to-end when the target schema has no fields block', async () => {

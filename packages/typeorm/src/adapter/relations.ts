@@ -78,7 +78,11 @@ export class RelationsAdapter extends RelationsBaseAdapter {
      *
      * Deliberately keyed on `'full'`, not `shouldSelect`: an id-only `'key'`
      * relation is a plain `leftJoin` that does NOT auto-select its columns, so a
-     * `<relation>.<column>` field there must stay in the explicit select.
+     * `<relation>.<column>` field there must stay in the explicit select. The
+     * same holds for an included relation narrowed by its direct field picks
+     * (#847) — only pick-free `'full'` includes reach this set, which is why the
+     * only columns still dropped here are force-projected gate operands (#830),
+     * covered by the full join.
      */
     fullySelectedRelationAliases() : Set<string> {
         const output = new Set<string>();
@@ -141,11 +145,9 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
     /**
      * Whether the joined relation's columns should be selected (hydrated).
-     * An explicitly `include`d relation is always join-and-selected as a whole
-     * subtree — a sparse `relation.column` field never narrows it, matching the
-     * `@rapiq/memory` projection contract (#824). A relation joined purely for a
-     * filter/sort (not `include`d) stays a plain `leftJoin`, so its columns are
-     * selected only when a field references them.
+     * An explicitly `include`d relation is hydrated; a relation joined purely
+     * for a filter/sort (not `include`d) stays a plain `leftJoin`, so its
+     * columns are selected only when a field references them.
      */
     protected shouldSelect(path: string): boolean {
         if (this.options.joinAndSelect) {
@@ -159,16 +161,35 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
     /**
      * Resolve how a joined relation is materialized: `'none'` (plain join,
-     * unselected), `'full'` (whole subtree) or `'key'` (id-only). The
-     * `hydrationMode` option narrows every *hydrated* relation to its primary
-     * key so it survives `GROUP BY <root>.id` on strict dialects.
+     * unselected), `'full'` (whole subtree) or `'key'` (id-only baseline).
+     * The `hydrationMode` option narrows every *hydrated* relation to its
+     * primary key so it survives `GROUP BY <root>.id` on strict dialects.
+     *
+     * A hydrated relation with direct field picks is projected sparsely by
+     * that fieldset (#847): the fields adapter already selects the requested
+     * `<alias>.<column>` references, and the `'key'` baseline adds the primary
+     * key when the fieldset misses it — an all-NULL fieldset would otherwise
+     * be indistinguishable from a join miss and hydrate the relation as null.
+     * Without any direct pick the whole subtree is selected (#824). This is
+     * uniform across the hydration triggers: `joinAndSelect` widens WHICH
+     * relations hydrate (every joined one), never how much of a
+     * fieldset-carrying one is selected.
      */
     protected selectMode(path: string): RelationSelectMode {
         if (!this.shouldSelect(path)) {
             return 'none';
         }
 
-        return this.options.hydrationMode === 'key' ? 'key' : 'full';
+        if (this.options.hydrationMode === 'key') {
+            return 'key';
+        }
+
+        const entry = this.value.find((join) => join.path === path);
+        if (entry && entry.projected) {
+            return 'key';
+        }
+
+        return 'full';
     }
 
     protected applyJoin(

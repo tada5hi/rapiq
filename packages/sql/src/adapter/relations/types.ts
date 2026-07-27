@@ -16,6 +16,16 @@ export type RelationAddOptions = {
      * (e.g. `@rapiq/typeorm`), a join-for-filter is not.
      */
     include?: boolean,
+
+    /**
+     * Whether a projection field directly picks a column of this relation
+     * (set by the fields adapter for non-excluded, non-operand picks).
+     * A relation with direct picks is projected sparsely by its fieldset
+     * even when `include`d; only pick-free includes hydrate the whole
+     * subtree (#847). Applies to the terminal relation path only, never
+     * to the traversed prefixes.
+     */
+    projected?: boolean,
 };
 
 export interface IRelationsAdapter extends ISubAdapter {

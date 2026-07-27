@@ -253,9 +253,9 @@ const rows = await queryBuilder.getMany();
 const guarded = applyFieldConditions(query.fields, rows);
 ```
 
-`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset.
+`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters and `@rapiq/prisma` force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset or a fieldset-narrowed include.
 
-For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while an include may still hydrate the column (TypeORM fully hydrates included relations), leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
+For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while a fieldset-free include still hydrates the whole record, leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
 :::
 
 `sort` and `relations` have no column to gate, so a condition returned there is refused rather than silently ignored: it counts as a rejection and follows the failure policy. Narrowing the *rows* of an included relation is a separate, unrelated feature.

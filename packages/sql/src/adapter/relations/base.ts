@@ -29,6 +29,12 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
          * traversed by a field/filter/sort path). See {@link RelationAddOptions}.
          */
         include?: boolean,
+        /**
+         * A projection field directly picks a column of this relation,
+         * so its fieldset governs the selection even under an explicit
+         * include (#847). See {@link RelationAddOptions}.
+         */
+        projected?: boolean,
     }[];
 
     protected relationAlias : RelationAliasFn;
@@ -94,13 +100,21 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
                 `${path}.${relationName}` :
                 relationName;
 
+            // A field pick belongs to the relation that owns the column —
+            // the terminal path — never to the traversed prefixes: a
+            // `role.realm.name` pick narrows `role.realm`, not `role`.
+            const projected = !last && (options.projected ?? false);
+
             const existing = this.value.find((join) => join.path === path);
             if (existing) {
                 // A path already registered by a field/filter/sort traversal
                 // is upgraded to an explicit include when re-added as one;
-                // never downgrade an existing include.
+                // never downgrade an existing include. Same for direct picks.
                 if (include) {
                     existing.include = true;
+                }
+                if (projected) {
+                    existing.projected = true;
                 }
 
                 continue;
@@ -110,6 +124,7 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
                 path,
                 name: relationName,
                 include,
+                projected,
             });
         }
 

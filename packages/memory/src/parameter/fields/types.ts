@@ -9,8 +9,9 @@ import type { FiltersVisitorOptions } from '../filters';
 
 export type FieldsVisitorOptions = {
     /**
-     * Included relation paths: an included relation keeps its
-     * whole subtree alongside the selected fields.
+     * Included relation paths: an included relation without direct
+     * field picks keeps its whole subtree alongside the selected
+     * fields; direct picks narrow it to the fieldset (#847).
      */
     relations?: string[],
 

@@ -151,7 +151,7 @@ The data is already in memory, so `relations` never *adds* anything — and it n
 - No selected fields → **identity**: records pass through untouched (same references).
 - Selected fields → only the picked properties survive; dotted picks (`items.title`) project into nested objects and arrays.
 - `-`-flagged entries are dropped, never subtracted — subtract-from-default is resolved at parse time by the schema.
-- An **included relation keeps its whole subtree** alongside a sparse field selection (`joinAndSelect` parity).
+- An **included relation without direct picks keeps its whole subtree** alongside a sparse field selection; a per-relation fieldset narrows the include to exactly those picks (TypeORM parity, [#847](https://github.com/tada5hi/rapiq/issues/847)). Picks belonging to a *deeper* relation never narrow the traversed prefix.
 
 ### Field visibility gates
 

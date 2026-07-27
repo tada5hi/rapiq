@@ -44,7 +44,9 @@ function descend(node: KeepNode, segments: string[]) : KeepNode {
 }
 
 function project(node: KeepNode, input: unknown) : unknown {
-    if (node.keepAll) {
+    // a widened node without narrowed descendants passes the subtree
+    // through by reference.
+    if (node.keepAll && node.children.size === 0) {
         return input;
     }
 
@@ -55,6 +57,10 @@ function project(node: KeepNode, input: unknown) : unknown {
     }
 
     if (!isObject(input)) {
+        if (node.keepAll) {
+            return input;
+        }
+
         // a refined node only lets the absent value through —
         // any other unpicked scalar would leak.
         if (input === null || typeof input === 'undefined') {
@@ -62,6 +68,26 @@ function project(node: KeepNode, input: unknown) : unknown {
         }
 
         return undefined;
+    }
+
+    if (node.keepAll) {
+        // a widened node keeps every member, but a descendant carrying its
+        // own picks still projects sparsely (#847): `include=role` +
+        // `fields[role.realm]=id` keeps the whole role except realm.
+        const output : Record<string, any> = { ...input };
+
+        node.children.forEach((child, segment) => {
+            if (isPropertySet(input, segment)) {
+                const value = project(child, input[segment]);
+                if (typeof value !== 'undefined') {
+                    output[segment] = value;
+                } else {
+                    delete output[segment];
+                }
+            }
+        });
+
+        return output;
     }
 
     const output : Record<string, any> = {};
@@ -117,11 +143,20 @@ export class FieldsVisitor<T = Record<string, any>> implements IFieldsVisitor<Pr
             descend(root, segments).picks.add(name);
         }
 
+        // An included relation widens to its whole subtree UNLESS the
+        // selection carries direct picks for it — then the fieldset governs
+        // (#847). Every traversed prefix of an included path is itself
+        // included, so each prefix node widens under the same veto.
         const relations = this.options.relations || [];
         for (const relation of relations) {
-            const [segment] = (relation as string).split('.');
+            const segments = (relation as string).split('.');
 
-            descend(root, [segment as string]).keepAll = true;
+            for (let i = 1; i <= segments.length; i++) {
+                const node = descend(root, segments.slice(0, i));
+                if (node.picks.size === 0) {
+                    node.keepAll = true;
+                }
+            }
         }
 
         if (redactor) {

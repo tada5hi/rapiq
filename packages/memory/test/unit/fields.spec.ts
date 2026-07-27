@@ -111,15 +111,58 @@ describe('fields projection', () => {
         expect(output.items).toBe(user.items);
     });
 
-    it('should widen refined relations to the whole subtree', () => {
-        // an included relation contributes all of its columns,
-        // even next to a sparse field selection (joinAndSelect parity).
+    it('should narrow an included relation to its direct field picks (#847)', () => {
+        // revised projection contract (#847): a per-relation fieldset governs
+        // the projection of an included relation; only a pick-free include
+        // keeps the whole subtree.
         const projector = compileFields(new Fields([
             new Field('id'),
             new Field('realm.name'),
         ]), { relations: ['realm'] });
 
-        expect(projector(user)).toEqual({ id: 1, realm: user.realm });
+        expect(projector(user)).toEqual({ id: 1, realm: { name: 'master' } });
+    });
+
+    it('should keep an included relation whole when only a deeper relation is picked (#847)', () => {
+        // a pick belongs to the relation that owns the column: `items.realm.id`
+        // narrows `items.realm`, never the traversed prefix `items`.
+        const input = {
+            id: 1,
+            name: 'Peter',
+            items: [
+                {
+                    id: 10,
+                    title: 'first',
+                    realm: { id: 7, name: 'master' },
+                },
+            ],
+        };
+
+        const projector = compileFields(new Fields([
+            new Field('id'),
+            new Field('items.realm.id'),
+        ]), { relations: ['items'] });
+
+        expect(projector(input)).toEqual({
+            id: 1,
+            items: [
+                {
+                    id: 10,
+                    title: 'first',
+                    realm: { id: 7 },
+                },
+            ],
+        });
+    });
+
+    it('should widen the traversed prefixes of a nested include (#847)', () => {
+        // `relations: ['items.realm']` includes `items` too: both stay whole
+        // without direct picks.
+        const projector = compileFields(new Fields([
+            new Field('id'),
+        ]), { relations: ['items.realm'] });
+
+        expect(projector(user)).toEqual({ id: 1, items: user.items });
     });
 
     it('should let a whole-property pick win over a refinement', () => {

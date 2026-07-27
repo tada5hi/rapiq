@@ -60,6 +60,9 @@ describe('issue #831', () => {
     });
 
     it('projects an included relation exactly once under GROUP BY <root>.id', async () => {
+        // since #847 the `role.id` pick narrows the include to a plain join
+        // with a per-column select, so the duplicate cannot arise structurally;
+        // this keeps pinning the end-to-end contract against a live engine.
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
         queryBuilder.groupBy('user.id');
 

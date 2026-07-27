@@ -169,9 +169,10 @@ describe('fields visibility gates (relation paths)', () => {
         });
     });
 
-    it('should redact inside an included relation subtree', () => {
-        // an included relation widens to its whole subtree, so the gate
-        // must survive that widening.
+    it('should redact inside a narrowed included relation (#847)', () => {
+        // the gated `items.secret` is a direct pick, so the include narrows
+        // to the fieldset (#847); the gate reads its operand from the raw
+        // record before the projection applies.
         const projector = compileFields(new Fields([
             new Field('id'),
             new Field('items.secret', undefined, eq('kind', 'public')),
@@ -180,12 +181,8 @@ describe('fields visibility gates (relation paths)', () => {
         expect(projector(user as any)).toEqual({
             id: 1,
             items: [
-                {
-                    id: 10, 
-                    kind: 'public', 
-                    secret: 'first-secret', 
-                },
-                { id: 20, kind: 'private' },
+                { secret: 'first-secret' },
+                {},
             ],
         });
     });

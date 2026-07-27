@@ -5,8 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFields } from '@rapiq/core';
-import { FieldOperator } from '@rapiq/core';
+import type { ICondition, IFields } from '@rapiq/core';
+import {
+    FieldOperator,
+    ITSELF,
+    isFilter,
+    isFilters,
+} from '@rapiq/core';
 
 type SelectionNode = {
     /**
@@ -17,9 +22,18 @@ type SelectionNode = {
     children : Map<string, SelectionNode>,
 
     /**
+     * Gate-operand columns (`Field.condition` reads, rapiq#830) forced
+     * into the selection at this level. Selected like picks, but never
+     * counted for the include-narrowing veto (#847): behind a whole
+     * relation the hydration covers them anyway.
+     */
+    operands : Set<string>,
+
+    /**
      * Explicitly requested through `relations`: hydrated as a whole
-     * record. A sparse `<relation>.<field>` pick never narrows it,
-     * matching the `@rapiq/memory` projection contract.
+     * record unless direct `<relation>.<field>` picks exist — those
+     * narrow it to the fieldset (#847), matching the `@rapiq/memory`
+     * projection contract.
      */
     whole : boolean,
 
@@ -39,9 +53,29 @@ function createNode() : SelectionNode {
     return {
         picks: new Set(),
         children: new Map(),
+        operands: new Set(),
         whole: false,
         refined: false,
     };
+}
+
+/**
+ * Collect the leaf fields a condition tree reads. An elemMatch leaf
+ * contributes its own field (the array column) and is never descended
+ * into: its interior operands are element-relative, not columns.
+ */
+function collectConditionFields(condition: ICondition, output: string[]) : void {
+    if (isFilters(condition)) {
+        for (const child of condition.value) {
+            collectConditionFields(child, output);
+        }
+
+        return;
+    }
+
+    if (isFilter(condition)) {
+        output.push(condition.field);
+    }
 }
 
 function descend(node: SelectionNode, segments: string[]) : SelectionNode {
@@ -72,6 +106,10 @@ function buildSelect(node: SelectionNode, children: Record<string, any>) : Recor
         select[pick] = true;
     });
 
+    node.operands.forEach((operand) => {
+        select[operand] = true;
+    });
+
     return select;
 }
 
@@ -89,10 +127,11 @@ function materialize(node: SelectionNode) : true | Record<string, any> {
     const children = materializeChildren(node);
     const hasChildren = Object.keys(children).length > 0;
 
-    // an explicitly included relation is hydrated whole; deeper
-    // relations still have to be declared, and `include` keeps every
-    // scalar of the level alongside them.
-    if (node.whole) {
+    // an explicitly included relation without direct picks is hydrated
+    // whole; deeper relations still have to be declared, and `include`
+    // keeps every scalar of the level alongside them. Direct picks
+    // narrow the include to the fieldset instead (#847).
+    if (node.whole && node.picks.size === 0) {
         if (hasChildren) {
             return { include: children };
         }
@@ -100,7 +139,7 @@ function materialize(node: SelectionNode) : true | Record<string, any> {
         return true;
     }
 
-    if (node.picks.size > 0 || hasChildren) {
+    if (node.picks.size > 0 || node.operands.size > 0 || hasChildren) {
         return { select: buildSelect(node, children) };
     }
 
@@ -143,6 +182,42 @@ export function buildSelection(fields: IFields, relationPaths: string[]) : Selec
         }
 
         current.picks.add(last);
+    }
+
+    // Force-project the leaf columns a field visibility gate reads
+    // (`Field.condition`, rapiq#830): the gate is enforced after the fetch
+    // against the rows this selection produces, and a missing operand would
+    // over-redact an eq-style gate and let a negated gate disclose. Operands
+    // ride as select-only entries — they never count as picks for the
+    // include-narrowing veto (#847), and a whole level covers them anyway.
+    for (const field of fields.value) {
+        if (!field.condition || field.operator === FieldOperator.EXCLUDE) {
+            continue;
+        }
+
+        // A gate is evaluated against the record its field is read from: a
+        // gate on `items.secret` has operands relative to the item record.
+        const prefix = field.name.split('.');
+        prefix.pop();
+
+        const operands : string[] = [];
+        collectConditionFields(field.condition, operands);
+
+        for (const operand of operands) {
+            // ITSELF addresses the record (or bound element) itself,
+            // never a projectable column.
+            if (operand === ITSELF) {
+                continue;
+            }
+
+            const segments = [...prefix, ...operand.split('.')];
+            const last = segments.pop() as string;
+
+            const node = descend(root, segments);
+            if (!node.picks.has(last)) {
+                node.operands.add(last);
+            }
+        }
     }
 
     for (const path of relationPaths) {

@@ -8,7 +8,7 @@
 import { FieldOperator } from '@rapiq/core';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
-import type { IFieldsAdapter } from './types';
+import type { FieldAddOptions, IFieldsAdapter } from './types';
 
 export abstract class FieldsBaseAdapter<
     RELATIONS extends RelationsBaseAdapter = RelationsBaseAdapter,
@@ -51,8 +51,13 @@ export abstract class FieldsBaseAdapter<
 
     // -----------------------------------------------------------
 
-    add(input: string, operator?: `${FieldOperator}`) {
-        const name = this.buildField(input);
+    add(input: string, operator?: `${FieldOperator}`, options: FieldAddOptions = {}) {
+        const name = this.buildField(input, {
+            // Only a genuine client pick narrows an included relation to a
+            // sparse selection (#847): excluded fields select nothing, and
+            // gate operands (#830) are fetch plumbing, not a projection.
+            projected: operator !== FieldOperator.EXCLUDE && !options.operand,
+        });
 
         this.value.push({ name, operator });
     }
@@ -75,7 +80,7 @@ export abstract class FieldsBaseAdapter<
         return output;
     }
 
-    buildField(input: string) {
+    buildField(input: string, options: { projected?: boolean } = {}) {
         const rootAlias = this.rootAlias();
 
         const output = parseField(
@@ -85,7 +90,7 @@ export abstract class FieldsBaseAdapter<
             (path) => this.relations.isRelationPath(path),
         );
         if (output.relation) {
-            this.relations.add(output.relation);
+            this.relations.add(output.relation, { projected: options.projected });
         }
 
         if (output.prefix) {
