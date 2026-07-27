@@ -43,6 +43,42 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         );
     });
 
+    it('should replace a leaf with a compound condition in place', () => {
+        const input = new Filters(FilterCompoundOperator.OR, [
+            new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+            new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18),
+        ]);
+        const schema = defineFiltersSchema({
+            validate: (filter) => (filter.field === 'realm_id' ?
+                new Filters(FilterCompoundOperator.AND, [
+                    filter,
+                    new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+                ]) :
+                filter),
+        });
+
+        expect(applyFiltersSchemaValidation(input, schema)).toEqual(
+            new Filters(FilterCompoundOperator.OR, [
+                new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+                    new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+                ]),
+                new Filter(FilterFieldOperator.GREATER_THAN, 'age', 18),
+            ]),
+        );
+    });
+
+    it('should replace a top-level leaf with a compound condition', () => {
+        const input = new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a');
+        const replacement = new Filters(FilterCompoundOperator.OR, [
+            input,
+            new Filter(FilterFieldOperator.EQUAL, 'realm_id', null),
+        ]);
+        const schema = defineFiltersSchema({ validate: () => replacement });
+
+        expect(applyFiltersSchemaValidation(input, schema)).toBe(replacement);
+    });
+
     it('should preserve a leaf when no validator is configured', () => {
         const input = new Filter(FilterFieldOperator.EQUAL, 'name', 'admin');
 
@@ -178,6 +214,54 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ]),
         );
         expect(calls).toEqual(['name', 'age']);
+    });
+
+    it('should replace a leaf with a compound condition asynchronously', async () => {
+        const input = new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+        ]);
+        const schema = defineFiltersSchema({
+            validate: async (filter) => new Filters(FilterCompoundOperator.OR, [
+                filter,
+                new Filter(FilterFieldOperator.EQUAL, 'realm_id', null),
+            ]),
+        });
+
+        await expect(applyFiltersSchemaValidationAsync(input, schema)).resolves.toEqual(
+            new Filters(FilterCompoundOperator.AND, [
+                new Filters(FilterCompoundOperator.OR, [
+                    new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+                    new Filter(FilterFieldOperator.EQUAL, 'realm_id', null),
+                ]),
+            ]),
+        );
+    });
+
+    it('should insert a compound replacement into an elemMatch interior', () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+        );
+        const schema = defineFiltersSchema({
+            validate: (filter) => (filter.field === 'name' ?
+                new Filters(FilterCompoundOperator.OR, [
+                    filter,
+                    new Filter(FilterFieldOperator.EQUAL, 'name', 'root'),
+                ]) :
+                filter),
+        });
+
+        expect(applyFiltersSchemaValidation(input, schema)).toEqual(
+            new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'items',
+                new Filters(FilterCompoundOperator.OR, [
+                    new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+                    new Filter(FilterFieldOperator.EQUAL, 'name', 'root'),
+                ]),
+            ),
+        );
     });
 
     it('should drop emptied compounds and validate elemMatch interiors asynchronously', async () => {

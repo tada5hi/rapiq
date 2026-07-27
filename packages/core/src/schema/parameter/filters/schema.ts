@@ -73,7 +73,7 @@ export class FiltersSchema<
         return typeof this.options.validate !== 'undefined';
     }
 
-    validate(input: IFilter, context: CONTEXT) : MaybeAsync<IFilter | undefined> {
+    validate(input: IFilter, context: CONTEXT) : MaybeAsync<ICondition | undefined> {
         if (typeof this.options.validate === 'undefined') {
             return input;
         }

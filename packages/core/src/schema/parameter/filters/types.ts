@@ -15,11 +15,15 @@ import type { BaseSchemaOptions } from '../../types';
 
 /**
  * Per-leaf filter validation hook. The return value decides the leaf's fate:
- * return the input filter to accept it, another `Filter` to replace it, or
- * `undefined` to reject it. An inspect-only hook must therefore end with
- * `return input` — a bare block body would reject every filter. The result
- * may also be a Promise of any of those values; resolving it requires the
- * `parseAsync()` / `decodeAsync()` / `encodeAsync()` entry points.
+ * return the input filter to accept it, another condition to replace it, or
+ * `undefined` to reject it. The replacement may be any `ICondition`,
+ * including a compound (`and(...)`/`or(...)`), so a single authorization
+ * decision like "you may filter on realm_id, but only within your realms"
+ * can stay attached to the leaf that triggered it. An inspect-only hook
+ * must therefore end with `return input` — a bare block body would reject
+ * every filter. The result may also be a Promise of any of those values;
+ * resolving it requires the `parseAsync()` / `decodeAsync()` /
+ * `encodeAsync()` entry points.
  *
  * The second argument is the value passed to `parse()` / `decode()` via
  * the `context` option (`undefined` when the caller supplied none), so a
@@ -28,7 +32,7 @@ import type { BaseSchemaOptions } from '../../types';
 export type Validator<CONTEXT = any> = (
     input: IFilter,
     context: CONTEXT,
-) => MaybeAsync<IFilter | undefined>;
+) => MaybeAsync<ICondition | undefined>;
 
 export type FiltersOptions<
     T extends ObjectLiteral = ObjectLiteral,

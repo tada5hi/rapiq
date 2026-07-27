@@ -274,6 +274,24 @@ describe('filters/expr-parser', () => {
         ]));
     });
 
+    it('should let the schema validator replace a leaf with a compound condition', () => {
+        const schema = defineFiltersSchema({
+            validate: (filter) => (filter.field === 'realm_id' ?
+                new Filters(FilterCompoundOperator.AND, [
+                    filter,
+                    new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+                ]) :
+                filter),
+        });
+
+        const output = parser.parse('eq(realm_id, \'a\')', { schema });
+
+        expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'realm_id', 'a'),
+            new Filter(FilterFieldOperator.IN, 'realm_id', ['a', 'b']),
+        ]));
+    });
+
     it('should apply schema defaults when validation rejects every filter', () => {
         const schema = defineFiltersSchema({
             default: new Filter(FilterFieldOperator.EQUAL, 'status', 'active'),
