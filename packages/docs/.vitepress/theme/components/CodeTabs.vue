@@ -13,7 +13,7 @@ const tabs: Tab[] = [
 npm install @rapiq/core @rapiq/codec-url
 
 # server side — parse, validate & translate
-npm install @rapiq/core @rapiq/parser-simple @rapiq/sql`,
+npm install @rapiq/core @rapiq/parser-simple @rapiq/adapter-sql`,
     },
     {
         label: 'Build (client)',

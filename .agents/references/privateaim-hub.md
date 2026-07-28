@@ -10,10 +10,10 @@ Federated-analytics platform with multiple backend services (core, storage, tele
 | `packages/client-vue/src/core/list/module.ts` (generic list composable; merges input/pagination-state/context-query/props-query with `smob.createMerger`; `queryFilters` mutation callback) | `BuildInput`, `FiltersBuildInput` | needs typed merge (plan 010) |
 | `packages/client-vue/src/core/entity-manager/module.ts:294-404` (spread-composes `query`/`queryFields`/`queryFilters` props `as any`) | per-parameter build inputs | composite-input assignability (plan 010) |
 | `packages/client-vue/src/core/query/sort.ts` (`isQuerySortedDescByDate` inspects `SortBuildInput` string `-created_at` / object forms for realtime prepend decisions) | `SortBuildInput`, `SortDirection` | v2 `Sorts`/`Sort` AST makes this introspection trivial — but only if clients hold a `Query`, not a raw object |
-| `apps/server-core/.../repositories/*/repository.ts` — **two generations**: 8 repos with granular `parseQueryFields` + `applyQueryFieldsParseOutput` + `applyRelations`/`applySort`/`applyFilters`/`applyPagination`; 5 repos with monolithic `applyQuery` | v1 parse + typeorm-extension | `defineSchema` + parser + @rapiq/typeorm |
+| `apps/server-core/.../repositories/*/repository.ts` — **two generations**: 8 repos with granular `parseQueryFields` + `applyQueryFieldsParseOutput` + `applyRelations`/`applySort`/`applyFilters`/`applyPagination`; 5 repos with monolithic `applyQuery` | v1 parse + typeorm-extension | `defineSchema` + parser + @rapiq/adapter-typeorm |
 | `apps/server-core/.../controllers/entities/analysis-node-log/module.ts` | `parseQuery` with allow-list → normalize filters → **rebuild** a `FiltersBuildInput<Log>` for the downstream telemetry client | parse → transform AST → re-encode: exactly the v2 codec round-trip pipeline (plans 007 + 010) |
 | `apps/server-telemetry/.../controllers/log/module.ts` | only `parseQueryPagination`; filters parsed **by hand** into Prometheus/Loki-style `labels` because no SQL backend | v2 Query AST + custom visitor — the flagship non-SQL use case |
-| `apps/server-storage/.../repositories/{bucket,bucket-file}` | `applyQuery` | @rapiq/typeorm |
+| `apps/server-storage/.../repositories/{bucket,bucket-file}` | `applyQuery` | @rapiq/adapter-typeorm |
 
 ## Behavioral observations
 

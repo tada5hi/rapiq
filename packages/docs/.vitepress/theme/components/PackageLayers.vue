@@ -26,9 +26,9 @@ const layers: Layer[] = [
         title: 'Built on core',
         packages: [
             { name: '@rapiq/parser-simple', href: '/packages/parser-simple', deps: 'core' },
-            { name: '@rapiq/sql', href: '/packages/sql', deps: 'core' },
-            { name: '@rapiq/prisma', href: '/packages/prisma', deps: 'core' },
-            { name: '@rapiq/memory', href: '/packages/memory', deps: 'core' },
+            { name: '@rapiq/adapter-sql', href: '/packages/adapter-sql', deps: 'core' },
+            { name: '@rapiq/adapter-prisma', href: '/packages/adapter-prisma', deps: 'core' },
+            { name: '@rapiq/adapter-memory', href: '/packages/adapter-memory', deps: 'core' },
         ],
     },
     {
@@ -36,7 +36,7 @@ const layers: Layer[] = [
         packages: [
             { name: '@rapiq/parser-expression', href: '/packages/parser-expression', deps: 'parser-simple' },
             { name: '@rapiq/parser-mongo', href: '/packages/parser-mongo', deps: 'parser-simple' },
-            { name: '@rapiq/typeorm', href: '/packages/typeorm', deps: 'sql + typeorm' },
+            { name: '@rapiq/adapter-typeorm', href: '/packages/adapter-typeorm', deps: 'sql + typeorm' },
         ],
     },
     {

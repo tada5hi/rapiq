@@ -95,7 +95,7 @@ Fields, relations, sort and pagination follow the schema's drop-vs-throw policy.
 With TypeORM, the adapter applies the query to a `SelectQueryBuilder` — filters become parameterized `WHERE` conditions, relations become joins:
 
 ```typescript
-import { TypeormAdapter } from '@rapiq/typeorm';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
@@ -114,7 +114,7 @@ res.json({
 });
 ```
 
-No TypeORM? [`@rapiq/sql`](/packages/sql) renders parameterized SQL fragments for any driver, and [`@rapiq/memory`](/packages/memory) evaluates the same query against plain arrays.
+No TypeORM? [`@rapiq/adapter-sql`](/packages/adapter-sql) renders parameterized SQL fragments for any driver, and [`@rapiq/adapter-memory`](/packages/adapter-memory) evaluates the same query against plain arrays.
 
 ## What just happened
 

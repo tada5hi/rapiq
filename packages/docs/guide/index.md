@@ -31,7 +31,7 @@ const response = await fetch(`/users?${createURLCodec().encode(query)}`);
 ```typescript
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { createURLCodec } from '@rapiq/codec-url';
-import { TypeormAdapter } from '@rapiq/typeorm';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 
 const registry = new SchemaRegistry();
 registry.add(defineSchema<User>({
@@ -82,7 +82,7 @@ Install only what each side of your application needs — `@rapiq/core` is the s
 | **Build & compose** | [@rapiq/core](/packages/core) — the query AST, `defineQuery`, condition helpers, schemas |
 | **Parse input** | [@rapiq/parser-simple](/packages/parser-simple) · [@rapiq/parser-expression](/packages/parser-expression) · [@rapiq/parser-mongo](/packages/parser-mongo) |
 | **Cross the wire** | [@rapiq/codec-url](/packages/codec-url) |
-| **Execute** | [@rapiq/typeorm](/packages/typeorm) · [@rapiq/sql](/packages/sql) · [@rapiq/memory](/packages/memory) |
+| **Execute** | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) · [@rapiq/adapter-sql](/packages/adapter-sql) · [@rapiq/adapter-memory](/packages/adapter-memory) |
 
 See the [package overview](/packages/) for the full map and a "which packages do I need?" guide.
 

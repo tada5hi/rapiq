@@ -36,9 +36,9 @@ Every dialect maps onto the same operator set (`FilterFieldOperator`):
 
 `REGEX`, `MOD` and `EXISTS` have no representation in the URL dialects — they work in code, via the [MongoDB-style parser](/packages/parser-mongo), and in every [adapter](/guide/executing-queries). Before accepting `regex` from untrusted input, read the [trust model](#regex-trust-model) below. `ELEM_MATCH` and `SIZE` travel in the [expression dialect](/packages/parser-expression) only.
 
-`SIZE` matches arrays with exactly the given number of elements (a non-negative integer); missing or non-array values never match, and there is no negated form. It evaluates in [`@rapiq/memory`](/packages/memory) — the SQL adapters throw a typed `featureUnsupported` until dialect-level JSON-array support lands.
+`SIZE` matches arrays with exactly the given number of elements (a non-negative integer); missing or non-array values never match, and there is no negated form. It evaluates in [`@rapiq/adapter-memory`](/packages/adapter-memory) — the SQL adapters throw a typed `featureUnsupported` until dialect-level JSON-array support lands.
 
-Inside an `elemMatch` interior, the reserved `ITSELF` marker (wire spelling `$this`) may take the field position of a condition to address the array element itself: `elemMatch('scores', gt(ITSELF, 5))` matches when some score is greater than five. `@rapiq/memory` evaluates it element-wise; the SQL adapters throw a typed `featureUnsupported` (a joined relation row is not a scalar column). Anywhere outside an `elemMatch` interior the marker is a typed error.
+Inside an `elemMatch` interior, the reserved `ITSELF` marker (wire spelling `$this`) may take the field position of a condition to address the array element itself: `elemMatch('scores', gt(ITSELF, 5))` matches when some score is greater than five. `@rapiq/adapter-memory` evaluates it element-wise; the SQL adapters throw a typed `featureUnsupported` (a joined relation row is not a scalar column). Anywhere outside an `elemMatch` interior the marker is a typed error.
 
 ## On the wire (expression dialect)
 
@@ -119,7 +119,7 @@ On the wire, the expression dialect carries it as `filter=not(gt(age,'65'))`; th
 simple dialect cannot express it (encoding throws a typed error). SQL adapters render the
 negation **null-inclusively** (a `CASE` wrapper collapses SQL's three-valued `UNKNOWN` to
 false), so a record with `age = NULL` matches `not(gt('age', 65))` on every backend — the
-same verdict `@rapiq/memory` produces.
+same verdict `@rapiq/adapter-memory` produces.
 
 ## Nested fields
 
@@ -162,14 +162,14 @@ const schema = defineSchema<User>({
 The receiving side forwards the list to its adapter:
 
 ```typescript
-// @rapiq/sql & @rapiq/typeorm
+// @rapiq/adapter-sql & @rapiq/adapter-typeorm
 adapter.execute(query, { visitor: { caseSensitive: schema.filters.caseSensitive } });
 
-// @rapiq/memory
+// @rapiq/adapter-memory
 applyQuery(query, data, { filters: { caseSensitive: schema.filters.caseSensitive } });
 ```
 
-Under the hood, `@rapiq/sql` folds both sides of the comparison — `lower(field) = lower(?)` — and only when the filter value is a string. Dialects whose plain `=` already compares case-insensitively under their default collation (the MySQL and MSSQL presets) skip the folding through the `caseFold` dialect option, so plain indexes stay usable. On folding dialects (Postgres, SQLite, Oracle), add an expression index for hot string filter columns — `CREATE INDEX ON "user" (lower(name))` — or list the column in `caseSensitive`.
+Under the hood, `@rapiq/adapter-sql` folds both sides of the comparison — `lower(field) = lower(?)` — and only when the filter value is a string. Dialects whose plain `=` already compares case-insensitively under their default collation (the MySQL and MSSQL presets) skip the folding through the `caseFold` dialect option, so plain indexes stay usable. On folding dialects (Postgres, SQLite, Oracle), add an expression index for hot string filter columns — `CREATE INDEX ON "user" (lower(name))` — or list the column in `caseSensitive`.
 
 The TypeORM adapter goes one step further: it resolves each filtered field against the entity metadata and folds **only string-typed columns**. Numeric, date, uuid or enum columns never pay the `lower()` cost — even when the value arrives as an untyped wire string like `filter[age]=18`.
 
@@ -219,8 +219,8 @@ The async path awaits validators sequentially in filter-tree order. Calling a sy
 
 The `regex` operator's pattern is **passed through to the consuming engine** — rapiq does not analyze, rewrite or sandbox it:
 
-- [`@rapiq/sql`](/packages/sql) and [`@rapiq/typeorm`](/packages/typeorm) hand the pattern to the database engine to interpret and validate — the engine's own syntax checks, limits and timeouts govern it.
-- [`@rapiq/memory`](/packages/memory) compiles the pattern with JavaScript's backtracking `RegExp` engine and evaluates it against every record — a crafted pattern (nested quantifiers such as `(a+)+$`) over long field values can burn CPU (ReDoS). Compilation rejects invalid syntax, not pathological patterns.
+- [`@rapiq/adapter-sql`](/packages/adapter-sql) and [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) hand the pattern to the database engine to interpret and validate — the engine's own syntax checks, limits and timeouts govern it.
+- [`@rapiq/adapter-memory`](/packages/adapter-memory) compiles the pattern with JavaScript's backtracking `RegExp` engine and evaluates it against every record — a crafted pattern (nested quantifiers such as `(a+)+$`) over long field values can burn CPU (ReDoS). Compilation rejects invalid syntax, not pathological patterns.
 
 Whether a hostile pattern can reach an evaluator depends on the input dialect:
 
@@ -228,7 +228,7 @@ Whether a hostile pattern can reach an evaluator depends on the input dialect:
 - The **[MongoDB-style parser](/packages/parser-mongo) accepts `$regex`** (a pattern string or `RegExp`) from client documents.
 
 ::: warning Gate `$regex` for untrusted clients
-An application that parses untrusted mongo-style filter documents and evaluates them in-process with `@rapiq/memory` must gate the operator — the `allowed` list does not help, since `$regex` applies to allowed fields.
+An application that parses untrusted mongo-style filter documents and evaluates them in-process with `@rapiq/adapter-memory` must gate the operator — the `allowed` list does not help, since `$regex` applies to allowed fields.
 :::
 
 The [`validate` hook](#schema-options) sees every parsed leaf and can reject regex conditions:

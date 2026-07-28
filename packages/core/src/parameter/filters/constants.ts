@@ -20,6 +20,6 @@
  *
  * Anywhere else the marker is a typed error — build layer and parsers
  * reject it, backend adapters without element semantics
- * (`@rapiq/sql`, `@rapiq/typeorm`) throw `featureUnsupported`.
+ * (`@rapiq/adapter-sql`, `@rapiq/adapter-typeorm`) throw `featureUnsupported`.
  */
 export const ITSELF = '$this';

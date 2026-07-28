@@ -12,10 +12,10 @@
         "packages/parser-expression": { "component": "parser-expression" },
         "packages/parser-mongo": { "component": "parser-mongo" },
         "packages/codec-url": { "component": "codec-url" },
-        "packages/sql": { "component": "sql" },
-        "packages/typeorm": { "component": "typeorm" },
-        "packages/prisma": { "component": "prisma" },
-        "packages/memory": { "component": "memory" }
+        "packages/adapter-sql": { "component": "adapter-sql" },
+        "packages/adapter-typeorm": { "component": "adapter-typeorm" },
+        "packages/adapter-prisma": { "component": "adapter-prisma" },
+        "packages/adapter-memory": { "component": "adapter-memory" }
     },
     "plugins": [
         {
@@ -32,10 +32,10 @@
                 "parser-expression",
                 "parser-mongo",
                 "codec-url",
-                "sql",
-                "typeorm",
-                "prisma",
-                "memory"
+                "adapter-sql",
+                "adapter-typeorm",
+                "adapter-prisma",
+                "adapter-memory"
             ]
         }
     ],

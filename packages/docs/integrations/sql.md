@@ -2,9 +2,9 @@
 head:
   - - meta
     - http-equiv: refresh
-      content: '0; url=/packages/sql'
+      content: '0; url=/packages/adapter-sql'
 ---
 
 # Moved
 
-This page moved to [@rapiq/sql](/packages/sql).
+This page moved to [@rapiq/adapter-sql](/packages/adapter-sql).

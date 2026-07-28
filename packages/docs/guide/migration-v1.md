@@ -52,7 +52,7 @@ The v2 URL codec writes stamped expression filters by default. Its decoder still
 
 ### Filters: string equality is case-insensitive (breaking)
 
-In v1, `eq`/`in` on strings delegated case behavior to the database — the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
+In v1, `eq`/`in` on strings delegated case behavior to the database — the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/adapter-sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
 
 ## Coming from typeorm-extension?
 

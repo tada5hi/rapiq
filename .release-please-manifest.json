@@ -4,8 +4,8 @@
     "packages/parser-expression": "2.0.0-beta.12",
     "packages/parser-mongo": "2.0.0-beta.12",
     "packages/codec-url": "2.0.0-beta.12",
-    "packages/sql": "2.0.0-beta.12",
-    "packages/typeorm": "2.0.0-beta.12",
-    "packages/prisma": "2.0.0-beta.12",
-    "packages/memory": "2.0.0-beta.12"
+    "packages/adapter-sql": "2.0.0-beta.12",
+    "packages/adapter-typeorm": "2.0.0-beta.12",
+    "packages/adapter-prisma": "2.0.0-beta.12",
+    "packages/adapter-memory": "2.0.0-beta.12"
 }

@@ -88,7 +88,7 @@ jobs:
                     npm run test:coverage
 
     tests-db:
-        # Runs the @rapiq/typeorm live-database specs (`*.db.spec.ts`, executed
+        # Runs the @rapiq/adapter-typeorm live-database specs (`*.db.spec.ts`, executed
         # via `getMany()` against a real engine) so an engine-specific regression
         # like MySQL rejecting a duplicate output alias (#831) can no longer hide
         # behind the sqlite-only `tests` job. Scoped to the `.db.spec` files on
@@ -154,9 +154,9 @@ jobs:
 
             -   name: Run tests
                 run: |
-                    npm run test:db --workspace=packages/typeorm
+                    npm run test:db --workspace=packages/adapter-typeorm
 
-            # @rapiq/prisma keeps ALL engine-backed specs here: they need a
+            # @rapiq/adapter-prisma keeps ALL engine-backed specs here: they need a
             # generated client (`prisma generate`), so the default `tests` job
             # stays codegen-free. The postgres matrix entry is the only place
             # `mode: 'insensitive'` exists at all, so the case contract and the
@@ -165,7 +165,7 @@ jobs:
             # the full parity matrix.
             -   name: Run tests (prisma)
                 run: |
-                    npm run test:db --workspace=packages/prisma
+                    npm run test:db --workspace=packages/adapter-prisma
 
 #    preview:
 #        name: Preview Package

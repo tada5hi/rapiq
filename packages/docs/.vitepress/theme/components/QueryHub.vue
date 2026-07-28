@@ -49,15 +49,15 @@
             <span class="rq-hub-col-title">consume</span>
 
             <div class="rq-hub-item">
-                <strong>@rapiq/typeorm</strong>
+                <strong>@rapiq/adapter-typeorm</strong>
                 <span>SelectQueryBuilder</span>
             </div>
             <div class="rq-hub-item">
-                <strong>@rapiq/sql</strong>
+                <strong>@rapiq/adapter-sql</strong>
                 <span>parameterized fragments</span>
             </div>
             <div class="rq-hub-item">
-                <strong>@rapiq/memory</strong>
+                <strong>@rapiq/adapter-memory</strong>
                 <span>compiled functions</span>
             </div>
 

@@ -1,0 +1,69 @@
+{
+    "name": "@rapiq/adapter-memory",
+    "version": "2.0.0-beta.12",
+    "description": "Evaluate a rapiq query against in-memory objects & arrays by compiling the AST into plain functions.",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "dependencies": {
+        "smob": "^1.6.2"
+    },
+    "devDependencies": {
+        "@rapiq/core": "^2.0.0-beta.12"
+    },
+    "peerDependencies": {
+        "@rapiq/core": "^2.0.0-beta.12"
+    },
+    "scripts": {
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "beta"
+    },
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "api-utils",
+        "include",
+        "pagination",
+        "sort",
+        "fields",
+        "filter",
+        "relations",
+        "typescript"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/adapter-memory"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme"
+}

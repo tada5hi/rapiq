@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const code = `import { TypeormAdapter } from '@rapiq/typeorm';
+const code = `import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 
 const queryBuilder = repository.createQueryBuilder('user');
 
@@ -14,7 +14,7 @@ const [entities, total] = await queryBuilder.getManyAndCount();`;
         <div class="rq-typeorm-inner">
             <div class="rq-typeorm-text">
                 <p class="rq-typeorm-eyebrow">
-                    @rapiq/typeorm
+                    @rapiq/adapter-typeorm
                 </p>
                 <h2 class="rq-typeorm-heading">
                     Straight into TypeORM
@@ -26,13 +26,13 @@ const [entities, total] = await queryBuilder.getManyAndCount();`;
                 </p>
                 <ul class="rq-typeorm-list">
                     <li><strong>TypeormAdapter</strong> — wraps any SelectQueryBuilder</li>
-                    <li><strong>Visitor-driven</strong> — reuses the @rapiq/sql visitors</li>
+                    <li><strong>Visitor-driven</strong> — reuses the @rapiq/adapter-sql visitors</li>
                     <li><strong>Relations → joins</strong> — allowed relations join automatically</li>
                     <li><strong>Parameterized</strong> — filter values bind as parameters, never interpolated</li>
                 </ul>
                 <a
                     class="rq-btn rq-btn-primary"
-                    href="/packages/typeorm"
+                    href="/packages/adapter-typeorm"
                 >Read the TypeORM guide →</a>
             </div>
 

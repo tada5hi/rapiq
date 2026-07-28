@@ -4,10 +4,10 @@ A validated `Query` becomes results through an **adapter**. Four ship with rapiq
 
 | Adapter | Target | Returns |
 |---|---|---|
-| [@rapiq/typeorm](/packages/typeorm) | TypeORM `SelectQueryBuilder` | mutates the builder in place |
-| [@rapiq/prisma](/packages/prisma) | Prisma Client | a `findMany` argument object |
-| [@rapiq/sql](/packages/sql) | any SQL driver | parameterized SQL fragments |
-| [@rapiq/memory](/packages/memory) | plain objects & arrays | compiled functions / filtered data |
+| [@rapiq/adapter-typeorm](/packages/adapter-typeorm) | TypeORM `SelectQueryBuilder` | mutates the builder in place |
+| [@rapiq/adapter-prisma](/packages/adapter-prisma) | Prisma Client | a `findMany` argument object |
+| [@rapiq/adapter-sql](/packages/adapter-sql) | any SQL driver | parameterized SQL fragments |
+| [@rapiq/adapter-memory](/packages/adapter-memory) | plain objects & arrays | compiled functions / filtered data |
 
 All four consume the same AST, and they agree on semantics: the records a query selects in memory are the records it selects in the database.
 
@@ -16,7 +16,7 @@ All four consume the same AST, and they agree on semantics: the records a query 
 The most common server setup — the adapter applies filters as parameterized `WHERE` conditions, relations as joins, fields/sort/pagination as `select`/`orderBy`/`take`+`skip`:
 
 ```typescript
-import { TypeormAdapter } from '@rapiq/typeorm';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 
 const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
@@ -30,14 +30,14 @@ const { pagination } = adapter.execute(query);
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-`execute` returns the applied pagination — handy for the response `meta` block. Existing builder state is preserved: rapiq filters are appended with `AND` (under namespaced parameter bindings), and a query without sorts or pagination leaves a caller-owned `ORDER BY`/`take`/`skip` untouched — so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/typeorm).
+`execute` returns the applied pagination — handy for the response `meta` block. Existing builder state is preserved: rapiq filters are appended with `AND` (under namespaced parameter bindings), and a query without sorts or pagination leaves a caller-owned `ORDER BY`/`take`/`skip` untouched — so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/adapter-typeorm).
 
 ## Prisma
 
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
-import { PrismaAdapter } from '@rapiq/prisma';
+import { PrismaAdapter } from '@rapiq/adapter-prisma';
 
 const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ model: prisma.user });
 
@@ -55,14 +55,14 @@ const rows = await adapter.findMany(query, {
 const total = await adapter.count(query);  // pre-pagination, for the meta block
 ```
 
-Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
+Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/adapter-prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
 
 ## Raw SQL
 
-No ORM? `@rapiq/sql` renders clause fragments you compose into your own statement. Per-database behavior is a small dialect preset (`pg`, `mysql`, `sqlite`, `mssql`, `oracle`):
+No ORM? `@rapiq/adapter-sql` renders clause fragments you compose into your own statement. Per-database behavior is a small dialect preset (`pg`, `mysql`, `sqlite`, `mssql`, `oracle`):
 
 ```typescript
-import { Adapter, pg } from '@rapiq/sql';
+import { Adapter, pg } from '@rapiq/adapter-sql';
 
 const adapter = new Adapter({ ...pg, rootAlias: 'user' });
 
@@ -77,14 +77,14 @@ const fragments = adapter.execute(query);
 // }
 ```
 
-Values are always bound as parameters — never interpolated into the SQL string. Composing the final `SELECT` (in particular `FROM`/`JOIN`) stays your job, because it needs knowledge of your table layout. Details: [@rapiq/sql](/packages/sql).
+Values are always bound as parameters — never interpolated into the SQL string. Composing the final `SELECT` (in particular `FROM`/`JOIN`) stays your job, because it needs knowledge of your table layout. Details: [@rapiq/adapter-sql](/packages/adapter-sql).
 
 ## In memory
 
-`@rapiq/memory` compiles the same query into plain functions — for authorization guards that must agree with the database, filtering already-loaded collections, or mock backends in tests:
+`@rapiq/adapter-memory` compiles the same query into plain functions — for authorization guards that must agree with the database, filtering already-loaded collections, or mock backends in tests:
 
 ```typescript
-import { applyQuery, compileQuery } from '@rapiq/memory';
+import { applyQuery, compileQuery } from '@rapiq/adapter-memory';
 
 // one-shot: filter → sort → paginate → project
 const { data, total, pagination } = applyQuery(query, users);
@@ -95,7 +95,7 @@ compiled.matches(user);   // filters as a predicate -> boolean
 compiled.apply(users);    // whole query against a collection
 ```
 
-Semantics (null handling, string matching, join-row binding) mirror the SQL adapters — see [@rapiq/memory](/packages/memory).
+Semantics (null handling, string matching, join-row binding) mirror the SQL adapters — see [@rapiq/adapter-memory](/packages/adapter-memory).
 
 ## One adapter instance per request
 

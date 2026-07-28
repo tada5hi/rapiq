@@ -60,7 +60,7 @@ Multiple document entries combine with an implicit AND. `$and` / `$or` / `$nor` 
 :::
 
 ::: warning Untrusted `$regex`
-`$regex` patterns pass through the parser verbatim — this is the only dialect that lets a client submit one. If filter documents come from untrusted clients and are evaluated in-process with [`@rapiq/memory`](/packages/memory), gate the operator with the schema's `filters.validate` hook — see the [regex trust model](/guide/filters#regex-trust-model).
+`$regex` patterns pass through the parser verbatim — this is the only dialect that lets a client submit one. If filter documents come from untrusted clients and are evaluated in-process with [`@rapiq/adapter-memory`](/packages/adapter-memory), gate the operator with the schema's `filters.validate` hook — see the [regex trust model](/guide/filters#regex-trust-model).
 :::
 
 ## Usage

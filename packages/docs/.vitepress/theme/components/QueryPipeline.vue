@@ -62,23 +62,23 @@
             <div class="rq-pipe-adapters">
                 <a
                     class="rq-pipe-adapter"
-                    href="/packages/typeorm"
+                    href="/packages/adapter-typeorm"
                 >
-                    <strong>@rapiq/typeorm</strong>
+                    <strong>@rapiq/adapter-typeorm</strong>
                     <span>SelectQueryBuilder</span>
                 </a>
                 <a
                     class="rq-pipe-adapter"
-                    href="/packages/sql"
+                    href="/packages/adapter-sql"
                 >
-                    <strong>@rapiq/sql</strong>
+                    <strong>@rapiq/adapter-sql</strong>
                     <span>SQL fragments</span>
                 </a>
                 <a
                     class="rq-pipe-adapter"
-                    href="/packages/memory"
+                    href="/packages/adapter-memory"
                 >
-                    <strong>@rapiq/memory</strong>
+                    <strong>@rapiq/adapter-memory</strong>
                     <span>plain functions</span>
                 </a>
             </div>
