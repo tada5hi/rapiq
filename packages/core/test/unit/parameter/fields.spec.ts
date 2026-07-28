@@ -6,11 +6,13 @@
  */
 
 import {
-    Field, 
-    FieldOperator, 
-    Fields, 
-    Query, 
-    eq, 
+    ErrorCode,
+    Field,
+    FieldOperator,
+    Fields,
+    MergeError,
+    Query,
+    eq,
     hasFieldConditions,
 } from '../../../src';
 
@@ -135,6 +137,50 @@ describe('src/parameter/fields/*.ts', () => {
             expect(hasFieldConditions(
                 gated.execute({ default: [], allowed: ['secret'] }),
             )).toBe(true);
+        });
+    });
+
+    describe('merge', () => {
+        it('should refuse to discard a visibility gate on name collision', () => {
+            const gated = new Fields([new Field('secret', undefined, eq('realm_id', 'a'))]);
+            const ungated = new Fields([new Field('secret')]);
+
+            try {
+                ungated.merge(gated);
+                expect.fail('should have thrown');
+            } catch (e) {
+                expect(e).toBeInstanceOf(MergeError);
+                expect((e as MergeError).code).toBe(ErrorCode.FIELDS_CONDITION_DISCARDED);
+            }
+        });
+
+        it('should refuse when both sides carry different gates on the same field', () => {
+            const left = new Fields([new Field('secret', undefined, eq('realm_id', 'a'))]);
+            const right = new Fields([new Field('secret', undefined, eq('realm_id', 'b'))]);
+
+            expect(() => left.merge(right)).toThrowError(MergeError);
+        });
+
+        it('should keep a receiver-side gate when the other side is ungated', () => {
+            const condition = eq('realm_id', 'a');
+            const gated = new Fields([new Field('secret', undefined, condition)]);
+            const ungated = new Fields([new Field('secret'), new Field('id')]);
+
+            const output = gated.merge(ungated);
+
+            expect(names(output)).toEqual(['secret', 'id']);
+            expect(output.value[0].condition).toBe(condition);
+        });
+
+        it('should tolerate the identical gate instance on both sides', () => {
+            const condition = eq('realm_id', 'a');
+            const left = new Fields([new Field('secret', undefined, condition)]);
+            const right = new Fields([new Field('secret', undefined, condition)]);
+
+            const output = left.merge(right);
+
+            expect(names(output)).toEqual(['secret']);
+            expect(output.value[0].condition).toBe(condition);
         });
     });
 });

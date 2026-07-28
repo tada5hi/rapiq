@@ -20,6 +20,8 @@ Per-parameter semantics:
 | `pagination` | per-property left priority (`limit` and `offset` merge independently) |
 | `filters` | per-field replace via `Filters.merge` — see below |
 
+One guard applies to `fields`: a name collision that would discard a [row-scoped visibility gate](/guide/fields#row-scoped-fields) (`Field.condition`) throws a `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently un-gating the column. A gate only ever arises server-side, from a schema hook; keep that parsed query as the receiver and its gates survive every collision.
+
 ## Filters: two explicit operations
 
 Filters get two distinct operations, because a single "merge" would silently break one of the two use cases.

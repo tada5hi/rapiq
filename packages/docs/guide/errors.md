@@ -7,7 +7,7 @@ Every error rapiq throws extends `BaseError` and carries a machine-readable `cod
 ```txt
 BaseError { code: ErrorCode }
 ├── BuildError            defineQuery / helpers — malformed build input
-├── MergeError            mergeQueries / Filters.merge — non-flat trees
+├── MergeError            mergeQueries / node merge — non-flat trees, discarded field gates
 ├── ParseError            parsers & decoders — invalid client input
 │   ├── FieldsParseError
 │   ├── FiltersParseError
@@ -36,6 +36,8 @@ BaseError { code: ErrorCode }
 ### Merge time (caller bug)
 
 `MergeError` with `FILTERS_NOT_FLAT` — a replace-merge met a compound filter tree. See [Merging & Composition](/guide/merging-queries#merge--per-field-replace).
+
+`MergeError` with `FIELDS_CONDITION_DISCARDED`: a fields merge collision would drop a [row-scoped visibility gate](/guide/fields#row-scoped-fields). Keep the gated query as the receiver instead of merging it underneath an ungated one.
 
 ### Parse time (client input)
 

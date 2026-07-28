@@ -28,6 +28,8 @@ export enum ErrorCode {
 
     FEATURE_UNSUPPORTED = 'featureUnsupported',
 
+    FIELDS_CONDITION_DISCARDED = 'fieldsConditionDiscarded',
+
     FILTERS_NOT_FLAT = 'filtersNotFlat',
 
     CODEC_UNRESOLVABLE = 'codecUnresolvable',
