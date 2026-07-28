@@ -12,13 +12,13 @@ import {
     oracle,
     pg,
     sqlite,
-} from '@rapiq/sql';
+} from '@rapiq/adapter-sql';
 
 /*
  * The playground runs the real packages in the browser:
  * @rapiq/parser-simple turns the form state into a Query AST,
  * @rapiq/codec-url encodes it as a URL query string and
- * @rapiq/sql renders the WHERE clause for the selected dialect.
+ * @rapiq/adapter-sql renders the WHERE clause for the selected dialect.
  */
 
 interface Dialect {
@@ -260,7 +260,7 @@ const sqlOutput = computed(() => {
 
                     <p class="rq-hero-card-hint">
                         Live — <code>@rapiq/parser-simple</code>, <code>@rapiq/codec-url</code>
-                        and <code>@rapiq/sql</code> are running in your browser.
+                        and <code>@rapiq/adapter-sql</code> are running in your browser.
                     </p>
                 </div>
             </div>

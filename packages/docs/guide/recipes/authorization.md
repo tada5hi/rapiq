@@ -109,10 +109,10 @@ const userSchema = defineSchema<User, Actor>({
 Three verdicts, three outcomes: `false` drops the field from the query, `true` selects it plainly, a condition selects it *and* gates its value. Note the third argument: `scope.path` is `''` at the query root and `'items.owner'` for the same schema reached through an include, so one policy lookup can answer differently per position.
 
 ::: danger The gate is applied after the fetch
-A condition gates the **value of a column, never the row set**: a user whose `email` is hidden is still returned, without that property. `@rapiq/memory` enforces this while projecting. `@rapiq/sql` and `@rapiq/typeorm` **cannot**: a selection must stay a bare `alias.property` for entity hydration, so they project the column for every row and the gate has to run on the result:
+A condition gates the **value of a column, never the row set**: a user whose `email` is hidden is still returned, without that property. `@rapiq/adapter-memory` enforces this while projecting. `@rapiq/adapter-sql` and `@rapiq/adapter-typeorm` **cannot**: a selection must stay a bare `alias.property` for entity hydration, so they project the column for every row and the gate has to run on the result:
 
 ```typescript
-import { applyFieldConditions } from '@rapiq/memory';
+import { applyFieldConditions } from '@rapiq/adapter-memory';
 
 const query = await codec.decodeAsync(req.query, {
     schema: 'user',
@@ -135,7 +135,7 @@ Authorization rules often live as conditions (think CASL-style abilities). Becau
 
 ```typescript
 import { and, eq, gte } from '@rapiq/core';
-import { compileFilters } from '@rapiq/memory';
+import { compileFilters } from '@rapiq/adapter-memory';
 
 // the ability, as data
 const canEditAdults = and(
@@ -156,12 +156,12 @@ const scoped = new Query({
 });
 ```
 
-`@rapiq/memory` aims for **SQL parity** — null handling, string matching and relation-path binding match what the SQL/TypeORM adapters produce — so the guard and the query cannot drift apart. Semantics details: [@rapiq/memory](/packages/memory#filter-semantics).
+`@rapiq/adapter-memory` aims for **SQL parity** — null handling, string matching and relation-path binding match what the SQL/TypeORM adapters produce — so the guard and the query cannot drift apart. Semantics details: [@rapiq/adapter-memory](/packages/adapter-memory#filter-semantics).
 
 For whole-query checks (fields, sort, pagination included), compile once and reuse:
 
 ```typescript
-import { compileQuery } from '@rapiq/memory';
+import { compileQuery } from '@rapiq/adapter-memory';
 
 const compiled = compileQuery<User>(query);
 compiled.matches(user);    // would this record be selected?
@@ -181,4 +181,4 @@ compiled.apply(users);     // apply the full query to loaded data
 ## Next steps
 
 - [Merging & Composition](/guide/merging-queries) — why injected trees resist merging.
-- [@rapiq/memory](/packages/memory) — the full in-memory semantics contract.
+- [@rapiq/adapter-memory](/packages/adapter-memory) — the full in-memory semantics contract.

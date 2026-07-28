@@ -51,14 +51,14 @@ package is the reference implementation for rapiq's mongo parser dialect
 
 ucast interprets its AST with per-operator interpreter functions (`@ucast/js`, `@ucast/sql`,
 `createInterpreter`); rapiq's equivalent is the visitor pattern (`IFilterVisitor` with optional
-per-operator methods) consumed by `@rapiq/sql` / `@rapiq/typeorm` / `@rapiq/memory`.
+per-operator methods) consumed by `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` / `@rapiq/adapter-memory`.
 
-## In-memory evaluation (`@ucast/js` ↔ `@rapiq/memory`)
+## In-memory evaluation (`@ucast/js` ↔ `@rapiq/adapter-memory`)
 
-`@ucast/js` is the reference implementation behind `@rapiq/memory` (plan 014); the maintainer
+`@ucast/js` is the reference implementation behind `@rapiq/adapter-memory` (plan 014); the maintainer
 explicitly rejected its interpreter-registry shape in favor of the core visitor interfaces.
 
-| ucast (`packages/js/src/`) | rapiq (`packages/memory/src/`) | Differences |
+| ucast (`packages/js/src/`) | rapiq (`packages/adapter-memory/src/`) | Differences |
 |---|---|---|
 | `createJsInterpreter(operators, {get, compare})` → `interpret(condition, object)` | `FiltersVisitor`/`FiltersCompiler` (`parameter/filters/`), `compileFilters(condition)` → `Predicate` | rapiq compiles once to a reusable closure; extension = subclass `FiltersCompiler`, not an options bag |
 | interpreter registry (record of functions, unregistered op throws plain `Error`) | per-operator `visitFilterX` methods; `visitFilter` fallback throws `AdapterError.operatorUnsupported` | closed operator set over `FilterFieldOperator` |

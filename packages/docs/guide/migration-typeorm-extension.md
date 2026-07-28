@@ -1,6 +1,6 @@
 # Migration from typeorm-extension
 
-`@rapiq/typeorm` succeeds typeorm-extension's `applyQuery`/`applyQueryParseOutput` pipeline. The contract is deliberately close — but a few defaults flipped, and the ones that did are security-relevant.
+`@rapiq/adapter-typeorm` succeeds typeorm-extension's `applyQuery`/`applyQueryParseOutput` pipeline. The contract is deliberately close — but a few defaults flipped, and the ones that did are security-relevant.
 
 ## API mapping
 
@@ -9,7 +9,7 @@
 | `applyQuery(qb, req.query, options)` | `codec.decode(req.query, { schema })` + `new TypeormAdapter({ queryBuilder: qb }).execute(query)` — see the [Express recipe](/guide/recipes/express-typeorm) |
 | per-call `allowed`/`default` options | a named [`Schema`](/guide/schemas) in a `SchemaRegistry` |
 | returned parse output (pagination) | `adapter.execute(query)` returns the applied pagination |
-| `relations.onJoin` hook | `relations.onJoin` on the [adapter options](/packages/typeorm#options) |
+| `relations.onJoin` hook | `relations.onJoin` on the [adapter options](/packages/adapter-typeorm#options) |
 
 ## Behavior differences
 
@@ -29,11 +29,11 @@ defineSchema<User>({
 
 ### Joins default to LEFT
 
-typeorm-extension used inner joins for relations; `@rapiq/typeorm` defaults to **left** joins, keeping records whose relation is absent. Restore inner joins per adapter via `relations: { joinType: 'inner' }`.
+typeorm-extension used inner joins for relations; `@rapiq/adapter-typeorm` defaults to **left** joins, keeping records whose relation is absent. Restore inner joins per adapter via `relations: { joinType: 'inner' }`.
 
 ### Join aliases are path-qualified
 
-typeorm-extension aliased joins by the relation path's **last segment** (`role.realm` joined as `realm`), so relation paths ending in the same segment collided. `@rapiq/typeorm` uses the collision-free `buildRelationAlias(path)` helper (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`) — see the [alias convention](/packages/typeorm#options). This surfaces in code that references join aliases directly, e.g. hand-written `andWhere` clauses; `onJoin` hooks keep working because they receive the derived alias. A custom derivation can be injected via `relations: { relationAlias }`, but it must stay collision-free.
+typeorm-extension aliased joins by the relation path's **last segment** (`role.realm` joined as `realm`), so relation paths ending in the same segment collided. `@rapiq/adapter-typeorm` uses the collision-free `buildRelationAlias(path)` helper (`realm` → `r5_realm`, `role.realm` → `r4_role_5_realm`) — see the [alias convention](/packages/adapter-typeorm#options). This surfaces in code that references join aliases directly, e.g. hand-written `andWhere` clauses; `onJoin` hooks keep working because they receive the derived alias. A custom derivation can be injected via `relations: { relationAlias }`, but it must stay collision-free.
 
 ### Defaults that carried over
 

@@ -187,7 +187,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
      * Drop the rejected fields and attach the visibility condition of every
      * condition-gated one. The gated field stays projected: its condition
      * only restricts on which rows the value is visible, and is applied
-     * after the fetch (`@rapiq/memory` honours it while projecting).
+     * after the fetch (`@rapiq/adapter-memory` honours it while projecting).
      */
     protected prune(
         fields: IFields,

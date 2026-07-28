@@ -11,10 +11,10 @@ rapiq is a family of small packages around one shared data structure — the [`Q
 | [@rapiq/parser-expression](/packages/parser-expression) | Parses function-call filter expressions (`and(eq(name, 'John'), …)`) |
 | [@rapiq/parser-mongo](/packages/parser-mongo) | Parses MongoDB-style filter documents (`{ age: { $gte: 18 } }`) |
 | [@rapiq/codec-url](/packages/codec-url) | URL codec façade; writes expressions and reads expression plus legacy simple filters |
-| [@rapiq/sql](/packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql, oracle presets) |
-| [@rapiq/typeorm](/packages/typeorm) | Applies a `Query` to a TypeORM `SelectQueryBuilder` |
-| [@rapiq/prisma](/packages/prisma) | Serializes a `Query` into a Prisma argument object |
-| [@rapiq/memory](/packages/memory) | Evaluates a `Query` against in-memory objects & arrays |
+| [@rapiq/adapter-sql](/packages/adapter-sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql, oracle presets) |
+| [@rapiq/adapter-typeorm](/packages/adapter-typeorm) | Applies a `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/adapter-prisma](/packages/adapter-prisma) | Serializes a `Query` into a Prisma argument object |
+| [@rapiq/adapter-memory](/packages/adapter-memory) | Evaluates a `Query` against in-memory objects & arrays |
 
 ## Which packages do I need?
 
@@ -27,25 +27,25 @@ npm install @rapiq/core @rapiq/codec-url
 **An HTTP API backed by TypeORM:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeorm
 ```
 
 **An HTTP API backed by Prisma:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url @rapiq/prisma
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-prisma
 ```
 
 **An HTTP API composing SQL by hand:**
 
 ```sh
-npm install @rapiq/core @rapiq/codec-url @rapiq/sql
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql
 ```
 
 **Something in-process — guards, tests, mock backends:**
 
 ```sh
-npm install @rapiq/core @rapiq/memory
+npm install @rapiq/core @rapiq/adapter-memory
 ```
 
 Then add per feature:

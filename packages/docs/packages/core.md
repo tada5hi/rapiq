@@ -34,6 +34,6 @@ defineQuery<User>({
 
 - **No wire formats** — URL parameter names and query-string handling live in [`@rapiq/codec-url`](/packages/codec-url).
 - **No input dialects** — parsing simple/expression/mongo input lives in the [parser packages](/packages/parser-simple).
-- **No backends** — SQL/TypeORM/memory execution lives in the [adapter packages](/packages/sql).
+- **No backends** — SQL/TypeORM/memory execution lives in the [adapter packages](/packages/adapter-sql).
 
 If you only build queries in code and hand them to an in-process consumer, core is the only dependency you need.

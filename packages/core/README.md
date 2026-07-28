@@ -83,7 +83,7 @@ registry.add(defineSchema<User>({
 
 ### Consume the AST
 
-Every node implements `accept(visitor)`. Backends implement the visitor interfaces (`IQueryVisitor`, `IFiltersVisitor`, …) to walk a query into whatever they target. Ready-made adapters exist for [SQL](https://www.npmjs.com/package/@rapiq/sql), [TypeORM](https://www.npmjs.com/package/@rapiq/typeorm) and [in-memory data](https://www.npmjs.com/package/@rapiq/memory); parsers and URL codecs live in their own packages as well.
+Every node implements `accept(visitor)`. Backends implement the visitor interfaces (`IQueryVisitor`, `IFiltersVisitor`, …) to walk a query into whatever they target. Ready-made adapters exist for [SQL](https://www.npmjs.com/package/@rapiq/adapter-sql), [TypeORM](https://www.npmjs.com/package/@rapiq/adapter-typeorm) and [in-memory data](https://www.npmjs.com/package/@rapiq/adapter-memory); parsers and URL codecs live in their own packages as well.
 
 ## The rapiq family
 
@@ -94,10 +94,10 @@ Every node implements `accept(visitor)`. Backends implement the visitor interfac
 | [@rapiq/parser-expression](https://github.com/tada5hi/rapiq/tree/master/packages/parser-expression) | Parse filter expressions like `and(eq(name,'John'), gte(age,'18'))` |
 | [@rapiq/parser-mongo](https://github.com/tada5hi/rapiq/tree/master/packages/parser-mongo) | Parse MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
 | [@rapiq/codec-url](https://github.com/tada5hi/rapiq/tree/master/packages/codec-url) | URL query-string transport codec |
-| [@rapiq/sql](https://github.com/tada5hi/rapiq/tree/master/packages/sql) | Dialect-agnostic SQL fragment adapter (pg, mysql, sqlite, mssql, oracle) |
-| [@rapiq/typeorm](https://github.com/tada5hi/rapiq/tree/master/packages/typeorm) | Apply a query to a TypeORM `SelectQueryBuilder` |
-| [@rapiq/prisma](https://github.com/tada5hi/rapiq/tree/master/packages/prisma) | Serialize a query into a Prisma argument object |
-| [@rapiq/memory](https://github.com/tada5hi/rapiq/tree/master/packages/memory) | Evaluate a query against in-memory objects & arrays |
+| [@rapiq/adapter-sql](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-sql) | Dialect-agnostic SQL fragment adapter (pg, mysql, sqlite, mssql, oracle) |
+| [@rapiq/adapter-typeorm](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-typeorm) | Apply a query to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/adapter-prisma](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-prisma) | Serialize a query into a Prisma argument object |
+| [@rapiq/adapter-memory](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-memory) | Evaluate a query against in-memory objects & arrays |
 
 ## Documentation
 

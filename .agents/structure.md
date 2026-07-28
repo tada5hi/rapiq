@@ -11,10 +11,10 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/parser-mongo](../packages/parser-mongo)           | Library  | Parses MongoDB-style filter documents (e.g. `{ age: { $gte: 18 } }`, `$and`/`$or`/`$not`) into a `Query` |
 | [@rapiq/codec-url](../packages/codec-url)                 | Library  | URL transport façade: expression-default encoding, expression + legacy simple decoding, in-band dialect dispatch; uses `qs` |
-| [@rapiq/sql](../packages/sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
-| [@rapiq/typeorm](../packages/typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
-| [@rapiq/prisma](../packages/prisma)                       | Library  | Adapter serializing a parsed `Query` into a Prisma `findMany` args object (pure value, no prisma dependency) |
-| [@rapiq/memory](../packages/memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
+| [@rapiq/adapter-sql](../packages/adapter-sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
+| [@rapiq/adapter-typeorm](../packages/adapter-typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
+| [@rapiq/adapter-prisma](../packages/adapter-prisma)                       | Library  | Adapter serializing a parsed `Query` into a Prisma `findMany` args object (pure value, no prisma dependency) |
+| [@rapiq/adapter-memory](../packages/adapter-memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
 
 ## Package Dependency Layers
@@ -27,14 +27,14 @@ Foundation (no internal deps):
 
 Layer 1 (depend on core):
   @rapiq/parser-simple
-  @rapiq/sql
-  @rapiq/memory
-  @rapiq/prisma
+  @rapiq/adapter-sql
+  @rapiq/adapter-memory
+  @rapiq/adapter-prisma
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
   @rapiq/parser-mongo        (core + parser-simple)
-  @rapiq/typeorm             (core + sql + typeorm)
+  @rapiq/adapter-typeorm             (core + sql + typeorm)
 
 Layer 3:
   @rapiq/codec-url           (core + parser-simple + parser-expression)
@@ -79,21 +79,21 @@ packages/parser-{simple,expression,mongo}/src/
 Backend/codec packages:
 
 ```
-packages/sql/src/
+packages/adapter-sql/src/
 ├── adapter/              # Adapter + per-parameter sub-adapters (accumulate SQL fragments)
 ├── dialect/              # pg, mysql, sqlite, mssql, oracle DialectOptions presets
 ├── visitor/              # QueryVisitor walking the AST into the adapter
 └── helpers/
 
-packages/typeorm/src/
+packages/adapter-typeorm/src/
 └── adapter/              # TypeormAdapter + sub-adapters targeting SelectQueryBuilder
 
-packages/prisma/src/
+packages/adapter-prisma/src/
 ├── adapter/              # PrismaAdapter + per-parameter sub-adapters building the args object
 ├── metadata/             # IMetadata + Metadata/defineMetadata over a prisma datamodel (DMMF-shaped)
 └── provider/             # per-connector capability presets (mode: 'insensitive' support)
 
-packages/memory/src/
+packages/adapter-memory/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/  # visitors compiling AST nodes into functions
 ├── query/                # CompiledQuery (matches/apply, pagination echo)
 ├── helpers/              # value semantics (normalize/equal/compare/resolve)
@@ -134,5 +134,5 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 - **What a client may request (allow-lists, defaults, mappings)** → `@rapiq/core` (`schema/`)
 - **Turning raw URL input into the AST** → `@rapiq/codec-url` (dispatch + decode through parser-simple/parser-expression)
 - **Turning the AST into URL transport format** → `@rapiq/codec-url` (expression-default encode; deprecated explicit simple encode)
-- **Turning the AST into backend queries** → `@rapiq/sql`, `@rapiq/typeorm`, `@rapiq/prisma`
-- **Evaluating the AST against in-memory data** → `@rapiq/memory` (predicates/comparators/projectors compiled from the AST)
+- **Turning the AST into backend queries** → `@rapiq/adapter-sql`, `@rapiq/adapter-typeorm`, `@rapiq/adapter-prisma`
+- **Evaluating the AST against in-memory data** → `@rapiq/adapter-memory` (predicates/comparators/projectors compiled from the AST)

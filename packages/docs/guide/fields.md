@@ -65,7 +65,7 @@ Fields of a relation use the relation name as key (or a `relation.field` path) a
 }
 ```
 
-A per-relation fieldset governs the projection of an included relation: the backends hydrate `items` with exactly the listed columns (`@rapiq/typeorm` additionally selects the relation's primary key, so the relation object hydrates reliably even when every listed column is NULL). When the related schema declares `fields.default` (or an `allowed` list), those apply to the include the same way. Only an include without any fieldset, against a schema without a `fields` block, hydrates the whole record.
+A per-relation fieldset governs the projection of an included relation: the backends hydrate `items` with exactly the listed columns (`@rapiq/adapter-typeorm` additionally selects the relation's primary key, so the relation object hydrates reliably even when every listed column is NULL). When the related schema declares `fields.default` (or an `allowed` list), those apply to the include the same way. Only an include without any fieldset, against a schema without a `fields` block, hydrates the whole record.
 
 ## Schema options
 
@@ -103,7 +103,7 @@ defineSchema<User, Actor>({
 });
 ```
 
-The gate never removes a row; it only blanks a column on the rows that fail it. `@rapiq/memory` applies it while projecting; the SQL backends project the column and rely on a post-fetch pass. Details and the fail-open caveat: [Condition verdicts](/guide/schemas#condition-verdicts).
+The gate never removes a row; it only blanks a column on the rows that fail it. `@rapiq/adapter-memory` applies it while projecting; the SQL backends project the column and rely on a post-fetch pass. Details and the fail-open caveat: [Condition verdicts](/guide/schemas#condition-verdicts).
 
 A gate also resists composition: a [merge](/guide/merging-queries) collision that would replace a gated field with an ungated one (or with a different gate) throws a `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently widening disclosure.
 

@@ -64,7 +64,7 @@ The codec is stateless between calls — share one instance across all routes.
 // src/routes/users.ts
 import type { Request, Response } from 'express';
 import { ParseError } from '@rapiq/core';
-import { TypeormAdapter } from '@rapiq/typeorm';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 import { dataSource } from '../data-source';
 import { codec } from '../codec';
 import { User } from '../entities';
@@ -117,5 +117,5 @@ GET /users?filter[secret]=x                           400 — key not allowed
 ## Variations
 
 - **Scope by the authenticated user** — inject filters the client can't displace: [Authorization & scoping](/guide/recipes/authorization).
-- **No TypeORM** — swap the adapter for [`@rapiq/sql`](/packages/sql) fragments; the decode half stays identical.
+- **No TypeORM** — swap the adapter for [`@rapiq/adapter-sql`](/packages/adapter-sql) fragments; the decode half stays identical.
 - **Migrate old clients gradually** — the codec writes expressions but continues to recognize legacy bracket-filter input; see [Queries over the Wire](/guide/wire).

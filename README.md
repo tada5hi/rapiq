@@ -44,7 +44,7 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 | **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })`: typed input in, query AST out |
 | **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
 | **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
-| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/typeorm`) or as Prisma arguments (`@rapiq/prisma`) |
+| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`) or as Prisma arguments (`@rapiq/adapter-prisma`) |
 
 The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
 an API gateway, for instance, validates an incoming query against its own schema, scopes it
@@ -71,7 +71,7 @@ npm install @rapiq/core @rapiq/codec-url
 Queried application, decode & validate incoming query input and apply it to the database:
 
 ```bash
-npm install @rapiq/core @rapiq/codec-url @rapiq/sql @rapiq/typeorm
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeorm
 ```
 
 ## Usage
@@ -143,8 +143,8 @@ On the receiving side the incoming query is decoded back into the same
 (allow-lists, defaults, mappings). Expression-filter violations reject the request;
 other parameters follow the schema's drop-vs-throw policy.
 The decoded query is then applied to the database by an adapter
-([@rapiq/typeorm](https://rapiq.tada5hi.net/packages/typeorm) below;
-[@rapiq/sql](https://rapiq.tada5hi.net/packages/sql) renders parameterized SQL fragments for any other driver).
+([@rapiq/adapter-typeorm](https://rapiq.tada5hi.net/packages/adapter-typeorm) below;
+[@rapiq/adapter-sql](https://rapiq.tada5hi.net/packages/adapter-sql) renders parameterized SQL fragments for any other driver).
 
 The following example assumes [express](https://www.npmjs.com/package/express) and
 [typeorm](https://www.npmjs.com/package/typeorm) are installed, and uses the same
@@ -154,7 +154,7 @@ The following example assumes [express](https://www.npmjs.com/package/express) a
 import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { createURLCodec } from '@rapiq/codec-url';
-import { TypeormAdapter } from '@rapiq/typeorm';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 // your app's TypeORM DataSource instance
 import { dataSource } from './data-source';
 
@@ -226,10 +226,10 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/parser-expression](packages/parser-expression) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
 | [@rapiq/parser-mongo](packages/parser-mongo) | Parses MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
 | [@rapiq/codec-url](packages/codec-url) | URL query-string codec; writes expression filters and reads expression plus legacy simple filters |
-| [@rapiq/sql](packages/sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
-| [@rapiq/typeorm](packages/typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
-| [@rapiq/prisma](packages/prisma) | Serializes a parsed `Query` into a Prisma argument object |
-| [@rapiq/memory](packages/memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
+| [@rapiq/adapter-sql](packages/adapter-sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
+| [@rapiq/adapter-typeorm](packages/adapter-typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/adapter-prisma](packages/adapter-prisma) | Serializes a parsed `Query` into a Prisma argument object |
+| [@rapiq/adapter-memory](packages/adapter-memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
 
 ## Parameters
 

@@ -2,9 +2,9 @@
 head:
   - - meta
     - http-equiv: refresh
-      content: '0; url=/packages/typeorm'
+      content: '0; url=/packages/adapter-typeorm'
 ---
 
 # Moved
 
-This page moved to [@rapiq/typeorm](/packages/typeorm).
+This page moved to [@rapiq/adapter-typeorm](/packages/adapter-typeorm).

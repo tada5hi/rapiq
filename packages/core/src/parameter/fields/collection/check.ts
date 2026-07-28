@@ -21,7 +21,7 @@ export function isFields(input: unknown) : input is IFields {
 /**
  * Whether any field of the selection carries a visibility condition
  * (see `IField.condition`). The gate is only applied while projecting
- * by `@rapiq/memory`; the SQL backends fetch the column for every row
+ * by `@rapiq/adapter-memory`; the SQL backends fetch the column for every row
  * and rely on the consumer running the fetched rows through
  * `applyFieldConditions` before serializing them. This is the check a
  * response path can assert on to guarantee no gated column ships

@@ -42,9 +42,9 @@ const packages: PackageCard[] = [
         ],
     },
     {
-        name: '@rapiq/sql',
+        name: '@rapiq/adapter-sql',
         accent: 'var(--rq-color-error)',
-        href: '/packages/sql',
+        href: '/packages/adapter-sql',
         summary: 'Dialect-agnostic SQL adapter turning the AST into parameterized fragments.',
         bullets: [
             'Presets: Postgres, MySQL, SQLite, MSSQL, Oracle',
@@ -53,20 +53,20 @@ const packages: PackageCard[] = [
         ],
     },
     {
-        name: '@rapiq/typeorm',
+        name: '@rapiq/adapter-typeorm',
         accent: 'var(--rq-color-primary)',
-        href: '/packages/typeorm',
+        href: '/packages/adapter-typeorm',
         summary: 'Applies a parsed Query directly to a TypeORM SelectQueryBuilder.',
         bullets: [
             'Mutates the query builder in place',
             'Relations become joins automatically',
-            'Builds on the @rapiq/sql visitors',
+            'Builds on the @rapiq/adapter-sql visitors',
         ],
     },
     {
-        name: '@rapiq/memory',
+        name: '@rapiq/adapter-memory',
         accent: 'var(--rq-color-success)',
-        href: '/packages/memory',
+        href: '/packages/adapter-memory',
         summary: 'Evaluates the same Query against in-memory objects & arrays.',
         bullets: [
             'Filters compile to plain predicates',

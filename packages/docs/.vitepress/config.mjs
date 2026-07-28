@@ -122,10 +122,10 @@ export default defineConfig({
                 {
                     text: 'Backend Adapters',
                     items: [
-                        { text: '@rapiq/sql', link: '/packages/sql' },
-                        { text: '@rapiq/typeorm', link: '/packages/typeorm' },
-                        { text: '@rapiq/prisma', link: '/packages/prisma' },
-                        { text: '@rapiq/memory', link: '/packages/memory' },
+                        { text: '@rapiq/adapter-sql', link: '/packages/adapter-sql' },
+                        { text: '@rapiq/adapter-typeorm', link: '/packages/adapter-typeorm' },
+                        { text: '@rapiq/adapter-prisma', link: '/packages/adapter-prisma' },
+                        { text: '@rapiq/adapter-memory', link: '/packages/adapter-memory' },
                     ],
                 },
             ],

@@ -62,7 +62,7 @@ query.accept(myQueryVisitor);           // whole query
 query.filters.accept(myFiltersVisitor); // single parameter
 ```
 
-This is how all three adapters work — [`@rapiq/sql`](/packages/sql) accumulates SQL fragments, [`@rapiq/typeorm`](/packages/typeorm) writes into a query builder, [`@rapiq/memory`](/packages/memory) returns compiled functions (`R = Predicate`). New backends are added by implementing visitors; core never changes.
+This is how all three adapters work — [`@rapiq/adapter-sql`](/packages/adapter-sql) accumulates SQL fragments, [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) writes into a query builder, [`@rapiq/adapter-memory`](/packages/adapter-memory) returns compiled functions (`R = Predicate`). New backends are added by implementing visitors; core never changes.
 
 ## Type guards
 

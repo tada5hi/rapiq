@@ -7,7 +7,7 @@
         "@rapiq/core": "*",
         "@rapiq/parser-expression": "*",
         "@rapiq/parser-simple": "*",
-        "@rapiq/sql": "*",
+        "@rapiq/adapter-sql": "*",
         "vitepress": "^1.6.4"
     },
     "scripts": {

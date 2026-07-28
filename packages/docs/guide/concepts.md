@@ -90,9 +90,9 @@ Parsers are transport-agnostic: they read canonical parameter keys (`fields`, `f
 
 Adapters execute a `Query` against a backend:
 
-- [`@rapiq/typeorm`](/packages/typeorm) — mutates a TypeORM `SelectQueryBuilder`
-- [`@rapiq/sql`](/packages/sql) — renders parameterized SQL fragments for any driver
-- [`@rapiq/memory`](/packages/memory) — compiles the query into plain functions over in-memory data
+- [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) — mutates a TypeORM `SelectQueryBuilder`
+- [`@rapiq/adapter-sql`](/packages/adapter-sql) — renders parameterized SQL fragments for any driver
+- [`@rapiq/adapter-memory`](/packages/adapter-memory) — compiles the query into plain functions over in-memory data
 
 They all consume the AST through the **visitor pattern**: every node has `accept(visitor)`, and a backend implements visitor interfaces for the nodes it cares about. New backends never require changes to core — see [The Query AST](/guide/query-ast) if you want to build one.
 
@@ -124,7 +124,7 @@ Both patterns are covered in [Merging & Composition](/guide/merging-queries).
 | Build | `@rapiq/core` (`defineQuery`, helpers) |
 | Transport | `@rapiq/codec-url` |
 | Parse & validate | `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/parser-mongo` + `Schema` from core |
-| Execute | `@rapiq/typeorm`, `@rapiq/sql`, `@rapiq/memory` |
+| Execute | `@rapiq/adapter-typeorm`, `@rapiq/adapter-sql`, `@rapiq/adapter-memory` |
 
 ## Next steps
 

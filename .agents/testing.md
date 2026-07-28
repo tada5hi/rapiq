@@ -22,7 +22,7 @@ Vitest sets `NODE_ENV=test` automatically. Nx caches `test` targets — pass `--
 
 ### Unit Tests
 
-The only layer — there are no integration tests and no external infrastructure (no databases, no Docker). Even `@rapiq/typeorm` is tested against TypeORM's `SelectQueryBuilder` API without a live database.
+The only layer — there are no integration tests and no external infrastructure (no databases, no Docker). Even `@rapiq/adapter-typeorm` is tested against TypeORM's `SelectQueryBuilder` API without a live database.
 
 Specs typically `describe` the module under test by source path:
 

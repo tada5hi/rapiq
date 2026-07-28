@@ -27,7 +27,7 @@ export interface IField {
      * row set: a gated field never removes a row at any level. The SQL
      * backends cannot express that (a selection must stay a bare column
      * for entity hydration), so they project the column unconditionally
-     * and the gate is applied after the fetch; `@rapiq/memory` honours
+     * and the gate is applied after the fetch; `@rapiq/adapter-memory` honours
      * it while projecting.
      */
     readonly condition: ICondition | undefined;

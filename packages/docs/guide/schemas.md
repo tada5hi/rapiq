@@ -239,21 +239,21 @@ Where the gate is actually applied depends on the backend:
 
 | Backend | Behavior |
 |---|---|
-| [`@rapiq/memory`](/packages/memory) | Honours `Field.condition` **while projecting**: the property is dropped from records that don't satisfy it. |
-| [`@rapiq/sql`](/packages/sql), [`@rapiq/typeorm`](/packages/typeorm) | Project the column **unconditionally**. A selection has to stay a bare `alias.property` for entity hydration, so the gate cannot be pushed into the statement; it is applied **after the fetch**. |
+| [`@rapiq/adapter-memory`](/packages/adapter-memory) | Honours `Field.condition` **while projecting**: the property is dropped from records that don't satisfy it. |
+| [`@rapiq/adapter-sql`](/packages/adapter-sql), [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) | Project the column **unconditionally**. A selection has to stay a bare `alias.property` for entity hydration, so the gate cannot be pushed into the statement; it is applied **after the fetch**. |
 
 ::: danger The SQL backends fail open
-On `@rapiq/sql` / `@rapiq/typeorm` the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
+On `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
 
 ```typescript
 import { hasFieldConditions } from '@rapiq/core';
-import { applyFieldConditions } from '@rapiq/memory';
+import { applyFieldConditions } from '@rapiq/adapter-memory';
 
 const rows = await queryBuilder.getMany();
 const guarded = applyFieldConditions(query.fields, rows);
 ```
 
-`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters and `@rapiq/prisma` force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset or a fieldset-narrowed include.
+`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters and `@rapiq/adapter-prisma` force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset or a fieldset-narrowed include.
 
 For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while a fieldset-free include still hydrates the whole record, leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
 :::
