@@ -1,11 +1,11 @@
 {
-    "packages/core": "2.0.0-beta.11",
-    "packages/parser-simple": "2.0.0-beta.11",
-    "packages/parser-expression": "2.0.0-beta.11",
-    "packages/parser-mongo": "2.0.0-beta.11",
-    "packages/codec-url": "2.0.0-beta.11",
-    "packages/sql": "2.0.0-beta.11",
-    "packages/typeorm": "2.0.0-beta.11",
-    "packages/prisma": "2.0.0-beta.11",
-    "packages/memory": "2.0.0-beta.11"
+    "packages/core": "2.0.0-beta.12",
+    "packages/parser-simple": "2.0.0-beta.12",
+    "packages/parser-expression": "2.0.0-beta.12",
+    "packages/parser-mongo": "2.0.0-beta.12",
+    "packages/codec-url": "2.0.0-beta.12",
+    "packages/sql": "2.0.0-beta.12",
+    "packages/typeorm": "2.0.0-beta.12",
+    "packages/prisma": "2.0.0-beta.12",
+    "packages/memory": "2.0.0-beta.12"
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-beta.12](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.11...core-v2.0.0-beta.12) (2026-07-28)
+
+
+### Features
+
+* widen the filters validate hook to return any condition ([#856](https://github.com/tada5hi/rapiq/issues/856)) ([a54dba5](https://github.com/tada5hi/rapiq/commit/a54dba51ef43d88099004815c35600bad199455c))
+
+
+### Bug Fixes
+
+* **core:** refuse a fields merge that would discard a visibility gate ([#854](https://github.com/tada5hi/rapiq/issues/854)) ([9874d2d](https://github.com/tada5hi/rapiq/commit/9874d2d6e7f827425dabc7bdb90800a72054abb5))
+
 ## [2.0.0-beta.11](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.10...core-v2.0.0-beta.11) (2026-07-27)
 
 

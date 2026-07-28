@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/memory",
-    "version": "2.0.0-beta.11",
+    "version": "2.0.0-beta.12",
     "description": "Evaluate a rapiq query against in-memory objects & arrays by compiling the AST into plain functions.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -19,10 +19,10 @@
         "smob": "^1.6.2"
     },
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.11"
+        "@rapiq/core": "^2.0.0-beta.12"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.11"
+        "@rapiq/core": "^2.0.0-beta.12"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

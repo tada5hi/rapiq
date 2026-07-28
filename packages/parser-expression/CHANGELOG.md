@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0-beta.12](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.0.0-beta.11...parser-expression-v2.0.0-beta.12) (2026-07-28)
+
+
+### Features
+
+* widen the filters validate hook to return any condition ([#856](https://github.com/tada5hi/rapiq/issues/856)) ([a54dba5](https://github.com/tada5hi/rapiq/commit/a54dba51ef43d88099004815c35600bad199455c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.11 to ^2.0.0-beta.12
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.11 to ^2.0.0-beta.12
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.11 to ^2.0.0-beta.12
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.11 to ^2.0.0-beta.12
+
 ## [2.0.0-beta.11](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.0.0-beta.10...parser-expression-v2.0.0-beta.11) (2026-07-27)
 
 
