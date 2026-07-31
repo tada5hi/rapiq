@@ -22,7 +22,7 @@
         "@rapiq/core": "^2.0.0-beta.13",
         "@rapiq/parser-simple": "^2.0.0-beta.13",
         "@rapiq/adapter-sql": "^2.0.0-beta.13",
-        "@swc/core": "^1.15.43",
+        "@swc/core": "^1.15.46",
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
         "mysql2": "^3.22.6",
