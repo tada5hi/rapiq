@@ -13,7 +13,7 @@ import type { PendingKeyValidation } from './parameter/validate';
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = IParserOptions & {
+> = {
     schema?: Schema<RECORD> | string,
     relations?: Relations,
     strict?: boolean,
@@ -71,15 +71,10 @@ export type ParseQueryOptions<
     context?: unknown,
 };
 
-export type IParserOptions = {
-    /** @deprecated Call parseAsync() instead of selecting execution mode in options. */
-    async?: boolean,
-};
-
 export interface IParser<
     Input = any,
     Output = any,
-    Options extends IParserOptions = IParserOptions,
+    Options extends ObjectLiteral = ObjectLiteral,
 > {
     parse(input: Input, options?: Options): Output;
 
