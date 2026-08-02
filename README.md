@@ -44,7 +44,7 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 | **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })`: typed input in, query AST out |
 | **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
 | **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
-| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`) or as Prisma arguments (`@rapiq/adapter-prisma`) |
+| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`), as Prisma arguments (`@rapiq/adapter-prisma`) or as a Drizzle relational query config (`@rapiq/adapter-drizzle`) |
 
 The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
 an API gateway, for instance, validates an incoming query against its own schema, scopes it
@@ -229,6 +229,7 @@ export async function getUsers(req: Request, res: Response) {
 | [@rapiq/adapter-sql](packages/adapter-sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
 | [@rapiq/adapter-typeorm](packages/adapter-typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
 | [@rapiq/adapter-prisma](packages/adapter-prisma) | Serializes a parsed `Query` into a Prisma argument object |
+| [@rapiq/adapter-drizzle](packages/adapter-drizzle) | Serializes a parsed `Query` into a Drizzle relational query config |
 | [@rapiq/adapter-memory](packages/adapter-memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
 
 ## Parameters

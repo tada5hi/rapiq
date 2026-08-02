@@ -28,6 +28,7 @@ const layers: Layer[] = [
             { name: '@rapiq/parser-simple', href: '/packages/parser-simple', deps: 'core' },
             { name: '@rapiq/adapter-sql', href: '/packages/adapter-sql', deps: 'core' },
             { name: '@rapiq/adapter-prisma', href: '/packages/adapter-prisma', deps: 'core' },
+            { name: '@rapiq/adapter-drizzle', href: '/packages/adapter-drizzle', deps: 'core' },
             { name: '@rapiq/adapter-memory', href: '/packages/adapter-memory', deps: 'core' },
         ],
     },

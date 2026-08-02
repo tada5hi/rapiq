@@ -30,7 +30,7 @@ The `Query` AST is an **intermediate representation (IR)**. Every package plays 
 
 1. **Define & interact** — client-side construction (plan 012): `defineQuery<RECORD>(QueryBuildInput)` + per-parameter `define*` fragment factories desugar typed input (scalars → `eq`, bare arrays → `in` with `null` legal, `$`-operator objects, condition-helper trees) straight to the AST — schema-free, no parsing. Condition helpers (`parameter/filters/helpers/`, one per `FilterFieldOperator`; `in` → `inArray` since `in` is reserved) build `Filter`/`Filters` nodes directly. Queries compose immutably via `mergeQueries` (left-priority; fields/relations/sorts keyed by name, pagination per-property) and the `Filters` combinators: `merge()` = per-field replace, flat root-AND only (typed `MergeError`, `ErrorCode.FILTERS_NOT_FLAT`); `and()`/`or()` = wrap & inject (server scoping — injected conditions can't be displaced by later merges). `$and`/`$or` object keys stay reserved for the mongo parser dialect (`@rapiq/parser-mongo`). `QueryBuilder` was removed — `defineQuery` replaces it.
 2. **Parse to IR** — parsers transform *dialect* input (a spec for how parameters are written: "simple" object shapes, "expression" strings) into the IR, validated against a `Schema`. The `filters.validate` hook runs on every resolved/coerced leaf and may synchronously or asynchronously accept it, replace it with any `ICondition` (leaf or compound, issue #840 — per-leaf policy residuals like `and(<leaf>, <scope>)` stay attached to the leaf; the simple URL dialect then throws its usual typed `FEATURE_UNSUPPORTED` on encode, and the non-flat result refuses later `merge()`s by design) or reject it, all without flattening compound structure. `parse()` keeps a strictly synchronous return type and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` on a Promise/thenable; `parseAsync()` awaits validators sequentially in tree order. Defaults apply if validation removes every leaf. Parsers are **transport-agnostic**: they read only the canonical `Parameter` keys (`fields`, `filters`, `pagination`, `relations`, `sort`) and know nothing about how the input crossed a process boundary.
-3. **Consume the IR** — either interpret/walk it directly (`@rapiq/adapter-sql`, `@rapiq/adapter-typeorm` via visitors; `@rapiq/adapter-memory` compiles it into plain functions to evaluate in-memory objects/arrays), or…
+3. **Consume the IR** — either interpret/walk it directly (`@rapiq/adapter-sql`, `@rapiq/adapter-typeorm` via visitors; `@rapiq/adapter-prisma`/`@rapiq/adapter-drizzle` serialize it into plain args/config objects; `@rapiq/adapter-memory` compiles it into plain functions to evaluate in-memory objects/arrays), or…
 4. **Transport the IR between application boundaries via a codec** — `@rapiq/codec-url` owns the complete HTTP URL wire format. The public `URLCodec` façade accepts a raw query string or a pre-parsed query object (Express `req.query`), maps wire names (`URLParameter`: `filter`, `page`, `include`, …) to canonical parameters and delegates to internal expression/simple strategies. Encoding writes stamped expression filters by default. Decoding dispatches stamped payloads and recognizes untagged expression strings or legacy simple bracket filters, so v2 follows a read-both/write-expression migration. App2 then works with the same IR.
 
 Codec rules settled during plan 007 (2026-07):
@@ -218,6 +218,32 @@ plan 024, do not re-litigate:
   widen an exact comparison).
 - **Unsupported by construction**: `regex`, `mod`, `size`, ITSELF, and `elemMatch` on a
   to-one relation raise a typed `AdapterError`, never approximated.
+
+`@rapiq/adapter-drizzle`: second pure IR **serializer** (plan 026), targeting drizzle-orm v1's
+relational-queries v2 object config (`{ where, columns, with, orderBy, limit, offset }` for
+`db.query.<table>.findMany()`); `drizzle-orm` is a devDependency only. Reuses the settled
+prisma pipeline (`planCondition` → core `distributeNegation` → same-element factoring →
+leaf-literal table) with drizzle spellings settled by engine measurement (2026-08-02):
+
+- A relation-filter object is ONE correlated `EXISTS` scope, so same-path conjuncts factor
+  into a single nested object; presence is `{ rel: true }`, absence `NOT: { rel: true }`
+  (the only emitted `NOT`: EXISTS is two-valued). `isNull`/`isNotNull` exist in the object
+  language, so complement null arms need no CASE analogue.
+- An empty `OR: []` group is STRIPPED by drizzle (matches everything), so an impossible
+  root is expressed as `limit: 0`, never `{ OR: [] }` (prisma's trick would silently
+  invert there).
+- Case folding has no `mode` flag: the pg preset lowers the foldable families to
+  `ilike`/`notIlike` with adapter-escaped operands (no wildcard veto needed — unlike
+  prisma, the adapter builds the pattern), `in` decomposes into per-string `ilike` arms;
+  mysql is collation-CI, sqlite `LIKE`-only (eq stays exact, documented). sqlite has no
+  default LIKE escape and the filter object no `ESCAPE` clause, so an anchored operand
+  carrying `%`/`_` fails typed there (`likeEscape` preset flag).
+- `metadata` + `provider` required (carried prisma rule); metadata is a hand-written
+  drizzle-vocabulary datamodel (`defineMetadata`), derivation from live
+  `defineRelations` handles is a follow-up. Relation-path `orderBy` is typed-unsupported
+  (undocumented in RQBv2; silent ignore beats nothing loud). The sqlite engine parity
+  matrix runs IN THE DEFAULT suite (in-memory better-sqlite3, no codegen); `test:db`
+  replays it on postgres where `ilike` exists.
 
 `@rapiq/adapter-memory`: compile-once functional visitors — the core visitor interfaces implemented with `R = compiled function` (`IFiltersVisitor<Predicate>`, `ISortsVisitor<Comparator>`, `IFieldsVisitor<Projector>`, `IPaginationVisitor<Slicer>`, `IQueryVisitor<CompiledQuery>`): `compileFilters(condition)` → `(input) => boolean`, `applyQuery(query, data)` → `{ data, total, pagination }`. The semantics contract (SQL parity for positive operators, complement law for negations — `ne`/`nin`/`not*` match null/missing —, same-element join-row binding for dotted paths over arrays) is settled in `.agents/plans/014-memory.md`; do not re-litigate decisions recorded there.
 

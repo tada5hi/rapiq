@@ -14,6 +14,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/adapter-sql](../packages/adapter-sql)                             | Library  | Dialect-agnostic SQL adapter + visitor; ships dialect presets (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/adapter-typeorm](../packages/adapter-typeorm)                     | Library  | Adapter applying a parsed `Query` to a TypeORM `SelectQueryBuilder`         |
 | [@rapiq/adapter-prisma](../packages/adapter-prisma)                       | Library  | Adapter serializing a parsed `Query` into a Prisma `findMany` args object (pure value, no prisma dependency) |
+| [@rapiq/adapter-drizzle](../packages/adapter-drizzle)                     | Library  | Adapter serializing a parsed `Query` into a drizzle relational-queries v2 `findMany` config (pure value, no drizzle dependency) |
 | [@rapiq/adapter-memory](../packages/adapter-memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
 
@@ -30,6 +31,7 @@ Layer 1 (depend on core):
   @rapiq/adapter-sql
   @rapiq/adapter-memory
   @rapiq/adapter-prisma
+  @rapiq/adapter-drizzle
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
@@ -93,6 +95,11 @@ packages/adapter-prisma/src/
 ├── metadata/             # IMetadata + Metadata/defineMetadata over a prisma datamodel (DMMF-shaped)
 └── provider/             # per-connector capability presets (mode: 'insensitive' support)
 
+packages/adapter-drizzle/src/
+├── adapter/              # DrizzleAdapter + pure renderers (where/fields/sort/merge) for the RQBv2 findMany config
+├── metadata/             # IMetadata + defineMetadata over a hand-written drizzle-vocabulary datamodel
+└── provider/             # per-dialect capability presets (ilike availability, LIKE escape)
+
 packages/adapter-memory/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/  # visitors compiling AST nodes into functions
 ├── query/                # CompiledQuery (matches/apply, pagination echo)
@@ -134,5 +141,5 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 - **What a client may request (allow-lists, defaults, mappings)** → `@rapiq/core` (`schema/`)
 - **Turning raw URL input into the AST** → `@rapiq/codec-url` (dispatch + decode through parser-simple/parser-expression)
 - **Turning the AST into URL transport format** → `@rapiq/codec-url` (expression-default encode; deprecated explicit simple encode)
-- **Turning the AST into backend queries** → `@rapiq/adapter-sql`, `@rapiq/adapter-typeorm`, `@rapiq/adapter-prisma`
+- **Turning the AST into backend queries** → `@rapiq/adapter-sql`, `@rapiq/adapter-typeorm`, `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle`
 - **Evaluating the AST against in-memory data** → `@rapiq/adapter-memory` (predicates/comparators/projectors compiled from the AST)

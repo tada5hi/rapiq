@@ -1,15 +1,16 @@
 # Executing Queries
 
-A validated `Query` becomes results through an **adapter**. Four ship with rapiq; pick by where your data lives:
+A validated `Query` becomes results through an **adapter**. Five ship with rapiq; pick by where your data lives:
 
 | Adapter | Target | Returns |
 |---|---|---|
 | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) | TypeORM `SelectQueryBuilder` | mutates the builder in place |
 | [@rapiq/adapter-prisma](/packages/adapter-prisma) | Prisma Client | a `findMany` argument object |
+| [@rapiq/adapter-drizzle](/packages/adapter-drizzle) | Drizzle relational queries (v1 RQBv2) | a `findMany` config object |
 | [@rapiq/adapter-sql](/packages/adapter-sql) | any SQL driver | parameterized SQL fragments |
 | [@rapiq/adapter-memory](/packages/adapter-memory) | plain objects & arrays | compiled functions / filtered data |
 
-All four consume the same AST, and they agree on semantics: the records a query selects in memory are the records it selects in the database.
+All five consume the same AST, and they agree on semantics: the records a query selects in memory are the records it selects in the database.
 
 ## TypeORM
 
@@ -56,6 +57,27 @@ const total = await adapter.count(query);  // pre-pagination, for the meta block
 ```
 
 Unlike the builder-bound adapters, one `PrismaAdapter` instance is stateless and safely shared across requests. The [package page](/packages/adapter-prisma) covers the provider presets (`mode: 'insensitive'` support) and how negation is rendered exactly despite Prisma's three-valued `NOT`.
+
+## Drizzle
+
+Drizzle's relational queries v2 API (drizzle-orm v1) takes a config object, so this adapter is a pure serializer too:
+
+```typescript
+import { DrizzleAdapter, defineMetadata } from '@rapiq/adapter-drizzle';
+
+const adapter = new DrizzleAdapter({
+    provider: 'pg',
+    metadata: defineMetadata(datamodel, 'users'),
+});
+
+const { config, pagination } = adapter.execute(query, {
+    base: { where: { realm_id } },  // an application-owned scope, conjoined
+});
+
+const users = await db.query.users.findMany(config);
+```
+
+One `DrizzleAdapter` instance is stateless and safely shared across requests. The [package page](/packages/adapter-drizzle) covers the dialect presets, the table metadata and how negation is rendered exactly despite SQL's three-valued `NOT`.
 
 ## Raw SQL
 

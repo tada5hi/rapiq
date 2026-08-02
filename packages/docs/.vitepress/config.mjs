@@ -125,6 +125,7 @@ export default defineConfig({
                         { text: '@rapiq/adapter-sql', link: '/packages/adapter-sql' },
                         { text: '@rapiq/adapter-typeorm', link: '/packages/adapter-typeorm' },
                         { text: '@rapiq/adapter-prisma', link: '/packages/adapter-prisma' },
+                        { text: '@rapiq/adapter-drizzle', link: '/packages/adapter-drizzle' },
                         { text: '@rapiq/adapter-memory', link: '/packages/adapter-memory' },
                     ],
                 },
