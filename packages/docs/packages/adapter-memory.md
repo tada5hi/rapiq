@@ -178,7 +178,7 @@ Records with nothing to hide are passed through **by reference**; only affected 
 
 - Multi-key stable sort; absent values sort last ascending, first descending (pg semantics).
 - Dotted sort paths traverse to-one objects; to-many paths resolve as absent.
-- `limit`/`offset` apply only when strictly positive — `limit: 0` (and any negative) means *no limit*, mirroring the TypeORM adapter.
+- An explicit `limit: 0` is a value, not absence: it returns no rows, matching every other backend (TypeORM takes 0 rows; the prisma and drizzle configs return none on a real engine). A negative limit and a non-positive offset are ignored.
 
 ## Errors
 
