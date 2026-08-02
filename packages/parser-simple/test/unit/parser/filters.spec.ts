@@ -490,8 +490,8 @@ describe('src/filter/index.ts', () => {
             ),
         );
 
-        // todo: should be "role"."id" instead of "user_roles"."role.id"
-        // with deep nested include
+        // deep nested include: the IR keeps the full dotted path;
+        // column aliasing is the adapters' concern (buildRelationAlias)
         output = parseFlat({ id: 1, 'realm.item.id': 4 }, { schema: 'user' });
         expect(output).toEqual(
             new Filters(

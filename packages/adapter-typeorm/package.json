@@ -56,7 +56,22 @@
         "access": "public",
         "tag": "beta"
     },
-    "keywords": [],
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "api-utils",
+        "typeorm",
+        "include",
+        "pagination",
+        "sort",
+        "fields",
+        "filter",
+        "relations",
+        "typescript"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/Tada5hi/rapiq.git",
