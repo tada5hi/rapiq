@@ -167,6 +167,15 @@ jobs:
                 run: |
                     npm run test:db --workspace=packages/adapter-prisma
 
+            # @rapiq/adapter-drizzle runs its sqlite engine parity in the default
+            # `tests` job (in-memory, codegen-free); this step adds the postgres
+            # replay, the only dialect where `ilike` exists and the case
+            # contract can be measured. Under the mysql matrix entry the
+            # postgres specs skip themselves.
+            -   name: Run tests (drizzle)
+                run: |
+                    npm run test:db --workspace=packages/adapter-drizzle
+
 #    preview:
 #        name: Preview Package
 #        needs: [build]

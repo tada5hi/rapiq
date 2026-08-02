@@ -14,6 +14,7 @@ rapiq is a family of small packages around one shared data structure — the [`Q
 | [@rapiq/adapter-sql](/packages/adapter-sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql, oracle presets) |
 | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) | Applies a `Query` to a TypeORM `SelectQueryBuilder` |
 | [@rapiq/adapter-prisma](/packages/adapter-prisma) | Serializes a `Query` into a Prisma argument object |
+| [@rapiq/adapter-drizzle](/packages/adapter-drizzle) | Serializes a `Query` into a Drizzle relational query config |
 | [@rapiq/adapter-memory](/packages/adapter-memory) | Evaluates a `Query` against in-memory objects & arrays |
 
 ## Which packages do I need?

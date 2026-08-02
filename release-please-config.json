@@ -15,6 +15,7 @@
         "packages/adapter-sql": { "component": "adapter-sql" },
         "packages/adapter-typeorm": { "component": "adapter-typeorm" },
         "packages/adapter-prisma": { "component": "adapter-prisma" },
+        "packages/adapter-drizzle": { "component": "adapter-drizzle" },
         "packages/adapter-memory": { "component": "adapter-memory" }
     },
     "plugins": [
@@ -35,6 +36,7 @@
                 "adapter-sql",
                 "adapter-typeorm",
                 "adapter-prisma",
+                "adapter-drizzle",
                 "adapter-memory"
             ]
         }

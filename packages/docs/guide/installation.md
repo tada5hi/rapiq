@@ -32,6 +32,10 @@ npm install @rapiq/adapter-sql @rapiq/adapter-typeorm
 npm install @rapiq/adapter-prisma
 ```
 
+```sh [Drizzle]
+npm install @rapiq/adapter-drizzle
+```
+
 ```sh [Raw SQL]
 npm install @rapiq/adapter-sql
 ```
