@@ -7,6 +7,8 @@
 
 import {
     ErrorCode,
+    Field,
+    Fields,
     FilterCompoundOperator,
     Filters,
     Pagination,
@@ -112,6 +114,28 @@ describe('src/adapter/module.ts (runners)', () => {
         // promise, so a .catch() must observe the failure.
         await expect(adapter.findMany(query)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
         await expect(adapter.count(query)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
+    });
+
+    it('should reject typed when a field carries a visibility condition', async () => {
+        const { client, calls } = createRecordingClient();
+        const adapter = new PrismaAdapter({ model: client.user });
+
+        // the gate is enforced post-fetch; returning delegate rows raw
+        // would ship the gated column unredacted (#830 fail-open).
+        const gated = new Query({
+            fields: new Fields([
+                new Field('id'),
+                new Field('email', undefined, gte('age', 18)),
+            ]),
+        });
+
+        await expect(adapter.findMany(gated)).rejects.toMatchObject({ code: ErrorCode.FEATURE_UNSUPPORTED });
+        expect(calls.findMany).toHaveLength(0);
+
+        // execute() stays a pure serializer, and count() is safe: a
+        // gate changes column visibility, never the row set.
+        expect(adapter.execute(gated).args.select).toBeDefined();
+        await expect(adapter.count(gated)).resolves.toEqual(7);
     });
 
     it('should reject typed for a model object that cannot run', async () => {
