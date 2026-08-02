@@ -60,6 +60,8 @@ A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`
 
 `@rapiq/adapter-sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`). Presets live in `packages/adapter-sql/src/dialect/`. Regex strings pass through unchanged for the database engine to interpret and validate; JavaScript `RegExp` values contribute their `source` and `ignoreCase` flag.
 
+Preset resolution follows one fleet-wide invariant (audited 2026-08-02, do not re-flag): **user-supplied names throw typed everywhere; derived facts fall back documented**. prisma/drizzle validate a user-supplied provider name (a typo must throw, it would break every case-insensitive filter), while typeorm's `resolveQueryDialect` derives the dialect from the query builder's driver — the user supplied nothing, an exotic driver must still work, and the pg last-resort default is documented.
+
 ## Key Abstractions
 
 ### Query AST (core)
@@ -92,6 +94,8 @@ interface IFilterVisitor {
     // ...
 }
 ```
+
+The **filters contract of record** is `ICondition → planCondition`: every backend consumes the operator-semantics plan, interpreter-style via `interpretPlan` (sql/typeorm/memory) or serializer-style via `distributeNegation` + a pure renderer (prisma/drizzle). The per-operator `IFilterVisitor` methods are a legacy fast-path surface — sql and memory hop through two-line shims onto the plan path. Removal is sanctioned but unhurried; do not build new backends on it.
 
 ### Schema definition (core)
 
@@ -166,6 +170,8 @@ type DialectOptions = {
 ```
 
 `@rapiq/adapter-typeorm`: `TypeormAdapter` mirrors the SQL adapter but mutates a TypeORM query builder. The builder is bound at construction (`new TypeormAdapter({ queryBuilder: qb })`); `adapter.execute(query)` then walks the query and applies the accumulated state to that builder in a single call. Filters use `andWhere`, preserving application-owned tenant/auth predicates already present on the builder. Relation aliases come from @rapiq/adapter-sql's shared, injective length-prefixed `buildRelationAlias` derivation; fields, filters, sorts and joins must all use that same function.
+
+`@rapiq/adapter-sql`'s exported base classes — INCLUDING their protected members — are an intended extension surface, consumed by `@rapiq/adapter-typeorm`'s subclasses (typeorm even owns `executed`, declared in sql's types). The two packages version in lockstep through the linked release group, but changes to that surface are semver-relevant for external subclassers.
 
 `@rapiq/adapter-prisma`: pure IR **serializer**. `PrismaAdapter.execute(query)` is stateless (one
 instance per app, not per request; composition happens BEFORE serialization via
