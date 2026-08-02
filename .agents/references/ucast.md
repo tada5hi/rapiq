@@ -50,8 +50,9 @@ package is the reference implementation for rapiq's mongo parser dialect
 ## Interpretation
 
 ucast interprets its AST with per-operator interpreter functions (`@ucast/js`, `@ucast/sql`,
-`createInterpreter`); rapiq's equivalent is the visitor pattern (`IFilterVisitor` with optional
-per-operator methods) consumed by `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` / `@rapiq/adapter-memory`.
+`createInterpreter`); rapiq's equivalent is the plan layer: `planCondition` lowers a condition
+through the operator-semantics table and backends consume it via `IPlanInterpreter` handlers
+(`@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` / `@rapiq/adapter-memory`).
 
 ## In-memory evaluation (`@ucast/js` ↔ `@rapiq/adapter-memory`)
 
