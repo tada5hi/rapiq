@@ -58,7 +58,7 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
-        "pathtrace": "^2.2.0"
+        "pathtrace": "^2.2.2"
     },
     "devDependencies": {
         "@ucast/sql": "^1.0.0-alpha.12"
