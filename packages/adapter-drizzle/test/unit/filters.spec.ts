@@ -284,5 +284,12 @@ describe('src/adapter/where.ts', () => {
             expect(() => serialize(eq('age', 1), { provider: 'oracle' }))
                 .toThrow(AdapterError);
         });
+
+        it('should reject an inherited object member as a dialect name', () => {
+            // `valueOf` resolves through Object.prototype on a naive
+            // lookup and would pose as a preset.
+            expect(() => serialize(eq('age', 1), { provider: 'valueOf' }))
+                .toThrow(AdapterError);
+        });
     });
 });

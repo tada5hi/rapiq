@@ -102,15 +102,23 @@ export class Metadata implements IMetadata {
                 return undefined;
             }
 
+            // own-property lookups: the segment originates from a
+            // wire filter key, and an inherited name (`constructor`,
+            // `toString`, ...) must answer "unknown", not resolve to
+            // an Object.prototype member.
             const segment = segments[i] as string;
-            const relation = table.relations?.[segment];
+            const relation = table.relations && Object.hasOwn(table.relations, segment) ?
+                table.relations[segment] :
+                undefined;
 
             if (i === segments.length - 1) {
                 if (relation) {
                     return { kind: 'relation', relation };
                 }
 
-                const column = table.columns?.[segment];
+                const column = table.columns && Object.hasOwn(table.columns, segment) ?
+                    table.columns[segment] :
+                    undefined;
                 if (typeof column === 'undefined') {
                     return undefined;
                 }

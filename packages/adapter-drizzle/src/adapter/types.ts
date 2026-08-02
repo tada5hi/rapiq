@@ -87,8 +87,11 @@ export type DrizzleAdapterOutput<CONFIG extends FindManyConfig = FindManyConfig>
     config: CONFIG,
 
     /**
-     * The pagination actually applied, e.g. for the response meta
-     * block.
+     * The pagination applied from the query (schema-clamped), e.g.
+     * for the response meta block. Deliberately echoes the query
+     * alone, matching the other adapters: a baseline `limit`/`offset`
+     * and the impossible-root `limit: 0` cap are config concerns, not
+     * something a meta block should report.
      */
     pagination: {
         limit: number | undefined,

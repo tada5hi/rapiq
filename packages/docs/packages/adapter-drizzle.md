@@ -134,7 +134,7 @@ A record whose elements satisfy the two conditions only separately does not matc
 
 ## Case sensitivity
 
-String comparison is [case-insensitive by default](/guide/filters#case-sensitivity) across all rapiq backends. Drizzle has no `mode: 'insensitive'`; the fold is expressed through operators, so the adapter takes a provider:
+String comparison is [case-insensitive by default](/guide/filters#case-sensitivity) across the rapiq backends. Drizzle has no `mode: 'insensitive'`; the fold is expressed through operators, so the adapter takes a provider, and dialect capability decides how far the contract reaches (on sqlite the equality family cannot fold, see the table):
 
 ```typescript
 new DrizzleAdapter({ provider: 'mysql', metadata });

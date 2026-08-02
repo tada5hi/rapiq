@@ -60,4 +60,14 @@ describe('src/metadata/module.ts', () => {
     it('should not walk through a column', () => {
         expect(metadata.isString('age.value')).toBeUndefined();
     });
+
+    it('should treat inherited object members as unknown', () => {
+        // wire filter keys index the datamodel literals; a prototype
+        // member must never pose as a declared entry.
+        expect(metadata.isRelation('constructor')).toBeUndefined();
+        expect(metadata.isToMany('constructor')).toBeUndefined();
+        expect(metadata.isString('toString')).toBeUndefined();
+        expect(metadata.isNullable('valueOf')).toBeUndefined();
+        expect(metadata.isRelation('realm.constructor')).toBeUndefined();
+    });
 });

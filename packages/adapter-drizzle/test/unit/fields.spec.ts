@@ -13,6 +13,7 @@ import {
     Relation,
     Relations,
     eq,
+    exists,
 } from '@rapiq/core';
 import { createAdapterOptions } from '../data';
 import { DrizzleAdapter } from '../../src';
@@ -157,6 +158,19 @@ describe('src/adapter/fields.ts', () => {
         ], ['realm'])).toEqual({
             columns: { id: true, email: true },
             with: { realm: { columns: { id: true, name: true } } },
+        });
+    });
+
+    it('should hydrate a relation-valued gate operand through `with`, not `columns`', () => {
+        // a presence gate like exists('realm') reads the relation
+        // itself; `columns: { realm: true }` is not a drizzle column
+        // key, so the operand hydrates instead.
+        expect(buildGated([
+            new Field('id'),
+            new Field('email', undefined, exists('realm')),
+        ])).toEqual({
+            columns: { id: true, email: true },
+            with: { realm: true },
         });
     });
 

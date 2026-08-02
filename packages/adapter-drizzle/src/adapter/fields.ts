@@ -12,6 +12,7 @@ import {
     isFilter,
     isFilters,
 } from '@rapiq/core';
+import type { IMetadata } from '../metadata';
 
 type SelectionNode = {
     /**
@@ -165,7 +166,11 @@ function materialize(node: SelectionNode) : true | Record<string, any> {
  * compose at every level. Excluded fields are simply not projected,
  * the resolution every other rapiq backend applies.
  */
-export function buildSelection(fields: IFields, relationPaths: string[]) : Selection {
+export function buildSelection(
+    fields: IFields,
+    relationPaths: string[],
+    metadata?: IMetadata,
+) : Selection {
     const root = createNode();
 
     for (const field of fields.value) {
@@ -222,6 +227,17 @@ export function buildSelection(fields: IFields, relationPaths: string[]) : Selec
             }
 
             const segments = [...prefix, ...operand.split('.')];
+
+            // an operand that addresses a RELATION (a presence test
+            // like exists('realm')) is not a column key in drizzle:
+            // it hydrates through `with` instead, which is what the
+            // post-fetch gate evaluation needs to see the value.
+            // Widening-only, so the #847 narrowing veto is untouched.
+            if (metadata && metadata.isRelation(segments.join('.')) === true) {
+                descend(root, segments).whole = true;
+                continue;
+            }
+
             const last = segments.pop() as string;
 
             const node = descend(root, segments);

@@ -47,6 +47,15 @@ describe('src/adapter/sort.ts', () => {
         ]))).toEqual({ id: 'desc' });
     });
 
+    it('should reject an integer-like name typed', () => {
+        // JS enumerates canonical integer keys first, which would
+        // silently reorder the priority the object form encodes.
+        expect(() => orderBy(new Sorts([
+            new Sort('name', SortDirection.ASC),
+            new Sort('2024', SortDirection.DESC),
+        ]))).toThrow(AdapterError);
+    });
+
     it('should reject a relation path typed', () => {
         // the relational API orders the root by its own columns only;
         // an undocumented nested shape could be silently ignored, and

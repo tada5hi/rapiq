@@ -19,12 +19,25 @@ import { AdapterError, SortDirection } from '@rapiq/core';
  * keep their first occurrence, mirroring the keyed collapse of the
  * SQL adapters.
  */
+/**
+ * JavaScript enumerates canonical integer-like keys FIRST, so a sort
+ * name like `2024` would silently jump ahead of every other key and
+ * reorder the priority the object form encodes.
+ */
+const INTEGER_NAME = /^(?:0|[1-9]\d*)$/;
+
 export function buildOrderBy(sorts: ISorts) : Record<string, 'asc' | 'desc'> {
     const output : Record<string, 'asc' | 'desc'> = {};
 
     for (const sort of sorts.value) {
         if (sort.name.includes('.')) {
             throw AdapterError.featureUnsupported('sort:relation');
+        }
+
+        if (INTEGER_NAME.test(sort.name)) {
+            // insertion order cannot carry the priority of an
+            // integer-like key; failing typed beats a silent reorder.
+            throw AdapterError.featureUnsupported('sort:numeric-name');
         }
 
         if (typeof output[sort.name] !== 'undefined') {

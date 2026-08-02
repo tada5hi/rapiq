@@ -77,7 +77,11 @@ export class DrizzleAdapter<
 
         Object.assign(
             produced,
-            buildSelection(query.fields, collectRelationPaths(query.relations)),
+            buildSelection(
+                query.fields,
+                collectRelationPaths(query.relations),
+                this.options.metadata,
+            ),
         );
 
         const orderBy = buildOrderBy(query.sorts);

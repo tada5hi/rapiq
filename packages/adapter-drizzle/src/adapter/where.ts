@@ -211,8 +211,17 @@ export class WhereRenderer {
                 if (plan.negated) {
                     // a residual wrapper only ever encloses kinds
                     // without a complement form; rendering the child
-                    // raises the matching typed error.
-                    return this.render(plan.children[0] as ConditionPlan, ctx);
+                    // raises the matching typed error. Any other kind
+                    // here means the distribution invariant broke:
+                    // failing typed beats silently emitting the
+                    // positive (inverted) form.
+                    const child = plan.children[0] as ConditionPlan;
+
+                    if (child.kind !== 'mod' && child.kind !== 'size') {
+                        throw AdapterError.featureUnsupported('filters:negation');
+                    }
+
+                    return this.render(child, ctx);
                 }
 
                 if (plan.operator === 'or') {
@@ -605,7 +614,13 @@ export class WhereRenderer {
     protected renderCompare(plan: ComparePlan, name: string, absolute: string) : Result {
         if (plan.op !== 'eq') {
             // ordering never carries negation after distribution: its
-            // complement became the dual operator or a null check.
+            // complement became the dual operator or a null check. An
+            // unnoticed break of that invariant must fail typed, not
+            // emit the positive (inverted) form.
+            if (plan.negated) {
+                throw AdapterError.featureUnsupported('filters:negation');
+            }
+
             return { [name]: { [plan.op]: plan.value } };
         }
 

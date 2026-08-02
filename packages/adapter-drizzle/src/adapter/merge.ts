@@ -8,14 +8,15 @@
 import type { FindManyConfig, Where } from './types';
 
 /**
- * Merge two drizzle config objects, treating `override` as a
- * NARROWING of `base`:
+ * Merge two drizzle config objects: `base` is the caller-owned
+ * baseline, `override` the query-derived config, and the override
+ * wins wherever the query produced a value:
  *
  * - `where` conditions are conjoined (`AND`), never substituted, so
  *   an application-owned tenant or authorization predicate survives,
- * - an overriding `columns` replaces the baseline projection
- *   (widening a caller-owned projection would expose columns the
- *   application chose to withhold), while `with` entries JOIN the
+ * - a produced `columns` REPLACES the baseline projection: the
+ *   query's selection passed the schema allow-lists, and a baseline
+ *   default must not widen it back. Produced `with` entries JOIN the
  *   baseline ones, the override winning per relation,
  * - `orderBy`, `limit` and `offset` follow the override when present,
  * - every other key (`extras`, ...) passes through, the override
