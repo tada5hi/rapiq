@@ -42,6 +42,17 @@ describe('equality case sensitivity', () => {
         ]);
     });
 
+    it('keeps every field exact for the blanket caseSensitive opt-out', () => {
+        const adapter = createAdapter({ ...pg });
+        const visitor = new FiltersVisitor(adapter, { caseSensitive: true });
+        new Filter('eq', 'name', 'John').accept(visitor);
+
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '"name" = $1',
+            ['John'],
+        ]);
+    });
+
     it('keeps caseSensitive in-lists exact', () => {
         const adapter = createAdapter({ ...pg });
         const visitor = new FiltersVisitor(adapter, { caseSensitive: ['id'] });
