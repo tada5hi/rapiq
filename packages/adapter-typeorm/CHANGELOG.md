@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.13...adapter-typeorm-v2.0.0-beta.14) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* pass caseSensitive directly in the execute options (sql/typeorm) and compileQuery/applyQuery options (memory); the visitor and filters wrappers are gone from those surfaces.
+* select the execution mode by calling parse() or parseAsync(), not via an options flag.
+
+### Bug Fixes
+
+* **adapters:** cross-backend drift fixes from the architecture audit ([#865](https://github.com/tada5hi/rapiq/issues/865)) ([d54c80f](https://github.com/tada5hi/rapiq/commit/d54c80f52e6f7996e18e9666c85f67cb50986792))
+* **deps:** bump the minorandpatch group across 1 directory with 6 updates ([#864](https://github.com/tada5hi/rapiq/issues/864)) ([4c37203](https://github.com/tada5hi/rapiq/commit/4c372030c5031388f322f56a2ac7982cb7cbe2a7))
+
+
+### Miscellaneous Chores
+
+* pre-GA cleanup sweep ([#866](https://github.com/tada5hi/rapiq/issues/866)) ([f4e7b68](https://github.com/tada5hi/rapiq/commit/f4e7b68e32ebae902e1a742a09f57606c1b84f5c))
+
+
+### Code Refactoring
+
+* move the caseSensitive option to the top level everywhere ([#868](https://github.com/tada5hi/rapiq/issues/868)) ([d72f517](https://github.com/tada5hi/rapiq/commit/d72f51725dc80f800016938f894247cf301c5a42))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/adapter-memory bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+
 ## [2.0.0-beta.13](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.12...adapter-typeorm-v2.0.0-beta.13) (2026-07-28)
 
 

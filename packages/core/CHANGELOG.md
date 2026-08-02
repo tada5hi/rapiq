@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.13...core-v2.0.0-beta.14) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** IFilterVisitor declares only visitFilter. Implement IPlanInterpreter over planCondition for per-operator behavior.
+* select the execution mode by calling parse() or parseAsync(), not via an options flag.
+
+### Bug Fixes
+
+* **deps:** bump the minorandpatch group across 1 directory with 6 updates ([#864](https://github.com/tada5hi/rapiq/issues/864)) ([4c37203](https://github.com/tada5hi/rapiq/commit/4c372030c5031388f322f56a2ac7982cb7cbe2a7))
+
+
+### Miscellaneous Chores
+
+* pre-GA cleanup sweep ([#866](https://github.com/tada5hi/rapiq/issues/866)) ([f4e7b68](https://github.com/tada5hi/rapiq/commit/f4e7b68e32ebae902e1a742a09f57606c1b84f5c))
+
+
+### Code Refactoring
+
+* **core:** remove the per-operator IFilterVisitor methods ([#867](https://github.com/tada5hi/rapiq/issues/867)) ([2327da2](https://github.com/tada5hi/rapiq/commit/2327da21ba28593d5ea3220bc41188160b32749b))
+
 ## [2.0.0-beta.13](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.12...core-v2.0.0-beta.13) (2026-07-28)
 
 
