@@ -19,11 +19,12 @@ import type {
     ParseQueryOptions,
 } from '@rapiq/core';
 import {
+    DEFAULT_ID,
     Parameter,
     isObject,
     isPropertySet,
 } from '@rapiq/core';
-import { URLParameter } from '../constants';
+import { URLParameter, URL_FIELDS_ROOT } from '../constants';
 
 /**
  * Wire name → canonical parameter of the shared URL grammar.
@@ -35,6 +36,32 @@ const URL_PARAMETER_MAP = [
     [URLParameter.RELATIONS, Parameter.RELATIONS],
     [URLParameter.SORT, Parameter.SORT],
 ] as const;
+
+/**
+ * Map the wire spelling of the root field group onto core's internal
+ * DEFAULT_ID sentinel before the parser sees it. Decoding accepts
+ * both the public `$root` token and the legacy `__DEFAULT__` leak
+ * written by the 2.0 betas (the latter needs no mapping: it IS the
+ * sentinel). In the pathological case of both spellings appearing,
+ * the groups are concatenated instead of one silently winning.
+ */
+function normalizeFieldsWireInput(input: unknown) : unknown {
+    if (!isObject(input) || !isPropertySet(input, URL_FIELDS_ROOT)) {
+        return input;
+    }
+
+    const { [URL_FIELDS_ROOT]: root, ...groups } = input;
+    if (!isPropertySet(groups, DEFAULT_ID)) {
+        return { [DEFAULT_ID]: root, ...groups };
+    }
+
+    const toArray = (value: unknown) => (Array.isArray(value) ? value : [value]);
+
+    return {
+        ...groups,
+        [DEFAULT_ID]: [...toArray(groups[DEFAULT_ID]), ...toArray(root)],
+    };
+}
 
 /**
  * Shared decode pipeline of the URL dialects: qs-parse the input,
@@ -91,10 +118,13 @@ export abstract class BaseURLDecoder {
         }
 
         if (isPropertySet(output, URLParameter.FIELDS)) {
-            return this.parser.parseFields(output[URLParameter.FIELDS], options);
+            return this.parser.parseFields(
+                normalizeFieldsWireInput(output[URLParameter.FIELDS]),
+                options,
+            );
         }
 
-        return this.parser.parseFields(output, options);
+        return this.parser.parseFields(normalizeFieldsWireInput(output), options);
     }
 
     decodeFilters(
@@ -204,7 +234,9 @@ export abstract class BaseURLDecoder {
 
         for (const [urlKey, key] of URL_PARAMETER_MAP) {
             if (isPropertySet(parsed, urlKey)) {
-                mapped[key] = parsed[urlKey];
+                mapped[key] = key === Parameter.FIELDS ?
+                    normalizeFieldsWireInput(parsed[urlKey]) :
+                    parsed[urlKey];
             }
         }
 
