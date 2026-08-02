@@ -219,8 +219,6 @@ export class SimpleFiltersParser extends BaseParser<
         data: TempType,
         scope: ResolutionScope<`${Parameter.FILTERS}`, RECORD>,
     ) : IFilter[] {
-        // todo: currentKey.value  === DEFAULT_ID && empty data =>build defaults otherwise
-
         const output : IFilter[] = [];
 
         let keys = Object.keys(data.attributes);
