@@ -6,43 +6,15 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { IFilters } from '../collection';
 
+/**
+ * The leaf-condition visitor. Operator semantics live in the plan
+ * layer: consume {@link planCondition} via {@link interpretPlan}
+ * (or a serializer over {@link distributeNegation}) instead of
+ * branching on operator names here.
+ */
 export interface IFilterVisitor<R> {
     visitFilter(expr: IFilter): R;
-
-    visitFilterEqual?(expr: IFilter<FilterFieldOperator.EQUAL>) : R;
-    visitFilterNotEqual?(expr: IFilter<FilterFieldOperator.NOT_EQUAL>) : R;
-
-    visitFilterLessThan?(expr: IFilter<FilterFieldOperator.LESS_THAN>) : R;
-
-    visitFilterLessThanEqual?(expr: IFilter<FilterFieldOperator.LESS_THAN_EQUAL>) : R;
-
-    visitFilterGreaterThan?(expr: IFilter<FilterFieldOperator.GREATER_THAN>) : R;
-
-    visitFilterGreaterThanEqual?(expr: IFilter<FilterFieldOperator.GREATER_THAN_EQUAL>) : R;
-
-    visitFilterExists?(expr: IFilter<FilterFieldOperator.EXISTS, boolean>) : R;
-
-    visitFilterIn?(expr: IFilter<FilterFieldOperator.IN, unknown[]>) : R;
-    visitFilterNotIn?(expr: IFilter<FilterFieldOperator.NOT_IN, unknown[]>) : R;
-
-    visitFilterMod?(expr: IFilter<FilterFieldOperator.MOD, [number, number]>) : R;
-
-    visitFilterSize?(expr: IFilter<FilterFieldOperator.SIZE, number>) : R;
-
-    visitFilterElemMatch?(expr: IFilter<FilterFieldOperator.ELEM_MATCH, IFilter | IFilters>) : R;
-
-    visitFilterContains?(expr: IFilter<FilterFieldOperator.CONTAINS, unknown>) : R;
-    visitFilterNotContains?(expr: IFilter<FilterFieldOperator.NOT_CONTAINS, unknown>) : R;
-
-    visitFilterStartsWith?(expr: IFilter<FilterFieldOperator.STARTS_WITH, unknown>) : R;
-    visitFilterNotStartsWith?(expr: IFilter<FilterFieldOperator.NOT_STARTS_WITH, unknown>) : R;
-
-    visitFilterEndsWith?(expr: IFilter<FilterFieldOperator.ENDS_WITH, unknown>) : R;
-    visitFilterNotEndsWith?(expr: IFilter<FilterFieldOperator.NOT_ENDS_WITH, unknown>) : R;
-
-    visitFilterRegex?(expr: IFilter<FilterFieldOperator.REGEX, RegExp | string>) : R;
 }
 
 export interface IFilter<

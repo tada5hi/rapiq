@@ -87,15 +87,10 @@ Every backend implements per-node visitors; specialized optional methods exist p
 
 ```typescript
 interface IFiltersVisitor { visitFilters(filters: IFilters): unknown }
-interface IFilterVisitor {
-    visitFilter(filter: IFilter): unknown;
-    visitFilterEqual?(filter: IFilter): unknown;     // optional fast-path per operator
-    visitFilterGreaterThan?(filter: IFilter): unknown;
-    // ...
-}
+interface IFilterVisitor { visitFilter(filter: IFilter): unknown }
 ```
 
-The **filters contract of record** is `ICondition → planCondition`: every backend consumes the operator-semantics plan, interpreter-style via `interpretPlan` (sql/typeorm/memory) or serializer-style via `distributeNegation` + a pure renderer (prisma/drizzle). The per-operator `IFilterVisitor` methods are a legacy fast-path surface — sql and memory hop through two-line shims onto the plan path. Removal is sanctioned but unhurried; do not build new backends on it.
+The **filters contract of record** is `ICondition → planCondition`: every backend consumes the operator-semantics plan, interpreter-style via `interpretPlan` (sql/typeorm/memory) or serializer-style via `distributeNegation` + a pure renderer (prisma/drizzle). Per-operator customization happens by overriding `IPlanInterpreter` handlers (semantics pre-resolved by core), never by branching on operator names in a visitor: the legacy per-operator `IFilterVisitor` methods were removed at the pre-GA API freeze (2026-08-02).
 
 ### Schema definition (core)
 

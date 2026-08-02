@@ -48,14 +48,10 @@ Nodes are consumed via double dispatch — every node has `accept(visitor)`, and
 
 ```typescript
 interface IFiltersVisitor { visitFilters(filters: IFilters): unknown }
-interface IFilterVisitor {
-    visitFilter(filter: IFilter): unknown;
-    // optional per-operator fast paths:
-    visitFilterEqual?(filter: IFilter): unknown;
-    visitFilterGreaterThan?(filter: IFilter): unknown;
-    // ...
-}
+interface IFilterVisitor { visitFilter(filter: IFilter): unknown }
 ```
+
+Operator semantics live in the plan layer: lower a condition with `planCondition` and consume it through an `IPlanInterpreter` (or `distributeNegation` for serializers) instead of branching on operator names inside a visitor.
 
 ```typescript
 query.accept(myQueryVisitor);           // whole query

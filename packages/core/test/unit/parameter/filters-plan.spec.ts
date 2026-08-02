@@ -61,13 +61,6 @@ describe('src/parameter/filters/plan/constants.ts', () => {
             expect(!!entry.compare).toEqual(entry.family === 'ordering');
         }
     });
-
-    it('should dispatch through unique visitor methods', () => {
-        const methods = Object.values(FILTER_OPERATOR_SEMANTICS)
-            .map((entry) => entry.visitorMethod);
-
-        expect(new Set(methods).size).toEqual(methods.length);
-    });
 });
 
 describe('src/parameter/filters/plan/module.ts', () => {

@@ -6,7 +6,6 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import { FILTER_OPERATOR_SEMANTICS } from '../plan/constants';
 import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
@@ -26,18 +25,6 @@ export class Filter<
     }
 
     accept<R>(visitor: IFilterVisitor<R>) : R {
-        const semantics = FILTER_OPERATOR_SEMANTICS[
-            this.operator as keyof typeof FILTER_OPERATOR_SEMANTICS
-        ];
-        if (semantics) {
-            const method = visitor[semantics.visitorMethod] as (
-                (expr: IFilter) => R
-            ) | undefined;
-            if (method) {
-                return method.call(visitor, this);
-            }
-        }
-
         return visitor.visitFilter(this);
     }
 }
