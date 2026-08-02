@@ -24,6 +24,8 @@ New payloads use the expression filter dialect and carry `codec=url-expression`.
 | relations | `include` | `include=realm,items` |
 | sort | `sort` | `sort=name,-age` |
 
+When root and relation fieldsets encode together, the root group is spelled with the reserved `$root` token: `fields[$root]=id,name&fields[items]=id`. A lone root group keeps the bare form (`fields=id,name`). Decoding accepts `$root` and the legacy `__DEFAULT__` spelling written by early 2.0 betas.
+
 ## Decoding (receiver)
 
 The same façade accepts a raw query string or an already-parsed object such as Express' `req.query`:

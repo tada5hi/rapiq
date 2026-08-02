@@ -25,3 +25,13 @@ export enum URLParameter {
  * expression and legacy simple input apart by the filter wire shape).
  */
 export const CODEC_PARAMETER = 'codec';
+
+/**
+ * Wire spelling of the root field group when root and relation
+ * fieldsets encode together: `fields[$root]=id&fields[realm]=name`.
+ * A lone root group keeps the bare form (`fields=id`). Core's
+ * internal DEFAULT_ID sentinel never appears on the wire; decoding
+ * additionally accepts the legacy `__DEFAULT__` spelling written by
+ * the 2.0 betas.
+ */
+export const URL_FIELDS_ROOT = '$root';

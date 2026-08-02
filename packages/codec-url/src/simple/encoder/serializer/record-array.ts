@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_ID } from '@rapiq/core';
+import { URL_FIELDS_ROOT } from '../../../constants';
 import { serializeAsURI } from '../../utils';
 import type { ISerializer } from './types';
 
@@ -53,8 +54,15 @@ export class RecordArraySerializer<
             );
         }
 
+        // the internal DEFAULT_ID sentinel never leaks onto the wire:
+        // the root group is spelled with the public token instead.
+        const { [DEFAULT_ID]: root, ...groups } = this.value;
+        const output : Record<string, ItemType[]> = typeof root === 'undefined' ?
+            groups :
+            { [URL_FIELDS_ROOT]: root, ...groups };
+
         return serializeAsURI(
-            this.value,
+            output,
             {
                 prefixParts: [
                     ...(this.prefix ? [this.prefix] : []),

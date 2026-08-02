@@ -53,8 +53,8 @@ describe('fields', () => {
         ]);
 
         const encoded = encoder.encodeFields(value);
-        // fields[__DEFAULT__]=+id,-name&fields[realm]=-name
-        expect(encoded).toEqual('fields%5B__DEFAULT__%5D=%2Bid%2C-name&fields%5Brealm%5D=-name');
+        // fields[$root]=+id,-name&fields[realm]=-name
+        expect(encoded).toEqual('fields%5B%24root%5D=%2Bid%2C-name&fields%5Brealm%5D=-name');
 
         // the operator prefixes are deltas against the receiving schema's
         // defaults: a schemaless decode resolves them via Fields.execute,
@@ -64,5 +64,17 @@ describe('fields', () => {
         expect(decoded).toEqual(new Fields([
             new Field('id'),
         ]));
+    });
+
+    it('should decode the legacy __DEFAULT__ root group spelling', async () => {
+        const blessed = decoder.decodeFields('fields[$root]=id,name&fields[realm]=name');
+        const legacy = decoder.decodeFields('fields[__DEFAULT__]=id,name&fields[realm]=name');
+
+        expect(blessed).toEqual(new Fields([
+            new Field('id'),
+            new Field('name'),
+            new Field('realm.name'),
+        ]));
+        expect(legacy).toEqual(blessed);
     });
 });

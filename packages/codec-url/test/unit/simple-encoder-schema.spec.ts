@@ -51,7 +51,7 @@ describe('encoder (schema-aware)', () => {
         // included relations materialize their field groups, exactly as
         // the server-side decode of this input would resolve them.
         expect(decodeURIComponent(encoded!)).toEqual(
-            'fields[__DEFAULT__]=id&fields[realm]=id,name,description&filter[name]=John&include=realm&sort=-id',
+            'fields[$root]=id&fields[realm]=id,name,description&filter[name]=John&include=realm&sort=-id',
         );
     });
 
