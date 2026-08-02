@@ -21,10 +21,13 @@ describe('pagination', () => {
         expect(compilePagination(new Pagination())(data)).toEqual(data);
     });
 
-    it('should not apply falsy values', () => {
-        // parity with the typeorm adapter, which applies
-        // take/skip only for truthy values.
-        expect(compilePagination(new Pagination(0, 0))(data)).toEqual(data);
+    it('should treat an explicit limit of 0 as a value, not absence', () => {
+        // fleet semantics: typeorm takes 0 rows, prisma emits take: 0 and
+        // drizzle limit: 0 (both engines return no rows), and drizzle's
+        // impossible-root encoding relies on limit: 0 meaning "no rows".
+        expect(compilePagination(new Pagination(0))(data)).toEqual([]);
+        expect(compilePagination(new Pagination(0, 2))(data)).toEqual([]);
+        expect(compilePagination(new Pagination(undefined))(data)).toEqual(data);
     });
 
     it('should ignore negative values', () => {

@@ -19,6 +19,7 @@ import {
     Sorts,
     inArray,
 } from '@rapiq/core';
+import { applyQuery } from '@rapiq/adapter-memory';
 import { DrizzleAdapter } from '../../src';
 import { createAdapterOptions } from '../data';
 import { records } from '../data/records';
@@ -99,5 +100,20 @@ describe('engine: selection and ordering', () => {
         const rows = await run(new Query({ filters: new Filters(FilterCompoundOperator.AND, [inArray('id', [])]) }));
 
         expect(rows).toEqual([]);
+    });
+
+    it('should agree with the memory adapter on an explicit limit of 0', async () => {
+        // limit: 0 is a value, not absence, across the whole fleet;
+        // the impossible-root encoding depends on this reading.
+        const query = new Query({
+            fields: new Fields([new Field('id')]),
+            pagination: new Pagination(0),
+        });
+
+        const rows = await run(query);
+        const { data } = applyQuery(query, records);
+
+        expect(rows).toEqual([]);
+        expect(rows).toEqual(data);
     });
 });
