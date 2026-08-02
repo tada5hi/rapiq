@@ -57,6 +57,14 @@
                 <span>parameterized fragments</span>
             </div>
             <div class="rq-hub-item">
+                <strong>@rapiq/adapter-prisma</strong>
+                <span>findMany args</span>
+            </div>
+            <div class="rq-hub-item">
+                <strong>@rapiq/adapter-drizzle</strong>
+                <span>findMany config</span>
+            </div>
+            <div class="rq-hub-item">
                 <strong>@rapiq/adapter-memory</strong>
                 <span>compiled functions</span>
             </div>

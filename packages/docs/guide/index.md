@@ -82,7 +82,7 @@ Install only what each side of your application needs — `@rapiq/core` is the s
 | **Build & compose** | [@rapiq/core](/packages/core) — the query AST, `defineQuery`, condition helpers, schemas |
 | **Parse input** | [@rapiq/parser-simple](/packages/parser-simple) · [@rapiq/parser-expression](/packages/parser-expression) · [@rapiq/parser-mongo](/packages/parser-mongo) |
 | **Cross the wire** | [@rapiq/codec-url](/packages/codec-url) |
-| **Execute** | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) · [@rapiq/adapter-sql](/packages/adapter-sql) · [@rapiq/adapter-memory](/packages/adapter-memory) |
+| **Execute** | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) · [@rapiq/adapter-sql](/packages/adapter-sql) · [@rapiq/adapter-prisma](/packages/adapter-prisma) · [@rapiq/adapter-drizzle](/packages/adapter-drizzle) · [@rapiq/adapter-memory](/packages/adapter-memory) |
 
 See the [package overview](/packages/) for the full map and a "which packages do I need?" guide.
 
@@ -90,7 +90,7 @@ See the [package overview](/packages/) for the full map and a "which packages do
 
 - Your API exposes **list endpoints** and clients need to filter, sort, paginate or shape the result.
 - You want the query surface **declared, typed and enforced** instead of scattered across handlers.
-- You want the **same query semantics** everywhere — SQL, TypeORM, in-memory guards, tests.
+- You want the **same query semantics** everywhere — SQL, TypeORM, Prisma, Drizzle, in-memory guards, tests.
 
 It deliberately does **not** define the response format, replace your ORM, or generate endpoints — it only standardizes what a query *is* and what a client *may* ask for.
 

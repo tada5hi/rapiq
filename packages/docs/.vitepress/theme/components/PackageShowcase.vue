@@ -31,6 +31,28 @@ const packages: PackageCard[] = [
         ],
     },
     {
+        name: '@rapiq/parser-expression',
+        accent: 'var(--rq-color-primary)',
+        href: '/packages/parser-expression',
+        summary: 'Parses the function-call expression dialect into the same Query AST.',
+        bullets: [
+            'and(eq(name, \'John\'), gte(age, \'18\'))',
+            'Nested or() / not() groups on the wire',
+            'Default filter dialect of the URL codec',
+        ],
+    },
+    {
+        name: '@rapiq/parser-mongo',
+        accent: 'var(--rq-color-success)',
+        href: '/packages/parser-mongo',
+        summary: 'Parses MongoDB-style filter documents with typed values.',
+        bullets: [
+            '{ age: { $gte: 18 } }, $and / $or / $not',
+            '$elemMatch incl. the element-level form',
+            'Grammar errors always throw typed',
+        ],
+    },
+    {
         name: '@rapiq/codec-url',
         accent: 'var(--rq-color-warning)',
         href: '/packages/codec-url',
@@ -61,6 +83,28 @@ const packages: PackageCard[] = [
             'Mutates the query builder in place',
             'Relations become joins automatically',
             'Builds on the @rapiq/adapter-sql visitors',
+        ],
+    },
+    {
+        name: '@rapiq/adapter-prisma',
+        accent: 'var(--rq-color-accent)',
+        href: '/packages/adapter-prisma',
+        summary: 'Serializes a parsed Query into a Prisma findMany args object.',
+        bullets: [
+            'Pure value: no prisma dependency',
+            'Same-element relation semantics preserved',
+            'Engine-verified parity (SQLite & Postgres)',
+        ],
+    },
+    {
+        name: '@rapiq/adapter-drizzle',
+        accent: 'var(--rq-color-warning)',
+        href: '/packages/adapter-drizzle',
+        summary: 'Serializes a parsed Query into a drizzle relational-queries findMany config.',
+        bullets: [
+            'Pure value: no drizzle dependency',
+            'Correlated EXISTS relation filters',
+            'Engine-verified parity in the default suite',
         ],
     },
     {
