@@ -10,6 +10,7 @@ import {
     ErrorCode,
     FilterCompoundOperator,
     Filters,
+    ITSELF,
     Query,
     and,
     contains,
@@ -321,6 +322,14 @@ describe('src/adapter/filters.ts', () => {
             ['regex', regex('first_name', '^Pe')],
             ['mod', mod('age', 2, 0)],
             ['size', size('items', 2)],
+            // the residual negation wrapper stays typed instead of
+            // silently rendering the positive form.
+            ['negated mod', not(mod('age', 2, 0))],
+            ['negated size', not(size('items', 2))],
+            // the bound element itself is not a prisma column; the
+            // gate must throw here instead of emitting a `$this` key
+            // and leaning on prisma's unknown-field error.
+            ['itself', eq(ITSELF, 'Peter')],
         ];
 
         cases.forEach(([name, condition]) => {

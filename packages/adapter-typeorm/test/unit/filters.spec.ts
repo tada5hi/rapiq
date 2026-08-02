@@ -414,6 +414,25 @@ describe('src/filters', () => {
         expect(data.length).toEqual(0);
     });
 
+    it('should keep every field exact for the blanket caseSensitive opt-out', async () => {
+        const repository = dataSource.getRepository(User);
+        const queryBuilder = repository.createQueryBuilder('user');
+
+        const adapter = new TypeormAdapter({ queryBuilder });
+        adapter.execute(
+            new Query({
+                filters: new Filters(FilterCompoundOperator.AND, [
+                    new Filter(FilterFieldOperator.EQUAL, 'first_name', 'ASTON'),
+                ]),
+            }),
+            { visitor: { caseSensitive: true } },
+        );
+
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(0);
+    });
+
     it('should case-fold only string-typed columns', () => {
         const repository = dataSource.getRepository(User);
         const queryBuilder = repository.createQueryBuilder('user');

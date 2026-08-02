@@ -8,11 +8,12 @@
 export type VisitorOptions = {
     /**
      * Field keys whose equality comparisons (eq/ne/in/nin) stay
-     * case-sensitive instead of the case-insensitive default —
-     * e.g. identifier or token columns. Typically forwarded from
-     * a schema's `filters.caseSensitive` list.
+     * case-sensitive instead of the case-insensitive default, e.g.
+     * identifier or token columns; `true` opts every field out.
+     * Typically forwarded from a schema's `filters.caseSensitive`
+     * list.
      */
-    caseSensitive?: string[],
+    caseSensitive?: string[] | boolean,
 
     [key: string]: any;
 };

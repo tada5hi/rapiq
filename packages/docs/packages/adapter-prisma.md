@@ -45,6 +45,10 @@ const total = await adapter.count(query);
 
 `count` sees the query's filters (and any baseline `where`) but never the page window: the pre-pagination total a response meta block reports. The two compose however your endpoint needs them; there is deliberately no bundled rows-plus-total call, because it would hide a second query and, without a transaction, could pair mutually inconsistent results. On an adapter constructed with explicit `{ provider, metadata }` the runners reject with a typed error, since there is nothing to run against; `execute()` stays the pure serializer either way.
 
+::: warning
+`findMany` refuses (typed) a query whose fields carry a [visibility condition](/guide/schemas#condition-verdicts): those gates are enforced post-fetch, and returning the delegate's rows raw would ship the gated columns unredacted. Serialize with `execute()` and run the fetched rows through `applyFieldConditions` of [@rapiq/adapter-memory](/packages/adapter-memory) instead. `count` is unaffected: a gate changes column visibility, never the row set.
+:::
+
 ## Merging arguments
 
 Prisma ships no per-call args composition (`$extends` intercepts every call globally), so the merge rules the adapter applies to its `base` option are exported as a standalone helper:

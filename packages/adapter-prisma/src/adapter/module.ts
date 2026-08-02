@@ -6,7 +6,7 @@
  */
 
 import type { IQuery, IQueryVisitor } from '@rapiq/core';
-import { AdapterError, ErrorCode } from '@rapiq/core';
+import { AdapterError, ErrorCode, hasFieldConditions } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
 import { defineMetadata, resolveDelegateClient, resolveModelName } from '../metadata';
 import type { ProviderOptions } from '../provider';
@@ -214,6 +214,21 @@ export class PrismaAdapter<
         query: IQuery,
         options: ExecuteOptions<ARGS> = {},
     ) : Promise<T[]> {
+        if (hasFieldConditions(query.fields)) {
+            // a field visibility gate (see `IField.condition`) is
+            // enforced post-fetch; returning the delegate's rows raw
+            // would ship the gated columns unredacted. The runner
+            // refuses instead of failing open: serialize with
+            // `execute()` and pipe the fetched rows through
+            // `@rapiq/adapter-memory`'s `applyFieldConditions`.
+            throw new AdapterError({
+                message: 'The query carries field conditions, which findMany() cannot ' +
+                    'enforce; use execute() and apply the conditions to the fetched ' +
+                    'rows (e.g. applyFieldConditions of @rapiq/adapter-memory).',
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+            });
+        }
+
         const { args } = this.execute(query, options);
 
         return this.delegate().findMany(args);

@@ -19,7 +19,7 @@ export class PaginationVisitor implements IPaginationVisitor<Slicer> {
                 output = output.slice(offset);
             }
 
-            if (limit && limit > 0) {
+            if (typeof limit === 'number' && limit >= 0) {
                 output = output.slice(0, limit);
             }
 

@@ -13,9 +13,11 @@ import {
     endsWith,
     eq,
     exists,
+    gt,
     gte,
     inArray,
     lt,
+    lte,
     ne,
     nin,
     not,
@@ -47,8 +49,17 @@ export const complementPairs : [string, Condition, Condition][] = [
     ['startsWith/notStartsWith', startsWith('address', 'Hog'), notStartsWith('address', 'Hog')],
     ['endsWith/notEndsWith', endsWith('address', 'arts'), notEndsWith('address', 'arts')],
     ['exists true/false', exists('address'), exists('address', false)],
+    // ordering has no negative twins; not() is the null-inclusive
+    // complement (dual operator OR null), matching the prisma matrix.
+    ['gte/not(gte)', gte('age', 33), not(gte('age', 33))],
+    ['gt/not(gt)', gt('age', 18), not(gt('age', 18))],
+    ['lte/not(lte)', lte('age', 33), not(lte('age', 33))],
     ['eq/ne (to-one relation)', eq('realm.name', 'master'), ne('realm.name', 'master')],
+    ['eq/ne (to-one null column)', eq('realm.description', null), ne('realm.description', null)],
     ['eq/ne (to-one presence)', exists('realm'), exists('realm', false)],
+    // a collection is never absent: the positive arm is constantly
+    // true, the negative an impossible root (limit: 0).
+    ['exists (to-many presence)', exists('items'), exists('items', false)],
 ];
 
 // De Morgan push-down has to hold for whole trees, not just leaves.
@@ -79,6 +90,7 @@ export const collections : [string, Condition][] = [
     ['contains', contains('items.title', 'oo')],
     ['notContains', notContains('items.title', 'oo')],
     ['elemMatch', elemMatch('items', and(eq('title', 'book'), eq('color', 'red')))],
+    ['elemMatch (null interior)', elemMatch('items', eq('color', null))],
     ['not(elemMatch)', not(elemMatch('items', and(eq('title', 'book'), eq('color', 'red'))))],
 ];
 
