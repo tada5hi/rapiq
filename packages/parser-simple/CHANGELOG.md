@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.13...parser-simple-v2.0.0-beta.14) (2026-08-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* select the execution mode by calling parse() or parseAsync(), not via an options flag.
+
+### Miscellaneous Chores
+
+* pre-GA cleanup sweep ([#866](https://github.com/tada5hi/rapiq/issues/866)) ([f4e7b68](https://github.com/tada5hi/rapiq/commit/f4e7b68e32ebae902e1a742a09f57606c1b84f5c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+
 ## [2.0.0-beta.13](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.12...parser-simple-v2.0.0-beta.13) (2026-07-28)
 
 

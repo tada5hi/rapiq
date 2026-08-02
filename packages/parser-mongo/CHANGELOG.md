@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.0.0-beta.13...parser-mongo-v2.0.0-beta.14) (2026-08-02)
+
+
+### Miscellaneous Chores
+
+* **parser-mongo:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.13 to ^2.0.0-beta.14
+
 ## [2.0.0-beta.13](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.0.0-beta.12...parser-mongo-v2.0.0-beta.13) (2026-07-28)
 
 
