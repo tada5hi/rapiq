@@ -170,16 +170,42 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         expect(() => scoped.merge(hostile)).toThrowError(MergeError);
     });
 
-    it('should start a fresh group when the receiver is empty', () => {
+    it('should start a nested group when the receiver is empty', () => {
         const query = defineQuery();
 
+        // the injected conditions land in a nested group so the result
+        // is never a flat root-AND — merge-refusal holds even when the
+        // client sent no filters at all.
         const scoped = query.filters.and(eq('realm.id', 'master'));
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
-        expect(conditions(scoped)).toEqual([['realm.id', 'eq', 'master']]);
+        expect(scoped.value).toHaveLength(1);
+        expect(scoped.value[0]).toBeInstanceOf(Filters);
+        expect(conditions(scoped.value[0] as Filters)).toEqual([['realm.id', 'eq', 'master']]);
 
         const alternatives = query.filters.or(eq('name', 'a'), eq('name', 'b'));
         expect(alternatives.operator).toBe(FilterCompoundOperator.OR);
-        expect(alternatives.value).toHaveLength(2);
+        expect(alternatives.value).toHaveLength(1);
+        expect((alternatives.value[0] as Filters).value).toHaveLength(2);
+    });
+
+    it('should not allow a replace-merge to displace a condition injected onto an empty receiver', () => {
+        const scoped = new Query({ filters: defineQuery().filters.and(eq('realm.id', 'master')) });
+        const hostile = defineQuery<User>({ filters: { 'realm.id': 'evil' } });
+
+        try {
+            mergeQueries(hostile, scoped);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(MergeError);
+            expect((e as MergeError).code).toBe(ErrorCode.FILTERS_NOT_FLAT);
+        }
+    });
+
+    it('should return the receiver when no conditions are injected', () => {
+        const query = defineQuery<User>({ filters: { name: 'John' } });
+
+        expect(query.filters.and()).toBe(query.filters);
+        expect(query.filters.or()).toBe(query.filters);
     });
 
     it('should wrap an existing tree when or() adds alternatives', () => {

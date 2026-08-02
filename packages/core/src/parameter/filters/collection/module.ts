@@ -96,26 +96,34 @@ export class Filters<
 
     /**
      * Wrap & inject (immutable): the receiver becomes a child of a new
-     * AND group holding the given conditions. Injected conditions can
-     * therefore never be displaced by a later merge().
+     * AND group holding the given conditions. The result is never a
+     * flat root-AND, so injected conditions cannot be displaced by a
+     * later merge() — an empty receiver therefore wraps the injected
+     * conditions in a nested group instead of adopting them directly.
      */
     and(...conditions: ICondition[]) : IFilters {
-        if (this.value.length === 0) {
-            return new Filters(FilterCompoundOperator.AND, conditions);
-        }
-
-        return new Filters(FilterCompoundOperator.AND, [this, ...conditions]);
+        return this.wrap(FilterCompoundOperator.AND, conditions);
     }
 
     /**
      * Wrap & inject (immutable), OR variant of {@link Filters.and}.
      */
     or(...conditions: ICondition[]) : IFilters {
-        if (this.value.length === 0) {
-            return new Filters(FilterCompoundOperator.OR, conditions);
+        return this.wrap(FilterCompoundOperator.OR, conditions);
+    }
+
+    protected wrap(operator: string, conditions: ICondition[]) : IFilters {
+        if (conditions.length === 0) {
+            return this;
         }
 
-        return new Filters(FilterCompoundOperator.OR, [this, ...conditions]);
+        if (this.value.length === 0) {
+            return new Filters(operator, [
+                new Filters(operator, conditions),
+            ]);
+        }
+
+        return new Filters(operator, [this, ...conditions]);
     }
 }
 
