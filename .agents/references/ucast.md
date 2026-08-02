@@ -50,8 +50,9 @@ package is the reference implementation for rapiq's mongo parser dialect
 ## Interpretation
 
 ucast interprets its AST with per-operator interpreter functions (`@ucast/js`, `@ucast/sql`,
-`createInterpreter`); rapiq's equivalent is the visitor pattern (`IFilterVisitor` with optional
-per-operator methods) consumed by `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` / `@rapiq/adapter-memory`.
+`createInterpreter`); rapiq's equivalent is the plan layer: `planCondition` lowers a condition
+through the operator-semantics table and backends consume it via `IPlanInterpreter` handlers
+(`@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` / `@rapiq/adapter-memory`).
 
 ## In-memory evaluation (`@ucast/js` ↔ `@rapiq/adapter-memory`)
 
@@ -61,7 +62,7 @@ explicitly rejected its interpreter-registry shape in favor of the core visitor 
 | ucast (`packages/js/src/`) | rapiq (`packages/adapter-memory/src/`) | Differences |
 |---|---|---|
 | `createJsInterpreter(operators, {get, compare})` → `interpret(condition, object)` | `FiltersVisitor`/`FiltersCompiler` (`parameter/filters/`), `compileFilters(condition)` → `Predicate` | rapiq compiles once to a reusable closure; extension = subclass `FiltersCompiler`, not an options bag |
-| interpreter registry (record of functions, unregistered op throws plain `Error`) | per-operator `visitFilterX` methods; `visitFilter` fallback throws `AdapterError.operatorUnsupported` | closed operator set over `FilterFieldOperator` |
+| interpreter registry (record of functions, unregistered op throws plain `Error`) | `IPlanInterpreter` handlers over `planCondition` (per-operator `visitFilterX` visitor methods removed pre-GA 2026-08-02) | closed operator set over `FilterFieldOperator` |
 | `getObjectField`/`getValueByPath` (dot paths; array parent → map+**flatten**; numeric segments index arrays; `ITSELF` sentinel) | join-row binding (`parameter/filters/binding.ts`): dotted prefixes = relation paths, ∃-DFS binds one element per path (SQL LEFT-join parity); leaf lookup is own-property only; ITSELF leaves read the bound element (real array elements only, plan 016 Q5) | ucast quantifies each leaf independently; rapiq binds same-element across dotted paths (plan 014 Q4) but every `elemMatch` opens its own quantifier scope (plan 016 Q3, mongo parity). No numeric-index segments |
 | `eq` (whole-array equality ∨ membership; RegExp value acts as pattern; null matches missing own-prop) | `buildEqualTest` (`parameter/filters/compiler.ts`): strict equality after null-unification, Date by `getTime`, array leaf → membership only | no whole-array equality, no RegExp-as-eq-value; `undefined` ≡ `null` (ucast: explicit `undefined` does NOT match null) |
 | `ne`/`nin` = `!eq`/`!within` (complement) | same complement law (plan 014 Q3) | agreement — this is where rapiq deviates from SQL 3VL instead |

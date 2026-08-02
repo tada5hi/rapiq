@@ -6,7 +6,6 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { IFilterVisitor } from '../record';
 
 /**
  * Semantic classification of a filter operator — the row shape of
@@ -33,12 +32,6 @@ export type FilterOperatorSemantics = {
      * negated operators; the target must itself be positive.
      */
     complementOf?: `${FilterFieldOperator}`,
-
-    /**
-     * Method the per-operator {@link IFilterVisitor} dispatch
-     * ({@link Filter.accept}) routes to.
-     */
-    visitorMethod: Exclude<keyof IFilterVisitor<unknown>, 'visitFilter'>,
 
     /**
      * Anchored family only: anchor placement of the derived pattern.

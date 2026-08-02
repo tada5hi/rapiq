@@ -13,132 +13,18 @@ import {
     Filters,
 } from '../../../src';
 
-/**
- * A real visitor that reports which method handled the filter — so dispatch
- * can be observed through the public interface instead of mocking.
- */
-class NamingFilterVisitor implements IFilterVisitor<string> {
-    visitFilter(_: IFilter) {
-        return 'visitFilter';
-    }
-
-    visitFilterEqual(_: IFilter) {
-        return 'visitFilterEqual';
-    }
-
-    visitFilterNotEqual(_: IFilter) {
-        return 'visitFilterNotEqual';
-    }
-
-    visitFilterLessThan(_: IFilter) {
-        return 'visitFilterLessThan';
-    }
-
-    visitFilterLessThanEqual(_: IFilter) {
-        return 'visitFilterLessThanEqual';
-    }
-
-    visitFilterGreaterThan(_: IFilter) {
-        return 'visitFilterGreaterThan';
-    }
-
-    visitFilterGreaterThanEqual(_: IFilter) {
-        return 'visitFilterGreaterThanEqual';
-    }
-
-    visitFilterExists(_: IFilter) {
-        return 'visitFilterExists';
-    }
-
-    visitFilterIn(_: IFilter) {
-        return 'visitFilterIn';
-    }
-
-    visitFilterNotIn(_: IFilter) {
-        return 'visitFilterNotIn';
-    }
-
-    visitFilterMod(_: IFilter) {
-        return 'visitFilterMod';
-    }
-
-    visitFilterSize(_: IFilter) {
-        return 'visitFilterSize';
-    }
-
-    visitFilterElemMatch(_: IFilter) {
-        return 'visitFilterElemMatch';
-    }
-
-    visitFilterContains(_: IFilter) {
-        return 'visitFilterContains';
-    }
-
-    visitFilterNotContains(_: IFilter) {
-        return 'visitFilterNotContains';
-    }
-
-    visitFilterStartsWith(_: IFilter) {
-        return 'visitFilterStartsWith';
-    }
-
-    visitFilterNotStartsWith(_: IFilter) {
-        return 'visitFilterNotStartsWith';
-    }
-
-    visitFilterEndsWith(_: IFilter) {
-        return 'visitFilterEndsWith';
-    }
-
-    visitFilterNotEndsWith(_: IFilter) {
-        return 'visitFilterNotEndsWith';
-    }
-
-    visitFilterRegex(_: IFilter) {
-        return 'visitFilterRegex';
-    }
-}
-
-const OPERATOR_METHOD: [string, string][] = [
-    [FilterFieldOperator.EQUAL, 'visitFilterEqual'],
-    [FilterFieldOperator.NOT_EQUAL, 'visitFilterNotEqual'],
-    [FilterFieldOperator.LESS_THAN, 'visitFilterLessThan'],
-    [FilterFieldOperator.LESS_THAN_EQUAL, 'visitFilterLessThanEqual'],
-    [FilterFieldOperator.GREATER_THAN, 'visitFilterGreaterThan'],
-    [FilterFieldOperator.GREATER_THAN_EQUAL, 'visitFilterGreaterThanEqual'],
-    [FilterFieldOperator.EXISTS, 'visitFilterExists'],
-    [FilterFieldOperator.IN, 'visitFilterIn'],
-    [FilterFieldOperator.NOT_IN, 'visitFilterNotIn'],
-    [FilterFieldOperator.MOD, 'visitFilterMod'],
-    [FilterFieldOperator.SIZE, 'visitFilterSize'],
-    [FilterFieldOperator.ELEM_MATCH, 'visitFilterElemMatch'],
-    [FilterFieldOperator.CONTAINS, 'visitFilterContains'],
-    [FilterFieldOperator.NOT_CONTAINS, 'visitFilterNotContains'],
-    [FilterFieldOperator.STARTS_WITH, 'visitFilterStartsWith'],
-    [FilterFieldOperator.NOT_STARTS_WITH, 'visitFilterNotStartsWith'],
-    [FilterFieldOperator.ENDS_WITH, 'visitFilterEndsWith'],
-    [FilterFieldOperator.NOT_ENDS_WITH, 'visitFilterNotEndsWith'],
-    [FilterFieldOperator.REGEX, 'visitFilterRegex'],
-];
-
 describe('src/parameter/filters/record/*.ts', () => {
-    describe('Filter.accept dispatch', () => {
-        it.each(OPERATOR_METHOD)('should dispatch operator %s to %s', (operator, method) => {
-            const filter = new Filter(operator, 'field', 1);
-            expect(filter.accept(new NamingFilterVisitor())).toBe(method);
-        });
-
-        it('should fall back to visitFilter when the operator method is absent', () => {
-            // Only the mandatory method is implemented — every operator must route to it.
-            const visitor : IFilterVisitor<string> = { visitFilter: () => 'fallback' };
-            OPERATOR_METHOD.forEach(([operator]) => {
-                expect(new Filter(operator, 'field', 1).accept(visitor)).toBe('fallback');
+    describe('Filter.accept', () => {
+        it('should route every operator to visitFilter', () => {
+            const visitor : IFilterVisitor<string> = { visitFilter: (expr: IFilter) => `${expr.operator}` };
+            Object.values(FilterFieldOperator).forEach((operator) => {
+                expect(new Filter(operator, 'field', 1).accept(visitor)).toBe(operator);
             });
         });
 
-        it('should use visitFilter for an unknown operator', () => {
-            const filter = new Filter('totally-unknown', 'field', 1);
-            expect(filter.accept(new NamingFilterVisitor())).toBe('visitFilter');
+        it('should route an unknown operator to visitFilter', () => {
+            const visitor : IFilterVisitor<string> = { visitFilter: () => 'fallback' };
+            expect(new Filter('totally-unknown', 'field', 1).accept(visitor)).toBe('fallback');
         });
     });
 });
