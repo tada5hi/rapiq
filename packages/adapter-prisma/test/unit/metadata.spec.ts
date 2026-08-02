@@ -79,6 +79,20 @@ describe('src/provider/module.ts', () => {
         );
     });
 
+    it('should reject an inherited object member as a provider name', () => {
+        // `valueOf` resolves through Object.prototype on a naive
+        // lookup and would pose as a preset.
+        expect(resolveProvider('valueOf')).toBeUndefined();
+        expect(resolveProvider('toString')).toBeUndefined();
+
+        expect(() => new PrismaAdapter({ provider: 'valueOf', metadata })).toThrowError(
+            expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED }),
+        );
+        expect(() => new PrismaAdapter({ provider: 'toString', metadata })).toThrowError(
+            expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED }),
+        );
+    });
+
     it('should accept an explicit capability preset', () => {
         expect(() => new PrismaAdapter({ provider: { caseInsensitiveMode: false }, metadata })).not.toThrow();
     });

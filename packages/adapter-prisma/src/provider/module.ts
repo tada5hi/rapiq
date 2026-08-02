@@ -26,7 +26,14 @@ const ALIASES : Record<string, `${Provider}`> = {
 export function resolveProvider(name: string) : ProviderOptions | undefined {
     const normalized = name.toLowerCase();
 
-    return PROVIDERS[ALIASES[normalized] ?? normalized as `${Provider}`];
+    // own-property lookups: an inherited name like `valueOf` must
+    // answer "unknown" instead of resolving to an Object.prototype
+    // member that then poses as a preset.
+    const key = Object.hasOwn(ALIASES, normalized) ?
+        ALIASES[normalized] as `${Provider}` :
+        normalized as `${Provider}`;
+
+    return Object.hasOwn(PROVIDERS, key) ? PROVIDERS[key] : undefined;
 }
 
 /**
