@@ -42,7 +42,7 @@ const userSchema = defineSchema<User>({
 });
 ```
 
-Field keys are typed against `RECORD` via recursive key paths — `allowed` and `default` autocomplete and type-check. `null`/`undefined` are unwrapped before traversal, so nullable or optional relations (`realm: Realm | null`) type-check like their non-nullable counterparts. Index-signature records (JSON columns such as `data: Record<string, any>`) count as selectable/filterable leaf keys and are not traversed as nested branches.
+Field keys are typed against `RECORD` via recursive key paths: `allowed` and `default` autocomplete and type-check. `null`/`undefined` are unwrapped before traversal, so nullable or optional relations (`realm: Realm | null`) type-check like their non-nullable counterparts. Index-signature records (JSON columns such as `data: Record<string, any>`) count as selectable/filterable leaf keys and are not traversed as nested branches.
 
 ## Top-level options
 
@@ -59,32 +59,32 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 
 | Parameter | Options |
 |---|---|
-| `fields` | `allowed`, `default`, `mapping` (alias → field), `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
+| `fields` | `allowed`, `default`, `mapping` (alias to field), `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)) |
-| `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
-| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks--parse-context)) |
+| `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
+| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `pagination` | `maxLimit` |
 
-Standalone factories exist for each parameter — `defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema` — useful when calling a single parameter parser directly.
+Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema`), useful when calling a single parameter parser directly.
 
 ::: tip Empty vs. absent
-`allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything — unless [strict mode](#strict-mode) is on. Be deliberate about which one you mean.
+`allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything, unless [strict mode](#strict-mode) is on. Be deliberate about which one you mean.
 :::
 
 ## Defaults
 
 Defaults fill the gaps when a client sends nothing (or nothing valid) for a parameter:
 
-- `fields.default` — the selection when no fields are requested; `+`/`-` modifiers in client input extend/shrink it instead of replacing it.
-- `filters.default` — a condition applied when the client sends no filters.
-- `sort.default` — the order applied when nothing valid was requested.
-- `pagination.maxLimit` — doubles as the applied limit when the client requests none.
+- `fields.default`: the selection when no fields are requested; `+`/`-` modifiers in client input extend/shrink it instead of replacing it.
+- `filters.default`: a condition applied when the client sends no filters.
+- `sort.default`: the order applied when nothing valid was requested.
+- `pagination.maxLimit`: doubles as the applied limit when the client requests none.
 
-A parameter absent from the input is still parsed, so defaults always apply — even when the client sends nothing at all.
+A parameter absent from the input is still parsed, so defaults always apply, even when the client sends nothing at all.
 
 ## Strict mode
 
-By default, a parameter whose schema declares no allow-list is **open**: any syntactically valid key passes. `strict: true` inverts that — a parameter accepts client input only for explicitly declared keys:
+By default, a parameter whose schema declares no allow-list is **open**: any syntactically valid key passes. `strict: true` inverts that: a parameter accepts client input only for explicitly declared keys:
 
 ```typescript
 const userSchema = defineSchema<User>({
@@ -103,21 +103,21 @@ Per parameter, "declared" means:
 | `filters` | `allowed` is set (a `default` condition alone still applies, but clients cannot filter) |
 | `sort` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
 | `relations` | `allowed` is set |
-| `pagination` | always — `maxLimit` remains the only constraint |
+| `pagination` | always; `maxLimit` remains the only constraint |
 
 Schema defaults are unaffected: dropped client input falls back to `default` values exactly as if the parameter had been absent.
 
-`strict` can also be set per parse call, overriding the schema setting — including parsing **without** a schema, which then rejects every client-driven parameter:
+`strict` can also be set per parse call, overriding the schema setting, including parsing **without** a schema, which then rejects every client-driven parameter:
 
 ```typescript
 parser.parse(input, { schema: 'user', strict: true });
 ```
 
 ::: warning Migrating from typeorm-extension?
-typeorm-extension **disables** any parameter whose `allowed`/`default` options are missing. rapiq's default is the opposite (open). Enable `strict: true` to keep closed-by-default semantics — see the [migration guide](/guide/migration-typeorm-extension).
+typeorm-extension **disables** any parameter whose `allowed`/`default` options are missing. rapiq's default is the opposite (open). Enable `strict: true` to keep closed-by-default semantics; see the [migration guide](/guide/migration-typeorm-extension).
 :::
 
-## Validate hooks & parse context
+## Validate hooks and parse context {#validate-hooks-parse-context}
 
 Allow-lists are static, decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sort` sub-schemas may declare a hook that answers for each client-requested key with that context in hand:
 
@@ -241,9 +241,10 @@ Where the gate is actually applied depends on the backend:
 |---|---|
 | [`@rapiq/adapter-memory`](/packages/adapter-memory) | Honours `Field.condition` **while projecting**: the property is dropped from records that don't satisfy it. |
 | [`@rapiq/adapter-sql`](/packages/adapter-sql), [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) | Project the column **unconditionally**. A selection has to stay a bare `alias.property` for entity hydration, so the gate cannot be pushed into the statement; it is applied **after the fetch**. |
+| [`@rapiq/adapter-prisma`](/packages/adapter-prisma), [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle) | Serialize plain argument objects, which cannot gate a value either; the gate is applied **after the fetch**. `PrismaAdapter.findMany()` refuses a gated query with a typed error instead of returning unredacted rows. |
 
-::: danger The SQL backends fail open
-On `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
+::: danger The database backends fail open
+On `@rapiq/adapter-sql` / `@rapiq/adapter-typeorm` (and on the prisma/drizzle serializers via `execute()`) the gated column is fetched for every row. Nothing is enforced until you apply the gate to the result; skip that step and the value ships to the client. Run the fetched rows through the post-fetch helper before serializing them:
 
 ```typescript
 import { hasFieldConditions } from '@rapiq/core';
@@ -253,7 +254,7 @@ const rows = await queryBuilder.getMany();
 const guarded = applyFieldConditions(query.fields, rows);
 ```
 
-`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters and `@rapiq/adapter-prisma` force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset or a fieldset-narrowed include.
+`hasFieldConditions(query)` reports whether a decoded query carries any gate, so a response path can assert that no gated column ships unredacted. The SQL adapters and the prisma/drizzle serializers force-project every column a gate reads, so the post-fetch pass always has its operands even under a sparse fieldset or a fieldset-narrowed include.
 
 For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while a fieldset-free include still hydrates the whole record, leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
 :::
@@ -265,11 +266,11 @@ A gate is server-side state and has no wire form, so a query carrying one cannot
 ### Rules that apply to every hook
 
 - **Target-schema authorization.** Hooks run on the canonical (alias-resolved) key against the schema that governs it: `include=items.realm` invokes the *user* schema's hook with `items` and the *item* schema's hook with `realm` (resolved via `schemaMapping`). An include can never bypass the related schema's own gate.
-- **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sort` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches — evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
+- **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sort` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches, evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
 - **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sort` key.
 - **Client input only.** Schema `default`s are server-authored and bypass the hooks. For `sort`, a hook that empties the selection leaves it empty (no ORDER BY). For `fields`, an empty selection would be read by every backend as *project everything*, so a hook that empties it falls back to the input-less projection (defaults, or the allow-list expansion) **minus the rejected names**: a denial never resurrects, and it never widens the projection either. A schema that uses a deny-capable fields hook should declare `fields.default` so the fallback has something safe to land on.
 - **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
-- **The context is opaque** — typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
+- **The context is opaque**: typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
 
 The [filters `validate` hook](/guide/filters#schema-options) participates too: it receives the same context as its second argument. It has its own signature (it inspects, replaces or rejects a parsed `Filter`) and is not part of the key-validation hook pair described above.
 
@@ -296,12 +297,12 @@ const parser = new SimpleParser(registry);
 const query = parser.parse(input, { schema: 'user' });
 ```
 
-With the mapping above, input like `fields: { realm: ['name'] }` or `filters: { 'realm.name': 'master' }` is validated against the **realm** schema's allow-lists — each relation owner decides what may be requested of it.
+With the mapping above, input like `fields: { realm: ['name'] }` or `filters: { 'realm.name': 'master' }` is validated against the **realm** schema's allow-lists: each relation owner decides what may be requested of it.
 
 ## Describing a schema
 
 `schema.describe()` serializes the declared constraints into a JSON-safe
-`SchemaDescription` — the introspection surface an API can return to its
+`SchemaDescription`: the introspection surface an API can return to its
 consumers (e.g. under a response `meta` key), so the queryable vocabulary
 is discoverable without reading server code:
 
@@ -310,48 +311,48 @@ userSchema.describe();
 // {
 //     name: 'user',
 //     strict: false,
-//     fields: { default: ['id', 'name'], allowed: ['email'] },
-//     filters: { allowed: ['id', 'name'] },
+//     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
+//     filters: { allowed: ['id', 'name', 'age'] },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
-//     sort: { allowed: ['id', 'name'], default: null },
+//     sort: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' } },
 // }
 ```
 
-The shape is **normalized** — every schema describes identically, so
+The shape is **normalized**: every schema describes identically, so
 consumers can rely on a stable structure:
 
-- a parameter key is present iff the description covers that parameter —
+- a parameter key is present iff the description covers that parameter;
   pass `parameters` to mirror a surface that only processes some of them
   (e.g. a single-record read handling `fields` and `relations` only):
   `schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })`.
   A covered parameter always carries every constraint key;
 - within a parameter, a **`null`** constraint was never declared, so the
   fallback semantics apply (syntactic property-name check, or a full
-  reject under [strict mode](#strict-mode) — `strict` is normalized to
+  reject under [strict mode](#strict-mode); `strict` is normalized to
   its effective default, `false`);
 - an **empty array** is an explicit "nothing allowed".
 
 Relation capabilities are not expanded inline: `relations.schemas` names
 the schema governing each relation (via `schemaMapping`; an unmapped
-relation maps to itself, mirroring registry resolution) — nested
+relation maps to itself, mirroring registry resolution); nested
 vocabulary is looked up on that schema's own description.
 
 Deliberately absent from the output: the filters `default` condition (a
 server-injected baseline, not client vocabulary) and the dynamic
-`validate`/`validateMany` hooks (e.g. per-actor authorization gates) —
+`validate`/`validateMany` hooks (e.g. per-actor authorization gates);
 the description is the **static upper bound** of what a client may send,
 not a per-request effective view. Arrays are cloned, so mutating a
 description never touches the schema.
 
 ## Failure behavior: drop vs. throw
 
-By default, parsers **drop** what the schema doesn't allow — the query still parses, minus the offending parts. That is the forgiving mode: old clients sending a removed field keep working.
+By default, parsers **drop** what the schema doesn't allow: the query still parses, minus the offending parts. That is the forgiving mode: old clients sending a removed field keep working.
 
-With `throwOnFailure: true` (top-level or per parameter), parsers **throw** instead — the strict mode for APIs that prefer a `400` over a silently narrowed answer:
+With `throwOnFailure: true` (top-level or per parameter), parsers **throw** instead: the strict mode for APIs that prefer a `400` over a silently narrowed answer:
 
 ```typescript
 import { FiltersParseError } from '@rapiq/core';
@@ -365,10 +366,10 @@ try {
 }
 ```
 
-Each parameter has its own error class — `FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError` — all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
+Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
 ## Next steps
 
-- [Queries over the Wire](/guide/wire) — where schemas meet incoming requests.
-- [Query Parameters](/guide/fields) — per-parameter schema options in context.
-- [Error Handling](/guide/errors) — the full error hierarchy and codes.
+- [Queries over the Wire](/guide/wire): where schemas meet incoming requests.
+- [Query Parameters](/guide/fields): per-parameter schema options in context.
+- [Error Handling](/guide/errors): the full error hierarchy and codes.

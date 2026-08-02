@@ -1,12 +1,12 @@
 # Core Concepts
 
-rapiq has four moving parts — **Query**, **Schema**, **Parser**, **Adapter**. Everything else in the package family is a variation of one of them. Understanding these four once makes every other page in these docs a detail.
+rapiq has four moving parts: **Query**, **Schema**, **Parser**, **Adapter**. Everything else in the package family is a variation of one of them. Understanding these four once makes every other page in these docs a detail.
 
 Everything meets in the middle:
 
 <QueryHub />
 
-## Query — the shared language
+## Query: the shared language
 
 A `Query` is a small, typed object tree (an AST) with one collection per parameter:
 
@@ -20,7 +20,7 @@ class Query {
 }
 ```
 
-It is the **only** thing the packages share — parsers produce it, codecs transport it, schemas constrain it, adapters consume it. That single meeting point is what makes the pieces swappable: the TypeORM adapter neither knows nor cares whether a query arrived as a URL, an expression string, a MongoDB-style document or was built in code.
+It is the **only** thing the packages share: parsers produce it, codecs transport it, schemas constrain it, adapters consume it. That single meeting point is what makes the pieces swappable: the TypeORM adapter neither knows nor cares whether a query arrived as a URL, an expression string, a MongoDB-style document or was built in code.
 
 There are three ways to obtain one:
 
@@ -58,9 +58,9 @@ codec=url-expression&filter=and(gte(age, '18'), contains(name, 'jo'))
 
 Dialects are input syntax only; semantics live in the AST.
 
-## Schema — the server's contract
+## Schema: the server's contract
 
-A `Schema<RECORD>` declares what a client *may* request, per parameter — allowed keys, defaults, alias mappings, a pagination cap:
+A `Schema<RECORD>` declares what a client *may* request, per parameter: allowed keys, defaults, alias mappings, a pagination cap:
 
 ```typescript
 const userSchema = defineSchema<User>({
@@ -76,29 +76,29 @@ const userSchema = defineSchema<User>({
 
 Parsers consult the schema *while* parsing: disallowed input is dropped by default, or throws when `throwOnFailure` is set. A `SchemaRegistry` stores schemas by name so relation paths (`realm.name`) validate against the *related* record's schema. Details in [Schemas & Validation](/guide/schemas).
 
-## Parser — from input to Query
+## Parser: from input to Query
 
 Parsers turn raw, untrusted input into a validated `Query`. Each speaks one input *dialect*:
 
-- [`SimpleParser`](/packages/parser-simple) — plain objects/arrays, URL-query-like (`{ age: '>=18' }`)
-- [`ExpressionParser`](/packages/parser-expression) — expression strings (`and(eq(name, 'John'), gte(age, '18'))`)
-- [`MongoParser`](/packages/parser-mongo) — MongoDB-style documents (`{ age: { $gte: 18 } }`)
+- [`SimpleParser`](/packages/parser-simple): plain objects/arrays, URL-query-like (`{ age: '>=18' }`)
+- [`ExpressionParser`](/packages/parser-expression): expression strings (`and(eq(name, 'John'), gte(age, '18'))`)
+- [`MongoParser`](/packages/parser-mongo): MongoDB-style documents (`{ age: { $gte: 18 } }`)
 
 Parsers are transport-agnostic: they read canonical parameter keys (`fields`, `filters`, …) and don't know about URLs. The [`URLCodec`](/guide/wire) façade maps URL wire names (`filter`, `page`, `include`, …) onto the matching parser and performs the reverse trip. It hides expression/simple dialect dispatch from callers.
 
-## Adapter — from Query to results
+## Adapter: from Query to results
 
 Adapters execute a `Query` against a backend:
 
-- [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) — mutates a TypeORM `SelectQueryBuilder`
-- [`@rapiq/adapter-sql`](/packages/adapter-sql) — renders parameterized SQL fragments for any driver
-- [`@rapiq/adapter-prisma`](/packages/adapter-prisma) — serializes the query into a Prisma `findMany` args object
-- [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle) — serializes the query into a drizzle relational-queries `findMany` config
-- [`@rapiq/adapter-memory`](/packages/adapter-memory) — compiles the query into plain functions over in-memory data
+- [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm): mutates a TypeORM `SelectQueryBuilder`
+- [`@rapiq/adapter-sql`](/packages/adapter-sql): renders parameterized SQL fragments for any driver
+- [`@rapiq/adapter-prisma`](/packages/adapter-prisma): serializes the query into a Prisma `findMany` args object
+- [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle): serializes the query into a drizzle relational-queries `findMany` config
+- [`@rapiq/adapter-memory`](/packages/adapter-memory): compiles the query into plain functions over in-memory data
 
-They all consume the same AST: the SQL-facing pair walk it through the **visitor pattern** (every node has `accept(visitor)`), prisma and drizzle serialize it into plain config values, and memory compiles it into functions. New backends never require changes to core — see [The Query AST](/guide/query-ast) if you want to build one.
+They all consume the same AST: the SQL-facing pair walk it through the **visitor pattern** (every node has `accept(visitor)`), prisma and drizzle serialize it into plain config values, and memory compiles it into functions. New backends never require changes to core; see [The Query AST](/guide/query-ast) if you want to build one.
 
-## Composition — queries are values
+## Composition: queries are values
 
 Because queries are plain immutable-ish values, they compose *after* construction, regardless of where each part came from:
 

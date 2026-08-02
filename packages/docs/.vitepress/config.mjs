@@ -2,9 +2,10 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
     title: 'Rapiq',
-    description: 'One query language between client & server — JSON:API-style queries, a typed AST, schema allow-lists and composable SQL/TypeORM adapters.',
+    description: 'One query language between client & server: JSON:API-style queries, a typed AST, schema allow-lists and composable adapters for SQL, TypeORM, Prisma, Drizzle and in-memory data.',
     base: '/',
     lastUpdated: true,
+    srcExclude: ['README.md'],
 
     head: [
         ['link', {
@@ -83,8 +84,12 @@ export default defineConfig({
                 {
                     text: 'Recipes',
                     items: [
-                        { text: 'REST API with Express & TypeORM', link: '/guide/recipes/express-typeorm' },
+                        { text: 'Overview', link: '/guide/recipes/' },
                         { text: 'Type-Safe Frontend Queries', link: '/guide/recipes/frontend' },
+                        { text: 'REST API with Express & TypeORM', link: '/guide/recipes/express-typeorm' },
+                        { text: 'Swapping the Backend: Prisma & Drizzle', link: '/guide/recipes/prisma-drizzle' },
+                        { text: 'MongoDB-Style Search Endpoint', link: '/guide/recipes/mongo-search' },
+                        { text: 'Testing with the Memory Adapter', link: '/guide/recipes/testing-memory' },
                         { text: 'Authorization & Scoping', link: '/guide/recipes/authorization' },
                     ],
                 },

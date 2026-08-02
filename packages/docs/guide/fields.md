@@ -1,6 +1,6 @@
 # Fields
 
-Select which resource fields are returned — or extend/shrink the server's default selection.
+Select which resource fields are returned, or extend/shrink the server's default selection.
 
 | | |
 |---|---|
@@ -13,9 +13,12 @@ Select which resource fields are returned — or extend/shrink the server's defa
 ```txt
 fields=id,name,email          one list for the root resource
 fields[items]=id,name         per-relation lists
+fields[$root]=id,name         root list when combined with per-relation lists
 fields=+email                 extend the default selection
 fields=-name                  shrink it
 ```
+
+A lone root list keeps the bare `fields=` form. As soon as root and relation fieldsets travel together, the [URL codec](/guide/wire) spells the root group with the reserved `$root` token (`fields[$root]=id,name&fields[items]=id`); a bare `fields=` cannot be combined with `fields[...]=` groups in the same URL.
 
 The equivalent parser input shapes (what [`SimpleParser`](/packages/parser-simple) and the [URL decoder](/guide/wire) accept):
 
@@ -33,11 +36,11 @@ A field name can carry a prefix that changes how it combines with the schema's `
 | Syntax | Meaning |
 |---|---|
 | `name` | Select this field (replaces the default selection). |
-| `+name` | **Include** — extends the default selection instead of replacing it. |
-| `-name` | **Exclude** — removes the field from the selection. |
+| `+name` | **Include**: extends the default selection instead of replacing it. |
+| `-name` | **Exclude**: removes the field from the selection. |
 
 ```typescript
-// schema default is ['id', 'name'] —
+// schema default is ['id', 'name']
 { fields: '+email' }   // → id, name, email
 { fields: '-name' }    // → id
 ```
@@ -46,7 +49,7 @@ In the AST, the prefix becomes `Field.operator` (`FieldOperator.INCLUDE` / `Fiel
 
 ## Building in code
 
-The same shapes work as typed [build input](/guide/building-queries) — field paths checked against the record type:
+The same shapes work as typed [build input](/guide/building-queries); field paths are checked against the record type:
 
 ```typescript
 defineQuery<User>({ fields: ['id', '+email'] });
@@ -56,7 +59,7 @@ defineFields<User>(['id', 'name']);   // standalone fragment
 
 ## Fields of related records
 
-Fields of a relation use the relation name as key (or a `relation.field` path) and validate against the **related** schema, resolved through [`schemaMapping`](/guide/schemas#the-registry--relations). The relation itself must be allowed and requested via [relations](/guide/relations).
+Fields of a relation use the relation name as key (or a `relation.field` path) and validate against the **related** schema, resolved through [`schemaMapping`](/guide/schemas#the-registry-relations). The relation itself must be allowed and requested via [relations](/guide/relations).
 
 ```typescript
 {
@@ -84,7 +87,7 @@ defineSchema<User>({
 | `allowed` | Selectable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Selection when the client sends nothing (or only `+`/`-` modifiers). |
 | `mapping` | Alias → field translation applied before validation. |
-| `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks--parse-context): accept, reject, or gate a field per actor. |
+| `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks-parse-context): accept, reject, or gate a field per actor. |
 
 ## Row-scoped fields
 

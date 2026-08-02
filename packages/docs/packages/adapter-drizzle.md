@@ -160,6 +160,19 @@ defineSchema<User>({
 });
 ```
 
+The declaration is not consumed automatically: the receiving side forwards it to the adapter, mirroring the [shared contract](/guide/filters#case-sensitivity). The adapter takes `caseSensitive` as a top-level constructor option (a field list, or `true` to opt every field out), and `execute` accepts it as a per-call override:
+
+```typescript
+const adapter = new DrizzleAdapter({
+    provider: 'pg',
+    metadata,
+    caseSensitive: schema.filters.caseSensitive,
+});
+
+// per call, overriding the constructor value:
+adapter.execute(query, { caseSensitive: true });
+```
+
 ## Limitations
 
 Operators without a drizzle filter equivalent raise a typed `AdapterError` (`FEATURE_UNSUPPORTED`) instead of being approximated:

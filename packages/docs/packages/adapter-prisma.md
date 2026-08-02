@@ -207,7 +207,7 @@ A record whose elements satisfy the two conditions only separately does not matc
 String comparison is [case-insensitive by default](/guide/filters#case-sensitivity) across all rapiq backends. Prisma expresses that with `mode: 'insensitive'`, which only some connectors accept, so the adapter takes a provider:
 
 ```typescript
-new PrismaAdapter({ provider: 'mysql' });
+new PrismaAdapter({ provider: 'mysql', metadata });
 ```
 
 | provider | behavior |
@@ -233,6 +233,19 @@ Opt individual fields out through the schema:
 defineSchema<User>({
     filters: { allowed: ['id', 'token'], caseSensitive: ['token'] },
 });
+```
+
+The declaration is not consumed automatically: the receiving side forwards it to the adapter, mirroring the [shared contract](/guide/filters#case-sensitivity). The adapter takes `caseSensitive` as a top-level constructor option (a field list, or `true` to opt every field out), and `execute` accepts it as a per-call override:
+
+```typescript
+const adapter = new PrismaAdapter({
+    provider: 'postgresql',
+    metadata,
+    caseSensitive: schema.filters.caseSensitive,
+});
+
+// per call, overriding the constructor value:
+adapter.execute(query, { caseSensitive: true });
 ```
 
 ## Limitations

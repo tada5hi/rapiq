@@ -20,15 +20,15 @@ const [entities, total] = await queryBuilder.getManyAndCount();`;
                     Straight into TypeORM
                 </h2>
                 <p class="rq-typeorm-tagline">
-                    Apply a parsed Query directly to a SelectQueryBuilder —
+                    Apply a parsed Query directly to a SelectQueryBuilder:
                     the adapter walks the AST and mutates the builder, nothing
                     is stringified twice.
                 </p>
                 <ul class="rq-typeorm-list">
-                    <li><strong>TypeormAdapter</strong> — wraps any SelectQueryBuilder</li>
-                    <li><strong>Visitor-driven</strong> — reuses the @rapiq/adapter-sql visitors</li>
-                    <li><strong>Relations → joins</strong> — allowed relations join automatically</li>
-                    <li><strong>Parameterized</strong> — filter values bind as parameters, never interpolated</li>
+                    <li><strong>TypeormAdapter</strong>: wraps any SelectQueryBuilder</li>
+                    <li><strong>Visitor-driven</strong>: reuses the @rapiq/adapter-sql visitors</li>
+                    <li><strong>Relations → joins</strong>: allowed relations join automatically</li>
+                    <li><strong>Parameterized</strong>: filter values bind as parameters, never interpolated</li>
                 </ul>
                 <a
                     class="rq-btn rq-btn-primary"

@@ -75,7 +75,7 @@ const layers: Layer[] = [
             </div>
         </div>
         <figcaption class="rq-layers-caption">
-            Each band depends only on the bands above it — internal
+            Each band depends only on the bands above it; internal
             dependencies are peer dependencies, so npm installs nothing
             you didn't ask for.
         </figcaption>

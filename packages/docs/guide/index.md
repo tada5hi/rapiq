@@ -1,6 +1,6 @@
 # What is rapiq?
 
-Rapiq (**R**est **Api** **Q**uery) gives the two sides of an HTTP API **one shared query language** for list endpoints — filtering, sorting, pagination, sparse field selection and relation loading, modeled after the [JSON:API](https://jsonapi.org/format/) query parameters.
+Rapiq (**R**est **Api** **Q**uery) gives the two sides of an HTTP API **one shared query language** for list endpoints: filtering, sorting, pagination, sparse field selection and relation loading, modeled after the [JSON:API](https://jsonapi.org/format/) query parameters.
 
 The caller builds a **typed query**, sends it as an ordinary URL query string, and the receiving application validates it against an **allow-list schema** before turning it into a database query. No hand-rolled `req.query` parsing, no string concatenation, no guessing which parameters a client may touch.
 
@@ -10,7 +10,7 @@ The caller builds a **typed query**, sends it as an ordinary URL query string, a
 
 ## The 30-second tour
 
-**Caller** — build a query against your record type and encode it:
+**Caller**: build a query against your record type and encode it:
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
@@ -26,7 +26,7 @@ const query = defineQuery<User>({
 const response = await fetch(`/users?${createURLCodec().encode(query)}`);
 ```
 
-**Receiver** — decode it against a schema that says what clients may request, then hand it to your database:
+**Receiver**: decode it against a schema that says what clients may request, then hand it to your database:
 
 ```typescript
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
@@ -43,6 +43,10 @@ registry.add(defineSchema<User>({
 }));
 
 const query = createURLCodec(registry).decode(req.query, { schema: 'user' });
+if (!query) {
+    // null for non-object input
+    return res.status(400).end();
+}
 
 new TypeormAdapter({ queryBuilder }).execute(query);
 const [entities, total] = await queryBuilder.getManyAndCount();
@@ -52,14 +56,14 @@ Everything a client sends is constrained before it reaches the database. Most pa
 
 ## How it works
 
-A query passes through four stages — and every rapiq package plays exactly one role in one of them:
+A query passes through four stages, and every rapiq package plays exactly one role in one of them:
 
 <QueryPipeline />
 
-1. **Build** — the caller describes what it wants with [`defineQuery`](/guide/building-queries), typed against the record.
-2. **Send** — a [codec](/guide/wire) turns the query into an ordinary URL query string, and back.
-3. **Validate** — the receiver parses against a [schema](/guide/schemas): the allow-list decides what survives.
-4. **Execute** — an [adapter](/guide/executing-queries) translates the validated query for your backend.
+1. **Build**: the caller describes what it wants with [`defineQuery`](/guide/building-queries), typed against the record.
+2. **Send**: a [codec](/guide/wire) turns the query into an ordinary URL query string, and back.
+3. **Validate**: the receiver parses against a [schema](/guide/schemas); the allow-list decides what survives.
+4. **Execute**: an [adapter](/guide/executing-queries) translates the validated query for your backend.
 
 Because the pieces only meet in the [`Query`](/guide/query-ast), they compose freely: swap the wire dialect without touching the database code, add a new backend without touching the parsers, or skip the wire entirely and evaluate a query in memory.
 
@@ -75,11 +79,11 @@ Because the pieces only meet in the [`Query`](/guide/query-ast), they compose fr
 
 ## The package family
 
-Install only what each side of your application needs — `@rapiq/core` is the shared foundation.
+Install only what each side of your application needs; `@rapiq/core` is the shared foundation.
 
 | Role | Packages |
 |---|---|
-| **Build & compose** | [@rapiq/core](/packages/core) — the query AST, `defineQuery`, condition helpers, schemas |
+| **Build & compose** | [@rapiq/core](/packages/core): the query AST, `defineQuery`, condition helpers, schemas |
 | **Parse input** | [@rapiq/parser-simple](/packages/parser-simple) · [@rapiq/parser-expression](/packages/parser-expression) · [@rapiq/parser-mongo](/packages/parser-mongo) |
 | **Cross the wire** | [@rapiq/codec-url](/packages/codec-url) |
 | **Execute** | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) · [@rapiq/adapter-sql](/packages/adapter-sql) · [@rapiq/adapter-prisma](/packages/adapter-prisma) · [@rapiq/adapter-drizzle](/packages/adapter-drizzle) · [@rapiq/adapter-memory](/packages/adapter-memory) |
@@ -90,9 +94,9 @@ See the [package overview](/packages/) for the full map and a "which packages do
 
 - Your API exposes **list endpoints** and clients need to filter, sort, paginate or shape the result.
 - You want the query surface **declared, typed and enforced** instead of scattered across handlers.
-- You want the **same query semantics** everywhere — SQL, TypeORM, Prisma, Drizzle, in-memory guards, tests.
+- You want the **same query semantics** everywhere: SQL, TypeORM, Prisma, Drizzle, in-memory guards, tests.
 
-It deliberately does **not** define the response format, replace your ORM, or generate endpoints — it only standardizes what a query *is* and what a client *may* ask for.
+It deliberately does **not** define the response format, replace your ORM, or generate endpoints; it only standardizes what a query *is* and what a client *may* ask for.
 
 ::: warning Version 2
 These docs cover the upcoming **version 2**, which splits the former single `rapiq` package into focused `@rapiq/*` packages. The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/tree/v1); see [Migration from v1](/guide/migration-v1).
@@ -100,6 +104,6 @@ These docs cover the upcoming **version 2**, which splits the former single `rap
 
 ## Next steps
 
-- [Installation](/guide/installation) — add the packages for your side of the wire.
-- [Quick Start](/guide/quick-start) — caller to database in one walkthrough.
-- [Core Concepts](/guide/concepts) — the four moving parts, explained once.
+- [Installation](/guide/installation): add the packages for your side of the wire.
+- [Quick Start](/guide/quick-start): caller to database in one walkthrough.
+- [Core Concepts](/guide/concepts): the four moving parts, explained once.

@@ -9,32 +9,32 @@ const features: Feature[] = [
     {
         icon: '🌐',
         title: 'JSON:API-style',
-        detail: 'Fields, filters, relations, pagination & sort — one consistent query scheme based on the JSON:API specification.',
+        detail: 'Fields, filters, relations, pagination & sort: one consistent query scheme based on the JSON:API specification.',
     },
     {
         icon: '🌲',
         title: 'Typed query AST',
-        detail: 'Input parses into Query nodes that backends consume via the visitor pattern — new targets never touch core.',
+        detail: 'Input parses into Query nodes that backends consume via the visitor pattern; new targets never touch core.',
     },
     {
         icon: '🛡️',
         title: 'Schema allow-lists',
-        detail: 'Declare what clients may request — allowed keys, defaults, mappings. Disallowed input is dropped or throws.',
+        detail: 'Declare what clients may request: allowed keys, defaults, mappings. Disallowed input is dropped or throws.',
     },
     {
         icon: '🧩',
         title: 'Pluggable parsers',
-        detail: 'Parse plain objects or an expression language — both dialects produce the exact same Query AST.',
+        detail: 'Plain objects, expression strings or MongoDB-style documents: every dialect produces the exact same Query AST.',
     },
     {
         icon: '🗄️',
-        title: 'SQL & TypeORM',
-        detail: 'Render parameterized SQL for five dialects, or apply a Query straight to a TypeORM SelectQueryBuilder.',
+        title: 'Any backend',
+        detail: 'One AST, five adapters: parameterized SQL, a TypeORM SelectQueryBuilder, Prisma args, a Drizzle query config or plain functions over in-memory data.',
     },
     {
         icon: '🔒',
         title: 'TypeScript-first',
-        detail: 'Typed key paths via recursive NestedKeys<T> — allow-lists and defaults autocomplete against your records.',
+        detail: 'Typed key paths via recursive NestedKeys<T>: allow-lists and defaults autocomplete against your records.',
     },
 ];
 </script>

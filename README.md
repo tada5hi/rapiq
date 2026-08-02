@@ -41,10 +41,10 @@ Every REST list endpoint answers the same five questions: which **fields**, whic
 
 | Stage | What happens |
 |---|---|
-| **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: gte(18) }, sort: '-name' })`: typed input in, query AST out |
+| **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: { $gte: 18 } }, sort: '-name' })`: typed input in, query AST out |
 | **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
 | **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
-| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`), as Prisma arguments (`@rapiq/adapter-prisma`) or as a Drizzle relational query config (`@rapiq/adapter-drizzle`) |
+| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`), as Prisma arguments (`@rapiq/adapter-prisma`), as a Drizzle relational query config (`@rapiq/adapter-drizzle`) or evaluated against in-memory data (`@rapiq/adapter-memory`) |
 
 The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
 an API gateway, for instance, validates an incoming query against its own schema, scopes it

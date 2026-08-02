@@ -1,6 +1,6 @@
 # Migration from v1
 
-v2 splits the single `rapiq` package into focused `@rapiq/*` packages and replaces string-building with a typed query AST. This page is a running log of the intentional changes — it is assembled into a full step-by-step guide as v2 stabilizes.
+v2 splits the single `rapiq` package into focused `@rapiq/*` packages and replaces string-building with a typed query AST. This page is a running log of the intentional changes; it is assembled into a full step-by-step guide as v2 stabilizes.
 
 ::: info v1 docs
 The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/tree/v1).
@@ -10,7 +10,7 @@ The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/t
 
 | v1 | v2 |
 |---|---|
-| `rapiq` (everything) | `@rapiq/core` + the packages for your side of the wire — see [Installation](/guide/installation) |
+| `rapiq` (everything) | `@rapiq/core` + the packages for your side of the wire (see [Installation](/guide/installation)) |
 
 ## API mapping
 
@@ -24,19 +24,19 @@ The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/t
 
 ### Filters: `~` prefix position (breaking)
 
-In v1, `~text` meant *starts with* (`text%`) — the only LIKE form the dialect had. v2 uses a richer, position-based mapping:
+In v1, `~text` meant *starts with* (`text%`): the only LIKE form the dialect had. v2 uses a richer, position-based mapping:
 
 | Wire value | v1 | v2 |
 |---|---|---|
-| `text~` | — | starts with (`text%`) |
+| `text~` | (none) | starts with (`text%`) |
 | `~text` | starts with (`text%`) | ends with (`%text`) |
-| `~text~` | — | contains (`%text%`) |
+| `~text~` | (none) | contains (`%text%`) |
 
-**v1 clients sending `~text` change meaning from starts-with to ends-with.** Rewrite them to `text~` — or move to typed [condition helpers](/guide/building-queries#condition-helpers) / the [expression dialect](/packages/codec-url#expression-dialect), which have no positional magic.
+**v1 clients sending `~text` change meaning from starts-with to ends-with.** Rewrite them to `text~`, or move to typed [condition helpers](/guide/building-queries#condition-helpers) / the [expression dialect](/packages/codec-url#expression-dialect), which have no positional magic.
 
 ### Filters: magic value strings are wire-only
 
-v1 accepted `'>=18'`, `'~jo~'`, `'!null'` as *build input*. In v2, the string prefixes remain part of the wire format only — build input uses operator objects (`{ $gte: 18 }`, `{ $contains: 'jo' }`, `{ $ne: null }`) or condition helpers.
+v1 accepted `'>=18'`, `'~jo~'`, `'!null'` as *build input*. In v2, the string prefixes remain part of the wire format only; build input uses operator objects (`{ $gte: 18 }`, `{ $contains: 'jo' }`, `{ $ne: null }`) or condition helpers.
 
 ### Expression dialect: quoted values are never comma-split
 
@@ -52,7 +52,7 @@ The v2 URL codec writes stamped expression filters by default. Its decoder still
 
 ### Filters: string equality is case-insensitive (breaking)
 
-In v1, `eq`/`in` on strings delegated case behavior to the database — the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/adapter-sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
+In v1, `eq`/`in` on strings delegated case behavior to the database: the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/adapter-sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
 
 ## Coming from typeorm-extension?
 

@@ -1,12 +1,12 @@
 # @rapiq/parser-simple
 
-Parses plain object/array input — the URL-query-like "simple" dialect — into a [`Query`](/guide/query-ast). The [URL codec](/packages/codec-url) uses it for shared parameter parsing and legacy bracket-filter compatibility.
+Parses plain object/array input (the URL-query-like "simple" dialect) into a [`Query`](/guide/query-ast). The [URL codec](/packages/codec-url) uses it for shared parameter parsing and legacy bracket-filter compatibility.
 
 ```sh
 npm install @rapiq/core @rapiq/parser-simple
 ```
 
-**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) — e.g. a JSON request body or an internal call. For raw URL input, use [`@rapiq/codec-url`](/packages/codec-url) instead.
+**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`), e.g. a JSON request body or an internal call. For raw URL input, use [`@rapiq/codec-url`](/packages/codec-url) instead.
 
 ## Usage
 
@@ -41,7 +41,8 @@ const query = parser.parse({
 |---|---|
 | `schema` | A `Schema` instance or the name of a registered schema. Omit to parse without validation. |
 | `strict` | Override the schema's [strict mode](/guide/schemas#strict-mode) for this call. |
-| `parameters` | Allow-list of parameters to parse, e.g. `['filters']`. A parameter not listed is neither parsed nor defaulted — the resulting `Query` leaves it empty, exactly as if neither input nor schema mentioned it. |
+| `parameters` | Allow-list of parameters to parse, e.g. `['filters']`. A parameter not listed is neither parsed nor defaulted: the resulting `Query` leaves it empty, exactly as if neither input nor schema mentioned it. |
+| `context` | Caller-defined value (e.g. the authenticated actor) forwarded to every [schema validate hook](/guide/schemas#validate-hooks-parse-context) this parse run invokes. Opaque to the parser; typing happens at the schema definition site (`defineSchema<RECORD, CONTEXT>`). |
 | `fields` / `filters` / `relations` / `pagination` / `sort` | Set to `false` to skip a parameter entirely. |
 
 If `filters.validate` may return a Promise, use `await parser.parseAsync(input, options)`. `parse()` remains synchronous for schemas whose validators are synchronous and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` if it encounters an async result.
@@ -53,7 +54,7 @@ A parameter absent from the input is still parsed, so schema defaults always app
 To keep schema defaults from materializing for parameters you do not intend to apply, mask them with the `parameters` option:
 
 ```typescript
-// a bulk delete must apply filters only — masking pagination keeps
+// a bulk delete must apply filters only: masking pagination keeps
 // the schema's maxLimit from silently truncating the row selection.
 const query = parser.parse(input, {
     schema: 'user',
@@ -61,21 +62,21 @@ const query = parser.parse(input, {
 });
 ```
 
-Masked-out relations do not gate relation paths in the other parameters — they resolve exactly as if the client had requested no relations.
+Masked-out relations do not gate relation paths in the other parameters; they resolve exactly as if the client had requested no relations.
 
 ## Input formats
 
 Per-parameter input shapes and the wire operator syntax are documented on the parameter pages:
 
-- [Fields](/guide/fields) — arrays, comma strings, `+`/`-` modifiers, per-relation records
-- [Filters](/guide/filters) — `!`, `<`, `<=`, `>`, `>=`, `~…~`, comma lists, `null`
-- [Pagination](/guide/pagination) — `{ limit, offset }`
-- [Relations](/guide/relations) — comma strings, arrays, dotted paths
-- [Sort](/guide/sort) — `-` prefix, comma lists, direction objects
+- [Fields](/guide/fields): arrays, comma strings, `+`/`-` modifiers, per-relation records
+- [Filters](/guide/filters): `!`, `<`, `<=`, `>`, `>=`, `~…~`, comma lists, `null`
+- [Pagination](/guide/pagination): `{ limit, offset }`
+- [Relations](/guide/relations): comma strings, arrays, dotted paths
+- [Sort](/guide/sort): `-` prefix, comma lists, direction objects
 
 ## Per-parameter parsers
 
-Each parameter also has a standalone parser class — `SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser` — with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
+Each parameter also has a standalone parser class (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser`) with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
 
 ### Typed filter input
 
@@ -100,11 +101,24 @@ const filters = filtersParser.parseTyped<User>({
 }, { schema: 'user' });
 ```
 
-Two deliberate gaps: the comparison family advertises no `!` spellings — a leading `!` before `<`/`>` markers is discarded on decode (a frozen v1 quirk) — and boolean fields accept no marker forms at all, only `true`/`false`/`null`/`'!null'`, because `'!true'` decodes to *not equal `true`*, which as an [exact complement](/guide/filters#null-semantics) also matches `null`/missing — it is not *equal `false`*.
+Two deliberate gaps: the comparison family advertises no `!` spellings (a leading `!` before `<`/`>` markers is discarded on decode, a frozen v1 quirk), and boolean fields accept no marker forms at all, only `true`/`false`/`null`/`'!null'`, because `'!true'` decodes to *not equal `true`*, which as an [exact complement](/guide/filters#null-semantics) also matches `null`/missing; it is not *equal `false`*.
 
 ::: info Widened in v2
-Earlier v2 betas hand-wrote this union with prefix spellings only — `~V~` (contains), `V~` (starts with) and their negated forms `!~V~` / `!V~` were compile-time errors, even though the wire grammar always decoded them. The union now derives from the wire table, so those spellings type-check. This is a type-level widening only: the wire format is byte-for-byte unchanged and stays v1-compatible.
+Earlier v2 betas hand-wrote this union with prefix spellings only: `~V~` (contains), `V~` (starts with) and their negated forms `!~V~` / `!V~` were compile-time errors, even though the wire grammar always decoded them. The union now derives from the wire table, so those spellings type-check. This is a type-level widening only: the wire format is byte-for-byte unchanged and stays v1-compatible.
 :::
+
+## Wire grammar API
+
+The filter value grammar itself is public: the single source for scalar coercion and operator-marker parsing shared by the parsers and the [URL codec](/packages/codec-url). Reach for it when a custom dialect or codec must stay byte-compatible with the simple wire format instead of re-implementing it; ordinary applications never touch it, the parser classes above consume it internally.
+
+| Export | Role |
+|---|---|
+| `FILTER_WIRE_SPEC` | The marker table: prefix/suffix spelling and value mode per positive operator. Declared order is decode precedence. `in`/`nin` own no rows; a comma-joined list is a value shape, lifted on decode. |
+| `FILTER_WIRE_NEGATION` | The `!` modifier. It binds only to operators with a complement twin in core's `FILTER_OPERATOR_SEMANTICS`; elsewhere a stripped `!` is discarded (frozen v1 quirk). |
+| `decodeFilterWireValue(input)` | Wire value in, verdict out (`FilterWireDecodeResult`): a decoded `{ operator, value }` condition or a failure code. Never throws; drop vs. throw stays the caller's policy. |
+| `encodeFilterWireValue(condition)` | Condition leaf in, wire token out. Throws typed errors for operators without a wire spelling and for values the dialect cannot express (commas, empties, marker collisions). |
+| `parseFilterScalar(input)` | The pure scalar coercion (`'18'` → `18`, `'true'` → `true`, `'null'` → `null`) shared by the simple and expression dialects. No comma splitting. |
+| `FilterWire*` types | `FilterWireCondition`, `FilterWireDecodeResult`, `FilterWireSpelling`, `FilterWireValueInput` and friends; the [typed filter input](#typed-filter-input) union derives from the same table. |
 
 ## Errors
 
