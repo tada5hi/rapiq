@@ -80,15 +80,19 @@ describe('src/provider/module.ts', () => {
     });
 
     it('should reject an inherited object member as a provider name', () => {
-        // `valueOf` resolves through Object.prototype on a naive
-        // lookup and would pose as a preset.
+        // only all-lowercase Object.prototype members (`constructor`,
+        // `__proto__`) survive the lowercasing and can reach the
+        // prototype chain on a naive lookup; the camel-case spellings
+        // pin the contract for names the normalization already blocks.
+        expect(resolveProvider('constructor')).toBeUndefined();
+        expect(resolveProvider('__proto__')).toBeUndefined();
         expect(resolveProvider('valueOf')).toBeUndefined();
         expect(resolveProvider('toString')).toBeUndefined();
 
-        expect(() => new PrismaAdapter({ provider: 'valueOf', metadata })).toThrowError(
+        expect(() => new PrismaAdapter({ provider: 'constructor', metadata })).toThrowError(
             expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED }),
         );
-        expect(() => new PrismaAdapter({ provider: 'toString', metadata })).toThrowError(
+        expect(() => new PrismaAdapter({ provider: '__proto__', metadata })).toThrowError(
             expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED }),
         );
     });
