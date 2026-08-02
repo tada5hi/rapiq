@@ -76,6 +76,20 @@
                 </a>
                 <a
                     class="rq-pipe-adapter"
+                    href="/packages/adapter-prisma"
+                >
+                    <strong>@rapiq/adapter-prisma</strong>
+                    <span>findMany args</span>
+                </a>
+                <a
+                    class="rq-pipe-adapter"
+                    href="/packages/adapter-drizzle"
+                >
+                    <strong>@rapiq/adapter-drizzle</strong>
+                    <span>findMany config</span>
+                </a>
+                <a
+                    class="rq-pipe-adapter"
                     href="/packages/adapter-memory"
                 >
                     <strong>@rapiq/adapter-memory</strong>

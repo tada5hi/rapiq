@@ -37,6 +37,12 @@ npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeo
 npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-prisma
 ```
 
+**An HTTP API backed by Drizzle:**
+
+```sh
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-drizzle
+```
+
 **An HTTP API composing SQL by hand:**
 
 ```sh

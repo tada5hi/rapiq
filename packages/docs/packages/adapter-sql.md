@@ -143,3 +143,20 @@ The [`ITSELF` marker](/guide/filters#operators) — an `elemMatch` interior cond
 ### size (array length)
 
 The [`size` operator](/guide/filters#operators) has no SQL rendering either — an array-length check needs per-dialect JSON-array support (`json_array_length` on Postgres/SQLite, `JSON_LENGTH` on MySQL, `cardinality` for Postgres arrays). Both `@rapiq/adapter-sql` and `@rapiq/adapter-typeorm` throw a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`); evaluate such filters with [`@rapiq/adapter-memory`](/packages/adapter-memory) in the meantime.
+
+## Field visibility gates
+
+A schema's `fields` [validate hook](/guide/schemas#condition-verdicts) may gate a column with a condition, meaning *visible only on rows satisfying it*. The rendered SQL cannot express that: a selection stays a bare escaped column, so the column is projected for **every** row and the gate has to be enforced on the fetched rows.
+
+The gate is compiled from the same AST the adapter walks, so the helper that applies it lives in [`@rapiq/adapter-memory`](/packages/adapter-memory), the package that evaluates conditions against plain objects. Install it alongside this one when a schema gates a field:
+
+```typescript
+import { applyFieldConditions } from '@rapiq/adapter-memory';
+
+const fragments = adapter.execute(query);
+const rows = await driver.query(assemble(fragments));
+
+const output = applyFieldConditions(query.fields, rows);
+```
+
+Skipping this step fails open: consumers receive the gated column unredacted.

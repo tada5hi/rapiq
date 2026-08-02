@@ -92,9 +92,11 @@ Adapters execute a `Query` against a backend:
 
 - [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) — mutates a TypeORM `SelectQueryBuilder`
 - [`@rapiq/adapter-sql`](/packages/adapter-sql) — renders parameterized SQL fragments for any driver
+- [`@rapiq/adapter-prisma`](/packages/adapter-prisma) — serializes the query into a Prisma `findMany` args object
+- [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle) — serializes the query into a drizzle relational-queries `findMany` config
 - [`@rapiq/adapter-memory`](/packages/adapter-memory) — compiles the query into plain functions over in-memory data
 
-They all consume the AST through the **visitor pattern**: every node has `accept(visitor)`, and a backend implements visitor interfaces for the nodes it cares about. New backends never require changes to core — see [The Query AST](/guide/query-ast) if you want to build one.
+They all consume the same AST: the SQL-facing pair walk it through the **visitor pattern** (every node has `accept(visitor)`), prisma and drizzle serialize it into plain config values, and memory compiles it into functions. New backends never require changes to core — see [The Query AST](/guide/query-ast) if you want to build one.
 
 ## Composition — queries are values
 
@@ -124,7 +126,7 @@ Both patterns are covered in [Merging & Composition](/guide/merging-queries).
 | Build | `@rapiq/core` (`defineQuery`, helpers) |
 | Transport | `@rapiq/codec-url` |
 | Parse & validate | `@rapiq/parser-simple`, `@rapiq/parser-expression`, `@rapiq/parser-mongo` + `Schema` from core |
-| Execute | `@rapiq/adapter-typeorm`, `@rapiq/adapter-sql`, `@rapiq/adapter-memory` |
+| Execute | `@rapiq/adapter-typeorm`, `@rapiq/adapter-sql`, `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle`, `@rapiq/adapter-memory` |
 
 ## Next steps
 

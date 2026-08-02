@@ -53,7 +53,7 @@ an API gateway, for instance, validates an incoming query against its own schema
 - 🧭 **Typed end to end**: every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
 - 🛡️ **The receiving side has the last word**: a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
 - 🔁 **Loss-free transport**: within each codec dialect, `decode(encode(query))` restores the same query; outside its subset, encoding fails loudly with a typed error instead of silently changing semantics.
-- 🔌 **Any backend**: the AST is consumed through visitors: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, or applied straight to a TypeORM `SelectQueryBuilder`.
+- 🔌 **Any backend**: the same AST executes everywhere: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, a TypeORM `SelectQueryBuilder`, a Prisma `findMany` args object, a drizzle relational-queries config, or compiled functions over in-memory data.
 - 📦 **Composable packages**: no monolith, install only what each side needs; `@rapiq/core` is the single shared foundation.
 
 ## Installation
@@ -68,7 +68,9 @@ Querying application, build queries and encode them as URL query strings:
 npm install @rapiq/core @rapiq/codec-url
 ```
 
-Queried application, decode & validate incoming query input and apply it to the database:
+Queried application, decode & validate incoming query input and apply it to the database
+(swap the adapters for `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle` or
+`@rapiq/adapter-memory` to match your backend):
 
 ```bash
 npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeorm
