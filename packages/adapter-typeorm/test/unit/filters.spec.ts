@@ -406,7 +406,7 @@ describe('src/filters', () => {
                     new Filter(FilterFieldOperator.EQUAL, 'first_name', 'ASTON'),
                 ]),
             }),
-            { visitor: { caseSensitive: ['first_name'] } },
+            { caseSensitive: ['first_name'] },
         );
 
         const data = await queryBuilder.getMany();
@@ -425,7 +425,7 @@ describe('src/filters', () => {
                     new Filter(FilterFieldOperator.EQUAL, 'first_name', 'ASTON'),
                 ]),
             }),
-            { visitor: { caseSensitive: true } },
+            { caseSensitive: true },
         );
 
         const data = await queryBuilder.getMany();

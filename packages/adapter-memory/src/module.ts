@@ -33,7 +33,13 @@ import type {
 } from './types';
 
 export type QueryVisitorOptions = {
-    filters?: FiltersVisitorOptions,
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default;
+     * `true` opts every field out. Typically forwarded from a
+     * schema's `filters.caseSensitive` list.
+     */
+    caseSensitive?: string[] | boolean,
 };
 
 export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<CompiledQuery<T>> {
@@ -58,7 +64,7 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         if (hasPicks || hasConditions) {
             projector = expr.fields.accept(new FieldsVisitor<T>({
                 relations,
-                filters: this.options.filters,
+                filters: { caseSensitive: this.options.caseSensitive },
             }));
         }
 
@@ -68,7 +74,7 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         }
 
         return new CompiledQuery<T>({
-            predicate: expr.filters.accept(new FiltersVisitor(this.options.filters)),
+            predicate: expr.filters.accept(new FiltersVisitor({ caseSensitive: this.options.caseSensitive })),
             comparator,
             projector,
             slicer: expr.pagination.accept(new PaginationVisitor()),

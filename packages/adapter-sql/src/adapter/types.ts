@@ -6,7 +6,6 @@
  */
 
 import type { IQuery } from '@rapiq/core';
-import type { VisitorOptions } from '../visitor/types';
 import type { IFieldsAdapter } from './fields';
 import type { IFiltersAdapter } from './filters';
 import type { IPaginationAdapter } from './pagination';
@@ -26,10 +25,13 @@ export type ExecuteOptions = {
     clear?: boolean,
 
     /**
-     * Options forwarded to the {@link QueryVisitor} (and its sub-visitors)
-     * that walks the query.
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default, e.g.
+     * identifier or token columns; `true` opts every field out.
+     * Typically forwarded from a schema's `filters.caseSensitive`
+     * list.
      */
-    visitor?: VisitorOptions,
+    caseSensitive?: string[] | boolean,
 };
 
 /**

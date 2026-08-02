@@ -78,7 +78,7 @@ The package aims for **SQL parity**: the same query should select the same recor
 String **equality** (`eq` / `ne` / `in` / `nin`) is [case-insensitive by default](/guide/filters#case-sensitivity) too. Opt fields out via the `caseSensitive` option, mirroring a schema's `filters.caseSensitive` list:
 
 ```typescript
-applyQuery(query, users, { filters: { caseSensitive: ['id'] } });
+applyQuery(query, users, { caseSensitive: ['id'] });
 compileFilters(eq('id', 'aBc'), { caseSensitive: ['id'] });
 ```
 

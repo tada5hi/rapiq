@@ -54,7 +54,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
             this.clear();
         }
 
-        query.accept(new QueryVisitor(this, options.visitor));
+        query.accept(new QueryVisitor(this, { caseSensitive: options.caseSensitive }));
 
         // ordering is load-bearing: fields.execute() calls queryBuilder.select()
         // (which resets the select list), while relations.execute() *appends*
