@@ -1,5 +1,7 @@
 # REST API with Express & TypeORM
 
+*Chapter 3 of the [recipes storyline](/guide/recipes/): the server baseline of the realm/user API, receiving what [the frontend chapter](/guide/recipes/frontend) sends. Next: [swapping the backend for Prisma or Drizzle](/guide/recipes/prisma-drizzle).*
+
 The complete, production-shaped list endpoint: schemas in one module, a decoder shared across handlers, per-request adapters, a `meta` block in the response and clean `400`s for contract violations.
 
 ## Project layout
@@ -56,7 +58,7 @@ import { registry } from './schema';
 export const codec = createURLCodec(registry);
 ```
 
-The codec is stateless between calls — share one instance across all routes.
+The codec is stateless between calls; share one instance across all routes.
 
 ## 3. The endpoint
 
@@ -110,12 +112,12 @@ export async function getUsers(req: Request, res: Response) {
 GET /users                                            defaults: id+name, sorted -id, limit 50
 GET /users?filter[age]=>=18&sort=-age                 filtered & sorted
 GET /users?include=realm&fields[realm]=name           relation + sparse fields
-GET /users?page[limit]=10&page[offset]=20             paged, capped at 50
-GET /users?filter[secret]=x                           400 — key not allowed
+GET /users?page[limit]=10&page[offset]=20             paged; a limit above 50 is a 400
+GET /users?filter[secret]=x                           400: key not allowed
 ```
 
 ## Variations
 
-- **Scope by the authenticated user** — inject filters the client can't displace: [Authorization & scoping](/guide/recipes/authorization).
-- **No TypeORM** — swap the adapter for [`@rapiq/adapter-sql`](/packages/adapter-sql) fragments; the decode half stays identical.
-- **Migrate old clients gradually** — the codec writes expressions but continues to recognize legacy bracket-filter input; see [Queries over the Wire](/guide/wire).
+- **Scope by the authenticated user**: inject filters the client cannot displace; see [Authorization & Scoping](/guide/recipes/authorization).
+- **No TypeORM**: the next chapter, [Swapping the Backend: Prisma & Drizzle](/guide/recipes/prisma-drizzle), keeps the contract, codec and routes of this recipe and changes only the execute layer. For raw SQL, swap the adapter for [`@rapiq/adapter-sql`](/packages/adapter-sql) fragments; the decode half stays identical either way.
+- **Migrate old clients gradually**: the codec writes expressions but continues to recognize legacy bracket-filter input; see [Queries over the Wire](/guide/wire).
