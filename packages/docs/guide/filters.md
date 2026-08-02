@@ -169,7 +169,7 @@ adapter.execute(query, { visitor: { caseSensitive: schema.filters.caseSensitive 
 applyQuery(query, data, { filters: { caseSensitive: schema.filters.caseSensitive } });
 ```
 
-Passing `caseSensitive: true` instead of a list keeps **every** equality comparison exact, on all backends: for condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies.
+Passing `caseSensitive: true` instead of a list opts **every** field out of the fold at once: for condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies. The collation caveat below applies unchanged: on the MySQL/MSSQL presets equality delegates to the column collation either way, so a `*_ci` collated column still matches case-insensitively.
 
 Under the hood, `@rapiq/adapter-sql` folds both sides of the comparison — `lower(field) = lower(?)` — and only when the filter value is a string. Dialects whose plain `=` already compares case-insensitively under their default collation (the MySQL and MSSQL presets) skip the folding through the `caseFold` dialect option, so plain indexes stay usable. On folding dialects (Postgres, SQLite, Oracle), add an expression index for hot string filter columns — `CREATE INDEX ON "user" (lower(name))` — or list the column in `caseSensitive`.
 
