@@ -18,6 +18,7 @@ import {
     and,
     eq,
     gte,
+    inArray,
     ne,
     not,
 } from '@rapiq/core';
