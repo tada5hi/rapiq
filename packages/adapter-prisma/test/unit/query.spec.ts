@@ -144,7 +144,7 @@ describe('src/adapter/module.ts', () => {
         const adapter = new PrismaAdapter(createAdapterOptions());
         const query = new Query({ filters: new Filters(FilterCompoundOperator.AND, [eq('first_name', 'Peter')]) });
 
-        adapter.execute(query, { filters: { caseSensitive: true } });
+        adapter.execute(query, { caseSensitive: true });
 
         expect(adapter.execute(query).args.where).toEqual({ first_name: { equals: 'Peter', mode: 'insensitive' } });
     });

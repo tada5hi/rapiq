@@ -147,7 +147,7 @@ export class PrismaAdapter<
 
         const filters = this.renderer.build(
             query.filters,
-            options.filters || this.options.filters || {},
+            { caseSensitive: options.caseSensitive ?? this.options.caseSensitive },
         );
 
         const produced : Args = {};

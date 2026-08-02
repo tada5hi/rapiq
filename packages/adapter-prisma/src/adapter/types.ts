@@ -63,7 +63,14 @@ export type PrismaAdapterExplicitOptions = {
      */
     metadata: IMetadata,
 
-    filters?: FiltersAdapterOptions,
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default, e.g.
+     * identifier or token columns; `true` opts every field out.
+     * Typically forwarded from a schema's `filters.caseSensitive`
+     * list.
+     */
+    caseSensitive?: string[] | boolean,
 };
 
 /**
@@ -92,7 +99,12 @@ export type PrismaAdapterClientOptions = {
 
     metadata?: IMetadata,
 
-    filters?: FiltersAdapterOptions,
+    /**
+     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * case-sensitive instead of the case-insensitive default;
+     * `true` opts every field out.
+     */
+    caseSensitive?: string[] | boolean,
 };
 
 export type PrismaAdapterOptions =    PrismaAdapterExplicitOptions |
@@ -109,7 +121,10 @@ export type ExecuteOptions<ARGS extends Args = Args> = {
      */
     base?: ARGS,
 
-    filters?: FiltersAdapterOptions,
+    /**
+     * Per-call override of the adapter-level `caseSensitive` option.
+     */
+    caseSensitive?: string[] | boolean,
 };
 
 export type PrismaAdapterOutput<ARGS extends Args = Args> = {
