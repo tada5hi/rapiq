@@ -92,7 +92,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
             this.clear();
         }
 
-        query.accept(new QueryVisitor(this, options.visitor));
+        query.accept(new QueryVisitor(this, { caseSensitive: options.caseSensitive }));
 
         const [where, params] = this.filters.getQueryAndParameters();
 

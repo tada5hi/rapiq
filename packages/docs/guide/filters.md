@@ -163,11 +163,13 @@ The receiving side forwards the list to its adapter:
 
 ```typescript
 // @rapiq/adapter-sql & @rapiq/adapter-typeorm
-adapter.execute(query, { visitor: { caseSensitive: schema.filters.caseSensitive } });
+adapter.execute(query, { caseSensitive: schema.filters.caseSensitive });
 
 // @rapiq/adapter-memory
-applyQuery(query, data, { filters: { caseSensitive: schema.filters.caseSensitive } });
+applyQuery(query, data, { caseSensitive: schema.filters.caseSensitive });
 ```
+
+The key is the same on every backend: `@rapiq/adapter-prisma` and `@rapiq/adapter-drizzle` accept `caseSensitive` in their constructor options.
 
 Passing `caseSensitive: true` instead of a list opts **every** field out of the fold at once: for condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies. The collation caveat below applies unchanged: on the MySQL/MSSQL presets equality delegates to the column collation either way, so a `*_ci` collated column still matches case-insensitively.
 

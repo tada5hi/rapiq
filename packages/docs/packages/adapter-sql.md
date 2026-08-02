@@ -129,7 +129,7 @@ String equality (`eq` / `ne` / `in` / `nin`) matches [case-insensitively by defa
 The `mysql` and `mssql` presets set `caseFold` to identity: their default collations (`*_ci`) already compare case-insensitively, and skipping `lower()` keeps plain indexes usable. Fields opted out via the `caseSensitive` visitor option render unfolded on every dialect:
 
 ```typescript
-adapter.execute(query, { visitor: { caseSensitive: ['id'] } });
+adapter.execute(query, { caseSensitive: ['id'] });
 ```
 
 On folding dialects, give hot string filter columns an expression index (`CREATE INDEX ... ON "user" (lower(name))`) — or opt them out.
