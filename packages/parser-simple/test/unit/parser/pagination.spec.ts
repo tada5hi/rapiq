@@ -6,7 +6,8 @@
  */
 
 import {
-    PaginationParseError, 
+    ErrorCode,
+    PaginationParseError,
     defineSchema,
 } from '@rapiq/core';
 import type { Pagination } from '@rapiq/core';
@@ -68,6 +69,7 @@ describe('src/pagination/index.ts', () => {
         });
 
         const error = PaginationParseError.limitExceeded(50);
+        expect(error.code).toBe(ErrorCode.LIMIT_EXCEEDED);
 
         expect(() => parser.parse({ limit: 100 }, { schema })).toThrow(error);
     });
