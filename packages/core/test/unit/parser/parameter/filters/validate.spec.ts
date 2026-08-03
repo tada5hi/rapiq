@@ -300,9 +300,10 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         expect(leaf!.value).toBe('ADMIN');
 
         const outputAsync = (await applyFiltersSchemaValidationAsync(input, schema))!;
-        const [asyncLeaf] = outputAsync.value;
+        const [asyncLeaf] = outputAsync.value as IFilter[];
         expect(outputAsync.sealed).toBe(true);
         expect(asyncLeaf!.sealed).toBe(true);
+        expect(asyncLeaf!.value).toBe('ADMIN');
     });
 
     it('should propagate asynchronous validator failures', async () => {
