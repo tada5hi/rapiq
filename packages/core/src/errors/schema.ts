@@ -40,6 +40,15 @@ export class SchemaError extends BaseError {
         });
     }
 
+    static sealedConditionPruned(relation: string, field: string) {
+        return new this({
+            message: `The relations validator rejected "${relation}", but the sealed filter condition on ` +
+                `"${field}" traverses it. A sealed condition must not be dropped, and a rejected relation ` +
+                'must not be joined: align the relations validator with the filters validator that sealed it.',
+            code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED,
+        });
+    }
+
     static validatorAsyncRequiresAsyncParser() {
         return new this({
             message: 'Asynchronous schema validators require parseAsync().',

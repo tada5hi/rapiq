@@ -6,6 +6,7 @@
  */
 
 import {
+    ErrorCode,
     Field,
     Fields,
     Filter,
@@ -24,6 +25,7 @@ import {
     pruneFiltersByRelations,
     pruneRelationsByRelations,
     pruneSortsByRelations,
+    seal,
 } from '../../../src';
 import type { IFilters } from '../../../src';
 
@@ -195,6 +197,96 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             expect(pruneFiltersByRelations(filters, ['items.owner']).value).toEqual([]);
+        });
+    });
+
+    describe('pruneFiltersByRelations (sealed conditions)', () => {
+        const eq = (field: string) => new Filter(FilterFieldOperator.EQUAL, field, 'x');
+
+        it('throws instead of dropping a sealed leaf', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(eq('user.name')),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['user']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('names the rejected relation and the sealed field', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(eq('realm.id')),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['realm']))
+                .toThrowError(/"realm".+"realm\.id"/);
+        });
+
+        it('throws instead of dropping a policy residual out of a sealed group', () => {
+            // the shape a filters validate hook produces:
+            // seal(and(<client leaf>, <policy residual>))
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(new Filters(FilterCompoundOperator.AND, [
+                    eq('name'),
+                    eq('realm.id'),
+                ])),
+                eq('realm.name'),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['realm']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('throws for a sealed condition nested below an unsealed group', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filters(FilterCompoundOperator.OR, [
+                    eq('id'),
+                    seal(eq('user.name')),
+                ]),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['user']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of dropping a sealed elemMatch', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                )),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of pruning the interior of a sealed elemMatch', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [
+                        eq('owner.name'),
+                        new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+                    ]),
+                )),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items.owner']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('keeps pruning around a sealed condition it does not touch', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(eq('realm_id')),
+                eq('user.name'),
+                eq('id'),
+            ]);
+
+            const output = pruneFiltersByRelations(filters, ['user']);
+            expect(filterFields(output)).toEqual(['realm_id', 'id']);
+            expect(output.value[0].sealed).toBe(true);
         });
     });
 });

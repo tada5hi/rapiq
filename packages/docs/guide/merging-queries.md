@@ -67,6 +67,8 @@ const scope = seal(eq('realm_id', actor.realmId));
 
 Sealing is immutable (a sealed copy is returned) and idempotent. It is a **server-side composition marker, not wire grammar**: a sealed condition that is encoded to a URL and decoded again comes back displaceable, which is why a receiving service re-injects its own scope instead of trusting the transport.
 
+The marker protects the whole subtree it heads, and it holds during parsing too: the [relations gate](/guide/relations#validate-hooks), which drops every key traversing a rejected relation, cannot silently prune a condition out of a sealed group. A rejected relation that a sealed condition needs throws `SchemaError` (`ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED`) instead.
+
 ### `and()` / `or()`: wrap & inject
 
 Always defined, for combining condition trees. The injected conditions are sealed, so they are part of the tree rather than candidates for replacement. A receiver already carrying that operator contributes its own conditions to the group (which keeps them mergeable); anything else becomes a child of the new group. Calling `and()` / `or()` with no conditions returns the receiver unchanged.

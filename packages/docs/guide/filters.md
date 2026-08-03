@@ -211,6 +211,8 @@ defineSchema<User>({
 
 Two consequences of a compound replacement mirror [`and()` injection](/guide/merging-queries#and-or-wrap-inject). A later replace-merge carries the group through as one conjunct instead of displacing the injected scoping, and [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement)ing it keeps that true across a normalization pass. And the legacy simple URL dialect cannot express compounds: a schema-aware `encode()` through that dialect throws a typed `FEATURE_UNSUPPORTED` for a query whose validator produced one; the default expression dialect encodes it fine.
 
+A sealed replacement is also exempt from relation pruning. When it names a relation the [relations hook](/guide/relations#validate-hooks) rejects, the two hooks contradict each other and parsing throws `SchemaError` (`ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED`) rather than dropping the scoping. An unsealed replacement is displaceable and gets pruned like any other condition.
+
 Use the synchronous `parse()` / `decode()` / schema-aware `encode()` methods when every validator is synchronous. Use their `Async` counterparts when a validator may be asynchronous:
 
 ```typescript

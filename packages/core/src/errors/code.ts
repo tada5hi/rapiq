@@ -40,6 +40,8 @@ export enum ErrorCode {
 
     SCHEMA_NAME_INVALID = 'schemaNameInvalid',
 
+    SCHEMA_SEALED_CONDITION_PRUNED = 'schemaSealedConditionPruned',
+
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
 
     SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER = 'schemaValidatorAsyncRequiresAsyncParser',

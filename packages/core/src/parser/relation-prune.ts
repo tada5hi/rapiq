@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { SchemaError } from '../errors';
 import {
     Field,
     Fields,
@@ -30,13 +31,21 @@ import { parseKey } from '../utils';
 import { buildFiltersDefaults } from './parameter/filters/validate';
 
 /**
+ * The rejected relation governing a canonical relation/field path: the path
+ * is the relation itself or lives underneath it.
+ */
+function matchRelationRejected(path: string, rejected: string[]) : string | undefined {
+    return rejected.find(
+        (name) => path === name || path.startsWith(`${name}.`),
+    );
+}
+
+/**
  * Whether a canonical relation/field path is governed by a rejected relation —
  * the path is the relation itself or lives underneath it.
  */
 export function isRelationRejected(path: string, rejected: string[]) : boolean {
-    return rejected.some(
-        (name) => path === name || path.startsWith(`${name}.`),
-    );
+    return typeof matchRelationRejected(path, rejected) !== 'undefined';
 }
 
 function joinPath(prefix: string, segment: string) : string {
@@ -110,6 +119,13 @@ export function pruneRelationsByRelations(relations: IRelations, rejected: strin
  * `elemMatch` conditions are addressed relative to the array element, so a
  * running `prefix` reconstructs their absolute path before matching. Falls back
  * to the schema `default` when pruning empties the parameter.
+ *
+ * A sealed condition is exempt from the drop, not from the gate: pruning
+ * anything out of a sealed subtree would widen a condition whose seal says it
+ * must survive, while keeping it would join a relation the relations validator
+ * rejected. Neither outcome is correct, so the contradiction between the two
+ * validators throws {@link SchemaError} (`SCHEMA_SEALED_CONDITION_PRUNED`)
+ * instead of failing open.
  */
 export function pruneFiltersByRelations(
     filters: IFilters,
@@ -120,7 +136,7 @@ export function pruneFiltersByRelations(
         return filters;
     }
 
-    const pruned = pruneCondition(filters, rejected, '');
+    const pruned = pruneCondition(filters, rejected, '', false);
     if (pruned && isFilters(pruned)) {
         return pruned;
     }
@@ -135,23 +151,42 @@ export function pruneFiltersByRelations(
     return new Filters(FilterCompoundOperator.AND, conditions);
 }
 
+/**
+ * Drop the condition at `field`, or refuse to when it is protected: a drop
+ * inside a sealed subtree is the one case where pruning would silently widen
+ * the query rather than narrow it.
+ */
+function drop(relation: string, field: string, sealed: boolean) : undefined {
+    if (sealed) {
+        throw SchemaError.sealedConditionPruned(relation, field);
+    }
+
+    return undefined;
+}
+
 function pruneCondition(
     node: ICondition,
     rejected: string[],
     prefix: string,
+    sealed: boolean,
 ) : ICondition | undefined {
+    // the marker protects the whole subtree it heads: every condition below a
+    // seal is part of what the seal says must survive.
+    const sealed2 = sealed || !!node.sealed;
+
     if (isFilter(node)) {
         const field = joinPath(prefix, node.field);
+        const rejectedBy = matchRelationRejected(field, rejected);
 
         if (
             node.operator === FilterFieldOperator.ELEM_MATCH &&
             isConditionValue(node.value)
         ) {
-            if (isRelationRejected(field, rejected)) {
-                return undefined;
+            if (typeof rejectedBy === 'string') {
+                return drop(rejectedBy, field, sealed2);
             }
 
-            const interior = pruneCondition(node.value, rejected, field);
+            const interior = pruneCondition(node.value, rejected, field, sealed2);
             if (!interior) {
                 return undefined;
             }
@@ -163,7 +198,9 @@ function pruneCondition(
             return node;
         }
 
-        return isRelationRejected(field, rejected) ? undefined : node;
+        return typeof rejectedBy === 'string' ?
+            drop(rejectedBy, field, sealed2) :
+            node;
     }
 
     if (!isFilters(node)) {
@@ -172,7 +209,7 @@ function pruneCondition(
 
     const conditions : ICondition[] = [];
     for (const child of node.value) {
-        const child2 = pruneCondition(child, rejected, prefix);
+        const child2 = pruneCondition(child, rejected, prefix, sealed2);
         if (child2) {
             conditions.push(child2);
         }

@@ -77,6 +77,10 @@ Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed`
 
 When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `seal(and(filter, inArray('realm_id', actor.realmIds)))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges. The [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement) is what makes the residual survive composition; without it the group is still never *replaced*, but a normalization pass may hoist its conditions back into the root.
 
+::: warning A sealed residual and the relations gate must agree
+A residual on a *relation* path (`seal(and(filter, eq('realm.id', ...)))`) is subject to the relations hook above, which prunes every key traversing a relation the actor may not read. Dropping the residual would hand back a wider result set than the policy allows, so a rejected relation that a sealed condition needs throws `SchemaError` (`ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED`) instead: fix the contradiction by permitting the relation in the relations hook, or by scoping through a local column (`realm_id`), which the gate never touches.
+:::
+
 ## Row-scoped column access
 
 Some columns aren't a yes/no decision. An actor may read `email` on users of its own realm and nothing else, but the users of other realms must still be listed. A `fields` [validate hook](/guide/schemas#condition-verdicts) answering with a **condition** expresses exactly that: the field stays selected, and the condition marks it visible only on the rows that satisfy it.

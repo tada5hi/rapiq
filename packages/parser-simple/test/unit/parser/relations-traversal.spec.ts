@@ -8,10 +8,20 @@
 import {
     ErrorCode,
     RelationsParseError,
+    SchemaError,
     SchemaRegistry,
+    and,
     defineSchema,
+    eq,
+    seal,
 } from '@rapiq/core';
-import type { IFilters, IQuery, KeyValidationScope } from '@rapiq/core';
+import type {
+    ICondition,
+    IFilter,
+    IFilters,
+    IQuery,
+    KeyValidationScope,
+} from '@rapiq/core';
 import {
     SimpleFieldsParser,
     SimpleFiltersParser,
@@ -303,6 +313,96 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             );
 
             expect(output.value.map((sort) => sort.name)).not.toContain('items.id');
+        });
+    });
+
+    /**
+     * A filters validate hook may answer with a policy residual scoping the leaf
+     * it saw. When that residual names a relation the relations hook rejects,
+     * the two hooks contradict each other: pruning the residual would return a
+     * wider result set than the policy allows, keeping it would join a rejected
+     * relation. The contradiction is a server misconfiguration, so it throws.
+     */
+    describe('sealed policy residuals vs. relation pruning (#877)', () => {
+        function buildScopedRegistry(
+            residual: (filter: IFilter) => ICondition,
+            relationsValidate: (name: string) => boolean,
+        ) : SchemaRegistry {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<Record<string, any>, Actor>({
+                name: 'user',
+                filters: {
+                    allowed: ['id', 'name'],
+                    // "you may filter by name, but only within your realms"
+                    validate: (filter) => (filter.field === 'name' ?
+                        residual(filter) :
+                        filter),
+                },
+                relations: { allowed: ['realm'], validate: relationsValidate },
+                schemaMapping: { realm: 'realm' },
+            }));
+            registry.add(defineSchema({
+                name: 'realm',
+                filters: { allowed: ['id', 'name'] },
+            }));
+
+            return registry;
+        }
+
+        const sealedResidual = (filter: IFilter) => seal(and(filter, eq('realm.id', 'SCOPE')));
+        const input = { filters: { name: 'John', 'realm.name': 'master' } };
+
+        it('keeps the residual when the relations hook permits the relation', () => {
+            const parser = new SimpleParser(buildScopedRegistry(sealedResidual, () => true));
+
+            const query = parser.parse(input, { schema: 'user', context: actor });
+            expect(filterFields(query.filters)).toEqual(['name', 'realm.id', 'realm.name']);
+        });
+
+        it('throws instead of pruning the residual when the relation is rejected', () => {
+            const parser = new SimpleParser(buildScopedRegistry(
+                sealedResidual,
+                (name) => name !== 'realm',
+            ));
+
+            expect.assertions(2);
+            try {
+                parser.parse(input, { schema: 'user', context: actor });
+            } catch (e) {
+                expect(e).toBeInstanceOf(SchemaError);
+                expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED);
+            }
+        });
+
+        it('throws on the async path too', async () => {
+            const parser = new SimpleParser(buildScopedRegistry(
+                sealedResidual,
+                (name) => name !== 'realm',
+            ));
+
+            await expect(parser.parseAsync(input, { schema: 'user', context: actor }))
+                .rejects.toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('throws for a standalone filters parse', () => {
+            const registry = buildScopedRegistry(sealedResidual, (name) => name !== 'realm');
+
+            expect(() => new SimpleFiltersParser(registry).parse(
+                input.filters,
+                { schema: 'user', context: actor },
+            )).toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('prunes an UNSEALED residual, which is what the seal marks', () => {
+            // without seal() the residual is an ordinary displaceable condition:
+            // pruning drops it like any other client-owned leaf.
+            const parser = new SimpleParser(buildScopedRegistry(
+                (filter) => and(filter, eq('realm.id', 'SCOPE')),
+                (name) => name !== 'realm',
+            ));
+
+            const query = parser.parse(input, { schema: 'user', context: actor });
+            expect(filterFields(query.filters)).toEqual(['name']);
         });
     });
 
