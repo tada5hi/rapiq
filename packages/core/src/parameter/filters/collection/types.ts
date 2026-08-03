@@ -27,6 +27,13 @@ export interface IFilters<
 
     accept<R>(visitor: IFiltersVisitor<R>) : R;
 
+    /**
+     * A copy of this group carrying the {@link IFilters.sealed} marker
+     * (the receiver itself when it is already sealed). Reach for the
+     * `seal` helper to seal a condition of either kind.
+     */
+    seal() : IFilters<T>;
+
     flatten(items?: T[]) : IFilters<T>;
 
     merge(other: IFilters) : IFilters;

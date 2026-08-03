@@ -7,7 +7,7 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import type { Condition, ConditionOptions, ICondition } from '../condition';
-import { Filter, isFilter } from '../record';
+import { isFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
@@ -37,6 +37,14 @@ export class Filters<
 
     accept<R>(visitor: IFiltersVisitor<R>) : R {
         return visitor.visitFilters(this);
+    }
+
+    seal() : IFilters<T> {
+        if (this.sealed) {
+            return this;
+        }
+
+        return new Filters(this.operator, this.value, { sealed: true });
     }
 
     flatten(aggregatedResult?: T[]) : IFilters<T> {
@@ -143,7 +151,7 @@ export class Filters<
             return this;
         }
 
-        const injected = conditions.map((condition) => seal(condition));
+        const injected = conditions.map(sealCondition);
 
         // an empty receiver constrains nothing, so it must not become a
         // child: under OR it would widen the group to everything.
@@ -167,36 +175,13 @@ export class Filters<
 }
 
 /**
- * Mark a condition as non-displaceable (immutable, a sealed copy is
- * returned): {@link Filters.merge} never drops it and {@link Filters.flatten}
- * never hoists it out of its group. This is what {@link Filters.and} /
- * {@link Filters.or} apply to the conditions they inject; reach for it
- * directly when a server-authored condition — a policy residual returned
- * from a filters `validate` hook, a scoped default — has to survive
- * composition by other code.
- *
- * The seal is a server-side composition marker, not part of any wire
- * grammar: a sealed condition that is encoded and decoded again comes
- * back displaceable.
- *
- * A condition that is neither node kind is returned unsealed, which is
- * safe rather than a silent hole: the two things a seal protects against
- * are keyed on the very same guards. Only an `isFilter` leaf is ever
- * displaced by {@link Filters.merge}, and only an `isFilters` group is
- * ever hoisted by {@link Filters.flatten}.
+ * The `seal` helper, inlined for the conditions {@link Filters.and} /
+ * {@link Filters.or} inject: reaching for the helper here would make
+ * this module depend on one that depends back on it.
  */
-export function seal<T extends ICondition>(condition: T) : T;
-export function seal(condition: ICondition) : ICondition {
-    if (condition.sealed) {
-        return condition;
-    }
-
-    if (isFilters(condition)) {
-        return new Filters(condition.operator, condition.value, { sealed: true });
-    }
-
-    if (isFilter(condition)) {
-        return new Filter(condition.operator, condition.field, condition.value, { sealed: true });
+function sealCondition(condition: ICondition) : ICondition {
+    if (isFilters(condition) || isFilter(condition)) {
+        return condition.seal();
     }
 
     return condition;

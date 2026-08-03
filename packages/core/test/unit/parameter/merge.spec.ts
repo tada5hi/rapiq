@@ -324,6 +324,23 @@ describe('src/parameter/filters/helpers/module.ts seal', () => {
         expect(seal(sealed)).toBe(sealed);
     });
 
+    it('should delegate to the node, which knows how to copy itself', () => {
+        const leaf = eq('a', 1);
+        const group = or(eq('a', 1), eq('b', 2));
+
+        // the helper is a dispatcher — each node kind owns its own copy.
+        const sealedLeaf = leaf.seal();
+        const sealedGroup = group.seal();
+
+        expect(sealedLeaf.sealed).toBe(true);
+        expect(sealedGroup.sealed).toBe(true);
+
+        // idempotent: an already sealed node returns itself.
+        expect(sealedLeaf.seal()).toBe(sealedLeaf);
+        expect(sealedGroup.seal()).toBe(sealedGroup);
+        expect(seal(leaf)).toEqual(sealedLeaf);
+    });
+
     it('should seal a group without touching its interior', () => {
         const group = or(eq('a', 1), eq('b', 2));
         const sealed = seal(group);

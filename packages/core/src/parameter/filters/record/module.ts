@@ -41,4 +41,12 @@ export class Filter<
     accept<R>(visitor: IFilterVisitor<R>) : R {
         return visitor.visitFilter(this);
     }
+
+    seal() : IFilter {
+        if (this.sealed) {
+            return this;
+        }
+
+        return new Filter(this.operator, this.field, this.value, { sealed: true });
+    }
 }

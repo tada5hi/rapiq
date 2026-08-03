@@ -12,3 +12,4 @@ export * from './helpers';
 export * from './plan';
 export * from './record';
 export * from './regex';
+export * from './seal';
