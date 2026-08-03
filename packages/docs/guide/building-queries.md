@@ -1,6 +1,6 @@
 # Building Queries
 
-`defineQuery` builds a [`Query`](/guide/query-ast) directly from typed input — no string round-trip, no parsing, no schema. It is the caller-side entry point: construct the query, hand it to the [URL codec](/guide/wire) for transport, or to an [adapter](/guide/executing-queries) directly.
+`defineQuery` builds a [`Query`](/guide/query-ast) directly from typed input: no string round-trip, no parsing, no schema. It is the caller-side entry point: construct the query, hand it to the [URL codec](/guide/wire) for transport, or to an [adapter](/guide/executing-queries) directly.
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
@@ -16,7 +16,7 @@ const query = defineQuery<User>({
 
 Supplying a record generic (`defineQuery<User>`) types every field path (`'realm.name'`, …) with autocomplete; without one, plain strings are accepted.
 
-The input types recurse through nested records up to a default depth of 5. For self-recursive record types (`type Category = { children: Category[] }`) the inferred input type can outgrow what the compiler will serialize — pass an explicit depth as the second generic to bound it: `defineQuery<Category, 2>(...)`, `QueryBuildInput<Category, 2>`.
+The input types recurse through nested records up to a default depth of 5. For self-recursive record types (`type Category = { children: Category[] }`) the inferred input type can outgrow what the compiler will serialize; pass an explicit depth as the second generic to bound it: `defineQuery<Category, 2>(...)`, `QueryBuildInput<Category, 2>`.
 
 ::: info No validation here
 The build layer constructs the query verbatim. What a client *may* request is decided on the receiving side, where parsers validate against a [Schema](/guide/schemas). Keeping the two concerns apart is deliberate: the caller doesn't need the schema, and the receiver never trusts the caller.
@@ -29,11 +29,11 @@ Four equivalent notations, freely mixable:
 | Notation | Example | Meaning |
 |---|---|---|
 | scalar | `{ name: 'John' }` | equals |
-| bare array | `{ 'realm.id': [1, null] }` | *in* list — `null` is a legal element; backends rewrite it to `… OR IS NULL` |
+| bare array | `{ 'realm.id': [1, null] }` | *in* list; `null` is a legal element and backends rewrite it to `… OR IS NULL` |
 | operator object | `{ age: { $gte: 18, $lt: 65 } }` | explicit operators, combined with **and** |
 | condition helpers | `or(gte('age', 18), eq('deleted_at', null))` | arbitrary condition trees |
 
-Multiple keys combine with **and** (a flat root-AND). A relation reads either fully nested (`{ realm: { name: 'master' } }`) or as a dot-path (`{ 'realm.name': 'master' }`) — the two are interchangeable but not mixable within one key (write `{ 'realm.x.y': v }`, not `{ realm: { 'x.y': v } }`); keeping them disjoint bounds the inferred input type for deeply/cyclically related records. A bare `RegExp` value builds a `regex` condition.
+Multiple keys combine with **and** (a flat root-AND). A relation reads either fully nested (`{ realm: { name: 'master' } }`) or as a dot-path (`{ 'realm.name': 'master' }`); the two are interchangeable but not mixable within one key (write `{ 'realm.x.y': v }`, not `{ realm: { 'x.y': v } }`); keeping them disjoint bounds the inferred input type for deeply/cyclically related records. A bare `RegExp` value builds a `regex` condition.
 
 ### Operator objects
 
@@ -60,7 +60,7 @@ defineQuery<User>({
 });
 ```
 
-Operator keys that are present but `undefined` are skipped — conditional spreads like `{ $contains: search || undefined }` simply contribute no condition. Unknown `$` keys throw a `BuildError` (`ErrorCode.OPERATOR_UNSUPPORTED`) — input is never guessed at.
+Operator keys that are present but `undefined` are skipped: conditional spreads like `{ $contains: search || undefined }` simply contribute no condition. Unknown `$` keys throw a `BuildError` (`ErrorCode.OPERATOR_UNSUPPORTED`); input is never guessed at.
 
 ::: warning Reserved: `$and` / `$or`
 Compound object keys belong to the [MongoDB-style parser dialect](/packages/parser-mongo) and are deliberately **not** part of the build layer. Compound trees are written with the condition helpers instead: `filters: or(...)`.
@@ -68,7 +68,7 @@ Compound object keys belong to the [MongoDB-style parser dialect](/packages/pars
 
 ### Condition helpers
 
-Typed constructors for single conditions and compound trees — one per operator, mirroring the [expression dialect](/packages/parser-expression) one-to-one (`eq('name', 'John')` in code ≙ `eq(name, 'John')` on the wire):
+Typed constructors for single conditions and compound trees: one per operator, mirroring the [expression dialect](/packages/parser-expression) one-to-one (`eq('name', 'John')` in code ≙ `eq(name, 'John')` on the wire):
 
 ```typescript
 import { and, eq, gte, inArray, or } from '@rapiq/core';
@@ -81,15 +81,15 @@ const query = defineQuery<User>({
 });
 ```
 
-`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch` — plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction.
+`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch`, plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction.
 
 A few helpers deviate from the uniform `(field, value)` signature:
 
 ```typescript
 mod('age', 4, 0);                    // (field, divisor, remainder)
-size('tags', 2);                     // (field, length) — array length
+size('tags', 2);                     // (field, length): array length
 exists('email');                     // (field, value = true)
-elemMatch('items', eq('name', 'x')); // (field, condition) — condition
+elemMatch('items', eq('name', 'x')); // (field, condition): condition
                                      // field paths are element-relative
 elemMatch('scores', gt(ITSELF, 5));  // ITSELF addresses the element
                                      // itself (scalar arrays)
@@ -109,14 +109,14 @@ The URL codec writes the [expression dialect](/packages/codec-url#expression-dia
 
 | Parameter | Input forms |
 |---|---|
-| `fields` | array of keys with optional `+`/`-` prefix (`['id', '+email', '-password']`), per-relation record (`{ realm: ['id'] }`), or tuple `[keys, record]` — see [Fields](/guide/fields) |
-| `sort` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`) — see [Sort](/guide/sort) |
-| `relations` | dot-path names (`['realm', 'items.user']`) or record (`{ realm: true, items: { user: true } }`) — see [Relations](/guide/relations) |
-| `pagination` | `{ limit?, offset? }` — see [Pagination](/guide/pagination) |
+| `fields` | array of keys with optional `+`/`-` prefix (`['id', '+email', '-password']`), per-relation record (`{ realm: ['id'] }`), or tuple `[keys, record]`; see [Fields](/guide/fields) |
+| `sort` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`); see [Sort](/guide/sort) |
+| `relations` | dot-path names (`['realm', 'items.user']`) or record (`{ realm: true, items: { user: true } }`); see [Relations](/guide/relations) |
+| `pagination` | `{ limit?, offset? }`; see [Pagination](/guide/pagination) |
 
 ## Fragments
 
-Each parameter has its own factory — `defineFields`, `defineFilters`, `definePagination`, `defineRelations`, `defineSorts` — returning a fragment that assigns directly into `defineQuery` input. Useful when query parts travel as data (props, composables, function arguments) before being assembled:
+Each parameter has its own factory (`defineFields`, `defineFilters`, `definePagination`, `defineRelations`, `defineSorts`) returning a fragment that assigns directly into `defineQuery` input. Useful when query parts travel as data (props, composables, function arguments) before being assembled:
 
 ```typescript
 import { defineFilters, defineQuery } from '@rapiq/core';
@@ -133,6 +133,6 @@ Fragments and raw input mix freely; already-built AST nodes pass through unchang
 
 ## Next steps
 
-- [Merging & Composition](/guide/merging-queries) — combining queries from multiple sources.
-- [Queries over the Wire](/guide/wire) — encoding what you built.
-- [Recipes: Type-safe frontend queries](/guide/recipes/frontend) — fragments and merging in a real list view.
+- [Merging & Composition](/guide/merging-queries): combining queries from multiple sources.
+- [Queries over the Wire](/guide/wire): encoding what you built.
+- [Recipes: Type-safe frontend queries](/guide/recipes/frontend): fragments and merging in a real list view.

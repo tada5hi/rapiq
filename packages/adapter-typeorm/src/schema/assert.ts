@@ -6,7 +6,12 @@
  */
 
 import type { ICondition, ObjectLiteral, Schema } from '@rapiq/core';
-import { isFilter, isFilters } from '@rapiq/core';
+import {
+    ErrorCode, 
+    SchemaError, 
+    isFilter, 
+    isFilters,
+} from '@rapiq/core';
 import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';
 import { SchemaEntityMismatchError } from '../errors';
@@ -46,7 +51,10 @@ export function assertSchemaMatchesEntity<
         metadata = target;
     } else {
         if (!(dataSource instanceof DataSource)) {
-            throw new Error('A data source is required to resolve the metadata of an entity target.');
+            throw new SchemaError({
+                message: 'A data source is required to resolve the metadata of an entity target.',
+                code: ErrorCode.INPUT_INVALID,
+            });
         }
 
         metadata = dataSource.getMetadata(target);

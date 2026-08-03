@@ -164,7 +164,7 @@ describe('src/adapter/filters.ts', () => {
         });
 
         it('should honor the per-field opt-out', () => {
-            expect(build(eq('email', 'a@b.c'), { filters: { caseSensitive: ['email'] } })).toEqual({ email: { equals: 'a@b.c' } });
+            expect(build(eq('email', 'a@b.c'), { caseSensitive: ['email'] })).toEqual({ email: { equals: 'a@b.c' } });
         });
 
         it('should keep membership case-insensitive despite a wildcard', () => {

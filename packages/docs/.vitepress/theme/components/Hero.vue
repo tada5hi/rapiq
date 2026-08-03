@@ -60,7 +60,7 @@ const urlOutput = computed(() => {
         return '/users';
     }
 
-    // Decode only the structural delimiters (`[`, `]`, `,`) for readability —
+    // Decode only the structural delimiters (`[`, `]`, `,`) for readability;
     // never the value content, so encoded separators inside a value (`%26`,
     // `%3D`) stay encoded and the displayed URL keeps its real wire format.
     return `/users?${encoded
@@ -86,7 +86,7 @@ const sqlOutput = computed(() => {
         query.value.filters.accept(new FiltersVisitor(filtersAdapter));
         [where, params] = filtersAdapter.getQueryAndParameters();
     } catch (e) {
-        // a dialect preset may reject an operator entirely —
+        // a dialect preset may reject an operator entirely:
         // e.g. mssql throws for regexp, which "contains" lowers to.
         return {
             text: '',
@@ -146,8 +146,9 @@ const sqlOutput = computed(() => {
                 <p class="rq-hero-tagline">
                     One query language between client &amp; server.
                     Build JSON:API-style queries on the client, parse them into a typed
-                    AST against schema allow-lists on the server — and turn them into
-                    SQL or TypeORM queries with composable adapters.
+                    AST against schema allow-lists on the server, and execute them on
+                    any backend: composable adapters cover raw SQL, TypeORM, Prisma,
+                    Drizzle and in-memory data.
                 </p>
                 <div class="rq-hero-actions">
                     <a
@@ -259,7 +260,7 @@ const sqlOutput = computed(() => {
                     </div>
 
                     <p class="rq-hero-card-hint">
-                        Live — <code>@rapiq/parser-simple</code>, <code>@rapiq/codec-url</code>
+                        Live: <code>@rapiq/parser-simple</code>, <code>@rapiq/codec-url</code>
                         and <code>@rapiq/adapter-sql</code> are running in your browser.
                     </p>
                 </div>

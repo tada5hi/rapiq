@@ -138,7 +138,7 @@ describe('src/adapter/module.ts', () => {
         const adapter = new DrizzleAdapter(createAdapterOptions());
         const query = new Query({ filters: new Filters(FilterCompoundOperator.AND, [eq('first_name', 'Peter')]) });
 
-        adapter.execute(query, { filters: { caseSensitive: true } });
+        adapter.execute(query, { caseSensitive: true });
 
         expect(adapter.execute(query).config.where).toEqual({ first_name: { ilike: 'Peter' } });
     });

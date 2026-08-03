@@ -2,7 +2,7 @@
 /*
  * The "Query is the hub" figure for the Core Concepts page:
  * producers on the left, the shared AST in the middle, consumers on
- * the right — with the schema constraining what parsers let through.
+ * the right, with the schema constraining what parsers let through.
  */
 </script>
 
@@ -26,7 +26,7 @@
 
             <div class="rq-hub-schema">
                 <strong>Schema</strong>
-                <span>allow-list — constrains parsing</span>
+                <span>allow-list, constrains parsing</span>
             </div>
         </div>
 

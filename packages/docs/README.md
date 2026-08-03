@@ -21,4 +21,4 @@ npm run dev --workspace=packages/docs     # local dev server
 npm run build --workspace=packages/docs   # production build (runs in CI)
 ```
 
-Content lives in `getting-started/`, `guide/`, `packages/` and `integrations/`; navigation and sidebar are configured in `.vitepress/config.mjs`.
+Content lives in `guide/` and `packages/`; `getting-started/` and `integrations/` hold redirect stubs for legacy URLs. Navigation and sidebar are configured in `.vitepress/config.mjs`.

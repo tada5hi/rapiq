@@ -1,6 +1,6 @@
 # Package Overview
 
-rapiq is a family of small packages around one shared data structure — the [`Query`](/guide/query-ast). Install only what each side of your application needs; `@rapiq/core` is a peer dependency of everything else.
+rapiq is a family of small packages around one shared data structure: the [`Query`](/guide/query-ast). Install only what each side of your application needs; `@rapiq/core` is a peer dependency of everything else.
 
 ## The map
 
@@ -49,7 +49,7 @@ npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-drizzle
 npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql
 ```
 
-**Something in-process — guards, tests, mock backends:**
+**Something in-process (guards, tests, mock backends):**
 
 ```sh
 npm install @rapiq/core @rapiq/adapter-memory

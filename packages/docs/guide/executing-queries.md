@@ -14,7 +14,7 @@ All five consume the same AST, and they agree on semantics: the records a query 
 
 ## TypeORM
 
-The most common server setup — the adapter applies filters as parameterized `WHERE` conditions, relations as joins, fields/sort/pagination as `select`/`orderBy`/`take`+`skip`:
+The most common server setup: the adapter applies filters as parameterized `WHERE` conditions, relations as joins, fields/sort/pagination as `select`/`orderBy`/`take`+`skip`:
 
 ```typescript
 import { TypeormAdapter } from '@rapiq/adapter-typeorm';
@@ -31,7 +31,7 @@ const { pagination } = adapter.execute(query);
 const [entities, total] = await queryBuilder.getManyAndCount();
 ```
 
-`execute` returns the applied pagination — handy for the response `meta` block. Existing builder state is preserved: rapiq filters are appended with `AND` (under namespaced parameter bindings), and a query without sorts or pagination leaves a caller-owned `ORDER BY`/`take`/`skip` untouched — so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/adapter-typeorm).
+`execute` returns the applied pagination, handy for the response `meta` block. Existing builder state is preserved: rapiq filters are appended with `AND` (under namespaced parameter bindings), and a query without sorts or pagination leaves a caller-owned `ORDER BY`/`take`/`skip` untouched, so tenant or authorization scopes applied before `execute` cannot be erased. Options (join types, the `onJoin` hook, alias conventions) are on the [package page](/packages/adapter-typeorm).
 
 ## Prisma
 
@@ -99,11 +99,11 @@ const fragments = adapter.execute(query);
 // }
 ```
 
-Values are always bound as parameters — never interpolated into the SQL string. Composing the final `SELECT` (in particular `FROM`/`JOIN`) stays your job, because it needs knowledge of your table layout. Details: [@rapiq/adapter-sql](/packages/adapter-sql).
+Values are always bound as parameters, never interpolated into the SQL string. Composing the final `SELECT` (in particular `FROM`/`JOIN`) stays your job, because it needs knowledge of your table layout. Details: [@rapiq/adapter-sql](/packages/adapter-sql).
 
 ## In memory
 
-`@rapiq/adapter-memory` compiles the same query into plain functions — for authorization guards that must agree with the database, filtering already-loaded collections, or mock backends in tests:
+`@rapiq/adapter-memory` compiles the same query into plain functions: for authorization guards that must agree with the database, filtering already-loaded collections, or mock backends in tests:
 
 ```typescript
 import { applyQuery, compileQuery } from '@rapiq/adapter-memory';
@@ -117,23 +117,25 @@ compiled.matches(user);   // filters as a predicate -> boolean
 compiled.apply(users);    // whole query against a collection
 ```
 
-Semantics (null handling, string matching, join-row binding) mirror the SQL adapters — see [@rapiq/adapter-memory](/packages/adapter-memory).
+Semantics (null handling, string matching, join-row binding) mirror the SQL adapters; see [@rapiq/adapter-memory](/packages/adapter-memory).
 
 ## One adapter instance per request
 
-SQL and TypeORM adapters accumulate per-call state. Construct them **per request** — the shareable, long-lived part is the options object, not the adapter instance:
+SQL and TypeORM adapters accumulate per-call state. Construct them **per request**; the shareable, long-lived part is the options object, not the adapter instance:
 
 ```typescript
-// module scope — the reusable config
+// module scope: the reusable config
 const config = { relations: { joinAndSelect: true } };
 
 // per request
 new TypeormAdapter({ ...config, queryBuilder }).execute(query);
 ```
 
+The prisma and drizzle serializers, by contrast, are stateless: one shared instance serves every request, as shown above.
+
 ## Applying a single parameter
 
-A `Query` with only some parameters set applies just those — the rest are empty and become no-ops:
+A `Query` with only some parameters set applies just those; the rest are empty and become no-ops:
 
 ```typescript
 import { Query } from '@rapiq/core';
@@ -141,10 +143,11 @@ import { Query } from '@rapiq/core';
 adapter.execute(new Query({ filters: query.filters }));
 ```
 
-Each backend also exposes per-parameter building blocks (sub-adapters, `compile*` helpers) — see the package pages.
+Each backend also exposes per-parameter building blocks (sub-adapters, `compile*` helpers); see the package pages.
 
 ## Next steps
 
-- [Recipes: REST API with Express & TypeORM](/guide/recipes/express-typeorm) — the full endpoint.
-- [Recipes: Authorization & scoping](/guide/recipes/authorization) — injected filters + memory-guard parity.
-- [The Query AST](/guide/query-ast) — implement an adapter for a new backend.
+- [Recipes: REST API with Express & TypeORM](/guide/recipes/express-typeorm): the full endpoint.
+- [Recipes: Swapping the Backend: Prisma & Drizzle](/guide/recipes/prisma-drizzle): the same endpoint on the serializer adapters.
+- [Recipes: Authorization & scoping](/guide/recipes/authorization): injected filters + memory-guard parity.
+- [The Query AST](/guide/query-ast): implement an adapter for a new backend.

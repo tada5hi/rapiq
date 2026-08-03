@@ -21,7 +21,7 @@ type User = {
 
 ## 1. Build a query (caller)
 
-`defineQuery` builds a typed query — the record generic checks every field path against `User`:
+`defineQuery` builds a typed query: the record generic checks every field path against `User`:
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
@@ -41,7 +41,7 @@ const queryString = createURLCodec().encode(query);
 const response = await fetch(`/users?${queryString}`);
 ```
 
-Filters accept scalars (`{ name: 'John' }`), arrays (`{ id: [1, null] }` — an *in* list), `$`-operator objects and condition helpers like `or(gte('age', 18), eq('email', null))`. The full grammar lives in [Building Queries](/guide/building-queries).
+Filters accept scalars (`{ name: 'John' }`), arrays (`{ id: [1, null] }`, an *in* list), `$`-operator objects and condition helpers like `or(gte('age', 18), eq('email', null))`. The full grammar lives in [Building Queries](/guide/building-queries).
 
 ## 2. Declare what clients may request (server)
 
@@ -92,7 +92,7 @@ Fields, relations, sort and pagination follow the schema's drop-vs-throw policy.
 
 ## 4. Execute (server)
 
-With TypeORM, the adapter applies the query to a `SelectQueryBuilder` — filters become parameterized `WHERE` conditions, relations become joins:
+With TypeORM, the adapter applies the query to a `SelectQueryBuilder`: filters become parameterized `WHERE` conditions, relations become joins:
 
 ```typescript
 import { TypeormAdapter } from '@rapiq/adapter-typeorm';
@@ -114,18 +114,18 @@ res.json({
 });
 ```
 
-No TypeORM? [`@rapiq/adapter-sql`](/packages/adapter-sql) renders parameterized SQL fragments for any driver, and [`@rapiq/adapter-memory`](/packages/adapter-memory) evaluates the same query against plain arrays.
+No TypeORM? [`@rapiq/adapter-prisma`](/packages/adapter-prisma) and [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle) serialize the same query into ORM-native argument objects, [`@rapiq/adapter-sql`](/packages/adapter-sql) renders parameterized SQL fragments for any driver, and [`@rapiq/adapter-memory`](/packages/adapter-memory) evaluates it against plain arrays. All five are compared in [Executing Queries](/guide/executing-queries).
 
 ## What just happened
 
-1. The caller expressed *intent* in a typed structure — no hand-built query strings.
+1. The caller expressed *intent* in a typed structure: no hand-built query strings.
 2. The wire carried a self-described expression filter alongside JSON:API-style parameters.
 3. The server enforced its contract *before* anything touched the database.
-4. The adapter translated the validated query mechanically — values are always bound as parameters, never interpolated.
+4. The adapter translated the validated query mechanically: values are always bound as parameters, never interpolated.
 
 ## Next steps
 
-- [Core Concepts](/guide/concepts) — the four moving parts behind these steps.
-- [Building Queries](/guide/building-queries) — the full client-side grammar.
-- [Schemas & Validation](/guide/schemas) — defaults, aliases, strict mode, failure policy.
-- [Recipes: REST API with Express & TypeORM](/guide/recipes/express-typeorm) — the complete endpoint with error handling.
+- [Core Concepts](/guide/concepts): the four moving parts behind these steps.
+- [Building Queries](/guide/building-queries): the full client-side grammar.
+- [Schemas & Validation](/guide/schemas): defaults, aliases, strict mode, failure policy.
+- [Recipes: REST API with Express & TypeORM](/guide/recipes/express-typeorm): the complete endpoint with error handling.

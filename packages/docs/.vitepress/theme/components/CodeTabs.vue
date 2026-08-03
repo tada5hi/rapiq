@@ -9,26 +9,21 @@ interface Tab {
 const tabs: Tab[] = [
     {
         label: 'Install',
-        code: `# client side — build & encode queries
+        code: `# client side: build & encode queries
 npm install @rapiq/core @rapiq/codec-url
 
-# server side — parse, validate & translate
+# server side: parse, validate & translate
 npm install @rapiq/core @rapiq/parser-simple @rapiq/adapter-sql`,
     },
     {
         label: 'Build (client)',
-        code: `import {
-    Filter, FilterCompoundOperator, FilterFieldOperator,
-    Filters, Pagination, Query, Sort, Sorts,
-} from '@rapiq/core';
+        code: `import { defineQuery } from '@rapiq/core';
 import { createURLCodec } from '@rapiq/codec-url';
 
-const query = new Query({
-    filters: new Filters(FilterCompoundOperator.AND, [
-        new Filter(FilterFieldOperator.GREATER_THAN_EQUAL, 'age', 18),
-    ]),
-    sorts: new Sorts([new Sort('age', 'DESC')]),
-    pagination: new Pagination(25, 0),
+const query = defineQuery<User>({
+    filters: { age: { $gte: 18 } },
+    sort: '-age',
+    pagination: { limit: 25 },
 });
 
 const codec = createURLCodec();
@@ -66,7 +61,7 @@ const copy = async (code: string) => {
         await navigator.clipboard.writeText(code);
     } catch {
         // Clipboard API can reject in insecure contexts or on permission
-        // denial — leave `copied` false so the button doesn't claim success.
+        // denial; leave `copied` false so the button doesn't claim success.
         return;
     }
     copied.value = true;

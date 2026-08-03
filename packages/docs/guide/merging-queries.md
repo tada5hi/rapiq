@@ -1,8 +1,8 @@
 # Merging & Composition
 
-Real queries rarely come from one place. A list view combines **user input** (a search box), **component state** (the current page), **props** (a parent-imposed scope) and **application defaults** — and the server may add conditions of its own. rapiq composes all of these on the `Query` itself, so every construction path (built, decoded, parsed by any dialect) combines the same way.
+Real queries rarely come from one place. A list view combines **user input** (a search box), **component state** (the current page), **props** (a parent-imposed scope) and **application defaults**, and the server may add conditions of its own. rapiq composes all of these on the `Query` itself, so every construction path (built, decoded, parsed by any dialect) combines the same way.
 
-## `mergeQueries` — left priority
+## `mergeQueries`: left priority
 
 ```typescript
 import { mergeQueries } from '@rapiq/core';
@@ -10,7 +10,7 @@ import { mergeQueries } from '@rapiq/core';
 const query = mergeQueries(searchQuery, paginationQuery, propsQuery, defaultsQuery);
 ```
 
-The first argument wins conflicts. All operations are **immutable**: inputs stay untouched, new instances are returned — safe for reactivity systems and shared default fragments.
+The first argument wins conflicts. All operations are **immutable**: inputs stay untouched and new instances are returned, safe for reactivity systems and shared default fragments.
 
 Per-parameter semantics:
 
@@ -18,7 +18,7 @@ Per-parameter semantics:
 |---|---|
 | `fields` / `relations` / `sorts` | keyed by name, left-priority replace; order = first occurrence |
 | `pagination` | per-property left priority (`limit` and `offset` merge independently) |
-| `filters` | per-field replace via `Filters.merge` — see below |
+| `filters` | per-field replace via `Filters.merge` (see below) |
 
 One guard applies to `fields`: a name collision that would discard a [row-scoped visibility gate](/guide/fields#row-scoped-fields) (`Field.condition`) throws a `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently un-gating the column. A gate only ever arises server-side, from a schema hook; keep that parsed query as the receiver and its gates survive every collision.
 
@@ -26,7 +26,7 @@ One guard applies to `fields`: a name collision that would discard a [row-scoped
 
 Filters get two distinct operations, because a single "merge" would silently break one of the two use cases.
 
-### `merge()` — per-field replace
+### `merge()`: per-field replace
 
 A condition on a field **replaces** the other side's conditions on the same field (it is *not* and-ed). This is the list-view case: user search input overrides a default on the same field, while unrelated defaults survive:
 
@@ -44,11 +44,11 @@ mergeQueries(searchQ, defaultsQ).filters;
 mergeQueries(flatQ, defineQuery({ filters: or(...) })); // throws MergeError
 ```
 
-An empty side passes the other side through unchanged — compound defaults survive as long as nothing needs replacing.
+An empty side passes the other side through unchanged: compound defaults survive as long as nothing needs replacing.
 
-### `and()` / `or()` — wrap & inject
+### `and()` / `or()`: wrap & inject
 
-Always defined, for combining condition trees. The receiver is wrapped as a child of a new group, so injected conditions become part of the tree rather than candidates for replacement:
+Always defined, for combining condition trees. The receiver becomes a child of a new group holding the injected conditions, so they are part of the tree rather than candidates for replacement. On an empty receiver the injected conditions land in a nested group of their own; either way, the result is **never a flat root-AND**. Calling `and()` / `or()` with no conditions returns the receiver unchanged.
 
 ```typescript
 import { Query, eq } from '@rapiq/core';
@@ -60,13 +60,13 @@ const scoped = new Query({
 });
 ```
 
-The adapter output now contains the injected condition regardless of what the client sent — and since the wrapped tree is no longer flat, a later `merge()` throws instead of silently displacing the scoping condition. That failure mode is a feature: injected security conditions cannot be merged away. See the [authorization recipe](/guide/recipes/authorization).
+The adapter output now contains the injected condition regardless of what the client sent, even when the client sent no filters at all. And because the resulting tree is never flat, a later `merge()` cannot displace the injected condition: an empty other side passes the tree through untouched, and anything else throws a `MergeError` (`ErrorCode.FILTERS_NOT_FLAT`) instead of silently displacing the scoping condition. That refusal is unconditional, and it is a feature: injected security conditions cannot be merged away. See the [authorization recipe](/guide/recipes/authorization).
 
 ## Why not deep-merge input objects?
 
-Generic object merging (smob, deepmerge, spread) on query *input* cannot express these semantics — same-field replace, null-preserving `in` arrays, injected conditions that resist displacement. Merge on the query instead: build fragments with [`defineQuery` / `define*`](/guide/building-queries#fragments), compose with `mergeQueries`, then encode or execute the result.
+Generic object merging (smob, deepmerge, spread) on query *input* cannot express these semantics: same-field replace, null-preserving `in` arrays, injected conditions that resist displacement. Merge on the query instead: build fragments with [`defineQuery` / `define*`](/guide/building-queries#fragments), compose with `mergeQueries`, then encode or execute the result.
 
 ## Next steps
 
-- [Recipes: Type-safe frontend queries](/guide/recipes/frontend) — merging user input, props and defaults in a list view.
-- [Recipes: Authorization & scoping](/guide/recipes/authorization) — `and()` injection end-to-end.
+- [Recipes: Type-safe frontend queries](/guide/recipes/frontend): merging user input, props and defaults in a list view.
+- [Recipes: Authorization & scoping](/guide/recipes/authorization): `and()` injection end-to-end.

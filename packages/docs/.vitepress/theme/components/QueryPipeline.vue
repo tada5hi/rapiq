@@ -21,13 +21,13 @@
             </div>
 
             <div class="rq-pipe-arrow">
-                <span class="rq-pipe-arrow-label">encode — <code>URLCodec</code></span>
+                <span class="rq-pipe-arrow-label">encode · <code>URLCodec</code></span>
             </div>
         </div>
 
         <div class="rq-pipe-wire">
             <span class="rq-pipe-wire-label">HTTP</span>
-            <code>?filter[age]=&gt;=18&amp;include=realm&amp;sort=-age&amp;page[limit]=25</code>
+            <code>?codec=url-expression&amp;filter=gte(age,'18')&amp;include=realm&amp;sort=-age&amp;page[limit]=25</code>
         </div>
 
         <div
@@ -37,13 +37,13 @@
             <span class="rq-pipe-zone-label">Receiver</span>
 
             <div class="rq-pipe-arrow">
-                <span class="rq-pipe-arrow-label">decode — <code>URLCodec</code> / parsers</span>
+                <span class="rq-pipe-arrow-label">decode · <code>URLCodec</code> / parsers</span>
             </div>
 
             <div class="rq-pipe-node">
                 <span class="rq-pipe-node-title">Validate</span>
                 <span class="rq-pipe-node-sub">
-                    checked against the <strong>Schema</strong> allow-list —
+                    checked against the <strong>Schema</strong> allow-list;
                     anything not permitted is dropped or rejected
                 </span>
             </div>
@@ -52,11 +52,11 @@
 
             <div class="rq-pipe-node rq-pipe-node-query">
                 <span class="rq-pipe-node-title">Query</span>
-                <span class="rq-pipe-node-sub">the shared, typed AST — same shape on both sides</span>
+                <span class="rq-pipe-node-sub">the shared, typed AST: same shape on both sides</span>
             </div>
 
             <div class="rq-pipe-arrow">
-                <span class="rq-pipe-arrow-label">execute — <code>accept(visitor)</code></span>
+                <span class="rq-pipe-arrow-label">execute · <code>accept(visitor)</code></span>
             </div>
 
             <div class="rq-pipe-adapters">

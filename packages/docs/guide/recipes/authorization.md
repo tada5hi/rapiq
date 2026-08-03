@@ -1,15 +1,17 @@
 # Authorization & Scoping
 
+*Chapter 7 of the [recipes storyline](/guide/recipes/), the cross-cutting layer: gates and scopes that apply to every previous chapter's endpoint. Previous: [Testing with the Memory Adapter](/guide/recipes/testing-memory).*
+
 Four recurring authorization problems, one query language:
 
-1. **Gating the request** — a client may only *ask for* what its actor is permitted to see: including a relation must require the permission to read the related entity.
-2. **Scoping a collection** — a user may only ever see records of their own realm, no matter what they ask for.
+1. **Gating the request**: a client may only *ask for* what its actor is permitted to see; including a relation must require the permission to read the related entity.
+2. **Scoping a collection**: a user may only ever see records of their own realm, no matter what they ask for.
 3. **Scoping a column**: a field is readable, but only on *some* of the rows the actor is otherwise allowed to see.
 4. **Guarding a single record**: an ability like *"may edit users where `realm_id = X`"* must be checked against one object in memory, and must agree exactly with what the database query would return.
 
 ## Gating: per-actor checks at decode time
 
-Schema allow-lists say what *any* client may request. The [validate hooks](/guide/schemas#validate-hooks--parse-context) say what *this* actor may request: pass the actor as the parse `context`, and let the schema run a permission check per requested relation (or field, or sort key):
+Schema allow-lists say what *any* client may request. The [validate hooks](/guide/schemas#validate-hooks-parse-context) say what *this* actor may request: pass the actor as the parse `context`, and let the schema run a permission check per requested relation (or field, or sort key):
 
 ```typescript
 type Actor = { can: (permission: string) => Promise<boolean> };
@@ -34,15 +36,15 @@ app.get('/client-permissions', async (req, res) => {
 });
 ```
 
-Hooks run against the **target schema** of each path segment — `include=client.realm` checks `client` on this schema and `realm` on the client schema — so an include can never widen access past the related schema's own gate. Rejections follow the schema failure policy: dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) with `throwOnFailure`. An absent context reaches the hook as `undefined`, so a permission hook written like the one above fails closed.
+Hooks run against the **target schema** of each path segment (`include=client.realm` checks `client` on this schema and `realm` on the client schema), so an include can never widen access past the related schema's own gate. Rejections follow the schema failure policy: dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) with `throwOnFailure`. An absent context reaches the hook as `undefined`, so a permission hook written like the one above fails closed.
 
-The `relations` hook is not scoped to `include=`. A dotted `filter[client.name]`, `fields[client]` or `sort=client.name` forces the same join, so the hook runs for those too — evaluated once per distinct relation across the query. An actor denied `client` cannot slip the join in through another parameter.
+The `relations` hook is not scoped to `include=`. A dotted `filter[client.name]`, `fields[client]` or `sort=client.name` forces the same join, so the hook runs for those too, evaluated once per distinct relation across the query. An actor denied `client` cannot slip the join in through another parameter.
 
 ::: warning Authorization happens at the parse/decode boundary
-The gate runs while **parsing untrusted input** — `parse()` / `decode()` and the per-parameter `decode*` helpers. It is a property of that boundary, not of the `Query` object itself: a query you assemble server-side with the schema-free [build layer](/guide/building-queries) (`defineQuery`, condition helpers) and hand straight to an adapter is **not** re-checked — the adapter joins what the query names. Feed client input through a parser/codec with a schema and `context`; keep server-authored queries (and schema `default`s) as the trusted baseline. See [Scoping](#scoping-inject-conditions-the-client-cant-displace) for pinning server conditions the client can't displace.
+The gate runs while **parsing untrusted input**: `parse()` / `decode()` and the per-parameter `decode*` helpers. It is a property of that boundary, not of the `Query` object itself: a query you assemble server-side with the schema-free [build layer](/guide/building-queries) (`defineQuery`, condition helpers) and hand straight to an adapter is **not** re-checked; the adapter joins what the query names. Feed client input through a parser/codec with a schema and `context`; keep server-authored queries (and schema `default`s) as the trusted baseline. See [Scoping](#scoping-inject-conditions-the-client-cannot-displace) for pinning server conditions the client cannot displace.
 :::
 
-## Scoping: inject conditions the client can't displace
+## Scoping: inject conditions the client cannot displace
 
 After decoding the client's query, wrap its filters with your scope condition via `and()`:
 
@@ -66,10 +68,10 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-Why `and()` and not a merge? `and()` **wraps** the client's tree as a sibling of the injected condition — the condition becomes structure, not data:
+Why `and()` and not a merge? `and()` **wraps** the client's tree as a sibling of the injected condition; the condition becomes structure, not data:
 
 - A client filter on `realm_id` narrows *within* the scope; it can never widen it.
-- The wrapped tree is no longer flat, so a later [`merge()`](/guide/merging-queries#merge--per-field-replace) throws `MergeError` instead of silently displacing the scope condition. The failure mode defends the invariant.
+- The wrapped tree is never flat, so a later [`merge()`](/guide/merging-queries#merge-per-field-replace) throws `MergeError` instead of silently displacing the scope condition. The failure mode defends the invariant. This holds unconditionally: even when the client sent no filters at all, the injected condition lands in a nested group rather than a flat root-AND.
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
@@ -126,6 +128,8 @@ const rows = await queryBuilder.getMany();
 res.json(applyFieldConditions(query.fields, rows));
 ```
 
+The serializer adapters are in the same position. `@rapiq/adapter-prisma` and `@rapiq/adapter-drizzle` keep the gated column selected and force-project the columns the gate reads as select-only entries (in drizzle, an operand that addresses a relation hydrates through `with` instead), so the fetched rows carry everything `applyFieldConditions` needs; nothing enforces the gate in the database. `PrismaAdapter.findMany()` even refuses a query carrying field conditions with a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`) rather than shipping rows unredacted: serialize with `execute()`, run the args yourself, then apply the pass above. The drizzle adapter has no runner at all, so the same post-fetch pass applies to whatever `db.query.<table>.findMany(config)` returns.
+
 This is fail-open by construction. If the column must never reach the process at all, reject the field (`return false`) instead of gating it.
 :::
 
@@ -156,7 +160,7 @@ const scoped = new Query({
 });
 ```
 
-`@rapiq/adapter-memory` aims for **SQL parity** — null handling, string matching and relation-path binding match what the SQL/TypeORM adapters produce — so the guard and the query cannot drift apart. Semantics details: [@rapiq/adapter-memory](/packages/adapter-memory#filter-semantics).
+`@rapiq/adapter-memory` aims for **SQL parity** (null handling, string matching and relation-path binding match what the SQL/TypeORM adapters produce), so the guard and the query cannot drift apart. Semantics details: [@rapiq/adapter-memory](/packages/adapter-memory#filter-semantics).
 
 For whole-query checks (fields, sort, pagination included), compile once and reuse:
 
@@ -180,5 +184,5 @@ compiled.apply(users);     // apply the full query to loaded data
 
 ## Next steps
 
-- [Merging & Composition](/guide/merging-queries) — why injected trees resist merging.
-- [@rapiq/adapter-memory](/packages/adapter-memory) — the full in-memory semantics contract.
+- [Merging & Composition](/guide/merging-queries): why injected trees resist merging.
+- [@rapiq/adapter-memory](/packages/adapter-memory): the full in-memory semantics contract.

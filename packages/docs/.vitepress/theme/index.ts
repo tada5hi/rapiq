@@ -9,7 +9,7 @@ import './style.css';
 
 /*
  * VitePress theme entry. The landing page (index.md) composes the
- * marketing components from ./components/ — they are imported there
+ * marketing components from ./components/; they are imported there
  * directly. The diagram components below are used across guide pages,
  * so they register globally.
  */

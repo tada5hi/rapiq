@@ -55,7 +55,7 @@ describe('src/adapter/where.ts', () => {
         });
 
         it('should keep an opted-out field exact', () => {
-            const config = serialize(eq('address', 'Hogwarts'), { filters: { caseSensitive: ['address'] } });
+            const config = serialize(eq('address', 'Hogwarts'), { caseSensitive: ['address'] });
 
             expect(config.where).toEqual({ address: { eq: 'Hogwarts' } });
         });

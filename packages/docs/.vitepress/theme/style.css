@@ -3,11 +3,11 @@
  *
  * Every color used by the landing-page components resolves through
  * these custom properties, which are bound to VitePress's own theme
- * variables — so light/dark mode works without per-component variants.
+ * variables, so light/dark mode works without per-component variants.
  */
 
 :root {
-    /* brand — violet → cyan, echoing the rapiq 🌈 rainbow */
+    /* brand: violet → cyan, echoing the rapiq 🌈 rainbow */
     --vp-c-brand-1: #7c3aed;
     --vp-c-brand-2: #8b5cf6;
     --vp-c-brand-3: #8b5cf6;

@@ -14,7 +14,7 @@ const queryString = codec.encode(query);
 await fetch(`/users?${queryString}`);
 ```
 
-New payloads use the expression filter dialect and carry `codec=url-expression`. Pass `{ stamp: false }` to omit the reserved stamp for receivers outside rapiq (e.g. strict JSON:API endpoints) — untagged output is still recognized structurally on decode. The remaining URL parameters use JSON:API-style names:
+New payloads use the expression filter dialect and carry `codec=url-expression`. Pass `{ stamp: false }` to omit the reserved stamp for receivers outside rapiq (e.g. strict JSON:API endpoints); untagged output is still recognized structurally on decode. The remaining URL parameters use JSON:API-style names:
 
 | Parameter | URL key | Example |
 |---|---|---|
@@ -52,7 +52,7 @@ If your input already uses canonical parameter keys (`filters`, `pagination`, �
 
 ### Decoding a subset of parameters
 
-Sometimes only part of a query should apply — a bulk delete, for example, must honor the request's filters but never its pagination. Pass `parameters` to decode only the listed parameters; everything else stays empty and, importantly, schema defaults such as `pagination.maxLimit` do **not** materialize for masked parameters:
+Sometimes only part of a query should apply: a bulk delete, for example, must honor the request's filters but never its pagination. Pass `parameters` to decode only the listed parameters; everything else stays empty and, importantly, schema defaults such as `pagination.maxLimit` do **not** materialize for masked parameters:
 
 ```typescript
 app.delete('/sessions', (req, res) => {
@@ -60,7 +60,7 @@ app.delete('/sessions', (req, res) => {
         schema: 'session',
         parameters: ['filters'],
     });
-    // query.pagination is empty — the schema's maxLimit cannot
+    // query.pagination is empty: the schema's maxLimit cannot
     // silently truncate the delete's row selection.
 });
 ```
@@ -71,7 +71,7 @@ The v2 codec follows a read-both/write-expression migration:
 
 1. A stamped payload dispatches to its named dialect.
 2. An unstamped non-empty string `filter` is parsed as an expression.
-3. Any other unstamped defined `filter` — bracket/object input, or an empty `filter=` — is parsed as legacy simple input.
+3. Any other unstamped defined `filter` (bracket/object input, or an empty `filter=`) is parsed as legacy simple input.
 4. An unknown stamped codec throws `CodecError` with `CODEC_UNRESOLVABLE`.
 
 This lets receiving applications upgrade before callers. Existing URLs such as `filter[age]=>=18` continue to decode, while upgraded callers begin producing expressions.
@@ -119,5 +119,5 @@ When validators are asynchronous, use `await codec.encodeAsync(...)` and `await 
 
 ## Next steps
 
-- [Executing Queries](/guide/executing-queries) — what the receiver does with the decoded query.
-- [@rapiq/codec-url](/packages/codec-url) — complete dialect, migration and extension reference.
+- [Executing Queries](/guide/executing-queries): what the receiver does with the decoded query.
+- [@rapiq/codec-url](/packages/codec-url): complete dialect, migration and extension reference.

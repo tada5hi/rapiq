@@ -66,7 +66,7 @@ export class DrizzleAdapter<
 
         const filters = this.renderer.build(
             query.filters,
-            options.filters || this.options.filters || {},
+            { caseSensitive: options.caseSensitive ?? this.options.caseSensitive },
         );
 
         const produced : FindManyConfig = {};

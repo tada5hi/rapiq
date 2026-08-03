@@ -1,22 +1,22 @@
 # The Query AST
 
-Under every rapiq feature sits one data structure: the `Query` — a tree of node objects from `@rapiq/core`. Parsers produce it, schemas constrain it, adapters consume it. You rarely touch it directly, but understanding it is the key to extending rapiq with your own parsers and backends.
+Under every rapiq feature sits one data structure: the `Query`, a tree of node objects from `@rapiq/core`. Parsers produce it, schemas constrain it, adapters consume it. You rarely touch it directly, but understanding it is the key to extending rapiq with your own parsers and backends.
 
 ## Nodes
 
 | Collection node | Record node | Holds |
 |---|---|---|
-| `Fields` | `Field` | `name`, optional `operator` (`FieldOperator.INCLUDE` / `EXCLUDE`) |
+| `Fields` | `Field` | `name`, optional `operator` (`FieldOperator.INCLUDE` / `EXCLUDE`), optional `condition` (`ICondition`, a [row-scoped visibility gate](/guide/fields#row-scoped-fields)) |
 | `Filters` | `Filter` | compound (`and` / `or` / `not`) tree of `{ operator, field, value }` conditions |
 | `Relations` | `Relation` | `name` (dot-notation for nested paths) |
 | `Sorts` | `Sort` | `name`, `operator` (`'ASC'` / `'DESC'`) |
-| `Pagination` | — | `limit`, `offset` |
+| `Pagination` | *(none)* | `limit`, `offset` |
 
 `Filters` is the only recursive node: its children are either leaf `Filter` conditions or nested `Filters`, so arbitrary `and`/`or` combinations compose naturally.
 
 ## Hand-constructing a query
 
-Rarely necessary — [`defineQuery`](/guide/building-queries) builds the same tree from typed input — but instructive:
+Rarely necessary ([`defineQuery`](/guide/building-queries) builds the same tree from typed input) but instructive:
 
 ```typescript
 import {
@@ -40,11 +40,11 @@ const query = new Query({
 });
 ```
 
-Every constructor argument is optional — omitted parameters default to empty collections, which adapters treat as no-ops.
+Every constructor argument is optional: omitted parameters default to empty collections, which adapters treat as no-ops.
 
 ## The visitor pattern
 
-Nodes are consumed via double dispatch — every node has `accept(visitor)`, and backends implement visitor interfaces for the nodes they care about:
+Nodes are consumed via double dispatch. Every node has `accept(visitor)`, and backends implement visitor interfaces for the nodes they care about:
 
 ```typescript
 interface IFiltersVisitor { visitFilters(filters: IFilters): unknown }
@@ -58,7 +58,7 @@ query.accept(myQueryVisitor);           // whole query
 query.filters.accept(myFiltersVisitor); // single parameter
 ```
 
-This is how all three adapters work — [`@rapiq/adapter-sql`](/packages/adapter-sql) accumulates SQL fragments, [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) writes into a query builder, [`@rapiq/adapter-memory`](/packages/adapter-memory) returns compiled functions (`R = Predicate`). New backends are added by implementing visitors; core never changes.
+This is how all five adapters consume the query. Three are interpreter-style: [`@rapiq/adapter-sql`](/packages/adapter-sql) accumulates SQL fragments, [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) writes into a query builder, [`@rapiq/adapter-memory`](/packages/adapter-memory) returns compiled functions (`R = Predicate`). The two serializer adapters, [`@rapiq/adapter-prisma`](/packages/adapter-prisma) and [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle), implement the same `IQueryVisitor` entry point but consume filter conditions through the plan layer (`planCondition` plus `distributeNegation` feeding a pure renderer) instead of accumulating fragments, serializing the query into a plain `findMany` argument object. New backends are added by implementing visitors; core never changes.
 
 ## Type guards
 
@@ -81,11 +81,11 @@ function toQuery<T extends Record<string, any>>(
 }
 ```
 
-`isParameterNode` is the generic escape hatch — it accepts *any* AST node (everything carrying an `accept` method) without identifying its kind, separating built fragments from plain build input.
+`isParameterNode` is the generic escape hatch: it accepts *any* AST node (everything carrying an `accept` method) without identifying its kind, separating built fragments from plain build input.
 
 ## Writing a custom parser: ResolutionScope
 
-Parsers resolve raw client keys through a `ResolutionScope` — an immutable handle on *one parameter of one schema under one failure policy*. It owns alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware) and the throw-vs-drop policy, so a custom parser doesn't reimplement any of it:
+Parsers resolve raw client keys through a `ResolutionScope`: an immutable handle on *one parameter of one schema under one failure policy*. It owns alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware) and the throw-vs-drop policy, so a custom parser doesn't reimplement any of it:
 
 ```typescript
 import { Parameter, ResolutionScope } from '@rapiq/core';
@@ -101,9 +101,9 @@ scope.resolveKey('secret');
 
 `resolveKey()` resolves a local, aliased or dotted key and reports the outcome as a discriminated union (or throws the parameter's error class when `throwOnFailure` applies). `descend('items')` enters a relation segment and returns a child scope bound to the related schema. Scopes created without any schema input are *unbound* and impose no constraints.
 
-Custom parsers extend `BaseParser<OPTIONS, OUTPUT>` from core — the shipped parsers ([simple](/packages/parser-simple), [expression](/packages/parser-expression), [mongo](/packages/parser-mongo)) are reference implementations, each composing one sub-parser per parameter.
+Custom parsers extend `BaseParser<OPTIONS, OUTPUT>` from core; the shipped parsers ([simple](/packages/parser-simple), [expression](/packages/parser-expression), [mongo](/packages/parser-mongo)) are reference implementations, each composing one sub-parser per parameter.
 
 ## Next steps
 
-- [Error Handling](/guide/errors) — the error contract extensions should follow.
-- [Package overview](/packages/) — where each shipped implementation lives.
+- [Error Handling](/guide/errors): the error contract extensions should follow.
+- [Package overview](/packages/): where each shipped implementation lives.

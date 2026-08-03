@@ -1,7 +1,7 @@
 ---
 layout: page
 title: rapiq
-description: One query language between client & server — JSON:API-style queries, a typed AST, schema allow-lists and composable SQL/TypeORM adapters.
+description: 'One query language between client & server: JSON:API-style queries, a typed AST, schema allow-lists and composable adapters for SQL, TypeORM, Prisma, Drizzle and in-memory data.'
 ---
 
 <script setup>

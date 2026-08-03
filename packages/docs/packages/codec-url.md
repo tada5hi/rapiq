@@ -21,7 +21,7 @@ const decoded = codec.decode(wire!, { schema: 'user' });
 
 The façade owns both directions. Use `encodeAsync()` and `decodeAsync()` when a schema uses asynchronous filter validators.
 
-For receivers outside rapiq (e.g. strict JSON:API endpoints that reject unknown query parameters), the reserved stamp can be omitted — the output is still recognized structurally on decode:
+For receivers outside rapiq (e.g. strict JSON:API endpoints that reject unknown query parameters), the reserved stamp can be omitted; the output is still recognized structurally on decode:
 
 ```typescript
 codec.encode(query, { stamp: false });
@@ -34,8 +34,10 @@ Encoding uses `url-expression` by default and stamps `codec=url-expression`. Dec
 
 1. A stamped payload dispatches to the named dialect.
 2. An unstamped non-empty string `filter` is parsed as an expression.
-3. Any other unstamped defined `filter` — bracket/object input, or an empty `filter=` which carries no dialect signal — is parsed as legacy simple input.
+3. Any other unstamped defined `filter` (bracket/object input, or an empty `filter=` which carries no dialect signal) is parsed as legacy simple input.
 4. A payload naming an unknown codec throws `CodecError` with `CODEC_UNRESOLVABLE`.
+
+The dialect identifiers are exported as `URL_EXPRESSION_CODEC` (`'url-expression'`) and `URL_SIMPLE_CODEC` (`'url-simple'`): pass one via `encode(query, { codec })`, or use them for out-of-band content negotiation. The reserved `codec` wire key itself is exported as `CODEC_PARAMETER`.
 
 Input without a filter is dialect-neutral because fields, pagination, relations and sort share one wire grammar. Structural recognition is supplied by each registered dialect's `detect` hook (see [Custom codecs](#custom-codecs)), so it applies to third-party dialects too.
 
@@ -53,7 +55,7 @@ It carries flat filters, repeated fields, nested `and`/`or`/`not` trees and `ele
 filter=elemMatch(scores,gt($this,'5'))
 ```
 
-Operators without an expression grammar production—`regex`, `mod` and `exists`—throw a typed unsupported error during encoding rather than changing semantics.
+Operators without an expression grammar production (`regex`, `mod` and `exists`) throw a typed unsupported error during encoding rather than changing semantics.
 
 ## Legacy simple dialect
 
@@ -78,11 +80,15 @@ The simple dialect supports flat root-AND filters only. Nested groups, repeated 
 
 | Parameter | URL key | Example |
 |---|---|---|
-| fields | `fields` | `fields=id,name` / `fields[items]=id` |
+| fields | `fields` | `fields=id,name` / `fields[$root]=id,name&fields[items]=id` |
 | filters | `filter` | expression string or legacy bracket fields |
 | pagination | `page` | `page[limit]=25&page[offset]=50` |
 | relations | `include` | `include=realm,items` |
 | sort | `sort` | `sort=name,-age` |
+
+When root and relation fieldsets encode together, the root field group is spelled with the reserved `$root` token (exported as `URL_FIELDS_ROOT`): `fields[$root]=id,name&fields[items]=id`. A lone root group keeps the bare form (`fields=id,name`). Decoding accepts `$root` and the legacy `__DEFAULT__` spelling written by early 2.0 betas.
+
+The URL keys in the table are exported as the `URLParameter` constants; the reserved `codec` key as `CODEC_PARAMETER`.
 
 Within a dialect's supported subset, `decode(encode(query))` restores the same query up to scalar wire normalization (`'5'` becomes `5`, for example).
 
@@ -108,7 +114,7 @@ const decoded = codec.decode(req.query, {
 });
 ```
 
-Schema-aware encoding validates by piping the output through the schema-bound decoder — a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
+Schema-aware encoding validates by piping the output through the schema-bound decoder: a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
 
 ## Custom codecs
 

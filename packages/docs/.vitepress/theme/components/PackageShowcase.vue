@@ -12,7 +12,7 @@ const packages: PackageCard[] = [
         name: '@rapiq/core',
         accent: 'var(--rq-color-primary)',
         href: '/packages/core',
-        summary: 'The foundation — query AST, typed build layer and the schema system everything else builds on.',
+        summary: 'The foundation: query AST, typed build layer and the schema system everything else builds on.',
         bullets: [
             'defineQuery() + condition helpers (eq, and, or, …)',
             'defineSchema() + SchemaRegistry allow-lists',
@@ -23,7 +23,7 @@ const packages: PackageCard[] = [
         name: '@rapiq/parser-simple',
         accent: 'var(--rq-color-accent)',
         href: '/packages/parser-simple',
-        summary: 'Parses plain object/array input — the URL-query-like "simple" dialect.',
+        summary: 'Parses plain object/array input: the URL-query-like "simple" dialect.',
         bullets: [
             'Filters like { age: \'>=18\', name: \'~jo~\' }',
             'Schema validation while parsing',
@@ -56,7 +56,7 @@ const packages: PackageCard[] = [
         name: '@rapiq/codec-url',
         accent: 'var(--rq-color-warning)',
         href: '/packages/codec-url',
-        summary: 'URL query-string codec — the transport between caller and receiver.',
+        summary: 'URL query-string codec: the transport between caller and receiver.',
         bullets: [
             'Expression filters by default',
             'Legacy simple-filter decoding',
@@ -71,7 +71,7 @@ const packages: PackageCard[] = [
         bullets: [
             'Presets: Postgres, MySQL, SQLite, MSSQL, Oracle',
             'Dialects are option objects, not subclasses',
-            'Visitor-driven — fragments accumulate per parameter',
+            'Visitor-driven: fragments accumulate per parameter',
         ],
     },
     {
@@ -114,7 +114,7 @@ const packages: PackageCard[] = [
         summary: 'Evaluates the same Query against in-memory objects & arrays.',
         bullets: [
             'Filters compile to plain predicates',
-            'SQL-parity semantics — guards agree with the database',
+            'SQL-parity semantics: guards agree with the database',
             'Perfect for authorization checks & tests',
         ],
     },
@@ -129,7 +129,7 @@ const packages: PackageCard[] = [
             </h2>
             <p class="rq-packages-sub">
                 rapiq is a family of focused, composable packages.
-                Install only what each side of your application needs —
+                Install only what each side of your application needs;
                 everything meets in the core query AST.
                 <a href="/packages/">Browse all packages →</a>
             </p>

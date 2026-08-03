@@ -1,6 +1,6 @@
 # Pagination
 
-Limit and offset the collection — with a server-side cap.
+Limit and offset the collection, with a server-side cap.
 
 | | |
 |---|---|
@@ -25,7 +25,7 @@ Parser input shape:
 }
 ```
 
-Both keys are optional. Values are coerced to integers; `limit` must be positive, `offset` non-negative.
+Both keys are optional. Values are coerced to integers; `limit` must be positive, `offset` non-negative. When a limit applies (requested, or set via `maxLimit`) and no offset was sent, the offset defaults to `0`.
 
 ## Building in code
 
@@ -62,4 +62,4 @@ res.json({ data, meta: { total, ...pagination } });
 
 ## On violation
 
-Out-of-range values are clamped/dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw), exceeding `maxLimit` throws `PaginationParseError.limitExceeded()` instead of clamping.
+Out-of-range values are clamped/dropped silently. With [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw), an invalid `limit` or `offset` throws `PaginationParseError.keyValueInvalid()` and exceeding `maxLimit` throws `PaginationParseError.limitExceeded()` instead of clamping.

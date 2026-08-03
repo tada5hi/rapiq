@@ -191,7 +191,7 @@ suite('engine: postgres parity and case contract', () => {
     it('should keep an opted-out equality exact', async () => {
         const exact = new DrizzleAdapter(createAdapterOptions({
             provider: 'pg',
-            filters: { caseSensitive: true },
+            caseSensitive: true,
         }));
 
         // matches only the exact-case record, unlike the folded
