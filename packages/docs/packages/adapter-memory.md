@@ -82,7 +82,7 @@ applyQuery(query, users, { caseSensitive: ['id'] });
 compileFilters(eq('id', 'aBc'), { caseSensitive: ['id'] });
 ```
 
-`caseSensitive: true` keeps **every** equality comparison exact (byte-exact strings): for evaluating arbitrary condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies:
+`caseSensitive: true` keeps **every** equality comparison exact (plain string equality, no case folding): for evaluating arbitrary condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies:
 
 ```typescript
 compileFilters(condition, { caseSensitive: true });

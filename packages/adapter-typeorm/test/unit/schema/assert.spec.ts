@@ -6,7 +6,9 @@
  */
 
 import type { SchemaOptions } from '@rapiq/core';
-import { and, defineSchema, eq } from '@rapiq/core';
+import {
+    ErrorCode, SchemaError, and, defineSchema, eq,
+} from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import {
     SchemaEntityMismatchError,
@@ -193,5 +195,17 @@ describe('src/schema/assert.ts', () => {
         });
         expect(grabError(() => assertSchemaMatchesEntity(invalid, User, dataSource)).keys)
             .toEqual(['renamedAway']);
+    });
+
+    it('should throw typed when an entity target comes without a data source', () => {
+        const schema = defineSchema({ name: 'target-no-source' });
+
+        try {
+            assertSchemaMatchesEntity(schema, User, undefined as unknown as DataSource);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(SchemaError);
+            expect((e as SchemaError).code).toBe(ErrorCode.INPUT_INVALID);
+        }
     });
 });

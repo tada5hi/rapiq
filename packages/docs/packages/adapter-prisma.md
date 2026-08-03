@@ -207,7 +207,7 @@ A record whose elements satisfy the two conditions only separately does not matc
 String comparison is [case-insensitive by default](/guide/filters#case-sensitivity) across all rapiq backends. Prisma expresses that with `mode: 'insensitive'`, which only some connectors accept, so the adapter takes a provider:
 
 ```typescript
-new PrismaAdapter({ provider: 'mysql', metadata });
+new PrismaAdapter({ provider: 'mysql', metadata: defineMetadata(datamodel, 'User') });
 ```
 
 | provider | behavior |

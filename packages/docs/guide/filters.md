@@ -38,7 +38,7 @@ Every dialect maps onto the same operator set (`FilterFieldOperator`):
 
 Backend support varies per [adapter](/guide/executing-queries). `EXISTS` works everywhere. `REGEX` and `MOD` evaluate in [`@rapiq/adapter-memory`](/packages/adapter-memory) and render through [`@rapiq/adapter-sql`](/packages/adapter-sql) / [`@rapiq/adapter-typeorm`](/packages/adapter-typeorm) (`regex` needs a regex-capable dialect; the mssql and sqlite presets throw a typed error instead). [`@rapiq/adapter-prisma`](/packages/adapter-prisma) and [`@rapiq/adapter-drizzle`](/packages/adapter-drizzle) raise a typed `AdapterError` (`FEATURE_UNSUPPORTED`) for `regex`, `mod`, `size`, the `ITSELF` marker and `elemMatch` on a to-one relation instead of approximating; see the limitations section of each package page. Before accepting `regex` from untrusted input, read the [trust model](#regex-trust-model) below.
 
-`SIZE` matches arrays with exactly the given number of elements (a non-negative integer); missing or non-array values never match, and there is no negated form. It evaluates in [`@rapiq/adapter-memory`](/packages/adapter-memory) only: the SQL adapters throw a typed `featureUnsupported` until dialect-level JSON-array support lands, and the prisma/drizzle serializers have no array-length filter to target.
+`SIZE` matches arrays with exactly the given number of elements (a non-negative integer); missing or non-array values never match, and there is no negated leaf twin (`not(size(…))` stays a [negated group](#negation)). It evaluates in [`@rapiq/adapter-memory`](/packages/adapter-memory) only: the SQL adapters throw a typed `featureUnsupported` until dialect-level JSON-array support lands, and the prisma/drizzle serializers have no array-length filter to target.
 
 Inside an `elemMatch` interior, the reserved `ITSELF` marker (wire spelling `$this`) may take the field position of a condition to address the array element itself: `elemMatch('scores', gt(ITSELF, 5))` matches when some score is greater than five. `@rapiq/adapter-memory` evaluates it element-wise; every other adapter throws a typed `featureUnsupported` (for the SQL adapters a joined relation row is not a scalar column, and prisma/drizzle cannot address the element itself). Anywhere outside an `elemMatch` interior the marker is a typed error.
 
@@ -138,7 +138,7 @@ same verdict `@rapiq/adapter-memory` produces.
 | `inArray(field, [a, null])` | `field IN (…) OR field IS NULL` |
 | `exists(field)` | `field IS NOT NULL` |
 
-Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) are **exact complements** of their positive twins: they also match records where the field is `NULL`/absent. Adapters render them null-inclusively, e.g. `ne(field, a)` → `(field <> ? OR field IS NULL)`.
+Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) are **exact complements** of their positive twins: for values that don't name `null` themselves, they also match records where the field is `NULL`/absent, e.g. `ne(field, a)` → `(field <> ? OR field IS NULL)`. When the negated value does name `null`, the complement excludes those records instead: `nin(field, [a, null])` matches neither `a` nor `NULL`/absent, precisely because `inArray(field, [a, null])` matches both.
 
 The same complement law governs [`not(...)`](#negation) over whole trees: `not(c)` selects exactly the records `c` does not, on every backend.
 

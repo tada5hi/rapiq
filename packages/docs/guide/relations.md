@@ -74,8 +74,10 @@ defineSchema<User, Actor>({
     name: 'user',
     relations: {
         allowed: ['realm', 'items'],
-        // may THIS actor include THIS relation?
-        validate: (relation, actor) => actor.permissions.includes(`${relation}_read`),
+        // may THIS actor include THIS relation? A missing context
+        // must be rejected explicitly: it does not fail closed on
+        // its own.
+        validate: (relation, actor) => !!actor && actor.permissions.includes(`${relation}_read`),
     },
     schemaMapping: { items: 'item' },
 });

@@ -10,7 +10,9 @@ import type {
     Schema,
     SchemaOptions,
 } from '@rapiq/core';
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    ErrorCode, SchemaError, SchemaRegistry, defineSchema,
+} from '@rapiq/core';
 import { camelCase } from 'change-case';
 import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';
@@ -127,7 +129,10 @@ export function defineSchemaWithEntity<
         schemaOptions = dataSourceOrOptions as EntitySchemaOptions<RECORD> | undefined;
     } else {
         if (!(dataSourceOrOptions instanceof DataSource)) {
-            throw new Error('A data source is required to resolve the metadata of an entity target.');
+            throw new SchemaError({
+                message: 'A data source is required to resolve the metadata of an entity target.',
+                code: ErrorCode.INPUT_INVALID,
+            });
         }
 
         metadata = dataSourceOrOptions.getMetadata(target);

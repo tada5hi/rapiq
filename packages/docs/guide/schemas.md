@@ -270,11 +270,11 @@ A gate is server-side state and has no wire form, so a query carrying one cannot
 - **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sort` key.
 - **Client input only.** Schema `default`s are server-authored and bypass the hooks. For `sort`, a hook that empties the selection leaves it empty (no ORDER BY). For `fields`, an empty selection would be read by every backend as *project everything*, so a hook that empties it falls back to the input-less projection (defaults, or the allow-list expansion) **minus the rejected names**: a denial never resurrects, and it never widens the projection either. A schema that uses a deny-capable fields hook should declare `fields.default` so the fallback has something safe to land on.
 - **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
-- **The context is opaque**: typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none, so permission hooks fail closed by construction.
+- **The context is opaque**: typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none; there is no automatic fail-closed behavior, so a permission hook must guard the context itself and return `false` when it is missing rather than assume an actor is present.
 
 The [filters `validate` hook](/guide/filters#schema-options) participates too: it receives the same context as its second argument. It has its own signature (it inspects, replaces or rejects a parsed `Filter`) and is not part of the key-validation hook pair described above.
 
-## The registry & relations
+## The registry & relations {#the-registry-relations}
 
 The `SchemaRegistry` stores schemas by name and resolves relation paths through `schemaMapping`:
 

@@ -30,11 +30,33 @@ import { codec } from '../codec';
 import { prisma } from '../prisma';
 
 // stateless: one instance per model, shared across requests.
-// On Prisma 7 the runtime datamodel is pruned, so hand-write the
-// same shape there; see the metadata note below.
+// The datamodel is hand-written because it works on every Prisma
+// version; Prisma 7 prunes the runtime datamodel (`Prisma.dmmf`
+// included), so deriving it only works on 6.x classic builds.
+// See the metadata note below.
 const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
     provider: 'postgresql',
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+    metadata: defineMetadata({
+        models: [
+            {
+                name: 'User',
+                fields: [
+                    { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                    { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                    { name: 'email', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                    { name: 'age', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                    { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: true },
+                ],
+            },
+            {
+                name: 'Realm',
+                fields: [
+                    { name: 'id', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                    { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                ],
+            },
+        ],
+    }, 'User'),
 });
 
 export async function getUsers(req: Request, res: Response) {
