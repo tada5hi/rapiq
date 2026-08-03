@@ -38,17 +38,38 @@ mergeQueries(searchQ, defaultsQ).filters;
 // name contains <input> (from searchQ), age >= 18 (from defaultsQ)
 ```
 
-`merge()` is only defined when **both sides are flat root-AND trees** (leaf conditions only). Anything else throws a `MergeError` (`ErrorCode.FILTERS_NOT_FLAT`) instead of guessing:
+Replacement applies to the **displaceable root conditions** of both sides: the leaf conditions directly under a root `and`. Everything else is inert, carried through as it is and combined with `and`:
+
+| Conjunct | Behavior in a merge |
+|---|---|
+| root-level leaf condition | replaced by a receiver condition on the same field |
+| [sealed](#seal-conditions-that-resist-replacement) condition | never replaced, always carried through |
+| nested group (`or(...)`, `not(...)`, a whole non-`and` root) | never replaced, always carried through as one conjunct |
 
 ```typescript
-mergeQueries(flatQ, defineQuery({ filters: or(...) })); // throws MergeError
+mergeQueries(flatQ, defineQuery({ filters: or(gte('age', 18), eq('email', null)) })).filters;
+// and( <flatQ conditions>, or(age >= 18, email = null) )
 ```
 
-An empty side passes the other side through unchanged: compound defaults survive as long as nothing needs replacing.
+Per-field replace has no sound reading inside a disjunction: dropping a condition there would change the group non-locally, keeping it would ignore receiver priority. So the group is and-ed in untouched, which makes `merge()` **total**: it never throws. Every conjunct of the receiver survives into the result, so a merge never returns anything wider than its receiver; only the other side can lose conditions, and only to same-field replacement. Widening stays the explicit operation, `or()` below.
+
+An empty side passes the other side through unchanged.
+
+### `seal`: conditions that resist replacement
+
+A **sealed** condition is never displaced by a merge and never collapsed into its parent group by `flatten()`. It is what `and()` / `or()` apply to everything they inject, and it is available on its own:
+
+```typescript
+import { eq, seal } from '@rapiq/core';
+
+const scope = seal(eq('realm_id', actor.realmId));
+```
+
+Sealing is immutable (a sealed copy is returned) and idempotent. It is a **server-side composition marker, not wire grammar**: a sealed condition that is encoded to a URL and decoded again comes back displaceable, which is why a receiving service re-injects its own scope instead of trusting the transport.
 
 ### `and()` / `or()`: wrap & inject
 
-Always defined, for combining condition trees. The receiver becomes a child of a new group holding the injected conditions, so they are part of the tree rather than candidates for replacement. On an empty receiver the injected conditions land in a nested group of their own; either way, the result is **never a flat root-AND**. Calling `and()` / `or()` with no conditions returns the receiver unchanged.
+Always defined, for combining condition trees. The injected conditions are sealed, so they are part of the tree rather than candidates for replacement. A receiver already carrying that operator contributes its own conditions to the group (which keeps them mergeable); anything else becomes a child of the new group. Calling `and()` / `or()` with no conditions returns the receiver unchanged.
 
 ```typescript
 import { Query, eq } from '@rapiq/core';
@@ -60,7 +81,7 @@ const scoped = new Query({
 });
 ```
 
-The adapter output now contains the injected condition regardless of what the client sent, even when the client sent no filters at all. And because the resulting tree is never flat, a later `merge()` cannot displace the injected condition: an empty other side passes the tree through untouched, and anything else throws a `MergeError` (`ErrorCode.FILTERS_NOT_FLAT`) instead of silently displacing the scoping condition. That refusal is unconditional, and it is a feature: injected security conditions cannot be merged away. See the [authorization recipe](/guide/recipes/authorization).
+The adapter output now contains the injected condition regardless of what the client sent, even when the client sent no filters at all. And because the injected condition is sealed, no later composition can drop it: a `merge()` carries it through and a client condition on the same field narrows within it, while `flatten()` and any other normalization leave the marker intact. That guarantee is unconditional, and it is a feature: injected security conditions cannot be merged away. See the [authorization recipe](/guide/recipes/authorization).
 
 ## Why not deep-merge input objects?
 

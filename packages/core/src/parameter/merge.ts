@@ -12,8 +12,8 @@ import type { IQuery } from './types';
  * Merge queries (the IR) with left priority — the first argument wins.
  * Fields, relations and sorts are keyed by name (first occurrence sets
  * value and position), pagination merges limit/offset independently and
- * filters use {@link IFilters.merge} (per-field replace, flat root-AND
- * trees only — a typed MergeError is thrown otherwise).
+ * filters use {@link IFilters.merge} (per-field replace over displaceable
+ * root conditions, everything else and-ed in unchanged).
  *
  * Immutable — inputs stay untouched, a new {@link Query} is returned.
  */

@@ -107,10 +107,10 @@ describe('gateway controller (hub archetype)', () => {
     it('should carry undisplaceable scoping downstream', () => {
         const query = codec.decode(requestQuery, { schema: 'log' })!;
 
-        // filters.and() wraps — the injected condition cannot be
-        // displaced by any later merge. The wrapped tree is a nested
-        // compound, which only the expression dialect can carry over
-        // a URL; the facade stamps the codec identity so the
+        // filters.and() injects a sealed condition — no later merge can
+        // displace it. The seal is a server-side composition marker
+        // rather than wire grammar, so what crosses the URL is the
+        // condition itself; the facade stamps the codec identity so the
         // downstream service knows how to decode it.
         const scoped = new Query({
             fields: query.fields,
@@ -127,15 +127,17 @@ describe('gateway controller (hub archetype)', () => {
         // expectation from the same constant would hide a rename.
         expect(decodeURIComponent(wire!)).toEqual(
             'codec=url-expression' +
-            '&filter=and(and(eq(level,\'error\')),eq(node_id,\'node-1\'))' +
+            '&filter=and(eq(level,\'error\'),eq(node_id,\'node-1\'))' +
             '&page[limit]=50&sort=-created_at',
         );
 
-        // downstream: dispatch on the stamp, same AST comes out.
+        // downstream: dispatch on the stamp, same AST comes out — minus
+        // the seal, which no wire dialect carries. The downstream service
+        // re-injects its own scoping instead of trusting the transport.
         const downstream = codec.decode(wire!)!;
 
         expect(downstream.filters).toEqual(
-            and(eq('level', 'error')).and(eq('node_id', 'node-1')),
+            and(eq('level', 'error'), eq('node_id', 'node-1')),
         );
     });
 });

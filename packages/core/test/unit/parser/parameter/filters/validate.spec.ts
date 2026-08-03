@@ -15,8 +15,9 @@ import {
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     defineFiltersSchema,
+    seal,
 } from '../../../../../src';
-import type { Validator } from '../../../../../src';
+import type { IFilter, Validator } from '../../../../../src';
 
 describe('src/parser/parameter/filters/validate.ts', () => {
     it('should replace and reject leaves while preserving compounds', () => {
@@ -281,6 +282,28 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             .resolves.toBeUndefined();
         await expect(applyFiltersSchemaValidationAsync(elemMatch, schema))
             .resolves.toBeUndefined();
+    });
+
+    it('should keep a sealed condition sealed across validation', async () => {
+        const input = new Filters(FilterCompoundOperator.AND, [
+            seal(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin')),
+        ], { sealed: true });
+        const schema = defineFiltersSchema({
+            // a replacement stands in for the leaf it replaces.
+            validate: (filter) => new Filter(filter.operator, filter.field, 'ADMIN'),
+        });
+
+        const output = applyFiltersSchemaValidation(input, schema)!;
+        const [leaf] = output.value as IFilter[];
+        expect(output.sealed).toBe(true);
+        expect(leaf!.sealed).toBe(true);
+        expect(leaf!.value).toBe('ADMIN');
+
+        const outputAsync = (await applyFiltersSchemaValidationAsync(input, schema))!;
+        const [asyncLeaf] = outputAsync.value as IFilter[];
+        expect(outputAsync.sealed).toBe(true);
+        expect(asyncLeaf!.sealed).toBe(true);
+        expect(asyncLeaf!.value).toBe('ADMIN');
     });
 
     it('should propagate asynchronous validator failures', async () => {

@@ -27,5 +27,21 @@ export interface IFilter<
 
     readonly value: VALUE;
 
+    /**
+     * Displaceability marker: a sealed leaf is never dropped by a
+     * later `merge` and never hoisted out of its group by `flatten`.
+     */
+    readonly sealed?: boolean;
+
     accept<R>(visitor: IFilterVisitor<R>) : R;
+
+    /**
+     * A copy of this leaf carrying the {@link IFilter.sealed} marker
+     * (the receiver itself when it is already sealed). Reach for the
+     * `seal` helper to seal a condition of either kind — it keeps the
+     * argument's own type, which this self-reference cannot: naming the
+     * parameters here would make them invariant and cut every
+     * `Filter<OPERATOR, VALUE>` off from the visitor contract.
+     */
+    seal() : IFilter;
 }

@@ -157,7 +157,7 @@ function pruneCondition(
             }
 
             if (interior !== node.value) {
-                return new Filter(node.operator, node.field, interior);
+                return new Filter(node.operator, node.field, interior, { sealed: node.sealed });
             }
 
             return node;
@@ -182,7 +182,7 @@ function pruneCondition(
         return undefined;
     }
 
-    return new Filters(node.operator, conditions);
+    return new Filters(node.operator, conditions, { sealed: node.sealed });
 }
 
 function buildSortDefaults(schema: SortSchema) : Sorts {

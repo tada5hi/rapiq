@@ -10,6 +10,7 @@ import {
     Filters,
     isFilter,
     isFilters,
+    seal,
 } from '../../../parameter';
 import type {
     ICondition,
@@ -92,7 +93,7 @@ export function applyFiltersSchemaValidation(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior);
+                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
             }
         }
 
@@ -102,7 +103,13 @@ export function applyFiltersSchemaValidation(
             throw SchemaError.validatorAsyncRequiresAsyncParser();
         }
 
-        return output || undefined;
+        if (!output) {
+            return undefined;
+        }
+
+        // the replacement stands in for the leaf, so it inherits its
+        // protection: a validator must not silently unseal a condition.
+        return leaf.sealed ? seal(output) : output;
     }
 
     if (!isFilters(input)) {
@@ -121,7 +128,7 @@ export function applyFiltersSchemaValidation(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions);
+    return new Filters(input.operator, conditions, { sealed: input.sealed });
 }
 
 /**
@@ -160,11 +167,16 @@ export async function applyFiltersSchemaValidationAsync(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior);
+                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
             }
         }
 
-        return (await schema.validate(leaf, context)) || undefined;
+        const output = await schema.validate(leaf, context);
+        if (!output) {
+            return undefined;
+        }
+
+        return leaf.sealed ? seal(output) : output;
     }
 
     if (!isFilters(input)) {
@@ -183,5 +195,5 @@ export async function applyFiltersSchemaValidationAsync(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions);
+    return new Filters(input.operator, conditions, { sealed: input.sealed });
 }

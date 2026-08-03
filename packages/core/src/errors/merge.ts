@@ -19,14 +19,6 @@ export class MergeError extends BaseError {
         super(message || 'A merging error has occurred.');
     }
 
-    static filtersNotFlat() {
-        return new this({
-            message: 'Filters can only be merged when both sides are flat root-AND condition trees. ' +
-                'Combine compound trees with and()/or() instead.',
-            code: ErrorCode.FILTERS_NOT_FLAT,
-        });
-    }
-
     static fieldsConditionDiscarded(name: string) {
         return new this({
             message: `Merging fields would discard the visibility condition on "${name}". ` +
