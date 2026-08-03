@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.15](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.0.0-beta.14...adapter-memory-v2.0.0-beta.15) (2026-08-03)
+
+
+### Miscellaneous Chores
+
+* **adapter-memory:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+
 ## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.0.0-beta.13...adapter-memory-v2.0.0-beta.14) (2026-08-02)
 
 

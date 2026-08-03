@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0-beta.15](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.14...core-v2.0.0-beta.15) (2026-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* and()/or() on an empty receiver wrap the injected conditions in a nested group instead of adopting them directly; a replace-merge against such a tree now throws FILTERS_NOT_FLAT.
+
+### Bug Fixes
+
+* close the pre-GA audit gaps in code and docs ([#871](https://github.com/tada5hi/rapiq/issues/871)) ([72923b0](https://github.com/tada5hi/rapiq/commit/72923b08aa8050a4c5a425d2b891d1f84fc67083))
+* **deps:** bump pathtrace from 2.2.2 to 2.2.3 in the minorandpatch group ([#872](https://github.com/tada5hi/rapiq/issues/872)) ([81eb139](https://github.com/tada5hi/rapiq/commit/81eb139c5b94c00b43b1342251fb8e99e0bef91d))
+
 ## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.13...core-v2.0.0-beta.14) (2026-08-02)
 
 
