@@ -7,11 +7,9 @@
 
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../schema';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
-import { Filters, isFilters } from '../collection';
-import type { IFilters } from '../collection';
-import type { Condition, ICondition } from '../condition';
-import { Filter, isFilter } from '../record';
-import type { IFilter } from '../record';
+import { Filters } from '../collection';
+import type { Condition } from '../condition';
+import { Filter } from '../record';
 
 /**
  * Field paths are typed against the record generic when one is supplied
@@ -191,36 +189,4 @@ export function or(...conditions: Condition[]) : Filters {
  */
 export function not(...conditions: Condition[]) : Filters {
     return new Filters(FilterCompoundOperator.NOT, conditions);
-}
-
-/**
- * Mark a condition as non-displaceable (immutable, a sealed copy is
- * returned): {@link Filters.merge} never drops it and {@link Filters.flatten}
- * never hoists it out of its group. This is what {@link Filters.and} /
- * {@link Filters.or} apply to the conditions they inject; reach for it
- * directly when a server-authored condition — a policy residual returned
- * from a filters `validate` hook, a scoped default — has to survive
- * composition by other code.
- *
- * The seal is a server-side composition marker, not part of any wire
- * grammar: a sealed condition that is encoded and decoded again comes
- * back displaceable.
- */
-export function seal(condition: IFilters) : IFilters;
-export function seal(condition: IFilter) : IFilter;
-export function seal(condition: ICondition) : ICondition;
-export function seal(condition: ICondition) : ICondition {
-    if (condition.sealed) {
-        return condition;
-    }
-
-    if (isFilters(condition)) {
-        return new Filters(condition.operator, condition.value, { sealed: true });
-    }
-
-    if (isFilter(condition)) {
-        return new Filter(condition.operator, condition.field, condition.value, { sealed: true });
-    }
-
-    return condition;
 }

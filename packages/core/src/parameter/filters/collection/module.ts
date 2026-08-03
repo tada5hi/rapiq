@@ -7,8 +7,8 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import type { Condition, ConditionOptions, ICondition } from '../condition';
-import { seal } from '../helpers';
-import { isFilter } from '../record';
+import { Filter, isFilter } from '../record';
+import type { IFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
@@ -163,6 +163,38 @@ export class Filters<
 
         return new Filters(operator, [this, ...injected]);
     }
+}
+
+/**
+ * Mark a condition as non-displaceable (immutable, a sealed copy is
+ * returned): {@link Filters.merge} never drops it and {@link Filters.flatten}
+ * never hoists it out of its group. This is what {@link Filters.and} /
+ * {@link Filters.or} apply to the conditions they inject; reach for it
+ * directly when a server-authored condition — a policy residual returned
+ * from a filters `validate` hook, a scoped default — has to survive
+ * composition by other code.
+ *
+ * The seal is a server-side composition marker, not part of any wire
+ * grammar: a sealed condition that is encoded and decoded again comes
+ * back displaceable.
+ */
+export function seal(condition: IFilters) : IFilters;
+export function seal(condition: IFilter) : IFilter;
+export function seal(condition: ICondition) : ICondition;
+export function seal(condition: ICondition) : ICondition {
+    if (condition.sealed) {
+        return condition;
+    }
+
+    if (isFilters(condition)) {
+        return new Filters(condition.operator, condition.value, { sealed: true });
+    }
+
+    if (isFilter(condition)) {
+        return new Filter(condition.operator, condition.field, condition.value, { sealed: true });
+    }
+
+    return condition;
 }
 
 /**
