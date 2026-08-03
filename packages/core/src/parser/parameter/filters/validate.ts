@@ -92,7 +92,7 @@ export function applyFiltersSchemaValidation(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior);
+                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
             }
         }
 
@@ -121,7 +121,7 @@ export function applyFiltersSchemaValidation(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions);
+    return new Filters(input.operator, conditions, { sealed: input.sealed });
 }
 
 /**
@@ -160,7 +160,7 @@ export async function applyFiltersSchemaValidationAsync(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior);
+                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
             }
         }
 
@@ -183,5 +183,5 @@ export async function applyFiltersSchemaValidationAsync(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions);
+    return new Filters(input.operator, conditions, { sealed: input.sealed });
 }

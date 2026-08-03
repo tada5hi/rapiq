@@ -18,6 +18,13 @@ export interface IFilters<
 
     readonly value : T[];
 
+    /**
+     * Displaceability marker: a sealed group is never dropped by a
+     * later {@link IFilters.merge} and never collapsed into its parent
+     * by {@link IFilters.flatten}.
+     */
+    readonly sealed?: boolean;
+
     accept<R>(visitor: IFiltersVisitor<R>) : R;
 
     flatten(items?: T[]) : IFilters<T>;

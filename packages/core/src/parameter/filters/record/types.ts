@@ -27,5 +27,11 @@ export interface IFilter<
 
     readonly value: VALUE;
 
+    /**
+     * Displaceability marker: a sealed leaf is never dropped by a
+     * later `merge` and never hoisted out of its group by `flatten`.
+     */
+    readonly sealed?: boolean;
+
     accept<R>(visitor: IFilterVisitor<R>) : R;
 }

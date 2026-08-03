@@ -68,14 +68,14 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-Why `and()` and not a merge? `and()` **wraps** the client's tree as a sibling of the injected condition; the condition becomes structure, not data:
+Why `and()` and not a merge? `and()` injects the condition **sealed**, which marks it undisplaceable on the node itself:
 
 - A client filter on `realm_id` narrows *within* the scope; it can never widen it.
-- The wrapped tree is never flat, so a later [`merge()`](/guide/merging-queries#merge-per-field-replace) throws `MergeError` instead of silently displacing the scope condition. The failure mode defends the invariant. This holds unconditionally: even when the client sent no filters at all, the injected condition lands in a nested group rather than a flat root-AND.
+- A later [`merge()`](/guide/merging-queries#merge-per-field-replace) carries the sealed condition through instead of replacing it, and `flatten()` (or any other normalization) leaves the marker in place. The guarantee is a property of the condition, not of the tree shape it happens to sit in, so it holds unconditionally: even when the client sent no filters at all.
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
-When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `and(filter, inArray('realm_id', actor.realmIds))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges.
+When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `seal(and(filter, inArray('realm_id', actor.realmIds)))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges. The [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement) is what makes the residual survive composition; without it the group is still never *replaced*, but a normalization pass may hoist its conditions back into the root.
 
 ## Row-scoped column access
 
