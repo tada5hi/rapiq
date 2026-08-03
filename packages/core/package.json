@@ -58,6 +58,6 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
-        "pathtrace": "^2.2.2"
+        "pathtrace": "^2.2.3"
     }
 }
