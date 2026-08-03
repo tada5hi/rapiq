@@ -13,6 +13,7 @@ import type {
 import {
     AdapterError,
     ErrorCode,
+    SchemaError,
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
@@ -176,7 +177,10 @@ export function defineSchemaRegistryWithDatamodel(
     for (const model of datamodel.models) {
         const name = buildModelSchemaName(model);
         if (names.has(name)) {
-            throw new Error(`The derived schema name "${name}" is not unique across the datamodel.`);
+            throw new SchemaError({
+                message: `The derived schema name "${name}" is not unique across the datamodel.`,
+                code: ErrorCode.SCHEMA_NAME_INVALID,
+            });
         }
 
         names.add(name);
@@ -184,7 +188,10 @@ export function defineSchemaRegistryWithDatamodel(
         // an already registered schema (e.g. hand-written) takes precedence.
         if (registry.get(name)) {
             if (schemasOptions[name]) {
-                throw new Error(`The schemas option key "${name}" cannot be applied, since the schema is already registered.`);
+                throw new SchemaError({
+                    message: `The schemas option key "${name}" cannot be applied, since the schema is already registered.`,
+                    code: ErrorCode.INPUT_INVALID,
+                });
             }
 
             continue;
@@ -195,7 +202,10 @@ export function defineSchemaRegistryWithDatamodel(
 
     for (const name of Object.keys(schemasOptions)) {
         if (!names.has(name)) {
-            throw new Error(`The schemas option key "${name}" does not match any model of the datamodel.`);
+            throw new SchemaError({
+                message: `The schemas option key "${name}" does not match any model of the datamodel.`,
+                code: ErrorCode.INPUT_INVALID,
+            });
         }
     }
 

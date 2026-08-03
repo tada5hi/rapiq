@@ -176,7 +176,10 @@ export function defineSchemaRegistryWithDataSource(
 
         const name = buildEntitySchemaName(metadata);
         if (names.has(name)) {
-            throw new Error(`The derived schema name "${name}" is not unique across the data source entities.`);
+            throw new SchemaError({
+                message: `The derived schema name "${name}" is not unique across the data source entities.`,
+                code: ErrorCode.SCHEMA_NAME_INVALID,
+            });
         }
 
         names.add(name);
@@ -184,7 +187,10 @@ export function defineSchemaRegistryWithDataSource(
         // an already registered schema (e.g. hand-written) takes precedence.
         if (registry.get(name)) {
             if (schemasOptions.has(name)) {
-                throw new Error(`The schemas option key "${name}" cannot be applied, since the schema is already registered.`);
+                throw new SchemaError({
+                    message: `The schemas option key "${name}" cannot be applied, since the schema is already registered.`,
+                    code: ErrorCode.INPUT_INVALID,
+                });
             }
 
             continue;
@@ -195,7 +201,10 @@ export function defineSchemaRegistryWithDataSource(
 
     for (const name of schemasOptions.keys()) {
         if (!names.has(name)) {
-            throw new Error(`The schemas option key "${name}" does not match any entity of the data source.`);
+            throw new SchemaError({
+                message: `The schemas option key "${name}" does not match any entity of the data source.`,
+                code: ErrorCode.INPUT_INVALID,
+            });
         }
     }
 
