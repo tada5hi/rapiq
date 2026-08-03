@@ -51,7 +51,7 @@ mergeQueries(flatQ, defineQuery({ filters: or(gte('age', 18), eq('email', null))
 // and( <flatQ conditions>, or(age >= 18, email = null) )
 ```
 
-Per-field replace has no sound reading inside a disjunction: dropping a condition there would change the group non-locally, keeping it would ignore receiver priority. So the group is and-ed in untouched, which makes `merge()` **total** (it never throws) and monotone: a merge can only ever narrow the result set, never widen it. Widening stays the explicit operation, `or()` below.
+Per-field replace has no sound reading inside a disjunction: dropping a condition there would change the group non-locally, keeping it would ignore receiver priority. So the group is and-ed in untouched, which makes `merge()` **total**: it never throws. Every conjunct of the receiver survives into the result, so a merge never returns anything wider than its receiver; only the other side can lose conditions, and only to same-field replacement. Widening stays the explicit operation, `or()` below.
 
 An empty side passes the other side through unchanged.
 

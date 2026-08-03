@@ -8,7 +8,6 @@
 import { FilterCompoundOperator } from '../../../schema';
 import type { Condition, ConditionOptions, ICondition } from '../condition';
 import { Filter, isFilter } from '../record';
-import type { IFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
@@ -82,8 +81,10 @@ export class Filters<
      * Only displaceable leaf conditions take part — a sealed condition and
      * a nested group are inert: never displaced, never dropped, carried
      * through as they are. A root that is not a displaceable AND counts as
-     * one such group, which makes the operation total: the result is always
-     * an AND of both sides and can only ever narrow, never widen.
+     * one such group, which makes the operation total. Every conjunct of
+     * the receiver survives into the result, so the outcome is never wider
+     * than the receiver; only the other side can lose conditions, which is
+     * what per-field replace is for.
      */
     merge(other: IFilters) : IFilters {
         if (this.value.length === 0) {
@@ -177,10 +178,14 @@ export class Filters<
  * The seal is a server-side composition marker, not part of any wire
  * grammar: a sealed condition that is encoded and decoded again comes
  * back displaceable.
+ *
+ * A condition that is neither node kind is returned unsealed, which is
+ * safe rather than a silent hole: the two things a seal protects against
+ * are keyed on the very same guards. Only an `isFilter` leaf is ever
+ * displaced by {@link Filters.merge}, and only an `isFilters` group is
+ * ever hoisted by {@link Filters.flatten}.
  */
-export function seal(condition: IFilters) : IFilters;
-export function seal(condition: IFilter) : IFilter;
-export function seal(condition: ICondition) : ICondition;
+export function seal<T extends ICondition>(condition: T) : T;
 export function seal(condition: ICondition) : ICondition {
     if (condition.sealed) {
         return condition;

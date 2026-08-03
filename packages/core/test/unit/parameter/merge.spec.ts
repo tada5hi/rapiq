@@ -343,6 +343,39 @@ describe('src/parameter/filters/helpers/module.ts seal', () => {
         ]);
     });
 
+    it('should not adopt the conditions of a sealed receiver', () => {
+        const receiver = seal(and(eq('a', 1)));
+
+        // adopting them into a fresh (unsealed) group would strip the
+        // protection its children rely on, so it stays a child instead.
+        const output = receiver.and(eq('b', 2));
+
+        expect(output.value).toHaveLength(2);
+        expect(output.value[0]).toBe(receiver);
+        expect(output.value[1].sealed).toBe(true);
+    });
+
+    it('should treat a sealed root as one inert conjunct', () => {
+        const sealedRoot = seal(and(eq('a', 1)));
+        const other = new Filters(FilterCompoundOperator.AND, [eq('a', 9)]);
+
+        // decomposing it would expose its (unsealed) conditions to
+        // per-field replace.
+        const output = other.merge(sealedRoot);
+
+        expect(output.value).toHaveLength(2);
+        expect(output.value[1]).toBe(sealedRoot);
+    });
+
+    it('should leave a condition it cannot seal untouched', () => {
+        // a condition that is neither node kind cannot be sealed — and is
+        // never displaced or hoisted either, both being isFilter/isFilters
+        // decisions.
+        const foreign = { operator: 'and', value: [] };
+
+        expect(seal(foreign)).toBe(foreign);
+    });
+
     it('should not hoist a sealed group out of its parent', () => {
         const inner = seal(and(eq('a', 1)));
         const outer = and(eq('b', 2), inner);

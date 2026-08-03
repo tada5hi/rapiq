@@ -10,6 +10,7 @@ import {
     Filters,
     isFilter,
     isFilters,
+    seal,
 } from '../../../parameter';
 import type {
     ICondition,
@@ -102,7 +103,13 @@ export function applyFiltersSchemaValidation(
             throw SchemaError.validatorAsyncRequiresAsyncParser();
         }
 
-        return output || undefined;
+        if (!output) {
+            return undefined;
+        }
+
+        // the replacement stands in for the leaf, so it inherits its
+        // protection: a validator must not silently unseal a condition.
+        return leaf.sealed ? seal(output) : output;
     }
 
     if (!isFilters(input)) {
@@ -164,7 +171,12 @@ export async function applyFiltersSchemaValidationAsync(
             }
         }
 
-        return (await schema.validate(leaf, context)) || undefined;
+        const output = await schema.validate(leaf, context);
+        if (!output) {
+            return undefined;
+        }
+
+        return leaf.sealed ? seal(output) : output;
     }
 
     if (!isFilters(input)) {
