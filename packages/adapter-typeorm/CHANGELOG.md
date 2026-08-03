@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.0.0-beta.15](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.14...adapter-typeorm-v2.0.0-beta.15) (2026-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* and()/or() on an empty receiver wrap the injected conditions in a nested group instead of adopting them directly; a replace-merge against such a tree now throws FILTERS_NOT_FLAT.
+
+### Bug Fixes
+
+* close the pre-GA audit gaps in code and docs ([#871](https://github.com/tada5hi/rapiq/issues/871)) ([72923b0](https://github.com/tada5hi/rapiq/commit/72923b08aa8050a4c5a425d2b891d1f84fc67083))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+    * @rapiq/adapter-memory bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.14 to ^2.0.0-beta.15
+
 ## [2.0.0-beta.14](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.13...adapter-typeorm-v2.0.0-beta.14) (2026-08-02)
 
 
