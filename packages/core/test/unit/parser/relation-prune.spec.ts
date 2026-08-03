@@ -277,6 +277,28 @@ describe('src/parser/relation-prune.ts', () => {
                 .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
         });
 
+        // The two shapes below cannot fail open: dropping an OR arm narrows,
+        // and dropping the interior of a NOT removes a restriction the seal
+        // put there. Pruning still refuses, because the seal is a per-node
+        // marker and not a per-operator judgement call.
+        it('throws for a sealed OR arm, where a drop would narrow rather than widen', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                seal(new Filters(FilterCompoundOperator.OR, [eq('id'), eq('user.name')])),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['user']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
+        it('throws for a sealed condition below a NOT', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filters(FilterCompoundOperator.NOT, [seal(eq('user.name'))]),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['user']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+        });
+
         it('keeps pruning around a sealed condition it does not touch', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
                 seal(eq('realm_id')),
@@ -287,6 +309,26 @@ describe('src/parser/relation-prune.ts', () => {
             const output = pruneFiltersByRelations(filters, ['user']);
             expect(filterFields(output)).toEqual(['realm_id', 'id']);
             expect(output.value[0].sealed).toBe(true);
+        });
+
+        it('re-applies an UNSEALED default naming a rejected relation', () => {
+            // the server-authored baseline is exempt from the gate, which is
+            // why the default fallback is not pruned.
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('user.a')]);
+            const schema = defineFiltersSchema({ default: eq('user.b') });
+
+            expect(filterFields(pruneFiltersByRelations(filters, ['user'], schema))).toEqual(['user.b']);
+        });
+
+        it('throws for a SEALED default naming a rejected relation', () => {
+            // otherwise the same default would throw when it is materialized
+            // before this pass (client sent no filters) and survive when it is
+            // materialized after it (client sent filters that all pruned away).
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('user.a')]);
+            const schema = defineFiltersSchema({ default: seal(eq('user.b')) });
+
+            expect(() => pruneFiltersByRelations(filters, ['user'], schema))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
         });
     });
 });

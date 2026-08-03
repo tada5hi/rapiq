@@ -121,11 +121,15 @@ export function pruneRelationsByRelations(relations: IRelations, rejected: strin
  * to the schema `default` when pruning empties the parameter.
  *
  * A sealed condition is exempt from the drop, not from the gate: pruning
- * anything out of a sealed subtree would widen a condition whose seal says it
- * must survive, while keeping it would join a relation the relations validator
- * rejected. Neither outcome is correct, so the contradiction between the two
- * validators throws {@link SchemaError} (`SCHEMA_SEALED_CONDITION_PRUNED`)
- * instead of failing open.
+ * anything out of a sealed subtree returns a query the sealed condition does
+ * not describe (wider under the `and(<leaf>, <scope>)` shape a filters
+ * validator produces, narrower under an `or`), while keeping it would join a
+ * relation the relations validator rejected. Neither outcome is correct, so the
+ * contradiction between the two validators throws {@link SchemaError}
+ * (`SCHEMA_SEALED_CONDITION_PRUNED`) instead of resolving it silently. The
+ * decision is per node, not per operator: the seal says the condition survives
+ * composition intact, and pruning is not asked to reason about which shapes
+ * happen to fail open.
  */
 export function pruneFiltersByRelations(
     filters: IFilters,
@@ -146,17 +150,35 @@ export function pruneFiltersByRelations(
         conditions = [pruned];
     } else {
         conditions = schema ? buildFiltersDefaults(schema) : [];
+
+        // The default is the server's own baseline and is exempt from the gate:
+        // it is re-applied here un-pruned, even when it names a rejected
+        // relation. A sealed default asserts the same must-survive contract as
+        // a validator residual though, so it is checked: without this, the very
+        // same default would throw or survive depending on whether the client
+        // sent a filter of its own, which is what decides whether it was
+        // materialized before this pass or after it.
+        for (const condition of conditions) {
+            assertSealedSurvivesPruning(condition, rejected);
+        }
     }
 
     return new Filters(FilterCompoundOperator.AND, conditions);
 }
 
 /**
- * Drop the condition at `field`, or refuse to when it is protected: a drop
- * inside a sealed subtree is the one case where pruning would silently widen
- * the query rather than narrow it.
+ * Raise the sealed-condition contradiction for a condition that is kept rather
+ * than pruned. The pruned copy is discarded: only the throw matters here.
  */
-function drop(relation: string, field: string, sealed: boolean) : undefined {
+function assertSealedSurvivesPruning(condition: ICondition, rejected: string[]) : void {
+    pruneCondition(condition, rejected, '', false);
+}
+
+/**
+ * Drop the condition at `field`, unless it is protected: a drop inside a sealed
+ * subtree is the one case pruning must refuse rather than resolve.
+ */
+function dropUnlessSealed(relation: string, field: string, sealed: boolean) : undefined {
     if (sealed) {
         throw SchemaError.sealedConditionPruned(relation, field);
     }
@@ -183,7 +205,7 @@ function pruneCondition(
             isConditionValue(node.value)
         ) {
             if (typeof rejectedBy === 'string') {
-                return drop(rejectedBy, field, sealed2);
+                return dropUnlessSealed(rejectedBy, field, sealed2);
             }
 
             const interior = pruneCondition(node.value, rejected, field, sealed2);
@@ -199,7 +221,7 @@ function pruneCondition(
         }
 
         return typeof rejectedBy === 'string' ?
-            drop(rejectedBy, field, sealed2) :
+            dropUnlessSealed(rejectedBy, field, sealed2) :
             node;
     }
 
