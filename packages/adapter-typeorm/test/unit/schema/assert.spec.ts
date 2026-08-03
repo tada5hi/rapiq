@@ -7,7 +7,11 @@
 
 import type { SchemaOptions } from '@rapiq/core';
 import {
-    ErrorCode, SchemaError, and, defineSchema, eq,
+    ErrorCode, 
+    SchemaError, 
+    and, 
+    defineSchema, 
+    eq,
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import {

@@ -7,7 +7,10 @@
 
 import type { ICondition, ObjectLiteral, Schema } from '@rapiq/core';
 import {
-    ErrorCode, SchemaError, isFilter, isFilters,
+    ErrorCode, 
+    SchemaError, 
+    isFilter, 
+    isFilters,
 } from '@rapiq/core';
 import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';

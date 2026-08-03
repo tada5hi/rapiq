@@ -11,7 +11,10 @@ import type {
     SchemaOptions,
 } from '@rapiq/core';
 import {
-    ErrorCode, SchemaError, SchemaRegistry, defineSchema,
+    ErrorCode, 
+    SchemaError, 
+    SchemaRegistry, 
+    defineSchema,
 } from '@rapiq/core';
 import { camelCase } from 'change-case';
 import { DataSource, EntityMetadata } from 'typeorm';
