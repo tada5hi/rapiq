@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/adapter-sql",
-    "version": "2.0.0-beta.15",
+    "version": "2.0.0-beta.16",
     "description": "Render a rapiq query into parameterized SQL fragments (pg, mysql, sqlite, mssql & oracle presets).",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,11 +16,11 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.15"
+        "@rapiq/core": "^2.0.0-beta.16"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.15",
-        "@rapiq/adapter-memory": "^2.0.0-beta.15"
+        "@rapiq/core": "^2.0.0-beta.16",
+        "@rapiq/adapter-memory": "^2.0.0-beta.16"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

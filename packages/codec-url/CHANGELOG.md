@@ -1,5 +1,29 @@
 # Changelog
 
+## [2.0.0-beta.16](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.15...codec-url-v2.0.0-beta.16) (2026-08-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** carry filter displaceability explicitly ([#876](https://github.com/tada5hi/rapiq/issues/876))
+
+### Features
+
+* **core:** carry filter displaceability explicitly ([#876](https://github.com/tada5hi/rapiq/issues/876)) ([5143ef9](https://github.com/tada5hi/rapiq/commit/5143ef96bafc1211a5c3f364725bd25d5bc911e3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+    * @rapiq/parser-expression bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+
 ## [2.0.0-beta.15](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.14...codec-url-v2.0.0-beta.15) (2026-08-03)
 
 

@@ -1,12 +1,12 @@
 {
-    "packages/core": "2.0.0-beta.15",
-    "packages/parser-simple": "2.0.0-beta.15",
-    "packages/parser-expression": "2.0.0-beta.15",
-    "packages/parser-mongo": "2.0.0-beta.15",
-    "packages/codec-url": "2.0.0-beta.15",
-    "packages/adapter-sql": "2.0.0-beta.15",
-    "packages/adapter-typeorm": "2.0.0-beta.15",
-    "packages/adapter-prisma": "2.0.0-beta.15",
-    "packages/adapter-drizzle": "2.0.0-beta.15",
-    "packages/adapter-memory": "2.0.0-beta.15"
+    "packages/core": "2.0.0-beta.16",
+    "packages/parser-simple": "2.0.0-beta.16",
+    "packages/parser-expression": "2.0.0-beta.16",
+    "packages/parser-mongo": "2.0.0-beta.16",
+    "packages/codec-url": "2.0.0-beta.16",
+    "packages/adapter-sql": "2.0.0-beta.16",
+    "packages/adapter-typeorm": "2.0.0-beta.16",
+    "packages/adapter-prisma": "2.0.0-beta.16",
+    "packages/adapter-drizzle": "2.0.0-beta.16",
+    "packages/adapter-memory": "2.0.0-beta.16"
 }

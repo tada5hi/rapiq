@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.0.0-beta.16](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.0.0-beta.15...adapter-sql-v2.0.0-beta.16) (2026-08-04)
+
+
+### Miscellaneous Chores
+
+* **adapter-sql:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+    * @rapiq/adapter-memory bumped from ^2.0.0-beta.15 to ^2.0.0-beta.16
+
 ## [2.0.0-beta.15](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.0.0-beta.14...adapter-sql-v2.0.0-beta.15) (2026-08-03)
 
 
