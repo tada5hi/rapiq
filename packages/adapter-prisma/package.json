@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/adapter-prisma",
-    "version": "2.0.0-beta.15",
+    "version": "2.0.0-beta.16",
     "description": "A prisma adapter for rapiq.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -22,11 +22,11 @@
         "@prisma/adapter-better-sqlite3": "^7.9.1",
         "@prisma/adapter-pg": "^7.9.1",
         "@prisma/client": "^7.9.0",
-        "@rapiq/core": "^2.0.0-beta.15",
+        "@rapiq/core": "^2.0.0-beta.16",
         "prisma": "^7.9.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.15"
+        "@rapiq/core": "^2.0.0-beta.16"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
