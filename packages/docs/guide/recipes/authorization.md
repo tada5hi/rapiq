@@ -75,7 +75,11 @@ Why `and()` and not a merge? `and()` injects the condition **sealed**, which mar
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
-When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `seal(and(filter, inArray('realm_id', actor.realmIds)))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges. The [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement) is what makes the residual survive composition; without it the group is still never *replaced*, but a normalization pass may hoist its conditions back into the root.
+When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `and(filter, seal(inArray('realm_id', actor.realmIds)))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges. The [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement) is what makes the residual survive composition; without it the group is still never *replaced*, but a normalization pass may hoist its conditions into the root, where an unmarked residual becomes replaceable again.
+
+::: tip Seal the residual, not the group
+`seal(and(filter, ...))` protects the same residual, and additionally protects the client leaf it wraps, which is not something you want. A sealed condition is exempt from the relations gate above, so that shape turns "this actor may not traverse `realm`" into a thrown `SchemaError` the moment the client filters on `realm.name`, instead of simply dropping that filter. Sealing only the residual keeps the client's leaf prunable and reserves the error for the real contradiction: a residual that itself names a relation the gate rejects. Scoping through a local column (`realm_id`) never traverses a relation, so it never reaches the gate at all.
+:::
 
 ## Row-scoped column access
 
