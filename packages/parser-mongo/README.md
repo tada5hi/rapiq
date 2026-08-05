@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@rapiq/parser-mongo"><img src="https://img.shields.io/npm/v/@rapiq/parser-mongo/beta?color=%237c3aed&label=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@rapiq/parser-mongo"><img src="https://img.shields.io/npm/types/@rapiq/parser-mongo?color=%2306b6d4" alt="types"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/parser-mongo"><img src="https://img.shields.io/npm/v/@rapiq/parser-mongo/beta?color=%23a21caf&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/parser-mongo"><img src="https://img.shields.io/npm/types/@rapiq/parser-mongo?color=%23db2777" alt="types"></a>
   <a href="https://github.com/tada5hi/rapiq/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@rapiq/parser-mongo?color=blue" alt="License: MIT"></a>
 </p>
 

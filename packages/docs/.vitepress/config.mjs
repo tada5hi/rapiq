@@ -13,7 +13,7 @@ export default defineConfig({
             type: 'image/svg+xml',
             href: '/logo.svg',
         }],
-        ['meta', { name: 'theme-color', content: '#7c3aed' }],
+        ['meta', { name: 'theme-color', content: '#a21caf' }],
         ['meta', { property: 'og:type', content: 'website' }],
         ['meta', { property: 'og:title', content: 'rapiq' }],
         ['meta', { property: 'og:description', content: 'One query language between client & server.' }],

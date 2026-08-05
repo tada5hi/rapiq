@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@rapiq/adapter-typeorm"><img src="https://img.shields.io/npm/v/@rapiq/adapter-typeorm/beta?color=%237c3aed&label=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@rapiq/adapter-typeorm"><img src="https://img.shields.io/npm/types/@rapiq/adapter-typeorm?color=%2306b6d4" alt="types"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/adapter-typeorm"><img src="https://img.shields.io/npm/v/@rapiq/adapter-typeorm/beta?color=%23a21caf&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/adapter-typeorm"><img src="https://img.shields.io/npm/types/@rapiq/adapter-typeorm?color=%23db2777" alt="types"></a>
   <a href="https://github.com/tada5hi/rapiq/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@rapiq/adapter-typeorm?color=blue" alt="License: MIT"></a>
 </p>
 
