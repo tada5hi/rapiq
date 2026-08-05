@@ -6,6 +6,7 @@
  */
 
 import { AdapterError } from '../../../errors';
+import { isObject } from '../../../utils';
 import type { IFilters } from '../collection';
 import { isFilters } from '../collection';
 import type { ICondition } from '../condition';
@@ -21,6 +22,16 @@ import type {
     PlanCompareOperator,
     PlanConditionOptions,
 } from './types';
+
+/**
+ * A value that looks like a condition but carries no node identity.
+ * Deliberately looser than the build layer's namesake: there, an object
+ * has to be told apart from a record of field/value pairs, whereas the
+ * interior of an `elemMatch` is either a condition or nothing at all.
+ */
+function isDetachedCondition(input: unknown) : boolean {
+    return isObject(input) && typeof (input as ICondition).operator === 'string';
+}
 
 /**
  * Lower a condition tree (`IFilter | IFilters`) into a
@@ -490,6 +501,16 @@ class ConditionLowering {
             !isFilter(interior) &&
             !isFilters(interior as ICondition)
         ) {
+            // a condition-shaped interior lost its node identity (the
+            // shape a JSON round trip leaves): report that, not a
+            // dialect limitation, so the message names the actual fix.
+            // Anything else genuinely is an unsupported interior value.
+            if (isDetachedCondition(interior)) {
+                throw AdapterError.conditionDetached(
+                    (interior as Partial<ICondition>).operator,
+                );
+            }
+
             throw AdapterError.featureUnsupported('filters:elemMatch:value');
         }
 

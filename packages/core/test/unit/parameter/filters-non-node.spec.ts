@@ -9,9 +9,11 @@ import type { ICondition } from '../../../src';
 import {
     AdapterError,
     BuildError,
+    ErrorCode,
     FilterCompoundOperator,
     Filters,
     defineFilters,
+    elemMatch,
     eq,
     planCondition,
 } from '../../../src';
@@ -51,6 +53,27 @@ describe('src/parameter/filters (non-node conditions)', () => {
 
         // the failure mode this guards: lowering to the `name` leaf alone
         expect(() => planCondition(condition)).toThrow(AdapterError);
+    });
+
+    it('should refuse a detached elemMatch interior as detached, not unsupported', () => {
+        try {
+            planCondition(elemMatch('items', NON_NODE as any));
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toBe(ErrorCode.CONDITION_DETACHED);
+        }
+    });
+
+    it('should still refuse a non-condition elemMatch interior as unsupported', () => {
+        for (const interior of ['nonsense', 42, null, [], { a: 1 }]) {
+            try {
+                planCondition(elemMatch('items', interior as any));
+                expect.fail('should have thrown');
+            } catch (e) {
+                expect((e as AdapterError).code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
+            }
+        }
     });
 
     it('should refuse a non-node condition passed to defineFilters', () => {

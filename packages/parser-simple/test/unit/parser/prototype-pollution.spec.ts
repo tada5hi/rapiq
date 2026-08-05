@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ParseError } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
 
 /**
@@ -41,11 +42,11 @@ describe('src/parameter (prototype pollution)', () => {
     it.each(HOSTILE)('should not pollute via a %s fields group', (prefix) => {
         const before = propertyCount();
 
-        try {
-            parser.parse({ fields: [`${prefix}.a`, `${prefix}.polluted`] });
-        } catch {
-            // a typed rejection is an acceptable outcome; pollution is not
-        }
+        // a hostile segment is never a legitimate key: the guard
+        // rejects it typed rather than dropping it silently
+        expect(() => parser.parse({ fields: [`${prefix}.a`, `${prefix}.polluted`] }))
+            .toThrow(ParseError);
+
 
         expect(propertyCount()).toBe(before);
         expect(({} as any).a).toBeUndefined();
@@ -55,11 +56,11 @@ describe('src/parameter (prototype pollution)', () => {
     it.each(HOSTILE)('should not pollute via a %s sort group', (prefix) => {
         const before = propertyCount();
 
-        try {
-            parser.parse({ sort: [`${prefix}.a`] });
-        } catch {
-            // as above
-        }
+        // a hostile segment is never a legitimate key: the guard
+        // rejects it typed rather than dropping it silently
+        expect(() => parser.parse({ sort: [`${prefix}.a`] }))
+            .toThrow(ParseError);
+
 
         expect(propertyCount()).toBe(before);
         expect(({} as any).a).toBeUndefined();
@@ -68,11 +69,11 @@ describe('src/parameter (prototype pollution)', () => {
     it.each(HOSTILE)('should not pollute via a %s relations group', (prefix) => {
         const before = propertyCount();
 
-        try {
-            parser.parse({ relations: [`${prefix}.a`] });
-        } catch {
-            // as above
-        }
+        // a hostile segment is never a legitimate key: the guard
+        // rejects it typed rather than dropping it silently
+        expect(() => parser.parse({ relations: [`${prefix}.a`] }))
+            .toThrow(ParseError);
+
 
         expect(propertyCount()).toBe(before);
         expect(({} as any).a).toBeUndefined();
@@ -81,11 +82,11 @@ describe('src/parameter (prototype pollution)', () => {
     it.each(HOSTILE)('should not pollute via a %s filters group', (prefix) => {
         const before = propertyCount();
 
-        try {
-            parser.parse({ filters: { [`${prefix}.a`]: '1' } });
-        } catch {
-            // as above
-        }
+        // a hostile segment is never a legitimate key: the guard
+        // rejects it typed rather than dropping it silently
+        expect(() => parser.parse({ filters: { [`${prefix}.a`]: '1' } }))
+            .toThrow(ParseError);
+
 
         expect(propertyCount()).toBe(before);
         expect(({} as any).a).toBeUndefined();

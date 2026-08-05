@@ -64,9 +64,10 @@ const datamodel = {
     ],
 };
 
-// `metadata` and `provider` are required: a serializer cannot inspect
-// your database, and each fact changes what a valid Prisma filter is.
-// On a Prisma 6 classic build `{ model: prisma.user }` derives both.
+// The adapter needs model facts a Query cannot carry, and each one
+// changes what a VALID Prisma filter looks like. A Prisma 6 classic
+// build derives them from `{ model: prisma.user }` alone; Prisma 7
+// prunes the runtime datamodel, so supply them explicitly as here.
 const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
     model: prisma.user,
     provider: 'postgresql',
