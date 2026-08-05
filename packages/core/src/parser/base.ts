@@ -12,7 +12,10 @@ import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
-    isObject, isUnsafeKey, parseKey, stringifyKey,
+    isObject, 
+    isUnsafeKey, 
+    parseKey, 
+    stringifyKey,
 } from '../utils';
 import type { IParser } from './types';
 

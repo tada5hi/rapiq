@@ -341,3 +341,46 @@ describe('src/adapter/filters.ts', () => {
         });
     });
 });
+
+/**
+ * A relation-presence leaf on a path that traverses a to-many binds to
+ * ONE element, exactly like a column leaf on the same path. Opening an
+ * independent `some` scope widens the conjunction (the two conditions
+ * could then hold on different elements) and turns the per-binding
+ * complement into a collection-wide one.
+ */
+describe('src/adapter/where.ts (relation presence under a to-many)', () => {
+    it('should factor a presence leaf into the sibling element scope', () => {
+        expect(build(and(eq('items.title', 'book'), exists('items.realm')))).toEqual({
+            items: {
+                some: {
+                    AND: [
+                        { title: { equals: 'book', mode: 'insensitive' } },
+                        { realm: { is: {} } },
+                    ],
+                },
+            },
+        });
+    });
+
+    it('should factor an absence leaf into the sibling element scope', () => {
+        expect(build(and(eq('items.title', 'book'), exists('items.realm', false)))).toEqual({
+            items: {
+                some: {
+                    AND: [
+                        { title: { equals: 'book', mode: 'insensitive' } },
+                        { NOT: { realm: { is: {} } } },
+                    ],
+                },
+            },
+        });
+    });
+
+    it('should keep a lone presence leaf in its own element scope', () => {
+        expect(build(exists('items.realm'))).toEqual({ items: { some: { realm: { is: {} } } } });
+    });
+
+    it('should still treat a root-level to-one presence as unbound', () => {
+        expect(build(exists('realm'))).toEqual({ realm: { is: {} } });
+    });
+});

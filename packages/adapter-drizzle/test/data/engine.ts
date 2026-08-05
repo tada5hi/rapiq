@@ -33,6 +33,7 @@ export const items = sqliteTable('items', {
     title: text('title').notNull(),
     color: text('color'),
     user_id: integer('user_id'),
+    realm_id: integer('realm_id'),
 });
 
 const schema = {
@@ -46,7 +47,10 @@ export const relations = defineRelations(schema, (r) => ({
         realm: r.one.realms({ from: r.users.realm_id, to: r.realms.id }),
         items: r.many.items({ from: r.users.id, to: r.items.user_id }),
     },
-    items: { user: r.one.users({ from: r.items.user_id, to: r.users.id }) },
+    items: {
+        user: r.one.users({ from: r.items.user_id, to: r.users.id }),
+        realm: r.one.realms({ from: r.items.realm_id, to: r.realms.id }),
+    },
 }));
 
 export type EngineDatabase = BetterSQLite3Database<typeof relations>;
@@ -62,7 +66,13 @@ const DDL = `
         address text,
         realm_id integer
     );
-    create table items (id integer primary key, title text not null, color text, user_id integer);
+    create table items (
+        id integer primary key,
+        title text not null,
+        color text,
+        user_id integer,
+        realm_id integer
+    );
 `;
 
 /**
@@ -76,7 +86,7 @@ export function createEngine(records: User[]) : EngineDatabase {
 
     const insertRealm = client.prepare('insert or ignore into realms values (?, ?, ?)');
     const insertUser = client.prepare('insert into users values (?, ?, ?, ?, ?, ?, ?)');
-    const insertItem = client.prepare('insert into items values (?, ?, ?, ?)');
+    const insertItem = client.prepare('insert into items values (?, ?, ?, ?, ?)');
 
     for (const record of records) {
         if (record.realm) {
@@ -94,7 +104,11 @@ export function createEngine(records: User[]) : EngineDatabase {
         );
 
         for (const item of record.items) {
-            insertItem.run(item.id, item.title, item.color, record.id);
+            if (item.realm) {
+                insertRealm.run(item.realm.id, item.realm.name, item.realm.description);
+            }
+
+            insertItem.run(item.id, item.title, item.color, record.id, item.realm_id);
         }
     }
 

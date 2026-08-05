@@ -39,6 +39,11 @@ export const datamodel : Datamodel = {
             id: { dataType: 'number', nullable: false },
             title: { dataType: 'string', nullable: false },
             color: { dataType: 'string', nullable: true },
+            realm_id: { dataType: 'number', nullable: true },
+        },
+        relations: {
+            user: { target: 'users', many: false },
+            realm: { target: 'realms', many: false },
         },
     },
 };

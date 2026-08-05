@@ -517,6 +517,17 @@ export class WhereRenderer {
         const relative = this.stripField(leaf.field, ctx);
         const absolute = join(ctx.base, relative);
 
+        // a path traversing a to-many binds to ONE element, whatever the
+        // leaf asks about it: the same-element contract applies to a
+        // relation-presence leaf exactly as it does to a column leaf, so
+        // the factoring gate comes first. Checking presence before it
+        // opened an independent scope, which widens a conjunction and
+        // turns the per-binding complement into a collection-wide one.
+        const key = this.keyOfPath(relative, ctx);
+        if (key) {
+            return this.factor(key, [leaf], ctx);
+        }
+
         // a null check on the relation itself addresses the value as
         // a whole, not its elements.
         if (leaf.kind === 'null-check' && this.metadata.isRelation(absolute)) {
@@ -529,11 +540,6 @@ export class WhereRenderer {
             const present = this.presence(relative, ctx);
 
             return leaf.negated ? present : { NOT: present as Where };
-        }
-
-        const key = this.keyOfPath(relative, ctx);
-        if (key) {
-            return this.factor(key, [leaf], ctx);
         }
 
         const segments = relative.split('.');
@@ -801,14 +807,10 @@ export class WhereRenderer {
             default: {
                 const leaf = plan as Extract<ConditionPlan, { field: string }>;
 
-                if (
-                    plan.kind === 'null-check' &&
-                    this.metadata.isRelation(join(ctx.base, this.stripField(leaf.field, ctx)))
-                ) {
-                    // addresses the relation value itself, no binding
-                    return new Set(['']);
-                }
-
+                // a relation-presence leaf reports the binding its path
+                // traverses, like every other leaf: keyOfPath answers ''
+                // when nothing to-many is crossed, so a root-level
+                // presence still factors into no scope.
                 return new Set([this.keyOfPath(this.stripField(leaf.field, ctx), ctx)]);
             }
         }

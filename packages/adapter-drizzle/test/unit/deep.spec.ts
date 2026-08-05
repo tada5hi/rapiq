@@ -72,8 +72,11 @@ function createDeepEngine() {
             (100, 'a', 10, 1000),
             (101, 'b', 11, 1002),
             (102, 'c', null, 1003),
-            (103, 'd', 12, 1000);
-        insert into parents values (1000, 'p-two'), (1001, 'p-empty'), (1002, 'p-b'), (1003, 'p-c');
+            (103, 'd', 12, 1000),
+            (104, 'e', null, 1004),
+            (105, 'f', 10, 1004);
+        insert into parents values
+            (1000, 'p-two'), (1001, 'p-empty'), (1002, 'p-b'), (1003, 'p-c'), (1004, 'p-mixed');
     `);
 
     return drizzle({ client, relations });
@@ -113,6 +116,22 @@ const itemRecords = [
             realm: { id: 2, name: 'shire' },
         },
     },
+    // the mixed pair: one element WITHOUT the to-one, one WITH it.
+    // A conjunction over both must bind to a single element.
+    {
+        id: 104,
+        title: 'e',
+        user: null,
+    },
+    {
+        id: 105,
+        title: 'f',
+        user: {
+            id: 10,
+            name: 'o-master',
+            realm: { id: 1, name: 'master' },
+        },
+    },
 ];
 
 const parentRecords = [
@@ -135,6 +154,11 @@ const parentRecords = [
         id: 1003, 
         label: 'p-c', 
         items: [itemRecords[2]], 
+    },
+    {
+        id: 1004,
+        label: 'p-mixed',
+        items: [itemRecords[4], itemRecords[5]],
     },
 ];
 
@@ -219,6 +243,12 @@ describe('cross-adapter parity for deep relation chains', () => {
         ['not(elemMatch) with a deep interior', not(elemMatch('items', eq('user.realm.name', 'master')))],
         ['presence through the to-many', exists('items.user')],
         ['absence through the to-many', exists('items.user', false)],
+        // a relation-presence leaf must join the SAME element scope as
+        // its sibling column leaf, not open an independent one
+        ['presence conjoined with a column leaf', and(eq('items.title', 'e'), exists('items.user'))],
+        ['presence conjoined with a matching column leaf', and(eq('items.title', 'f'), exists('items.user'))],
+        ['absence conjoined with a column leaf', and(eq('items.title', 'f'), exists('items.user', false))],
+        ['deep presence conjoined with a column leaf', and(eq('items.title', 'e'), exists('items.user.realm'))],
     ];
 
     fromParents.forEach(([name, condition]) => {

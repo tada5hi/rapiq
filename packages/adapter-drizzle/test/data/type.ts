@@ -15,6 +15,13 @@ export type Item = {
     id: number,
     title: string,
     color: string | null,
+    /**
+     * A to-ONE relation nested under the to-many. Present on some
+     * elements and absent on others, so a condition on it can only be
+     * satisfied per element: the same-element binding contract.
+     */
+    realm_id: number | null,
+    realm: Realm | null,
 };
 
 export type User = {

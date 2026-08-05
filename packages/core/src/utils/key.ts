@@ -28,13 +28,12 @@ const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
  * inherited prototype member.
  */
 export function isUnsafeKey(input: string) : boolean {
-    if (input.indexOf('.') === -1) {
+    if (!input.includes('.')) {
         return UNSAFE_KEY_SEGMENTS.has(input);
     }
 
-    const segments = input.split('.');
-    for (let i = 0; i < segments.length; i++) {
-        if (UNSAFE_KEY_SEGMENTS.has(segments[i] as string)) {
+    for (const segment of input.split('.')) {
+        if (UNSAFE_KEY_SEGMENTS.has(segment)) {
             return true;
         }
     }
