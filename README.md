@@ -37,18 +37,9 @@
 
 ## Why rapiq?
 
-Every REST list endpoint answers the same five questions: which **fields**, which **filters**, which **relations**, which **page**, which **order**. rapiq turns them into one typed pipeline instead of ad-hoc string parsing:
-
-| Stage | What happens |
-|---|---|
-| **Build** <sub>calling application</sub> | `defineQuery<User>({ filters: { age: { $gte: 18 } }, sort: '-name' })`: typed input in, query AST out |
-| **Transport** <sub>wire</sub> | encoded as a self-described URL query string: `?codec=url-expression&filter=gte(age,'18')&sort=-name` |
-| **Validate** <sub>receiving application</sub> | decoded back into the same AST, checked against a `Schema`: allow-lists, defaults, mappings |
-| **Execute** <sub>database</sub> | applied as parameterized SQL (`@rapiq/adapter-sql`), to a TypeORM `SelectQueryBuilder` (`@rapiq/adapter-typeorm`), as Prisma arguments (`@rapiq/adapter-prisma`), as a Drizzle relational query config (`@rapiq/adapter-drizzle`) or evaluated against in-memory data (`@rapiq/adapter-memory`) |
-
-The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
-an API gateway, for instance, validates an incoming query against its own schema, scopes it
-(`query.filters.and(...)`) and re-encodes it for the upstream service.
+Every REST list endpoint answers the same five questions: which **fields**, which **filters**,
+which **relations**, which **page**, which **order**. rapiq turns them into one typed pipeline
+instead of ad-hoc string parsing.
 
 - 🧭 **Typed end to end**: every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
 - 🛡️ **The receiving side has the last word**: a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
@@ -56,109 +47,52 @@ an API gateway, for instance, validates an incoming query against its own schema
 - 🔌 **Any backend**: the same AST executes everywhere: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, a TypeORM `SelectQueryBuilder`, a Prisma `findMany` args object, a drizzle relational-queries config, or compiled functions over in-memory data.
 - 📦 **Composable packages**: no monolith, install only what each side needs; `@rapiq/core` is the single shared foundation.
 
-## Installation
-
-Version 2 splits the former single `rapiq` package into focused, composable `@rapiq/*` packages:
-there is **no** `rapiq` umbrella package for v2, install only what you need
-(see [Packages](#packages) below; `@rapiq/core` is a peer dependency of every other package).
-
-Querying application, build queries and encode them as URL query strings:
-
-```bash
-npm install @rapiq/core @rapiq/codec-url
-```
-
-Queried application, decode & validate incoming query input and apply it to the database
-(swap the adapters for `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle` or
-`@rapiq/adapter-memory` to match your backend):
-
-```bash
-npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeorm
-```
+The two ends are just applications. A browser querying an API is the common case, but services compose the same way:
+an API gateway, for instance, validates an incoming query against its own schema, scopes it
+(`query.filters.and(...)`) and re-encodes it for the upstream service.
 
 ## Usage
 
-A small outlook on how to use the library. For detailed explanations and extended examples,
-read the [docs](https://rapiq.tada5hi.net).
+One query, from the caller all the way to the database. Both sides share the same record types:
 
-### Build 🔧
+```typescript
+type Realm = { id: string, name: string };
+type User = { id: number, name: string, email: string, age: number, realm: Realm };
+```
 
-The first step is to build a [Query](https://rapiq.tada5hi.net/guide/query-ast) for a generic Record `<T>` with
-[defineQuery](https://rapiq.tada5hi.net/guide/building-queries): typed input in, AST out, no magic value strings.
-Filters accept scalars, arrays (`null` is a legal element), `$`-operator objects and
-[condition helpers](https://rapiq.tada5hi.net/guide/building-queries#condition-helpers) (`eq`, `gte`, `and`, `or`, …);
-queries compose with [mergeQueries](https://rapiq.tada5hi.net/guide/merging-queries).
+### 1. Build 🔧 <sub>calling application</sub>
 
-The query is serialized for transport by `@rapiq/codec-url` and decoded back
-into the same AST on the receiving side.
+[`defineQuery`](https://rapiq.tada5hi.net/guide/building-queries) takes typed input and returns a
+[Query](https://rapiq.tada5hi.net/guide/query-ast) AST: no magic value strings, every path checked against `User`.
 
 ```typescript
 import { defineQuery } from '@rapiq/core';
 import { createURLCodec } from '@rapiq/codec-url';
 
-export type Realm = {
-    id: string,
-    name: string,
-    description: string,
-}
-
-export type Item = {
-    id: string,
-    realm: Realm,
-    user: User
-}
-
-export type User = {
-    id: number,
-    name: string,
-    email: string,
-    age: number,
-    realm: Realm,
-    items: Item[]
-}
-
 const query = defineQuery<User>({
-    pagination: {
-        limit: 20,
-        offset: 10
-    },
-    filters: {
-        id: 1
-    },
     fields: ['id', 'name'],
+    filters: { age: { $gte: 18 } },
+    relations: ['realm'],
     sort: '-id',
-    relations: ['realm']
+    pagination: { limit: 20 },
 });
 
-const codec = createURLCodec();
-const queryString = codec.encode(query);
-// codec=url-expression&fields=id,name&filter=eq(id%2C'1')&page[limit]=20&...
-
-const response = await fetch(`/users?${queryString}`);
+await fetch(`/users?${createURLCodec().encode(query)}`);
 ```
 
-### Parse 🔎
+**⬇ over the wire** <sub>self-described, so the receiver knows how to read it</sub>
 
-On the receiving side the incoming query is decoded back into the same
-[Query](https://rapiq.tada5hi.net/guide/query-ast) AST. A
-[Schema](https://rapiq.tada5hi.net/guide/schemas) declares what a caller may request per parameter
-(allow-lists, defaults, mappings). Expression-filter violations reject the request;
-other parameters follow the schema's drop-vs-throw policy.
-The decoded query is then applied to the database by an adapter
-([@rapiq/adapter-typeorm](https://rapiq.tada5hi.net/packages/adapter-typeorm) below;
-[@rapiq/adapter-sql](https://rapiq.tada5hi.net/packages/adapter-sql) renders parameterized SQL fragments for any other driver).
+```
+codec=url-expression&fields=id,name&filter=gte(age,'18')&page[limit]=20&include=realm&sort=-id
+```
 
-The following example assumes [express](https://www.npmjs.com/package/express) and
-[typeorm](https://www.npmjs.com/package/typeorm) are installed, and uses the same
-`User` & `Realm` types as the build example, declared as TypeORM entities.
+### 2. Validate 🛡️ <sub>receiving application</sub>
+
+A [Schema](https://rapiq.tada5hi.net/guide/schemas) is the allow-list: it decides what a caller may
+ask for, per parameter.
 
 ```typescript
-import { Request, Response } from 'express';
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import { createURLCodec } from '@rapiq/codec-url';
-import { TypeormAdapter } from '@rapiq/adapter-typeorm';
-// your app's TypeORM DataSource instance
-import { dataSource } from './data-source';
 
 const registry = new SchemaRegistry();
 
@@ -169,13 +103,57 @@ registry.add(defineSchema<Realm>({
 
 registry.add(defineSchema<User>({
     name: 'user',
-    fields: { allowed: ['id', 'name', 'email', 'age'] },
+    fields: { allowed: ['id', 'name', 'email'] },
     filters: { allowed: ['id', 'name', 'age'] },
-    relations: { allowed: ['items', 'realm'] },
-    pagination: { maxLimit: 20 },
+    relations: { allowed: ['realm'] },
     sort: { allowed: ['id', 'name'] },
+    pagination: { maxLimit: 20 },
     schemaMapping: { realm: 'realm' },
 }));
+
+// accepts a raw query string or a pre-parsed object (express req.query)
+const query = createURLCodec(registry).decode(req.query, { schema: 'user' });
+```
+
+Anything the schema does not allow never reaches step 3: it is dropped or rejected, per the
+schema's failure policy.
+
+**⬇ applied by an adapter**
+
+### 3. Execute 🗄️ <sub>database</sub>
+
+```typescript
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
+
+const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
+const { pagination } = adapter.execute(query);
+
+const [entities, total] = await queryBuilder.getManyAndCount();
+```
+
+Values are always bound as parameters, never interpolated into the statement:
+
+```sql
+WHERE "user"."age" >= $1        -- params: [18]
+ORDER BY "user"."id" DESC
+LIMIT 20
+```
+
+<details>
+<summary><b>The complete Express + TypeORM endpoint</b></summary>
+
+<br>
+
+Assumes [express](https://www.npmjs.com/package/express) and
+[typeorm](https://www.npmjs.com/package/typeorm) are installed, with `User` and `Realm` declared as
+TypeORM entities and the `registry` from step 2 in scope.
+
+```typescript
+import { Request, Response } from 'express';
+import { createURLCodec } from '@rapiq/codec-url';
+import { TypeormAdapter } from '@rapiq/adapter-typeorm';
+// your app's TypeORM DataSource instance
+import { dataSource } from './data-source';
 
 const codec = createURLCodec(registry);
 
@@ -184,9 +162,6 @@ const codec = createURLCodec(registry);
  *
  * Request example
  * - url: /users?codec=url-expression&page[limit]=10&include=realm&filter=eq(id,'1')&fields=id,name
- *
- * @param req
- * @param res
  */
 export async function getUsers(req: Request, res: Response) {
     // map the URL wire names (filter, page, include, ...) to their canonical
@@ -202,7 +177,7 @@ export async function getUsers(req: Request, res: Response) {
 
     const adapter = new TypeormAdapter({
         queryBuilder,
-        relations: { joinAndSelect: true }
+        relations: { joinAndSelect: true },
     });
     const { pagination } = adapter.execute(query);
 
@@ -213,11 +188,36 @@ export async function getUsers(req: Request, res: Response) {
         meta: {
             total,
             limit: pagination.limit,
-            offset: pagination.offset
-        }
+            offset: pagination.offset,
+        },
     });
 }
 ```
+
+</details>
+
+No TypeORM? The same query runs through [@rapiq/adapter-prisma](packages/adapter-prisma),
+[@rapiq/adapter-drizzle](packages/adapter-drizzle),
+[@rapiq/adapter-sql](packages/adapter-sql) (parameterized fragments for any driver) or
+[@rapiq/adapter-memory](packages/adapter-memory) (plain arrays). Full walkthrough in the
+[docs](https://rapiq.tada5hi.net).
+
+## Installation
+
+Version 2 splits the former single `rapiq` package into focused `@rapiq/*` packages, so each side
+installs only what it needs. There is **no** `rapiq` umbrella package for v2, and `@rapiq/core` is a
+peer dependency of every other package.
+
+```bash
+# calling application: build queries, encode them as URL query strings
+npm install @rapiq/core @rapiq/codec-url
+
+# receiving application: decode, validate, execute
+npm install @rapiq/core @rapiq/codec-url @rapiq/adapter-sql @rapiq/adapter-typeorm
+```
+
+Swap the adapters for `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle` or `@rapiq/adapter-memory`
+to match your backend.
 
 ## Packages
 
