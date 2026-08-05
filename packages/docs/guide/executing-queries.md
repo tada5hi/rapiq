@@ -38,9 +38,16 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
-import { PrismaAdapter } from '@rapiq/adapter-prisma';
+import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
 
-const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ model: prisma.user });
+// `metadata` and `provider` are required: a serializer cannot inspect
+// your database, and each fact changes what a valid Prisma filter is.
+// On a Prisma 6 classic build `{ model: prisma.user }` derives both.
+const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
+    model: prisma.user,
+    provider: 'postgresql',
+    metadata: defineMetadata(datamodel, 'User'),
+});
 
 const { args, pagination } = adapter.execute(query);
 

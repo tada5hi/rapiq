@@ -140,7 +140,7 @@ function buildSchemaOptions(
  * (`Prisma.dmmf.datamodel`, or any object of the same shape).
  *
  * ```typescript
- * const schema = defineSchemaWithModel<User>(Prisma.dmmf.datamodel, 'User', {
+ * const schema = defineSchemaWithModel<User>(datamodel, 'User', {
  *     fields: { allowed: 'inherit' },
  *     filters: { allowed: ['id', 'name'] },
  * });

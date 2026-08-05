@@ -85,14 +85,37 @@ The merge rules behind `base` are exported as `mergeArgs(base, override)` for us
 A model delegate binds the model name, the active provider and the runners, read off its client (private but long-stable internals, pinned against real generated clients by the engine suite; every read fails typed rather than guessing). On Prisma 6 classic builds the datamodel is derived the same way; Prisma 7 prunes the runtime datamodel, so pass `metadata` alongside the delegate. When a client exposes the public `$datamodel`/`$provider` reflection surface (prisma#29792), the adapter prefers it over the private reads. The private-API-free alternative supplies the same facts explicitly:
 
 ```typescript
-import { Prisma } from '@prisma/client';
 import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
+
+// hand-written, so it works on every Prisma version
+export const datamodel = {
+    models: [
+        {
+            name: 'User',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'email', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: false },
+            ],
+        },
+        {
+            name: 'Realm',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+            ],
+        },
+    ],
+};
 
 const adapter = new PrismaAdapter({
     provider: 'postgresql',
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+    metadata: defineMetadata(datamodel, 'User'),
 });
 ```
+
+On Prisma 6 classic builds `defineMetadata(Prisma.dmmf.datamodel, 'User')` derives the same facts. It does not work on Prisma 7, which prunes the runtime datamodel.
 
 The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
 
@@ -112,7 +135,7 @@ The datamodel can also supply the *shape* of your schemas: derived name, relatio
 ```typescript
 import { defineSchemaRegistryWithDatamodel } from '@rapiq/adapter-prisma';
 
-const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+const registry = defineSchemaRegistryWithDatamodel(datamodel, {
     schemas: {
         user: { filters: { allowed: ['id', 'name'] } },
     },

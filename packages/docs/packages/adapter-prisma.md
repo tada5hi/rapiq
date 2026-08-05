@@ -75,14 +75,37 @@ The adapter needs four facts about your model that a `Query` cannot carry, and e
 Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. On Prisma 6 classic builds the client-bound form above derives all of it; on Prisma 7 the runtime datamodel no longer carries cardinality or nullability, so the binding takes `metadata` alongside the delegate. The fully explicit form takes the same facts by hand:
 
 ```typescript
-import { Prisma } from '@prisma/client';
 import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
+
+// hand-written, so it works on every Prisma version
+export const datamodel = {
+    models: [
+        {
+            name: 'User',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'email', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: false },
+            ],
+        },
+        {
+            name: 'Realm',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+            ],
+        },
+    ],
+};
 
 const adapter = new PrismaAdapter({
     provider: 'postgresql',
-    metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+    metadata: defineMetadata(datamodel, 'User'),
 });
 ```
+
+On Prisma 6 classic builds `defineMetadata(Prisma.dmmf.datamodel, 'User')` derives the same facts; on Prisma 7 that input is pruned and rejected typed.
 
 Between the two sit `{ client: prisma, model: 'User' }` and per-option overrides (`provider`, `metadata`) on the client-bound shape.
 
@@ -126,7 +149,7 @@ The datamodel can also supply the *shape* of your schemas, the same staging as [
 ```typescript
 import { defineSchemaRegistryWithDatamodel } from '@rapiq/adapter-prisma';
 
-const registry = defineSchemaRegistryWithDatamodel(Prisma.dmmf.datamodel, {
+const registry = defineSchemaRegistryWithDatamodel(datamodel, {
     schemas: {
         user: {
             fields: { allowed: 'inherit' },       // the model's field names
@@ -143,7 +166,7 @@ To catch schema/model drift (a renamed field, a stale allow-list entry) at boot 
 ```typescript
 import { assertSchemaMatchesModel } from '@rapiq/adapter-prisma';
 
-assertSchemaMatchesModel(schema, Prisma.dmmf.datamodel, 'User');
+assertSchemaMatchesModel(schema, datamodel, 'User');
 // throws SchemaModelMismatchError carrying EVERY offending key
 ```
 
