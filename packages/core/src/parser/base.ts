@@ -11,7 +11,12 @@ import { ParseError } from '../errors';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { isObject, parseKey, stringifyKey } from '../utils';
+import {
+    isObject, 
+    isUnsafeKey, 
+    parseKey, 
+    stringifyKey,
+} from '../utils';
 import type { IParser } from './types';
 
 export type TempType = {
@@ -86,6 +91,10 @@ export abstract class BaseParser<
                 throw ParseError.inputInvalid();
             }
 
+            if (isUnsafeKey(key)) {
+                throw ParseError.inputInvalid();
+            }
+
             const path = prefix ? `${prefix}.${key}` : key;
             if (isObject(input[key])) {
                 this.expandObject(input[key], output, path);
@@ -99,12 +108,16 @@ export abstract class BaseParser<
 
     protected groupObject(input: Record<string, any>) {
         const output : TempType = {
-            attributes: {},
-            relations: {},
+            attributes: Object.create(null),
+            relations: Object.create(null),
         };
 
         const keys = Object.keys(input);
         for (const key of keys) {
+            if (isUnsafeKey(key)) {
+                throw ParseError.inputInvalid();
+            }
+
             if (isObject(input[key])) {
                 output.relations[key] = this.groupObject(input[key]);
             } else {
@@ -118,7 +131,7 @@ export abstract class BaseParser<
     protected groupObjectByBasePath<T extends Record<string, any>>(
         input: T,
     ) : Record<string, T> {
-        const output : Record<string, T> = {};
+        const output : Record<string, T> = Object.create(null);
 
         const keys = Object.keys(input);
 
@@ -126,7 +139,7 @@ export abstract class BaseParser<
             keys,
             (prefix, key, index) => {
                 if (!output[prefix]) {
-                    output[prefix] = {} as T;
+                    output[prefix] = Object.create(null) as T;
                 }
 
                 const sourceKey = keys[index];
@@ -142,7 +155,7 @@ export abstract class BaseParser<
     protected groupArrayByBasePath(
         input: string[],
     ) : Record<string, string[]> {
-        const output : Record<string, string[]> = {};
+        const output : Record<string, string[]> = Object.create(null);
 
         this.groupByFieldPathWithFn(
             input,
@@ -165,11 +178,15 @@ export abstract class BaseParser<
     protected groupArrayByKeyPath(
         input: string[],
     ) : Record<string, string[]> {
-        const output : Record<string, string[]> = {};
+        const output : Record<string, string[]> = Object.create(null);
 
         for (const element of input) {
             let key : string;
             let name : string;
+
+            if (isUnsafeKey(element)) {
+                throw ParseError.inputInvalid();
+            }
 
             const lastIndex = element.lastIndexOf('.');
             if (lastIndex === -1) {
@@ -197,6 +214,10 @@ export abstract class BaseParser<
         ) => void,
     ) : void {
         for (const [i, item] of items.entries()) {
+            if (isUnsafeKey(item)) {
+                throw ParseError.inputInvalid();
+            }
+
             const key = parseKey(item);
 
             let prefix : string;

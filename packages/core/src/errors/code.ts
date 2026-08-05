@@ -32,6 +32,8 @@ export enum ErrorCode {
 
     FIELDS_CONDITION_DISCARDED = 'fieldsConditionDiscarded',
 
+    CONDITION_DETACHED = 'conditionDetached',
+
     CODEC_UNRESOLVABLE = 'codecUnresolvable',
 
     SCHEMA_ENTITY_MISMATCH = 'schemaEntityMismatch',

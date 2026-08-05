@@ -26,6 +26,20 @@ export class AdapterError extends BaseError {
         });
     }
 
+    /**
+     * A condition that satisfies {@link ICondition} but carries no node
+     * identity — the shape left by a JSON/RPC/cache round trip. It cannot
+     * be lowered, and dropping it would silently widen the result set.
+     */
+    static conditionDetached(operator?: string) {
+        return new this({
+            message: `The condition${operator ? ` (${operator})` : ''} is not a filter node. ` +
+                'Rebuild it with the condition helpers (eq, and, or, …) ' +
+                'before passing it to an adapter.',
+            code: ErrorCode.CONDITION_DETACHED,
+        });
+    }
+
     static featureUnsupported(feature: string) {
         return new this({
             message: `The feature ${feature} is not supported by the dialect.`,

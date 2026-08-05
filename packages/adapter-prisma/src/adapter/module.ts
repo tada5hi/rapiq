@@ -96,7 +96,7 @@ function resolveDelegate(options: PrismaAdapterClientOptions, client?: object) :
  * ```typescript
  * const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
  *     provider: 'postgresql',
- *     metadata: defineMetadata(Prisma.dmmf.datamodel, 'User'),
+ *     metadata: defineMetadata(datamodel, 'User'),
  * });
  *
  * const { args, pagination } = adapter.execute(query);

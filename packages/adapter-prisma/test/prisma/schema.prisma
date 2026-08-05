@@ -30,12 +30,15 @@ model Realm {
     name        String
     description String?
     users       User[]
+    items       Item[]
 }
 
 model Item {
-    id      Int     @id
-    title   String
-    color   String?
-    user_id Int
-    user    User    @relation(fields: [user_id], references: [id])
+    id       Int     @id
+    title    String
+    color    String?
+    user_id  Int
+    user     User    @relation(fields: [user_id], references: [id])
+    realm_id Int?
+    realm    Realm?  @relation(fields: [realm_id], references: [id])
 }

@@ -136,7 +136,7 @@ export class Metadata implements IMetadata {
  * ```typescript
  * const metadata = defineMetadata(prisma, prisma.user);
  * // or, private-API-free:
- * const metadata = defineMetadata(Prisma.dmmf.datamodel, 'User');
+ * const metadata = defineMetadata(datamodel, 'User');
  * ```
  */
 export function defineMetadata(datamodel: DatamodelInput, model: ModelInput) : Metadata {

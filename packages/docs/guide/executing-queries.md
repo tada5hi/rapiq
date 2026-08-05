@@ -38,14 +38,48 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
-import { PrismaAdapter } from '@rapiq/adapter-prisma';
+import type { Prisma } from '@prisma/client';
+import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
+import { prisma } from './prisma';
 
-const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({ model: prisma.user });
+// hand-written, so it works on every Prisma version: Prisma 7 prunes the
+// runtime datamodel, and the adapter rejects pruned input typed.
+const datamodel = {
+    models: [
+        {
+            name: 'User',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: false },
+            ],
+        },
+        {
+            name: 'Realm',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+            ],
+        },
+    ],
+};
+
+// The adapter needs model facts a Query cannot carry, and each one
+// changes what a VALID Prisma filter looks like. A Prisma 6 classic
+// build derives them from `{ model: prisma.user }` alone; Prisma 7
+// prunes the runtime datamodel, so supply them explicitly as here.
+const adapter = new PrismaAdapter<Prisma.UserFindManyArgs>({
+    model: prisma.user,
+    provider: 'postgresql',
+    metadata: defineMetadata(datamodel, 'User'),
+});
 
 const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
+
+The [Prisma and Drizzle recipe](/guide/recipes/prisma-drizzle) shows the same setup in a complete endpoint, and [@rapiq/adapter-prisma](/packages/adapter-prisma) covers what each metadata fact decides.
 
 Because this adapter is model-bound, it can also run the request itself:
 

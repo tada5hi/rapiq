@@ -14,6 +14,43 @@ export type KeyDetails = {
 const KEY_REGEX = /^(?:([0-9]+):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
 
 /**
+ * Path segments that address an inherited `Object.prototype` member.
+ * They match the permitted key pattern, so they have to be rejected
+ * by name: a parser accumulates client-controlled path prefixes into
+ * plain objects, and writing through one of these mutates the
+ * prototype (or trips over an inherited member) instead of setting
+ * a field.
+ */
+const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Check whether any segment of a (dotted) key path addresses an
+ * inherited prototype member.
+ */
+export function isUnsafeKey(input: string) : boolean {
+    // the key grammar allows a leading numeric group ("0:items.title"),
+    // so it is stripped before the segments are checked: without this
+    // "0:__proto__.x" reads as a segment named "0:__proto__" and slips
+    // through.
+    const separatorIndex = input.indexOf(':');
+    const path = separatorIndex === -1 ?
+        input :
+        input.substring(separatorIndex + 1);
+
+    if (!path.includes('.')) {
+        return UNSAFE_KEY_SEGMENTS.has(path);
+    }
+
+    for (const segment of path.split('.')) {
+        if (UNSAFE_KEY_SEGMENTS.has(segment)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Parse a raw key ("[group:][path.]name", e.g. "0:items.title")
  * into its group, relation path and leaf name.
  */

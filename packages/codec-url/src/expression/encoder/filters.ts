@@ -259,17 +259,10 @@ function serializeList(input: unknown) : string {
 }
 
 /**
- * Match text (contains/startsWith/endsWith) must survive the
- * decoder's scalar coercion unchanged: staying a string (numeric-
- * or boolean-looking text would decode to a non-string) and keeping
- * its exact characters (surrounding whitespace decodes trimmed).
+ * Match text (contains/startsWith/endsWith) is transport text: the
+ * decoder keeps an anchored pattern verbatim rather than coercing it
+ * through the scalar grammar, so quoting is all the round trip needs.
  */
 function serializeMatchText(input: unknown) : string {
-    const text = typeof input === 'string' ? input : `${input}`;
-
-    if (parseFilterScalar(text) !== text) {
-        throw AdapterError.featureUnsupported('filters:value:text');
-    }
-
-    return quote(text);
+    return quote(typeof input === 'string' ? input : `${input}`);
 }

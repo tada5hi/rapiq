@@ -56,9 +56,15 @@ describe('cross-adapter complement law (memory vs prisma)', () => {
                 description: null, 
             },
             items: [{
-                id: 1, 
-                title: 'book', 
-                color: 'red', 
+                id: 1,
+                title: 'book',
+                color: 'red',
+                realm_id: 1,
+                realm: {
+                    id: 1, 
+                    name: 'master', 
+                    description: null, 
+                },
             }],
         },
         {
@@ -90,11 +96,19 @@ describe('cross-adapter complement law (memory vs prisma)', () => {
                     id: 2,
                     title: 'ring',
                     color: null,
+                    realm_id: 1,
+                    realm: {
+                        id: 1, 
+                        name: 'master', 
+                        description: null, 
+                    },
                 },
                 {
                     id: 3,
                     title: 'book',
                     color: 'blue',
+                    realm_id: null,
+                    realm: null,
                 },
             ],
         },

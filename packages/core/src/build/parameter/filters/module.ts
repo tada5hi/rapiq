@@ -46,9 +46,59 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
         return new Filters(FilterCompoundOperator.AND, [input]);
     }
 
+    if (isDetachedCondition(input)) {
+        throw BuildError.inputInvalid();
+    }
+
     return new Filters(
         FilterCompoundOperator.AND,
         buildConditions(input),
+    );
+}
+
+/**
+ * Detect a condition that lost its node identity — the shape a
+ * {@link ICondition} takes after a JSON/RPC/cache round trip. It
+ * satisfies the declared interface but carries no `accept`, so it
+ * would otherwise be read as a record of field/value pairs and filter
+ * on columns literally named `operator` and `value`.
+ *
+ * Deliberately narrow: only an object whose own keys are exactly the
+ * condition properties, with a recognized operator, qualifies. A build
+ * input that merely happens to carry an `operator` column keeps
+ * working.
+ */
+function isDetachedCondition(input: unknown) : boolean {
+    if (!isObject(input)) {
+        return false;
+    }
+
+    const keys = Object.keys(input);
+    if (keys.length === 0) {
+        return false;
+    }
+
+    for (const key of keys) {
+        if (key !== 'operator' && key !== 'value' && key !== 'sealed' && key !== 'field') {
+            return false;
+        }
+    }
+
+    // a real condition always carries its operand, so requiring one keeps
+    // a single-column record filter (`{ operator: 'eq' }`, meaning a column
+    // literally named `operator`) out of the guard. `field` counts too: a
+    // leaf built with an undefined value loses `value` to JSON but keeps it.
+    if (
+        !keys.includes('operator') ||
+        (!keys.includes('value') && !keys.includes('field')) ||
+        typeof input.operator !== 'string'
+    ) {
+        return false;
+    }
+
+    return (
+        Object.values(FilterFieldOperator).includes(input.operator as FilterFieldOperator) ||
+        Object.values(FilterCompoundOperator).includes(input.operator as FilterCompoundOperator)
     );
 }
 

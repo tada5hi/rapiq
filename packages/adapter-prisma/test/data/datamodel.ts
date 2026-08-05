@@ -57,6 +57,11 @@ export const datamodel : Datamodel = {
                 scalar('id', 'Int'),
                 scalar('title', 'String'),
                 scalar('color', 'String', false),
+                scalar('realm_id', 'Int', false),
+                // a to-ONE nested under the to-many: a condition on it
+                // can only be satisfied per element, so it pins the
+                // same-element binding contract
+                relation('realm', 'Realm', false, false),
             ],
         },
     ],

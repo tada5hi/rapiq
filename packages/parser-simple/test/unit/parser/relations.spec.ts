@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseError, defineSchema } from '@rapiq/core';
+import { RelationsParseError, defineRelationsSchema, defineSchema } from '@rapiq/core';
 import type { Relations } from '@rapiq/core';
 import { registry } from '../../data';
 import { SimpleRelationsParser } from '../../../src';
@@ -148,5 +148,82 @@ describe('src/relations/index.ts', () => {
 
         const error = RelationsParseError.keyInvalid(',foo');
         expect(() => parser.parse([',foo'], { schema })).toThrow(error);
+    });
+
+    describe('validate hook on a bare relations sub-schema', () => {
+        // no registry: a bare sub-schema is the only authority present.
+        // With one, a REGISTERED child schema legitimately governs the
+        // deeper hops instead, which is what the shared parser exercises.
+        let bare : SimpleRelationsParser;
+
+        beforeAll(() => {
+            bare = new SimpleRelationsParser();
+        });
+
+        it('should invoke the hook and drop a rejected relation', () => {
+            const seen : string[] = [];
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                validate: (key: string) => {
+                    seen.push(key);
+                    return false;
+                },
+            });
+
+            const output = bare.parse(['realm'], { schema });
+
+            expect(seen).toEqual(['realm']);
+            expect(interpreter.interpret(output)).toEqual([]);
+        });
+
+        it('should keep an accepted relation', () => {
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                validate: () => true,
+            });
+
+            const output = bare.parse(['realm'], { schema });
+
+            expect(interpreter.interpret(output)).toEqual(['realm']);
+        });
+
+        it('should gate every segment of a dotted path, not just the root', () => {
+            const seen : string[] = [];
+            const schema = defineRelationsSchema({
+                allowed: ['realm', 'realm.child'],
+                validate: (key: string) => {
+                    seen.push(key);
+                    return true;
+                },
+            });
+
+            bare.parse(['realm.child'], { schema });
+
+            // the bare schema is the only authority present, so it governs
+            // every hop: a registry-backed parse asks each level's own hook
+            expect(seen).toEqual(['realm', 'child']);
+        });
+
+        it('should drop a deep relation its hook rejects', () => {
+            const schema = defineRelationsSchema({
+                allowed: ['realm', 'realm.child'],
+                validate: (key: string) => key !== 'child',
+            });
+
+            const output = bare.parse(['realm.child'], { schema });
+
+            expect(interpreter.interpret(output)).toEqual(['realm']);
+        });
+
+        it('should throw a rejected relation under throwOnFailure', () => {
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                throwOnFailure: true,
+                validate: () => false,
+            });
+
+            expect(() => bare.parse(['realm'], { schema }))
+                .toThrow(RelationsParseError);
+        });
     });
 });

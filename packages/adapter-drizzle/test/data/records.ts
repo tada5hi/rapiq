@@ -30,6 +30,12 @@ export const records : User[] = [
             id: 1,
             title: 'book',
             color: 'red',
+            realm_id: 1,
+            realm: {
+                id: 1, 
+                name: 'master', 
+                description: null, 
+            },
         }],
     },
     {
@@ -61,11 +67,19 @@ export const records : User[] = [
                 id: 2,
                 title: 'ring',
                 color: null,
+                realm_id: 1,
+                realm: {
+                    id: 1, 
+                    name: 'master', 
+                    description: null, 
+                },
             },
             {
                 id: 3,
                 title: 'book',
                 color: 'blue',
+                realm_id: null,
+                realm: null,
             },
         ],
     },
@@ -90,11 +104,19 @@ export const splitRecord : User = {
             id: 90,
             title: 'book',
             color: 'blue',
+            realm_id: null,
+            realm: null,
         },
         {
             id: 91,
             title: 'ring',
             color: 'red',
+            realm_id: 1,
+            realm: {
+                id: 1, 
+                name: 'master', 
+                description: null, 
+            },
         },
     ],
 };

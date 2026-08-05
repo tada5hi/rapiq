@@ -71,6 +71,7 @@ type ResolutionScopeOptions<
     bound: boolean,
     base?: Schema<RECORD>,
     rootBase?: Schema<RECORD>,
+    rootSchema?: ParameterSchema<P, RECORD>,
     relations?: IRelations,
     segment?: string,
     path?: string[],
@@ -99,6 +100,15 @@ export class ResolutionScope<
      * The resolved parameter sub-schema — escape hatch for parameter quirks.
      */
     readonly schema: ParameterSchema<P, RECORD>;
+
+    /**
+     * The parameter sub-schema this scope chain STARTED from. A descended
+     * scope with no registered child schema falls back to an empty one, so
+     * the original is kept: for a bare (base-less) relations sub-schema it
+     * is the only authorization authority there is, and it has to govern
+     * every hop rather than the first one alone.
+     */
+    protected rootSchema: ParameterSchema<P, RECORD>;
 
     /**
      * Parsed relations governing which relation segments may be entered.
@@ -152,6 +162,7 @@ export class ResolutionScope<
         this.registry = options.registry;
         this.parameter = options.parameter;
         this.schema = options.schema;
+        this.rootSchema = options.rootSchema ?? options.schema;
         this.bound = options.bound;
         this.base = options.base;
         this.rootBase = options.rootBase;
@@ -184,7 +195,17 @@ export class ResolutionScope<
      * standalone and query parses agree.
      */
     get relationsThrowOnFailure() : boolean {
-        return this.rootBase?.relations.throwOnFailure ?? false;
+        if (this.rootBase) {
+            return this.rootBase.relations.throwOnFailure ?? false;
+        }
+
+        // mirrors relationObligationForTerminal: a bare relations
+        // sub-schema carries its own failure policy.
+        if (this.parameter === Parameter.RELATIONS) {
+            return (this.rootSchema as RelationsSchema<RECORD>).throwOnFailure ?? false;
+        }
+
+        return false;
     }
 
     /**
@@ -389,6 +410,7 @@ export class ResolutionScope<
             registry: this.registry,
             parameter: this.parameter,
             schema,
+            rootSchema: this.rootSchema,
             bound: !!childBase,
             base: childBase,
             rootBase: this.rootBase,
@@ -476,6 +498,22 @@ export class ResolutionScope<
     protected relationObligationForTerminal(name: string) : PendingKeyValidation[] {
         const base = this.resolveBase();
         if (!base) {
+            // a bare relations sub-schema is its own authorization anchor:
+            // there is no record schema to reach its hook through, so the
+            // obligation is recorded against the schema the chain started
+            // from. Without this a standalone relations parse skips the hook
+            // entirely and every relation is admitted; using `schema` rather
+            // than `rootSchema` would gate the first hop alone, because a
+            // descended scope with no registered child falls back to an
+            // empty sub-schema carrying no hook.
+            if (this.parameter === Parameter.RELATIONS) {
+                return [{
+                    key: name,
+                    path: [...this.path, name].join('.'),
+                    schema: this.rootSchema as RelationsSchema<RECORD>,
+                }];
+            }
+
             return [];
         }
 
@@ -622,6 +660,7 @@ export class ResolutionScope<
             registry: this.registry,
             parameter: this.parameter,
             schema: this.schema,
+            rootSchema: this.rootSchema,
             bound: this.bound,
             base: this.base,
             rootBase: this.rootBase,
