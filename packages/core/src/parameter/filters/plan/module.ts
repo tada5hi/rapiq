@@ -144,9 +144,9 @@ class ConditionLowering {
             return this.lowerLeaf(input);
         }
 
-        throw AdapterError.operatorUnsupported(String(
+        throw AdapterError.conditionDetached(
             (input as Partial<ICondition>)?.operator,
-        ));
+        );
     }
 
     // -----------------------------------------------------------
@@ -194,7 +194,16 @@ class ConditionLowering {
                 if (plan) {
                     children.push(plan);
                 }
+
+                continue;
             }
+
+            // a child that is not a condition node cannot be lowered, and
+            // dropping it would silently widen the result set (a scoping
+            // conjunct would simply vanish). The root case throws too.
+            throw AdapterError.conditionDetached(
+                (child as Partial<ICondition>)?.operator,
+            );
         }
 
         // an empty compound vanishes.
