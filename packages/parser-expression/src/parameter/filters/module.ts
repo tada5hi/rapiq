@@ -529,10 +529,15 @@ export class ExpressionFiltersParser extends BaseParser<
         const text = this.consume(FilterTokenType.ESCAPED_TEXT).value!;
         this.consume(FilterTokenType.RPAREN);
 
-        const normalized = this.normalizeValue(text);
-        if (typeof normalized !== 'string') {
-            throw FiltersParseError.keyValueInvalid(field);
-        }
+        // the anchored operators match a literal substring, so the pattern
+        // is transport text and is kept verbatim — never run through the
+        // scalar grammar. Coercing it would reject a numeric pattern
+        // (contains(title, '2024')) and silently trim a whitespace one into
+        // a match-everything predicate. Mirrors the simple dialect, which
+        // tags exactly these three operators `value: 'raw'`.
+        const normalized = text.length >= 2 ?
+            text.slice(1, -1).replace(/''/g, '\'') :
+            text;
 
         switch (op) {
             case FilterTokenType.CONTAINS: {

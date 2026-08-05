@@ -738,3 +738,61 @@ describe('filters/expr-parser', () => {
         });
     });
 });
+
+/**
+ * The anchored operators match a literal substring, so the pattern is
+ * transport text and must survive verbatim. Coercing it through the
+ * scalar grammar (as value-carrying operators do) rejects a numeric
+ * pattern outright and silently trims a whitespace one into a
+ * match-everything predicate. Both sibling dialects keep it raw.
+ */
+describe('anchored operators keep their pattern verbatim', () => {
+    let parser : ExpressionFiltersParser;
+
+    beforeAll(() => {
+        parser = new ExpressionFiltersParser();
+    });
+
+    const leafOf = (input: string) => {
+        const output = parser.parse(input) as Filters;
+        return (output.value[0] ?? output) as Filter;
+    };
+
+    it.each([
+        ['contains(title, \'2024\')', FilterFieldOperator.CONTAINS, '2024'],
+        ['startsWith(code, \'42\')', FilterFieldOperator.STARTS_WITH, '42'],
+        ['endsWith(code, \'007\')', FilterFieldOperator.ENDS_WITH, '007'],
+        ['contains(name, \'true\')', FilterFieldOperator.CONTAINS, 'true'],
+        ['contains(name, \'null\')', FilterFieldOperator.CONTAINS, 'null'],
+        ['contains(name, \'-1.5\')', FilterFieldOperator.CONTAINS, '-1.5'],
+    ])('should keep %s as a string pattern', (input, operator, value) => {
+        const leaf = leafOf(input);
+
+        expect(leaf.operator).toEqual(operator);
+        expect(leaf.value).toEqual(value);
+    });
+
+    it('should not trim a whitespace-only pattern into match-everything', () => {
+        const leaf = leafOf('contains(name, \'  \')');
+
+        expect(leaf.value).toEqual('  ');
+    });
+
+    it('should preserve surrounding whitespace in a pattern', () => {
+        const leaf = leafOf('contains(name, \' Jo \')');
+
+        expect(leaf.value).toEqual(' Jo ');
+    });
+
+    it('should still unescape a doubled quote', () => {
+        const leaf = leafOf('contains(name, \'O\'\'Brien\')');
+
+        expect(leaf.value).toEqual('O\'Brien');
+    });
+
+    it('should keep an empty pattern empty', () => {
+        const leaf = leafOf('contains(name, \'\')');
+
+        expect(leaf.value).toEqual('');
+    });
+});

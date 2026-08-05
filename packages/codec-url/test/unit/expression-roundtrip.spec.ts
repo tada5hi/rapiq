@@ -173,6 +173,24 @@ describe('round-trip', () => {
             );
         });
 
+        /**
+         * An anchored pattern is transport text, not a scalar: it is
+         * carried verbatim in both directions, so text that would coerce
+         * to another type as a VALUE stays exactly itself as a PATTERN.
+         */
+        it.each([
+            ['numeric-looking match text', startsWith('code', '5')],
+            ['null-looking match text', contains('name', 'null')],
+            ['boolean-looking match text', contains('flag', 'true')],
+            ['whitespace-padded match text', startsWith('name', ' J')],
+            ['whitespace-only match text', contains('name', '  ')],
+            ['quote-bearing match text', contains('name', 'O\'Brien')],
+        ])('should round-trip %s unchanged', (_, filter) => {
+            expect(roundTripFilter(filter)).toEqual(
+                new Filters(FilterCompoundOperator.AND, [filter]),
+            );
+        });
+
         it.each([
             [
                 'not over an ordering comparison',
@@ -244,9 +262,6 @@ describe('round-trip', () => {
         });
 
         it.each([
-            ['numeric-looking match text', startsWith('code', '5')],
-            ['null-looking match text', contains('name', 'null')],
-            ['whitespace-padded match text', startsWith('name', ' J')],
             ['null-looking eq value (would decode to IS NULL)', eq('name', 'null')],
             ['whitespace-padded eq value (would decode trimmed)', eq('name', ' John ')],
             ['value-mutating numeric text (0xFF would decode to 255)', eq('code', '0xFF')],
