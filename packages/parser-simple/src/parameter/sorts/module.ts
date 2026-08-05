@@ -297,7 +297,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
      * @param throwOnFailure
      */
     protected normalize(input: unknown, throwOnFailure?: boolean) : Record<string, SortDirection> {
-        const output : Record<string, SortDirection> = {};
+        const output : Record<string, SortDirection> = Object.create(null);
 
         if (
             typeof input === 'string' ||

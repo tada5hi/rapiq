@@ -84,7 +84,15 @@ function isDetachedCondition(input: unknown) : boolean {
         }
     }
 
-    if (!keys.includes('operator') || typeof input.operator !== 'string') {
+    // a real condition always carries its operand, so requiring one keeps
+    // a single-column record filter (`{ operator: 'eq' }`, meaning a column
+    // literally named `operator`) out of the guard. `field` counts too: a
+    // leaf built with an undefined value loses `value` to JSON but keeps it.
+    if (
+        !keys.includes('operator') ||
+        (!keys.includes('value') && !keys.includes('field')) ||
+        typeof input.operator !== 'string'
+    ) {
         return false;
     }
 

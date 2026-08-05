@@ -38,7 +38,31 @@ const [entities, total] = await queryBuilder.getManyAndCount();
 Prisma takes an argument object rather than a builder, so the adapter is a pure serializer that returns the object and touches nothing:
 
 ```typescript
+import type { Prisma } from '@prisma/client';
 import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
+import { prisma } from './prisma';
+
+// hand-written, so it works on every Prisma version: Prisma 7 prunes the
+// runtime datamodel, and the adapter rejects pruned input typed.
+const datamodel = {
+    models: [
+        {
+            name: 'User',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: false },
+            ],
+        },
+        {
+            name: 'Realm',
+            fields: [
+                { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
+                { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+            ],
+        },
+    ],
+};
 
 // `metadata` and `provider` are required: a serializer cannot inspect
 // your database, and each fact changes what a valid Prisma filter is.
@@ -53,6 +77,8 @@ const { args, pagination } = adapter.execute(query);
 
 const users = await prisma.user.findMany(args);
 ```
+
+The [Prisma and Drizzle recipe](/guide/recipes/prisma-drizzle) shows the same setup in a complete endpoint, and [@rapiq/adapter-prisma](/packages/adapter-prisma) covers what each metadata fact decides.
 
 Because this adapter is model-bound, it can also run the request itself:
 

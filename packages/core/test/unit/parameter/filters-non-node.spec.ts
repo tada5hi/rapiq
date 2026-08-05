@@ -73,4 +73,26 @@ describe('src/parameter/filters (non-node conditions)', () => {
 
         expect(output.value).toHaveLength(2);
     });
+
+    /**
+     * A real condition always carries its operand, so requiring one keeps
+     * the guard from swallowing a single-column record filter.
+     */
+    it('should accept a record filtering only on a column named operator', () => {
+        const output = defineFilters({ operator: 'eq' });
+
+        expect(output.value).toHaveLength(1);
+    });
+
+    it('should accept a record filtering only on a column named value', () => {
+        const output = defineFilters({ value: 'eq' });
+
+        expect(output.value).toHaveLength(1);
+    });
+
+    it('should still refuse a detached leaf carrying field but no value', () => {
+        // `eq('x', undefined)` loses `value` to JSON, keeping `field`
+        expect(() => defineFilters({ operator: 'eq', field: 'x' } as ICondition))
+            .toThrow(BuildError);
+    });
 });

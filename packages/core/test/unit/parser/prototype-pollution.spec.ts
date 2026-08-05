@@ -6,6 +6,8 @@
  */
 
 import { BaseError, BaseParser } from '../../../src';
+// internal guard: deliberately not part of the public surface
+import { isUnsafeKey } from '../../../src/utils';
 
 /**
  * The grouping helpers accumulate client-controlled path prefixes into
@@ -105,6 +107,36 @@ describe('src/parser/base.ts (prototype pollution)', () => {
 
         expect(parser.groupArrayPaths(['items.id']))
             .toEqual({ items: ['id'] });
+    });
+
+    /**
+     * `parseKey` accepts an optional numeric group prefix ("0:items.title"),
+     * so a reserved segment can arrive carrying one. The guard has to strip
+     * the prefix the same way, or the rejection is trivially bypassed.
+     */
+    it('should flag a reserved segment behind a group prefix', () => {
+        expect(isUnsafeKey('0:__proto__.polluted')).toBe(true);
+        expect(isUnsafeKey('12:constructor.name')).toBe(true);
+        expect(isUnsafeKey('0:prototype')).toBe(true);
+        expect(isUnsafeKey('0:items.__proto__')).toBe(true);
+    });
+
+    it('should not flag a legitimate grouped key', () => {
+        expect(isUnsafeKey('0:items.title')).toBe(false);
+        expect(isUnsafeKey('items.title')).toBe(false);
+        expect(isUnsafeKey('constructorName')).toBe(false);
+    });
+
+    it('should reject a group-prefixed reserved segment while grouping', () => {
+        for (const prefix of POLLUTING_PREFIXES) {
+            expect(() => parser.groupArrayPaths([`0:${prefix}.polluted`]))
+                .toThrow(BaseError);
+
+            expect(() => parser.groupArrayKeys([`0:${prefix}.polluted`]))
+                .toThrow(BaseError);
+
+            expect(({} as any).polluted).toBeUndefined();
+        }
     });
 
     it('should not treat a field merely containing a reserved word as hostile', () => {

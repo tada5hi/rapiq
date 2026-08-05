@@ -28,11 +28,20 @@ const UNSAFE_KEY_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
  * inherited prototype member.
  */
 export function isUnsafeKey(input: string) : boolean {
-    if (!input.includes('.')) {
-        return UNSAFE_KEY_SEGMENTS.has(input);
+    // the key grammar allows a leading numeric group ("0:items.title"),
+    // so it is stripped before the segments are checked: without this
+    // "0:__proto__.x" reads as a segment named "0:__proto__" and slips
+    // through.
+    const separatorIndex = input.indexOf(':');
+    const path = separatorIndex === -1 ?
+        input :
+        input.substring(separatorIndex + 1);
+
+    if (!path.includes('.')) {
+        return UNSAFE_KEY_SEGMENTS.has(path);
     }
 
-    for (const segment of input.split('.')) {
+    for (const segment of path.split('.')) {
         if (UNSAFE_KEY_SEGMENTS.has(segment)) {
             return true;
         }

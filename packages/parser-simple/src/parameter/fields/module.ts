@@ -307,7 +307,9 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             }
         }
 
-        const grouped : Record<string, Record<string, any>> = {};
+        // keyed by a client-controlled group: no prototype, so an
+        // inherited member can never be mistaken for an existing group
+        const grouped : Record<string, Record<string, any>> = Object.create(null);
         for (const key of keys) {
             let group : string;
             let relation : string;
@@ -321,7 +323,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 relation = key.substring(index + 1);
             }
 
-            const groupRecord = grouped[group] ?? {};
+            const groupRecord = grouped[group] ?? Object.create(null);
             grouped[group] = groupRecord;
             groupRecord[relation] = normalized[key];
         }
@@ -408,7 +410,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         }
 
         if (isObject(input)) {
-            const output : Record<string, string[]> = {};
+            const output : Record<string, string[]> = Object.create(null);
 
             const keys = Object.keys(input);
             for (const key of keys) {
