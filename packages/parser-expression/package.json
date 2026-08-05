@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-expression",
-    "version": "2.0.0-beta.16",
+    "version": "2.0.0-beta.17",
     "description": "Parse a function-call filter language (e.g. and(eq(name,'John'), gte(age,'18'))) into a rapiq query AST.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,12 +16,12 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.16",
-        "@rapiq/parser-simple": "^2.0.0-beta.16"
+        "@rapiq/core": "^2.0.0-beta.17",
+        "@rapiq/parser-simple": "^2.0.0-beta.17"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.16",
-        "@rapiq/parser-simple": "^2.0.0-beta.16"
+        "@rapiq/core": "^2.0.0-beta.17",
+        "@rapiq/parser-simple": "^2.0.0-beta.17"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

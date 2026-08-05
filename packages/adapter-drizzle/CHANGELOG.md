@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.17](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.0.0-beta.16...adapter-drizzle-v2.0.0-beta.17) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* a key path containing a `__proto__`, `constructor` or `prototype` segment now raises a typed ParseError instead of being accepted.
+
+### Bug Fixes
+
+* close the pre-GA release blockers ([#883](https://github.com/tada5hi/rapiq/issues/883)) ([e652be7](https://github.com/tada5hi/rapiq/commit/e652be70385495e7c287375074f6227e305e4094))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+
 ## [2.0.0-beta.16](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.0.0-beta.15...adapter-drizzle-v2.0.0-beta.16) (2026-08-04)
 
 

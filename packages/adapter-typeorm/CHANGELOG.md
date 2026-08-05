@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0-beta.17](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.16...adapter-typeorm-v2.0.0-beta.17) (2026-08-05)
+
+
+### Miscellaneous Chores
+
+* **adapter-typeorm:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+    * @rapiq/adapter-memory bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+    * @rapiq/adapter-sql bumped from ^2.0.0-beta.16 to ^2.0.0-beta.17
+
 ## [2.0.0-beta.16](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.15...adapter-typeorm-v2.0.0-beta.16) (2026-08-04)
 
 
