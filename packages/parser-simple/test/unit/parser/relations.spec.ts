@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseError, defineSchema } from '@rapiq/core';
+import { RelationsParseError, defineRelationsSchema, defineSchema } from '@rapiq/core';
 import type { Relations } from '@rapiq/core';
 import { registry } from '../../data';
 import { SimpleRelationsParser } from '../../../src';
@@ -148,5 +148,45 @@ describe('src/relations/index.ts', () => {
 
         const error = RelationsParseError.keyInvalid(',foo');
         expect(() => parser.parse([',foo'], { schema })).toThrow(error);
+    });
+
+    describe('validate hook on a bare relations sub-schema', () => {
+        it('should invoke the hook and drop a rejected relation', () => {
+            const seen : string[] = [];
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                validate: (key: string) => {
+                    seen.push(key);
+                    return false;
+                },
+            });
+
+            const output = parser.parse(['realm'], { schema });
+
+            expect(seen).toEqual(['realm']);
+            expect(interpreter.interpret(output)).toEqual([]);
+        });
+
+        it('should keep an accepted relation', () => {
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                validate: () => true,
+            });
+
+            const output = parser.parse(['realm'], { schema });
+
+            expect(interpreter.interpret(output)).toEqual(['realm']);
+        });
+
+        it('should throw a rejected relation under throwOnFailure', () => {
+            const schema = defineRelationsSchema({
+                allowed: ['realm'],
+                throwOnFailure: true,
+                validate: () => false,
+            });
+
+            expect(() => parser.parse(['realm'], { schema }))
+                .toThrow(RelationsParseError);
+        });
     });
 });

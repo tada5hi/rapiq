@@ -184,7 +184,17 @@ export class ResolutionScope<
      * standalone and query parses agree.
      */
     get relationsThrowOnFailure() : boolean {
-        return this.rootBase?.relations.throwOnFailure ?? false;
+        if (this.rootBase) {
+            return this.rootBase.relations.throwOnFailure ?? false;
+        }
+
+        // mirrors relationObligationForTerminal: a bare relations
+        // sub-schema carries its own failure policy.
+        if (this.parameter === Parameter.RELATIONS) {
+            return (this.schema as RelationsSchema<RECORD>).throwOnFailure ?? false;
+        }
+
+        return false;
     }
 
     /**
@@ -476,6 +486,19 @@ export class ResolutionScope<
     protected relationObligationForTerminal(name: string) : PendingKeyValidation[] {
         const base = this.resolveBase();
         if (!base) {
+            // a bare relations sub-schema is its own authorization anchor:
+            // there is no record schema to reach its hook through, so the
+            // obligation is recorded against the schema the scope is bound
+            // to. Without this a standalone relations parse skips the hook
+            // entirely and every relation is admitted.
+            if (this.parameter === Parameter.RELATIONS) {
+                return [{
+                    key: name,
+                    path: [...this.path, name].join('.'),
+                    schema: this.schema as RelationsSchema<RECORD>,
+                }];
+            }
+
             return [];
         }
 
