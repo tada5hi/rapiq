@@ -51,7 +51,8 @@ const DDL = [
         "id" integer not null primary key,
         "title" text not null,
         "color" text,
-        "user_id" integer not null references "User"("id")
+        "user_id" integer not null references "User"("id"),
+        "realm_id" integer references "Realm"("id")
     )`,
 ];
 
@@ -108,6 +109,12 @@ export async function createDatabase(records: User[]) : Promise<TestDatabase> {
         if (record.realm) {
             realms.set(record.realm.id, record.realm);
         }
+
+        for (const item of record.items) {
+            if (item.realm) {
+                realms.set(item.realm.id, item.realm);
+            }
+        }
     }
 
     for (const realm of realms.values()) {
@@ -129,6 +136,7 @@ export async function createDatabase(records: User[]) : Promise<TestDatabase> {
                         id: item.id,
                         title: item.title,
                         color: item.color,
+                        realm_id: item.realm_id,
                     })),
                 },
             },

@@ -85,6 +85,14 @@ export const parityConditions : [string, Condition][] = [
     ['to-many relation exists', exists('items')],
     ['to-many relation absent', exists('items', false)],
 
+    // a relation-presence leaf under a to-many binds to ONE element,
+    // exactly like a column leaf on the same path
+    ['nested to-one presence through a to-many', exists('items.realm')],
+    ['nested to-one absence through a to-many', exists('items.realm', false)],
+    ['presence conjoined with a same-element column', and(eq('items.title', 'book'), exists('items.realm'))],
+    ['absence conjoined with a same-element column', and(eq('items.title', 'book'), exists('items.realm', false))],
+    ['nested to-one column through a to-many', eq('items.realm.name', 'master')],
+
     ['same-element and', and(eq('items.title', 'book'), eq('items.color', 'red'))],
     ['same-element or', or(eq('items.title', 'ring'), eq('items.color', 'silver'))],
     ['same-element negated leaf', and(ne('items.title', 'ring'), eq('items.color', 'red'))],
