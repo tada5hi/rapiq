@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { expectTypeOf } from 'vitest';
 import type {
     ICondition,
     IConditionVisitor,
@@ -13,15 +14,29 @@ import {
     FilterCompoundOperator,
     Filters,
     and,
+    elemMatch,
     eq,
     isFilter,
     isFilters,
+    not,
+    or,
     seal,
 } from '../../../src';
 
 type CustomValue = {
     scope: string,
 };
+
+interface ISealedCustomCondition extends ICondition<CustomValue> {
+    readonly stage: 'sealed';
+    readonly sealed: true;
+    seal(): ISealedCustomCondition;
+}
+
+interface IUnsealedCustomCondition extends ICondition<CustomValue> {
+    readonly stage: 'unsealed';
+    seal(): ISealedCustomCondition;
+}
 
 interface ICustomConditionVisitor<R> {
     visitCustom(condition: CustomCondition): R;
@@ -94,18 +109,55 @@ describe('src/parameter/filters condition contract', () => {
         expect(isFilters(condition)).toBe(false);
     });
 
-    it('should seal a structural custom condition directly and when injected', () => {
+    it('should accept a custom condition in every composition helper', () => {
         const condition = new CustomCondition({ scope: 'tenant-a' });
-        const direct = seal(condition);
-        const injectedWithAnd = new Filters(FilterCompoundOperator.AND, []).and(condition);
-        const injectedWithOr = new Filters(FilterCompoundOperator.AND, []).or(condition);
 
-        expect(direct).not.toBe(condition);
-        expect(direct.sealed).toBe(true);
-        expect(injectedWithAnd.value[0]).not.toBe(condition);
-        expect(injectedWithAnd.value[0]?.sealed).toBe(true);
-        expect(injectedWithOr.value[0]).not.toBe(condition);
-        expect(injectedWithOr.value[0]?.sealed).toBe(true);
+        expect(and(condition).value).toEqual([condition]);
+        expect(or(condition).value).toEqual([condition]);
+        expect(not(condition).value).toEqual([condition]);
+        expect(elemMatch('items', condition).value).toBe(condition);
+    });
+
+    it('should seal custom conditions polymorphically', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const output = seal(condition);
+
+        expectTypeOf(output).toEqualTypeOf<CustomCondition>();
+        expect(output).not.toBe(condition);
+        expect(output.sealed).toBe(true);
+        expect(seal(output)).toBe(output);
+    });
+
+    it('should derive the helper result from the implementation seal method', () => {
+        const assertReturnType = (condition: IUnsealedCustomCondition) => {
+            const output = seal(condition);
+
+            expectTypeOf(output).toEqualTypeOf<ISealedCustomCondition>();
+        };
+
+        expectTypeOf(assertReturnType).toBeFunction();
+    });
+
+    it('should seal a custom condition injected into a built-in group', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const receiver = new Filters(FilterCompoundOperator.AND, [eq('name', 'Peter')]);
+
+        const withAnd = receiver.and(condition);
+        const withOr = receiver.or(condition);
+
+        expect(withAnd.value[1]).toEqual(condition.seal());
+        expect(withOr.value[1]).toEqual(condition.seal());
+        expect(withAnd.value[1]).not.toBe(condition);
+        expect(withOr.value[1]).not.toBe(condition);
+    });
+
+    it('should keep detached runtime data unchanged when it has no seal method', () => {
+        const detached = {
+            operator: 'custom',
+            value: { scope: 'tenant-a' },
+        };
+
+        expect(seal(detached as unknown as ICondition)).toBe(detached);
     });
 
     it('should reject detached data at typed condition boundaries', () => {

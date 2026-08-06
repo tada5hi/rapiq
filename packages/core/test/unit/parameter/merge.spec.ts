@@ -384,12 +384,10 @@ describe('src/parameter/filters/helpers/module.ts seal', () => {
         expect(output.value[1]).toBe(sealedRoot);
     });
 
-    it('should leave a condition it cannot seal untouched', () => {
-        // Detached runtime data with no callable seal behavior remains
-        // unchanged.
-        const foreign = { operator: 'and', value: [] } as unknown as ICondition;
+    it('should leave detached runtime data without a seal method untouched', () => {
+        const detached = { operator: 'and', value: [] };
 
-        expect(seal(foreign)).toBe(foreign);
+        expect(seal(detached as unknown as ICondition)).toBe(detached);
     });
 
     it('should not hoist a sealed group out of its parent', () => {

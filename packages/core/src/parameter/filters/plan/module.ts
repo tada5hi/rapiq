@@ -34,7 +34,7 @@ function isDetachedCondition(input: unknown) : boolean {
 }
 
 /**
- * Lower a condition tree (`IFilter | IFilters`) into a
+ * Lower a built-in condition tree into a
  * {@link ConditionPlan} with every semantic policy decision already
  * made: negation twins resolved to `negated` leaf flags, null
  * equality turned into null checks, in/nin decomposed (empty list,

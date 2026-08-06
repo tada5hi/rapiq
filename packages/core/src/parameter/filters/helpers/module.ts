@@ -7,19 +7,9 @@
 
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../schema';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
-import type { IFilters } from '../collection';
 import { Filters } from '../collection';
-import type { IFilter } from '../record';
+import type { ICondition } from '../condition';
 import { Filter } from '../record';
-
-/**
- * A condition tree the helpers accept: a leaf or a compound NODE.
- * Deliberately narrower than {@link ICondition}, which declares only
- * `{ operator, value }` and is therefore satisfied structurally by any
- * plain object — including a condition that lost its node identity in
- * a JSON round trip, which no backend can lower.
- */
-type ConditionNode = IFilter | IFilters;
 
 /**
  * Field paths are typed against the record generic when one is supplied
@@ -178,16 +168,16 @@ export function exists<RECORD extends ObjectLiteral = ObjectLiteral>(
  */
 export function elemMatch<RECORD extends ObjectLiteral = ObjectLiteral>(
     field: FieldKey<RECORD>,
-    value: ConditionNode,
+    value: ICondition,
 ) : Filter {
     return new Filter(FilterFieldOperator.ELEM_MATCH, field, value);
 }
 
-export function and(...conditions: ConditionNode[]) : Filters {
+export function and(...conditions: ICondition[]) : Filters {
     return new Filters(FilterCompoundOperator.AND, conditions);
 }
 
-export function or(...conditions: ConditionNode[]) : Filters {
+export function or(...conditions: ICondition[]) : Filters {
     return new Filters(FilterCompoundOperator.OR, conditions);
 }
 
@@ -197,6 +187,6 @@ export function or(...conditions: ConditionNode[]) : Filters {
  * to arbitrary condition trees. Multiple conditions negate their
  * conjunction: not(a, b) ≙ not(and(a, b)).
  */
-export function not(...conditions: ConditionNode[]) : Filters {
+export function not(...conditions: ICondition[]) : Filters {
     return new Filters(FilterCompoundOperator.NOT, conditions);
 }
