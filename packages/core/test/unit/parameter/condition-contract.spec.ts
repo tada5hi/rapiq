@@ -45,6 +45,8 @@ interface ICustomConditionVisitor<R> {
 class CustomCondition implements ICondition<CustomValue> {
     readonly operator = 'custom';
 
+    readonly field = 'not-a-built-in-leaf';
+
     readonly sealed?: boolean;
 
     constructor(
@@ -69,10 +71,6 @@ class CustomCondition implements ICondition<CustomValue> {
     seal(): CustomCondition {
         return this.sealed ? this : new CustomCondition(this.value, true);
     }
-}
-
-class CollidingCondition extends CustomCondition {
-    readonly field = 'not-a-built-in-leaf';
 
     flatten(): this {
         return this;
@@ -81,9 +79,7 @@ class CollidingCondition extends CustomCondition {
 
 describe('src/parameter/filters condition contract', () => {
     it('should dispatch abstract built-in conditions to the generic visitor', () => {
-        const visitor: IConditionVisitor<string> = {
-            visitCondition: condition => condition.operator,
-        };
+        const visitor: IConditionVisitor<string> = { visitCondition: (condition) => condition.operator };
         const leaf: ICondition = eq('name', 'Peter');
         const group: ICondition = and(eq('active', true));
 
@@ -94,16 +90,12 @@ describe('src/parameter/filters condition contract', () => {
     it('should let a structural custom condition expose both visitor paths', () => {
         const condition = new CustomCondition({ scope: 'tenant-a' });
 
-        expect(condition.accept({
-            visitCustom: input => input.value.scope,
-        })).toBe('tenant-a');
-        expect(condition.accept({
-            visitCondition: input => input.operator,
-        })).toBe('custom');
+        expect(condition.accept({ visitCustom: (input) => input.value.scope })).toBe('tenant-a');
+        expect(condition.accept({ visitCondition: (input) => input.operator })).toBe('custom');
     });
 
     it('should discriminate built-in kinds by dispatch rather than member names', () => {
-        const condition = new CollidingCondition({ scope: 'tenant-a' });
+        const condition = new CustomCondition({ scope: 'tenant-a' });
 
         expect(isFilter(condition)).toBe(false);
         expect(isFilters(condition)).toBe(false);
