@@ -6,6 +6,7 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
+import type { ICondition, IConditionVisitor } from '../condition';
 
 /**
  * The leaf-condition visitor. Operator semantics live in the plan
@@ -20,7 +21,7 @@ export interface IFilterVisitor<R> {
 export interface IFilter<
     OPERATOR extends string = `${FilterFieldOperator}`,
     VALUE = unknown,
-> {
+> extends ICondition<VALUE> {
     readonly field : string;
 
     readonly operator : string | OPERATOR;
@@ -34,6 +35,7 @@ export interface IFilter<
     readonly sealed?: boolean;
 
     accept<R>(visitor: IFilterVisitor<R>) : R;
+    accept<R>(visitor: IConditionVisitor<R>) : R;
 
     /**
      * A copy of this leaf carrying the {@link IFilter.sealed} marker
@@ -43,5 +45,5 @@ export interface IFilter<
      * parameters here would make them invariant and cut every
      * `Filter<OPERATOR, VALUE>` off from the visitor contract.
      */
-    seal() : IFilter;
+    seal() : IFilter<OPERATOR, VALUE>;
 }

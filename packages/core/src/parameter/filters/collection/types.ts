@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition } from '../condition';
+import type { ICondition, IConditionVisitor } from '../condition';
 
 export interface IFiltersVisitor<R> {
     visitFilters(expr: IFilters): R;
@@ -13,7 +13,7 @@ export interface IFiltersVisitor<R> {
 
 export interface IFilters<
     T extends ICondition = ICondition,
-> {
+> extends ICondition<T[]> {
     readonly operator: string;
 
     readonly value : T[];
@@ -26,6 +26,7 @@ export interface IFilters<
     readonly sealed?: boolean;
 
     accept<R>(visitor: IFiltersVisitor<R>) : R;
+    accept<R>(visitor: IConditionVisitor<R>) : R;
 
     /**
      * A copy of this group carrying the {@link IFilters.sealed} marker

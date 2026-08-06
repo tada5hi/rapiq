@@ -5,6 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+/**
+ * The open fallback visitor for any condition implementation.
+ */
+export interface IConditionVisitor<R> {
+    visitCondition(condition: ICondition): R;
+}
+
 export interface ICondition<
     T = unknown,
 > {
@@ -19,6 +26,10 @@ export interface ICondition<
      * injecting the condition with {@link IFilters.and} / {@link IFilters.or}.
      */
     readonly sealed?: boolean;
+
+    accept<R>(visitor: IConditionVisitor<R>): R;
+
+    seal(): ICondition<T>;
 }
 
 /**
@@ -28,16 +39,33 @@ export type ConditionOptions = {
     sealed?: boolean,
 };
 
-export class Condition<
+/**
+ * Optional implementation base for conditions; structural implementations
+ * can implement {@link ICondition} without extending this class.
+ */
+export abstract class Condition<
     T = unknown,
-> {
+> implements ICondition<T> {
     readonly operator: string;
 
     readonly value: T;
 
-    constructor(operator: string, value: T) {
-        this.operator = operator;
+    readonly sealed?: boolean;
 
+    constructor(
+        operator: string,
+        value: T,
+        options: ConditionOptions = {},
+    ) {
+        this.operator = operator;
         this.value = value;
+
+        if (options.sealed) {
+            this.sealed = true;
+        }
     }
+
+    abstract accept<R>(visitor: IConditionVisitor<R>): R;
+
+    abstract seal(): Condition<T>;
 }

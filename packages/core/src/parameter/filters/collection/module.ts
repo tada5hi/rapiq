@@ -6,13 +6,13 @@
  */
 
 import { FilterCompoundOperator } from '../../../schema';
-import type { Condition, ConditionOptions, ICondition } from '../condition';
+import type { ConditionOptions, ICondition, IConditionVisitor } from '../condition';
 import { isFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
 export class Filters<
-    T extends Condition = Condition,
+    T extends ICondition = ICondition,
 > implements IFilters<T> {
     readonly value: T[];
 
@@ -35,16 +35,22 @@ export class Filters<
         }
     }
 
-    accept<R>(visitor: IFiltersVisitor<R>) : R {
-        return visitor.visitFilters(this);
+    accept<R>(visitor: IFiltersVisitor<R>) : R;
+    accept<R>(visitor: IConditionVisitor<R>) : R;
+    accept<R>(visitor: IFiltersVisitor<R> | IConditionVisitor<R>) : R {
+        if ('visitFilters' in visitor) {
+            return visitor.visitFilters(this);
+        }
+
+        return visitor.visitCondition(this);
     }
 
-    seal() : IFilters<T> {
+    seal() : Filters<T> {
         if (this.sealed) {
             return this;
         }
 
-        return new Filters(this.operator, this.value, { sealed: true });
+        return new Filters<T>(this.operator, this.value, { sealed: true });
     }
 
     flatten(aggregatedResult?: T[]) : IFilters<T> {

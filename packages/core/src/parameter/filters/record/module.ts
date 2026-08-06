@@ -6,7 +6,7 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { ConditionOptions } from '../condition';
+import type { ConditionOptions, IConditionVisitor } from '../condition';
 import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
@@ -38,15 +38,26 @@ export class Filter<
         }
     }
 
-    accept<R>(visitor: IFilterVisitor<R>) : R {
-        return visitor.visitFilter(this);
+    accept<R>(visitor: IFilterVisitor<R>) : R;
+    accept<R>(visitor: IConditionVisitor<R>) : R;
+    accept<R>(visitor: IFilterVisitor<R> | IConditionVisitor<R>) : R {
+        if ('visitFilter' in visitor) {
+            return visitor.visitFilter(this);
+        }
+
+        return visitor.visitCondition(this);
     }
 
-    seal() : IFilter {
+    seal() : Filter<OPERATOR, VALUE> {
         if (this.sealed) {
             return this;
         }
 
-        return new Filter(this.operator, this.field, this.value, { sealed: true });
+        return new Filter<OPERATOR, VALUE>(
+            this.operator,
+            this.field,
+            this.value,
+            { sealed: true },
+        );
     }
 }
