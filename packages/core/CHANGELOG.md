@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0-beta.18](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.17...core-v2.0.0-beta.18) (2026-08-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** ICondition implementations must provide immutable seal() behavior; the optional Condition base is now abstract.
+
+### Bug Fixes
+
+* **core:** make condition composition extensible ([#887](https://github.com/tada5hi/rapiq/issues/887)) ([f4627b8](https://github.com/tada5hi/rapiq/commit/f4627b89532c24ec65617596da6b29ab6ebe7fa3))
+
 ## [2.0.0-beta.17](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.16...core-v2.0.0-beta.17) (2026-08-05)
 
 
