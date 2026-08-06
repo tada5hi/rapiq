@@ -5,9 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import { isFilters } from './collection';
 import type { ICondition } from './condition';
-import { isFilter } from './record';
 
 /**
  * Mark a condition as non-displaceable (immutable, a sealed copy is
@@ -22,15 +20,12 @@ import { isFilter } from './record';
  * grammar: a sealed condition that is encoded and decoded again comes
  * back displaceable.
  *
- * A condition that is neither node kind is returned unsealed, which is
- * safe rather than a silent hole: the two things a seal protects
- * against are keyed on the very same guards. Only an `isFilter` leaf is
- * ever displaced by a merge, and only an `isFilters` group is ever
- * hoisted by a flatten.
+ * Detached runtime data without callable sealing behavior is returned
+ * unchanged.
  */
 export function seal<T extends ICondition>(condition: T) : T;
 export function seal(condition: ICondition) : ICondition {
-    if (isFilters(condition) || isFilter(condition)) {
+    if (typeof condition.seal === 'function') {
         return condition.seal();
     }
 

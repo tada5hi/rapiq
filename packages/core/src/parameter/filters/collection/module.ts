@@ -186,7 +186,7 @@ export class Filters<
  * this module depend on one that depends back on it.
  */
 function sealCondition(condition: ICondition) : ICondition {
-    if (isFilters(condition) || isFilter(condition)) {
+    if (typeof condition.seal === 'function') {
         return condition.seal();
     }
 

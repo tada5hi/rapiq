@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter } from '../../../src';
+import type { ICondition, IFilter } from '../../../src';
 import {
     ErrorCode,
     Field,
@@ -385,10 +385,9 @@ describe('src/parameter/filters/helpers/module.ts seal', () => {
     });
 
     it('should leave a condition it cannot seal untouched', () => {
-        // a condition that is neither node kind cannot be sealed — and is
-        // never displaced or hoisted either, both being isFilter/isFilters
-        // decisions.
-        const foreign = { operator: 'and', value: [] };
+        // Detached runtime data with no callable seal behavior remains
+        // unchanged.
+        const foreign = { operator: 'and', value: [] } as unknown as ICondition;
 
         expect(seal(foreign)).toBe(foreign);
     });

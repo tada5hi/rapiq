@@ -16,6 +16,7 @@ import {
     eq,
     isFilter,
     isFilters,
+    seal,
 } from '../../../src';
 
 type CustomValue = {
@@ -91,6 +92,20 @@ describe('src/parameter/filters condition contract', () => {
 
         expect(isFilter(condition)).toBe(false);
         expect(isFilters(condition)).toBe(false);
+    });
+
+    it('should seal a structural custom condition directly and when injected', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const direct = seal(condition);
+        const injectedWithAnd = new Filters(FilterCompoundOperator.AND, []).and(condition);
+        const injectedWithOr = new Filters(FilterCompoundOperator.AND, []).or(condition);
+
+        expect(direct).not.toBe(condition);
+        expect(direct.sealed).toBe(true);
+        expect(injectedWithAnd.value[0]).not.toBe(condition);
+        expect(injectedWithAnd.value[0]?.sealed).toBe(true);
+        expect(injectedWithOr.value[0]).not.toBe(condition);
+        expect(injectedWithOr.value[0]?.sealed).toBe(true);
     });
 
     it('should reject detached data at typed condition boundaries', () => {
