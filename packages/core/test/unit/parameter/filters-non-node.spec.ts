@@ -19,17 +19,30 @@ import {
 } from '../../../src';
 
 /**
- * `ICondition` declares only `{ operator, value }`, while the node
- * guards duck-type on the `accept` method. A condition that made a
- * JSON round trip therefore satisfies the declared type but is not a
- * node — it must fail loudly rather than be dropped from a compound
+ * This fixture represents detached data admitted through an explicit
+ * process-boundary cast. It is not a valid structural implementation.
+ * A condition that made a JSON round trip must fail loudly rather than
+ * be dropped from a compound
  * (which silently widens the result set) or be reinterpreted as a
  * record of field/value pairs.
  */
-const NON_NODE : ICondition = {
+const NON_NODE = {
     operator: 'eq',
     value: 'ACME',
-};
+} as unknown as ICondition;
+
+class CustomCondition implements ICondition<{ scope: string }> {
+    readonly operator = 'custom';
+
+    constructor(
+        readonly value: { scope: string },
+        readonly sealed?: boolean,
+    ) {}
+
+    seal() : ICondition<{ scope: string }> {
+        return this.sealed ? this : new CustomCondition(this.value, true);
+    }
+}
 
 describe('src/parameter/filters (non-node conditions)', () => {
     it('should refuse to lower a non-node child of a compound', () => {
@@ -43,6 +56,23 @@ describe('src/parameter/filters (non-node conditions)', () => {
 
     it('should refuse to lower a non-node at the root, as before', () => {
         expect(() => planCondition(NON_NODE)).toThrow(AdapterError);
+    });
+
+    it('should explain that a live custom condition needs a compatible consumer', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+
+        try {
+            planCondition(condition);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toBe(ErrorCode.CONDITION_DETACHED);
+            expect((e as AdapterError).message).toBe(
+                'The condition (custom) cannot be lowered by this built-in consumer. ' +
+                'A custom condition needs a compatible consumer; detached transport data must be rebuilt ' +
+                'with the condition helpers (eq, and, or, …) before passing it to an adapter.',
+            );
+        }
     });
 
     it('should not silently drop the non-node conjunct', () => {
@@ -115,7 +145,9 @@ describe('src/parameter/filters (non-node conditions)', () => {
 
     it('should still refuse a detached leaf carrying field but no value', () => {
         // `eq('x', undefined)` loses `value` to JSON, keeping `field`
-        expect(() => defineFilters({ operator: 'eq', field: 'x' } as ICondition))
+        expect(() => defineFilters(
+            { operator: 'eq', field: 'x' } as unknown as ICondition,
+        ))
             .toThrow(BuildError);
     });
 });

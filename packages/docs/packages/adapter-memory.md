@@ -56,7 +56,7 @@ const slicer = compilePagination(query.pagination); // (data) => page
 
 Under the hood each `compile*` helper wraps a visitor class (`FiltersVisitor`, `SortsVisitor`, `FieldsVisitor`, `PaginationVisitor`, `QueryVisitor`); subclass those for custom behavior. Compilation validates the AST (unknown operators throw); the compiled functions themselves never throw.
 
-`compileFilters` accepts any condition node: a leaf `IFilter`, a compound `IFilters`, or the `ICondition` interface both implement. Conditions held abstractly (builder output, a schema's `filters.default`, a lowered authorization residual) pass straight through, no narrowing cast required.
+`compileFilters` accepts the open `ICondition` type so custom consumers can share the AST contract. The bundled memory compiler lowers built-in `Filter` / `Filters` semantics only and throws `CONDITION_DETACHED` for an unknown custom kind. Conditions held abstractly (builder output, a schema's `filters.default`, a lowered authorization residual) pass straight through when they use those built-in semantics, with no narrowing cast required.
 
 ## Filter semantics
 

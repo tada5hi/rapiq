@@ -6,13 +6,13 @@
  */
 
 import { FilterCompoundOperator } from '../../../schema';
-import type { Condition, ConditionOptions, ICondition } from '../condition';
+import type { ConditionOptions, ICondition } from '../condition';
 import { isFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
 export class Filters<
-    T extends Condition = Condition,
+    T extends ICondition = ICondition,
 > implements IFilters<T> {
     readonly value: T[];
 
@@ -44,7 +44,7 @@ export class Filters<
             return this;
         }
 
-        return new Filters(this.operator, this.value, { sealed: true });
+        return new Filters<T>(this.operator, this.value, { sealed: true });
     }
 
     flatten(aggregatedResult?: T[]) : IFilters<T> {
@@ -180,7 +180,7 @@ export class Filters<
  * this module depend on one that depends back on it.
  */
 function sealCondition(condition: ICondition) : ICondition {
-    if (isFilters(condition) || isFilter(condition)) {
+    if (typeof condition.seal === 'function') {
         return condition.seal();
     }
 

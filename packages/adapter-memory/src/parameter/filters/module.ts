@@ -39,11 +39,10 @@ export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisito
     // -----------------------------------------------------------
 
     /**
-     * Compile any condition node — a leaf `IFilter`, a compound `IFilters`,
-     * or the `ICondition` interface both implement — into a {@link Predicate}.
-     * Dispatch happens in `planCondition` (by node kind), so the concrete
-     * union is unnecessary here; callers holding a condition abstractly
-     * (schema `default`, builder output, lowered residuals) need no cast.
+     * Compile a built-in leaf or group held through {@link ICondition} into a
+     * {@link Predicate}. Dispatch happens in `planCondition`, so callers holding
+     * built-in output abstractly need no cast. A custom condition needs a
+     * consumer that understands its semantics.
      */
     compile(expr: ICondition) : Predicate {
         const plan = planCondition(expr, { caseSensitive: this.options.caseSensitive });

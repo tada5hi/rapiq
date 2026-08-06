@@ -111,7 +111,7 @@ compiled.matches(users[0]);    // true
 compiled.matches(users[1]);    // false
 ```
 
-`compileFilters` accepts any condition node (a leaf, a compound tree, a schema's `filters.default`), and compiling once amortizes the cost across many records.
+`compileFilters` accepts built-in `Filter` / `Filters` semantics (a leaf, a compound tree, or a schema's `filters.default`), and compiling once amortizes the cost across many records. Its TypeScript boundary is the open `ICondition` contract, but an unknown custom condition is rejected with `CONDITION_DETACHED`; see the [adapter boundary](/packages/adapter-memory#applying-a-single-parameter).
 
 ## Why this is a faithful double
 

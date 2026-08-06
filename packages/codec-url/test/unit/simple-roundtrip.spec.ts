@@ -43,8 +43,42 @@ import {
     size,
     startsWith,
 } from '@rapiq/core';
-import type { IFilter, IQuery } from '@rapiq/core';
+import type {
+    ICondition,
+    IFilter,
+    IFilterVisitor,
+    IQuery,
+} from '@rapiq/core';
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
+
+class CustomCondition implements ICondition<{ scope: string }> {
+    readonly operator = 'custom';
+
+    constructor(
+        readonly value: { scope: string },
+        readonly sealed?: boolean,
+    ) {}
+
+    seal() : ICondition<{ scope: string }> {
+        return this.sealed ? this : new CustomCondition(this.value, true);
+    }
+}
+
+function createStructuralFilter(field: string, value: unknown) : IFilter {
+    const output : IFilter = {
+        operator: 'eq',
+        field,
+        value,
+        accept<R>(visitor: IFilterVisitor<R>) : R {
+            return visitor.visitFilter(output);
+        },
+        seal() : IFilter {
+            return output;
+        },
+    };
+
+    return output;
+}
 
 /**
  * The codec contract (plan 007): decode(encode(q)) ≍ q for every query
@@ -183,6 +217,21 @@ describe('round-trip', () => {
             ['startsWith leading negation (would decode negated)', startsWith('name', '!x')],
         ])('should throw for %s', (_, filter) => {
             expectTypedFailure(filter, ErrorCode.FEATURE_UNSUPPORTED);
+        });
+
+        it('should reject a custom condition instead of omitting it', () => {
+            const condition = new CustomCondition({ scope: 'tenant-a' });
+
+            expectTypedFailure(and(condition), ErrorCode.CONDITION_DETACHED);
+        });
+    });
+
+    describe('filters (structural built-in nodes)', () => {
+        it('should encode a structural leaf across package boundaries', () => {
+            const query = defineQuery({ filters: and(createStructuralFilter('name', 'John')) });
+
+            expect(decodeURIComponent(encoder.encode(query)!))
+                .toEqual('filter[name]=John');
         });
     });
 

@@ -15,6 +15,7 @@ import {
     Relations,
     Sort,
     Sorts,
+    isCondition,
     isFilter,
     isFilters,
 } from '../parameter';
@@ -50,10 +51,6 @@ export function isRelationRejected(path: string, rejected: string[]) : boolean {
 
 function joinPath(prefix: string, segment: string) : string {
     return prefix ? `${prefix}.${segment}` : segment;
-}
-
-function isConditionValue(input: unknown) : input is ICondition {
-    return isFilter(input as ICondition) || isFilters(input as ICondition);
 }
 
 /**
@@ -202,7 +199,7 @@ function pruneCondition(
 
         if (
             node.operator === FilterFieldOperator.ELEM_MATCH &&
-            isConditionValue(node.value)
+            isCondition(node.value)
         ) {
             if (typeof rejectedBy === 'string') {
                 return dropUnlessSealed(rejectedBy, field, sealed2);

@@ -6,11 +6,12 @@
  */
 
 import { BuildError } from '../../../errors';
-import type { Condition, ICondition, IFilters } from '../../../parameter';
+import type { ICondition, IFilters } from '../../../parameter';
 import {
     Filter, 
     Filters, 
     ITSELF, 
+    isCondition,
     isFilter, 
     isFilters,
 } from '../../../parameter';
@@ -35,7 +36,7 @@ export function defineFilters<
     RECORD extends ObjectLiteral,
 >(input: FiltersBuildInput<RECORD> | ICondition) : IFilters;
 export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | ICondition) : IFilters {
-    if (isParameterNode<Filter | Filters>(input)) {
+    if (isCondition(input)) {
         assertConditionFields(input, false);
 
         if (isFilters(input)) {
@@ -57,11 +58,10 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
 }
 
 /**
- * Detect a condition that lost its node identity — the shape a
- * {@link ICondition} takes after a JSON/RPC/cache round trip. It
- * satisfies the declared interface but carries no `accept`, so it
- * would otherwise be read as a record of field/value pairs and filter
- * on columns literally named `operator` and `value`.
+ * Detect condition-shaped runtime data that lost its live behavior
+ * in a JSON/RPC/cache round trip. It has no `seal`, so it would
+ * otherwise be read as a record of field/value pairs and filter on
+ * columns literally named `operator` and `value`.
  *
  * Deliberately narrow: only an object whose own keys are exactly the
  * condition properties, with a recognized operator, qualifies. A build
@@ -106,12 +106,12 @@ function buildConditions(
     input: unknown,
     prefix?: string,
     insideElemMatch = false,
-) : Condition[] {
+) : ICondition[] {
     if (!isObject(input)) {
         throw BuildError.inputInvalid();
     }
 
-    const output : Condition[] = [];
+    const output : ICondition[] = [];
 
     const keys = Object.keys(input);
     for (const key of keys) {
@@ -141,7 +141,7 @@ function buildFieldConditions(
     field: string,
     value: unknown,
     insideElemMatch = false,
-) : Condition[] {
+) : ICondition[] {
     // the ITSELF marker is only legal as a complete field —
     // it addresses the element itself and has no dotted form.
     if (field !== ITSELF && field.split('.').includes(ITSELF)) {
@@ -162,9 +162,9 @@ function buildFieldConditions(
         return [new Filter(FilterFieldOperator.EQUAL, field, value)];
     }
 
-    // a condition node already carries its own field — as a field value
+    // a live condition already carries its own semantics. As a field value
     // it is ambiguous input and must not be expanded like a record.
-    if (isParameterNode(value)) {
+    if (isCondition(value) || isParameterNode(value)) {
         throw BuildError.keyValueInvalid(field);
     }
 
@@ -173,7 +173,7 @@ function buildFieldConditions(
 
         const isOperatorInput = keys.some((key) => key.substring(0, 1) === '$');
         if (isOperatorInput) {
-            const output : Condition[] = [];
+            const output : ICondition[] = [];
             for (const key of keys) {
                 // optional operator keys may be present but undefined
                 // (conditional spreads) — they carry no condition.
@@ -204,15 +204,15 @@ function buildOperatorCondition(
     field: string,
     key: string,
     value: unknown,
-) : Condition {
+) : ICondition {
     if (key === `$${FilterFieldOperator.ELEM_MATCH}`) {
-        let condition : Condition;
-        if (isParameterNode<Filter | Filters>(value)) {
+        let condition : ICondition;
+        if (isCondition(value)) {
             assertConditionFields(value, true);
 
             condition = value;
         } else {
-            let conditions : Condition[];
+            let conditions : ICondition[];
             if (
                 isObject(value) &&
                 Object.keys(value).every((child) => child.startsWith('$') && child !== ITSELF)
@@ -264,7 +264,7 @@ function assertConditionFields(
 ) : void {
     if (isFilters(input)) {
         for (const child of input.value) {
-            if (isParameterNode<Filter | Filters>(child)) {
+            if (isCondition(child)) {
                 assertConditionFields(child, insideElemMatch);
             }
         }
@@ -286,7 +286,7 @@ function assertConditionFields(
 
     if (
         input.operator === FilterFieldOperator.ELEM_MATCH &&
-        isParameterNode<Filter | Filters>(input.value)
+        isCondition(input.value)
     ) {
         assertConditionFields(input.value, true);
     }

@@ -13,7 +13,7 @@ export interface IFiltersVisitor<R> {
 
 export interface IFilters<
     T extends ICondition = ICondition,
-> {
+> extends ICondition<T[]> {
     readonly operator: string;
 
     readonly value : T[];
@@ -30,7 +30,7 @@ export interface IFilters<
     /**
      * A copy of this group carrying the {@link IFilters.sealed} marker
      * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal a condition of either kind.
+     * `seal` helper to seal any {@link ICondition}.
      */
     seal() : IFilters<T>;
 

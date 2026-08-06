@@ -42,11 +42,16 @@ export class Filter<
         return visitor.visitFilter(this);
     }
 
-    seal() : IFilter {
+    seal() : IFilter<OPERATOR, VALUE> {
         if (this.sealed) {
             return this;
         }
 
-        return new Filter(this.operator, this.field, this.value, { sealed: true });
+        return new Filter<OPERATOR, VALUE>(
+            this.operator,
+            this.field,
+            this.value,
+            { sealed: true },
+        );
     }
 }

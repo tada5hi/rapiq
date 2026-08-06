@@ -24,17 +24,17 @@ import type {
 } from './types';
 
 /**
- * A value that looks like a condition but carries no node identity.
- * Deliberately looser than the build layer's namesake: there, an object
- * has to be told apart from a record of field/value pairs, whereas the
- * interior of an `elemMatch` is either a condition or nothing at all.
+ * A condition-shaped value the built-in lowering cannot classify. This may
+ * be a live custom condition or detached transport data. The check is
+ * deliberately looser than the build layer's namesake: an `elemMatch`
+ * interior is either a condition or nothing at all.
  */
 function isDetachedCondition(input: unknown) : boolean {
     return isObject(input) && typeof (input as ICondition).operator === 'string';
 }
 
 /**
- * Lower a condition tree (`IFilter | IFilters`) into a
+ * Lower a built-in condition tree into a
  * {@link ConditionPlan} with every semantic policy decision already
  * made: negation twins resolved to `negated` leaf flags, null
  * equality turned into null checks, in/nin decomposed (empty list,
@@ -209,9 +209,9 @@ class ConditionLowering {
                 continue;
             }
 
-            // a child that is not a condition node cannot be lowered, and
-            // dropping it would silently widen the result set (a scoping
-            // conjunct would simply vanish). The root case throws too.
+            // a child that is not a built-in condition cannot be lowered by
+            // this consumer. Dropping it would silently widen the result set
+            // because a scoping conjunct would simply vanish.
             throw AdapterError.conditionDetached(
                 (child as Partial<ICondition>)?.operator,
             );
@@ -501,10 +501,9 @@ class ConditionLowering {
             !isFilter(interior) &&
             !isFilters(interior as ICondition)
         ) {
-            // a condition-shaped interior lost its node identity (the
-            // shape a JSON round trip leaves): report that, not a
-            // dialect limitation, so the message names the actual fix.
-            // Anything else genuinely is an unsupported interior value.
+            // Report a condition-shaped interior through the dedicated
+            // diagnostic, whether it is a live custom condition or detached
+            // transport data. Anything else is an unsupported interior value.
             if (isDetachedCondition(interior)) {
                 throw AdapterError.conditionDetached(
                     (interior as Partial<ICondition>).operator,
