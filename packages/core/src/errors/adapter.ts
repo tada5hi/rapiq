@@ -27,15 +27,15 @@ export class AdapterError extends BaseError {
     }
 
     /**
-     * A condition that satisfies {@link ICondition} but carries no node
-     * identity — the shape left by a JSON/RPC/cache round trip. It cannot
-     * be lowered, and dropping it would silently widen the result set.
+     * A condition the built-in consumer cannot lower: either a live custom
+     * implementation that needs its own consumer or detached transport data
+     * that lost its behavior. Dropping it would silently widen the result set.
      */
     static conditionDetached(operator?: string) {
         return new this({
-            message: `The condition${operator ? ` (${operator})` : ''} is not a filter node. ` +
-                'Rebuild it with the condition helpers (eq, and, or, …) ' +
-                'before passing it to an adapter.',
+            message: `The condition${operator ? ` (${operator})` : ''} cannot be lowered by this built-in consumer. ` +
+                'A custom condition needs a compatible consumer; detached transport data must be rebuilt ' +
+                'with the condition helpers (eq, and, or, …) before passing it to an adapter.',
             code: ErrorCode.CONDITION_DETACHED,
         });
     }

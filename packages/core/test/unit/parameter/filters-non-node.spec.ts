@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition } from '../../../src';
+import type { ICondition, IConditionVisitor } from '../../../src';
 import {
     AdapterError,
     BuildError,
@@ -31,6 +31,23 @@ const NON_NODE = {
     value: 'ACME',
 } as unknown as ICondition;
 
+class CustomCondition implements ICondition<{ scope: string }> {
+    readonly operator = 'custom';
+
+    constructor(
+        readonly value: { scope: string },
+        readonly sealed?: boolean,
+    ) {}
+
+    accept<R>(visitor: IConditionVisitor<R>) : R {
+        return visitor.visitCondition(this);
+    }
+
+    seal() : CustomCondition {
+        return this.sealed ? this : new CustomCondition(this.value, true);
+    }
+}
+
 describe('src/parameter/filters (non-node conditions)', () => {
     it('should refuse to lower a non-node child of a compound', () => {
         const condition = new Filters(FilterCompoundOperator.AND, [
@@ -43,6 +60,23 @@ describe('src/parameter/filters (non-node conditions)', () => {
 
     it('should refuse to lower a non-node at the root, as before', () => {
         expect(() => planCondition(NON_NODE)).toThrow(AdapterError);
+    });
+
+    it('should explain that a live custom condition needs a compatible consumer', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+
+        try {
+            planCondition(condition);
+            expect.fail('should have thrown');
+        } catch (e) {
+            expect(e).toBeInstanceOf(AdapterError);
+            expect((e as AdapterError).code).toBe(ErrorCode.CONDITION_DETACHED);
+            expect((e as AdapterError).message).toBe(
+                'The condition (custom) cannot be lowered by this built-in consumer. ' +
+                'A custom condition needs a compatible consumer; detached transport data must be rebuilt ' +
+                'with the condition helpers (eq, and, or, …) before passing it to an adapter.',
+            );
+        }
     });
 
     it('should not silently drop the non-node conjunct', () => {

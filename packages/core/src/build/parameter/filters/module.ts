@@ -57,11 +57,10 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
 }
 
 /**
- * Detect a condition that lost its node identity — the shape a
- * {@link ICondition} takes after a JSON/RPC/cache round trip. It
- * satisfies the declared interface but carries no `accept`, so it
- * would otherwise be read as a record of field/value pairs and filter
- * on columns literally named `operator` and `value`.
+ * Detect condition-shaped runtime data that lost its live node behavior
+ * in a JSON/RPC/cache round trip. It has no `accept`, so it would
+ * otherwise be read as a record of field/value pairs and filter on
+ * columns literally named `operator` and `value`.
  *
  * Deliberately narrow: only an object whose own keys are exactly the
  * condition properties, with a recognized operator, qualifies. A build

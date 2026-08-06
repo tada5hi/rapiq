@@ -43,16 +43,21 @@ interface ICustomConditionVisitor<R> {
 }
 
 class CustomCondition implements ICondition<CustomValue> {
-    readonly operator = 'custom';
+    readonly operator: string;
 
-    readonly field = 'not-a-built-in-leaf';
+    readonly field: string;
 
     readonly sealed?: boolean;
 
     constructor(
         readonly value: CustomValue,
         sealed?: boolean,
+        operator = 'custom',
+        field = 'not-a-built-in-leaf',
     ) {
+        this.operator = operator;
+        this.field = field;
+
         if (sealed) {
             this.sealed = true;
         }
@@ -141,6 +146,28 @@ describe('src/parameter/filters condition contract', () => {
         expect(withOr.value[1]).toEqual(condition.seal());
         expect(withAnd.value[1]).not.toBe(condition);
         expect(withOr.value[1]).not.toBe(condition);
+    });
+
+    it('should keep a custom condition opaque while flattening built-in groups', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' }, false, 'and');
+        const output = and(and(condition)).flatten();
+
+        expect(output.value).toHaveLength(1);
+        expect(output.value.at(0)).toBe(condition);
+    });
+
+    it('should carry a custom condition through a built-in merge unchanged', () => {
+        const condition = new CustomCondition(
+            { scope: 'tenant-a' },
+            false,
+            'custom',
+            'name',
+        );
+        const receiver = and(eq('name', 'Peter'));
+        const output = receiver.merge(and(condition));
+
+        expect(output.value).toHaveLength(2);
+        expect(output.value[1]).toBe(condition);
     });
 
     it('should keep detached runtime data unchanged when it has no seal method', () => {

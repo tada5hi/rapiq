@@ -33,7 +33,7 @@ export interface ICondition<
 }
 
 /**
- * Construction options shared by both condition node kinds.
+ * Construction options shared by built-in condition node implementations.
  */
 export type ConditionOptions = {
     sealed?: boolean,

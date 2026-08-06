@@ -66,7 +66,7 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 |---|---|
 | `OPERATOR_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
 | `FEATURE_UNSUPPORTED` | e.g. `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
-| `CONDITION_DETACHED` | a condition that satisfies `ICondition` but is not a filter node, the shape left by a JSON/RPC/cache round trip. Rebuild it with the condition helpers; dropping it would silently widen the result set |
+| `CONDITION_DETACHED` | a condition the built-in consumer cannot lower: either a live custom `ICondition` that needs a compatible custom adapter/visitor, or detached runtime data from a JSON/RPC/cache round trip. Rebuild detached data with the condition helpers; dropping either would silently widen the result set |
 
 The URL encoders throw these too; a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
 

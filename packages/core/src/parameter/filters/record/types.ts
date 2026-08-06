@@ -40,10 +40,8 @@ export interface IFilter<
     /**
      * A copy of this leaf carrying the {@link IFilter.sealed} marker
      * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal a condition of either kind — it keeps the
-     * argument's own type, which this self-reference cannot: naming the
-     * parameters here would make them invariant and cut every
-     * `Filter<OPERATOR, VALUE>` off from the visitor contract.
+     * `seal` helper to seal any {@link ICondition}; it preserves the
+     * concrete return type of that condition's own `seal()` method.
      */
     seal() : IFilter<OPERATOR, VALUE>;
 }
