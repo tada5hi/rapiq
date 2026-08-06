@@ -8,6 +8,7 @@
 import type {
     FieldsBuildInput,
     FiltersBuildInput,
+    ICondition,
     IFilter,
     QueryBuildInput,
     RelationsBuildInput,
@@ -38,7 +39,29 @@ import type { Client, User } from '../../data';
 
 const leafs = (filters: { value: unknown[] }) => filters.value as IFilter[];
 
+class CustomCondition implements ICondition<{ scope: string }> {
+    readonly operator = 'custom';
+
+    constructor(
+        readonly value: { scope: string },
+        readonly sealed?: boolean,
+    ) {}
+
+    seal() : ICondition<{ scope: string }> {
+        return this.sealed ? this : new CustomCondition(this.value, true);
+    }
+}
+
 describe('src/build/parameter/filters/*.ts', () => {
+    it('should wrap a custom structural condition in the canonical root', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+
+        const output = defineFilters(condition);
+
+        expect(output.operator).toBe(FilterCompoundOperator.AND);
+        expect(output.value).toEqual([condition]);
+    });
+
     it('should desugar a scalar to an eq condition', () => {
         const output = defineFilters<User>({ name: 'John' });
 
@@ -176,6 +199,14 @@ describe('src/build/parameter/filters/*.ts', () => {
         const condition = eq('name', 'chess');
         const fromHelper = defineFilters<User>({ items: { $elemMatch: condition } });
         expect((leafs(fromHelper)[0] as IFilter).value).toBe(condition);
+    });
+
+    it('should preserve a custom structural condition inside $elemMatch', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+
+        const output = defineFilters({ items: { $elemMatch: condition } });
+
+        expect((leafs(output)[0] as IFilter).value).toBe(condition);
     });
 
     it('should desugar an element-level $elemMatch operator object onto ITSELF', () => {
@@ -399,6 +430,15 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
 });
 
 describe('src/build/module.ts', () => {
+    it('should preserve a custom structural condition in a query', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+
+        const output = defineQuery({ filters: condition });
+
+        expect(output.filters.operator).toBe(FilterCompoundOperator.AND);
+        expect(output.filters.value).toEqual([condition]);
+    });
+
     it('should build a query from typed input', () => {
         const output = defineQuery<User>({
             fields: ['id', 'name'],

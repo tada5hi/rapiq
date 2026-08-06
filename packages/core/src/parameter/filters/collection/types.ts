@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition, IConditionVisitor } from '../condition';
+import type { ICondition } from '../condition';
 
 export interface IFiltersVisitor<R> {
     visitFilters(expr: IFilters): R;
@@ -26,7 +26,6 @@ export interface IFilters<
     readonly sealed?: boolean;
 
     accept<R>(visitor: IFiltersVisitor<R>) : R;
-    accept<R>(visitor: IConditionVisitor<R>) : R;
 
     /**
      * A copy of this group carrying the {@link IFilters.sealed} marker

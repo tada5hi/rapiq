@@ -5,12 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-/**
- * The open fallback visitor for any condition implementation.
- */
-export interface IConditionVisitor<R> {
-    visitCondition(condition: ICondition): R;
-}
+import { isObject } from '../../utils';
 
 export interface ICondition<
     T = unknown,
@@ -27,9 +22,20 @@ export interface ICondition<
      */
     readonly sealed?: boolean;
 
-    accept<R>(visitor: IConditionVisitor<R>): R;
-
     seal(): ICondition<T>;
+}
+
+/**
+ * Identify a live structural condition through the behavior shared by every
+ * implementation. Visitor dispatch is deliberately not part of this check.
+ */
+export function isCondition(input: unknown) : input is ICondition {
+    return (
+        isObject(input) &&
+        typeof input.operator === 'string' &&
+        'value' in input &&
+        typeof input.seal === 'function'
+    );
 }
 
 /**
@@ -65,7 +71,5 @@ export abstract class Condition<
         }
     }
 
-    abstract accept<R>(visitor: IConditionVisitor<R>): R;
-
-    abstract seal(): Condition<T>;
+    abstract seal(): ICondition<T>;
 }

@@ -86,12 +86,8 @@ const query = defineQuery<User>({
 #### Custom conditions
 
 ```typescript
-import type { ICondition, IConditionVisitor } from '@rapiq/core';
+import type { ICondition } from '@rapiq/core';
 import { and, eq } from '@rapiq/core';
-
-interface GeoVisitor<R> {
-    visitGeo(condition: GeoCondition): R;
-}
 
 class GeoCondition implements ICondition<[number, number]> {
     readonly operator = 'geo';
@@ -101,17 +97,7 @@ class GeoCondition implements ICondition<[number, number]> {
         readonly sealed?: boolean,
     ) {}
 
-    accept<R>(visitor: GeoVisitor<R>): R;
-    accept<R>(visitor: IConditionVisitor<R>): R;
-    accept<R>(visitor: GeoVisitor<R> | IConditionVisitor<R>): R {
-        if ('visitGeo' in visitor) {
-            return visitor.visitGeo(this);
-        }
-
-        return visitor.visitCondition(this);
-    }
-
-    seal(): GeoCondition {
+    seal(): ICondition<[number, number]> {
         return this.sealed ? this : new GeoCondition(this.value, true);
     }
 }
@@ -122,7 +108,9 @@ const filters = and(
 );
 ```
 
-`ICondition` is open and structural: a custom condition does not need to extend `Condition`, `IFilter`, or `IFilters`. Its `accept()` supplies both a custom specialized path and the generic fallback; `seal()` returns an immutable protected copy and should preserve its concrete type. A custom condition also needs a parser, adapter, or other consumer that understands it. Built-in adapters intentionally reject unknown condition kinds.
+`ICondition` is open and structural: a custom condition does not need to extend `Condition`, `IFilter`, or `IFilters`, and visitor dispatch is optional. Its `seal()` method returns the `ICondition` interface for an immutable protected copy, not the concrete implementation type. A custom condition may expose its own visitor contract when useful, and it needs a parser, adapter, or other consumer that understands its semantics. Built-in adapters intentionally reject unknown condition kinds.
+
+Use `isCondition(value)` to recognize the shared live contract. `isFilter(value)` and `isFilters(value)` deliberately identify only the built-in leaf and group kinds.
 
 A few helpers deviate from the uniform `(field, value)` signature:
 

@@ -8,6 +8,7 @@
 import {
     Filter,
     Filters,
+    isCondition,
     isFilter,
     isFilters,
     seal,
@@ -45,12 +46,6 @@ function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
     );
 }
 
-function isConditionValue(input: unknown) : input is ICondition {
-    // isFilters guards structurally at runtime; the parameter type is
-    // merely narrower than this call site.
-    return isFilter(input) || isFilters(input as ICondition);
-}
-
 /**
  * Apply a filter schema's leaf validator without flattening or otherwise
  * changing the compound tree. Returning `undefined` from the validator drops
@@ -85,7 +80,7 @@ export function applyFiltersSchemaValidation(
         let leaf = input;
         if (
             input.operator === FilterFieldOperator.ELEM_MATCH &&
-            isConditionValue(input.value)
+            isCondition(input.value)
         ) {
             const interior = applyFiltersSchemaValidation(input.value, schema, context);
             if (!interior) {
@@ -159,7 +154,7 @@ export async function applyFiltersSchemaValidationAsync(
         let leaf = input;
         if (
             input.operator === FilterFieldOperator.ELEM_MATCH &&
-            isConditionValue(input.value)
+            isCondition(input.value)
         ) {
             const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context);
             if (!interior) {

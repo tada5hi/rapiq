@@ -51,6 +51,19 @@ function fieldsOptions(
     };
 }
 
+class CustomCondition implements ICondition<{ scope: string }> {
+    readonly operator = 'custom';
+
+    constructor(
+        readonly value: { scope: string },
+        readonly sealed?: boolean,
+    ) {}
+
+    seal() : ICondition<{ scope: string }> {
+        return this.sealed ? this : new CustomCondition(this.value, true);
+    }
+}
+
 describe('src/parser/parameter/validate.ts', () => {
     describe('verdict discrimination', () => {
         it('should accept a true verdict', () => {
@@ -133,6 +146,32 @@ describe('src/parser/parameter/validate.ts', () => {
     });
 
     describe('condition verdict', () => {
+        it('should record a custom condition without visitor dispatch', () => {
+            const condition = new CustomCondition({ scope: 'tenant-a' });
+            const conditions = new Map<string, ICondition>();
+            const schema = defineFieldsSchema({ validate: () => condition });
+
+            expect(applyKeySchemaValidation(
+                [entry(schema, 'secret')],
+                undefined,
+                fieldsOptions(conditions),
+            )).toEqual([]);
+            expect(conditions.get('secret')).toBe(condition);
+        });
+
+        it('should record a custom condition from a batched hook', () => {
+            const condition = new CustomCondition({ scope: 'tenant-a' });
+            const conditions = new Map<string, ICondition>();
+            const schema = defineFieldsSchema({ validateMany: () => ({ secret: condition }) });
+
+            expect(applyKeySchemaValidation(
+                [entry(schema, 'secret')],
+                undefined,
+                fieldsOptions(conditions),
+            )).toEqual([]);
+            expect(conditions.get('secret')).toBe(condition);
+        });
+
         it('should keep the key and record the condition for fields', () => {
             const condition = eq('realm.id', 'master');
             const conditions = new Map<string, ICondition>();
@@ -501,6 +540,32 @@ describe('src/parser/parameter/validate.ts', () => {
     });
 
     describe('asynchronous hooks', () => {
+        it('should record a custom condition from an async per-key hook', async () => {
+            const condition = new CustomCondition({ scope: 'tenant-a' });
+            const conditions = new Map<string, ICondition>();
+            const schema = defineFieldsSchema({ validate: async () => condition });
+
+            await expect(applyKeySchemaValidationAsync(
+                [entry(schema, 'secret')],
+                undefined,
+                fieldsOptions(conditions),
+            )).resolves.toEqual([]);
+            expect(conditions.get('secret')).toBe(condition);
+        });
+
+        it('should record a custom condition from an async batched hook', async () => {
+            const condition = new CustomCondition({ scope: 'tenant-a' });
+            const conditions = new Map<string, ICondition>();
+            const schema = defineFieldsSchema({ validateMany: async () => ({ secret: condition }) });
+
+            await expect(applyKeySchemaValidationAsync(
+                [entry(schema, 'secret')],
+                undefined,
+                fieldsOptions(conditions),
+            )).resolves.toEqual([]);
+            expect(conditions.get('secret')).toBe(condition);
+        });
+
         it('should refuse an async per-key hook on the sync driver', () => {
             const schema = defineFieldsSchema({ validate: async () => true });
 

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition, IConditionVisitor } from '../../../src';
+import type { ICondition } from '../../../src';
 import {
     AdapterError,
     BuildError,
@@ -39,11 +39,7 @@ class CustomCondition implements ICondition<{ scope: string }> {
         readonly sealed?: boolean,
     ) {}
 
-    accept<R>(visitor: IConditionVisitor<R>) : R {
-        return visitor.visitCondition(this);
-    }
-
-    seal() : CustomCondition {
+    seal() : ICondition<{ scope: string }> {
         return this.sealed ? this : new CustomCondition(this.value, true);
     }
 }

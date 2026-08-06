@@ -9,7 +9,7 @@ import { Parameter } from '../../constants';
 import { SchemaError } from '../../errors';
 import type { ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
-import { isFilter, isFilters } from '../../parameter';
+import { isCondition } from '../../parameter';
 import type {
     KeyValidationVerdict,
     KeyValidationVerdictRecord,
@@ -354,12 +354,6 @@ function readVerdict(
     }
 
     return record[name];
-}
-
-function isCondition(input: unknown) : input is ICondition {
-    // isFilters is typed against ICondition but guards with isObject, so a
-    // boolean/undefined verdict is safe to hand it.
-    return isFilter(input) || isFilters(input as ICondition);
 }
 
 /**

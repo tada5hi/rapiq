@@ -8,7 +8,8 @@
 import { expectTypeOf } from 'vitest';
 import type {
     ICondition,
-    IConditionVisitor,
+    IFilter,
+    IFilters,
 } from '../../../src';
 import {
     FilterCompoundOperator,
@@ -38,10 +39,6 @@ interface IUnsealedCustomCondition extends ICondition<CustomValue> {
     seal(): ISealedCustomCondition;
 }
 
-interface ICustomConditionVisitor<R> {
-    visitCustom(condition: CustomCondition): R;
-}
-
 class CustomCondition implements ICondition<CustomValue> {
     readonly operator: string;
 
@@ -63,17 +60,7 @@ class CustomCondition implements ICondition<CustomValue> {
         }
     }
 
-    accept<R>(visitor: ICustomConditionVisitor<R>): R;
-    accept<R>(visitor: IConditionVisitor<R>): R;
-    accept<R>(visitor: ICustomConditionVisitor<R> | IConditionVisitor<R>): R {
-        if ('visitCustom' in visitor) {
-            return visitor.visitCustom(this);
-        }
-
-        return visitor.visitCondition(this);
-    }
-
-    seal(): CustomCondition {
+    seal(): ICondition<CustomValue> {
         return this.sealed ? this : new CustomCondition(this.value, true);
     }
 
@@ -83,20 +70,20 @@ class CustomCondition implements ICondition<CustomValue> {
 }
 
 describe('src/parameter/filters condition contract', () => {
-    it('should dispatch abstract built-in conditions to the generic visitor', () => {
-        const visitor: IConditionVisitor<string> = { visitCondition: (condition) => condition.operator };
-        const leaf: ICondition = eq('name', 'Peter');
-        const group: ICondition = and(eq('active', true));
+    it('should retain specialized visitor dispatch for built-in conditions', () => {
+        const leaf = eq('name', 'Peter');
+        const group = and(eq('active', true));
 
-        expect(leaf.accept(visitor)).toBe('eq');
-        expect(group.accept(visitor)).toBe('and');
+        expect(leaf.accept({ visitFilter: (condition) => condition.operator })).toBe('eq');
+        expect(group.accept({ visitFilters: (condition) => condition.operator })).toBe('and');
     });
 
-    it('should let a structural custom condition expose both visitor paths', () => {
+    it('should not require visitor dispatch from a structural custom condition', () => {
         const condition = new CustomCondition({ scope: 'tenant-a' });
+        type HasAccept = 'accept' extends keyof ICondition ? true : false;
 
-        expect(condition.accept({ visitCustom: (input) => input.value.scope })).toBe('tenant-a');
-        expect(condition.accept({ visitCondition: (input) => input.operator })).toBe('custom');
+        expectTypeOf<HasAccept>().toEqualTypeOf<false>();
+        expect(condition.value.scope).toBe('tenant-a');
     });
 
     it('should discriminate built-in kinds by dispatch rather than member names', () => {
@@ -115,17 +102,27 @@ describe('src/parameter/filters condition contract', () => {
         expect(elemMatch('items', condition).value).toBe(condition);
     });
 
-    it('should seal custom conditions polymorphically', () => {
+    it('should expose interfaces from seal contracts', () => {
+        const leaf = eq('name', 'Peter');
+        const group = and(leaf);
+
+        expectTypeOf(leaf.seal()).toEqualTypeOf<IFilter>();
+        expectTypeOf(group.seal()).toEqualTypeOf<IFilters>();
+        expectTypeOf(seal(leaf)).toEqualTypeOf<IFilter>();
+        expectTypeOf(seal(group)).toEqualTypeOf<IFilters>();
+    });
+
+    it('should seal custom conditions polymorphically behind the interface', () => {
         const condition = new CustomCondition({ scope: 'tenant-a' });
         const output = seal(condition);
 
-        expectTypeOf(output).toEqualTypeOf<CustomCondition>();
+        expectTypeOf(output).toEqualTypeOf<ICondition<CustomValue>>();
         expect(output).not.toBe(condition);
         expect(output.sealed).toBe(true);
         expect(seal(output)).toBe(output);
     });
 
-    it('should derive the helper result from the implementation seal method', () => {
+    it('should derive the helper result from the declared seal interface', () => {
         const assertReturnType = (condition: IUnsealedCustomCondition) => {
             const output = seal(condition);
 
@@ -185,7 +182,7 @@ describe('src/parameter/filters condition contract', () => {
             value: { scope: 'tenant-a' },
         };
 
-        // @ts-expect-error detached data has no visitor or sealing behavior
+        // @ts-expect-error detached data has no sealing behavior
         const condition: ICondition = detached;
         // @ts-expect-error helpers accept live ICondition implementations
         and(detached);

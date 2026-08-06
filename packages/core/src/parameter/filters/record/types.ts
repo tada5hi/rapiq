@@ -6,16 +6,17 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { ICondition, IConditionVisitor } from '../condition';
+import type { ICondition } from '../condition';
 
 /**
  * The leaf-condition visitor. Operator semantics live in the plan
  * layer: consume {@link planCondition} via {@link interpretPlan}
  * (or a serializer over {@link distributeNegation}) instead of
- * branching on operator names here.
+ * branching on operator names here. The broad leaf input admits every
+ * operator and value specialization.
  */
 export interface IFilterVisitor<R> {
-    visitFilter(expr: IFilter): R;
+    visitFilter(expr: IFilter<string, unknown>): R;
 }
 
 export interface IFilter<
@@ -35,13 +36,12 @@ export interface IFilter<
     readonly sealed?: boolean;
 
     accept<R>(visitor: IFilterVisitor<R>) : R;
-    accept<R>(visitor: IConditionVisitor<R>) : R;
 
     /**
      * A copy of this leaf carrying the {@link IFilter.sealed} marker
      * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal any {@link ICondition}; it preserves the
-     * concrete return type of that condition's own `seal()` method.
+     * `seal` helper to seal any {@link ICondition}; both methods expose
+     * interface types rather than concrete implementations.
      */
     seal() : IFilter<OPERATOR, VALUE>;
 }

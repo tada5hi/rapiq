@@ -6,7 +6,7 @@
  */
 
 import { FilterCompoundOperator } from '../../../schema';
-import type { ConditionOptions, ICondition, IConditionVisitor } from '../condition';
+import type { ConditionOptions, ICondition } from '../condition';
 import { isFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
@@ -35,17 +35,11 @@ export class Filters<
         }
     }
 
-    accept<R>(visitor: IFiltersVisitor<R>) : R;
-    accept<R>(visitor: IConditionVisitor<R>) : R;
-    accept<R>(visitor: IFiltersVisitor<R> | IConditionVisitor<R>) : R {
-        if ('visitFilters' in visitor) {
-            return visitor.visitFilters(this);
-        }
-
-        return visitor.visitCondition(this);
+    accept<R>(visitor: IFiltersVisitor<R>) : R {
+        return visitor.visitFilters(this);
     }
 
-    seal() : Filters<T> {
+    seal() : IFilters<T> {
         if (this.sealed) {
             return this;
         }

@@ -6,12 +6,17 @@
  */
 
 import { encodeFilterWireValue } from '@rapiq/parser-simple';
-import type { IFilterVisitor, IFiltersVisitor } from '@rapiq/core';
+import type {
+    IFilter,
+    IFilterVisitor,
+    IFilters,
+    IFiltersVisitor,
+} from '@rapiq/core';
 import {
     AdapterError,
-    Filter,
     FilterCompoundOperator,
-    Filters,
+    isFilter,
+    isFilters,
 } from '@rapiq/core';
 
 import { URLParameter } from '../../../constants';
@@ -27,7 +32,7 @@ IFilterVisitor<RecordSerializer> {
         );
     }
 
-    visitFilters(expr: Filters): RecordSerializer {
+    visitFilters(expr: IFilters): RecordSerializer {
         // subset law: the simple wire dialect expresses flat root-AND
         // condition sets only — anything else must fail loudly instead
         // of silently flattening into changed semantics.
@@ -48,21 +53,24 @@ IFilterVisitor<RecordSerializer> {
             throw AdapterError.featureUnsupported(`filters:${expr.operator}`);
         }
 
-        for (let i = 0; i < expr.value.length; i++) {
-            const value = expr.value[i];
-            if (value instanceof Filters) {
+        for (const value of expr.value) {
+            if (isFilters(value)) {
                 throw AdapterError.featureUnsupported('filters:compound');
             }
 
-            if (value instanceof Filter) {
+            if (isFilter(value)) {
                 value.accept(this);
+
+                continue;
             }
+
+            throw AdapterError.conditionDetached(value.operator);
         }
 
         return this.serializer;
     }
 
-    visitFilter(expr: Filter): RecordSerializer {
+    visitFilter(expr: IFilter<string, unknown>): RecordSerializer {
         // the wire record holds one condition per field — a second
         // one would silently overwrite the first (changed semantics).
         if (this.serializer.has(expr.field)) {

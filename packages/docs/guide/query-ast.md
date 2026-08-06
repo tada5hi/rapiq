@@ -44,23 +44,19 @@ Every constructor argument is optional: omitted parameters default to empty coll
 
 ## The visitor pattern
 
-Nodes are consumed via double dispatch. Every node has `accept(visitor)`, and backends implement visitor interfaces for the nodes they care about:
+Built-in query nodes are consumed via double dispatch. They expose `accept(visitor)`, and backends implement visitor interfaces for the nodes they care about:
 
 ```typescript
-interface IConditionVisitor<R> {
-    visitCondition(condition: ICondition): R;
-}
-
 interface IFiltersVisitor<R> {
     visitFilters(filters: IFilters): R;
 }
 
 interface IFilterVisitor<R> {
-    visitFilter(filter: IFilter): R;
+    visitFilter(filter: IFilter<string, unknown>): R;
 }
 ```
 
-Built-in `Filter` and `Filters` nodes prefer their specialized method and fall back to `visitCondition`. A custom kind may expose its own specialized overload alongside `IConditionVisitor`. Built-in kind guards probe this double dispatch, so arbitrary property names do not cause a custom condition to be treated as a leaf or group.
+`Filter` and `Filters` retain their specialized visitor contracts, which built-in kind guards probe through double dispatch. The broad `IFilter<string, unknown>` visitor input accepts every specialized leaf type. `ICondition` itself deliberately does not require `accept()`: custom conditions can define their own visitor contract when their consumer benefits from one, without inheriting visitor boilerplate from core. A custom condition with arbitrary `field` or `flatten` members is therefore not mistaken for a built-in leaf or group.
 
 Operator semantics live in the plan layer: lower a condition with `planCondition` and consume it through an `IPlanInterpreter` (or `distributeNegation` for serializers) instead of branching on operator names inside a visitor.
 
