@@ -83,7 +83,7 @@ Filters form an extensible tree: `Filters` (and/or/not compound, children are `I
 
 ### Visitor interfaces (core)
 
-Every backend implements per-node visitors; specialized optional methods exist per filter operator:
+Every backend implements per-node visitors; specialized visitor methods exist for the built-in filter node kinds:
 
 ```typescript
 interface IConditionVisitor<R> { visitCondition(condition: ICondition): R }
