@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0-beta.18](https://github.com/tada5hi/rapiq/compare/adapter-prisma-v2.0.0-beta.17...adapter-prisma-v2.0.0-beta.18) (2026-08-06)
+
+
+### Miscellaneous Chores
+
+* **adapter-prisma:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.17 to ^2.0.0-beta.18
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.17 to ^2.0.0-beta.18
+
 ## [2.0.0-beta.17](https://github.com/tada5hi/rapiq/compare/adapter-prisma-v2.0.0-beta.16...adapter-prisma-v2.0.0-beta.17) (2026-08-05)
 
 
