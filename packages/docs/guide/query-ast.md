@@ -12,7 +12,7 @@ Under every rapiq feature sits one data structure: the `Query`, a tree of node o
 | `Sorts` | `Sort` | `name`, `operator` (`'ASC'` / `'DESC'`) |
 | `Pagination` | *(none)* | `limit`, `offset` |
 
-`Filters` is the only recursive node: its children are either leaf `Filter` conditions or nested `Filters`, so arbitrary `and`/`or` combinations compose naturally.
+`Filters` is the only recursive built-in node: its children are `ICondition` values, including built-in leaf `Filter` conditions, nested `Filters`, or custom structural conditions. That keeps arbitrary `and`/`or` combinations composable without closing the extension set.
 
 ## Hand-constructing a query
 
@@ -47,9 +47,20 @@ Every constructor argument is optional: omitted parameters default to empty coll
 Nodes are consumed via double dispatch. Every node has `accept(visitor)`, and backends implement visitor interfaces for the nodes they care about:
 
 ```typescript
-interface IFiltersVisitor { visitFilters(filters: IFilters): unknown }
-interface IFilterVisitor { visitFilter(filter: IFilter): unknown }
+interface IConditionVisitor<R> {
+    visitCondition(condition: ICondition): R;
+}
+
+interface IFiltersVisitor<R> {
+    visitFilters(filters: IFilters): R;
+}
+
+interface IFilterVisitor<R> {
+    visitFilter(filter: IFilter): R;
+}
 ```
+
+Built-in `Filter` and `Filters` nodes prefer their specialized method and fall back to `visitCondition`. A custom kind may expose its own specialized overload alongside `IConditionVisitor`. Built-in kind guards probe this double dispatch, so arbitrary property names do not cause a custom condition to be treated as a leaf or group.
 
 Operator semantics live in the plan layer: lower a condition with `planCondition` and consume it through an `IPlanInterpreter` (or `distributeNegation` for serializers) instead of branching on operator names inside a visitor.
 

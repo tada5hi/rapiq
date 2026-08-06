@@ -83,6 +83,47 @@ const query = defineQuery<User>({
 
 `eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch`, plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction. `seal(condition)` marks a condition undisplaceable by a later [`merge()`](/guide/merging-queries#seal-conditions-that-resist-replacement).
 
+#### Custom conditions
+
+```typescript
+import type { ICondition, IConditionVisitor } from '@rapiq/core';
+import { and, eq } from '@rapiq/core';
+
+interface GeoVisitor<R> {
+    visitGeo(condition: GeoCondition): R;
+}
+
+class GeoCondition implements ICondition<[number, number]> {
+    readonly operator = 'geo';
+
+    constructor(
+        readonly value: [number, number],
+        readonly sealed?: boolean,
+    ) {}
+
+    accept<R>(visitor: GeoVisitor<R>): R;
+    accept<R>(visitor: IConditionVisitor<R>): R;
+    accept<R>(visitor: GeoVisitor<R> | IConditionVisitor<R>): R {
+        if ('visitGeo' in visitor) {
+            return visitor.visitGeo(this);
+        }
+
+        return visitor.visitCondition(this);
+    }
+
+    seal(): GeoCondition {
+        return this.sealed ? this : new GeoCondition(this.value, true);
+    }
+}
+
+const filters = and(
+    eq('active', true),
+    new GeoCondition([52.52, 13.405]),
+);
+```
+
+`ICondition` is open and structural: a custom condition does not need to extend `Condition`, `IFilter`, or `IFilters`. Its `accept()` supplies both a custom specialized path and the generic fallback; `seal()` returns an immutable protected copy and should preserve its concrete type. A custom condition also needs a parser, adapter, or other consumer that understands it. Built-in adapters intentionally reject unknown condition kinds.
+
 A few helpers deviate from the uniform `(field, value)` signature:
 
 ```typescript

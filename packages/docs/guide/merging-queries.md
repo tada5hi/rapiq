@@ -67,6 +67,10 @@ const scope = seal(eq('realm_id', actor.realmId));
 
 Sealing is immutable (a sealed copy is returned) and idempotent. It is a **server-side composition marker, not wire grammar**: a sealed condition that is encoded to a URL and decoded again comes back displaceable, which is why a receiving service re-injects its own scope instead of trusting the transport.
 
+Every live `ICondition` owns this operation through `seal()`. The standalone helper and `Filters.and()` / `Filters.or()` call that method polymorphically, so custom structural conditions receive the same non-displaceability guarantee as built-in leaves and groups.
+
+`ICondition` describes a live AST object, not serialized `{ operator, value }` data: it also requires `accept()` and `seal()`. After JSON, RPC, or cache transport, parse, decode, or rebuild the condition before composition. Runtime data admitted through JavaScript, `any`, or an explicit cast is left unchanged when no callable `seal` exists; a built-in adapter still rejects an unknown detached condition rather than silently dropping it.
+
 The marker protects the whole subtree it heads, and it holds during parsing too: the [relations gate](/guide/relations#validate-hooks), which drops every key traversing a rejected relation, cannot silently prune a condition out of a sealed group. A rejected relation that a sealed condition needs throws `SchemaError` (`ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED`) instead. Subtree-wide protection is why a [policy residual](/guide/recipes/authorization#scoping-inject-conditions-the-client-cannot-displace) seals the *scope* rather than the group around it: sealing the group would protect the client's own condition too.
 
 ### `and()` / `or()`: wrap & inject
