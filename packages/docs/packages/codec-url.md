@@ -74,7 +74,7 @@ codec.encode(query, { codec: URL_SIMPLE_CODEC });
 // codec=url-simple&filter[age]=>=18
 ```
 
-The simple dialect supports flat root-AND filters only. Nested groups, repeated conditions on one field, and values that collide with its marker grammar throw during encoding.
+The deprecated simple dialect supports flat root-AND filters only. Duplicate same-field conditions, compound filters, and values that collide with its marker grammar throw during encoding.
 
 ## Shared URL parameters
 

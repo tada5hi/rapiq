@@ -41,10 +41,10 @@ Hooks run against the **target schema** of each path segment (`include=client.re
 The `relations` hook is not scoped to `include=`. A dotted `filter[client.name]`, `fields[client]` or `sort=client.name` forces the same join, so the hook runs for those too, evaluated once per distinct relation across the query. An actor denied `client` cannot slip the join in through another parameter.
 
 ::: warning Authorization happens at the parse/decode boundary
-The gate runs while **parsing untrusted input**: `parse()` / `decode()` and the per-parameter `decode*` helpers. It is a property of that boundary, not of the `Query` object itself: a query you assemble server-side with the schema-free [build layer](/guide/building-queries) (`defineQuery`, condition helpers) and hand straight to an adapter is **not** re-checked; the adapter joins what the query names. Feed client input through a parser/codec with a schema and `context`; keep server-authored queries (and schema `default`s) as the trusted baseline. See [Scoping](#scoping-inject-conditions-the-client-cannot-displace) for pinning server conditions the client cannot displace.
+The gate runs while **parsing untrusted input**: `parse()` / `decode()` and the per-parameter `decode*` helpers. It is a property of that boundary, not of the `Query` object itself: a query you assemble server-side with the schema-free [build layer](/guide/building-queries) (`defineQuery`, condition helpers) and hand straight to an adapter is **not** re-checked; the adapter joins what the query names. Feed client input through a parser/codec with a schema and `context`; keep server-authored queries (and schema `default`s) as the trusted baseline. See [Scoping](#scoping-server-conditions) for adding server conditions.
 :::
 
-## Scoping: inject conditions the client cannot displace
+## Scoping: server conditions
 
 After decoding the client's query, wrap its filters with your scope condition via `and()`:
 
@@ -68,17 +68,17 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-Why `and()` and not a merge? `and()` injects the condition **sealed**, which marks it undisplaceable on the node itself:
+Why `and()` and not a merge? Both produce conjunction, but `and()` makes the intent direct:
 
 - A client filter on `realm_id` narrows *within* the scope; it can never widen it.
-- A later [`merge()`](/guide/merging-queries#merge-per-field-replace) carries the sealed condition through instead of replacing it, and `flatten()` (or any other normalization) leaves the marker in place. The guarantee is a property of the condition, not of the tree shape it happens to sit in, so it holds unconditionally: even when the client sent no filters at all.
+- A later [`merge()`](/guide/merging-queries#filters-monotonic-conjunction) adds predicates by ordered logical AND. It cannot remove the scope, even if the client sent no filters at all.
 
 Belt and suspenders: also leave `realm_id` out of the schema's `filters.allowed` list, and clients can't even *mention* it.
 
-When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `and(filter, seal(inArray('realm_id', actor.realmIds)))` and the policy residual stays attached to the leaf that triggered it, with the same displacement-proof effect on later merges. The [`seal`](/guide/merging-queries#seal-conditions-that-resist-replacement) is what makes the residual survive composition; without it the group is still never *replaced*, but a normalization pass may hoist its conditions into the root, where an unmarked residual becomes replaceable again.
+When the scope belongs to one *filterable* field rather than the whole query ("you may filter on `realm_id`, but only within your realms"), the filters [`validate` hook](/guide/filters#schema-options) can express it in place: return `and(filter, preserve(inArray('realm_id', actor.realmIds)))`. The policy residual stays attached to the leaf that triggered it. `preserve()` is not needed for merge safety because every merge is conjunctive; it is needed only when the relations validator must reject a pruning contradiction.
 
-::: tip Seal the residual, not the group
-`seal(and(filter, ...))` protects the same residual, and additionally protects the client leaf it wraps, which is not something you want. A sealed condition is exempt from the relations gate above, so that shape turns "this actor may not traverse `realm`" into a thrown `SchemaError` the moment the client filters on `realm.name`, instead of simply dropping that filter. Sealing only the residual keeps the client's leaf prunable and reserves the error for the real contradiction: a residual that itself names a relation the gate rejects. Scoping through a local column (`realm_id`) never traverses a relation, so it never reaches the gate at all.
+::: tip Preserve the residual, not the group
+`preserve(and(filter, ...))` also protects the client leaf it wraps, which is not wanted. A preserved condition is exempt from relation pruning, so that shape turns "this actor may not traverse `realm`" into a thrown `SchemaError` when the client filters on `realm.name`, instead of dropping that client filter. Preserving only the residual keeps the client leaf prunable and reserves the error for a real contradiction: a residual that itself names a rejected relation. Scoping through a local column (`realm_id`) never traverses a relation, so it never reaches the gate.
 :::
 
 ## Row-scoped column access
@@ -188,5 +188,5 @@ compiled.apply(users);     // apply the full query to loaded data
 
 ## Next steps
 
-- [Merging & Composition](/guide/merging-queries): why injected trees resist merging.
+- [Merging & Composition](/guide/merging-queries): conjunctive query composition and pruning preservation.
 - [@rapiq/adapter-memory](/packages/adapter-memory): the full in-memory semantics contract.

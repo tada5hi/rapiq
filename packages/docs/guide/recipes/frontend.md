@@ -2,7 +2,7 @@
 
 *Chapter 2 of the [recipes storyline](/guide/recipes/): the client layer of the realm/user API, where queries are built, composed and encoded. Next: the server baseline in [REST API with Express & TypeORM](/guide/recipes/express-typeorm).*
 
-A list component typically owes its query to three sources at once: **defaults** it ships with, a **scope** its parent imposes via props, and **user input** from search/sort/pagination controls. This recipe composes the three declaratively: typed against the record, merged by rank, encoded on demand.
+A list component typically owes its query to three sources at once: **defaults** it ships with, a **scope** its parent imposes via props, and **user input** from search/sort/pagination controls. This recipe composes the three declaratively: typed against the record, merged with explicit parameter rules, encoded on demand.
 
 Works the same in Vue, React or plain TypeScript; rapiq has no framework dependency.
 
@@ -51,7 +51,7 @@ function buildQuery(realmId: string, search: string, page: number) {
         pagination: { offset: (page - 1) * 25 },
     });
 
-    // left wins: user input > scope > defaults
+    // keyed parameters use left priority; filters become an ordered AND
     return mergeQueries(userInput, defineQuery<User>({ filters: scopeFor(realmId) }), defaults);
 }
 
@@ -65,8 +65,10 @@ async function fetchUsers(realmId: string, search: string, page: number) {
 Three details doing quiet work here:
 
 - `{ $contains: search || undefined }`: an `undefined` operator value contributes **no condition**, so the empty search box simply doesn't filter. No `if`-shuffling around the query object.
-- The merge is **per-field** for filters: the user's `name` filter never disturbs the scope's `realm.id` condition, and both survive alongside the defaults' sort and fields.
+- Filters merge as an **ordered logical AND**: the user's `name` filter and the scope's `realm.id` condition both survive. Fields and sort retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
+
+When a UI control replaces a previous search or range, choose its current value before calling `defineQuery`; do not compose old and new UI values with `mergeQueries`. Once filters are part of a query, composition intentionally retains every predicate.
 
 ## Framework flavors
 

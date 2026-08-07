@@ -33,7 +33,7 @@ Part of [**rapiq**](https://github.com/tada5hi/rapiq). Typed REST queries: *buil
 - 🧭 **Typed end to end**: every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
 - 🌳 **One AST, many consumers**: the same `Query` node graph is walked into SQL, a TypeORM builder or in-memory predicates through the visitor pattern; core never changes when a backend is added.
 - 🛡️ **Schema = the receiving side's allow-list**: declare per-parameter `allowed` / `default` / `mapping`; parsers and codecs validate against it and drop or throw per policy.
-- 🧩 **Composable & immutable**: `mergeQueries` (left priority) and the `Filters` combinators (`merge`, `and`, `or`) let a gateway scope a query without a client being able to displace injected conditions.
+- 🧩 **Composable & immutable**: `mergeQueries` uses keyed left priority for fields, relations and sorts, per-property left priority for pagination, and ordered logical AND for filters. The `Filters` combinators (`merge`, `and`, `or`) let a gateway add scope without losing predicates.
 
 ## Installation
 
@@ -59,7 +59,7 @@ const query = defineQuery<User>({
 });
 ```
 
-Filters accept scalars (`{ name: 'John' }`), bare arrays (`in`, `null` is a legal element), `$`-operator objects (`{ age: { $gte: 18 } }`) and condition helpers (`eq`, `gte`, `inArray`, `and`, `or`, …). Queries compose immutably with `mergeQueries` (left priority) and the `Filters` combinators (`merge`, `and`, `or`).
+Filters accept scalars (`{ name: 'John' }`), bare arrays (`in`, `null` is a legal element), `$`-operator objects (`{ age: { $gte: 18 } }`) and condition helpers (`eq`, `gte`, `inArray`, `and`, `or`, …). Queries compose immutably with `mergeQueries`: filters are ordered logical AND, while keyed parameters use left priority. Use `or(...)` inside a filter tree for alternatives.
 
 ### Declare what a caller may request
 
