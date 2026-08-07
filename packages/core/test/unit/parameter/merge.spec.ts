@@ -135,8 +135,8 @@ describe('src/parameter/merge.ts', () => {
 
         const output = mergeQueries(flat, nested);
 
-        // per-field replace has no meaning inside a disjunction, so the
-        // group is carried through as one inert conjunct.
+        // the disjunction remains atomic, so its alternatives keep their
+        // meaning while the group is carried through as one conjunct.
         expect(output.filters.operator).toBe(FilterCompoundOperator.AND);
         expect(output.filters.value).toHaveLength(2);
         expect((output.filters.value[0] as IFilter).field).toBe('name');
@@ -241,20 +241,30 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
 
         // an empty receiver constrains nothing; as an OR child it would
         // widen the group to everything.
-        const scoped = query.filters.and(eq('realm.id', 'master'));
+        const scope = eq('realm.id', 'master');
+        const scoped = query.filters.and(scope);
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
         expect(conditions(scoped)).toEqual([['realm.id', 'eq', 'master']]);
-        expect(scoped.value[0]).toBeDefined();
+        expect(scoped.value).not.toContain(query.filters);
+        expect(scoped.value[0]).toBe(scope);
+        expect((scoped.value[0] as IFilter).preserved).toBeUndefined();
 
-        const alternatives = query.filters.or(eq('name', 'a'), eq('name', 'b'));
+        const firstAlternative = eq('name', 'a');
+        const secondAlternative = eq('name', 'b');
+        const alternatives = query.filters.or(firstAlternative, secondAlternative);
         expect(alternatives.operator).toBe(FilterCompoundOperator.OR);
         expect(conditions(alternatives)).toEqual([
             ['name', 'eq', 'a'],
             ['name', 'eq', 'b'],
         ]);
+        expect(alternatives.value).not.toContain(query.filters);
+        expect(alternatives.value[0]).toBe(firstAlternative);
+        expect((alternatives.value[0] as IFilter).preserved).toBeUndefined();
+        expect(alternatives.value[1]).toBe(secondAlternative);
+        expect((alternatives.value[1] as IFilter).preserved).toBeUndefined();
     });
 
-    it('should not allow a replace-merge to displace a condition injected onto an empty receiver', () => {
+    it('should retain a condition injected onto an empty receiver during merge', () => {
         const scoped = new Query({ filters: defineQuery().filters.and(eq('realm.id', 'master')) });
         const hostile = defineQuery<User>({ filters: { 'realm.id': 'evil' } });
 

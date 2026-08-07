@@ -76,8 +76,8 @@ describe('gateway controller (hub archetype)', () => {
     it('should validate, pin a server condition and re-encode (flat forward)', () => {
         const query = codec.decode(requestQuery, { schema: 'log' })!;
 
-        // the gateway pins node_id with server priority: merge() is
-        // per-field replace, so a client-sent node_id could never win.
+        // the gateway pins node_id by conjunction: merge() retains the server
+        // constraint alongside any node_id constraint sent by the client.
         const forwarded = new Query({
             fields: query.fields,
             filters: and(eq<Log>('node_id', 'node-1')).merge(query.filters),

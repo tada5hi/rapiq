@@ -395,10 +395,10 @@ describe('relations.validate for traversed relation paths (#815)', () => {
 
         /**
          * The shape the docs recommend: preserve the residual, leave the client's
-         * own leaf outside it. Both shapes resist a merge, but this one keeps
-         * the client leaf prunable, so the gate stays a drop for the client and
-         * the error stays reserved for a residual that itself names a rejected
-         * relation.
+         * own leaf outside it. Conjunctive composition retains both conditions,
+         * while this shape keeps the client leaf prunable, so the gate stays a
+         * drop for the client and the error stays reserved for a residual that
+         * itself names a rejected relation.
          */
         describe('preserve the residual, not the group', () => {
             const localResidual = (filter: IFilter) => and(filter, preserve(eq('realm_id', 'SCOPE')));

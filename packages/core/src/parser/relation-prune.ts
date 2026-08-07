@@ -202,7 +202,11 @@ function pruneCondition(
             isCondition(node.value)
         ) {
             if (typeof rejectedBy === 'string') {
-                return dropUnlessPreserved(rejectedBy, field, preserved2);
+                return dropUnlessPreserved(
+                    rejectedBy,
+                    field,
+                    preserved2 || hasPreservedBuiltInCondition(node.value),
+                );
             }
 
             const interior = pruneCondition(node.value, rejected, field, preserved2);
@@ -244,6 +248,26 @@ function pruneCondition(
 function isBuiltInConditionPreserved(node: ICondition) : boolean {
     if (isFilter(node) || isFilters(node)) {
         return node.preserved === true;
+    }
+
+    return false;
+}
+
+function hasPreservedBuiltInCondition(node: ICondition) : boolean {
+    if (isBuiltInConditionPreserved(node)) {
+        return true;
+    }
+
+    if (isFilters(node)) {
+        return node.value.some((child) => hasPreservedBuiltInCondition(child));
+    }
+
+    if (
+        isFilter(node) &&
+        node.operator === FilterFieldOperator.ELEM_MATCH &&
+        isCondition(node.value)
+    ) {
+        return hasPreservedBuiltInCondition(node.value);
     }
 
     return false;

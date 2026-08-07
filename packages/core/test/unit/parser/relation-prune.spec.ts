@@ -6,6 +6,7 @@
  */
 
 import {
+    Condition,
     ErrorCode,
     Field,
     Fields,
@@ -28,6 +29,12 @@ import {
     pruneSortsByRelations,
 } from '../../../src';
 import type { IFilters } from '../../../src';
+
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
+    }
+}
 
 function filterFields(input: IFilters) : string[] {
     const output : string[] = [];
@@ -261,6 +268,34 @@ describe('src/parser/relation-prune.ts', () => {
                 .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
+        it('throws instead of dropping an elemMatch with a preserved built-in descendant', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [preserve(eq('id'))]),
+                ),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of dropping an elemMatch with a preserved custom-condition wrapper', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [
+                        preserve(new CustomCondition({ scope: 'tenant-a' })),
+                    ]),
+                ),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
         it('throws instead of pruning the interior of a preserved elemMatch', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
                 preserve(new Filter(
@@ -346,6 +381,20 @@ describe('src/parser/relation-prune.ts', () => {
             const schema = defineFiltersSchema({ default: preserve(eq('user.b')) });
 
             expect(() => pruneFiltersByRelations(filters, ['user'], schema))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws for a default elemMatch with a preserved descendant after input pruning empties', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('items.name')]);
+            const schema = defineFiltersSchema({
+                default: new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [preserve(eq('id'))]),
+                ),
+            });
+
+            expect(() => pruneFiltersByRelations(filters, ['items'], schema))
                 .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
     });

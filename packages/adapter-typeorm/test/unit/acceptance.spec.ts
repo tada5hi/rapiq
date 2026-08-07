@@ -177,8 +177,8 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
         const applyScoped = (input: string) => {
             const query = codec.decode(input, { schema: 'user' });
 
-            // plan 012 layer 3: post-parse wrap & inject — immutable,
-            // a later replace-merge cannot displace the condition.
+            // plan 012 layer 3: post-parse injection retains the server
+            // condition as a conjunct alongside every client condition.
             const scoped = new Query({
                 ...query,
                 filters: query!.filters.and(eq('realm_id', masterRealmId)),

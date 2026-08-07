@@ -208,8 +208,8 @@ describe('acceptance: request query to prisma arguments', () => {
         const applyScoped = (input: string) => {
             const query = codec.decode(input, { schema: 'user' });
 
-            // post-parse wrap & inject: a later replace-merge cannot
-            // displace the condition.
+            // post-parse injection retains the server condition as a
+            // conjunct alongside every client condition.
             const scoped = new Query({
                 ...query,
                 filters: query!.filters.and(eq('realm_id', 1)),
