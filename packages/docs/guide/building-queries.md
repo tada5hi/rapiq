@@ -152,6 +152,8 @@ const query = defineQuery<User>({
 
 Fragments and raw input mix freely; already-built AST nodes pass through unchanged.
 
+To override a filter default on the same field, compose the *input* with [`mergeFiltersInput`](/guide/merging-queries#mergefiltersinput-per-field-replace-before-the-query) before it becomes a fragment. It replaces per field, where an object spread would emit both notations of one field and eat a nested sibling default.
+
 ## Next steps
 
 - [Merging & Composition](/guide/merging-queries): combining queries from multiple sources.

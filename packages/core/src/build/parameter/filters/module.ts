@@ -20,6 +20,7 @@ import type { ObjectLiteral } from '../../../types';
 import { isObject } from '../../../utils';
 import { isParameterNode } from '../../utils';
 import type { FiltersBuildInput } from './types';
+import { isNestedRecordValue } from './value';
 
 const OPERATORS : Record<string, string> = {};
 for (const operator of Object.values(FilterFieldOperator)) {
@@ -188,8 +189,10 @@ function buildFieldConditions(
         }
 
         // nested record — relation traversal via dot-path prefixing;
-        // the element itself has no properties to traverse into.
-        if (field === ITSELF) {
+        // the element itself has no properties to traverse into. Asking the
+        // shared predicate rather than re-testing the marker here is what
+        // keeps lowering and path canonicalization from drifting apart.
+        if (!isNestedRecordValue(field, value)) {
             throw BuildError.keyValueInvalid(field);
         }
 

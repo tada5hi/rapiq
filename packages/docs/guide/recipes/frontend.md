@@ -72,7 +72,7 @@ Three details doing quiet work here:
 - Filters merge as an **ordered logical AND**: the user's `name` filter, the scope's `realm.id` condition and the `age` baseline all survive. Fields and sort retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
 
-Once filters are part of a query, composition intentionally retains every predicate. When one control has to *replace* a previous value (a status dropdown, a date range), choose between its alternatives before calling `defineQuery`, as in [Replacing UI state](/guide/merging-queries#replacing-ui-state). Select only between values that control can hold: a baseline like `age >= 18` is not one of them, which is why it stays in `defaults`.
+Once filters are part of a query, composition intentionally retains every predicate. When user input has to *replace* a default on the same field rather than narrow it, compose the **input** with [`mergeFiltersInput`](/guide/merging-queries#mergefiltersinput-per-field-replace-before-the-query) before calling `defineQuery`. It replaces per field, so a baseline like `age >= 18` survives a search the user types.
 
 ## Framework flavors
 
