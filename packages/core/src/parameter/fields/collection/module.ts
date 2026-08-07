@@ -36,9 +36,9 @@ export class Fields implements IFields {
      * server-authored authorization decision, and dropping it silently
      * would widen disclosure. The surviving node keeping the identical
      * condition instance is fine; anything else refuses. Filters express
-     * the same protection differently: a sealed condition is carried
-     * through `Filters.merge()` instead of refusing it, because a filter
-     * can be and-ed in while a field is either gated or not.
+     * the same protection differently: a preserved condition stays atomic
+     * through `Filters.merge()` because a filter can be combined as a
+     * conjunct while a field is either gated or not.
      */
     merge(other: IFields) : IFields {
         const output : IField[] = [];

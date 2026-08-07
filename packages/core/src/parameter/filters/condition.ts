@@ -17,16 +17,6 @@ export interface ICondition<
     readonly operator: string;
 
     readonly value: T;
-
-    /**
-     * Displaceability marker: a sealed condition is never dropped by
-     * {@link IFilters.merge} and never collapsed into its parent group by
-     * {@link IFilters.flatten}. Set it through the `seal` helper or by
-     * injecting the condition with {@link IFilters.and} / {@link IFilters.or}.
-     */
-    readonly sealed?: boolean;
-
-    seal(): ICondition<T>;
 }
 
 /**
@@ -43,16 +33,9 @@ export function isCondition(input: unknown) : input is ICondition {
 }
 
 /**
- * Construction options shared by built-in condition node implementations.
- */
-export type ConditionOptions = {
-    sealed?: boolean,
-};
-
-/**
  * Construction options shared only by the built-in filter nodes.
  */
-export type BuiltInConditionOptions = ConditionOptions & {
+export type BuiltInConditionOptions = {
     preserved?: boolean,
 };
 
@@ -71,20 +54,11 @@ export abstract class Condition<
 
     readonly value: T;
 
-    readonly sealed?: boolean;
-
     constructor(
         operator: string,
         value: T,
-        options: ConditionOptions = {},
     ) {
         this.operator = operator;
         this.value = value;
-
-        if (options.sealed) {
-            this.sealed = true;
-        }
     }
-
-    abstract seal(): ICondition<T>;
 }

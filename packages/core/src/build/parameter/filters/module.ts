@@ -58,10 +58,10 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
 }
 
 /**
- * Detect condition-shaped runtime data that lost its live behavior
- * in a JSON/RPC/cache round trip. It has no `seal`, so it would
- * otherwise be read as a record of field/value pairs and filter on
- * columns literally named `operator` and `value`.
+ * Detect condition-shaped runtime data that lost its non-serializable brand
+ * in a JSON/RPC/cache round trip. Without the brand it would otherwise be
+ * read as a record of field/value pairs and filter on columns literally
+ * named `operator` and `value`.
  *
  * Deliberately narrow: only an object whose own keys are exactly the
  * condition properties, with a recognized operator, qualifies. A build
@@ -79,7 +79,7 @@ function isDetachedCondition(input: unknown) : boolean {
     }
 
     for (const key of keys) {
-        if (key !== 'operator' && key !== 'value' && key !== 'sealed' && key !== 'field') {
+        if (key !== 'operator' && key !== 'value' && key !== 'preserved' && key !== 'field') {
             return false;
         }
     }

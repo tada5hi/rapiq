@@ -8,7 +8,6 @@
 import type {
     FieldsBuildInput,
     FiltersBuildInput,
-    ICondition,
     IFilter,
     QueryBuildInput,
     RelationsBuildInput,
@@ -41,15 +40,8 @@ import type { Client, User } from '../../data';
 const leafs = (filters: { value: unknown[] }) => filters.value as IFilter[];
 
 class CustomCondition extends Condition<{ scope: string }> {
-    constructor(
-        value: { scope: string },
-        sealed?: boolean,
-    ) {
-        super('custom', value, { sealed });
-    }
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 

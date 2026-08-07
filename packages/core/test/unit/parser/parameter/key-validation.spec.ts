@@ -53,15 +53,8 @@ function fieldsOptions(
 }
 
 class CustomCondition extends Condition<{ scope: string }> {
-    constructor(
-        value: { scope: string },
-        sealed?: boolean,
-    ) {
-        super('custom', value, { sealed });
-    }
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 

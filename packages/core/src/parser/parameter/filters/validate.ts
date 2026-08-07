@@ -12,7 +12,6 @@ import {
     isFilter,
     isFilters,
     preserve,
-    seal,
 } from '../../../parameter';
 import type {
     ICondition,
@@ -89,10 +88,7 @@ export function applyFiltersSchemaValidation(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior, {
-                    preserved: input.preserved,
-                    sealed: input.sealed,
-                });
+                leaf = new Filter(input.operator, input.field, interior, { preserved: input.preserved });
             }
         }
 
@@ -106,11 +102,9 @@ export function applyFiltersSchemaValidation(
             return undefined;
         }
 
-        // The replacement stands in for the leaf, so it inherits both
-        // temporary sealing and relation-pruning preservation.
-        let replacement = leaf.preserved ? preserve(output) : output;
-        replacement = leaf.sealed ? seal(replacement) : replacement;
-        return replacement;
+        // The replacement stands in for the leaf, so it inherits
+        // relation-pruning preservation.
+        return leaf.preserved ? preserve(output) : output;
     }
 
     if (!isFilters(input)) {
@@ -129,10 +123,7 @@ export function applyFiltersSchemaValidation(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions, {
-        preserved: input.preserved,
-        sealed: input.sealed,
-    });
+    return new Filters(input.operator, conditions, { preserved: input.preserved });
 }
 
 /**
@@ -171,10 +162,7 @@ export async function applyFiltersSchemaValidationAsync(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior, {
-                    preserved: input.preserved,
-                    sealed: input.sealed,
-                });
+                leaf = new Filter(input.operator, input.field, interior, { preserved: input.preserved });
             }
         }
 
@@ -183,9 +171,7 @@ export async function applyFiltersSchemaValidationAsync(
             return undefined;
         }
 
-        let replacement = leaf.preserved ? preserve(output) : output;
-        replacement = leaf.sealed ? seal(replacement) : replacement;
-        return replacement;
+        return leaf.preserved ? preserve(output) : output;
     }
 
     if (!isFilters(input)) {
@@ -204,8 +190,5 @@ export async function applyFiltersSchemaValidationAsync(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions, {
-        preserved: input.preserved,
-        sealed: input.sealed,
-    });
+    return new Filters(input.operator, conditions, { preserved: input.preserved });
 }

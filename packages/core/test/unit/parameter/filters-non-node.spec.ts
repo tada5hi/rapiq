@@ -33,15 +33,8 @@ const NON_NODE = {
 } as unknown as ICondition;
 
 class CustomCondition extends Condition<{ scope: string }> {
-    constructor(
-        value: { scope: string },
-        sealed?: boolean,
-    ) {
-        super('custom', value, { sealed });
-    }
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 
@@ -150,5 +143,13 @@ describe('src/parameter/filters (non-node conditions)', () => {
             { operator: 'eq', field: 'x' } as unknown as ICondition,
         ))
             .toThrow(BuildError);
+    });
+
+    it('should refuse a detached preserved condition', () => {
+        const detached = JSON.parse(JSON.stringify(
+            new Filters(FilterCompoundOperator.AND, [eq('name', 'John')], { preserved: true }),
+        ));
+
+        expect(() => defineFilters(detached)).toThrow(BuildError);
     });
 });

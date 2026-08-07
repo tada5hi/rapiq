@@ -211,10 +211,7 @@ function pruneCondition(
             }
 
             if (interior !== node.value) {
-                return new Filter(node.operator, node.field, interior, {
-                    preserved: node.preserved,
-                    sealed: node.sealed,
-                });
+                return new Filter(node.operator, node.field, interior, { preserved: node.preserved });
             }
 
             return node;
@@ -241,10 +238,7 @@ function pruneCondition(
         return undefined;
     }
 
-    return new Filters(node.operator, conditions, {
-        preserved: node.preserved,
-        sealed: node.sealed,
-    });
+    return new Filters(node.operator, conditions, { preserved: node.preserved });
 }
 
 function isBuiltInConditionPreserved(node: ICondition) : boolean {

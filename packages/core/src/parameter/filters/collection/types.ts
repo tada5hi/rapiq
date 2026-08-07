@@ -24,20 +24,7 @@ export interface IFilters<
      */
     readonly preserved?: true;
 
-    /**
-     * Protection marker: a sealed group is never collapsed into its parent
-     * by {@link IFilters.flatten}. Filter merges remain conjunctive.
-     */
-    readonly sealed?: boolean;
-
     accept<R>(visitor: IFiltersVisitor<R>) : R;
-
-    /**
-     * A copy of this group carrying the {@link IFilters.sealed} marker
-     * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal any {@link ICondition}.
-     */
-    seal() : IFilters<T>;
 
     flatten(items?: T[]) : IFilters<T>;
 

@@ -104,13 +104,11 @@ describe('gateway controller (hub archetype)', () => {
         expect(downstream.pagination).toEqual(new Pagination(50, 0));
     });
 
-    it('should carry undisplaceable scoping downstream', () => {
+    it('should carry conjunctive scoping downstream', () => {
         const query = codec.decode(requestQuery, { schema: 'log' })!;
 
-        // filters.and() injects a sealed condition — no later merge can
-        // displace it. The seal is a server-side composition marker
-        // rather than wire grammar, so what crosses the URL is the
-        // condition itself; the facade stamps the codec identity so the
+        // filters.and() adds an ordinary conjunct. What crosses the URL is
+        // the condition itself; the facade stamps the codec identity so the
         // downstream service knows how to decode it.
         const scoped = new Query({
             fields: query.fields,
@@ -131,9 +129,8 @@ describe('gateway controller (hub archetype)', () => {
             '&page[limit]=50&sort=-created_at',
         );
 
-        // downstream: dispatch on the stamp, same AST comes out — minus
-        // the seal, which no wire dialect carries. The downstream service
-        // re-injects its own scoping instead of trusting the transport.
+        // downstream: dispatch on the stamp and the same AST comes out. The
+        // downstream service injects its own scoping instead of trusting the transport.
         const downstream = codec.decode(wire!)!;
 
         expect(downstream.filters).toEqual(

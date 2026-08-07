@@ -35,19 +35,5 @@ export interface IFilter<
      */
     readonly preserved?: true;
 
-    /**
-     * Displaceability marker: a sealed leaf is never dropped by a
-     * later `merge` and never hoisted out of its group by `flatten`.
-     */
-    readonly sealed?: boolean;
-
     accept<R>(visitor: IFilterVisitor<R>) : R;
-
-    /**
-     * A copy of this leaf carrying the {@link IFilter.sealed} marker
-     * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal any {@link ICondition}; both methods expose
-     * interface types rather than concrete implementations.
-     */
-    seal() : IFilter<OPERATOR, VALUE>;
 }

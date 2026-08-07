@@ -24,7 +24,7 @@ export class Filter<
         value: VALUE,
         options: BuiltInConditionOptions = {},
     ) {
-        super(operator, value, options);
+        super(operator, value);
         this.field = field;
 
         if (options.preserved) {
@@ -34,18 +34,5 @@ export class Filter<
 
     accept<R>(visitor: IFilterVisitor<R>) : R {
         return visitor.visitFilter(this);
-    }
-
-    seal() : IFilter<OPERATOR, VALUE> {
-        if (this.sealed) {
-            return this;
-        }
-
-        return new Filter<OPERATOR, VALUE>(
-            this.operator,
-            this.field,
-            this.value,
-            { preserved: this.preserved, sealed: true },
-        );
     }
 }

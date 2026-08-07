@@ -46,7 +46,6 @@ import {
     startsWith,
 } from '@rapiq/core';
 import type {
-    ICondition,
     IFilter,
     IFilterVisitor,
     IQuery,
@@ -54,15 +53,8 @@ import type {
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
 
 class CustomCondition extends Condition<{ scope: string }> {
-    constructor(
-        value: { scope: string },
-        sealed?: boolean,
-    ) {
-        super('custom', value, { sealed });
-    }
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 
@@ -74,9 +66,6 @@ function createStructuralFilter(field: string, value: unknown) : IFilter {
         value,
         accept<R>(visitor: IFilterVisitor<R>) : R {
             return visitor.visitFilter(output);
-        },
-        seal() : IFilter {
-            return output;
         },
     };
 
