@@ -135,7 +135,8 @@ export class Filters<
         if (
             this.operator === operator &&
             operator !== FilterCompoundOperator.NOT &&
-            !this.sealed
+            !this.sealed &&
+            !this.preserved
         ) {
             return new Filters(operator, [...this.value, ...injected]);
         }

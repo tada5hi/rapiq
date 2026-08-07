@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition, IFilter } from '../../../src';
+import type { ICondition, IFilter, IFilters } from '../../../src';
 import {
     Condition,
     ErrorCode,
@@ -24,6 +24,7 @@ import {
     mergeQueries,
     or,
     preserve,
+    pruneFiltersByRelations,
     seal,
 } from '../../../src';
 import type { User } from '../../data';
@@ -383,6 +384,28 @@ describe('src/parameter/filters/preserve.ts', () => {
         const output = other.merge(preservedRoot);
         expect(output.value).toHaveLength(2);
         expect(output.value[1]).toBe(preservedRoot);
+    });
+
+    it('should keep a preserved AND receiver atomic when and() matches its operator', () => {
+        const receiver = preserve(and(eq('realm.id', 'SCOPE')));
+
+        const output = receiver.and(eq('name', 'John'));
+
+        expect(output.value[0]).toBe(receiver);
+        expect((output.value[0] as IFilters).preserved).toBe(true);
+        expect(() => pruneFiltersByRelations(output, ['realm']))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+    });
+
+    it('should keep a preserved OR receiver atomic when or() matches its operator', () => {
+        const receiver = preserve(or(eq('realm.id', 'SCOPE'), eq('id', 1)));
+
+        const output = receiver.or(eq('name', 'John'));
+
+        expect(output.value[0]).toBe(receiver);
+        expect((output.value[0] as IFilters).preserved).toBe(true);
+        expect(() => pruneFiltersByRelations(output, ['realm']))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
     });
 });
 
