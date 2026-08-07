@@ -16,6 +16,7 @@ import type {
 } from '../../../src';
 import {
     BuildError,
+    Condition,
     ErrorCode,
     FieldOperator,
     Filter,
@@ -39,13 +40,13 @@ import type { Client, User } from '../../data';
 
 const leafs = (filters: { value: unknown[] }) => filters.value as IFilter[];
 
-class CustomCondition implements ICondition<{ scope: string }> {
-    readonly operator = 'custom';
-
+class CustomCondition extends Condition<{ scope: string }> {
     constructor(
-        readonly value: { scope: string },
-        readonly sealed?: boolean,
-    ) {}
+        value: { scope: string },
+        sealed?: boolean,
+    ) {
+        super('custom', value, { sealed });
+    }
 
     seal() : ICondition<{ scope: string }> {
         return this.sealed ? this : new CustomCondition(this.value, true);

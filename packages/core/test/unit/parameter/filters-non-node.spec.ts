@@ -9,6 +9,7 @@ import type { ICondition } from '../../../src';
 import {
     AdapterError,
     BuildError,
+    Condition,
     ErrorCode,
     FilterCompoundOperator,
     Filters,
@@ -31,13 +32,13 @@ const NON_NODE = {
     value: 'ACME',
 } as unknown as ICondition;
 
-class CustomCondition implements ICondition<{ scope: string }> {
-    readonly operator = 'custom';
-
+class CustomCondition extends Condition<{ scope: string }> {
     constructor(
-        readonly value: { scope: string },
-        readonly sealed?: boolean,
-    ) {}
+        value: { scope: string },
+        sealed?: boolean,
+    ) {
+        super('custom', value, { sealed });
+    }
 
     seal() : ICondition<{ scope: string }> {
         return this.sealed ? this : new CustomCondition(this.value, true);

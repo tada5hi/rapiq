@@ -36,7 +36,9 @@ export interface ICondition<
 export function isCondition(input: unknown) : input is ICondition {
     return (
         isObject(input) &&
-        (input as { readonly [CONDITION_MARKER]?: unknown })[CONDITION_MARKER] === true
+        (input as { readonly [CONDITION_MARKER]?: unknown })[CONDITION_MARKER] === true &&
+        typeof input.operator === 'string' &&
+        'value' in input
     );
 }
 

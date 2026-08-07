@@ -7,6 +7,8 @@
 
 import {
     AdapterError,
+    CONDITION_MARKER,
+    Condition,
     ErrorCode,
     Field,
     Fields,
@@ -51,13 +53,13 @@ import type {
 } from '@rapiq/core';
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
 
-class CustomCondition implements ICondition<{ scope: string }> {
-    readonly operator = 'custom';
-
+class CustomCondition extends Condition<{ scope: string }> {
     constructor(
-        readonly value: { scope: string },
-        readonly sealed?: boolean,
-    ) {}
+        value: { scope: string },
+        sealed?: boolean,
+    ) {
+        super('custom', value, { sealed });
+    }
 
     seal() : ICondition<{ scope: string }> {
         return this.sealed ? this : new CustomCondition(this.value, true);
@@ -66,6 +68,7 @@ class CustomCondition implements ICondition<{ scope: string }> {
 
 function createStructuralFilter(field: string, value: unknown) : IFilter {
     const output : IFilter = {
+        [CONDITION_MARKER]: true,
         operator: 'eq',
         field,
         value,

@@ -12,6 +12,7 @@ import type {
     IFilters,
 } from '../../../src';
 import {
+    CONDITION_MARKER,
     Condition,
     FilterCompoundOperator,
     Filters,
@@ -70,6 +71,12 @@ describe('src/parameter/filters condition contract', () => {
 
         expect(isCondition(condition)).toBe(true);
         expect(isCondition(detached)).toBe(false);
+        expect(Object.hasOwn(condition, CONDITION_MARKER)).toBe(false);
+        expect(Object.getOwnPropertyDescriptor(
+            Condition.prototype,
+            CONDITION_MARKER,
+        )?.enumerable).toBe(false);
+        expect(isCondition({ [CONDITION_MARKER]: true })).toBe(false);
         expect(isCondition({
             operator: 'custom',
             value: {},
