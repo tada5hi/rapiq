@@ -61,23 +61,27 @@ const userQuery = defineQuery<User>({ filters: currentSearch });
 const query = mergeQueries(userQuery, parentScope, defaults);
 ```
 
-For state already represented as AST nodes, choose the current `IFilters` value before query composition. For example, select the current filters against the defaults, then pass only the selected node to `defineQuery`:
+For state already represented as AST nodes, choose the current `IFilters` value before query composition. Select between the values **one control** can hold, then pass only the selected node to `defineQuery`:
 
 ```typescript
-const defaultFilters = defineFilters<User>({ age: { $gte: 18 } });
-const currentFilters = search ?
-    defineFilters<User>({ name: { $contains: search } }) :
+// a status control: `defaultStatus` is what it shows until the user picks.
+const defaultStatus = defineFilters<User>({ status: 'active' });
+const currentStatus = status ?
+    defineFilters<User>({ status }) :
     undefined;
-const selectedFilters = currentFilters ?? defaultFilters;
 
 const query = mergeQueries(
-    defineQuery<User>({ filters: selectedFilters }),
+    defineQuery<User>({ filters: currentStatus ?? defaultStatus }),
     parentScope,
     defaults,
 );
 ```
 
-Putting `currentFilters` and `defaultFilters` in separate queries passed to `mergeQueries` would conjunct them. It does not replace the default. Selecting the current node first makes replacement a UI-state decision rather than a hidden query-composition rule.
+Putting `currentStatus` and `defaultStatus` in separate queries passed to `mergeQueries` would conjunct them. It does not replace the default. Selecting the current node first makes replacement a UI-state decision rather than a hidden query-composition rule.
+
+::: warning Select between alternatives, never across them
+Both branches of the selection must answer the same question. A baseline on an unrelated field is not an alternative to a status choice: fold `age >= 18` into `defaultStatus` and it disappears the moment the user touches the control. Keep such a baseline in its own query, where it merges in unconditionally.
+:::
 
 ### `and()` / `or()`: build a condition tree
 

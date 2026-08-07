@@ -31,14 +31,14 @@ import type { User } from 'my-api-types';
 
 const codec = createURLCodec();
 
-// 1. component defaults: shipped with the list
+// 1. component defaults: shipped with the list. A filter baseline belongs
+//    here, where it merges in on every request.
 const defaults = defineQuery<User>({
     fields: ['id', 'name', 'email'],
+    filters: { age: { $gte: 18 } },
     sort: '-id',
     pagination: { limit: 25 },
 });
-
-const defaultFilters = defineFilters<User>({ age: { $gte: 18 } });
 
 // 2. parent-imposed scope: realmId arrives as a prop / argument
 //    (fragments are plain values, so they travel well as data)
@@ -48,13 +48,10 @@ function scopeFor(realmId: string) {
 
 // 3. user input: from the search box & pager
 function buildQuery(realmId: string, search: string, page: number) {
-    const currentFilters = search ?
-        defineFilters<User>({ name: { $contains: search } }) :
-        undefined;
-    const filters = currentFilters ?? defaultFilters;
-
     const userInput = defineQuery<User>({
-        filters,
+        // an empty search box contributes no condition; a filled one is
+        // and-ed alongside the baseline instead of replacing it.
+        filters: search ? { name: { $contains: search } } : undefined,
         pagination: { offset: (page - 1) * 25 },
     });
 
@@ -71,11 +68,11 @@ async function fetchUsers(realmId: string, search: string, page: number) {
 
 Three details doing quiet work here:
 
-- `currentFilters ?? defaultFilters` chooses the current filter node before query composition. Passing current and default filters as separate `mergeQueries` arguments would conjunct them; it would not replace the default.
-- Filters merge as an **ordered logical AND**: the user's `name` filter and the scope's `realm.id` condition both survive. Fields and sort retain keyed left priority.
+- `search ? … : undefined` contributes **no condition** for an empty box, so there is no `if`-shuffling around the query object.
+- Filters merge as an **ordered logical AND**: the user's `name` filter, the scope's `realm.id` condition and the `age` baseline all survive. Fields and sort retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
 
-When a UI control replaces a previous search or range, choose its current value before calling `defineQuery`; do not compose old and new UI values with `mergeQueries`. Once filters are part of a query, composition intentionally retains every predicate.
+Once filters are part of a query, composition intentionally retains every predicate. When one control has to *replace* a previous value (a status dropdown, a date range), choose between its alternatives before calling `defineQuery`, as in [Replacing UI state](/guide/merging-queries#replacing-ui-state). Select only between values that control can hold: a baseline like `age >= 18` is not one of them, which is why it stays in `defaults`.
 
 ## Framework flavors
 
