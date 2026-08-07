@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-mongo",
-    "version": "2.0.0-beta.18",
+    "version": "2.0.0-beta.19",
     "description": "Parse MongoDB-style filter documents (e.g. { age: { $gte: 18 } }) into a rapiq query AST.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,12 +16,12 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.0.0-beta.18",
-        "@rapiq/parser-simple": "^2.0.0-beta.18"
+        "@rapiq/core": "^2.0.0-beta.19",
+        "@rapiq/parser-simple": "^2.0.0-beta.19"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.0.0-beta.18",
-        "@rapiq/parser-simple": "^2.0.0-beta.18"
+        "@rapiq/core": "^2.0.0-beta.19",
+        "@rapiq/parser-simple": "^2.0.0-beta.19"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
