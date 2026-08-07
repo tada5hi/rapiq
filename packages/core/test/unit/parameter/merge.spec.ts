@@ -73,15 +73,29 @@ describe('src/parameter/merge.ts', () => {
         expect(output.pagination.offset).toBe(20);
     });
 
-    it('should replace same-field filters with left priority (search over defaults)', () => {
-        const searchQ = defineQuery<User>({ filters: { name: { $contains: 'Jo' } } });
-        const defaultsQ = defineQuery<User>({ filters: { name: 'John', age: { $gte: 18 } } });
-
-        const output = mergeQueries(searchQ, defaultsQ);
+    it('should retain same-field range conditions from both queries', () => {
+        const output = mergeQueries(
+            defineQuery<User>({ filters: { age: { $gte: 18 } } }),
+            defineQuery<User>({ filters: { age: { $lt: 65 } } }),
+        );
 
         expect(conditions(output.filters)).toEqual([
-            ['name', 'contains', 'Jo'],
             ['age', 'gte', 18],
+            ['age', 'lt', 65],
+        ]);
+    });
+
+    it('should retain contradictory same-field conditions in argument order', () => {
+        const a = defineQuery<User>({ filters: { name: 'a' } });
+        const b = defineQuery<User>({ filters: { name: 'b' } });
+
+        expect(conditions(mergeQueries(a, b).filters)).toEqual([
+            ['name', 'eq', 'a'],
+            ['name', 'eq', 'b'],
+        ]);
+        expect(conditions(mergeQueries(b, a).filters)).toEqual([
+            ['name', 'eq', 'b'],
+            ['name', 'eq', 'a'],
         ]);
     });
 
@@ -175,12 +189,11 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         expect(scoped.value[1].sealed).toBe(true);
     });
 
-    it('should not allow a later replace-merge to displace an injected condition', () => {
+    it('should retain a later condition alongside an injected condition', () => {
         const parsed = defineQuery<User>({ filters: { name: 'John' } });
         const scoped = parsed.filters.and(eq('realm.id', 'master'));
 
-        // the injected condition is sealed, so a same-field condition
-        // narrows the result instead of displacing the scope.
+        // conjunction keeps both same-field conditions.
         const hostile = new Filters(FilterCompoundOperator.AND, [
             eq('realm.id', 'evil'),
         ]);
@@ -191,11 +204,11 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
             ['realm.id', 'eq', 'master'],
         ]);
 
-        // the other direction displaces the hostile condition outright:
-        // the receiver already constrains that field.
+        // argument order is preserved in the other direction too.
         expect(conditions(scoped.merge(hostile))).toEqual([
             ['name', 'eq', 'John'],
             ['realm.id', 'eq', 'master'],
+            ['realm.id', 'eq', 'evil'],
         ]);
     });
 
@@ -285,6 +298,25 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         expect(output.value).toHaveLength(3);
         expect(output.value[1]).toBe(group);
         expect((output.value[2] as IFilter).field).toBe('b');
+    });
+
+    it('should preserve all leaves when merging nested and flattened root ANDs', () => {
+        const nested = and(
+            eq('name', 'John'),
+            and(gte('age', 18), eq('active', true)),
+        );
+        const other = and(eq('realm.id', 'master'));
+
+        const nestedOutput = nested.merge(other);
+        const flatOutput = nested.flatten().merge(other);
+
+        expect(conditions(nestedOutput)).toEqual(conditions(flatOutput));
+        expect(conditions(nestedOutput)).toEqual([
+            ['name', 'eq', 'John'],
+            ['age', 'gte', 18],
+            ['active', 'eq', true],
+            ['realm.id', 'eq', 'master'],
+        ]);
     });
 
     it('should treat a receiver that is not a root-AND as one conjunct', () => {

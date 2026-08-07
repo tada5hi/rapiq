@@ -7,7 +7,6 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import type { ConditionOptions, ICondition } from '../condition';
-import { isFilter } from '../record';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
@@ -84,15 +83,9 @@ export class Filters<
     }
 
     /**
-     * Per-field replace (left/receiver priority): a conjunct of the other
-     * side is dropped when the receiver already constrains the same field.
-     * Only displaceable leaf conditions take part — a sealed condition and
-     * a nested group are inert: never displaced, never dropped, carried
-     * through as they are. A root that is not a displaceable AND counts as
-     * one such group, which makes the operation total. Every conjunct of
-     * the receiver survives into the result, so the outcome is never wider
-     * than the receiver; only the other side can lose conditions, which is
-     * what per-field replace is for.
+     * Ordered logical conjunction. Each condition from both sides survives
+     * in argument order. An unsealed root AND contributes its flattened
+     * child conjuncts, while every other root remains one conjunct.
      */
     merge(other: IFilters) : IFilters {
         if (this.value.length === 0) {
@@ -103,37 +96,17 @@ export class Filters<
             return this;
         }
 
-        const left = toConjuncts(this);
-
-        const seen = new Set<string>();
-        for (const condition of left) {
-            if (isFilter(condition)) {
-                seen.add(condition.field);
-            }
-        }
-
-        const output : ICondition[] = [...left];
-        for (const condition of toConjuncts(other)) {
-            if (
-                isFilter(condition) &&
-                !condition.sealed &&
-                seen.has(condition.field)
-            ) {
-                continue;
-            }
-
-            output.push(condition);
-        }
-
-        return new Filters(FilterCompoundOperator.AND, output);
+        return new Filters(FilterCompoundOperator.AND, [
+            ...toConjuncts(this),
+            ...toConjuncts(other),
+        ]);
     }
 
     /**
      * Wrap & inject (immutable): the given conditions are sealed and
      * combined with the receiver under an AND group. Sealed conditions
-     * survive both normalization ({@link Filters.flatten}) and later
-     * replace-merges ({@link Filters.merge}), so a scoping condition
-     * injected here cannot be displaced by anything composed afterwards.
+     * survive normalization ({@link Filters.flatten}), so a scoping
+     * condition injected here remains an explicit conjunct.
      */
     and(...conditions: ICondition[]) : IFilters {
         return this.wrap(FilterCompoundOperator.AND, conditions);
@@ -160,8 +133,7 @@ export class Filters<
         }
 
         // a receiver already carrying that operator contributes its
-        // conditions directly (associativity), which keeps the group flat
-        // and its own conditions displaceable by a later merge.
+        // conditions directly (associativity), which keeps the group flat.
         if (
             this.operator === operator &&
             operator !== FilterCompoundOperator.NOT &&
@@ -188,16 +160,16 @@ function sealCondition(condition: ICondition) : ICondition {
 }
 
 /**
- * The conjuncts a {@link Filters.merge} operates on: the children of a
- * displaceable root-AND, or the whole node — a group, a sealed tree, any
- * other compound operator — as one inert conjunct.
+ * The conjuncts a {@link Filters.merge} operates on: the flattened
+ * children of an unsealed root AND, or the whole node for a sealed tree
+ * or any other compound operator.
  */
 function toConjuncts(input: IFilters) : ICondition[] {
     if (
         input.operator === FilterCompoundOperator.AND &&
         !input.sealed
     ) {
-        return input.value;
+        return input.flatten().value;
     }
 
     return [input];

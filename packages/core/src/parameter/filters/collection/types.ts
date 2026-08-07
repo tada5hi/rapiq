@@ -19,9 +19,8 @@ export interface IFilters<
     readonly value : T[];
 
     /**
-     * Displaceability marker: a sealed group is never dropped by a
-     * later {@link IFilters.merge} and never collapsed into its parent
-     * by {@link IFilters.flatten}.
+     * Protection marker: a sealed group is never collapsed into its parent
+     * by {@link IFilters.flatten}. Filter merges remain conjunctive.
      */
     readonly sealed?: boolean;
 
@@ -36,6 +35,10 @@ export interface IFilters<
 
     flatten(items?: T[]) : IFilters<T>;
 
+    /**
+     * Combine both groups as an ordered logical AND. Empty groups are the
+     * identity; every condition from either non-empty group is retained.
+     */
     merge(other: IFilters) : IFilters;
 
     and(...conditions: ICondition[]) : IFilters;
