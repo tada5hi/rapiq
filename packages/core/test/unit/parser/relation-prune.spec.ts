@@ -296,6 +296,17 @@ describe('src/parser/relation-prune.ts', () => {
                 .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
+        it('throws instead of dropping any leaf holding a preserved interior', () => {
+            // the drop takes the whole subtree with it, so the refusal cannot
+            // depend on which operator happens to address an interior.
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filter('customOp', 'items', preserve(eq('id'))),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
         it('throws instead of pruning the interior of a preserved elemMatch', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
                 preserve(new Filter(

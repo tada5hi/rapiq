@@ -189,26 +189,34 @@ function pruneCondition(
     prefix: string,
     preserved: boolean,
 ) : ICondition | undefined {
-    // The marker protects the whole subtree it heads. Custom conditions cannot
-    // carry it directly and are protected through preserve()'s built-in wrapper.
+    // The marker protects the whole subtree it heads. `preserve()` sets it on
+    // the built-in nodes and wraps anything else, but the marker itself is
+    // part of ICondition, so a custom condition setting it is honoured too.
     const preserved2 = preserved || isConditionPreservedAtRoot(node);
 
     if (isFilter(node)) {
         const field = joinPath(prefix, node.field);
         const rejectedBy = matchRelationRejected(field, rejected);
 
+        // Dropping a leaf drops everything addressed below it, so the refusal
+        // is decided over the whole subtree rather than this node alone: an
+        // interior condition (`elemMatch`, or any operator built the same way)
+        // can carry the marker its parent does not.
+        if (typeof rejectedBy === 'string') {
+            return dropUnlessPreserved(
+                rejectedBy,
+                field,
+                preserved2 || isConditionPreserved(node),
+            );
+        }
+
+        // Descending is gated on the operator, not on the value shape: only
+        // `elemMatch` is known to address its interior relative to the element,
+        // which is what `field` becomes the prefix for.
         if (
             node.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(node.value)
         ) {
-            if (typeof rejectedBy === 'string') {
-                return dropUnlessPreserved(
-                    rejectedBy,
-                    field,
-                    preserved2 || isConditionPreserved(node.value),
-                );
-            }
-
             const interior = pruneCondition(node.value, rejected, field, preserved2);
             if (!interior) {
                 return undefined;
@@ -217,13 +225,9 @@ function pruneCondition(
             if (interior !== node.value) {
                 return new Filter(node.operator, node.field, interior, { preserved: node.preserved });
             }
-
-            return node;
         }
 
-        return typeof rejectedBy === 'string' ?
-            dropUnlessPreserved(rejectedBy, field, preserved2) :
-            node;
+        return node;
     }
 
     if (!isFilters(node)) {
@@ -258,11 +262,10 @@ function isConditionPreserved(node: ICondition) : boolean {
         return node.value.some((child) => isConditionPreserved(child));
     }
 
-    if (
-        isFilter(node) &&
-        node.operator === FilterFieldOperator.ELEM_MATCH &&
-        isCondition(node.value)
-    ) {
+    // A leaf value can be a condition in its own right, and it goes away with
+    // the leaf. The addressing convention does not matter here: the question
+    // is only whether anything below is marked.
+    if (isFilter(node) && isCondition(node.value)) {
         return isConditionPreserved(node.value);
     }
 

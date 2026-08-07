@@ -14,8 +14,14 @@ import type { IFilter } from './record';
 
 export function preserve<OP extends string, V>(condition: IFilter<OP, V>): IFilter<OP, V>;
 export function preserve<T extends ICondition>(condition: IFilters<T>): IFilters<T>;
-export function preserve(condition: ICondition): IFilters;
-export function preserve(condition: ICondition): IFilter | IFilters {
+/**
+ * The catch-all admits every subtype too, so it cannot promise the
+ * {@link IFilters} wrapper a custom condition receives: an argument merely
+ * *typed* as {@link ICondition} may still be a leaf at runtime. Narrow the
+ * result with `isFilter` / `isFilters` when the kind matters.
+ */
+export function preserve(condition: ICondition): ICondition;
+export function preserve(condition: ICondition): ICondition {
     if (isFilter(condition)) {
         return condition.preserved ? condition :
             new Filter(condition.operator, condition.field, condition.value, { preserved: true });

@@ -62,6 +62,13 @@ describe('src/parameter/filters condition contract', () => {
             operator: 'custom',
             value: {},
         })).toBe(false);
+
+        // the brand is asserted, not merely present.
+        expect(isCondition({
+            [CONDITION_MARKER]: false,
+            operator: 'custom',
+            value: {},
+        })).toBe(false);
     });
 
     it('should retain specialized visitor dispatch for built-in conditions', () => {

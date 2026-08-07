@@ -12,7 +12,7 @@ export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition
 export interface ICondition<
     T = unknown,
 > {
-    readonly [CONDITION_MARKER]: boolean;
+    readonly [CONDITION_MARKER]: true;
 
     /**
      * Relation-pruning protection marker. A preserved group stays atomic
@@ -34,7 +34,11 @@ export function isCondition(input: unknown) : input is ICondition {
         return false;
     }
 
-    if (!(CONDITION_MARKER in input)) {
+    // the brand is asserted, not merely present: reading the value keeps a
+    // `[CONDITION_MARKER]: false` object out, which the interface now
+    // rejects at compile time too.
+    const marker : unknown = (input as { [CONDITION_MARKER]?: unknown })[CONDITION_MARKER];
+    if (marker !== true) {
         return false;
     }
 
@@ -64,7 +68,7 @@ export type ConditionOptions = {
 export abstract class Condition<
     T = unknown,
 > implements ICondition<T> {
-    get [CONDITION_MARKER]() : boolean {
+    get [CONDITION_MARKER]() : true {
         return true;
     }
 

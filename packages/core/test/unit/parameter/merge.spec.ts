@@ -5,7 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { IFilter, IFilters } from '../../../src';
+import type { ICondition, IFilter, IFilters } from '../../../src';
 import {
     Condition,
     ErrorCode,
@@ -20,6 +20,7 @@ import {
     defineQuery,
     eq,
     gte,
+    isFilter,
     isFilters,
     mergeQueries,
     or,
@@ -368,6 +369,17 @@ describe('src/parameter/filters/preserve.ts', () => {
         expect(output).not.toBe(condition);
         expect(output.preserved).toBe(true);
         expect(preserve(output)).toBe(output);
+    });
+
+    it('should return the same kind it received rather than always wrapping', () => {
+        // the catch-all overload admits every subtype, so it promises only
+        // ICondition back: a leaf stays a leaf and has no group operations.
+        const condition: ICondition = eq('realm_id', 'master');
+        const output = preserve(condition);
+
+        expect(isFilter(output)).toBe(true);
+        expect(isFilters(output)).toBe(false);
+        expect((output as unknown as IFilters).and).toBeUndefined();
     });
 
     it('should preserve a custom condition through a built-in wrapper', () => {
