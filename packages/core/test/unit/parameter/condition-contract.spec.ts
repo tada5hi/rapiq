@@ -12,11 +12,13 @@ import type {
     IFilters,
 } from '../../../src';
 import {
+    Condition,
     FilterCompoundOperator,
     Filters,
     and,
     elemMatch,
     eq,
+    isCondition,
     isFilter,
     isFilters,
     not,
@@ -39,25 +41,17 @@ interface IUnsealedCustomCondition extends ICondition<CustomValue> {
     seal(): ISealedCustomCondition;
 }
 
-class CustomCondition implements ICondition<CustomValue> {
-    readonly operator: string;
-
+class CustomCondition extends Condition<CustomValue> {
     readonly field: string;
 
-    readonly sealed?: boolean;
-
     constructor(
-        readonly value: CustomValue,
+        value: CustomValue,
         sealed?: boolean,
         operator = 'custom',
         field = 'not-a-built-in-leaf',
     ) {
-        this.operator = operator;
+        super(operator, value, { sealed });
         this.field = field;
-
-        if (sealed) {
-            this.sealed = true;
-        }
     }
 
     seal(): ICondition<CustomValue> {
@@ -70,6 +64,19 @@ class CustomCondition implements ICondition<CustomValue> {
 }
 
 describe('src/parameter/filters condition contract', () => {
+    it('should identify conditions through a non-serializable brand', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const detached = JSON.parse(JSON.stringify(condition));
+
+        expect(isCondition(condition)).toBe(true);
+        expect(isCondition(detached)).toBe(false);
+        expect(isCondition({
+            operator: 'custom',
+            value: {},
+            seal() { return this; },
+        })).toBe(false);
+    });
+
     it('should retain specialized visitor dispatch for built-in conditions', () => {
         const leaf = eq('name', 'Peter');
         const group = and(eq('active', true));

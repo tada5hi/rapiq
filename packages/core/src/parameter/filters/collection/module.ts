@@ -6,32 +6,20 @@
  */
 
 import { FilterCompoundOperator } from '../../../schema';
+import { Condition } from '../condition';
 import type { ConditionOptions, ICondition } from '../condition';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
 export class Filters<
     T extends ICondition = ICondition,
-> implements IFilters<T> {
-    readonly value: T[];
-
-    readonly operator: string;
-
-    readonly sealed?: boolean;
-
+> extends Condition<T[]> implements IFilters<T> {
     constructor(
         operator: string,
         conditions: T[],
         options: ConditionOptions = {},
     ) {
-        this.operator = operator;
-        this.value = conditions;
-
-        // only set when sealed, so an unsealed group stays
-        // structurally identical to what earlier versions produced.
-        if (options.sealed) {
-            this.sealed = true;
-        }
+        super(operator, conditions, options);
     }
 
     accept<R>(visitor: IFiltersVisitor<R>) : R {

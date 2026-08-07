@@ -7,9 +7,13 @@
 
 import { isObject } from '../../utils';
 
+export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition') as never;
+
 export interface ICondition<
     T = unknown,
 > {
+    readonly [CONDITION_MARKER]: true;
+
     readonly operator: string;
 
     readonly value: T;
@@ -26,15 +30,13 @@ export interface ICondition<
 }
 
 /**
- * Identify a live structural condition through the behavior shared by every
- * implementation. Visitor dispatch is deliberately not part of this check.
+ * Identify a live condition by its non-serializable marker. Visitor dispatch
+ * is deliberately not part of this check.
  */
 export function isCondition(input: unknown) : input is ICondition {
     return (
         isObject(input) &&
-        typeof input.operator === 'string' &&
-        'value' in input &&
-        typeof input.seal === 'function'
+        (input as { readonly [CONDITION_MARKER]?: unknown })[CONDITION_MARKER] === true
     );
 }
 
@@ -52,6 +54,10 @@ export type ConditionOptions = {
 export abstract class Condition<
     T = unknown,
 > implements ICondition<T> {
+    get [CONDITION_MARKER]() : true {
+        return true;
+    }
+
     readonly operator: string;
 
     readonly value: T;
