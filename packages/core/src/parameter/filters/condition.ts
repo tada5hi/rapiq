@@ -7,12 +7,18 @@
 
 import { isObject } from '../../utils';
 
-export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition') as never;
+export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition');
 
 export interface ICondition<
     T = unknown,
 > {
-    readonly [CONDITION_MARKER]: true;
+    readonly [CONDITION_MARKER]: boolean;
+
+    /**
+     * Relation-pruning protection marker. A preserved group stays atomic
+     * during normalization and pruning applies its contract to the subtree.
+     */
+    readonly preserved?: boolean;
 
     readonly operator: string;
 
@@ -24,18 +30,30 @@ export interface ICondition<
  * is deliberately not part of this check.
  */
 export function isCondition(input: unknown) : input is ICondition {
-    return (
-        isObject(input) &&
-        (input as { readonly [CONDITION_MARKER]?: unknown })[CONDITION_MARKER] === true &&
-        typeof input.operator === 'string' &&
-        'value' in input
-    );
+    if (!isObject(input)) {
+        return false;
+    }
+
+    if (!(CONDITION_MARKER in input)) {
+        return false;
+    }
+
+    if (typeof input.operator !== 'string') {
+        return false;
+    }
+
+    if (!('value' in input)) {
+        return false;
+    }
+
+    return typeof input.preserved === 'undefined' ||
+        typeof input.preserved === 'boolean';
 }
 
 /**
  * Construction options shared only by the built-in filter nodes.
  */
-export type BuiltInConditionOptions = {
+export type ConditionOptions = {
     preserved?: boolean,
 };
 
@@ -46,7 +64,7 @@ export type BuiltInConditionOptions = {
 export abstract class Condition<
     T = unknown,
 > implements ICondition<T> {
-    get [CONDITION_MARKER]() : true {
+    get [CONDITION_MARKER]() : boolean {
         return true;
     }
 
@@ -54,7 +72,7 @@ export abstract class Condition<
 
     readonly value: T;
 
-    constructor(
+    protected constructor(
         operator: string,
         value: T,
     ) {

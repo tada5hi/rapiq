@@ -18,12 +18,6 @@ export interface IFilters<
 
     readonly value : T[];
 
-    /**
-     * Relation-pruning protection marker. A preserved group stays atomic
-     * during normalization and pruning applies its contract to the subtree.
-     */
-    readonly preserved?: true;
-
     accept<R>(visitor: IFiltersVisitor<R>) : R;
 
     flatten(items?: T[]) : IFilters<T>;

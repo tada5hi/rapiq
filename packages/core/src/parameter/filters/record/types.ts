@@ -29,11 +29,5 @@ export interface IFilter<
 
     readonly value: VALUE;
 
-    /**
-     * Relation-pruning protection marker. A preserved leaf must not be
-     * discarded when a relation validator rejects a path it traverses.
-     */
-    readonly preserved?: true;
-
     accept<R>(visitor: IFilterVisitor<R>) : R;
 }

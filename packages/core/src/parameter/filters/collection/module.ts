@@ -7,19 +7,19 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import { Condition } from '../condition';
-import type { BuiltInConditionOptions, ICondition } from '../condition';
+import type { ConditionOptions, ICondition } from '../condition';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
 export class Filters<
     T extends ICondition = ICondition,
 > extends Condition<T[]> implements IFilters<T> {
-    readonly preserved?: true;
+    readonly preserved?: boolean;
 
     constructor(
         operator: string,
         conditions: T[],
-        options: BuiltInConditionOptions = {},
+        options: ConditionOptions = {},
     ) {
         super(operator, conditions);
 

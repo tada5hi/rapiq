@@ -191,7 +191,7 @@ function pruneCondition(
 ) : ICondition | undefined {
     // The marker protects the whole subtree it heads. Custom conditions cannot
     // carry it directly and are protected through preserve()'s built-in wrapper.
-    const preserved2 = preserved || isBuiltInConditionPreserved(node);
+    const preserved2 = preserved || isConditionPreservedAtRoot(node);
 
     if (isFilter(node)) {
         const field = joinPath(prefix, node.field);
@@ -205,7 +205,7 @@ function pruneCondition(
                 return dropUnlessPreserved(
                     rejectedBy,
                     field,
-                    preserved2 || hasPreservedBuiltInCondition(node.value),
+                    preserved2 || isConditionPreserved(node.value),
                 );
             }
 
@@ -245,21 +245,17 @@ function pruneCondition(
     return new Filters(node.operator, conditions, { preserved: node.preserved });
 }
 
-function isBuiltInConditionPreserved(node: ICondition) : boolean {
-    if (isFilter(node) || isFilters(node)) {
-        return node.preserved === true;
-    }
-
-    return false;
+function isConditionPreservedAtRoot(node: ICondition) : boolean {
+    return node.preserved === true;
 }
 
-function hasPreservedBuiltInCondition(node: ICondition) : boolean {
-    if (isBuiltInConditionPreserved(node)) {
+function isConditionPreserved(node: ICondition) : boolean {
+    if (isConditionPreservedAtRoot(node)) {
         return true;
     }
 
     if (isFilters(node)) {
-        return node.value.some((child) => hasPreservedBuiltInCondition(child));
+        return node.value.some((child) => isConditionPreserved(child));
     }
 
     if (
@@ -267,7 +263,7 @@ function hasPreservedBuiltInCondition(node: ICondition) : boolean {
         node.operator === FilterFieldOperator.ELEM_MATCH &&
         isCondition(node.value)
     ) {
-        return hasPreservedBuiltInCondition(node.value);
+        return isConditionPreserved(node.value);
     }
 
     return false;
