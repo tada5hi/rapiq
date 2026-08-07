@@ -30,6 +30,12 @@ export interface IFilter<
     readonly value: VALUE;
 
     /**
+     * Relation-pruning protection marker. A preserved leaf must not be
+     * discarded when a relation validator rejects a path it traverses.
+     */
+    readonly preserved?: true;
+
+    /**
      * Displaceability marker: a sealed leaf is never dropped by a
      * later `merge` and never hoisted out of its group by `flatten`.
      */

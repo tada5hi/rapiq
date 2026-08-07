@@ -19,6 +19,12 @@ export interface IFilters<
     readonly value : T[];
 
     /**
+     * Relation-pruning protection marker. A preserved group stays atomic
+     * during normalization and pruning applies its contract to the subtree.
+     */
+    readonly preserved?: true;
+
+    /**
      * Protection marker: a sealed group is never collapsed into its parent
      * by {@link IFilters.flatten}. Filter merges remain conjunctive.
      */

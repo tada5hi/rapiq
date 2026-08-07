@@ -7,6 +7,7 @@
 
 import type { ICondition, IFilter } from '../../../src';
 import {
+    Condition,
     ErrorCode,
     Field,
     Fields,
@@ -19,14 +20,26 @@ import {
     defineQuery,
     eq,
     gte,
+    isFilters,
     mergeQueries,
     or,
+    preserve,
     seal,
 } from '../../../src';
 import type { User } from '../../data';
 
 const conditions = (filters: { value: unknown[] }) => (filters.value as IFilter[])
     .map((el) => [el.field, el.operator, el.value]);
+
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
+    }
+
+    seal() : ICondition<{ scope: string }> {
+        return this;
+    }
+}
 
 describe('src/parameter/merge.ts', () => {
     it('should return an empty query without input', () => {
@@ -338,6 +351,38 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
 
         expect(empty.merge(compound)).toBe(compound);
         expect(compound.merge(empty)).toBe(compound);
+    });
+});
+
+describe('src/parameter/filters/preserve.ts', () => {
+    it('should preserve a built-in leaf immutably and idempotently', () => {
+        const condition = eq('realm_id', 'master');
+        const output = preserve(condition);
+
+        expect(output).not.toBe(condition);
+        expect(output.preserved).toBe(true);
+        expect(preserve(output)).toBe(output);
+    });
+
+    it('should preserve a custom condition through a built-in wrapper', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const output = preserve(condition);
+
+        expect(isFilters(output)).toBe(true);
+        expect(output.preserved).toBe(true);
+        expect(output.value).toEqual([condition]);
+    });
+
+    it('should keep a preserved root group atomic through flatten and merge', () => {
+        const preservedRoot = preserve(and(eq('a', 1)));
+        const other = new Filters(FilterCompoundOperator.AND, [eq('a', 9)]);
+
+        expect(preservedRoot.flatten().preserved).toBe(true);
+        expect(and(eq('b', 2), preservedRoot).flatten().value[1]).toBe(preservedRoot);
+
+        const output = other.merge(preservedRoot);
+        expect(output.value).toHaveLength(2);
+        expect(output.value[1]).toBe(preservedRoot);
     });
 });
 

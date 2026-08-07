@@ -117,15 +117,15 @@ export function pruneRelationsByRelations(relations: IRelations, rejected: strin
  * running `prefix` reconstructs their absolute path before matching. Falls back
  * to the schema `default` when pruning empties the parameter.
  *
- * A sealed condition is exempt from the drop, not from the gate: pruning
- * anything out of a sealed subtree returns a query the sealed condition does
- * not describe (wider under the `and(<leaf>, <scope>)` shape a filters
+ * A preserved condition is exempt from the drop, not from the gate: pruning
+ * anything out of a preserved subtree returns a query the preserved condition
+ * does not describe (wider under the `and(<leaf>, <scope>)` shape a filters
  * validator produces, narrower under an `or`), while keeping it would join a
  * relation the relations validator rejected. Neither outcome is correct, so the
  * contradiction between the two validators throws {@link SchemaError}
- * (`SCHEMA_SEALED_CONDITION_PRUNED`) instead of resolving it silently. The
- * decision is per node, not per operator: the seal says the condition survives
- * composition intact, and pruning is not asked to reason about which shapes
+ * (`SCHEMA_PRESERVED_CONDITION_PRUNED`) instead of resolving it silently. The
+ * decision is per node, not per operator: preservation says the condition
+ * survives composition intact, and pruning is not asked to reason about which shapes
  * happen to fail open.
  */
 export function pruneFiltersByRelations(
@@ -150,13 +150,13 @@ export function pruneFiltersByRelations(
 
         // The default is the server's own baseline and is exempt from the gate:
         // it is re-applied here un-pruned, even when it names a rejected
-        // relation. A sealed default asserts the same must-survive contract as
+        // relation. A preserved default asserts the same must-survive contract as
         // a validator residual though, so it is checked: without this, the very
         // same default would throw or survive depending on whether the client
         // sent a filter of its own, which is what decides whether it was
         // materialized before this pass or after it.
         for (const condition of conditions) {
-            assertSealedSurvivesPruning(condition, rejected);
+            assertPreservedSurvivesPruning(condition, rejected);
         }
     }
 
@@ -164,20 +164,20 @@ export function pruneFiltersByRelations(
 }
 
 /**
- * Raise the sealed-condition contradiction for a condition that is kept rather
+ * Raise the preserved-condition contradiction for a condition that is kept rather
  * than pruned. The pruned copy is discarded: only the throw matters here.
  */
-function assertSealedSurvivesPruning(condition: ICondition, rejected: string[]) : void {
+function assertPreservedSurvivesPruning(condition: ICondition, rejected: string[]) : void {
     pruneCondition(condition, rejected, '', false);
 }
 
 /**
- * Drop the condition at `field`, unless it is protected: a drop inside a sealed
+ * Drop the condition at `field`, unless it is protected: a drop inside a preserved
  * subtree is the one case pruning must refuse rather than resolve.
  */
-function dropUnlessSealed(relation: string, field: string, sealed: boolean) : undefined {
-    if (sealed) {
-        throw SchemaError.sealedConditionPruned(relation, field);
+function dropUnlessPreserved(relation: string, field: string, preserved: boolean) : undefined {
+    if (preserved) {
+        throw SchemaError.preservedConditionPruned(relation, field);
     }
 
     return undefined;
@@ -187,11 +187,11 @@ function pruneCondition(
     node: ICondition,
     rejected: string[],
     prefix: string,
-    sealed: boolean,
+    preserved: boolean,
 ) : ICondition | undefined {
-    // the marker protects the whole subtree it heads: every condition below a
-    // seal is part of what the seal says must survive.
-    const sealed2 = sealed || !!node.sealed;
+    // The marker protects the whole subtree it heads. Custom conditions cannot
+    // carry it directly and are protected through preserve()'s built-in wrapper.
+    const preserved2 = preserved || isBuiltInConditionPreserved(node);
 
     if (isFilter(node)) {
         const field = joinPath(prefix, node.field);
@@ -202,23 +202,26 @@ function pruneCondition(
             isCondition(node.value)
         ) {
             if (typeof rejectedBy === 'string') {
-                return dropUnlessSealed(rejectedBy, field, sealed2);
+                return dropUnlessPreserved(rejectedBy, field, preserved2);
             }
 
-            const interior = pruneCondition(node.value, rejected, field, sealed2);
+            const interior = pruneCondition(node.value, rejected, field, preserved2);
             if (!interior) {
                 return undefined;
             }
 
             if (interior !== node.value) {
-                return new Filter(node.operator, node.field, interior, { sealed: node.sealed });
+                return new Filter(node.operator, node.field, interior, {
+                    preserved: node.preserved,
+                    sealed: node.sealed,
+                });
             }
 
             return node;
         }
 
         return typeof rejectedBy === 'string' ?
-            dropUnlessSealed(rejectedBy, field, sealed2) :
+            dropUnlessPreserved(rejectedBy, field, preserved2) :
             node;
     }
 
@@ -228,7 +231,7 @@ function pruneCondition(
 
     const conditions : ICondition[] = [];
     for (const child of node.value) {
-        const child2 = pruneCondition(child, rejected, prefix, sealed2);
+        const child2 = pruneCondition(child, rejected, prefix, preserved2);
         if (child2) {
             conditions.push(child2);
         }
@@ -238,7 +241,18 @@ function pruneCondition(
         return undefined;
     }
 
-    return new Filters(node.operator, conditions, { sealed: node.sealed });
+    return new Filters(node.operator, conditions, {
+        preserved: node.preserved,
+        sealed: node.sealed,
+    });
+}
+
+function isBuiltInConditionPreserved(node: ICondition) : boolean {
+    if (isFilter(node) || isFilters(node)) {
+        return node.preserved === true;
+    }
+
+    return false;
 }
 
 function buildSortDefaults(schema: SortSchema) : Sorts {

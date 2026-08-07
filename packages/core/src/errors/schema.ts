@@ -40,12 +40,12 @@ export class SchemaError extends BaseError {
         });
     }
 
-    static sealedConditionPruned(relation: string, field: string) {
+    static preservedConditionPruned(relation: string, field: string) {
         return new this({
-            message: `The relations validator rejected "${relation}", but the sealed filter condition on ` +
-                `"${field}" traverses it. A sealed condition must not be dropped, and a rejected relation ` +
-                'must not be joined: align the relations validator with the filters validator that sealed it.',
-            code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED,
+            message: `The relations validator rejected "${relation}", but the preserved filter condition on ` +
+                `"${field}" traverses it. A preserved condition must not be dropped, and a rejected relation ` +
+                'must not be joined: align the relations validator with the filters validator that preserved it.',
+            code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED,
         });
     }
 

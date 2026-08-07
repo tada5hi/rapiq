@@ -50,6 +50,13 @@ export type ConditionOptions = {
 };
 
 /**
+ * Construction options shared only by the built-in filter nodes.
+ */
+export type BuiltInConditionOptions = ConditionOptions & {
+    preserved?: boolean,
+};
+
+/**
  * Optional implementation base for conditions; structural implementations
  * can implement {@link ICondition} without extending this class.
  */

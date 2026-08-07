@@ -7,19 +7,25 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import { Condition } from '../condition';
-import type { ConditionOptions, ICondition } from '../condition';
+import type { BuiltInConditionOptions, ICondition } from '../condition';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 
 export class Filters<
     T extends ICondition = ICondition,
 > extends Condition<T[]> implements IFilters<T> {
+    readonly preserved?: true;
+
     constructor(
         operator: string,
         conditions: T[],
-        options: ConditionOptions = {},
+        options: BuiltInConditionOptions = {},
     ) {
         super(operator, conditions, options);
+
+        if (options.preserved) {
+            this.preserved = true;
+        }
     }
 
     accept<R>(visitor: IFiltersVisitor<R>) : R {
@@ -31,7 +37,10 @@ export class Filters<
             return this;
         }
 
-        return new Filters<T>(this.operator, this.value, { sealed: true });
+        return new Filters<T>(this.operator, this.value, {
+            preserved: this.preserved,
+            sealed: true,
+        });
     }
 
     flatten(aggregatedResult?: T[]) : IFilters<T> {
@@ -40,7 +49,7 @@ export class Filters<
         return new Filters(
             this.operator,
             this.flattenInternal(this.value, this.operator, aggregatedResult),
-            { sealed: this.sealed },
+            { preserved: this.preserved, sealed: this.sealed },
         );
     }
 
@@ -59,7 +68,8 @@ export class Filters<
             if (
                 isFilters(currentNode, operator) &&
                 operator !== FilterCompoundOperator.NOT &&
-                !currentNode.sealed
+                !currentNode.sealed &&
+                !currentNode.preserved
             ) {
                 currentNode.flatten(flatConditions);
             } else {
@@ -155,7 +165,8 @@ function sealCondition(condition: ICondition) : ICondition {
 function toConjuncts(input: IFilters) : ICondition[] {
     if (
         input.operator === FilterCompoundOperator.AND &&
-        !input.sealed
+        !input.sealed &&
+        !input.preserved
     ) {
         return input.flatten().value;
     }

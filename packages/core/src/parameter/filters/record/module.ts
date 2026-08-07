@@ -7,7 +7,7 @@
 
 import type { FilterFieldOperator } from '../../../schema';
 import { Condition } from '../condition';
-import type { ConditionOptions } from '../condition';
+import type { BuiltInConditionOptions } from '../condition';
 import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
@@ -16,14 +16,20 @@ export class Filter<
 > extends Condition<VALUE> implements IFilter<OPERATOR, VALUE> {
     readonly field: string;
 
+    readonly preserved?: true;
+
     constructor(
         operator: string,
         field: string,
         value: VALUE,
-        options: ConditionOptions = {},
+        options: BuiltInConditionOptions = {},
     ) {
         super(operator, value, options);
         this.field = field;
+
+        if (options.preserved) {
+            this.preserved = true;
+        }
     }
 
     accept<R>(visitor: IFilterVisitor<R>) : R {
@@ -39,7 +45,7 @@ export class Filter<
             this.operator,
             this.field,
             this.value,
-            { sealed: true },
+            { preserved: this.preserved, sealed: true },
         );
     }
 }

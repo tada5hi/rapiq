@@ -11,6 +11,7 @@ import {
     isCondition,
     isFilter,
     isFilters,
+    preserve,
     seal,
 } from '../../../parameter';
 import type {
@@ -88,7 +89,10 @@ export function applyFiltersSchemaValidation(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
+                leaf = new Filter(input.operator, input.field, interior, {
+                    preserved: input.preserved,
+                    sealed: input.sealed,
+                });
             }
         }
 
@@ -102,9 +106,11 @@ export function applyFiltersSchemaValidation(
             return undefined;
         }
 
-        // the replacement stands in for the leaf, so it inherits its
-        // protection: a validator must not silently unseal a condition.
-        return leaf.sealed ? seal(output) : output;
+        // The replacement stands in for the leaf, so it inherits both
+        // temporary sealing and relation-pruning preservation.
+        let replacement = leaf.preserved ? preserve(output) : output;
+        replacement = leaf.sealed ? seal(replacement) : replacement;
+        return replacement;
     }
 
     if (!isFilters(input)) {
@@ -123,7 +129,10 @@ export function applyFiltersSchemaValidation(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions, { sealed: input.sealed });
+    return new Filters(input.operator, conditions, {
+        preserved: input.preserved,
+        sealed: input.sealed,
+    });
 }
 
 /**
@@ -162,7 +171,10 @@ export async function applyFiltersSchemaValidationAsync(
             }
 
             if (interior !== input.value) {
-                leaf = new Filter(input.operator, input.field, interior, { sealed: input.sealed });
+                leaf = new Filter(input.operator, input.field, interior, {
+                    preserved: input.preserved,
+                    sealed: input.sealed,
+                });
             }
         }
 
@@ -171,7 +183,9 @@ export async function applyFiltersSchemaValidationAsync(
             return undefined;
         }
 
-        return leaf.sealed ? seal(output) : output;
+        let replacement = leaf.preserved ? preserve(output) : output;
+        replacement = leaf.sealed ? seal(replacement) : replacement;
+        return replacement;
     }
 
     if (!isFilters(input)) {
@@ -190,5 +204,8 @@ export async function applyFiltersSchemaValidationAsync(
         return undefined;
     }
 
-    return new Filters(input.operator, conditions, { sealed: input.sealed });
+    return new Filters(input.operator, conditions, {
+        preserved: input.preserved,
+        sealed: input.sealed,
+    });
 }

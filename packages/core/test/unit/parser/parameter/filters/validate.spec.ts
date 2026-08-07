@@ -15,7 +15,7 @@ import {
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     defineFiltersSchema,
-    seal,
+    preserve,
 } from '../../../../../src';
 import type { IFilter, Validator } from '../../../../../src';
 
@@ -284,10 +284,10 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             .resolves.toBeUndefined();
     });
 
-    it('should keep a sealed condition sealed across validation', async () => {
+    it('should keep a preserved condition preserved across validation', async () => {
         const input = new Filters(FilterCompoundOperator.AND, [
-            seal(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin')),
-        ], { sealed: true });
+            preserve(new Filter(FilterFieldOperator.EQUAL, 'name', 'admin')),
+        ], { preserved: true });
         const schema = defineFiltersSchema({
             // a replacement stands in for the leaf it replaces.
             validate: (filter) => new Filter(filter.operator, filter.field, 'ADMIN'),
@@ -295,15 +295,36 @@ describe('src/parser/parameter/filters/validate.ts', () => {
 
         const output = applyFiltersSchemaValidation(input, schema)!;
         const [leaf] = output.value as IFilter[];
-        expect(output.sealed).toBe(true);
-        expect(leaf!.sealed).toBe(true);
+        expect(output.preserved).toBe(true);
+        expect(leaf!.preserved).toBe(true);
         expect(leaf!.value).toBe('ADMIN');
 
         const outputAsync = (await applyFiltersSchemaValidationAsync(input, schema))!;
         const [asyncLeaf] = outputAsync.value as IFilter[];
-        expect(outputAsync.sealed).toBe(true);
-        expect(asyncLeaf!.sealed).toBe(true);
+        expect(outputAsync.preserved).toBe(true);
+        expect(asyncLeaf!.preserved).toBe(true);
         expect(asyncLeaf!.value).toBe('ADMIN');
+    });
+
+    it('should preserve an elemMatch leaf rebuilt after interior validation', async () => {
+        const input = preserve(new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
+        ));
+        const schema = defineFiltersSchema({
+            validate: (filter) => (filter.field === 'name' ?
+                new Filter(filter.operator, filter.field, 'ADMIN') :
+                filter),
+        });
+
+        const output = applyFiltersSchemaValidation(input, schema) as IFilter;
+        expect(output.preserved).toBe(true);
+        expect((output.value as IFilter).value).toBe('ADMIN');
+
+        const outputAsync = await applyFiltersSchemaValidationAsync(input, schema) as IFilter;
+        expect(outputAsync.preserved).toBe(true);
+        expect((outputAsync.value as IFilter).value).toBe('ADMIN');
     });
 
     it('should propagate asynchronous validator failures', async () => {

@@ -42,7 +42,7 @@ export enum ErrorCode {
 
     SCHEMA_NAME_INVALID = 'schemaNameInvalid',
 
-    SCHEMA_SEALED_CONDITION_PRUNED = 'schemaSealedConditionPruned',
+    SCHEMA_PRESERVED_CONDITION_PRUNED = 'schemaPreservedConditionPruned',
 
     SCHEMA_UNRESOLVABLE = 'schemaUnresolvable',
 
