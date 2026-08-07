@@ -13,7 +13,7 @@ import {
     and,
     defineSchema,
     eq,
-    seal,
+    preserve,
 } from '@rapiq/core';
 import type {
     ICondition,
@@ -323,7 +323,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
      * wider result set than the policy allows, keeping it would join a rejected
      * relation. The contradiction is a server misconfiguration, so it throws.
      */
-    describe('sealed policy residuals vs. relation pruning (#877)', () => {
+    describe('preserved policy residuals vs. relation pruning (#877)', () => {
         function buildScopedRegistry(
             residual: (filter: IFilter) => ICondition,
             relationsValidate: (name: string) => boolean,
@@ -349,11 +349,11 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             return registry;
         }
 
-        const sealedResidual = (filter: IFilter) => seal(and(filter, eq('realm.id', 'SCOPE')));
+        const preservedResidual = (filter: IFilter) => preserve(and(filter, eq('realm.id', 'SCOPE')));
         const input = { filters: { name: 'John', 'realm.name': 'master' } };
 
         it('keeps the residual when the relations hook permits the relation', () => {
-            const parser = new SimpleParser(buildScopedRegistry(sealedResidual, () => true));
+            const parser = new SimpleParser(buildScopedRegistry(preservedResidual, () => true));
 
             const query = parser.parse(input, { schema: 'user', context: actor });
             expect(filterFields(query.filters)).toEqual(['name', 'realm.id', 'realm.name']);
@@ -361,7 +361,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
 
         it('throws instead of pruning the residual when the relation is rejected', () => {
             const parser = new SimpleParser(buildScopedRegistry(
-                sealedResidual,
+                preservedResidual,
                 (name) => name !== 'realm',
             ));
 
@@ -370,39 +370,39 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 parser.parse(input, { schema: 'user', context: actor });
             } catch (e) {
                 expect(e).toBeInstanceOf(SchemaError);
-                expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED);
+                expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED);
             }
         });
 
         it('throws on the async path too', async () => {
             const parser = new SimpleParser(buildScopedRegistry(
-                sealedResidual,
+                preservedResidual,
                 (name) => name !== 'realm',
             ));
 
             await expect(parser.parseAsync(input, { schema: 'user', context: actor }))
-                .rejects.toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .rejects.toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
         it('throws for a standalone filters parse', () => {
-            const registry = buildScopedRegistry(sealedResidual, (name) => name !== 'realm');
+            const registry = buildScopedRegistry(preservedResidual, (name) => name !== 'realm');
 
             expect(() => new SimpleFiltersParser(registry).parse(
                 input.filters,
                 { schema: 'user', context: actor },
-            )).toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+            )).toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
         /**
-         * The shape the docs recommend: seal the residual, leave the client's
-         * own leaf outside it. Both shapes resist a merge, but this one keeps
-         * the client leaf prunable, so the gate stays a drop for the client and
-         * the error stays reserved for a residual that itself names a rejected
-         * relation.
+         * The shape the docs recommend: preserve the residual, leave the client's
+         * own leaf outside it. Conjunctive composition retains both conditions,
+         * while this shape keeps the client leaf prunable, so the gate stays a
+         * drop for the client and the error stays reserved for a residual that
+         * itself names a rejected relation.
          */
-        describe('seal the residual, not the group', () => {
-            const localResidual = (filter: IFilter) => and(filter, seal(eq('realm_id', 'SCOPE')));
-            const relationResidual = (filter: IFilter) => and(filter, seal(eq('realm.id', 'SCOPE')));
+        describe('preserve the residual, not the group', () => {
+            const localResidual = (filter: IFilter) => and(filter, preserve(eq('realm_id', 'SCOPE')));
+            const relationResidual = (filter: IFilter) => and(filter, preserve(eq('realm.id', 'SCOPE')));
 
             function buildLocalRegistry(residual: (filter: IFilter) => ICondition) : SchemaRegistry {
                 const registry = new SchemaRegistry();
@@ -428,7 +428,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 expect(filterFields(query.filters)).toEqual(['realm_id']);
             });
 
-            it('keeps the residual sealed, so a later merge cannot displace it', () => {
+            it('keeps the residual preserved through normalization', () => {
                 const parser = new SimpleParser(buildLocalRegistry(localResidual));
 
                 const query = parser.parse({ filters: { name: 'John' } }, { schema: 'user', context: actor });
@@ -436,9 +436,9 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 const residual = group.value[1] as IFilter;
 
                 expect(residual.field).toBe('realm_id');
-                expect(residual.sealed).toBe(true);
+                expect(residual.preserved).toBe(true);
                 // and it stays marked once normalization hoists it into the root
-                expect(query.filters.flatten().value.some((c) => (c as IFilter).sealed)).toBe(true);
+                expect(query.filters.flatten().value.some((c) => (c as IFilter).preserved)).toBe(true);
             });
 
             it('still throws when the residual itself names the rejected relation', () => {
@@ -447,12 +447,12 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 expect(() => parser.parse(
                     { filters: { name: 'John', 'realm.name': 'master' } },
                     { schema: 'user', context: actor },
-                )).toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                )).toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
             });
         });
 
-        it('prunes an UNSEALED residual, which is what the seal marks', () => {
-            // without seal() the residual is an ordinary displaceable condition:
+        it('prunes an unpreserved residual, which is what preserve marks', () => {
+            // without preserve() the residual is an ordinary condition:
             // pruning drops it like any other client-owned leaf.
             const parser = new SimpleParser(buildScopedRegistry(
                 (filter) => and(filter, eq('realm.id', 'SCOPE')),

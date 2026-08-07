@@ -7,42 +7,58 @@
 
 import { isObject } from '../../utils';
 
+export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition');
+
 export interface ICondition<
     T = unknown,
 > {
+    readonly [CONDITION_MARKER]: true;
+
+    /**
+     * Relation-pruning protection marker. A preserved group stays atomic
+     * during normalization and pruning applies its contract to the subtree.
+     */
+    readonly preserved?: boolean;
+
     readonly operator: string;
 
     readonly value: T;
-
-    /**
-     * Displaceability marker: a sealed condition is never dropped by
-     * {@link IFilters.merge} and never collapsed into its parent group by
-     * {@link IFilters.flatten}. Set it through the `seal` helper or by
-     * injecting the condition with {@link IFilters.and} / {@link IFilters.or}.
-     */
-    readonly sealed?: boolean;
-
-    seal(): ICondition<T>;
 }
 
 /**
- * Identify a live structural condition through the behavior shared by every
- * implementation. Visitor dispatch is deliberately not part of this check.
+ * Identify a live condition by its non-serializable marker. Visitor dispatch
+ * is deliberately not part of this check.
  */
 export function isCondition(input: unknown) : input is ICondition {
-    return (
-        isObject(input) &&
-        typeof input.operator === 'string' &&
-        'value' in input &&
-        typeof input.seal === 'function'
-    );
+    if (!isObject(input)) {
+        return false;
+    }
+
+    // the brand is asserted, not merely present: reading the value keeps a
+    // `[CONDITION_MARKER]: false` object out, which the interface now
+    // rejects at compile time too.
+    const marker : unknown = (input as { [CONDITION_MARKER]?: unknown })[CONDITION_MARKER];
+    if (marker !== true) {
+        return false;
+    }
+
+    if (typeof input.operator !== 'string') {
+        return false;
+    }
+
+    if (!('value' in input)) {
+        return false;
+    }
+
+    return typeof input.preserved === 'undefined' ||
+        typeof input.preserved === 'boolean';
 }
 
 /**
- * Construction options shared by built-in condition node implementations.
+ * Construction options shared only by the built-in filter nodes.
  */
 export type ConditionOptions = {
-    sealed?: boolean,
+    preserved?: boolean,
 };
 
 /**
@@ -52,24 +68,19 @@ export type ConditionOptions = {
 export abstract class Condition<
     T = unknown,
 > implements ICondition<T> {
+    get [CONDITION_MARKER]() : true {
+        return true;
+    }
+
     readonly operator: string;
 
     readonly value: T;
 
-    readonly sealed?: boolean;
-
-    constructor(
+    protected constructor(
         operator: string,
         value: T,
-        options: ConditionOptions = {},
     ) {
         this.operator = operator;
         this.value = value;
-
-        if (options.sealed) {
-            this.sealed = true;
-        }
     }
-
-    abstract seal(): ICondition<T>;
 }

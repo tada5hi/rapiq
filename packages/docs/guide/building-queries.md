@@ -81,24 +81,16 @@ const query = defineQuery<User>({
 });
 ```
 
-`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch`, plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction. `seal(condition)` marks a condition undisplaceable by a later [`merge()`](/guide/merging-queries#seal-conditions-that-resist-replacement).
+`eq` `ne` `lt` `lte` `gt` `gte` `inArray` `nin` `startsWith` `notStartsWith` `endsWith` `notEndsWith` `contains` `notContains` `regex` `mod` `size` `exists` `elemMatch`, plus the `and` / `or` / `not` compounds. `not(condition)` is the exact complement of its interior (see [Negation](/guide/filters#negation)); multiple arguments negate their conjunction. Use [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) only when a relation-pruning policy must retain a server-authored residual.
 
 #### Custom conditions
 
 ```typescript
-import type { ICondition } from '@rapiq/core';
-import { and, eq } from '@rapiq/core';
+import { CONDITION_MARKER, Condition, and, eq } from '@rapiq/core';
 
-class GeoCondition implements ICondition<[number, number]> {
-    readonly operator = 'geo';
-
-    constructor(
-        readonly value: [number, number],
-        readonly sealed?: boolean,
-    ) {}
-
-    seal(): ICondition<[number, number]> {
-        return this.sealed ? this : new GeoCondition(this.value, true);
+class GeoCondition extends Condition<[number, number]> {
+    constructor(value: [number, number]) {
+        super('geo', value);
     }
 }
 
@@ -108,7 +100,7 @@ const filters = and(
 );
 ```
 
-`ICondition` is open and structural: a custom condition does not need to extend `Condition`, `IFilter`, or `IFilters`, and visitor dispatch is optional. Its `seal()` method returns the `ICondition` interface for an immutable protected copy, not the concrete implementation type. A custom condition may expose its own visitor contract when useful, and it needs a parser, adapter, or other consumer that understands its semantics. Built-in adapters intentionally reject unknown condition kinds.
+`ICondition` is open and structural: extending `Condition` supplies the live-condition marker, but a custom class may instead implement `ICondition` with `readonly [CONDITION_MARKER] = true`. A condition must have the marker, an `operator`, and a `value`; detached serialized data is not a live condition. Visitor dispatch is optional. A custom condition may expose its own visitor contract when useful, and it needs a parser, adapter, or other consumer that understands its semantics. Built-in adapters intentionally reject unknown condition kinds.
 
 Use `isCondition(value)` to recognize the shared live contract. `isFilter(value)` and `isFilters(value)` deliberately identify only the built-in leaf and group kinds.
 
@@ -159,6 +151,8 @@ const query = defineQuery<User>({
 ```
 
 Fragments and raw input mix freely; already-built AST nodes pass through unchanged.
+
+To override a filter default on the same field, compose the *input* with [`mergeFiltersInput`](/guide/merging-queries#mergefiltersinput-per-field-replace-before-the-query) before it becomes a fragment. It replaces per field, where an object spread would emit both notations of one field and eat a nested sibling default.
 
 ## Next steps
 

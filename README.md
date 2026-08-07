@@ -42,7 +42,7 @@ which **relations**, which **page**, which **order**. rapiq turns them into one 
 instead of ad-hoc string parsing.
 
 - 🧭 **Typed end to end**: every field path in `defineQuery<User>` is checked against the record type; condition helpers (`eq`, `gte`, `and`, `or`, …) replace magic value strings.
-- 🛡️ **The receiving side has the last word**: a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and injected conditions (`query.filters.and(...)`) can't be displaced by caller input.
+- 🛡️ **The receiving side has the last word**: a `Schema` declares what a caller may request per parameter (allow-lists, defaults, mappings). Invalid input is dropped or rejected according to the parser dialect and schema policy, and server conditions (`query.filters.and(...)`) remain conjuncts alongside caller input.
 - 🔁 **Loss-free transport**: within each codec dialect, `decode(encode(query))` restores the same query; outside its subset, encoding fails loudly with a typed error instead of silently changing semantics.
 - 🔌 **Any backend**: the same AST executes everywhere: parameterized SQL fragments with presets for Postgres, MySQL, SQLite, MSSQL & Oracle, a TypeORM `SelectQueryBuilder`, a Prisma `findMany` args object, a drizzle relational-queries config, or compiled functions over in-memory data.
 - 📦 **Composable packages**: no monolith, install only what each side needs; `@rapiq/core` is the single shared foundation.

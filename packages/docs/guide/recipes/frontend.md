@@ -2,7 +2,7 @@
 
 *Chapter 2 of the [recipes storyline](/guide/recipes/): the client layer of the realm/user API, where queries are built, composed and encoded. Next: the server baseline in [REST API with Express & TypeORM](/guide/recipes/express-typeorm).*
 
-A list component typically owes its query to three sources at once: **defaults** it ships with, a **scope** its parent imposes via props, and **user input** from search/sort/pagination controls. This recipe composes the three declaratively: typed against the record, merged by rank, encoded on demand.
+A list component typically owes its query to three sources at once: **defaults** it ships with, a **scope** its parent imposes via props, and **user input** from search/sort/pagination controls. This recipe composes the three declaratively: typed against the record, merged with explicit parameter rules, encoded on demand.
 
 Works the same in Vue, React or plain TypeScript; rapiq has no framework dependency.
 
@@ -31,9 +31,11 @@ import type { User } from 'my-api-types';
 
 const codec = createURLCodec();
 
-// 1. component defaults: shipped with the list
+// 1. component defaults: shipped with the list. A filter baseline belongs
+//    here, where it merges in on every request.
 const defaults = defineQuery<User>({
     fields: ['id', 'name', 'email'],
+    filters: { age: { $gte: 18 } },
     sort: '-id',
     pagination: { limit: 25 },
 });
@@ -47,11 +49,13 @@ function scopeFor(realmId: string) {
 // 3. user input: from the search box & pager
 function buildQuery(realmId: string, search: string, page: number) {
     const userInput = defineQuery<User>({
-        filters: { name: { $contains: search || undefined } },
+        // an empty search box contributes no condition; a filled one is
+        // and-ed alongside the baseline instead of replacing it.
+        filters: search ? { name: { $contains: search } } : undefined,
         pagination: { offset: (page - 1) * 25 },
     });
 
-    // left wins: user input > scope > defaults
+    // keyed parameters use left priority; filters become an ordered AND
     return mergeQueries(userInput, defineQuery<User>({ filters: scopeFor(realmId) }), defaults);
 }
 
@@ -64,9 +68,11 @@ async function fetchUsers(realmId: string, search: string, page: number) {
 
 Three details doing quiet work here:
 
-- `{ $contains: search || undefined }`: an `undefined` operator value contributes **no condition**, so the empty search box simply doesn't filter. No `if`-shuffling around the query object.
-- The merge is **per-field** for filters: the user's `name` filter never disturbs the scope's `realm.id` condition, and both survive alongside the defaults' sort and fields.
+- `search ? … : undefined` contributes **no condition** for an empty box, so there is no `if`-shuffling around the query object.
+- Filters merge as an **ordered logical AND**: the user's `name` filter, the scope's `realm.id` condition and the `age` baseline all survive. Fields and sort retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
+
+Once filters are part of a query, composition intentionally retains every predicate. When user input has to *replace* a default on the same field rather than narrow it, compose the **input** with [`mergeFiltersInput`](/guide/merging-queries#mergefiltersinput-per-field-replace-before-the-query) before calling `defineQuery`. It replaces per field, so a baseline like `age >= 18` survives a search the user types.
 
 ## Framework flavors
 

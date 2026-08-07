@@ -11,9 +11,9 @@ npm install @rapiq/core
 | Area | Exports (selection) | Guide |
 |---|---|---|
 | **Query AST** | `Query`, `Fields`/`Field`, `Filters`/`Filter`, `Relations`/`Relation`, `Sorts`/`Sort`, `Pagination`, operator constants (`FilterFieldOperator`, `FilterCompoundOperator`, `FieldOperator`, `SortDirection`, `Parameter`), visitor interfaces (`IQueryVisitor`, `IFiltersVisitor`, …), `hasFieldConditions` | [The Query AST](/guide/query-ast) |
-| **Build layer** | `defineQuery`, `defineFields`, `defineFilters`, `definePagination`, `defineRelations`, `defineSorts` | [Building Queries](/guide/building-queries) |
-| **Condition helpers** | `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `inArray`, `nin`, `startsWith`, `notStartsWith`, `endsWith`, `notEndsWith`, `contains`, `notContains`, `regex`, `mod`, `size`, `exists`, `elemMatch`, `and`, `or`, `not`, `seal` | [Condition helpers](/guide/building-queries#condition-helpers) |
-| **Composition** | `mergeQueries`, `seal` (or `.seal()` on a node), `Filters.merge` / `.and` / `.or` | [Merging & Composition](/guide/merging-queries) |
+| **Build layer** | `defineQuery`, `defineFields`, `defineFilters`, `definePagination`, `defineRelations`, `defineSorts`, `mergeFiltersInput` | [Building Queries](/guide/building-queries) |
+| **Condition helpers** | `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `inArray`, `nin`, `startsWith`, `notStartsWith`, `endsWith`, `notEndsWith`, `contains`, `notContains`, `regex`, `mod`, `size`, `exists`, `elemMatch`, `and`, `or`, `not`, `preserve` | [Condition helpers](/guide/building-queries#condition-helpers) |
+| **Composition** | `mergeQueries`, `Filters.merge` / `.and` / `.or`; `mergeFiltersInput` for per-field replace on build input; `preserve` for relation-pruning policy | [Merging & Composition](/guide/merging-queries) |
 | **Plan layer** | `planCondition`, `interpretPlan`, `distributeNegation`, `IPlanInterpreter`, `FILTER_OPERATOR_SEMANTICS`, plan types (`ConditionPlan`, `ComparePlan`, `CompoundPlan`, …) | [The visitor pattern](/guide/query-ast#the-visitor-pattern) |
 | **Schema system** | `defineSchema`, `Schema`, `SchemaRegistry`, per-parameter `define*Schema` factories, `ResolutionScope`, `Schema.describe()` | [Schemas & Validation](/guide/schemas) |
 | **Parser base** | `BaseParser`, per-parameter parse-option types | [Custom parsers](/guide/query-ast#writing-a-custom-parser-resolutionscope) |

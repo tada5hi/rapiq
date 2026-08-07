@@ -5,8 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition, IFilter } from '../../../src';
+import type { ICondition, IFilter, IFilters } from '../../../src';
 import {
+    Condition,
     ErrorCode,
     Field,
     Fields,
@@ -19,14 +20,23 @@ import {
     defineQuery,
     eq,
     gte,
+    isFilter,
+    isFilters,
     mergeQueries,
     or,
-    seal,
+    preserve,
+    pruneFiltersByRelations,
 } from '../../../src';
 import type { User } from '../../data';
 
 const conditions = (filters: { value: unknown[] }) => (filters.value as IFilter[])
     .map((el) => [el.field, el.operator, el.value]);
+
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
+    }
+}
 
 describe('src/parameter/merge.ts', () => {
     it('should return an empty query without input', () => {
@@ -73,15 +83,29 @@ describe('src/parameter/merge.ts', () => {
         expect(output.pagination.offset).toBe(20);
     });
 
-    it('should replace same-field filters with left priority (search over defaults)', () => {
-        const searchQ = defineQuery<User>({ filters: { name: { $contains: 'Jo' } } });
-        const defaultsQ = defineQuery<User>({ filters: { name: 'John', age: { $gte: 18 } } });
-
-        const output = mergeQueries(searchQ, defaultsQ);
+    it('should retain same-field range conditions from both queries', () => {
+        const output = mergeQueries(
+            defineQuery<User>({ filters: { age: { $gte: 18 } } }),
+            defineQuery<User>({ filters: { age: { $lt: 65 } } }),
+        );
 
         expect(conditions(output.filters)).toEqual([
-            ['name', 'contains', 'Jo'],
             ['age', 'gte', 18],
+            ['age', 'lt', 65],
+        ]);
+    });
+
+    it('should retain contradictory same-field conditions in argument order', () => {
+        const a = defineQuery<User>({ filters: { name: 'a' } });
+        const b = defineQuery<User>({ filters: { name: 'b' } });
+
+        expect(conditions(mergeQueries(a, b).filters)).toEqual([
+            ['name', 'eq', 'a'],
+            ['name', 'eq', 'b'],
+        ]);
+        expect(conditions(mergeQueries(b, a).filters)).toEqual([
+            ['name', 'eq', 'b'],
+            ['name', 'eq', 'a'],
         ]);
     });
 
@@ -112,8 +136,8 @@ describe('src/parameter/merge.ts', () => {
 
         const output = mergeQueries(flat, nested);
 
-        // per-field replace has no meaning inside a disjunction, so the
-        // group is carried through as one inert conjunct.
+        // the disjunction remains atomic, so its alternatives keep their
+        // meaning while the group is carried through as one conjunct.
         expect(output.filters.operator).toBe(FilterCompoundOperator.AND);
         expect(output.filters.value).toHaveLength(2);
         expect((output.filters.value[0] as IFilter).field).toBe('name');
@@ -145,42 +169,42 @@ describe('src/parameter/merge.ts', () => {
 });
 
 describe('src/parameter/filters/collection/module.ts combinators', () => {
-    it('should inject sealed conditions via and() without mutating the receiver', () => {
+    it('should append the original condition via and() without mutating the receiver', () => {
         const query = defineQuery<User>({ filters: { name: 'John' } });
+        const condition = eq('realm.id', 'master');
 
-        const scoped = query.filters.and(eq('realm.id', 'master'));
+        const scoped = query.filters.and(condition);
 
         // receiver untouched (immutable).
         expect(query.filters.value).toHaveLength(1);
 
-        // the receiver already carries the operator, so the group stays
-        // flat and only the injected condition is sealed.
+        // the receiver already carries the operator, so the group stays flat.
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
         expect(conditions(scoped)).toEqual([
             ['name', 'eq', 'John'],
             ['realm.id', 'eq', 'master'],
         ]);
-        expect(scoped.value[0].sealed).toBeUndefined();
-        expect(scoped.value[1].sealed).toBe(true);
+        expect(scoped.value[1]).toBe(condition);
+        expect((scoped.value[1] as IFilter).preserved).toBeUndefined();
     });
 
     it('should nest a receiver that carries another operator', () => {
         const receiver = or(eq('name', 'a'), eq('name', 'b'));
 
-        const scoped = receiver.and(eq('realm.id', 'master'));
+        const condition = eq('realm.id', 'master');
+        const scoped = receiver.and(condition);
 
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
         expect(scoped.value).toHaveLength(2);
         expect(scoped.value[0]).toBe(receiver);
-        expect(scoped.value[1].sealed).toBe(true);
+        expect(scoped.value[1]).toBe(condition);
     });
 
-    it('should not allow a later replace-merge to displace an injected condition', () => {
+    it('should retain a later condition alongside an injected condition', () => {
         const parsed = defineQuery<User>({ filters: { name: 'John' } });
         const scoped = parsed.filters.and(eq('realm.id', 'master'));
 
-        // the injected condition is sealed, so a same-field condition
-        // narrows the result instead of displacing the scope.
+        // conjunction keeps both same-field conditions.
         const hostile = new Filters(FilterCompoundOperator.AND, [
             eq('realm.id', 'evil'),
         ]);
@@ -191,11 +215,11 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
             ['realm.id', 'eq', 'master'],
         ]);
 
-        // the other direction displaces the hostile condition outright:
-        // the receiver already constrains that field.
+        // argument order is preserved in the other direction too.
         expect(conditions(scoped.merge(hostile))).toEqual([
             ['name', 'eq', 'John'],
             ['realm.id', 'eq', 'master'],
+            ['realm.id', 'eq', 'evil'],
         ]);
     });
 
@@ -204,8 +228,7 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         const scoped = defineQuery().filters.and(scope);
         const hostile = defineQuery<User>({ filters: { 'realm.id': 'evil' } });
 
-        // flatten() collapses same-operator nests; the seal rides on the
-        // node, so normalizing cannot turn the scope displaceable.
+        // flatten() collapses same-operator nests while retaining both leaves.
         const flat = scoped.flatten();
 
         expect(conditions(hostile.filters.merge(flat))).toEqual([
@@ -217,22 +240,32 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
     it('should keep an empty receiver out of the group', () => {
         const query = defineQuery();
 
-        // an empty receiver constrains nothing — as an OR child it would
+        // an empty receiver constrains nothing; as an OR child it would
         // widen the group to everything.
-        const scoped = query.filters.and(eq('realm.id', 'master'));
+        const scope = eq('realm.id', 'master');
+        const scoped = query.filters.and(scope);
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
         expect(conditions(scoped)).toEqual([['realm.id', 'eq', 'master']]);
-        expect(scoped.value[0].sealed).toBe(true);
+        expect(scoped.value).not.toContain(query.filters);
+        expect(scoped.value[0]).toBe(scope);
+        expect((scoped.value[0] as IFilter).preserved).toBeUndefined();
 
-        const alternatives = query.filters.or(eq('name', 'a'), eq('name', 'b'));
+        const firstAlternative = eq('name', 'a');
+        const secondAlternative = eq('name', 'b');
+        const alternatives = query.filters.or(firstAlternative, secondAlternative);
         expect(alternatives.operator).toBe(FilterCompoundOperator.OR);
         expect(conditions(alternatives)).toEqual([
             ['name', 'eq', 'a'],
             ['name', 'eq', 'b'],
         ]);
+        expect(alternatives.value).not.toContain(query.filters);
+        expect(alternatives.value[0]).toBe(firstAlternative);
+        expect((alternatives.value[0] as IFilter).preserved).toBeUndefined();
+        expect(alternatives.value[1]).toBe(secondAlternative);
+        expect((alternatives.value[1] as IFilter).preserved).toBeUndefined();
     });
 
-    it('should not allow a replace-merge to displace a condition injected onto an empty receiver', () => {
+    it('should retain a condition injected onto an empty receiver during merge', () => {
         const scoped = new Query({ filters: defineQuery().filters.and(eq('realm.id', 'master')) });
         const hostile = defineQuery<User>({ filters: { 'realm.id': 'evil' } });
 
@@ -287,6 +320,25 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         expect((output.value[2] as IFilter).field).toBe('b');
     });
 
+    it('should preserve all leaves when merging nested and flattened root ANDs', () => {
+        const nested = and(
+            eq('name', 'John'),
+            and(gte('age', 18), eq('active', true)),
+        );
+        const other = and(eq('realm.id', 'master'));
+
+        const nestedOutput = nested.merge(other);
+        const flatOutput = nested.flatten().merge(other);
+
+        expect(conditions(nestedOutput)).toEqual(conditions(flatOutput));
+        expect(conditions(nestedOutput)).toEqual([
+            ['name', 'eq', 'John'],
+            ['age', 'gte', 18],
+            ['active', 'eq', true],
+            ['realm.id', 'eq', 'master'],
+        ]);
+    });
+
     it('should treat a receiver that is not a root-AND as one conjunct', () => {
         const left = or(eq('a', 1), eq('b', 2));
         const right = new Filters(FilterCompoundOperator.AND, [eq('a', 9)]);
@@ -309,98 +361,67 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
     });
 });
 
-describe('src/parameter/filters/helpers/module.ts seal', () => {
-    it('should seal a leaf condition immutably', () => {
-        const condition = eq('a', 1);
-        const sealed = seal(condition);
+describe('src/parameter/filters/preserve.ts', () => {
+    it('should preserve a built-in leaf immutably and idempotently', () => {
+        const condition = eq('realm_id', 'master');
+        const output = preserve(condition);
 
-        expect(condition.sealed).toBeUndefined();
-        expect(sealed.sealed).toBe(true);
-        expect(sealed.field).toBe('a');
-        expect(sealed.operator).toBe('eq');
-        expect(sealed.value).toBe(1);
-
-        // idempotent — an already sealed condition is returned as is.
-        expect(seal(sealed)).toBe(sealed);
+        expect(output).not.toBe(condition);
+        expect(output.preserved).toBe(true);
+        expect(preserve(output)).toBe(output);
     });
 
-    it('should delegate to the node, which knows how to copy itself', () => {
-        const leaf = eq('a', 1);
-        const group = or(eq('a', 1), eq('b', 2));
+    it('should return the same kind it received rather than always wrapping', () => {
+        // the catch-all overload admits every subtype, so it promises only
+        // ICondition back: a leaf stays a leaf and has no group operations.
+        const condition: ICondition = eq('realm_id', 'master');
+        const output = preserve(condition);
 
-        // the helper is a dispatcher — each node kind owns its own copy.
-        const sealedLeaf = leaf.seal();
-        const sealedGroup = group.seal();
-
-        expect(sealedLeaf.sealed).toBe(true);
-        expect(sealedGroup.sealed).toBe(true);
-
-        // idempotent: an already sealed node returns itself.
-        expect(sealedLeaf.seal()).toBe(sealedLeaf);
-        expect(sealedGroup.seal()).toBe(sealedGroup);
-        expect(seal(leaf)).toEqual(sealedLeaf);
+        expect(isFilter(output)).toBe(true);
+        expect(isFilters(output)).toBe(false);
+        expect((output as unknown as IFilters).and).toBeUndefined();
     });
 
-    it('should seal a group without touching its interior', () => {
-        const group = or(eq('a', 1), eq('b', 2));
-        const sealed = seal(group);
+    it('should preserve a custom condition through a built-in wrapper', () => {
+        const condition = new CustomCondition({ scope: 'tenant-a' });
+        const output = preserve(condition);
 
-        expect(group.sealed).toBeUndefined();
-        expect(sealed.sealed).toBe(true);
-        expect(sealed.value).toEqual(group.value);
+        expect(isFilters(output)).toBe(true);
+        expect(output.preserved).toBe(true);
+        expect(output.value).toEqual([condition]);
     });
 
-    it('should keep a sealed condition undisplaceable through a merge', () => {
-        const left = new Filters(FilterCompoundOperator.AND, [eq('realm_id', 'evil')]);
-        const right = new Filters(FilterCompoundOperator.AND, [seal(eq('realm_id', 'master'))]);
-
-        expect(conditions(left.merge(right))).toEqual([
-            ['realm_id', 'eq', 'evil'],
-            ['realm_id', 'eq', 'master'],
-        ]);
-    });
-
-    it('should not adopt the conditions of a sealed receiver', () => {
-        const receiver = seal(and(eq('a', 1)));
-
-        // adopting them into a fresh (unsealed) group would strip the
-        // protection its children rely on, so it stays a child instead.
-        const output = receiver.and(eq('b', 2));
-
-        expect(output.value).toHaveLength(2);
-        expect(output.value[0]).toBe(receiver);
-        expect(output.value[1].sealed).toBe(true);
-    });
-
-    it('should treat a sealed root as one inert conjunct', () => {
-        const sealedRoot = seal(and(eq('a', 1)));
+    it('should keep a preserved root group atomic through flatten and merge', () => {
+        const preservedRoot = preserve(and(eq('a', 1)));
         const other = new Filters(FilterCompoundOperator.AND, [eq('a', 9)]);
 
-        // decomposing it would expose its (unsealed) conditions to
-        // per-field replace.
-        const output = other.merge(sealedRoot);
+        expect(preservedRoot.flatten().preserved).toBe(true);
+        expect(and(eq('b', 2), preservedRoot).flatten().value[1]).toBe(preservedRoot);
 
+        const output = other.merge(preservedRoot);
         expect(output.value).toHaveLength(2);
-        expect(output.value[1]).toBe(sealedRoot);
+        expect(output.value[1]).toBe(preservedRoot);
     });
 
-    it('should leave detached runtime data without a seal method untouched', () => {
-        const detached = { operator: 'and', value: [] };
+    it('should keep a preserved AND receiver atomic when and() matches its operator', () => {
+        const receiver = preserve(and(eq('realm.id', 'SCOPE')));
 
-        expect(seal(detached as unknown as ICondition)).toBe(detached);
+        const output = receiver.and(eq('name', 'John'));
+
+        expect(output.value[0]).toBe(receiver);
+        expect((output.value[0] as IFilters).preserved).toBe(true);
+        expect(() => pruneFiltersByRelations(output, ['realm']))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
     });
 
-    it('should not hoist a sealed group out of its parent', () => {
-        const inner = seal(and(eq('a', 1)));
-        const outer = and(eq('b', 2), inner);
+    it('should keep a preserved OR receiver atomic when or() matches its operator', () => {
+        const receiver = preserve(or(eq('realm.id', 'SCOPE'), eq('id', 1)));
 
-        const flat = outer.flatten();
+        const output = receiver.or(eq('name', 'John'));
 
-        // hoisting would strip the protection its children rely on.
-        expect(flat.value).toHaveLength(2);
-        expect(flat.value[1]).toBe(inner);
-
-        // a sealed root keeps its marker across normalization.
-        expect(seal(and(and(eq('a', 1)))).flatten().sealed).toBe(true);
+        expect(output.value[0]).toBe(receiver);
+        expect((output.value[0] as IFilters).preserved).toBe(true);
+        expect(() => pruneFiltersByRelations(output, ['realm']))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
     });
 });

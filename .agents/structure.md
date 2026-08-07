@@ -52,12 +52,12 @@ Changes to `@rapiq/core` affect every other package.
 packages/core/src/
 ├── parameter/            # Query AST node classes + visitor interfaces
 │   ├── fields/           # Fields/Field (include/exclude operators)
-│   ├── filters/          # Filters (compound and/or) + Filter (field-op-value condition)
+│   ├── filters/          # Filters (compound and/or) + Filter (field-op-value condition); CONDITION_MARKER/Condition identity and preserve() pruning wrapper
 │   │   └── helpers/      # typed condition helpers (eq, gte, inArray, and, or, …)
 │   ├── pagination/       # Pagination (limit/offset)
 │   ├── relations/        # Relations/Relation
 │   ├── sorts/            # Sorts/Sort (asc/desc)
-│   ├── merge.ts          # mergeQueries (left-priority IR merge; per-node merge/and/or methods live on the node classes)
+│   ├── merge.ts          # mergeQueries: keyed left priority for fields/relations/sorts, per-property pagination, monotonic filter conjunction
 │   └── module.ts         # Query, IQueryVisitor (queries are built via defineQuery or parsed)
 ├── build/                # typed build layer: defineQuery + per-parameter define* factories
 │   └── parameter/        # Build*Input types + defineFields/defineFilters/… (schema-free, direct-to-AST)

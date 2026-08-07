@@ -8,7 +8,6 @@
 import type {
     FieldsBuildInput,
     FiltersBuildInput,
-    ICondition,
     IFilter,
     QueryBuildInput,
     RelationsBuildInput,
@@ -16,6 +15,7 @@ import type {
 } from '../../../src';
 import {
     BuildError,
+    Condition,
     ErrorCode,
     FieldOperator,
     Filter,
@@ -39,16 +39,9 @@ import type { Client, User } from '../../data';
 
 const leafs = (filters: { value: unknown[] }) => filters.value as IFilter[];
 
-class CustomCondition implements ICondition<{ scope: string }> {
-    readonly operator = 'custom';
-
-    constructor(
-        readonly value: { scope: string },
-        readonly sealed?: boolean,
-    ) {}
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 

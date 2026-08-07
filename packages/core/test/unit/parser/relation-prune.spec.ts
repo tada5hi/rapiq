@@ -6,6 +6,7 @@
  */
 
 import {
+    Condition,
     ErrorCode,
     Field,
     Fields,
@@ -21,13 +22,19 @@ import {
     defineFiltersSchema,
     defineSortSchema,
     isRelationRejected,
+    preserve,
     pruneFieldsByRelations,
     pruneFiltersByRelations,
     pruneRelationsByRelations,
     pruneSortsByRelations,
-    seal,
 } from '../../../src';
 import type { IFilters } from '../../../src';
+
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
+    }
+}
 
 function filterFields(input: IFilters) : string[] {
     const output : string[] = [];
@@ -200,32 +207,32 @@ describe('src/parser/relation-prune.ts', () => {
         });
     });
 
-    describe('pruneFiltersByRelations (sealed conditions)', () => {
+    describe('pruneFiltersByRelations (preserved conditions)', () => {
         const eq = (field: string) => new Filter(FilterFieldOperator.EQUAL, field, 'x');
 
-        it('throws instead of dropping a sealed leaf', () => {
+        it('throws instead of dropping a preserved leaf', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(eq('user.name')),
+                preserve(eq('user.name')),
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['user']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('names the rejected relation and the sealed field', () => {
+        it('names the rejected relation and the preserved field', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(eq('realm.id')),
+                preserve(eq('realm.id')),
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['realm']))
                 .toThrowError(/"realm".+"realm\.id"/);
         });
 
-        it('throws instead of dropping a policy residual out of a sealed group', () => {
+        it('throws instead of dropping a policy residual out of a preserved group', () => {
             // the shape a filters validate hook produces:
-            // seal(and(<client leaf>, <policy residual>))
+            // preserve(and(<client leaf>, <policy residual>))
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(new Filters(FilterCompoundOperator.AND, [
+                preserve(new Filters(FilterCompoundOperator.AND, [
                     eq('name'),
                     eq('realm.id'),
                 ])),
@@ -233,24 +240,24 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['realm']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('throws for a sealed condition nested below an unsealed group', () => {
+        it('throws for a preserved condition nested below an unpreserved group', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
                 new Filters(FilterCompoundOperator.OR, [
                     eq('id'),
-                    seal(eq('user.name')),
+                    preserve(eq('user.name')),
                 ]),
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['user']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('throws instead of dropping a sealed elemMatch', () => {
+        it('throws instead of dropping a preserved elemMatch', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(new Filter(
+                preserve(new Filter(
                     FilterFieldOperator.ELEM_MATCH,
                     'items',
                     new Filter(FilterFieldOperator.EQUAL, 'id', 1),
@@ -258,12 +265,51 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['items']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('throws instead of pruning the interior of a sealed elemMatch', () => {
+        it('throws instead of dropping an elemMatch with a preserved built-in descendant', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(new Filter(
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [preserve(eq('id'))]),
+                ),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of dropping an elemMatch with a preserved custom-condition wrapper', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [
+                        preserve(new CustomCondition({ scope: 'tenant-a' })),
+                    ]),
+                ),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of dropping any leaf holding a preserved interior', () => {
+            // the drop takes the whole subtree with it, so the refusal cannot
+            // depend on which operator happens to address an interior.
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                new Filter('customOp', 'items', preserve(eq('id'))),
+            ]);
+
+            expect(() => pruneFiltersByRelations(filters, ['items']))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws instead of pruning the interior of a preserved elemMatch', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                preserve(new Filter(
                     FilterFieldOperator.ELEM_MATCH,
                     'items',
                     new Filters(FilterCompoundOperator.AND, [
@@ -274,44 +320,62 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['items.owner']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
         // The two shapes below cannot fail open: dropping an OR arm narrows,
-        // and dropping the interior of a NOT removes a restriction the seal
-        // put there. Pruning still refuses, because the seal is a per-node
-        // marker and not a per-operator judgement call.
-        it('throws for a sealed OR arm, where a drop would narrow rather than widen', () => {
+        // and dropping the interior of a NOT removes a restriction that
+        // preserve() put there. Pruning still refuses, because preservation is
+        // a per-node marker and not a per-operator judgement call.
+        it('throws for a preserved OR arm, where a drop would narrow rather than widen', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(new Filters(FilterCompoundOperator.OR, [eq('id'), eq('user.name')])),
+                preserve(new Filters(FilterCompoundOperator.OR, [eq('id'), eq('user.name')])),
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['user']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('throws for a sealed condition below a NOT', () => {
+        it('throws for a preserved condition below a NOT', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                new Filters(FilterCompoundOperator.NOT, [seal(eq('user.name'))]),
+                new Filters(FilterCompoundOperator.NOT, [preserve(eq('user.name'))]),
             ]);
 
             expect(() => pruneFiltersByRelations(filters, ['user']))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
 
-        it('keeps pruning around a sealed condition it does not touch', () => {
+        it('keeps pruning around a preserved condition it does not touch', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [
-                seal(eq('realm_id')),
+                preserve(eq('realm_id')),
                 eq('user.name'),
                 eq('id'),
             ]);
 
             const output = pruneFiltersByRelations(filters, ['user']);
             expect(filterFields(output)).toEqual(['realm_id', 'id']);
-            expect(output.value[0].sealed).toBe(true);
+            expect(output.value[0].preserved).toBe(true);
         });
 
-        it('re-applies an UNSEALED default naming a rejected relation', () => {
+        it('preserves rebuilt groups and elemMatch leaves', () => {
+            const group = preserve(new Filters(FilterCompoundOperator.AND, [eq('realm_id')]));
+            const elemMatch = preserve(new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'items',
+                new Filters(FilterCompoundOperator.AND, [eq('id')]),
+            ));
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                group,
+                elemMatch,
+                eq('user.name'),
+            ]);
+
+            const output = pruneFiltersByRelations(filters, ['user']);
+            expect(output.value[0].preserved).toBe(true);
+            expect(output.value[1].preserved).toBe(true);
+        });
+
+        it('re-applies an unpreserved default naming a rejected relation', () => {
             // the server-authored baseline is exempt from the gate, which is
             // why the default fallback is not pruned.
             const filters = new Filters(FilterCompoundOperator.AND, [eq('user.a')]);
@@ -320,15 +384,29 @@ describe('src/parser/relation-prune.ts', () => {
             expect(filterFields(pruneFiltersByRelations(filters, ['user'], schema))).toEqual(['user.b']);
         });
 
-        it('throws for a SEALED default naming a rejected relation', () => {
+        it('throws for a preserved default naming a rejected relation', () => {
             // otherwise the same default would throw when it is materialized
             // before this pass (client sent no filters) and survive when it is
             // materialized after it (client sent filters that all pruned away).
             const filters = new Filters(FilterCompoundOperator.AND, [eq('user.a')]);
-            const schema = defineFiltersSchema({ default: seal(eq('user.b')) });
+            const schema = defineFiltersSchema({ default: preserve(eq('user.b')) });
 
             expect(() => pruneFiltersByRelations(filters, ['user'], schema))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED }));
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+
+        it('throws for a default elemMatch with a preserved descendant after input pruning empties', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('items.name')]);
+            const schema = defineFiltersSchema({
+                default: new Filter(
+                    FilterFieldOperator.ELEM_MATCH,
+                    'items',
+                    new Filters(FilterCompoundOperator.AND, [preserve(eq('id'))]),
+                ),
+            });
+
+            expect(() => pruneFiltersByRelations(filters, ['items'], schema))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
     });
 });

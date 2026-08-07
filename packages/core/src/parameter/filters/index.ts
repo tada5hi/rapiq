@@ -10,6 +10,6 @@ export * from './condition';
 export * from './constants';
 export * from './helpers';
 export * from './plan';
+export * from './preserve';
 export * from './record';
 export * from './regex';
-export * from './seal';

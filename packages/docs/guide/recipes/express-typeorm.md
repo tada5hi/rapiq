@@ -118,6 +118,6 @@ GET /users?filter[secret]=x                           400: key not allowed
 
 ## Variations
 
-- **Scope by the authenticated user**: inject filters the client cannot displace; see [Authorization & Scoping](/guide/recipes/authorization).
+- **Scope by the authenticated user**: add a server filter conjunct; see [Authorization & Scoping](/guide/recipes/authorization).
 - **No TypeORM**: the next chapter, [Swapping the Backend: Prisma & Drizzle](/guide/recipes/prisma-drizzle), keeps the contract, codec and routes of this recipe and changes only the execute layer. For raw SQL, swap the adapter for [`@rapiq/adapter-sql`](/packages/adapter-sql) fragments; the decode half stays identical either way.
 - **Migrate old clients gradually**: the codec writes expressions but continues to recognize legacy bracket-filter input; see [Queries over the Wire](/guide/wire).

@@ -37,7 +37,7 @@ BaseError { code: ErrorCode }
 
 `MergeError` with `FIELDS_CONDITION_DISCARDED`: a fields merge collision would drop a [row-scoped visibility gate](/guide/fields#row-scoped-fields). Keep the gated query as the receiver instead of merging it underneath an ungated one.
 
-Filters have no such code: [`merge()`](/guide/merging-queries#merge-per-field-replace) is total. A condition it cannot replace soundly (a group, a sealed condition) is and-ed in, so composition narrows instead of failing.
+Filters have no such code: [`merge()`](/guide/merging-queries#filters-monotonic-conjunction) is total. It composes every predicate with ordered logical AND, so composition narrows instead of failing.
 
 ### Parse time (client input)
 
@@ -83,7 +83,7 @@ The URL encoders throw these too; a codec never silently changes what a query me
 | `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
 | `SCHEMA_KEY_VALIDATOR_CONFLICT` | a `fields`/`relations`/`sort` sub-schema declares both [`validate` and `validateMany`](/guide/schemas#batched-validation-with-validatemany); thrown while the schema is constructed, since there is no sensible precedence between them |
-| `SCHEMA_SEALED_CONDITION_PRUNED` | the [relations gate](/guide/relations#validate-hooks) rejected a relation that a [sealed](/guide/merging-queries#seal-conditions-that-resist-replacement) filter condition needs; the two validators contradict each other, see [scoping a filterable field](/guide/recipes/authorization#scoping-inject-conditions-the-client-cannot-displace) |
+| `SCHEMA_PRESERVED_CONDITION_PRUNED` | the [relations gate](/guide/relations#validate-hooks) rejected a relation that a [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) filter condition needs; the two validators contradict each other, see [scoping a filterable field](/guide/recipes/authorization#scoping-server-conditions) |
 | `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async validator (a filter validator or a key validation hook); use the corresponding `Async` method |
 | `SCHEMA_ENTITY_MISMATCH` | `assertSchemaMatchesEntity` (`@rapiq/adapter-typeorm`) found schema keys unknown to the entity; thrown as `SchemaEntityMismatchError`, which carries the offending `schema`, `entity` and `keys`; see [validating schemas against entities](/packages/adapter-typeorm#validating-schemas-against-entities) |
 

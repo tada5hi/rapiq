@@ -20,6 +20,7 @@ import type { ObjectLiteral } from '../../../types';
 import { isObject } from '../../../utils';
 import { isParameterNode } from '../../utils';
 import type { FiltersBuildInput } from './types';
+import { isNestedRecordValue } from './value';
 
 const OPERATORS : Record<string, string> = {};
 for (const operator of Object.values(FilterFieldOperator)) {
@@ -58,10 +59,10 @@ export function defineFilters(input: FiltersBuildInput<ObjectLiteral> | IConditi
 }
 
 /**
- * Detect condition-shaped runtime data that lost its live behavior
- * in a JSON/RPC/cache round trip. It has no `seal`, so it would
- * otherwise be read as a record of field/value pairs and filter on
- * columns literally named `operator` and `value`.
+ * Detect condition-shaped runtime data that lost its non-serializable brand
+ * in a JSON/RPC/cache round trip. Without the brand it would otherwise be
+ * read as a record of field/value pairs and filter on columns literally
+ * named `operator` and `value`.
  *
  * Deliberately narrow: only an object whose own keys are exactly the
  * condition properties, with a recognized operator, qualifies. A build
@@ -79,7 +80,7 @@ function isDetachedCondition(input: unknown) : boolean {
     }
 
     for (const key of keys) {
-        if (key !== 'operator' && key !== 'value' && key !== 'sealed' && key !== 'field') {
+        if (key !== 'operator' && key !== 'value' && key !== 'preserved' && key !== 'field') {
             return false;
         }
     }
@@ -188,8 +189,10 @@ function buildFieldConditions(
         }
 
         // nested record — relation traversal via dot-path prefixing;
-        // the element itself has no properties to traverse into.
-        if (field === ITSELF) {
+        // the element itself has no properties to traverse into. Asking the
+        // shared predicate rather than re-testing the marker here is what
+        // keeps lowering and path canonicalization from drifting apart.
+        if (!isNestedRecordValue(field, value)) {
             throw BuildError.keyValueInvalid(field);
         }
 

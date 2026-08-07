@@ -6,6 +6,7 @@
  */
 
 import {
+    Condition,
     ErrorCode,
     FieldsParseError,
     Parameter,
@@ -51,16 +52,9 @@ function fieldsOptions(
     };
 }
 
-class CustomCondition implements ICondition<{ scope: string }> {
-    readonly operator = 'custom';
-
-    constructor(
-        readonly value: { scope: string },
-        readonly sealed?: boolean,
-    ) {}
-
-    seal() : ICondition<{ scope: string }> {
-        return this.sealed ? this : new CustomCondition(this.value, true);
+class CustomCondition extends Condition<{ scope: string }> {
+    constructor(value: { scope: string }) {
+        super('custom', value);
     }
 }
 

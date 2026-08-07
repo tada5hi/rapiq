@@ -76,8 +76,8 @@ describe('gateway controller (hub archetype)', () => {
     it('should validate, pin a server condition and re-encode (flat forward)', () => {
         const query = codec.decode(requestQuery, { schema: 'log' })!;
 
-        // the gateway pins node_id with server priority: merge() is
-        // per-field replace, so a client-sent node_id could never win.
+        // the gateway pins node_id by conjunction: merge() retains the server
+        // constraint alongside any node_id constraint sent by the client.
         const forwarded = new Query({
             fields: query.fields,
             filters: and(eq<Log>('node_id', 'node-1')).merge(query.filters),
@@ -104,13 +104,11 @@ describe('gateway controller (hub archetype)', () => {
         expect(downstream.pagination).toEqual(new Pagination(50, 0));
     });
 
-    it('should carry undisplaceable scoping downstream', () => {
+    it('should carry conjunctive scoping downstream', () => {
         const query = codec.decode(requestQuery, { schema: 'log' })!;
 
-        // filters.and() injects a sealed condition — no later merge can
-        // displace it. The seal is a server-side composition marker
-        // rather than wire grammar, so what crosses the URL is the
-        // condition itself; the facade stamps the codec identity so the
+        // filters.and() adds an ordinary conjunct. What crosses the URL is
+        // the condition itself; the facade stamps the codec identity so the
         // downstream service knows how to decode it.
         const scoped = new Query({
             fields: query.fields,
@@ -131,9 +129,8 @@ describe('gateway controller (hub archetype)', () => {
             '&page[limit]=50&sort=-created_at',
         );
 
-        // downstream: dispatch on the stamp, same AST comes out — minus
-        // the seal, which no wire dialect carries. The downstream service
-        // re-injects its own scoping instead of trusting the transport.
+        // downstream: dispatch on the stamp and the same AST comes out. The
+        // downstream service injects its own scoping instead of trusting the transport.
         const downstream = codec.decode(wire!)!;
 
         expect(downstream.filters).toEqual(

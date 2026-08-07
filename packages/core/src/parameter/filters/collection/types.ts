@@ -18,24 +18,14 @@ export interface IFilters<
 
     readonly value : T[];
 
-    /**
-     * Displaceability marker: a sealed group is never dropped by a
-     * later {@link IFilters.merge} and never collapsed into its parent
-     * by {@link IFilters.flatten}.
-     */
-    readonly sealed?: boolean;
-
     accept<R>(visitor: IFiltersVisitor<R>) : R;
-
-    /**
-     * A copy of this group carrying the {@link IFilters.sealed} marker
-     * (the receiver itself when it is already sealed). Reach for the
-     * `seal` helper to seal any {@link ICondition}.
-     */
-    seal() : IFilters<T>;
 
     flatten(items?: T[]) : IFilters<T>;
 
+    /**
+     * Combine both groups as an ordered logical AND. Empty groups are the
+     * identity; every condition from either non-empty group is retained.
+     */
     merge(other: IFilters) : IFilters;
 
     and(...conditions: ICondition[]) : IFilters;

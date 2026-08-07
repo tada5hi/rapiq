@@ -6,20 +6,17 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
+import { Condition } from '../condition';
 import type { ConditionOptions } from '../condition';
 import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<
     OPERATOR extends string = `${FilterFieldOperator}`,
     VALUE = unknown,
-> implements IFilter<OPERATOR, VALUE> {
-    readonly operator: string;
-
-    readonly value: VALUE;
-
+> extends Condition<VALUE> implements IFilter<OPERATOR, VALUE> {
     readonly field: string;
 
-    readonly sealed?: boolean;
+    readonly preserved?: boolean;
 
     constructor(
         operator: string,
@@ -27,31 +24,15 @@ export class Filter<
         value: VALUE,
         options: ConditionOptions = {},
     ) {
-        this.operator = operator;
+        super(operator, value);
         this.field = field;
-        this.value = value;
 
-        // only set when sealed, so an unsealed condition stays
-        // structurally identical to what earlier versions produced.
-        if (options.sealed) {
-            this.sealed = true;
+        if (options.preserved) {
+            this.preserved = true;
         }
     }
 
     accept<R>(visitor: IFilterVisitor<R>) : R {
         return visitor.visitFilter(this);
-    }
-
-    seal() : IFilter<OPERATOR, VALUE> {
-        if (this.sealed) {
-            return this;
-        }
-
-        return new Filter<OPERATOR, VALUE>(
-            this.operator,
-            this.field,
-            this.value,
-            { sealed: true },
-        );
     }
 }

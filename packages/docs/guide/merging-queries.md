@@ -1,8 +1,8 @@
 # Merging & Composition
 
-Real queries rarely come from one place. A list view combines **user input** (a search box), **component state** (the current page), **props** (a parent-imposed scope) and **application defaults**, and the server may add conditions of its own. rapiq composes all of these on the `Query` itself, so every construction path (built, decoded, parsed by any dialect) combines the same way.
+Real queries rarely come from one place. A list view combines user input, component state, parent scope and application defaults. rapiq composes these values on the `Query` itself, so built, decoded and parsed queries follow the same rules.
 
-## `mergeQueries`: left priority
+## `mergeQueries`: left priority where keys conflict
 
 ```typescript
 import { mergeQueries } from '@rapiq/core';
@@ -10,90 +10,142 @@ import { mergeQueries } from '@rapiq/core';
 const query = mergeQueries(searchQuery, paginationQuery, propsQuery, defaultsQuery);
 ```
 
-The first argument wins conflicts. All operations are **immutable**: inputs stay untouched and new instances are returned, safe for reactivity systems and shared default fragments.
+All operations are immutable. Inputs stay untouched and the result is a new query when composition changes it.
 
 Per-parameter semantics:
 
 | Parameter | Rule |
 |---|---|
-| `fields` / `relations` / `sorts` | keyed by name, left-priority replace; order = first occurrence |
+| `fields` / `relations` / `sorts` | keyed left priority |
 | `pagination` | per-property left priority (`limit` and `offset` merge independently) |
-| `filters` | per-field replace via `Filters.merge` (see below) |
+| `filters` | ordered logical AND; every predicate survives |
 
-One guard applies to `fields`: a name collision that would discard a [row-scoped visibility gate](/guide/fields#row-scoped-fields) (`Field.condition`) throws a `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently un-gating the column. A gate only ever arises server-side, from a schema hook; keep that parsed query as the receiver and its gates survive every collision.
+For fields, a name collision that would discard a [row-scoped visibility gate](/guide/fields#row-scoped-fields) (`Field.condition`) throws `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently un-gating the column.
 
-## Filters: two explicit operations
+## Filters: monotonic conjunction
 
-Filters get two distinct operations, because a single "merge" would silently break one of the two use cases.
-
-### `merge()`: per-field replace
-
-A condition on a field **replaces** the other side's conditions on the same field (it is *not* and-ed). This is the list-view case: user search input overrides a default on the same field, while unrelated defaults survive:
+`Filters.merge()` and `mergeQueries()` combine filters as an ordered logical AND. No predicate is replaced, including conditions on the same field:
 
 ```typescript
-const searchQ = defineQuery<User>({ filters: { name: { $contains: input } } });
-const defaultsQ = defineQuery<User>({ filters: { name: 'John', age: { $gte: 18 } } });
+const clientQuery = defineQuery<User>({ filters: { age: { $gte: 18 } } });
+const serverQuery = defineQuery<User>({ filters: { age: { $lt: 65 } } });
 
-mergeQueries(searchQ, defaultsQ).filters;
-// name contains <input> (from searchQ), age >= 18 (from defaultsQ)
+mergeQueries(clientQuery, serverQuery).filters;
+// and(age >= 18, age < 65)
 ```
 
-Replacement applies to the **displaceable root conditions** of both sides: the leaf conditions directly under a root `and`. Everything else is inert, carried through as it is and combined with `and`:
+The receiver's non-preserved root `and` is flattened into its conjuncts. A preserved root, an `or(...)` or `not(...)` root remains one conjunct, so its meaning stays intact. An empty side passes the other side through unchanged.
 
-| Conjunct | Behavior in a merge |
-|---|---|
-| root-level leaf condition | replaced by a receiver condition on the same field |
-| [sealed](#seal-conditions-that-resist-replacement) condition | never replaced, always carried through |
-| nested group (`or(...)`, `not(...)`, a whole non-`and` root) | never replaced, always carried through as one conjunct |
+This monotonic rule is useful for server scope: a client condition on `realm_id` can only narrow the server's `realm_id` condition, never widen or remove it.
+
+Complete queries are never OR-composed. When a filter needs alternatives, express them inside the filter tree with `or(...)`:
 
 ```typescript
-mergeQueries(flatQ, defineQuery({ filters: or(gte('age', 18), eq('email', null)) })).filters;
-// and( <flatQ conditions>, or(age >= 18, email = null) )
+import { defineQuery, eq, gte, or } from '@rapiq/core';
+
+const query = defineQuery<User>({
+    filters: or(gte('age', 18), eq('status', 'admin')),
+});
 ```
 
-Per-field replace has no sound reading inside a disjunction: dropping a condition there would change the group non-locally, keeping it would ignore receiver priority. So the group is and-ed in untouched, which makes `merge()` **total**: it never throws. Every conjunct of the receiver survives into the result, so a merge never returns anything wider than its receiver; only the other side can lose conditions, and only to same-field replacement. Widening stays the explicit operation, `or()` below.
+### `mergeFiltersInput`: per-field replace, before the query
 
-An empty side passes the other side through unchanged.
-
-### `seal`: conditions that resist replacement
-
-A **sealed** condition is never displaced by a merge and never collapsed into its parent group by `flatten()`. It is what `and()` / `or()` apply to everything they inject, and it is available on its own:
+Overriding a default on the same field is a real need, and it belongs to the **input**, before a `Query` exists. `mergeFiltersInput` composes [filter build input](/guide/building-queries#filters) with per-field replace: the first input to constrain a field wins it, and every field only one side constrains survives.
 
 ```typescript
-import { eq, seal } from '@rapiq/core';
+import { defineQuery, mergeFiltersInput, mergeQueries } from '@rapiq/core';
 
-const scope = seal(eq('realm_id', actor.realmId));
+const query = mergeQueries(
+    defineQuery<User>({
+        filters: mergeFiltersInput<User>(
+            search ? { name: { $contains: search } } : {},  // user input wins
+            { name: 'John', age: { $gte: 18 } },            // component defaults
+        ),
+    }),
+    parentScope,
+);
+// name contains <search>, age >= 18
 ```
 
-Sealing is immutable (a sealed copy is returned) and idempotent. It is a **server-side composition marker, not wire grammar**: a sealed condition that is encoded to a URL and decoded again comes back displaceable, which is why a receiving service re-injects its own scope instead of trusting the transport.
+Replacement is per **field**, not per operator: `{ age: { $gte: 18 } }` beating `{ age: { $lt: 65 } }` yields the lower bound alone. Keeping both is conjunction, which is what merging two queries does. An `undefined` value claims no field, so a later input still supplies it, and a `$elemMatch` interior is one value, replaced whole.
 
-Every live `ICondition` owns this operation through `seal()`. The standalone helper and `Filters.and()` / `Filters.or()` call that method polymorphically, so custom structural conditions receive the same non-displaceability guarantee as built-in leaves and groups.
+Because both [notations](/guide/building-queries#filters) address the same fields, inputs are reduced to canonical dotted paths first. That is the difference from an object spread, which sees only keys:
 
-`ICondition` describes a live AST object, not serialized `{ operator, value }` data: it requires an immutable `seal()` operation. After JSON, RPC, or cache transport, parse, decode, or rebuild the condition before composition. Runtime data admitted through JavaScript, `any`, or an explicit cast is left unchanged when no callable `seal` exists; a built-in adapter rejects it rather than silently dropping it. A live custom condition is also rejected unless the consumer understands that custom kind.
+```typescript
+// spread: two conditions on one field, and a lost sibling default
+{ ...{ 'realm.name': 'a', 'realm.id': 1 }, ...{ realm: { name: 'b' } } }
+// -> realm.name = 'a' AND realm.name = 'b'   (realm.id survives by luck)
+{ ...{ realm: { name: 'a', id: 1 } }, ...{ realm: { name: 'b' } } }
+// -> realm.name = 'b'                        (realm.id silently gone)
 
-The marker protects the whole subtree it heads, and it holds during parsing too: the [relations gate](/guide/relations#validate-hooks), which drops every key traversing a rejected relation, cannot silently prune a condition out of a sealed group. A rejected relation that a sealed condition needs throws `SchemaError` (`ErrorCode.SCHEMA_SEALED_CONDITION_PRUNED`) instead. Subtree-wide protection is why a [policy residual](/guide/recipes/authorization#scoping-inject-conditions-the-client-cannot-displace) seals the *scope* rather than the group around it: sealing the group would protect the client's own condition too.
+mergeFiltersInput<User>({ realm: { name: 'b' } }, { realm: { name: 'a', id: 1 } });
+// -> { 'realm.name': 'b', 'realm.id': 1 }
+```
 
-### `and()` / `or()`: wrap & inject
+The result is the flat notation, itself valid input for `defineFilters` or another merge.
 
-Always defined, for combining condition trees. The injected conditions are sealed, so they are part of the tree rather than candidates for replacement. A receiver already carrying that operator contributes its own conditions to the group (which keeps them mergeable); anything else becomes a child of the new group. Calling `and()` / `or()` with no conditions returns the receiver unchanged.
+::: tip Why replace is safe here and not on the query
+`mergeFiltersInput` accepts build input only. Passing a condition (`eq(...)`, `and(...)`) is a type error and throws at runtime. A build input is plain data and can never carry a server-authored scope, so per-field replace cannot displace one. That is exactly what it could do on the IR, which is why [`Filters.merge`](#filters-monotonic-conjunction) is conjunction instead.
+:::
+
+### Replacing a whole filters node
+
+When the alternatives are already AST nodes, select between them before query composition. Select between the values **one control** can hold:
+
+```typescript
+// a status control: `defaultStatus` is what it shows until the user picks.
+const defaultStatus = defineFilters<User>({ status: 'active' });
+const currentStatus = status ?
+    defineFilters<User>({ status }) :
+    undefined;
+
+const query = mergeQueries(
+    defineQuery<User>({ filters: currentStatus ?? defaultStatus }),
+    parentScope,
+    defaults,
+);
+```
+
+Putting `currentStatus` and `defaultStatus` in separate queries passed to `mergeQueries` would conjunct them. It does not replace the default.
+
+::: warning Select between alternatives, never across them
+Both branches of the selection must answer the same question. A baseline on an unrelated field is not an alternative to a status choice: fold `age >= 18` into `defaultStatus` and it disappears the moment the user touches the control. Keep such a baseline in its own query, where it merges in unconditionally, or express the override with `mergeFiltersInput` above, which is per field and has no such trap.
+:::
+
+### `and()` / `or()`: build a condition tree
+
+`and()` and `or()` wrap condition trees immutably. Calling either method with no conditions returns the receiver unchanged.
 
 ```typescript
 import { Query, eq } from '@rapiq/core';
 
-// server-side, after parsing client input:
 const scoped = new Query({
     ...query,
     filters: query.filters.and(eq('realm_id', actor.realmId)),
 });
 ```
 
-The adapter output now contains the injected condition regardless of what the client sent, even when the client sent no filters at all. And because the injected condition is sealed, no later composition can drop it: a `merge()` carries it through and a client condition on the same field narrows within it, while `flatten()` and any other normalization leave the marker intact. That guarantee is unconditional, and it is a feature: injected security conditions cannot be merged away. See the [authorization recipe](/guide/recipes/authorization).
+The scope is part of the resulting AND tree regardless of client input. A later query merge adds more conjuncts, so security scopes cannot be merged away.
+
+## Preservation is for relation pruning
+
+`preserve()` is not a merge or override tool. It marks a built-in condition subtree for the relation-pruning policy. If a relation validator rejects a relation that a preserved condition needs, parsing raises `SchemaError` (`ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED`) rather than silently changing the policy's meaning.
+
+Use it for a validator residual that must remain intact, and preserve the residual only:
+
+```typescript
+import { and, inArray, preserve } from '@rapiq/core';
+
+return and(filter, preserve(inArray('realm_id', actor.realmIds)));
+```
+
+Do not preserve the group containing the client filter. The client leaf must remain eligible for relation pruning; preserving only the server residual keeps the error reserved for a genuine contradiction in the residual itself. See [Relations](/guide/relations#validate-hooks) and [Authorization](/guide/recipes/authorization#scoping-server-conditions).
 
 ## Why not deep-merge input objects?
 
-Generic object merging (smob, deepmerge, spread) on query *input* cannot express these semantics: same-field replace, null-preserving `in` arrays, injected conditions that resist displacement. Merge on the query instead: build fragments with [`defineQuery` / `define*`](/guide/building-queries#fragments), compose with `mergeQueries`, then encode or execute the result.
+Generic object merging cannot express the AST rules: keyed left priority for fields, relations and sorts; per-property pagination; and ordered conjunction for filters. Build fragments with [`defineQuery` / `define*`](/guide/building-queries#fragments), compose them with `mergeQueries`, then encode or execute the result.
 
 ## Next steps
 
-- [Recipes: Type-safe frontend queries](/guide/recipes/frontend): merging user input, props and defaults in a list view.
-- [Recipes: Authorization & scoping](/guide/recipes/authorization): `and()` injection end-to-end.
+- [Recipes: Type-safe frontend queries](/guide/recipes/frontend): UI state, scope and defaults.
+- [Recipes: Authorization & scoping](/guide/recipes/authorization): server conditions and validator residuals.
