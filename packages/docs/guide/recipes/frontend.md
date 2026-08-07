@@ -38,6 +38,8 @@ const defaults = defineQuery<User>({
     pagination: { limit: 25 },
 });
 
+const defaultFilters = defineFilters<User>({ age: { $gte: 18 } });
+
 // 2. parent-imposed scope: realmId arrives as a prop / argument
 //    (fragments are plain values, so they travel well as data)
 function scopeFor(realmId: string) {
@@ -46,8 +48,13 @@ function scopeFor(realmId: string) {
 
 // 3. user input: from the search box & pager
 function buildQuery(realmId: string, search: string, page: number) {
+    const currentFilters = search ?
+        defineFilters<User>({ name: { $contains: search } }) :
+        undefined;
+    const filters = currentFilters ?? defaultFilters;
+
     const userInput = defineQuery<User>({
-        filters: { name: { $contains: search || undefined } },
+        filters,
         pagination: { offset: (page - 1) * 25 },
     });
 
@@ -64,7 +71,7 @@ async function fetchUsers(realmId: string, search: string, page: number) {
 
 Three details doing quiet work here:
 
-- `{ $contains: search || undefined }`: an `undefined` operator value contributes **no condition**, so the empty search box simply doesn't filter. No `if`-shuffling around the query object.
+- `currentFilters ?? defaultFilters` chooses the current filter node before query composition. Passing current and default filters as separate `mergeQueries` arguments would conjunct them; it would not replace the default.
 - Filters merge as an **ordered logical AND**: the user's `name` filter and the scope's `realm.id` condition both survive. Fields and sort retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
 

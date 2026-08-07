@@ -108,7 +108,7 @@ import { mergeQueries } from '@rapiq/core';
 const query = mergeQueries(userInput, componentDefaults, appDefaults);
 ```
 
-And the server can inject conditions a client can never displace:
+And the server can add a condition that remains a conjunct alongside client input:
 
 ```typescript
 const scoped = new Query({

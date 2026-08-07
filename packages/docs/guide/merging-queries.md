@@ -61,7 +61,23 @@ const userQuery = defineQuery<User>({ filters: currentSearch });
 const query = mergeQueries(userQuery, parentScope, defaults);
 ```
 
-For state already represented as AST nodes, choose the current `IFilters` value first, then place that value in `defineQuery`. This makes replacement a UI-state decision rather than a hidden query-composition rule.
+For state already represented as AST nodes, choose the current `IFilters` value before query composition. For example, select the current filters against the defaults, then pass only the selected node to `defineQuery`:
+
+```typescript
+const defaultFilters = defineFilters<User>({ age: { $gte: 18 } });
+const currentFilters = search ?
+    defineFilters<User>({ name: { $contains: search } }) :
+    undefined;
+const selectedFilters = currentFilters ?? defaultFilters;
+
+const query = mergeQueries(
+    defineQuery<User>({ filters: selectedFilters }),
+    parentScope,
+    defaults,
+);
+```
+
+Putting `currentFilters` and `defaultFilters` in separate queries passed to `mergeQueries` would conjunct them. It does not replace the default. Selecting the current node first makes replacement a UI-state decision rather than a hidden query-composition rule.
 
 ### `and()` / `or()`: build a condition tree
 
