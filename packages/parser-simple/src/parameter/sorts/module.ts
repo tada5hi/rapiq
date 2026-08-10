@@ -17,6 +17,7 @@ import {
     Sorts,
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
+    applySortIndexPolicy,
     isObject,
     parseKey,
     pruneSortsByRelations,
@@ -39,10 +40,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = this.build(input, options, ledger);
 
-        return pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as SortSchema<RECORD>);
+        return applySortIndexPolicy(
+            pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as SortSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     override async parseAsync<
@@ -54,10 +60,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
-        return pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as SortSchema<RECORD>);
+        return applySortIndexPolicy(
+            pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as SortSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     parseParameter<
