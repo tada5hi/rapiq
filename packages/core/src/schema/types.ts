@@ -25,6 +25,7 @@ import type {
 import type { Parameter } from '../constants';
 import type { ICondition } from '../parameter';
 import type { MaybeAsync, ObjectLiteral } from '../types';
+import type { IndexesOption } from './indexes';
 
 export type BaseSchemaOptions = {
     /**
@@ -164,6 +165,12 @@ export type SchemaOptionsNormalized<
     relations: RelationsOptions<RECORD, CONTEXT> | RelationsSchema<RECORD, CONTEXT>,
     pagination: PaginationOptions | PaginationSchema
     sort : SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT>,
+    /**
+     * Ordered column lists of the record's storage indexes, consumed
+     * by the per-parameter `indexed` opt-ins (filters, sort). See
+     * {@link IndexesOption}.
+     */
+    indexes: IndexesOption<RECORD>,
 };
 
 export type SchemaOptions<
@@ -209,6 +216,7 @@ export type SchemaDescribeOptions = {
 export type SchemaDescription = {
     name: string | null,
     strict: boolean,
+    indexes: string[][] | null,
     fields?: FieldsSchemaDescription,
     filters?: FiltersSchemaDescription,
     pagination?: PaginationSchemaDescription,

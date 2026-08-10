@@ -49,6 +49,15 @@ export class SchemaError extends BaseError {
         });
     }
 
+    static preservedConditionNotIndexed(keys: string[]) {
+        return new this({
+            message: `The filter combination ${keys.join(', ')} violates the index policy, but the tree carries ` +
+                'a preserved condition that must not be dropped: let the validator residual anchor a declared ' +
+                'index, or enable throwOnFailure to reject the request instead.',
+            code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED,
+        });
+    }
+
     static validatorAsyncRequiresAsyncParser() {
         return new this({
             message: 'Asynchronous schema validators require parseAsync().',

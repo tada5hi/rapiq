@@ -55,14 +55,15 @@ defineSchema<User>({
 
 | Option | Description |
 |---|---|
-| `allowed` | Sortable field names. A nested list (`[['name', 'age']]`) only permits exactly those multi-key combinations, useful when only certain composite indexes exist. Omit to allow all; `[]` blocks the parameter. |
+| `allowed` | Sortable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Sort order applied when the client sends nothing valid. |
 | `mapping` | Alias → field translation applied before validation. |
 | `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks-parse-context): accept or reject a sort key per actor. |
+| `indexed` | Requested keys must form a leftmost prefix of one declared schema [index](/guide/schemas#indexes), in order; directions are ignored and keys must share one relation path. Replaces the removed nested-list form of `allowed`. |
 
 ## Validate hooks
 
-A `validate` / `validateMany` hook runs once per client-requested sort key, against the schema that governs it (the target schema for dotted keys such as `items.id`) and after tuple-group matching. Schema `default`s are server-authored and bypass the hook. The general contract (verdicts, the scope argument, batching, sync/async) lives at [Validate hooks and parse context](/guide/schemas#validate-hooks-parse-context).
+A `validate` / `validateMany` hook runs once per client-requested sort key, against the schema that governs it (the target schema for dotted keys such as `items.id`) and before the [index policy](/guide/schemas#indexes) is applied. Schema `default`s are server-authored and bypass the hook. The general contract (verdicts, the scope argument, batching, sync/async) lives at [Validate hooks and parse context](/guide/schemas#validate-hooks-parse-context).
 
 An ordering is not a row set, so there is nothing for an `ICondition` verdict to gate: a condition answer counts as a rejection for sort (only `fields` hooks may gate with a condition).
 

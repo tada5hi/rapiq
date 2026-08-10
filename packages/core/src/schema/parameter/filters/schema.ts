@@ -7,6 +7,7 @@
 
 import type { ICondition, IFilter } from '../../../parameter';
 import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
+import type { IndexedMode } from '../../indexes';
 import type {
     FiltersOptions,
     FiltersSchemaDescription,
@@ -27,6 +28,12 @@ export class FiltersSchema<
 
     public caseSensitive : string[];
 
+    public indexes : string[][];
+
+    public indexesIsUndefined : boolean;
+
+    public indexed : IndexedMode | false;
+
     // ---------------------------------------------------------
 
     constructor(input: FiltersOptions<T> = {}) {
@@ -39,6 +46,12 @@ export class FiltersSchema<
         this.defaultIsUndefined = true;
 
         this.caseSensitive = [];
+
+        this.indexes = [];
+        this.indexesIsUndefined = true;
+        this.indexed = this.options.indexed === true ?
+            'anchor' :
+            (this.options.indexed || false);
 
         this.setDefault(this.options.default);
         this.setAllowed(this.options.allowed);
@@ -64,7 +77,10 @@ export class FiltersSchema<
      * consumer mutating the description never touches the schema.
      */
     describe() : FiltersSchemaDescription {
-        return { allowed: this.allowedIsUndefined ? null : [...this.allowed] };
+        return {
+            allowed: this.allowedIsUndefined ? null : [...this.allowed],
+            indexed: this.indexed,
+        };
     }
 
     // ---------------------------------------------------------
@@ -101,6 +117,17 @@ export class FiltersSchema<
 
     setCaseSensitive(input?: SimpleKeys<T>[]) {
         this.caseSensitive = input || [];
+    }
+
+    setIndexes(input?: string[][]) {
+        if (typeof input === 'undefined') {
+            this.indexes = [];
+            this.indexesIsUndefined = true;
+            return;
+        }
+
+        this.indexes = input;
+        this.indexesIsUndefined = false;
     }
 
     // ---------------------------------------------------------

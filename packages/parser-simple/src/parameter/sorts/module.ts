@@ -17,6 +17,7 @@ import {
     Sorts,
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
+    applySortIndexPolicy,
     isObject,
     parseKey,
     pruneSortsByRelations,
@@ -39,10 +40,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = this.build(input, options, ledger);
 
-        return pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as SortSchema<RECORD>);
+        return applySortIndexPolicy(
+            pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as SortSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     override async parseAsync<
@@ -54,10 +60,15 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
-        return pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as SortSchema<RECORD>);
+        return applySortIndexPolicy(
+            pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as SortSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     parseParameter<
@@ -200,32 +211,6 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                     // as it already does to its allow-list failures.
                     throwOnFailure: resolved.scope.throwOnFailure,
                 });
-            }
-
-            if (this.isMultiDimensionalArray(schema.allowed)) {
-                // eslint-disable-next-line no-labels
-                outerLoop:
-                for (const keyPaths of schema.allowed) {
-                    const temp = new Sorts();
-
-                    for (const keyPath of keyPaths) {
-                        const index = output.value.findIndex((el) => el.name === keyPath);
-                        if (index !== -1) {
-                            const found = output.value[index];
-                            if (found !== undefined) {
-                                temp.value.push(found);
-                            }
-                        } else {
-                            // eslint-disable-next-line no-labels
-                            continue outerLoop;
-                        }
-                    }
-
-                    return temp;
-                }
-
-                // if we get no match, the sort data is invalid.
-                return new Sorts();
             }
         }
 
@@ -370,15 +355,5 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         }
 
         return {};
-    }
-
-    // --------------------------------------------------
-
-    protected isMultiDimensionalArray(arr: string[] | string[][]) : arr is string[][] {
-        if (!Array.isArray(arr)) {
-            return false;
-        }
-
-        return arr.length > 0 && Array.isArray(arr[0]);
     }
 }

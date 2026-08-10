@@ -19,14 +19,20 @@ export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
 > = KeyValidatableSchemaOptions<CONTEXT> & {
-    allowed?: SimpleKeys<T>[] | SimpleKeys<T>[][],
+    allowed?: SimpleKeys<T>[],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
     /**
+     * Check requested sort keys against the schema-level `indexes`
+     * declaration: they must form a leftmost prefix of one index,
+     * in order; directions are ignored.
+     */
+    indexed?: boolean,
+    /**
      * Dynamic per-sort-key gate, e.g. an actor permission check.
      * Runs once per client-requested sort key against the schema that
-     * governs it (the target schema for dotted keys), after tuple-group
-     * matching. Schema defaults bypass the hook.
+     * governs it (the target schema for dotted keys), before the index
+     * policy is applied. Schema defaults bypass the hook.
      *
      * An ordering is not a row set, so there is nothing for an
      * `ICondition` answer to gate and it counts as a rejection.
@@ -44,12 +50,12 @@ export type SortOptions<
 
 /**
  * JSON-serializable snapshot of the sort constraints a schema
- * declares. `allowed` may hold tuple groups (keys only usable
- * together, in order). The shape is uniform across schemas: a `null`
+ * declares. The shape is uniform across schemas: a `null`
  * constraint was never declared (fallback semantics apply); an empty
  * array is an explicit "nothing".
  */
 export type SortSchemaDescription = {
-    allowed: string[] | string[][] | null,
+    allowed: string[] | null,
     default: Record<string, `${SortDirection}`> | null,
+    indexed: boolean,
 };

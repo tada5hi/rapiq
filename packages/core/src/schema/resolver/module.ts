@@ -580,12 +580,6 @@ export class ResolutionScope<
                         KeyResolutionErrorCode.KEY_INVALID;
                 }
 
-                // tuple groups (string[][]) are matched all-or-nothing by the
-                // sort parser afterwards — individual names pass through here.
-                if (isMultiDimensionalArray(schema.allowed)) {
-                    return undefined;
-                }
-
                 return schema.allowed.includes(name) ?
                     undefined :
                     KeyResolutionErrorCode.KEY_NOT_PERMITTED;
@@ -720,8 +714,4 @@ function buildEmptyParameterSchema<
         new (options: ObjectLiteral) => ParameterSchema<P, RECORD>;
 
     return new SchemaClass({});
-}
-
-function isMultiDimensionalArray(input: string[] | string[][]) : input is string[][] {
-    return input.length > 0 && Array.isArray(input[0]);
 }

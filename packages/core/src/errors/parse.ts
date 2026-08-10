@@ -77,6 +77,13 @@ export class ParseError extends BaseError {
         });
     }
 
+    static keyCombinationNotIndexed(keys: string[]) {
+        return new this({
+            message: `The key combination ${keys.join(', ')} is not indexed.`,
+            code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+        });
+    }
+
     static operatorUnsupported(operator: string) {
         return new this({
             message: `The operator ${operator} is not supported.`,

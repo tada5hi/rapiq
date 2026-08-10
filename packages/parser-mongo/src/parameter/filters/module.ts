@@ -28,6 +28,7 @@ import {
     ParseError,
     RelationsParseError,
     ResolutionScope,
+    applyFiltersIndexPolicy,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     applyKeySchemaValidation,
@@ -88,10 +89,15 @@ export class MongoFiltersParser extends BaseParser<
             (applyFiltersSchemaValidation(parsed, scope.schema, options.context) as IFilters | undefined ??
                 this.buildDefaultOutput(scope));
 
-        return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as FiltersSchema<RECORD>);
+        return applyFiltersIndexPolicy(
+            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as FiltersSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -105,10 +111,15 @@ export class MongoFiltersParser extends BaseParser<
             (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context) as IFilters | undefined ??
                 this.buildDefaultOutput(scope));
 
-        return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as FiltersSchema<RECORD>);
+        return applyFiltersIndexPolicy(
+            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as FiltersSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
