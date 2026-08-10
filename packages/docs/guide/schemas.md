@@ -52,6 +52,7 @@ Field keys are typed against `RECORD` via recursive key paths: `allowed` and `de
 | `throwOnFailure` | `boolean` | Throw on disallowed input instead of dropping it. Inherited by every sub-schema that doesn't set its own value. |
 | `strict` | `boolean` | A parameter without an explicit allow-list rejects all client input instead of permitting any syntactically valid key. Inherited like `throwOnFailure`. See [Strict mode](#strict-mode). |
 | `schemaMapping` | `Record<string, string>` | Maps a relation name to a registered schema name, so nested input (`realm.name`) validates against the related record's schema. |
+| `indexes` | `string[][]` | Ordered column lists of the record's storage indexes, own-table keys only. Inert on its own; the `filters` and `sort` sub-schemas opt into enforcement via `indexed`. See [Indexes](#indexes). |
 
 ## Per-parameter options
 
@@ -60,9 +61,9 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | Parameter | Options |
 |---|---|
 | `fields` | `allowed`, `default`, `mapping` (alias to field), `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)) |
+| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `sort` | `allowed` (flat list, or list of lists to enforce exact multi-key combinations), `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
+| `sort` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
 
 Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema`), useful when calling a single parameter parser directly.
@@ -115,6 +116,40 @@ parser.parse(input, { schema: 'user', strict: true });
 
 ::: warning Migrating from typeorm-extension?
 typeorm-extension **disables** any parameter whose `allowed`/`default` options are missing. rapiq's default is the opposite (open). Enable `strict: true` to keep closed-by-default semantics; see the [migration guide](/guide/migration-typeorm-extension).
+:::
+
+## Indexes {#indexes}
+
+A schema can declare which storage indexes exist for its record and require client queries to use them, so a client cannot force a full table scan by filtering or sorting on unindexed columns:
+
+```typescript
+const userSchema = defineSchema<User>({
+    name: 'user',
+    indexes: [
+        ['realm_id', 'created_at'],
+        ['email'],
+    ],
+    filters: { indexed: true },     // true | 'anchor' | 'cover'
+    sort: { indexed: true },
+});
+```
+
+`indexes` lists each index as its ordered column sequence: own-table keys only (a composite index never spans tables), resolved names (after `mapping`). The declaration alone is inert; each parameter opts in via `indexed`, and it also appears in [`describe()`](#describing-a-schema).
+
+**Filters.** With `indexed: true` (alias `'anchor'`), every AND group of the final parsed tree must contain at least one conjunct whose field is the leading column of a declared index: that index narrows the row set, everything else is residual filtering. An `or(...)` passes only when every branch passes on its own, since a database can only avoid a scan on an OR when each branch is indexed; a nested compound conjunct counts as an anchor when it passes the check itself. With `indexed: 'cover'`, additionally every filtered field must be index-served: per relation path, the AND group's field set must equal a leftmost prefix (as a set, since AND order is meaningless) of one declared index.
+
+**Sort.** With `sort: { indexed: true }`, the requested keys must equal, in order, a leftmost prefix of one declared index. Directions are ignored, and all keys must share one relation path: no single index anywhere serves cross-table ordering.
+
+**The check is structural.** Operators, negation and case folding are deliberately ignored: which operators an index can serve differs per engine (a Postgres trigram index serves `contains`, a hash index only equality, an expression index changes the picture entirely), so rapiq trusts the declaration and enforces combinations only. Declare only what your storage actually serves.
+
+**Relations.** A dotted key such as `items.title` checks the declaration of the schema governing `items` (resolved through the registry and `schemaMapping`), so each schema declares its own indexes. A governing schema without a declaration contributes no anchors and fails cover mode.
+
+**Server-authored conditions.** The filters `default` and sort defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
+
+**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sort to its defaults), or throws a typed error with code `keyCombinationNotIndexed` under `throwOnFailure`.
+
+::: warning Footgun
+`indexed` without any reachable `indexes` declaration (own or on related schemas) rejects every non-empty request for that parameter. Declaring `indexes: []` means exactly that: nothing is indexed.
 :::
 
 ## Validate hooks and parse context {#validate-hooks-parse-context}
@@ -311,14 +346,15 @@ userSchema.describe();
 // {
 //     name: 'user',
 //     strict: false,
+//     indexes: null,
 //     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
-//     filters: { allowed: ['id', 'name', 'age'] },
+//     filters: { allowed: ['id', 'name', 'age'], indexed: false },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
-//     sort: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' } },
+//     sort: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
 // }
 ```
 

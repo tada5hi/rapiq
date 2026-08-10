@@ -55,10 +55,11 @@ defineSchema<User>({
 
 | Option | Description |
 |---|---|
-| `allowed` | Sortable field names. A nested list (`[['name', 'age']]`) only permits exactly those multi-key combinations, useful when only certain composite indexes exist. Omit to allow all; `[]` blocks the parameter. |
+| `allowed` | Sortable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Sort order applied when the client sends nothing valid. |
 | `mapping` | Alias → field translation applied before validation. |
 | `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks-parse-context): accept or reject a sort key per actor. |
+| `indexed` | Requested keys must form a leftmost prefix of one declared schema [index](/guide/schemas#indexes), in order; directions are ignored and keys must share one relation path. Replaces the removed nested-list form of `allowed`. |
 
 ## Validate hooks
 
