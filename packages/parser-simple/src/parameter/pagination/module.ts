@@ -50,6 +50,11 @@ export class SimplePaginationParser<
             return this.finalizePagination(output, schema, throwOnFailure);
         }
 
+        // pagination performs no key grouping, so the prototype-member
+        // guard the grouping helpers apply elsewhere runs explicitly —
+        // a hostile key is rejected typed, not ignored.
+        this.assertSafeObjectKeys(input);
+
         let { limit, offset } = input as Record<string, any>;
 
         if (typeof limit !== 'undefined') {

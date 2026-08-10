@@ -106,6 +106,34 @@ export abstract class BaseParser<
         return output;
     }
 
+    /**
+     * Reject an input object carrying a key whose path addresses an
+     * inherited prototype member. A parameter parser that never expands
+     * or groups its keys (pagination) does not run the hardened helpers
+     * above, but must not accept such keys silently either — the guard
+     * contract is uniform across every parameter. Nesting is bounded by
+     * the shared traversal depth for the same reason as `expandObject`.
+     */
+    protected assertSafeObjectKeys(
+        input: Record<string, any>,
+        depth = 0,
+    ) {
+        const keys = Object.keys(input);
+        for (const key of keys) {
+            if (depth + key.split('.').length > MAX_TRAVERSAL_DEPTH) {
+                throw ParseError.inputInvalid();
+            }
+
+            if (isUnsafeKey(key)) {
+                throw ParseError.inputInvalid();
+            }
+
+            if (isObject(input[key])) {
+                this.assertSafeObjectKeys(input[key], depth + key.split('.').length);
+            }
+        }
+    }
+
     protected groupObject(input: Record<string, any>) {
         const output : TempType = {
             attributes: Object.create(null),

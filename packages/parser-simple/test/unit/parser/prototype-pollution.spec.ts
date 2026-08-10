@@ -92,6 +92,37 @@ describe('src/parameter (prototype pollution)', () => {
         expect(({} as any).a).toBeUndefined();
     });
 
+    it.each(HOSTILE)('should not pollute via a %s pagination key', (prefix) => {
+        const before = propertyCount();
+
+        // pagination never groups its keys, so the guard runs explicitly
+        // in the parser: a hostile key is rejected typed, not ignored
+        expect(() => parser.parse({ pagination: { [prefix]: { polluted: '1' } } }))
+            .toThrow(ParseError);
+
+        expect(propertyCount()).toBe(before);
+        expect(({} as any).polluted).toBeUndefined();
+    });
+
+    it('should not pollute via a nested hostile pagination key', () => {
+        const before = propertyCount();
+
+        // a computed key is an OWN property (unlike a bare `__proto__`
+        // literal, which JS neutralizes before the parser ever sees it)
+        expect(() => parser.parse({ pagination: { limit: { ['__proto__']: { polluted: '1' } } } }))
+            .toThrow(ParseError);
+
+        expect(propertyCount()).toBe(before);
+        expect(({} as any).polluted).toBeUndefined();
+    });
+
+    it('should still parse legitimate pagination input', () => {
+        const output = parser.parse({ pagination: { limit: 10, offset: 5 } });
+
+        expect(output.pagination.limit).toEqual(10);
+        expect(output.pagination.offset).toEqual(5);
+    });
+
     it('should still parse a legitimate grouped sort key', () => {
         const output = parser.parse({ sort: ['0:name'] });
 
