@@ -48,6 +48,14 @@ describe('pagination', () => {
         expect(value).toEqual(decoded);
     });
 
+    it('should tolerate a leading question mark', () => {
+        // the parameter helpers share the main decode path's `url.search`
+        // tolerance — a single leading `?` is stripped before qs parsing
+        const decoded = decoder.decodePagination('?page[limit]=50');
+
+        expect(decoded).toEqual(new Pagination(50, 0));
+    });
+
     it('should throw for a zero or non-integer limit (outside the wire subset)', () => {
         expect(() => encoder.encodePagination(new Pagination(0)))
             .toThrowError(AdapterError);

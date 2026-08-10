@@ -7,3 +7,4 @@
 
 export * from './encode';
 export * from './fields';
+export * from './parse';
