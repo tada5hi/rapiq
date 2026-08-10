@@ -146,10 +146,10 @@ const userSchema = defineSchema<User>({
 
 **Server-authored conditions.** The filters `default` and sort defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
 
-**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sort to its defaults), or throws a typed error with code `keyCombinationNotIndexed` under `throwOnFailure`.
+**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sort to its defaults), or throws a typed error with code `keyCombinationNotIndexed` under `throwOnFailure`. Two guardrails harden the filters drop path: a violating tree that carries a [preserved](/guide/filters#schema-options) condition refuses to drop it and throws `SCHEMA_PRESERVED_CONDITION_PRUNED` (mirroring relation pruning), and a violation on a schema without a filters `default` always throws, since dropping to an empty filter set would execute exactly the unfiltered scan the policy exists to prevent.
 
 ::: warning Footgun
-`indexed` without any reachable `indexes` declaration (own or on related schemas) rejects every non-empty request for that parameter. Declaring `indexes: []` means exactly that: nothing is indexed.
+`indexed` without any reachable `indexes` declaration (own or on related schemas) can never be satisfied: every non-empty request drops to the `default`, or throws when there is none. Declaring `indexes: []` means exactly that: nothing is indexed.
 :::
 
 ## Validate hooks and parse context {#validate-hooks-parse-context}

@@ -74,7 +74,34 @@ function violationFor(leaves: IFilter[]) : { path: string, keys: string[] } {
 }
 
 /**
- * Verdict for one conjunction: direct leaves grouped per relation path,
+ * Pool a conjunction's leaves: direct ones and those of nested AND
+ * compounds. The walk deliberately ignores the preserved flag, since
+ * preservation is a pruning policy and this check only analyzes: a
+ * preserved residual's leaves count toward the parent group, so a
+ * conjunction that jointly forms an index prefix passes cover mode
+ * regardless of how validate hooks grouped it.
+ */
+function collectConjunction(
+    children: ICondition[],
+    leaves: IFilter[],
+    compounds: ICondition[],
+) : void {
+    for (const child of children) {
+        if (isFilter(child)) {
+            leaves.push(child);
+        } else if (
+            isFilters(child) &&
+            child.operator === FilterCompoundOperator.AND
+        ) {
+            collectConjunction(child.value, leaves, compounds);
+        } else {
+            compounds.push(child);
+        }
+    }
+}
+
+/**
+ * Verdict for one conjunction: leaves grouped per relation path,
  * compound children judged recursively. Shared by AND, NOT (interior
  * conjunction) and the lone-leaf case (an AND group of one).
  */
@@ -84,19 +111,9 @@ function checkGroup(
     resolve: IndexesResolver,
     mode: IndexedMode,
 ) : NodeVerdict {
-    const verdicts = compounds.map((child) => checkNode(child, resolve, mode));
-
-    const checkable = leaves.length > 0 ||
-        verdicts.some((verdict) => !verdict.skipped);
-    if (!checkable) {
-        return {
-            pass: true, 
-            anchors: false, 
-            skipped: true, 
-        };
-    }
-
     if (mode === 'cover') {
+        // group coverage first: cheap, and a failure short-circuits
+        // the compound recursion.
         const groups = new Map<string, string[]>();
         for (const leaf of leaves) {
             const { path, name } = leafTarget(leaf.field);
@@ -119,9 +136,20 @@ function checkGroup(
             }
         }
 
+        const verdicts = compounds.map((child) => checkNode(child, resolve, mode));
         const failed = verdicts.find((verdict) => !verdict.pass);
         if (failed) {
             return failed;
+        }
+
+        const checkable = leaves.length > 0 ||
+            verdicts.some((verdict) => !verdict.skipped);
+        if (!checkable) {
+            return {
+                pass: true, 
+                anchors: false, 
+                skipped: true, 
+            };
         }
 
         return {
@@ -131,13 +159,33 @@ function checkGroup(
         };
     }
 
-    const anchored = leaves.some((leaf) => leafAnchors(leaf, resolve)) ||
-        verdicts.some((verdict) => verdict.anchors);
-    if (anchored) {
+    // anchor mode: a leaf anchor settles the verdict without recursing
+    // into compound conjuncts, which are residual once the group is
+    // anchored.
+    if (leaves.some((leaf) => leafAnchors(leaf, resolve))) {
         return {
             pass: true, 
             anchors: true, 
             skipped: false, 
+        };
+    }
+
+    const verdicts = compounds.map((child) => checkNode(child, resolve, mode));
+    if (verdicts.some((verdict) => verdict.anchors)) {
+        return {
+            pass: true, 
+            anchors: true, 
+            skipped: false, 
+        };
+    }
+
+    const checkable = leaves.length > 0 ||
+        verdicts.some((verdict) => !verdict.skipped);
+    if (!checkable) {
+        return {
+            pass: true, 
+            anchors: false, 
+            skipped: true, 
         };
     }
 
@@ -179,23 +227,12 @@ function checkNode(
             };
         }
 
-        // AND and NOT judge their interior conjunction. Same-operator
-        // nesting pools into one group (flatten never hoists through
-        // NOT and keeps preserved subtrees atomic; those recurse as
-        // compound children instead).
-        const children = node.operator === FilterCompoundOperator.NOT ?
-            node.value :
-            node.flatten().value;
-
+        // AND and NOT judge their interior conjunction; nested AND
+        // compounds pool into one group (see collectConjunction), OR
+        // children recurse as compound conjuncts.
         const leaves : IFilter[] = [];
         const compounds : ICondition[] = [];
-        for (const child of children) {
-            if (isFilter(child)) {
-                leaves.push(child);
-            } else {
-                compounds.push(child);
-            }
-        }
+        collectConjunction(node.value, leaves, compounds);
 
         return checkGroup(leaves, compounds, resolve, mode);
     }

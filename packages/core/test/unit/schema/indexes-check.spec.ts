@@ -74,6 +74,7 @@ describe('src/schema/indexes/module.ts', () => {
             ['spanning two indexes rejected', and(eq('realm_id', 'x'), eq('email', 'y')), false],
             ['duplicate fields collapse', and(gte('created_at', 'a'), lte('created_at', 'b'), eq('realm_id', 'x')), true],
             ['per-path groups cover separately', and(eq('realm_id', 'x'), eq('items.user_id', 'y')), true],
+            ['preserved compound pools into the group', and(eq('realm_id', 'x'), preserve(and(eq('created_at', 'y')))), true],
             ['uncovered relation group', and(eq('realm_id', 'x'), eq('items.name', 'y')), false],
             ['OR branches each covered', or(eq('realm_id', 'x'), eq('email', 'y')), true],
         ])('%s', (_, condition, ok) => {

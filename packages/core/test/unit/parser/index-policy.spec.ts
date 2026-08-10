@@ -10,6 +10,7 @@ import {
     FilterCompoundOperator,
     Filters,
     FiltersParseError,
+    SchemaError,
     SchemaRegistry,
     Sort,
     SortDirection,
@@ -18,6 +19,7 @@ import {
     applySortIndexPolicy,
     defineSchema,
     eq,
+    preserve,
 } from '../../../src';
 
 type Item = {
@@ -96,6 +98,50 @@ describe('src/parser/index-policy.ts', () => {
 
         // flag is unindexed, but the default is server-authored.
         expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should bypass a tree value-equal to the default', () => {
+        const registry = buildRegistry();
+        // fresh instances, same content as the default: what a codec
+        // round-trip of the default tree produces.
+        const output = new Filters(FilterCompoundOperator.AND, [eq('flag', true)]);
+
+        expect(applyFiltersIndexPolicy(output, registry, 'row', { throwOnFailure: true }))
+            .toBe(output);
+    });
+
+    it('should refuse to drop a preserved condition', () => {
+        const registry = buildRegistry();
+        const output = new Filters(FilterCompoundOperator.AND, [
+            eq('created_at', 'x'),
+            preserve(eq('deleted', false)),
+        ]);
+
+        try {
+            applyFiltersIndexPolicy(output, registry, 'row');
+            expect.fail('expected a SchemaError');
+        } catch (e) {
+            expect(e).toBeInstanceOf(SchemaError);
+            expect((e as SchemaError).code).toBe(ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED);
+        }
+    });
+
+    it('should throw on violation when no default exists to fall back to', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<Row>({
+            name: 'row',
+            indexes: [['realm_id']],
+            filters: { indexed: true },
+        }));
+        const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);
+
+        try {
+            applyFiltersIndexPolicy(output, registry, 'row');
+            expect.fail('expected a FiltersParseError');
+        } catch (e) {
+            expect(e).toBeInstanceOf(FiltersParseError);
+            expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
+        }
     });
 
     it('should no-op without the indexed opt-in', () => {

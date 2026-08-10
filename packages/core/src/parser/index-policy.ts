@@ -6,8 +6,14 @@
  */
 
 import { Parameter } from '../constants';
-import { Filters } from '../parameter';
-import type { IFilters, ISorts } from '../parameter';
+import {
+    Filters,
+    isCondition,
+    isFilter,
+    isFilters,
+} from '../parameter';
+import type { ICondition, IFilters, ISorts } from '../parameter';
+import { SchemaError } from '../errors';
 import {
     FilterCompoundOperator,
     ResolutionScope,
@@ -65,13 +71,83 @@ function indexesResolverFor(scope: ResolutionScope<any, any>) : IndexesResolver 
     };
 }
 
+/**
+ * Semantic equality of two condition trees: field, operator and value,
+ * flags excluded (a codec round trip rebuilds fresh instances and never
+ * carries preservation). Unknown condition kinds compare by identity.
+ */
+function conditionEquals(a: ICondition, b: ICondition) : boolean {
+    if (a === b) {
+        return true;
+    }
+
+    if (isFilter(a) && isFilter(b)) {
+        return a.operator === b.operator &&
+            a.field === b.field &&
+            filterValueEquals(a.value, b.value);
+    }
+
+    if (isFilters(a) && isFilters(b)) {
+        return a.operator === b.operator &&
+            a.value.length === b.value.length &&
+            a.value.every(
+                (child, index) => conditionEquals(child, b.value[index] as ICondition),
+            );
+    }
+
+    return false;
+}
+
+function filterValueEquals(a: unknown, b: unknown) : boolean {
+    if (isCondition(a) && isCondition(b)) {
+        return conditionEquals(a, b);
+    }
+
+    if (Array.isArray(a) && Array.isArray(b)) {
+        return a.length === b.length &&
+            a.every((element, index) => element === b[index]);
+    }
+
+    return a === b;
+}
+
+/**
+ * A preserved condition anywhere in the tree, including elemMatch
+ * interiors. Custom kinds enter preservation through the preserve()
+ * wrapper, a flagged Filters node, so flag checks on the built-in
+ * nodes cover them.
+ */
+function hasPreservedCondition(node: ICondition) : boolean {
+    if (isFilter(node)) {
+        if (node.preserved) {
+            return true;
+        }
+
+        return isCondition(node.value) ? hasPreservedCondition(node.value) : false;
+    }
+
+    if (isFilters(node)) {
+        if (node.preserved) {
+            return true;
+        }
+
+        return node.value.some(hasPreservedCondition);
+    }
+
+    return false;
+}
+
 function isFiltersDefaults(output: IFilters, schema: FiltersSchema) : boolean {
     const defaults = buildFiltersDefaults(schema);
     if (defaults.length === 0 || output.value.length !== defaults.length) {
         return false;
     }
 
-    return output.value.every((item, index) => item === defaults[index]);
+    return output.value.every((item, index) => {
+        const other = defaults[index];
+
+        return typeof other !== 'undefined' && conditionEquals(item, other);
+    });
 }
 
 function isSortDefaults(output: ISorts, schema: SortSchema) : boolean {
@@ -128,7 +204,21 @@ export function applyFiltersIndexPolicy<
         throw FiltersParseError.keyCombinationNotIndexed(result.keys);
     }
 
-    return new Filters(FilterCompoundOperator.AND, buildFiltersDefaults(filtersSchema));
+    // A preserved (must-survive) condition cannot be dropped with the
+    // tree: mirror relation pruning and refuse loudly.
+    if (hasPreservedCondition(output)) {
+        throw SchemaError.preservedConditionNotIndexed(result.keys);
+    }
+
+    const defaults = buildFiltersDefaults(filtersSchema);
+    if (defaults.length === 0) {
+        // Dropping to an empty filter set would execute an unfiltered
+        // scan, the exact outcome the policy exists to prevent: with
+        // no fallback, the violation always throws.
+        throw FiltersParseError.keyCombinationNotIndexed(result.keys);
+    }
+
+    return new Filters(FilterCompoundOperator.AND, defaults);
 }
 
 /**
