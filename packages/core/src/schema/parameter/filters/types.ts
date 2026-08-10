@@ -8,9 +8,10 @@
 import type { ICondition, IFilter } from '../../../parameter';
 import type {
     MaybeAsync,
-    ObjectLiteral, 
+    ObjectLiteral,
     SimpleKeys,
 } from '../../../types';
+import type { IndexedMode } from '../../indexes';
 import type { BaseSchemaOptions } from '../../types';
 
 /**
@@ -49,6 +50,12 @@ export type FiltersOptions<
      * (after mapping), matching the entries of `allowed`.
      */
     caseSensitive?: SimpleKeys<T>[],
+    /**
+     * Check parsed filter trees against the schema-level `indexes`
+     * declaration: `true`/`'anchor'` requires one index-leading
+     * conjunct per AND group, `'cover'` full prefix coverage.
+     */
+    indexed?: boolean | IndexedMode,
 };
 
 /**
@@ -62,4 +69,5 @@ export type FiltersOptions<
  */
 export type FiltersSchemaDescription = {
     allowed: string[] | null,
+    indexed: IndexedMode | false,
 };

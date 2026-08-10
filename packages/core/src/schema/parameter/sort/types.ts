@@ -23,6 +23,12 @@ export type SortOptions<
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
     /**
+     * Check requested sort keys against the schema-level `indexes`
+     * declaration: they must form a leftmost prefix of one index,
+     * in order; directions are ignored.
+     */
+    indexed?: boolean,
+    /**
      * Dynamic per-sort-key gate, e.g. an actor permission check.
      * Runs once per client-requested sort key against the schema that
      * governs it (the target schema for dotted keys), after tuple-group
@@ -51,4 +57,5 @@ export type SortOptions<
 export type SortSchemaDescription = {
     allowed: string[] | null,
     default: Record<string, `${SortDirection}`> | null,
+    indexed: boolean,
 };

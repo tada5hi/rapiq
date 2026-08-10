@@ -41,6 +41,10 @@ export class Schema<
 
     public readonly sort: SortSchema<RECORD, CONTEXT>;
 
+    public readonly indexes : string[][];
+
+    public readonly indexesIsUndefined : boolean;
+
     // ---------------------------------------------------------
 
     constructor(options: SchemaOptions<RECORD, CONTEXT> = {}) {
@@ -76,6 +80,14 @@ export class Schema<
             this.sort = defineSortSchema(options.sort);
         }
 
+        if (typeof options.indexes === 'undefined') {
+            this.indexes = [];
+            this.indexesIsUndefined = true;
+        } else {
+            this.indexes = options.indexes.map((index) => [...index]);
+            this.indexesIsUndefined = false;
+        }
+
         this.extendSchemasOptions();
     }
 
@@ -92,6 +104,9 @@ export class Schema<
         const output : SchemaDescription = {
             name: this.options.name ?? null,
             strict: this.options.strict ?? false,
+            indexes: this.indexesIsUndefined ?
+                null :
+                this.indexes.map((index) => [...index]),
         };
 
         const parameters : string[] = options.parameters || Object.values(Parameter);
@@ -136,6 +151,11 @@ export class Schema<
         this.extendSchemaOptions(this.pagination);
         this.extendSchemaOptions(this.relations);
         this.extendSchemaOptions(this.sort);
+
+        if (!this.indexesIsUndefined) {
+            this.filters.setIndexes(this.indexes);
+            this.sort.setIndexes(this.indexes);
+        }
     }
 
     private extendSchemaOptions(schema: BaseSchema<any>) {

@@ -27,6 +27,12 @@ export class SortSchema<
 
     public allowedIsUndefined : boolean;
 
+    public indexes : string[][];
+
+    public indexesIsUndefined : boolean;
+
+    public indexed : boolean;
+
     // ---------------------------------------------------------
 
     constructor(input: SortOptions<T, CONTEXT> = {}) {
@@ -38,6 +44,10 @@ export class SortSchema<
         this.default = {};
         this.defaultKeys = [];
         this.defaultIsUndefined = true;
+
+        this.indexes = [];
+        this.indexesIsUndefined = true;
+        this.indexed = this.options.indexed ?? false;
 
         this.buildDefault();
         this.buildAllowed();
@@ -61,7 +71,21 @@ export class SortSchema<
         return {
             allowed: this.allowedIsUndefined ? null : [...this.allowed],
             default: this.defaultIsUndefined ? null : { ...this.default },
+            indexed: this.indexed,
         };
+    }
+
+    // ---------------------------------------------------------
+
+    setIndexes(input?: string[][]) {
+        if (typeof input === 'undefined') {
+            this.indexes = [];
+            this.indexesIsUndefined = true;
+            return;
+        }
+
+        this.indexes = input;
+        this.indexesIsUndefined = false;
     }
 
     // ---------------------------------------------------------

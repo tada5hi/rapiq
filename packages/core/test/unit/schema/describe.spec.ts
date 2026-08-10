@@ -32,11 +32,12 @@ describe('src/schema/**/describe', () => {
         expect(schema.describe()).toEqual({
             name: 'user',
             strict: false,
+            indexes: null,
             fields: {
                 default: ['id', 'name'],
                 allowed: ['email'],
             },
-            filters: { allowed: ['id', 'name'] },
+            filters: { allowed: ['id', 'name'], indexed: false },
             pagination: { maxLimit: 50 },
             relations: {
                 allowed: ['realm', 'items'],
@@ -48,6 +49,7 @@ describe('src/schema/**/describe', () => {
             sort: {
                 allowed: ['id', 'name'],
                 default: { name: 'DESC' },
+                indexed: false,
             },
         });
     });
@@ -58,11 +60,16 @@ describe('src/schema/**/describe', () => {
         expect(schema.describe()).toEqual({
             name: null,
             strict: false,
+            indexes: null,
             fields: { default: null, allowed: null },
-            filters: { allowed: null },
+            filters: { allowed: null, indexed: false },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
-            sort: { allowed: null, default: null },
+            sort: {
+                allowed: null, 
+                default: null, 
+                indexed: false, 
+            },
         });
     });
 
@@ -76,7 +83,7 @@ describe('src/schema/**/describe', () => {
 
         expect(output.fields).toEqual({ default: null, allowed: [] });
         expect(output.relations).toEqual({ allowed: [], schemas: {} });
-        expect(output.filters).toEqual({ allowed: null });
+        expect(output.filters).toEqual({ allowed: null, indexed: false });
     });
 
     it('should restrict the description to the selected parameters', () => {
@@ -92,6 +99,7 @@ describe('src/schema/**/describe', () => {
         expect(schema.describe({ parameters: [Parameter.FIELDS, Parameter.RELATIONS] })).toEqual({
             name: 'user',
             strict: false,
+            indexes: null,
             fields: { default: null, allowed: ['id', 'name'] },
             relations: {
                 allowed: ['realm'],
@@ -106,6 +114,7 @@ describe('src/schema/**/describe', () => {
         expect(schema.describe().sort).toEqual({
             allowed: ['name'],
             default: { name: 'DESC' },
+            indexed: false,
         });
     });
 
@@ -114,7 +123,11 @@ describe('src/schema/**/describe', () => {
 
         const output = schema.describe();
 
-        expect(output.sort).toEqual({ allowed: ['realm.id', 'id'], default: null });
+        expect(output.sort).toEqual({
+            allowed: ['realm.id', 'id'], 
+            default: null, 
+            indexed: false, 
+        });
 
         (output.sort!.allowed as string[]).push('mutated');
         expect(schema.sort.allowed).toEqual(['realm.id', 'id']);
