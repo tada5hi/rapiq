@@ -201,32 +201,6 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
                     throwOnFailure: resolved.scope.throwOnFailure,
                 });
             }
-
-            if (this.isMultiDimensionalArray(schema.allowed)) {
-                // eslint-disable-next-line no-labels
-                outerLoop:
-                for (const keyPaths of schema.allowed) {
-                    const temp = new Sorts();
-
-                    for (const keyPath of keyPaths) {
-                        const index = output.value.findIndex((el) => el.name === keyPath);
-                        if (index !== -1) {
-                            const found = output.value[index];
-                            if (found !== undefined) {
-                                temp.value.push(found);
-                            }
-                        } else {
-                            // eslint-disable-next-line no-labels
-                            continue outerLoop;
-                        }
-                    }
-
-                    return temp;
-                }
-
-                // if we get no match, the sort data is invalid.
-                return new Sorts();
-            }
         }
 
         if (output.value.length === 0) {
@@ -370,15 +344,5 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         }
 
         return {};
-    }
-
-    // --------------------------------------------------
-
-    protected isMultiDimensionalArray(arr: string[] | string[][]) : arr is string[][] {
-        if (!Array.isArray(arr)) {
-            return false;
-        }
-
-        return arr.length > 0 && Array.isArray(arr[0]);
     }
 }

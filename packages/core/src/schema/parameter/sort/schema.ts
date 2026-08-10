@@ -23,7 +23,7 @@ export class SortSchema<
 
     public defaultIsUndefined : boolean;
 
-    public allowed : string[] | string[][];
+    public allowed : string[];
 
     public allowedIsUndefined : boolean;
 
@@ -59,11 +59,7 @@ export class SortSchema<
      */
     describe() : SortSchemaDescription {
         return {
-            allowed: this.allowedIsUndefined ?
-                null :
-                this.allowed.map(
-                    (el) => (Array.isArray(el) ? [...el] : el),
-                ) as string[] | string[][],
+            allowed: this.allowedIsUndefined ? null : [...this.allowed],
             default: this.defaultIsUndefined ? null : { ...this.default },
         };
     }

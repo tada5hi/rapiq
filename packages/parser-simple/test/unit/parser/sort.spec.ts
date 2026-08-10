@@ -157,56 +157,31 @@ describe('src/sort/index.ts', () => {
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
     });
 
-    it('should parse sort with sort indexes (simple)', async () => {
-        const schema = defineSortSchema<User>({
-            allowed: [
-                ['name', 'email'],
-                ['id'],
-            ],
-        });
+    it('should parse sort with a flat allow-list', async () => {
+        const schema = defineSortSchema<User>({ allowed: ['name', 'id'] });
 
-        // simple
         const transformed = parser.parse(['id'], { schema });
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.ASC });
     });
 
-    it('should parse sort with sort indexes (tuple)', async () => {
-        const schema = defineSortSchema<User>({
-            allowed: [
-                ['name', 'email'],
-                ['id'],
-            ],
-        });
+    it('should filter sort keys individually by the allow-list', async () => {
+        const schema = defineSortSchema<User>({ allowed: ['name', 'id'] });
 
-        // correct order
+        // allowed keys survive, disallowed keys drop individually
         let transformed = parser.parse(['name', 'email'], { schema });
-        expect(interpreter.interpret(transformed)).toStrictEqual({
-            name: SortDirection.ASC,
-            email: SortDirection.ASC,
-        });
+        expect(interpreter.interpret(transformed)).toStrictEqual({ name: SortDirection.ASC });
 
-        // incorrect order
-        transformed = parser.parse(['email', 'name'], { schema });
-        expect(interpreter.interpret(transformed)).toStrictEqual({
-            name: SortDirection.ASC,
-            email: SortDirection.ASC,
-        });
-
-        // no match
+        // nothing allowed requested: nothing survives
         transformed = parser.parse(['email'], { schema });
         expect(interpreter.interpret(transformed)).toStrictEqual({});
     });
 
-    it('should parse sort with sort indexes & default path', async () => {
+    it('should filter sort keys by the allow-list & default path', async () => {
         const schema = defineSortSchema<User>({
-            allowed: [
-                ['name', 'email'],
-                ['id'],
-            ],
+            allowed: ['id'],
             name: 'user',
         });
 
-        // incomplete match
         const transformed = parser.parse(['email', 'id'], { schema });
         expect(interpreter.interpret(transformed)).toStrictEqual({ id: SortDirection.ASC });
     });

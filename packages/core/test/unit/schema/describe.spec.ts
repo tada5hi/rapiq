@@ -109,15 +109,15 @@ describe('src/schema/**/describe', () => {
         });
     });
 
-    it('should clone sort tuple groups', () => {
-        const schema = defineSchema<User>({ sort: { allowed: [['realm.id', 'id'], ['name']] } });
+    it('should clone the sort allow-list', () => {
+        const schema = defineSchema<User>({ sort: { allowed: ['realm.id', 'id'] } });
 
         const output = schema.describe();
 
-        expect(output.sort).toEqual({ allowed: [['realm.id', 'id'], ['name']], default: null });
+        expect(output.sort).toEqual({ allowed: ['realm.id', 'id'], default: null });
 
-        (output.sort!.allowed as string[][])[0].push('mutated');
-        expect(schema.sort.allowed[0]).toEqual(['realm.id', 'id']);
+        (output.sort!.allowed as string[]).push('mutated');
+        expect(schema.sort.allowed).toEqual(['realm.id', 'id']);
     });
 
     it('should not expose internal state to description mutations', () => {

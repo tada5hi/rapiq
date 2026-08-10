@@ -19,7 +19,7 @@ export type SortOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
 > = KeyValidatableSchemaOptions<CONTEXT> & {
-    allowed?: SimpleKeys<T>[] | SimpleKeys<T>[][],
+    allowed?: SimpleKeys<T>[],
     mapping?: Record<string, string>,
     default?: SortOptionDefault<T>,
     /**
@@ -44,12 +44,11 @@ export type SortOptions<
 
 /**
  * JSON-serializable snapshot of the sort constraints a schema
- * declares. `allowed` may hold tuple groups (keys only usable
- * together, in order). The shape is uniform across schemas: a `null`
+ * declares. The shape is uniform across schemas: a `null`
  * constraint was never declared (fallback semantics apply); an empty
  * array is an explicit "nothing".
  */
 export type SortSchemaDescription = {
-    allowed: string[] | string[][] | null,
+    allowed: string[] | null,
     default: Record<string, `${SortDirection}`> | null,
 };
