@@ -272,7 +272,7 @@ function isConditionPreserved(node: ICondition) : boolean {
     return false;
 }
 
-function buildSortDefaults(schema: SortSchema) : Sorts {
+export function buildSortDefaults(schema: SortSchema) : Sorts {
     const output = new Sorts();
     if (!schema.default) {
         return output;

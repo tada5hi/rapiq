@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) 2026.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+import {
+    ErrorCode,
+    FilterCompoundOperator,
+    Filters,
+    FiltersParseError,
+    SchemaRegistry,
+    Sort,
+    SortDirection,
+    Sorts,
+    applyFiltersIndexPolicy,
+    applySortIndexPolicy,
+    defineSchema,
+    eq,
+} from '../../../src';
+
+type Item = {
+    id: string,
+    user_id: string,
+    name: string,
+};
+
+type Row = {
+    id: string,
+    realm_id: string,
+    created_at: string,
+    email: string,
+    flag: boolean,
+    items: Item[],
+};
+
+const buildRegistry = () => {
+    const registry = new SchemaRegistry();
+    registry.add(defineSchema<Row>({
+        name: 'row',
+        indexes: [['realm_id', 'created_at'], ['email']],
+        filters: { indexed: true, default: eq('flag', true) },
+        sort: { indexed: true, default: { created_at: 'DESC' } },
+        schemaMapping: { items: 'item' },
+    }));
+    registry.add(defineSchema<Item>({
+        name: 'item',
+        indexes: [['user_id']],
+    }));
+
+    return registry;
+};
+
+describe('src/parser/index-policy.ts', () => {
+    it('should pass an anchored tree through unchanged', () => {
+        const registry = buildRegistry();
+        const output = new Filters(FilterCompoundOperator.AND, [eq('realm_id', 'x')]);
+
+        expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should resolve relation paths through the registry', () => {
+        const registry = buildRegistry();
+        const output = new Filters(FilterCompoundOperator.AND, [eq('items.user_id', 'x')]);
+
+        expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should drop a violating tree to the schema default', () => {
+        const registry = buildRegistry();
+        const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);
+
+        const applied = applyFiltersIndexPolicy(output, registry, 'row');
+        expect(applied).not.toBe(output);
+        expect(applied.value).toEqual([eq('flag', true)]);
+    });
+
+    it('should throw typed under throwOnFailure', () => {
+        const registry = buildRegistry();
+        const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);
+
+        try {
+            applyFiltersIndexPolicy(output, registry, 'row', { throwOnFailure: true });
+            expect.fail('expected a FiltersParseError');
+        } catch (e) {
+            expect(e).toBeInstanceOf(FiltersParseError);
+            expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
+        }
+    });
+
+    it('should bypass the schema default tree', () => {
+        const registry = buildRegistry();
+        const schema = registry.getOrFail('row');
+        const output = new Filters(FilterCompoundOperator.AND, [schema.filters.default!]);
+
+        // flag is unindexed, but the default is server-authored.
+        expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should no-op without the indexed opt-in', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<Row>({
+            name: 'row',
+            indexes: [['realm_id']],
+        }));
+        const output = new Filters(FilterCompoundOperator.AND, [eq('flag', true)]);
+
+        expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should apply the prefix rule to sorts', () => {
+        const registry = buildRegistry();
+
+        const ok = new Sorts([
+            new Sort('realm_id', SortDirection.DESC),
+            new Sort('created_at', SortDirection.ASC),
+        ]);
+        expect(applySortIndexPolicy(ok, registry, 'row')).toBe(ok);
+
+        const bad = new Sorts([new Sort('created_at', SortDirection.ASC)]);
+        const applied = applySortIndexPolicy(bad, registry, 'row');
+        expect(applied).not.toBe(bad);
+        expect(applied.value.map((sort) => [sort.name, sort.operator]))
+            .toEqual([['created_at', SortDirection.DESC]]);
+    });
+
+    it('should bypass the sort defaults', () => {
+        const registry = buildRegistry();
+        const output = new Sorts([new Sort('created_at', SortDirection.DESC)]);
+
+        expect(applySortIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+});

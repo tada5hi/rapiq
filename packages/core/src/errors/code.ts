@@ -24,6 +24,8 @@ export enum ErrorCode {
 
     KEY_VALIDATE_REJECTED = 'keyValidateRejected',
 
+    KEY_COMBINATION_NOT_INDEXED = 'keyCombinationNotIndexed',
+
     LIMIT_EXCEEDED = 'limitExceeded',
 
     OPERATOR_UNSUPPORTED = 'operatorUnsupported',

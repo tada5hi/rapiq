@@ -19,6 +19,7 @@ import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { isObject, isPropertySet } from '../utils';
 import { BaseParser } from './base';
+import { applyFiltersIndexPolicy, applySortIndexPolicy } from './index-policy';
 import { RelationsParseError } from './parameter/relations/error';
 import {
     applyKeySchemaValidation,
@@ -113,6 +114,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         const rejected = this.applyRelationValidations(ledger, options);
         this.pruneByRelations(output, rejected, options);
+        this.applyIndexPolicies(output, options);
 
         return new Query(output);
     }
@@ -170,6 +172,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         const rejected = await this.applyRelationValidationsAsync(ledger, options);
         this.pruneByRelations(output, rejected, options);
+        this.applyIndexPolicies(output, options);
 
         return new Query(output);
     }
@@ -298,6 +301,27 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         if (output.filters) {
             output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters);
+        }
+    }
+
+    /**
+     * Enforce the schema's `indexed` policies on the final composed
+     * query, after relation pruning: the check governs the tree that
+     * will actually execute. Per-parameter throw policy comes from the
+     * sub-schemas themselves.
+     */
+    protected applyIndexPolicies<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        output: QueryContext,
+        options: ParseQueryOptions<RECORD>,
+    ) : void {
+        if (output.filters) {
+            output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema);
+        }
+
+        if (output.sorts) {
+            output.sorts = applySortIndexPolicy(output.sorts, this.registry, options.schema);
         }
     }
 
