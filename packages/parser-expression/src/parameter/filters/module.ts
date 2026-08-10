@@ -30,6 +30,7 @@ import {
     ParseError,
     RelationsParseError,
     ResolutionScope,
+    applyFiltersIndexPolicy,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     applyKeySchemaValidation,
@@ -99,10 +100,15 @@ export class ExpressionFiltersParser extends BaseParser<
             return output;
         }
 
-        return pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as FiltersSchema<RECORD>);
+        return applyFiltersIndexPolicy(
+            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as FiltersSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -115,10 +121,15 @@ export class ExpressionFiltersParser extends BaseParser<
             return output;
         }
 
-        return pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }), scope.schema as FiltersSchema<RECORD>);
+        return applyFiltersIndexPolicy(
+            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+            }), scope.schema as FiltersSchema<RECORD>),
+            this.registry,
+            options.schema,
+            { throwOnFailure: options.throwOnFailure },
+        );
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
