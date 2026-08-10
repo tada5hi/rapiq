@@ -92,6 +92,31 @@ describe('URLCodec', () => {
         expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'John')]));
     });
 
+    it('should tolerate a leading question mark', () => {
+        // a caller passing `url.search` verbatim: qs would read `?filter`
+        // as the first key name and silently lose every parameter
+        const decoded = codec.decode('?filter[name]=John&sort=-name');
+
+        expect(decoded!.filters).toEqual(new Filters('and', [eq('name', 'John')]));
+        expect(decoded!.sorts.value).toHaveLength(1);
+    });
+
+    it('should tolerate a leading question mark on a stamped payload', () => {
+        const query = defineQuery({ filters: or(eq('name', 'John'), gte('age', 18)) });
+
+        const decoded = codec.decode(`?${codec.encode(query)!}`);
+
+        expect(decoded!.filters).toEqual(or(eq('name', 'John'), gte('age', 18)));
+    });
+
+    it('should strip only a single leading question mark', () => {
+        // `??filter` is not a recoverable url.search shape — the second
+        // `?` stays part of the key and the parameter is not recognized
+        const decoded = codec.decode('??filter[name]=John');
+
+        expect(decoded!.filters.value).toHaveLength(0);
+    });
+
     it('should omit the identity stamp on request', () => {
         const query = defineQuery({ filters: { name: 'John' } });
 

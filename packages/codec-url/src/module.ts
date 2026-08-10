@@ -11,8 +11,8 @@ import type {
     ObjectLiteral,
     ParseQueryOptions,
 } from '@rapiq/core';
-import { parse } from 'qs';
 import { CODEC_PARAMETER } from './constants';
+import { parseQueryString } from './utils';
 import type {
     URLCodecDefinition,
     URLCodecEncodeOptions,
@@ -127,7 +127,7 @@ export class URLCodec {
         codec: URLCodecDefinition,
         payload: ObjectLiteral,
     } | null {
-        const parsed = typeof input === 'string' ? parse(input) : input;
+        const parsed = typeof input === 'string' ? parseQueryString(input) : input;
         if (!isObject(parsed)) {
             return null;
         }

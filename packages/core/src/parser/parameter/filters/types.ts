@@ -14,6 +14,13 @@ export type FiltersParseOptions<
 > = {
     relations?: Relations,
     schema?: string | Schema<RECORD> | FiltersSchema<RECORD>,
+    /**
+     * Throw on a key resolution failure instead of dropping the key.
+     * Honored by the simple and mongo dialects. The expression dialect
+     * IGNORES it and always throws: an expression cannot be partially
+     * reinterpreted safely — pruning a leaf inside `or(...)` would
+     * change the compound's meaning rather than narrow it.
+     */
     throwOnFailure?: boolean,
     strict?: boolean,
     context?: unknown,

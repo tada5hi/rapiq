@@ -5,7 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { parse } from 'qs';
 import type {
     BaseQueryParser,
     IFields,
@@ -25,6 +24,7 @@ import {
     isPropertySet,
 } from '@rapiq/core';
 import { URLParameter, URL_FIELDS_ROOT } from '../constants';
+import { parseQueryString } from '../utils';
 
 /**
  * Wire name → canonical parameter of the shared URL grammar.
@@ -112,7 +112,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : IFields | null {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -131,7 +131,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : IFilters | null {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -150,7 +150,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : Promise<IFilters | null> {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -166,7 +166,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : IPagination | null {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -182,7 +182,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : IRelations | null {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -198,7 +198,7 @@ export abstract class BaseURLDecoder {
         input: string,
         options: ParseParameterOptions = {},
     ) : ISorts | null {
-        const output = parse(input);
+        const output = parseQueryString(input);
         if (!isObject(output)) {
             return null;
         }
@@ -225,7 +225,7 @@ export abstract class BaseURLDecoder {
     }
 
     protected prepare(input: string | ObjectLiteral) : ObjectLiteral | null {
-        const parsed = typeof input === 'string' ? parse(input) : input;
+        const parsed = typeof input === 'string' ? parseQueryString(input) : input;
         if (!isObject(parsed)) {
             return null;
         }

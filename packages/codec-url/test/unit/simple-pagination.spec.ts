@@ -8,6 +8,7 @@
 import {
     AdapterError,
     Pagination,
+    ParseError,
 } from '@rapiq/core';
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
 
@@ -46,6 +47,32 @@ describe('pagination', () => {
         const decoded = decoder.decodePagination(encoded!);
 
         expect(value).toEqual(decoded);
+    });
+
+    it('should tolerate a leading question mark', () => {
+        // the parameter helpers share the main decode path's `url.search`
+        // tolerance — a single leading `?` is stripped before qs parsing
+        const decoded = decoder.decodePagination('?page[limit]=50');
+
+        expect(decoded).toEqual(new Pagination(50, 0));
+    });
+
+    it('should reject a prototype-member pagination key that survives qs', () => {
+        // qs drops `__proto__`/`constructor` bracket keys itself (they are
+        // Object.prototype members), but keeps `prototype` under a safe
+        // parent — the parser-level guard catches that residue on the wire
+        expect(() => decoder.decodePagination('page[a][prototype][x]=1'))
+            .toThrowError(ParseError);
+    });
+
+    it('should fall back to defaults for hostile keys qs already dropped', () => {
+        // `__proto__`/`constructor` bracket structures never leave qs, so
+        // the parser sees an absent parameter — defaults, no pollution
+        const decoded = decoder.decodePagination('page[__proto__][polluted]=1');
+
+        expect(decoded).toEqual(new Pagination());
+        const probe: Record<string, unknown> = {};
+        expect(probe.polluted).toBeUndefined();
     });
 
     it('should throw for a zero or non-integer limit (outside the wire subset)', () => {
