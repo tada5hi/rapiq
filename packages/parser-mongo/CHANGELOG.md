@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.0-beta.20](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.0.0-beta.19...parser-mongo-v2.0.0-beta.20) (2026-08-10)
+
+
+### Features
+
+* schema index declarations (indexed filters and sort) ([#895](https://github.com/tada5hi/rapiq/issues/895)) ([121e6cd](https://github.com/tada5hi/rapiq/commit/121e6cdbf73b903f6767b3be3b81f4640481639d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+    * @rapiq/parser-simple bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+
 ## [2.0.0-beta.19](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.0.0-beta.18...parser-mongo-v2.0.0-beta.19) (2026-08-07)
 
 

@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.0.0-beta.20](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.19...parser-simple-v2.0.0-beta.20) (2026-08-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* a pagination key containing a __proto__, constructor or prototype segment now raises a typed ParseError instead of being ignored.
+
+### Features
+
+* schema index declarations (indexed filters and sort) ([#895](https://github.com/tada5hi/rapiq/issues/895)) ([121e6cd](https://github.com/tada5hi/rapiq/commit/121e6cdbf73b903f6767b3be3b81f4640481639d))
+
+
+### Bug Fixes
+
+* close pre-GA decode-hardening gaps ([#893](https://github.com/tada5hi/rapiq/issues/893)) ([883ac09](https://github.com/tada5hi/rapiq/commit/883ac094fa7c61f77b914ff22db15026e81a41cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0-beta.19 to ^2.0.0-beta.20
+
 ## [2.0.0-beta.19](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0-beta.18...parser-simple-v2.0.0-beta.19) (2026-08-07)
 
 
