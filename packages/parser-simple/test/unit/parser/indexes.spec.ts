@@ -56,6 +56,7 @@ const buildRegistry = (extra: { throwOnFailure?: boolean, validate?: boolean } =
     registry.add(defineSchema<Item>({
         name: 'item',
         indexes: [['user_id']],
+        sort: { default: { name: 'ASC' } },
     }));
 
     return registry;
@@ -94,8 +95,10 @@ describe('indexed schemas', () => {
             const parser = new SimpleParser(buildRegistry({ validate: true }));
             const output = parser.parseFilters({ flag: 'true' }, { schema: 'row' });
 
-            // the hook conjoined eq(realm_id): the executed tree is anchored.
-            expect(output.value).toHaveLength(1);
+            // the hook conjoined eq(realm_id): the executed tree is
+            // anchored, and it is the validated tree that survives,
+            // not the default fallback.
+            expect(output.value).toEqual([and(eq('flag', true), eq('realm_id', 'ctx-realm'))]);
         });
 
         it('should anchor through a relation index', () => {
@@ -120,6 +123,16 @@ describe('indexed schemas', () => {
 
             expect(output.value.map((sort) => sort.name)).toEqual(['created_at']);
             expect(output.value.map((sort) => sort.operator)).toEqual([SortDirection.DESC]);
+        });
+
+        it('should exempt a relation-scope default from the check', () => {
+            const parser = new SimpleParser(buildRegistry());
+            // 'items.bogus' drops against the item schema, whose sort
+            // default then joins the output. The server-authored child
+            // entry must not reject the valid client prefix.
+            const output = parser.parseSort(['-realm_id', 'items.bogus'], { schema: 'row' });
+
+            expect(output.value.map((sort) => sort.name)).toEqual(['realm_id', 'items.name']);
         });
     });
 

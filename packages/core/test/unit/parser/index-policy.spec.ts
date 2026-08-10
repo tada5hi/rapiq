@@ -49,6 +49,7 @@ const buildRegistry = () => {
     registry.add(defineSchema<Item>({
         name: 'item',
         indexes: [['user_id']],
+        sort: { default: { name: 'ASC' } },
     }));
 
     return registry;
@@ -176,5 +177,20 @@ describe('src/parser/index-policy.ts', () => {
         const output = new Sorts([new Sort('created_at', SortDirection.DESC)]);
 
         expect(applySortIndexPolicy(output, registry, 'row')).toBe(output);
+    });
+
+    it('should exempt relation-scope sort defaults from the check', () => {
+        const registry = buildRegistry();
+        // the shape the sort parser produces when a client's relation
+        // sort keys all drop: a valid client root key plus the child
+        // schema's server-authored default. Only the client key is
+        // checked; the mixed-path combination must not reject it.
+        const output = new Sorts([
+            new Sort('realm_id', SortDirection.ASC),
+            new Sort('items.name', SortDirection.ASC),
+        ]);
+
+        expect(applySortIndexPolicy(output, registry, 'row', { throwOnFailure: true }))
+            .toBe(output);
     });
 });

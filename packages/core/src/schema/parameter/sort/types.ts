@@ -31,8 +31,8 @@ export type SortOptions<
     /**
      * Dynamic per-sort-key gate, e.g. an actor permission check.
      * Runs once per client-requested sort key against the schema that
-     * governs it (the target schema for dotted keys), after tuple-group
-     * matching. Schema defaults bypass the hook.
+     * governs it (the target schema for dotted keys), before the index
+     * policy is applied. Schema defaults bypass the hook.
      *
      * An ordering is not a row set, so there is nothing for an
      * `ICondition` answer to gate and it counts as a rejection.

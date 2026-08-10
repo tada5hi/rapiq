@@ -70,7 +70,15 @@ function coversGroup(keys: string[], indexes: string[][] | null) : boolean {
 }
 
 function violationFor(leaves: IFilter[]) : { path: string, keys: string[] } {
-    return { path: '', keys: leaves.map((leaf) => leaf.field) };
+    const paths = new Set(leaves.map((leaf) => leafTarget(leaf.field).path));
+    const [first] = paths;
+
+    return {
+        // the shared relation path when the group has exactly one,
+        // '' for mixed-path (or empty) groups.
+        path: paths.size === 1 ? first as string : '',
+        keys: leaves.map((leaf) => leaf.field),
+    };
 }
 
 /**

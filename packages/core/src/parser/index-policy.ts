@@ -28,6 +28,7 @@ import type {
     SortSchema,
 } from '../schema';
 import type { ObjectLiteral } from '../types';
+import { parseKey } from '../utils';
 import { FiltersParseError } from './parameter/filters/error';
 import { SortParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
@@ -150,22 +151,57 @@ function isFiltersDefaults(output: IFilters, schema: FiltersSchema) : boolean {
     });
 }
 
-function isSortDefaults(output: ISorts, schema: SortSchema) : boolean {
-    const defaults = buildSortDefaults(schema);
-    if (
-        defaults.value.length === 0 ||
-        output.value.length !== defaults.value.length
-    ) {
-        return false;
+/**
+ * The client-authored subset of a sort list. Server-authored default
+ * entries are exempt from the index check: the root schema's defaults
+ * (declared under their full, possibly dotted name), and the
+ * per-relation defaults a child schema contributes when a client's
+ * relation sort keys all drop. An entry counts as a default when the
+ * schema governing its path declares exactly that name and direction.
+ */
+function collectClientSortKeys(
+    output: ISorts,
+    scope: ResolutionScope<any, any>,
+) : string[] {
+    const rootSchema = scope.schema as SortSchema;
+    const rootDefaults = rootSchema.defaultIsUndefined ? null : rootSchema.default;
+
+    const cache = new Map<string, Record<string, string> | null>();
+    const names : string[] = [];
+
+    for (const sort of output.value) {
+        if (rootDefaults && rootDefaults[sort.name] === sort.operator) {
+            continue;
+        }
+
+        const details = parseKey(sort.name);
+        const path = details.path ?? '';
+
+        let defaults = cache.get(path);
+        if (typeof defaults === 'undefined') {
+            defaults = null;
+
+            if (path !== '') {
+                const child = scope.descend(path);
+                if (child instanceof ResolutionScope) {
+                    const childSchema = child.schema as SortSchema;
+                    if (!childSchema.defaultIsUndefined) {
+                        defaults = childSchema.default;
+                    }
+                }
+            }
+
+            cache.set(path, defaults);
+        }
+
+        if (defaults && defaults[details.name] === sort.operator) {
+            continue;
+        }
+
+        names.push(sort.name);
     }
 
-    return output.value.every((sort, index) => {
-        const other = defaults.value[index];
-
-        return typeof other !== 'undefined' &&
-            sort.name === other.name &&
-            sort.operator === other.operator;
-    });
+    return names;
 }
 
 /**
@@ -223,7 +259,9 @@ export function applyFiltersIndexPolicy<
 
 /**
  * Sort counterpart of {@link applyFiltersIndexPolicy}: ordered
- * leftmost-prefix rule, defaults bypass, standard failure policy.
+ * leftmost-prefix rule applied to the client-authored keys only
+ * (server-authored default entries, root or relation-scoped, are
+ * exempt), standard failure policy.
  */
 export function applySortIndexPolicy<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -236,18 +274,16 @@ export function applySortIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.SORT, schema, { throwOnFailure: context.throwOnFailure });
 
     const sortSchema = scope.schema as SortSchema<RECORD>;
-    if (
-        !sortSchema.indexed ||
-        output.value.length === 0 ||
-        isSortDefaults(output, sortSchema)
-    ) {
+    if (!sortSchema.indexed || output.value.length === 0) {
         return output;
     }
 
-    const result = checkSortKeysIndexed(
-        output.value.map((sort) => sort.name),
-        indexesResolverFor(scope),
-    );
+    const names = collectClientSortKeys(output, scope);
+    if (names.length === 0) {
+        return output;
+    }
+
+    const result = checkSortKeysIndexed(names, indexesResolverFor(scope));
     if (result.ok) {
         return output;
     }

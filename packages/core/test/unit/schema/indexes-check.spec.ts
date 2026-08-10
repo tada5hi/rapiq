@@ -50,6 +50,10 @@ describe('src/schema/indexes/module.ts', () => {
             ['OR of anchors', or(eq('realm_id', 'x'), eq('email', 'y')), true],
             ['OR with scan branch', or(eq('realm_id', 'x'), eq('flag', true)), false],
             ['compound conjunct anchors', and(eq('flag', true), or(eq('realm_id', 'x'), eq('email', 'y'))), true],
+            // settled anchor rule: one anchored conjunct suffices; a
+            // compound conjunct that could not stand alone is residual.
+            ['anchored AND with residual compound', and(eq('realm_id', 'x'), or(eq('flag', true), eq('flag', false))), true],
+            ['anchored AND with residual negation', and(eq('realm_id', 'x'), not(eq('flag', true))), true],
             ['negation checks its interior', not(eq('realm_id', 'x')), true],
             ['negated unindexed leaf', not(eq('flag', true)), false],
             ['relation anchor', eq('items.user_id', 'x'), true],
@@ -102,7 +106,21 @@ describe('src/schema/indexes/module.ts', () => {
         const result = checkConditionIndexed(and(eq('items.name', 'x')), resolve, 'anchor');
         expect(result.ok).toBe(false);
         if (!result.ok) {
+            expect(result.path).toBe('items');
             expect(result.keys).toEqual(['items.name']);
+        }
+    });
+
+    it('should report a mixed-path violation at the root', () => {
+        const result = checkConditionIndexed(
+            and(eq('flag', true), eq('items.name', 'x')),
+            resolve,
+            'anchor',
+        );
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.path).toBe('');
+            expect(result.keys).toEqual(['flag', 'items.name']);
         }
     });
 });
