@@ -1,5 +1,6 @@
 {
     "include-component-in-tag": true,
+    "release-as": "2.0.0",
     "release-type": "node",
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
