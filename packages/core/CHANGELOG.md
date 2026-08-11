@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.20...core-v2.0.0) (2026-08-11)
+
+
+### Miscellaneous Chores
+
+* release 2.0.0 ([f71d633](https://github.com/tada5hi/rapiq/commit/f71d633c43031d9f1b6134ebe5775c74ad8b59f3))
+
 ## [2.0.0-beta.20](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.19...core-v2.0.0-beta.20) (2026-08-10)
 
 
