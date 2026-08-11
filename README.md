@@ -30,10 +30,8 @@
 
 ---
 
-> [!WARNING]
-> This README includes the documentation for the upcoming version 2.
->
-> This is the [link](https://github.com/tada5hi/rapiq/tree/v1) for the v1 (and prior).
+> [!NOTE]
+> The documentation for v1 (and prior) lives on the [v1 branch](https://github.com/tada5hi/rapiq/tree/v1).
 
 ## Why rapiq?
 

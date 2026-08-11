@@ -98,8 +98,8 @@ See the [package overview](/packages/) for the full map and a "which packages do
 
 It deliberately does **not** define the response format, replace your ORM, or generate endpoints; it only standardizes what a query *is* and what a client *may* ask for.
 
-::: warning Version 2
-These docs cover the upcoming **version 2**, which splits the former single `rapiq` package into focused `@rapiq/*` packages. The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/tree/v1); see [Migration from v1](/guide/migration-v1).
+::: info Version 2
+These docs cover **version 2**, which splits the former single `rapiq` package into focused `@rapiq/*` packages. The v1 documentation lives on the [v1 branch](https://github.com/tada5hi/rapiq/tree/v1); see [Migration from v1](/guide/migration-v1).
 :::
 
 ## Next steps
