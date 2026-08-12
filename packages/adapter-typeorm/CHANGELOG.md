@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.0](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0...adapter-typeorm-v2.1.0) (2026-08-12)
+
+
+### Features
+
+* **adapter-typeorm:** assert schema indexes against entity metadata ([#902](https://github.com/tada5hi/rapiq/issues/902)) ([cfd1c80](https://github.com/tada5hi/rapiq/commit/cfd1c8069bf407d3d72187d6058ea08aa9ce4a8c)), closes [#898](https://github.com/tada5hi/rapiq/issues/898)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/parser-simple bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/adapter-sql bumped from ^2.0.0 to ^2.1.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/adapter-memory bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/adapter-sql bumped from ^2.0.0 to ^2.1.0
+
 ## [2.0.0](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.0.0-beta.20...adapter-typeorm-v2.0.0) (2026-08-11)
 
 

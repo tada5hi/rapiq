@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0](https://github.com/tada5hi/rapiq/compare/core-v2.0.0...core-v2.1.0) (2026-08-12)
+
+
+### Features
+
+* **adapter-typeorm:** assert schema indexes against entity metadata ([#902](https://github.com/tada5hi/rapiq/issues/902)) ([cfd1c80](https://github.com/tada5hi/rapiq/commit/cfd1c8069bf407d3d72187d6058ea08aa9ce4a8c)), closes [#898](https://github.com/tada5hi/rapiq/issues/898)
+* **core:** enumerate registered schemas via SchemaRegistry.getAll() ([#907](https://github.com/tada5hi/rapiq/issues/907)) ([bcd559d](https://github.com/tada5hi/rapiq/commit/bcd559dab6351f06d41d443951235db04d84cf15)), closes [#904](https://github.com/tada5hi/rapiq/issues/904)
+
 ## [2.0.0](https://github.com/tada5hi/rapiq/compare/core-v2.0.0-beta.20...core-v2.0.0) (2026-08-11)
 
 
