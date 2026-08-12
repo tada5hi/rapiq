@@ -124,8 +124,8 @@ export function assertSchemaMatchesEntity<
         checkCondition(schema.filters.default);
     }
 
-    checkColumnKeys(schema.sort.allowed);
-    checkColumnKeys(schema.sort.defaultKeys);
+    checkColumnKeys(schema.sorts.allowed);
+    checkColumnKeys(schema.sorts.defaultKeys);
 
     // an index key is a column of the entity's own table: a drifted
     // one is reported as such rather than as an unbacked sequence.

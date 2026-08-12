@@ -11,10 +11,11 @@ import type {
     SchemaOptions,
 } from '@rapiq/core';
 import {
-    ErrorCode, 
-    SchemaError, 
-    SchemaRegistry, 
+    ErrorCode,
+    SchemaError,
+    SchemaRegistry,
     defineSchema,
+    resolveAliasedKey,
 } from '@rapiq/core';
 import { camelCase } from 'change-case';
 import { DataSource, EntityMetadata } from 'typeorm';
@@ -50,13 +51,21 @@ function buildSchemaOptions(
     input: EntitySchemaOptions<any> = {},
 ) : SchemaOptions {
     const {
-        fields, 
-        filters, 
-        sort, 
-        relations, 
-        pagination, 
+        fields,
+        filters,
+        sorts: _sorts,
+        sort: _sort,
+        relations,
+        pagination,
         ...base
     } = input;
+
+    const sorts = resolveAliasedKey(
+        input,
+        'sorts',
+        'sort',
+        (canonical, alias) => SchemaError.keyAmbiguous(canonical, alias),
+    ) as EntitySchemaOptions<any>['sorts'];
 
     const relationKeys : string[] = [];
     const schemaMapping : Record<string, string> = {};
@@ -93,8 +102,8 @@ function buildSchemaOptions(
         output.filters = { ...filters, allowed: resolveAllowed(filters.allowed) } as SchemaOptions['filters'];
     }
 
-    if (sort) {
-        output.sort = { ...sort, allowed: resolveAllowed(sort.allowed) } as SchemaOptions['sort'];
+    if (sorts) {
+        output.sorts = { ...sorts, allowed: resolveAllowed(sorts.allowed) } as SchemaOptions['sorts'];
     }
 
     if (pagination) {
