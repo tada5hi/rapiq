@@ -72,6 +72,25 @@ export function intersectQueryParameters(
 }
 
 /**
+ * Whether a parameter mask contains the given parameter, normalizing
+ * every entry so the deprecated `sort` alias matches `Parameter.SORTS`
+ * (and vice versa).
+ *
+ * @param mask
+ * @param parameter
+ */
+export function includesParameter(
+    mask: `${Parameter}`[],
+    parameter: `${Parameter}`,
+) : boolean {
+    const normalized = normalizeParameter(parameter);
+
+    return mask
+        .map((item) => normalizeParameter(item))
+        .includes(normalized);
+}
+
+/**
  * The schema pass only runs on request — a registry alone
  * imposes no constraints (unbound scopes), matching the parsers.
  *
