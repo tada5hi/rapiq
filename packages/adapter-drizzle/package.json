@@ -18,10 +18,10 @@
     "devDependencies": {
         "@rapiq/core": "^2.0.0",
         "@types/better-sqlite3": "^7.6.11",
-        "@types/pg": "^8.11.10",
+        "@types/pg": "^8.21.0",
         "better-sqlite3": "^12.6.0",
         "drizzle-orm": "1.0.0-rc.4",
-        "pg": "^8.13.0"
+        "pg": "^8.23.0"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.0.0"
