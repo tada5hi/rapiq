@@ -36,7 +36,7 @@ registry.add(defineSchema<User>({
     },
     filters: { allowed: ['id', 'name', 'age', 'realm.id'] },
     relations: { allowed: ['realm'] },
-    sort: {
+    sorts: {
         allowed: ['id', 'name', 'age'],
         default: { id: 'DESC' },
     },
@@ -46,7 +46,7 @@ registry.add(defineSchema<User>({
 }));
 ```
 
-`throwOnFailure` controls fields, relations, sort, pagination and legacy simple filters. Expression filters already reject contract violations precisely. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
+`throwOnFailure` controls fields, relations, sorts, pagination and legacy simple filters. Expression filters already reject contract violations precisely. See [drop vs. throw](/guide/schemas#failure-behavior-drop-vs-throw).
 
 ## 2. The codec
 

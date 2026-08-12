@@ -39,7 +39,7 @@ The `mssql` and `sqlite` presets omit the `regexp` callback: SQL Server has no r
 
 ## The root adapter
 
-Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state: selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five; `execute(query)` walks a whole `Query` into it and returns the accumulated clause fragments:
+Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortsAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state: selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five; `execute(query)` walks a whole `Query` into it and returns the accumulated clause fragments:
 
 ```typescript
 import { Adapter, pg } from '@rapiq/adapter-sql';

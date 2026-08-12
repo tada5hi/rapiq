@@ -6,8 +6,10 @@
  */
 
 export * from './mapping';
+export * from './input';
 export * from './key';
 export * from './relation';
 export * from './object';
 export * from './visitor';
 export * from './property-name';
+export * from './parameter';

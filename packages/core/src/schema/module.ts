@@ -10,22 +10,39 @@ import {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
-    SortSchema,
+    SortsSchema,
 
     defineFieldsSchema,
     defineFiltersSchema,
     definePaginationSchema,
     defineRelationsSchema,
-    defineSortSchema,
+    defineSortsSchema,
 } from './parameter';
+import type { SortsOptions } from './parameter';
 import type {
     SchemaDescribeOptions,
     SchemaDescription,
     SchemaOptions,
 } from './types';
 import { Parameter } from '../constants';
+import { SchemaError } from '../errors';
 import type { ObjectLiteral } from '../types';
+import { assertKnownInputKeys, normalizeParameter, resolveAliasedKey } from '../utils';
 import { BaseSchema } from './base';
+
+const SCHEMA_INPUT_KEYS : string[] = [
+    'name',
+    'throwOnFailure',
+    'strict',
+    'schemaMapping',
+    'indexes',
+    Parameter.FIELDS,
+    Parameter.FILTERS,
+    Parameter.PAGINATION,
+    Parameter.RELATIONS,
+    Parameter.SORTS,
+    Parameter.SORT,
+];
 
 export class Schema<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -39,7 +56,13 @@ export class Schema<
 
     public readonly relations: RelationsSchema<RECORD, CONTEXT>;
 
-    public readonly sort: SortSchema<RECORD, CONTEXT>;
+    public readonly sorts: SortsSchema<RECORD, CONTEXT>;
+
+    /**
+     * @deprecated use {@link Schema.sorts}. The identical instance.
+     * Removed in 3.0.
+     */
+    public readonly sort: SortsSchema<RECORD, CONTEXT>;
 
     public readonly indexes : string[][];
 
@@ -49,6 +72,12 @@ export class Schema<
 
     constructor(options: SchemaOptions<RECORD, CONTEXT> = {}) {
         super(options);
+
+        assertKnownInputKeys(
+            options,
+            SCHEMA_INPUT_KEYS,
+            (key, suggestion) => SchemaError.keyUnknown(key, suggestion),
+        );
 
         if (options.fields instanceof FieldsSchema) {
             this.fields = options.fields;
@@ -74,11 +103,20 @@ export class Schema<
             this.relations = defineRelationsSchema(options.relations);
         }
 
-        if (options.sort instanceof SortSchema) {
-            this.sort = options.sort;
+        const sortsInput = resolveAliasedKey(
+            options,
+            Parameter.SORTS,
+            Parameter.SORT,
+            (canonical, alias) => SchemaError.keyAmbiguous(canonical, alias),
+        ) as SortsOptions<RECORD, CONTEXT> | SortsSchema<RECORD, CONTEXT> | undefined;
+
+        if (sortsInput instanceof SortsSchema) {
+            this.sorts = sortsInput;
         } else {
-            this.sort = defineSortSchema(options.sort);
+            this.sorts = defineSortsSchema(sortsInput);
         }
+
+        this.sort = this.sorts;
 
         if (typeof options.indexes === 'undefined') {
             this.indexes = [];
@@ -109,7 +147,8 @@ export class Schema<
                 this.indexes.map((index) => [...index]),
         };
 
-        const parameters : string[] = options.parameters || Object.values(Parameter);
+        const parameters : string[] = (options.parameters || Object.values(Parameter))
+            .map((parameter) => normalizeParameter(parameter));
 
         if (parameters.includes(Parameter.FIELDS)) {
             output.fields = this.fields.describe();
@@ -136,8 +175,8 @@ export class Schema<
             }
         }
 
-        if (parameters.includes(Parameter.SORT)) {
-            output.sort = this.sort.describe();
+        if (parameters.includes(Parameter.SORTS)) {
+            output.sorts = this.sorts.describe();
         }
 
         return output;
@@ -150,11 +189,11 @@ export class Schema<
         this.extendSchemaOptions(this.filters);
         this.extendSchemaOptions(this.pagination);
         this.extendSchemaOptions(this.relations);
-        this.extendSchemaOptions(this.sort);
+        this.extendSchemaOptions(this.sorts);
 
         if (!this.indexesIsUndefined) {
             this.filters.setIndexes(this.indexes);
-            this.sort.setIndexes(this.indexes);
+            this.sorts.setIndexes(this.indexes);
         }
     }
 

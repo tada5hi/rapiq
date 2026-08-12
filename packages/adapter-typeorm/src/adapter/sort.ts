@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SortBaseAdapter } from '@rapiq/adapter-sql';
+import { SortsBaseAdapter } from '@rapiq/adapter-sql';
 import type { SelectQueryBuilder } from 'typeorm';
 import type { RelationsAdapter } from './relations';
 
-export class SortAdapter extends SortBaseAdapter {
+export class SortsAdapter extends SortsBaseAdapter {
     protected queryBuilder : SelectQueryBuilder<any>;
 
     constructor(queryBuilder: SelectQueryBuilder<any>, relations: RelationsAdapter) {
@@ -38,3 +38,13 @@ export class SortAdapter extends SortBaseAdapter {
         }
     }
 }
+
+/**
+ * @deprecated use {@link SortsAdapter}. Removed in 3.0.
+ */
+export const SortAdapter = SortsAdapter;
+
+/**
+ * @deprecated use {@link SortsAdapter}. Removed in 3.0.
+ */
+export type SortAdapter = SortsAdapter;

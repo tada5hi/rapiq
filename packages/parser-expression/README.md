@@ -40,7 +40,7 @@ not(contains(user.name, 'Bob'))
 - 🧵 **One string, whole tree**: arbitrary `and` / `or` / `not` nesting fits in a single value; ideal for URLs, saved filters and CLI flags.
 - 🎯 **Explicit operators**: `eq`, `ne`, `lt(e)`, `gt(e)`, `in`, `nin`, `contains`, `startsWith`, `endsWith`, and their negations, with no operator guessing.
 - 🛡️ **Fails loud**: syntax errors and schema violations throw `FiltersParseError` immediately; there is no silent-drop mode for malformed expressions.
-- 🔗 **Same AST as every dialect**: only `filters` is expression-flavoured; fields, relations, pagination and sort reuse `@rapiq/parser-simple`.
+- 🔗 **Same AST as every dialect**: only `filters` is expression-flavoured; fields, relations, pagination and sorts reuse `@rapiq/parser-simple`.
 
 ## Installation
 
@@ -57,12 +57,12 @@ const parser = new ExpressionParser(registry);
 
 const query = parser.parse({
     filters: "and(eq(name, 'John'), gte(age, '18'))",
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 }, { schema: 'user' });
 ```
 
-Only the `filters` parameter uses the expression language; fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST. A standalone `parseFilters(input, options)` returns just the `Filters` node.
+Only the `filters` parameter uses the expression language; fields, relations, pagination and sorts accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST. A standalone `parseFilters(input, options)` returns just the `Filters` node.
 
 **The grammar**: `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `in`, `nin`, `contains`, `startsWith`, `endsWith` (and negations) as leaf conditions, composed with `and(…)` / `or(…)` / `not(…)`. Values are always single-quoted (`gte(age, '18')`); quoted numerals coerce to numbers, `'true'` / `'false'` to booleans, `'null'` to `null`.
 

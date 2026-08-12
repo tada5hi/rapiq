@@ -6,37 +6,42 @@
  */
 
 import type {
-    ISortVisitor, 
-    ISortsVisitor, 
-    Sort, 
+    ISortVisitor,
+    ISortsVisitor,
+    Sort,
     Sorts,
 } from '@rapiq/core';
-import type { ISortAdapter } from '../adapter';
+import type { ISortsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 
-export type SortInterpreterOptions = VisitorOptions;
+export type SortsInterpreterOptions = VisitorOptions;
 
-export class SortsVisitor implements ISortsVisitor<ISortAdapter>,
-ISortVisitor<ISortAdapter> {
-    protected adapter: ISortAdapter;
+/**
+ * @deprecated use {@link SortsInterpreterOptions}. Removed in 3.0.
+ */
+export type SortInterpreterOptions = SortsInterpreterOptions;
 
-    protected options: SortInterpreterOptions;
+export class SortsVisitor implements ISortsVisitor<ISortsAdapter>,
+ISortVisitor<ISortsAdapter> {
+    protected adapter: ISortsAdapter;
+
+    protected options: SortsInterpreterOptions;
 
     constructor(
-        adapter: ISortAdapter,
-        options: SortInterpreterOptions = {},
+        adapter: ISortsAdapter,
+        options: SortsInterpreterOptions = {},
     ) {
         this.adapter = adapter;
         this.options = options;
     }
 
-    visitSort(expr: Sort): ISortAdapter {
+    visitSort(expr: Sort): ISortsAdapter {
         this.adapter.add(expr.name, expr.operator);
 
         return this.adapter;
     }
 
-    visitSorts(expr: Sorts): ISortAdapter {
+    visitSorts(expr: Sorts): ISortsAdapter {
         for (const item of expr.value) {
             item.accept(this);
         }

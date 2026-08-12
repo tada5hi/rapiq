@@ -6,19 +6,24 @@
  */
 
 import type { RelationsAdapter } from '../relations';
-import { SortBaseAdapter } from './base';
+import { SortsBaseAdapter } from './base';
 
-export type SortContainerOptions = {
+export type SortsContainerOptions = {
     rootAlias?: string,
     escapeField?: (input: string) => string
 };
 
-export class SortAdapter extends SortBaseAdapter {
-    protected options : SortContainerOptions;
+/**
+ * @deprecated use {@link SortsContainerOptions}. Removed in 3.0.
+ */
+export type SortContainerOptions = SortsContainerOptions;
+
+export class SortsAdapter extends SortsBaseAdapter {
+    protected options : SortsContainerOptions;
 
     constructor(
         relations: RelationsAdapter,
-        options: SortContainerOptions,
+        options: SortsContainerOptions,
     ) {
         super(relations);
 
@@ -41,3 +46,13 @@ export class SortAdapter extends SortBaseAdapter {
         return undefined;
     }
 }
+
+/**
+ * @deprecated use {@link SortsAdapter}. Removed in 3.0.
+ */
+export const SortAdapter = SortsAdapter;
+
+/**
+ * @deprecated use {@link SortsAdapter}. Removed in 3.0.
+ */
+export type SortAdapter = SortsAdapter;

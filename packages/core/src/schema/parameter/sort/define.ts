@@ -5,15 +5,15 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { SortOptions } from './types';
-import { SortSchema } from './schema';
+import type { SortsOptions } from './types';
+import { SortsSchema } from './schema';
 import type { ObjectLiteral } from '../../../types';
 
-export function defineSortSchema<
+export function defineSortsSchema<
     T extends ObjectLiteral= ObjectLiteral,
     CONTEXT = any,
 >(
-    options: SortOptions<T, CONTEXT> = {},
-) : SortSchema<T, CONTEXT> {
-    return new SortSchema(options);
+    options: SortsOptions<T, CONTEXT> = {},
+) : SortsSchema<T, CONTEXT> {
+    return new SortsSchema(options);
 }

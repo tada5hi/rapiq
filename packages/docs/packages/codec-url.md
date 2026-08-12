@@ -39,7 +39,7 @@ Encoding uses `url-expression` by default and stamps `codec=url-expression`. Dec
 
 The dialect identifiers are exported as `URL_EXPRESSION_CODEC` (`'url-expression'`) and `URL_SIMPLE_CODEC` (`'url-simple'`): pass one via `encode(query, { codec })`, or use them for out-of-band content negotiation. The reserved `codec` wire key itself is exported as `CODEC_PARAMETER`.
 
-Input without a filter is dialect-neutral because fields, pagination, relations and sort share one wire grammar. Structural recognition is supplied by each registered dialect's `detect` hook (see [Custom codecs](#custom-codecs)), so it applies to third-party dialects too.
+Input without a filter is dialect-neutral because fields, pagination, relations and sorts share one wire grammar. Structural recognition is supplied by each registered dialect's `detect` hook (see [Custom codecs](#custom-codecs)), so it applies to third-party dialects too.
 
 ## Expression dialect
 
@@ -84,7 +84,7 @@ The deprecated simple dialect supports flat root-AND filters only. Duplicate sam
 | filters | `filter` | expression string or legacy bracket fields |
 | pagination | `page` | `page[limit]=25&page[offset]=50` |
 | relations | `include` | `include=realm,items` |
-| sort | `sort` | `sort=name,-age` |
+| sorts | `sort` | `sort=name,-age` |
 
 When root and relation fieldsets encode together, the root field group is spelled with the reserved `$root` token (exported as `URL_FIELDS_ROOT`): `fields[$root]=id,name&fields[items]=id`. A lone root group keeps the bare form (`fields=id,name`). Decoding accepts `$root` and the legacy `__DEFAULT__` spelling written by early 2.0 betas.
 
@@ -105,7 +105,7 @@ const decoded = codec.decode(wire!, { schema: 'user' });
 
 Allow-lists, aliases, defaults, pagination clamps and filter validation then use parser-exact semantics. Parameters absent from the input query remain absent from the wire.
 
-Both directions accept a `parameters` allow-list to process only a subset of the query. On decode, an unlisted parameter is neither parsed nor defaulted (no `pagination.maxLimit` cap, no `sort.default`); on encode, only the listed parameters are emitted:
+Both directions accept a `parameters` allow-list to process only a subset of the query. On decode, an unlisted parameter is neither parsed nor defaulted (no `pagination.maxLimit` cap, no `sorts.default`); on encode, only the listed parameters are emitted:
 
 ```typescript
 const decoded = codec.decode(req.query, {

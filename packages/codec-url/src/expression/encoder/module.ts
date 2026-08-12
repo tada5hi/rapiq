@@ -23,6 +23,7 @@ import {
 import { URLParameter } from '../../constants';
 import {
     buildQueryParameters,
+    includesParameter,
     intersectQueryParameters,
     isSchemaAware,
     stripQueryFieldConditions,
@@ -148,8 +149,8 @@ export class ExpressionURLEncoder {
         return this.simple.encodeRelations(input, options);
     }
 
-    encodeSort(input: ISorts, options: ParseParameterOptions = {}) {
-        return this.simple.encodeSort(input, options);
+    encodeSorts(input: ISorts, options: ParseParameterOptions = {}) {
+        return this.simple.encodeSorts(input, options);
     }
 
     // --------------------------------------------------
@@ -168,8 +169,8 @@ export class ExpressionURLEncoder {
             (!parameters || parameters.includes(Parameter.RELATIONS)) ?
                 this.simple.encodeRelations(query.relations) :
                 null,
-            (!parameters || parameters.includes(Parameter.SORT)) ?
-                this.simple.encodeSort(query.sorts) :
+            (!parameters || includesParameter(parameters, Parameter.SORTS)) ?
+                this.simple.encodeSorts(query.sorts) :
                 null,
         ].filter(Boolean);
 

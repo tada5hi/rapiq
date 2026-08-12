@@ -24,6 +24,10 @@ export enum ErrorCode {
 
     KEY_VALIDATE_REJECTED = 'keyValidateRejected',
 
+    KEY_UNKNOWN = 'keyUnknown',
+
+    KEY_AMBIGUOUS = 'keyAmbiguous',
+
     KEY_COMBINATION_NOT_INDEXED = 'keyCombinationNotIndexed',
 
     LIMIT_EXCEEDED = 'limitExceeded',

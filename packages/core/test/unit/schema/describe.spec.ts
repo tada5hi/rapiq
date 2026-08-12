@@ -46,7 +46,7 @@ describe('src/schema/**/describe', () => {
                     items: 'item',
                 },
             },
-            sort: {
+            sorts: {
                 allowed: ['id', 'name'],
                 default: { name: 'DESC' },
                 indexed: false,
@@ -65,10 +65,10 @@ describe('src/schema/**/describe', () => {
             filters: { allowed: null, indexed: false },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
-            sort: {
-                allowed: null, 
-                default: null, 
-                indexed: false, 
+            sorts: {
+                allowed: null,
+                default: null,
+                indexed: false,
             },
         });
     });
@@ -111,7 +111,7 @@ describe('src/schema/**/describe', () => {
     it('should serialize a sort allow-list derived from default keys', () => {
         const schema = defineSchema<User>({ sort: { default: { name: 'DESC' } } });
 
-        expect(schema.describe().sort).toEqual({
+        expect(schema.describe().sorts).toEqual({
             allowed: ['name'],
             default: { name: 'DESC' },
             indexed: false,
@@ -123,13 +123,13 @@ describe('src/schema/**/describe', () => {
 
         const output = schema.describe();
 
-        expect(output.sort).toEqual({
-            allowed: ['realm.id', 'id'], 
-            default: null, 
-            indexed: false, 
+        expect(output.sorts).toEqual({
+            allowed: ['realm.id', 'id'],
+            default: null,
+            indexed: false,
         });
 
-        (output.sort!.allowed as string[]).push('mutated');
+        (output.sorts!.allowed as string[]).push('mutated');
         expect(schema.sort.allowed).toEqual(['realm.id', 'id']);
     });
 
@@ -147,7 +147,7 @@ describe('src/schema/**/describe', () => {
         output.fields!.allowed!.push('mutated');
         output.filters!.allowed!.push('mutated');
         output.relations!.allowed!.push('mutated');
-        output.sort!.default!.id = 'ASC';
+        output.sorts!.default!.id = 'ASC';
 
         expect(schema.fields.default).toEqual(['id']);
         expect(schema.fields.allowed).toEqual(['email']);

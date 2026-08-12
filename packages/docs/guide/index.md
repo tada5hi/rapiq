@@ -19,7 +19,7 @@ import { createURLCodec } from '@rapiq/codec-url';
 const query = defineQuery<User>({
     filters: { age: { $gte: 18 } },
     relations: ['realm'],
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 });
 
@@ -38,7 +38,7 @@ registry.add(defineSchema<User>({
     name: 'user',
     filters: { allowed: ['age', 'name'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['age', 'name'] },
+    sorts: { allowed: ['age', 'name'] },
     pagination: { maxLimit: 50 },
 }));
 
@@ -74,7 +74,7 @@ Because the pieces only meet in the [`Query`](/guide/query-ast), they compose fr
 | [Fields](/guide/fields) | `fields` | Select which resource fields are returned. |
 | [Filters](/guide/filters) | `filter` | Narrow the collection by conditions. |
 | [Relations](/guide/relations) | `include` | Load related resources alongside the primary one. |
-| [Sort](/guide/sort) | `sort` | Order the collection by one or more keys. |
+| [Sorts](/guide/sort) | `sort` | Order the collection by one or more keys. |
 | [Pagination](/guide/pagination) | `page` | Limit and offset the collection. |
 
 ## The package family

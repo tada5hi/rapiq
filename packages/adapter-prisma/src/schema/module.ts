@@ -16,6 +16,7 @@ import {
     SchemaError,
     SchemaRegistry,
     defineSchema,
+    resolveAliasedKey,
 } from '@rapiq/core';
 import { camelCase } from 'change-case';
 import type {
@@ -79,11 +80,19 @@ function buildSchemaOptions(
     const {
         fields,
         filters,
-        sort,
+        sorts: _sorts,
+        sort: _sort,
         relations,
         pagination,
         ...base
     } = input;
+
+    const sorts = resolveAliasedKey(
+        input,
+        'sorts',
+        'sort',
+        (canonical, alias) => SchemaError.keyAmbiguous(canonical, alias),
+    ) as ModelSchemaOptions<any>['sorts'];
 
     const relationKeys : string[] = [];
     const schemaMapping : Record<string, string> = {};
@@ -124,8 +133,8 @@ function buildSchemaOptions(
         output.filters = { ...filters, allowed: resolveAllowed(filters.allowed) } as SchemaOptions['filters'];
     }
 
-    if (sort) {
-        output.sort = { ...sort, allowed: resolveAllowed(sort.allowed) } as SchemaOptions['sort'];
+    if (sorts) {
+        output.sorts = { ...sorts, allowed: resolveAllowed(sorts.allowed) } as SchemaOptions['sorts'];
     }
 
     if (pagination) {

@@ -68,7 +68,7 @@ const userSchema = defineSchema<User>({
     fields: { allowed: ['id', 'name', 'email'], default: ['id', 'name'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'age'], default: { id: 'DESC' } },
+    sorts: { allowed: ['id', 'age'], default: { id: 'DESC' } },
     pagination: { maxLimit: 50 },
     schemaMapping: { realm: 'realm' },
 });

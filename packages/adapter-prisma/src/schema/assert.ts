@@ -105,8 +105,8 @@ export function assertSchemaMatchesModel<
         checkCondition(schema.filters.default);
     }
 
-    checkColumnKeys(schema.sort.allowed);
-    checkColumnKeys(schema.sort.defaultKeys);
+    checkColumnKeys(schema.sorts.allowed);
+    checkColumnKeys(schema.sorts.defaultKeys);
 
     // relation keys resolve against relations only: the first
     // (or sole) segment must be a relation field name.

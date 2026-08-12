@@ -14,29 +14,45 @@ import type {
 } from '@rapiq/core';
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
-type SortBuildRecordInput<
+export type SortsBuildRecordInput<
     T extends Record<PropertyKey, any>,
     DEPTH extends number = 5,
 > = [DEPTH] extends [0] ? never : {
     [K in keyof T & string]?: T[K] extends Array<infer ELEMENT> ?
         (
             ELEMENT extends Record<PropertyKey, any> ?
-                SortBuildInput<ELEMENT, PrevIndex[DEPTH]> :
+                SortsBuildInput<ELEMENT, PrevIndex[DEPTH]> :
                 `${SortDirection}`
         ) :
         T[K] extends Record<PropertyKey, any> ?
-            SortBuildInput<T[K], PrevIndex[DEPTH]> :
+            SortsBuildInput<T[K], PrevIndex[DEPTH]> :
             `${SortDirection}`
 };
 
-export type SortBuildInput<
+export type SortsBuildInput<
     T extends Record<PropertyKey, any>,
     DEPTH extends number = 5,
 > = [DEPTH] extends [0] ? never :
-    SortBuildRecordInput<T, PrevIndex[DEPTH]> |
+    SortsBuildRecordInput<T, PrevIndex[DEPTH]> |
     [
         SortWithOperator<SimpleKeys<T>>[],
-        SortBuildRecordInput<T, PrevIndex[DEPTH]>,
+        SortsBuildRecordInput<T, PrevIndex[DEPTH]>,
     ]    |
     SortWithOperator<NestedKeys<T>>[] |
     SortWithOperator<NestedKeys<T>>;
+
+/**
+ * @deprecated use {@link SortsBuildRecordInput}. Removed in 3.0.
+ */
+export type SortBuildRecordInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = SortsBuildRecordInput<T, DEPTH>;
+
+/**
+ * @deprecated use {@link SortsBuildInput}. Removed in 3.0.
+ */
+export type SortBuildInput<
+    T extends Record<PropertyKey, any>,
+    DEPTH extends number = 5,
+> = SortsBuildInput<T, DEPTH>;

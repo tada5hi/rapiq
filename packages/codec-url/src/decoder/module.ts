@@ -34,7 +34,7 @@ const URL_PARAMETER_MAP = [
     [URLParameter.FILTERS, Parameter.FILTERS],
     [URLParameter.PAGINATION, Parameter.PAGINATION],
     [URLParameter.RELATIONS, Parameter.RELATIONS],
-    [URLParameter.SORT, Parameter.SORT],
+    [URLParameter.SORT, Parameter.SORTS],
 ] as const;
 
 /**
@@ -194,7 +194,7 @@ export abstract class BaseURLDecoder {
         return this.parser.parseRelations(output, options);
     }
 
-    decodeSort(
+    decodeSorts(
         input: string,
         options: ParseParameterOptions = {},
     ) : ISorts | null {
@@ -204,10 +204,10 @@ export abstract class BaseURLDecoder {
         }
 
         if (isPropertySet(output, URLParameter.SORT)) {
-            return this.parser.parseSort(output[URLParameter.SORT], options);
+            return this.parser.parseSorts(output[URLParameter.SORT], options);
         }
 
-        return this.parser.parseSort(output, options);
+        return this.parser.parseSorts(output, options);
     }
 
     // --------------------------------------------------

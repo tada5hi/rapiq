@@ -36,7 +36,7 @@ const codec = createURLCodec();
 const defaults = defineQuery<User>({
     fields: ['id', 'name', 'email'],
     filters: { age: { $gte: 18 } },
-    sort: '-id',
+    sorts: '-id',
     pagination: { limit: 25 },
 });
 
@@ -69,7 +69,7 @@ async function fetchUsers(realmId: string, search: string, page: number) {
 Three details doing quiet work here:
 
 - `search ? … : undefined` contributes **no condition** for an empty box, so there is no `if`-shuffling around the query object.
-- Filters merge as an **ordered logical AND**: the user's `name` filter, the scope's `realm.id` condition and the `age` baseline all survive. Fields and sort retain keyed left priority.
+- Filters merge as an **ordered logical AND**: the user's `name` filter, the scope's `realm.id` condition and the `age` baseline all survive. Fields and sorts retain keyed left priority.
 - Everything is **immutable**: merging never mutates its inputs, so `defaults` is safe as a module constant and fragments like the realm scope are safe to pass around as props.
 
 Once filters are part of a query, composition intentionally retains every predicate. When user input has to *replace* a default on the same field rather than narrow it, compose the **input** with [`mergeFiltersInput`](/guide/merging-queries#mergefiltersinput-per-field-replace-before-the-query) before calling `defineQuery`. It replaces per field, so a baseline like `age >= 18` survives a search the user types.

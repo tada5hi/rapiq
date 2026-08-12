@@ -34,7 +34,7 @@ This is the dialect-agnostic **execute** layer: it renders a validated `Query` i
 - 🔒 **Parameterized always**: filter values are bound, never string-interpolated. No SQL injection surface.
 - 🐘 **Five dialects, one adapter**: `pg`, `mysql`, `sqlite`, `mssql`, `oracle` presets; per-database behaviour is a tiny `DialectOptions` object you can also supply yourself.
 - 🧮 **Sensible SQL**: `null` → `IS NULL` / `IS NOT NULL`, empty `IN` → `1 = 0` (never invalid SQL), case-insensitive string matching folded consistently across dialects.
-- 🔧 **Fragment-level control**: render a whole query, or just the filters, or just the sort; each parameter has a standalone adapter/visitor pair.
+- 🔧 **Fragment-level control**: render a whole query, or just the filters, or just the sorts; each parameter has a standalone adapter/visitor pair.
 
 ## Installation
 

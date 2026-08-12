@@ -1,6 +1,6 @@
 # @rapiq/adapter-drizzle
 
-Serializes a parsed [`Query`](/guide/query-ast) into a **Drizzle relational query config**: filters become `where`, fields become `columns`, relations become `with`, sort becomes `orderBy` and pagination becomes `limit`/`offset`.
+Serializes a parsed [`Query`](/guide/query-ast) into a **Drizzle relational query config**: filters become `where`, fields become `columns`, relations become `with`, sorts become `orderBy` and pagination becomes `limit`/`offset`.
 
 ```sh
 npm install @rapiq/core @rapiq/adapter-drizzle
@@ -67,7 +67,7 @@ An undeclared fact is treated as unknown, never guessed: an unknown nullability 
 | `filters`    | `where` |
 | `fields`     | `columns` |
 | `relations`  | `with` (nested `columns` when fields are picked) |
-| `sort`       | `orderBy` (one object, key order carries the priority) |
+| `sorts`      | `orderBy` (one object, key order carries the priority) |
 | `pagination` | `limit` / `offset` |
 
 Unlike Prisma's `select`/`include`, drizzle keeps scalar selection (`columns`) and relation hydration (`with`) in separate keys that compose at every level. An explicitly included relation without direct picks is hydrated whole; a per-relation fieldset (direct `relation.field` picks) narrows it to exactly those columns, matching the projection contract of [@rapiq/adapter-memory](/packages/adapter-memory) ([#847](https://github.com/tada5hi/rapiq/issues/847)). Picks belonging to a deeper relation never narrow the traversed prefix, and a level reached only to project deeper emits `columns: {}` (no scalars of its own).

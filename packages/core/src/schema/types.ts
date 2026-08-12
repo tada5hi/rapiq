@@ -18,9 +18,9 @@ import type {
     RelationsOptions,
     RelationsSchema,
     RelationsSchemaDescription,
-    SortOptions,
-    SortSchema,
-    SortSchemaDescription,
+    SortsOptions,
+    SortsSchema,
+    SortsSchemaDescription,
 } from './parameter';
 import type { Parameter } from '../constants';
 import type { ICondition } from '../parameter';
@@ -60,7 +60,7 @@ export type BaseSchemaOptions = {
  * query root than when it is reached through an include.
  *
  * - `parameter` is the parameter the key belongs to, so one hook
- *   factory can serve `fields` and `sort`.
+ *   factory can serve `fields` and `sorts`.
  * - `path` is the dotted relation path of the schema governing the key:
  *   `''` at the query root, `'client'` for `fields[client]=secret`,
  *   `'items.realm'` deeper.
@@ -84,7 +84,7 @@ export type KeyValidationScope = {
  *   rows satisfying that condition. Supported for the `fields`
  *   parameter, where the condition is attached to the resulting `Field`
  *   node; it never changes which rows the query returns, at any level.
- *   The `sort` and `relations` parameters have no column to gate, so a
+ *   The `sorts` and `relations` parameters have no column to gate, so a
  *   condition rejects there (row-level narrowing of an included
  *   relation is tracked in #810).
  */
@@ -99,7 +99,7 @@ export type KeyValidationVerdict = boolean | ICondition | undefined;
 export type KeyValidationVerdictRecord = Record<string, KeyValidationVerdict>;
 
 /**
- * Per-key validation hook shared by the relations, fields and sort
+ * Per-key validation hook shared by the relations, fields and sorts
  * parameters. Invoked once per resolved (alias-mapped, allow-listed)
  * client key against the schema that governs it — for dotted keys that
  * is the target schema of the relation path, not the root. The context
@@ -148,7 +148,7 @@ export type KeyValidatorMany<CONTEXT = any> = (
 ) => MaybeAsync<KeyValidationVerdictRecord>;
 
 /**
- * The hook pair shared by the fields, relations and sort sub-schemas.
+ * The hook pair shared by the fields, relations and sorts sub-schemas.
  * The two members are mutually exclusive.
  */
 export type KeyValidatableSchemaOptions<CONTEXT = any> = BaseSchemaOptions & {
@@ -164,10 +164,14 @@ export type SchemaOptionsNormalized<
     filters: FiltersOptions<RECORD, CONTEXT> | FiltersSchema<RECORD, CONTEXT>,
     relations: RelationsOptions<RECORD, CONTEXT> | RelationsSchema<RECORD, CONTEXT>,
     pagination: PaginationOptions | PaginationSchema
-    sort : SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT>,
+    sorts : SortsOptions<RECORD, CONTEXT> | SortsSchema<RECORD, CONTEXT>,
+    /**
+     * @deprecated use {@link SchemaOptionsNormalized.sorts}. Removed in 3.0.
+     */
+    sort : SortsOptions<RECORD, CONTEXT> | SortsSchema<RECORD, CONTEXT>,
     /**
      * Ordered column lists of the record's storage indexes, consumed
-     * by the per-parameter `indexed` opt-ins (filters, sort). See
+     * by the per-parameter `indexed` opt-ins (filters, sorts). See
      * {@link IndexesOption}.
      */
     indexes: IndexesOption<RECORD>,
@@ -221,5 +225,5 @@ export type SchemaDescription = {
     filters?: FiltersSchemaDescription,
     pagination?: PaginationSchemaDescription,
     relations?: RelationsSchemaDescription,
-    sort?: SortSchemaDescription,
+    sorts?: SortsSchemaDescription,
 };

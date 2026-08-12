@@ -25,8 +25,8 @@ describe('sort', () => {
             new Sort('name', 'ASC'),
         ]);
 
-        const encoded = encoder.encodeSort(value);
-        const decoded = decoder.decodeSort(encoded!);
+        const encoded = encoder.encodeSorts(value);
+        const decoded = decoder.decodeSorts(encoded!);
 
         expect(value).toEqual(decoded);
     });
@@ -36,8 +36,8 @@ describe('sort', () => {
             new Sort('name', 'DESC'),
         ]);
 
-        const encoded = encoder.encodeSort(value);
-        const decoded = decoder.decodeSort(encoded!);
+        const encoded = encoder.encodeSorts(value);
+        const decoded = decoder.decodeSorts(encoded!);
 
         expect(value).toEqual(decoded);
     });
@@ -48,8 +48,8 @@ describe('sort', () => {
             new Sort('name', 'DESC'),
         ]);
 
-        const encoded = encoder.encodeSort(value);
-        const decoded = decoder.decodeSort(encoded!);
+        const encoded = encoder.encodeSorts(value);
+        const decoded = decoder.decodeSorts(encoded!);
 
         expect(value).toEqual(decoded);
     });

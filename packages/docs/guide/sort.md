@@ -1,4 +1,4 @@
-# Sort
+# Sorts
 
 Order the collection by one or more keys, ascending or descending.
 
@@ -16,21 +16,33 @@ sort=name,-age                multiple keys, applied in order
 sort=items.id                 relation field
 ```
 
+::: tip Naming
+The input key is `sorts`, matching the `Query.sorts` AST property and the
+`FieldsSchema`/`FiltersSchema` naming of the other parameters. The older
+`sort` key is still accepted and will be removed in 3.0. The URL wire
+parameter stays `sort`, exactly as `filters` is carried as `filter`.
+Supplying both `sorts` and `sort` in the same input throws `KEY_AMBIGUOUS`,
+unconditionally and regardless of `throwOnFailure`, on `defineQuery`,
+`defineSchema` and every parser/codec `parse()`/`decode()` call: the two
+spellings name one parameter, and picking a winner would silently drop
+the other.
+:::
+
 Parser input shapes:
 
 ```typescript
-{ sort: '-age' }                              // string
-{ sort: 'name,-age' }                         // comma list
-{ sort: ['name', '-age'] }                    // array
-{ sort: { name: 'ASC', age: 'DESC' } }        // record (case-insensitive)
-{ sort: { id: 'DESC', items: { id: 'ASC' } } } // nested record
+{ sorts: '-age' }                              // string
+{ sorts: 'name,-age' }                         // comma list
+{ sorts: ['name', '-age'] }                    // array
+{ sorts: { name: 'ASC', age: 'DESC' } }        // record (case-insensitive)
+{ sorts: { id: 'DESC', items: { id: 'ASC' } } } // nested record
 ```
 
 ## Building in code
 
 ```typescript
-defineQuery<User>({ sort: '-age' });
-defineQuery<User>({ sort: { created_at: 'DESC', realm: { name: 'ASC' } } });
+defineQuery<User>({ sorts: '-age' });
+defineQuery<User>({ sorts: { created_at: 'DESC', realm: { name: 'ASC' } } });
 
 defineSorts<User>(['-age']);   // standalone fragment
 ```
@@ -45,7 +57,7 @@ Keys are checked against the record type.
 
 ```typescript
 defineSchema<User>({
-    sort: {
+    sorts: {
         allowed: ['id', 'name', 'age'],
         default: { id: 'DESC' },
         mapping: { createdAt: 'created_at' },
@@ -63,10 +75,10 @@ defineSchema<User>({
 
 ## Validate hooks
 
-A `validate` / `validateMany` hook runs once per client-requested sort key, against the schema that governs it (the target schema for dotted keys such as `items.id`) and before the [index policy](/guide/schemas#indexes) is applied. Schema `default`s are server-authored and bypass the hook. The general contract (verdicts, the scope argument, batching, sync/async) lives at [Validate hooks and parse context](/guide/schemas#validate-hooks-parse-context).
+A `validate` / `validateMany` hook runs once per client-requested sort key, against the schema that governs it (the target schema for dotted keys such as `items.id`) and before the [index policy](/guide/schemas#indexes) is applied. Schema `default`s are server-authored and bypass the hook. The general contract (verdicts, the scope argument, batching, sync/async) lives at [Validate hooks and parse context](/guide/schemas#validate-hooks-parse-context). The hook's `scope.parameter` is `'sorts'` (it used to be `'sort'`), so a hook factory shared with `fields` that branches on that value needs updating.
 
-An ordering is not a row set, so there is nothing for an `ICondition` verdict to gate: a condition answer counts as a rejection for sort (only `fields` hooks may gate with a condition).
+An ordering is not a row set, so there is nothing for an `ICondition` verdict to gate: a condition answer counts as a rejection for `sorts` (only `fields` hooks may gate with a condition).
 
 ## On violation
 
-Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortParseError` instead.
+Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortsParseError` instead.

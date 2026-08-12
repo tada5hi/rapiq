@@ -16,7 +16,7 @@
 
             <div class="rq-pipe-node">
                 <span class="rq-pipe-node-title">Build</span>
-                <code class="rq-pipe-node-code">defineQuery&lt;User&gt;({ filters, sort, … })</code>
+                <code class="rq-pipe-node-code">defineQuery&lt;User&gt;({ filters, sorts, … })</code>
                 <span class="rq-pipe-node-sub">typed input · condition helpers <code>eq / and / or</code></span>
             </div>
 

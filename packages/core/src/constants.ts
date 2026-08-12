@@ -10,6 +10,12 @@ export enum Parameter {
     FIELDS = 'fields',
     PAGINATION = 'pagination',
     RELATIONS = 'relations',
+    SORTS = 'sorts',
+    /**
+     * @deprecated use {@link Parameter.SORTS}. The value stays `sort`,
+     * so `parameters` masks and `describe()` output keep working.
+     * Removed in 3.0.
+     */
     SORT = 'sort',
 }
 

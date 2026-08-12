@@ -11,8 +11,10 @@ import type {
     FieldKeys,
     NestedKeys,
     NestedResourceKeys,
+    ParameterSchema,
     SimpleKeys,
     SimpleResourceKeys,
+    SortsSchema,
     TypeFromNestedKeyPath,
 } from '../../src';
 import type {
@@ -168,6 +170,15 @@ describe('src/types.ts', () => {
             expectTypeOf<TypeFromNestedKeyPath<Event, 'user.age'>>().toEqualTypeOf<number>();
             expectTypeOf<TypeFromNestedKeyPath<Event, 'items.name'>>().toEqualTypeOf<string>();
             expectTypeOf<TypeFromNestedKeyPath<Event, 'data'>>().toEqualTypeOf<Record<string, any> | null>();
+        });
+    });
+
+    describe('ParameterSchema', () => {
+        it('should resolve both the canonical sorts key and its deprecated alias to SortsSchema', () => {
+            // regression guard for #905: both spellings must resolve to the
+            // same sub-schema type, never `never`.
+            expectTypeOf<ParameterSchema<'sorts', User>>().toEqualTypeOf<SortsSchema<User>>();
+            expectTypeOf<ParameterSchema<'sort', User>>().toEqualTypeOf<SortsSchema<User>>();
         });
     });
 

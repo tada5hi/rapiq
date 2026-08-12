@@ -63,7 +63,7 @@ npm install @rapiq/core @rapiq/adapter-prisma
 | `filters` | `where` |
 | `fields` | `select` |
 | `relations` | `include`, or a nested `select` when fields are picked |
-| `sort` | `orderBy` (an array of single-key objects, order preserved) |
+| `sorts` | `orderBy` (an array of single-key objects, order preserved) |
 | `pagination` | `take` / `skip` |
 
 `pagination` is echoed back from `execute()` as the limit/offset actually applied, ready for a response `meta` block.

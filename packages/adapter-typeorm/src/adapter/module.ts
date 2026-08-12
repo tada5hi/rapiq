@@ -11,7 +11,7 @@ import { QueryVisitor } from '@rapiq/adapter-sql';
 import { RelationsAdapter } from './relations';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
-import { SortAdapter } from './sort';
+import { SortsAdapter } from './sort';
 import type { TypeormAdapterOptions, TypeormAdapterOutput } from './types';
 import { PaginationAdapter } from './pagination';
 
@@ -24,21 +24,35 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
     public readonly pagination : PaginationAdapter;
 
-    public readonly sort : SortAdapter;
+    public sorts : SortsAdapter;
 
     constructor(options: TypeormAdapterOptions) {
         this.relations = new RelationsAdapter(options.queryBuilder, options.relations);
         this.fields = new FieldsAdapter(options.queryBuilder, this.relations);
         this.filters = new FiltersAdapter(options.queryBuilder, this.relations);
         this.pagination = new PaginationAdapter(options.queryBuilder);
-        this.sort = new SortAdapter(options.queryBuilder, this.relations);
+        this.sorts = new SortsAdapter(options.queryBuilder, this.relations);
+    }
+
+    /**
+     * @deprecated use {@link TypeormAdapter.sorts}. Removed in 3.0.
+     */
+    get sort() : SortsAdapter {
+        return this.sorts;
+    }
+
+    /**
+     * @deprecated use {@link TypeormAdapter.sorts}. Removed in 3.0.
+     */
+    set sort(value: SortsAdapter) {
+        this.sorts = value;
     }
 
     clear() {
         this.fields.clear();
         this.filters.clear();
         this.pagination.clear();
-        this.sort.clear();
+        this.sorts.clear();
         this.relations.clear();
     }
 
@@ -62,7 +76,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         this.fields.execute();
         this.filters.execute();
         this.pagination.execute();
-        this.sort.execute();
+        this.sorts.execute();
         this.relations.execute();
 
         return {

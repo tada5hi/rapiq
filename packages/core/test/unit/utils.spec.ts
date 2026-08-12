@@ -6,9 +6,12 @@
  */
 
 import {
+    Parameter,
     isObject,
     isPropertySet,
+    normalizeParameter,
     parseKey,
+    resolveAliasedKey,
     stringifyKey,
 } from '../../src';
 import { applyMapping } from '../../src/utils';
@@ -77,5 +80,75 @@ describe('src/utils/*.ts', () => {
     it('should detect set properties', () => {
         expect(isPropertySet({ foo: undefined }, 'foo')).toBeTruthy();
         expect(isPropertySet({}, 'foo' as never)).toBeFalsy();
+    });
+});
+
+describe('src/utils/input.ts', () => {
+    const createError = (canonical: string, alias: string) => new Error(`ambiguous: ${canonical}/${alias}`);
+
+    it('should read the canonical key when only it is set', () => {
+        expect(resolveAliasedKey({ sorts: '-id' }, 'sorts', 'sort', createError)).toEqual('-id');
+    });
+
+    it('should read the alias when only it is set', () => {
+        expect(resolveAliasedKey({ sort: '-id' }, 'sorts', 'sort', createError)).toEqual('-id');
+    });
+
+    it('should throw when both spellings carry a real value', () => {
+        expect(() => resolveAliasedKey(
+            { sorts: '-id', sort: 'name' },
+            'sorts',
+            'sort',
+            createError,
+        )).toThrow();
+    });
+
+    it('should return undefined when neither spelling is present', () => {
+        expect(resolveAliasedKey({}, 'sorts', 'sort', createError)).toBeUndefined();
+    });
+
+    it('should let a real alias win over an explicitly undefined canonical key', () => {
+        expect(resolveAliasedKey(
+            { sorts: undefined, sort: '-id' },
+            'sorts',
+            'sort',
+            createError,
+        )).toEqual('-id');
+    });
+
+    it('should return undefined, not throw, when both spellings are present but undefined', () => {
+        expect(resolveAliasedKey(
+            { sorts: undefined, sort: undefined },
+            'sorts',
+            'sort',
+            createError,
+        )).toBeUndefined();
+    });
+
+    it('should treat a prototype-inherited key as absent, not defined', () => {
+        // an array inherits `sort` (Array.prototype.sort) without ever
+        // owning it: a bare `typeof input[key] !== 'undefined'` read
+        // would see it as a defined alias and misfire.
+        expect(resolveAliasedKey([], 'sorts', 'sort', createError)).toBeUndefined();
+    });
+});
+
+describe('src/utils/parameter.ts', () => {
+    it('should fold the deprecated sort spelling onto sorts', () => {
+        expect(normalizeParameter(Parameter.SORT)).toBe(Parameter.SORTS);
+        expect(normalizeParameter('sort')).toBe('sorts');
+    });
+
+    it('should pass every other parameter through unchanged', () => {
+        expect(normalizeParameter('fields')).toBe('fields');
+        expect(normalizeParameter('filters')).toBe('filters');
+        expect(normalizeParameter('pagination')).toBe('pagination');
+        expect(normalizeParameter('relations')).toBe('relations');
+        expect(normalizeParameter('sorts')).toBe('sorts');
+    });
+
+    it('should keep the deprecated enum member value stable', () => {
+        expect(Parameter.SORT).toBe('sort');
+        expect(Parameter.SORTS).toBe('sorts');
     });
 });

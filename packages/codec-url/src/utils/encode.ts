@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '@rapiq/core';
+import { Parameter, normalizeParameter } from '@rapiq/core';
 import type {
     IQuery,
     ParseParameterOptions,
@@ -43,7 +43,7 @@ export function buildQueryParameters(input: IQuery) : `${Parameter}`[] {
     }
 
     if (input.sorts.value.length > 0) {
-        output.push(Parameter.SORT);
+        output.push(Parameter.SORTS);
     }
 
     return output;
@@ -64,9 +64,30 @@ export function intersectQueryParameters(
         return input;
     }
 
+    const normalized = mask.map((parameter) => normalizeParameter(parameter));
+
     return input.filter(
-        (parameter) => mask.includes(parameter),
+        (parameter) => normalized.includes(normalizeParameter(parameter)),
     );
+}
+
+/**
+ * Whether a parameter mask contains the given parameter, normalizing
+ * every entry so the deprecated `sort` alias matches `Parameter.SORTS`
+ * (and vice versa).
+ *
+ * @param mask
+ * @param parameter
+ */
+export function includesParameter(
+    mask: `${Parameter}`[],
+    parameter: `${Parameter}`,
+) : boolean {
+    const normalized = normalizeParameter(parameter);
+
+    return mask
+        .map((item) => normalizeParameter(item))
+        .includes(normalized);
 }
 
 /**

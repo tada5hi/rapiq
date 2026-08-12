@@ -27,7 +27,7 @@ The generics run on recursive key paths: `defineQuery<User>`, `defineSchema<User
 ```typescript
 defineQuery<User>({
     filters: { 'realm.name': 'master' },   // ✓ typed
-    sort: '-created_at',                   // ✗ compile error if User lacks created_at
+    sorts: '-created_at',                  // ✗ compile error if User lacks created_at
 });
 ```
 

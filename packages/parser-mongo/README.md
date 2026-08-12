@@ -43,7 +43,7 @@ Bring a familiar MongoDB-style query document to any rapiq backend. Useful when 
 - 🍃 **Familiar syntax**: `$and` / `$or` / `$nor` compounds, De Morgan `$not` / `$nor` negation, field operators (`$eq`, `$gte`, `$in`, `$regex`, `$elemMatch`, …) and six `$contains`-family rapiq extensions.
 - 🔢 **Typed values**: JSON keeps its types (`{ $gte: 18 }` stays a number), no wire-string coercion.
 - 🛡️ **Two-class failure model**: grammar errors always throw `FiltersParseError`; field-key/allow-list failures follow the schema drop-vs-throw policy.
-- 🔗 **Same AST as every dialect**: only `filters` is mongo-flavoured; fields, relations, pagination and sort reuse `@rapiq/parser-simple`.
+- 🔗 **Same AST as every dialect**: only `filters` is mongo-flavoured; fields, relations, pagination and sorts reuse `@rapiq/parser-simple`.
 
 ## Installation
 
@@ -60,12 +60,12 @@ const parser = new MongoParser(registry);
 
 const query = parser.parse({
     filters: { age: { $gte: 18 }, 'realm.name': 'master' },
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 }, { schema: 'user' });
 ```
 
-Only the `filters` parameter uses the mongo dialect; fields, relations, pagination and sort accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST.
+Only the `filters` parameter uses the mongo dialect; fields, relations, pagination and sorts accept the same input as [@rapiq/parser-simple](https://www.npmjs.com/package/@rapiq/parser-simple), and the whole thing returns the same [`Query`](https://rapiq.tada5hi.net/guide/query-ast) AST.
 
 Grammar errors (unknown `$`-operators, misplaced operators, malformed operator arguments) always throw `FiltersParseError`; field keys that fail the schema allow-list are dropped by default and throw when `throwOnFailure` is set.
 

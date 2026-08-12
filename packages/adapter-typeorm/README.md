@@ -9,7 +9,7 @@
 <p align="center">
   <b>Apply a rapiq <code>Query</code> straight to a TypeORM <code>SelectQueryBuilder</code>.</b><br>
   Filters become parameterized <code>WHERE</code> conditions, relations become joins,<br>
-  <code>fields</code> / <code>sort</code> / <code>pagination</code> map to <code>select</code> / <code>orderBy</code> / <code>take</code>&nbsp;+&nbsp;<code>skip</code>.
+  <code>fields</code> / <code>sorts</code> / <code>pagination</code> map to <code>select</code> / <code>orderBy</code> / <code>take</code>&nbsp;+&nbsp;<code>skip</code>.
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ A single `adapter.execute(query)` walks the parsed AST and applies it to your bu
 | `filters: { age: gte(18) }` | `.andWhere('"user"."age" >= :p0', { p0: 18 })` |
 | `relations: ['realm']` | `.leftJoinAndSelect('user.realm', 'realm')` |
 | `fields: ['id', 'name']` | `.select(['user.id', 'user.name'])` |
-| `sort: '-createdAt'` | `.orderBy('user.createdAt', 'DESC')` |
+| `sorts: '-createdAt'` | `.orderBy('user.createdAt', 'DESC')` |
 | `pagination: { limit, offset }` | `.take(limit).skip(offset)` |
 
 ## Installation
@@ -150,7 +150,7 @@ The SQL dialect is resolved from the attached builder's connection type; joins a
 
 ### Applying part of a query
 
-`adapter.execute()` runs everything, but the per-parameter sub-adapters (`adapter.filters`, `adapter.sort`, `adapter.fields`, …) are public: pair one with its matching [@rapiq/adapter-sql](https://www.npmjs.com/package/@rapiq/adapter-sql) visitor to apply a single parameter:
+`adapter.execute()` runs everything, but the per-parameter sub-adapters (`adapter.filters`, `adapter.sorts`, `adapter.fields`, …) are public: pair one with its matching [@rapiq/adapter-sql](https://www.npmjs.com/package/@rapiq/adapter-sql) visitor to apply a single parameter:
 
 ```typescript
 import { FiltersVisitor } from '@rapiq/adapter-sql';

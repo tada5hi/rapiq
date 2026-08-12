@@ -12,7 +12,7 @@ import {
     ExpressionFiltersParser,
     ExpressionPaginationParser,
     ExpressionRelationsParser,
-    ExpressionSortParser,
+    ExpressionSortsParser,
 } from './parameter';
 
 export class ExpressionParser extends BaseQueryParser {
@@ -24,7 +24,7 @@ export class ExpressionParser extends BaseQueryParser {
 
     protected relationsParser : ExpressionRelationsParser;
 
-    protected sortParser : ExpressionSortParser;
+    protected sortParser : ExpressionSortsParser;
 
     // -----------------------------------------------------
 
@@ -35,6 +35,6 @@ export class ExpressionParser extends BaseQueryParser {
         this.filtersParser = new ExpressionFiltersParser(this.registry);
         this.paginationParser = new ExpressionPaginationParser(this.registry);
         this.relationsParser = new ExpressionRelationsParser(this.registry);
-        this.sortParser = new ExpressionSortParser(this.registry);
+        this.sortParser = new ExpressionSortsParser(this.registry);
     }
 }

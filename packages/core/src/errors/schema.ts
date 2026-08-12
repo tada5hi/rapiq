@@ -64,4 +64,21 @@ export class SchemaError extends BaseError {
             code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER,
         });
     }
+
+    static keyUnknown(key: string, suggestion?: string) {
+        return new this({
+            message: suggestion ?
+                `The schema key ${key} is unknown. Did you mean ${suggestion}?` :
+                `The schema key ${key} is unknown.`,
+            code: ErrorCode.KEY_UNKNOWN,
+        });
+    }
+
+    static keyAmbiguous(canonical: string, alias: string) {
+        return new this({
+            message: `The schema keys ${canonical} and ${alias} are two spellings of ` +
+                `the same parameter. Use ${canonical}.`,
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
 }

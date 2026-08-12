@@ -16,7 +16,7 @@ export const userSchema = defineSchema<User>({
         allowed: ['realm', 'items'],
         mapping: { abc: 'items' },
     },
-    sort: { allowed: ['id', 'name', 'email'] },
+    sorts: { allowed: ['id', 'name', 'email'] },
     schemaMapping: { items: 'item' },
 });
 
@@ -25,14 +25,14 @@ export const itemSchema = defineSchema<Item>({
     fields: { allowed: ['id'] },
     filters: { allowed: ['id', 'name'] },
     relations: { allowed: ['user', 'realm'] },
-    sort: { allowed: ['id'] },
+    sorts: { allowed: ['id'] },
 });
 
 export const realmSchema = defineSchema<Realm>({
     name: 'realm',
     fields: { allowed: ['id', 'name', 'description'] },
     filters: { allowed: ['id', 'name'] },
-    sort: { allowed: ['id', 'name'] },
+    sorts: { allowed: ['id', 'name'] },
 });
 
 export const registry = new SchemaRegistry();

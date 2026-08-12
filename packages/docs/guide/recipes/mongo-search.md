@@ -66,14 +66,14 @@ Wire it up with a JSON body parser: `app.use(express.json())` and `app.post('/us
         "realm.id": "a"
     },
     "relations": ["realm"],
-    "sort": "-age",
+    "sorts": "-age",
     "pagination": { "limit": 25 }
 }
 ```
 
 Multiple document entries combine with an implicit AND, a bare scalar means `$eq`, a bare array means `$in`, and dotted keys reach relation paths; the full operator table lives on the [package page](/packages/parser-mongo#the-dialect).
 
-Only `filters` is mongo-flavored. `fields`, `relations`, `sort` and `pagination` accept the same shapes as the [simple dialect](/packages/parser-simple) from chapter 3, and every schema constraint applies unchanged: the filter allow-list, the relations allow-list, the `maxLimit` of 50, the `-id` sort default when the client sends none.
+Only `filters` is mongo-flavored. `fields`, `relations`, `sorts` and `pagination` accept the same shapes as the [simple dialect](/packages/parser-simple) from chapter 3, and every schema constraint applies unchanged: the filter allow-list, the relations allow-list, the `maxLimit` of 50, the `-id` sort default when the client sends none.
 
 ## Typed values, no wire grammar
 

@@ -6,6 +6,7 @@
  */
 
 import { Parameter } from '../constants';
+import { ParseError } from '../errors';
 import type {
     IFields,
     IFilters,
@@ -17,9 +18,14 @@ import type {
 import { Query } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { isObject, isPropertySet } from '../utils';
+import {
+    isObject,
+    isPropertySet,
+    normalizeParameter,
+    resolveAliasedKey,
+} from '../utils';
 import { BaseParser } from './base';
-import { applyFiltersIndexPolicy, applySortIndexPolicy } from './index-policy';
+import { applyFiltersIndexPolicy, applySortsIndexPolicy } from './index-policy';
 import { RelationsParseError } from './parameter/relations/error';
 import {
     applyKeySchemaValidation,
@@ -104,9 +110,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             );
         }
 
-        if (!this.skipParameter(options, Parameter.SORT)) {
+        if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = this.sortParser.parseParameter(
-                this.readParameter(data, Parameter.SORT),
+                this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
             );
@@ -162,9 +168,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             );
         }
 
-        if (!this.skipParameter(options, Parameter.SORT)) {
+        if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = await this.sortParser.parseParameterAsync(
-                this.readParameter(data, Parameter.SORT),
+                this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
             );
@@ -269,7 +275,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
     /**
      * Drop every field/filter/sort/relation traversing a rejected relation from
-     * the assembled query. Filters and sort fall back to their schema defaults
+     * the assembled query. Filters and sorts fall back to their schema defaults
      * when pruning empties them, matching the parser's own default fallback.
      */
     protected pruneByRelations<
@@ -321,7 +327,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (output.sorts) {
-            output.sorts = applySortIndexPolicy(output.sorts, this.registry, options.schema);
+            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema);
         }
     }
 
@@ -424,12 +430,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     }
 
     /**
-     * Parse sort input parameter.
+     * Parse sorts input parameter.
      *
      * @param input
      * @param options
      */
-    parseSort<
+    parseSorts<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
@@ -438,13 +444,37 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return this.sortParser.parse(input, options);
     }
 
-    parseSortAsync<
+    parseSortsAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : Promise<ISorts> {
         return this.sortParser.parseAsync(input, options);
+    }
+
+    /**
+     * @deprecated use {@link BaseQueryParser.parseSorts}. Removed in 3.0.
+     */
+    parseSort<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : ISorts {
+        return this.parseSorts(input, options);
+    }
+
+    /**
+     * @deprecated use {@link BaseQueryParser.parseSortsAsync}. Removed in 3.0.
+     */
+    parseSortAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<ISorts> {
+        return this.parseSortsAsync(input, options);
     }
 
     // --------------------------------------------------
@@ -457,6 +487,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: ObjectLiteral,
         key: `${Parameter}`,
     ) : unknown {
+        if (key === Parameter.SORTS) {
+            return resolveAliasedKey(
+                input,
+                Parameter.SORTS,
+                Parameter.SORT,
+                (canonical, alias) => ParseError.keyAmbiguous(canonical, alias),
+            );
+        }
+
         if (isPropertySet(input, key)) {
             return input[key];
         }
@@ -478,12 +517,21 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : boolean {
         if (
             typeof options.parameters !== 'undefined' &&
-            !options.parameters.includes(parameter)
+            !options.parameters
+                .map((item) => normalizeParameter(item))
+                .includes(normalizeParameter(parameter))
         ) {
             return true;
         }
 
-        const flag = options[parameter];
+        const flag = parameter === Parameter.SORTS ?
+            resolveAliasedKey(
+                options,
+                Parameter.SORTS,
+                Parameter.SORT,
+                (canonical, alias) => ParseError.keyAmbiguous(canonical, alias),
+            ) :
+            options[parameter];
 
         return typeof flag === 'boolean' && !flag;
     }

@@ -64,7 +64,7 @@ Requires drizzle-orm v1 (relational queries v2) on the consuming side; the adapt
 | `filters` | `where` |
 | `fields` | `columns` |
 | `relations` | `with`, narrowed by per-relation field picks |
-| `sort` | `orderBy` (key order carries the priority) |
+| `sorts` | `orderBy` (key order carries the priority) |
 | `pagination` | `limit` / `offset` |
 
 `pagination` is echoed back from `execute()` as the limit/offset actually applied, ready for a response `meta` block.

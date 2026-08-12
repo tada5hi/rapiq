@@ -25,14 +25,14 @@ import type {
     IndexesResolver,
     Schema,
     SchemaRegistry,
-    SortSchema,
+    SortsSchema,
 } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
 import { FiltersParseError } from './parameter/filters/error';
-import { SortParseError } from './parameter/sort/error';
+import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
-import { buildSortDefaults } from './relation-prune';
+import { buildSortsDefaults } from './relation-prune';
 
 type IndexPolicyContext = {
     throwOnFailure?: boolean,
@@ -163,7 +163,7 @@ function collectClientSortKeys(
     output: ISorts,
     scope: ResolutionScope<any, any>,
 ) : string[] {
-    const rootSchema = scope.schema as SortSchema;
+    const rootSchema = scope.schema as SortsSchema;
     const rootDefaults = rootSchema.defaultIsUndefined ? null : rootSchema.default;
 
     const cache = new Map<string, Record<string, string> | null>();
@@ -184,7 +184,7 @@ function collectClientSortKeys(
             if (path !== '') {
                 const child = scope.descend(path);
                 if (child instanceof ResolutionScope) {
-                    const childSchema = child.schema as SortSchema;
+                    const childSchema = child.schema as SortsSchema;
                     if (!childSchema.defaultIsUndefined) {
                         defaults = childSchema.default;
                     }
@@ -258,22 +258,22 @@ export function applyFiltersIndexPolicy<
 }
 
 /**
- * Sort counterpart of {@link applyFiltersIndexPolicy}: ordered
+ * Sorts counterpart of {@link applyFiltersIndexPolicy}: ordered
  * leftmost-prefix rule applied to the client-authored keys only
  * (server-authored default entries, root or relation-scoped, are
  * exempt), standard failure policy.
  */
-export function applySortIndexPolicy<
+export function applySortsIndexPolicy<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     output: ISorts,
     registry: SchemaRegistry,
-    schema?: string | Schema<RECORD> | SortSchema<RECORD>,
+    schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context: IndexPolicyContext = {},
 ) : ISorts {
-    const scope = ResolutionScope.for(registry, Parameter.SORT, schema, { throwOnFailure: context.throwOnFailure });
+    const scope = ResolutionScope.for(registry, Parameter.SORTS, schema, { throwOnFailure: context.throwOnFailure });
 
-    const sortSchema = scope.schema as SortSchema<RECORD>;
+    const sortSchema = scope.schema as SortsSchema<RECORD>;
     if (!sortSchema.indexed || output.value.length === 0) {
         return output;
     }
@@ -289,8 +289,13 @@ export function applySortIndexPolicy<
     }
 
     if (scope.throwOnFailure) {
-        throw SortParseError.keyCombinationNotIndexed(result.keys);
+        throw SortsParseError.keyCombinationNotIndexed(result.keys);
     }
 
-    return buildSortDefaults(sortSchema);
+    return buildSortsDefaults(sortSchema);
 }
+
+/**
+ * @deprecated use {@link applySortsIndexPolicy}. Removed in 3.0.
+ */
+export const applySortIndexPolicy = applySortsIndexPolicy;

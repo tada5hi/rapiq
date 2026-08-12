@@ -15,14 +15,14 @@ export const realmSchema = defineSchema<Realm>({
     name: 'realm',
     fields: { allowed: ['id', 'name', 'description'] },
     filters: { allowed: ['id', 'name'] },
-    sort: { allowed: ['id', 'name'] },
+    sorts: { allowed: ['id', 'name'] },
 });
 
 export const itemSchema = defineSchema<Item>({
     name: 'item',
     fields: { allowed: ['id', 'title', 'color'] },
     filters: { allowed: ['id', 'title', 'color'] },
-    sort: { allowed: ['id', 'title'] },
+    sorts: { allowed: ['id', 'title'] },
 });
 
 export const userSchema = defineSchema<User>({
@@ -34,7 +34,7 @@ export const userSchema = defineSchema<User>({
     filters: { allowed: ['id', 'first_name', 'realm_id', 'age', 'address'] },
     pagination: { maxLimit: 50 },
     relations: { allowed: ['realm', 'items'] },
-    sort: { allowed: ['id', 'age', 'first_name'] },
+    sorts: { allowed: ['id', 'age', 'first_name'] },
     schemaMapping: { realm: 'realm', items: 'item' },
 });
 

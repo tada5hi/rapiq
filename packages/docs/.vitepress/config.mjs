@@ -69,7 +69,7 @@ export default defineConfig({
                         { text: 'Fields', link: '/guide/fields' },
                         { text: 'Filters', link: '/guide/filters' },
                         { text: 'Relations', link: '/guide/relations' },
-                        { text: 'Sort', link: '/guide/sort' },
+                        { text: 'Sorts', link: '/guide/sort' },
                         { text: 'Pagination', link: '/guide/pagination' },
                     ],
                 },

@@ -13,7 +13,7 @@ import { FieldsParseError } from '../../parser/parameter/fields/error';
 import { FiltersParseError } from '../../parser/parameter/filters/error';
 import { PaginationParseError } from '../../parser/parameter/pagination/error';
 import { RelationsParseError } from '../../parser/parameter/relations/error';
-import { SortParseError } from '../../parser/parameter/sort/error';
+import { SortsParseError } from '../../parser/parameter/sort/error';
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
 import { Schema } from '../module';
@@ -22,7 +22,7 @@ import {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
-    SortSchema,
+    SortsSchema,
 } from '../parameter';
 import type { SchemaRegistry } from '../registry';
 import { KeyResolutionErrorCode } from './constants';
@@ -38,7 +38,8 @@ const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FILTERS]: FiltersSchema,
     [Parameter.PAGINATION]: PaginationSchema,
     [Parameter.RELATIONS]: RelationsSchema,
-    [Parameter.SORT]: SortSchema,
+    [Parameter.SORTS]: SortsSchema,
+    [Parameter.SORT]: SortsSchema,
 } as const;
 
 const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
@@ -46,7 +47,8 @@ const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FILTERS]: FiltersParseError,
     [Parameter.PAGINATION]: PaginationParseError,
     [Parameter.RELATIONS]: RelationsParseError,
-    [Parameter.SORT]: SortParseError,
+    [Parameter.SORTS]: SortsParseError,
+    [Parameter.SORT]: SortsParseError,
 };
 
 /**
@@ -238,7 +240,7 @@ export class ResolutionScope<
 
         if (typeof schema === 'string' || schema instanceof Schema) {
             base = registry.getOrFail(schema);
-            parameterSchema = base[parameter as Parameter] as ParameterSchema<P, RECORD>;
+            parameterSchema = base[parameter] as ParameterSchema<P, RECORD>;
         } else if (schema instanceof PARAMETER_SCHEMA_CLASSES[parameter as Parameter]) {
             parameterSchema = schema as ParameterSchema<P, RECORD>;
         } else {
@@ -396,7 +398,7 @@ export class ResolutionScope<
 
         let schema : ParameterSchema<P, RECORD>;
         if (childBase) {
-            schema = childBase[this.parameter as Parameter] as ParameterSchema<P, RECORD>;
+            schema = childBase[this.parameter] as ParameterSchema<P, RECORD>;
         } else {
             schema = buildEmptyParameterSchema<P, RECORD>(this.parameter);
         }
@@ -486,7 +488,7 @@ export class ResolutionScope<
     /**
      * The obligation for a leaf `name` that is *itself* a relation of this
      * scope's record. For the relations parameter the leaf always is one (an
-     * include). For fields/filters/sort it is one only when it maps to a related
+     * include). For fields/filters/sorts it is one only when it maps to a related
      * schema — an operator applied directly to a relation array
      * (`$size`/`$all`/`$elemMatch`) that the backends join; unlike a dotted path,
      * {@link resolveKey} classifies such a leaf as the terminal `name` (empty
@@ -568,8 +570,9 @@ export class ResolutionScope<
                     undefined :
                     KeyResolutionErrorCode.KEY_NOT_PERMITTED;
             }
+            case Parameter.SORTS:
             case Parameter.SORT: {
-                const schema = this.schema as SortSchema<RECORD>;
+                const schema = this.schema as SortsSchema<RECORD>;
                 if (schema.allowedIsUndefined) {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;

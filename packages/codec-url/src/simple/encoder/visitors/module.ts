@@ -30,6 +30,7 @@ import type {
 import { Parameter } from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
+import { includesParameter } from '../../../utils';
 import { FieldsVisitor } from './fields';
 import { FiltersVisitor } from './filters';
 import { PaginationVisitor } from './pagination';
@@ -57,7 +58,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
     protected relations: RelationsVisitor;
 
-    protected sort : SortsVisitor;
+    protected sorts : SortsVisitor;
 
     constructor() {
         const serializer = new QuerySerializer();
@@ -67,7 +68,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.filters = new FiltersVisitor(serializer.filters);
         this.pagination = new PaginationVisitor(serializer.pagination);
         this.relations = new RelationsVisitor(serializer.relations);
-        this.sort = new SortsVisitor(serializer.sort);
+        this.sorts = new SortsVisitor(serializer.sorts);
     }
 
     reset() : void {
@@ -95,8 +96,8 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
             expr.relations.accept(this.relations);
         }
 
-        if (!parameters || parameters.includes(Parameter.SORT)) {
-            expr.sorts.accept(this.sort);
+        if (!parameters || includesParameter(parameters, Parameter.SORTS)) {
+            expr.sorts.accept(this.sorts);
         }
 
         return this.serializer;
@@ -131,10 +132,10 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     }
 
     visitSort(expr: ISort): ArraySerializer {
-        return expr.accept(this.sort);
+        return expr.accept(this.sorts);
     }
 
     visitSorts(expr: ISorts): ArraySerializer {
-        return expr.accept(this.sort);
+        return expr.accept(this.sorts);
     }
 }

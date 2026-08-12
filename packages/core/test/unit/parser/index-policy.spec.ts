@@ -16,7 +16,7 @@ import {
     SortDirection,
     Sorts,
     applyFiltersIndexPolicy,
-    applySortIndexPolicy,
+    applySortsIndexPolicy,
     defineSchema,
     eq,
     preserve,
@@ -163,10 +163,10 @@ describe('src/parser/index-policy.ts', () => {
             new Sort('realm_id', SortDirection.DESC),
             new Sort('created_at', SortDirection.ASC),
         ]);
-        expect(applySortIndexPolicy(ok, registry, 'row')).toBe(ok);
+        expect(applySortsIndexPolicy(ok, registry, 'row')).toBe(ok);
 
         const bad = new Sorts([new Sort('created_at', SortDirection.ASC)]);
-        const applied = applySortIndexPolicy(bad, registry, 'row');
+        const applied = applySortsIndexPolicy(bad, registry, 'row');
         expect(applied).not.toBe(bad);
         expect(applied.value.map((sort) => [sort.name, sort.operator]))
             .toEqual([['created_at', SortDirection.DESC]]);
@@ -176,7 +176,7 @@ describe('src/parser/index-policy.ts', () => {
         const registry = buildRegistry();
         const output = new Sorts([new Sort('created_at', SortDirection.DESC)]);
 
-        expect(applySortIndexPolicy(output, registry, 'row')).toBe(output);
+        expect(applySortsIndexPolicy(output, registry, 'row')).toBe(output);
     });
 
     it('should exempt relation-scope sort defaults from the check', () => {
@@ -190,7 +190,7 @@ describe('src/parser/index-policy.ts', () => {
             new Sort('items.name', SortDirection.ASC),
         ]);
 
-        expect(applySortIndexPolicy(output, registry, 'row', { throwOnFailure: true }))
+        expect(applySortsIndexPolicy(output, registry, 'row', { throwOnFailure: true }))
             .toBe(output);
     });
 });

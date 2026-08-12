@@ -12,7 +12,7 @@ import {
     MongoFiltersParser,
     MongoPaginationParser,
     MongoRelationsParser,
-    MongoSortParser,
+    MongoSortsParser,
 } from './parameter';
 
 export class MongoParser extends BaseQueryParser {
@@ -24,7 +24,7 @@ export class MongoParser extends BaseQueryParser {
 
     protected relationsParser : MongoRelationsParser;
 
-    protected sortParser : MongoSortParser;
+    protected sortParser : MongoSortsParser;
 
     // -----------------------------------------------------
 
@@ -35,6 +35,6 @@ export class MongoParser extends BaseQueryParser {
         this.filtersParser = new MongoFiltersParser(this.registry);
         this.paginationParser = new MongoPaginationParser(this.registry);
         this.relationsParser = new MongoRelationsParser(this.registry);
-        this.sortParser = new MongoSortParser(this.registry);
+        this.sortParser = new MongoSortsParser(this.registry);
     }
 }

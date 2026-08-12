@@ -13,7 +13,7 @@ import type {
     PaginationOptions,
     RelationsOptions,
     SchemaRegistry,
-    SortOptions,
+    SortsOptions,
 } from '@rapiq/core';
 import type { EntityTarget } from 'typeorm';
 
@@ -33,7 +33,11 @@ export type EntitySchemaOptions<
 > = BaseSchemaOptions & {
     fields?: WithDerivableAllowed<FieldsOptions<RECORD>>,
     filters?: WithDerivableAllowed<FiltersOptions<RECORD>>,
-    sort?: WithDerivableAllowed<SortOptions<RECORD>>,
+    sorts?: WithDerivableAllowed<SortsOptions<RECORD>>,
+    /**
+     * @deprecated use {@link EntitySchemaOptions.sorts}. Removed in 3.0.
+     */
+    sort?: WithDerivableAllowed<SortsOptions<RECORD>>,
     relations?: RelationsOptions<RECORD>,
     pagination?: PaginationOptions,
 };

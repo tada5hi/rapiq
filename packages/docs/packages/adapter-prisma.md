@@ -1,6 +1,6 @@
 # @rapiq/adapter-prisma
 
-Serializes a parsed [`Query`](/guide/query-ast) into a **Prisma argument object**: filters become `where`, fields become `select`, relations become `include`, sort becomes `orderBy` and pagination becomes `take`/`skip`.
+Serializes a parsed [`Query`](/guide/query-ast) into a **Prisma argument object**: filters become `where`, fields become `select`, relations become `include`, sorts become `orderBy` and pagination becomes `take`/`skip`.
 
 ```sh
 npm install @rapiq/core @rapiq/adapter-prisma
@@ -124,7 +124,7 @@ Prisma 7 prunes every runtime datamodel to names and kinds (`Prisma.dmmf` includ
 | `filters`    | `where` |
 | `fields`     | `select` |
 | `relations`  | `include` (nested `select` when fields are picked) |
-| `sort`       | `orderBy` (array of single-key objects, order preserved) |
+| `sorts`      | `orderBy` (array of single-key objects, order preserved) |
 | `pagination` | `take` / `skip` |
 
 Prisma rejects `select` and `include` on the same level, so the adapter emits exactly one of them per level: a level that picks fields is projected sparsely with `select`, a level that only widens with relations uses `include`. An explicitly included relation without direct picks is hydrated whole; a per-relation fieldset (direct `relation.field` picks) narrows the include to exactly those columns, matching the projection contract of [@rapiq/adapter-memory](/packages/adapter-memory) ([#847](https://github.com/tada5hi/rapiq/issues/847)). Picks belonging to a deeper relation never narrow the traversed prefix.

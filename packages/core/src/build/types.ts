@@ -38,5 +38,9 @@ export type QueryBuildInput<
     filters?: FiltersBuildInput<RECORD, DEPTH> | ICondition,
     pagination?: PaginationBuildInput | IPagination,
     relations?: RelationsBuildInput<RECORD, DEPTH> | IRelations,
+    sorts?: SortsBuildInput<RECORD, DEPTH> | ISorts,
+    /**
+     * @deprecated use {@link QueryBuildInput.sorts}. Removed in 3.0.
+     */
     sort?: SortsBuildInput<RECORD, DEPTH> | ISorts,
 };

@@ -6,17 +6,24 @@
  */
 
 import type { Relations } from '../../../parameter';
-import type { Schema, SortSchema } from '../../../schema';
+import type { Schema, SortsSchema } from '../../../schema';
 import type {
     ObjectLiteral,
 } from '../../../types';
 
-export type SortParseOptions<
+export type SortsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     relations?: Relations,
     throwOnFailure?: boolean,
     strict?: boolean,
-    schema?: string | Schema<RECORD> | SortSchema<RECORD>,
+    schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context?: unknown,
 };
+
+/**
+ * @deprecated use {@link SortsParseOptions}. Removed in 3.0.
+ */
+export type SortParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = SortsParseOptions<RECORD>;

@@ -8,15 +8,15 @@
 import { Parameter } from '../../../constants';
 import type { ObjectLiteral } from '../../../types';
 import type {
-    SortOptions,
-    SortSchemaDescription,
+    SortsOptions,
+    SortsSchemaDescription,
 } from './types';
 import { BaseKeyValidatableSchema } from '../../key-validatable';
 
-export class SortSchema<
+export class SortsSchema<
     T extends ObjectLiteral = ObjectLiteral,
     CONTEXT = any,
-> extends BaseKeyValidatableSchema<SortOptions<T, CONTEXT>> {
+> extends BaseKeyValidatableSchema<SortsOptions<T, CONTEXT>> {
     public default : Record<string, any>;
 
     public defaultKeys : string[];
@@ -35,8 +35,8 @@ export class SortSchema<
 
     // ---------------------------------------------------------
 
-    constructor(input: SortOptions<T, CONTEXT> = {}) {
-        super(input, Parameter.SORT);
+    constructor(input: SortsOptions<T, CONTEXT> = {}) {
+        super(input, Parameter.SORTS);
 
         this.allowed = [];
         this.allowedIsUndefined = true;
@@ -65,9 +65,9 @@ export class SortSchema<
      * Serialize the declared constraints. Arrays and records are
      * cloned, so a consumer mutating the description never touches
      * the schema. An allow-list derived from `default` keys (see
-     * {@link SortSchema.buildAllowed}) serializes like a declared one.
+     * {@link SortsSchema.buildAllowed}) serializes like a declared one.
      */
-    describe() : SortSchemaDescription {
+    describe() : SortsSchemaDescription {
         return {
             allowed: this.allowedIsUndefined ? null : [...this.allowed],
             default: this.defaultIsUndefined ? null : { ...this.default },

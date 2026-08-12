@@ -46,4 +46,21 @@ export class BuildError extends BaseError {
             code: ErrorCode.OPERATOR_UNSUPPORTED,
         });
     }
+
+    static keyUnknown(key: string, suggestion?: string) {
+        return new this({
+            message: suggestion ?
+                `The key ${key} is unknown. Did you mean ${suggestion}?` :
+                `The key ${key} is unknown.`,
+            code: ErrorCode.KEY_UNKNOWN,
+        });
+    }
+
+    static keyAmbiguous(canonical: string, alias: string) {
+        return new this({
+            message: `The keys ${canonical} and ${alias} are two spellings of the ` +
+                `same parameter. Use ${canonical}.`,
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
 }

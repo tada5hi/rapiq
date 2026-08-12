@@ -31,13 +31,13 @@ export function buildOrderBy(sorts: ISorts) : Record<string, 'asc' | 'desc'> {
 
     for (const sort of sorts.value) {
         if (sort.name.includes('.')) {
-            throw AdapterError.featureUnsupported('sort:relation');
+            throw AdapterError.featureUnsupported('sorts:relation');
         }
 
         if (INTEGER_NAME.test(sort.name)) {
             // insertion order cannot carry the priority of an
             // integer-like key; failing typed beats a silent reorder.
-            throw AdapterError.featureUnsupported('sort:numeric-name');
+            throw AdapterError.featureUnsupported('sorts:numeric-name');
         }
 
         if (typeof output[sort.name] !== 'undefined') {

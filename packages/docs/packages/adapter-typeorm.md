@@ -1,6 +1,6 @@
 # @rapiq/adapter-typeorm
 
-Applies a parsed [`Query`](/guide/query-ast) directly to a TypeORM `SelectQueryBuilder`: filters become parameterized `WHERE` conditions, relations become joins, fields/sort/pagination map to `select`/`orderBy`/`take`+`skip`.
+Applies a parsed [`Query`](/guide/query-ast) directly to a TypeORM `SelectQueryBuilder`: filters become parameterized `WHERE` conditions, relations become joins, fields/sorts/pagination map to `select`/`orderBy`/`take`+`skip`.
 
 ```sh
 npm install @rapiq/core @rapiq/adapter-sql @rapiq/adapter-typeorm
@@ -115,7 +115,7 @@ Skipping the post-fetch call ships the gated value to the client, so treat this 
 
 ## Embedded columns
 
-Dotted field paths resolve against the entity metadata segment by segment: only real relations join. A path into an [embedded entity](https://typeorm.io/docs/entity/embedded-entities/) (`@Column(() => Profile)`), e.g. `profile.firstName`, is dotted without anything to join: it renders against its parent alias with the embedded column's database name (`"user"."profileFirstname"`) instead of producing a bogus `LEFT JOIN`. This applies uniformly to filters, sort and field selection, and composes with relations: `role.profile.firstName` joins only `role` and resolves the embedded remainder against that join's alias.
+Dotted field paths resolve against the entity metadata segment by segment: only real relations join. A path into an [embedded entity](https://typeorm.io/docs/entity/embedded-entities/) (`@Column(() => Profile)`), e.g. `profile.firstName`, is dotted without anything to join: it renders against its parent alias with the embedded column's database name (`"user"."profileFirstname"`) instead of producing a bogus `LEFT JOIN`. This applies uniformly to filters, sorts and field selection, and composes with relations: `role.profile.firstName` joins only `role` and resolves the embedded remainder against that join's alias.
 
 ## Deriving schemas from entities
 
@@ -128,7 +128,7 @@ const registry = defineSchemaRegistryWithDataSource(dataSource, {
     schemas: {
         user: {
             filters: { allowed: 'inherit' },
-            sort: { allowed: 'inherit' },
+            sorts: { allowed: 'inherit' },
         },
     },
 });
@@ -145,7 +145,7 @@ const schema = defineSchemaWithEntity(User, dataSource, {
     strict: true,
     fields: { allowed: 'inherit' },
     filters: { allowed: ['id', 'name'] },   // explicit list, nothing derived
-    sort: { default: { id: 'DESC' } },
+    sorts: { default: { id: 'DESC' } },
 });
 ```
 
@@ -180,7 +180,7 @@ assertSchemaMatchesEntity(userSchema, User, dataSource);
 assertSchemaMatchesEntity(userSchema, dataSource.getMetadata(User));
 ```
 
-Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sort.allowed` and the keys of `sort.default`, the keys of every `indexes` sequence, and `relations.allowed`. The rules:
+Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sorts.allowed` and the keys of `sorts.default`, the keys of every `indexes` sequence, and `relations.allowed`. The rules:
 
 - Plain keys must be column property paths, embedded paths like `profile.firstName` included.
 - Dotted keys that aren't a column path must be headed by a relation. Only the head is checked; the remainder belongs to the related entity, so validate that schema against its own entity.
@@ -205,7 +205,7 @@ Schemas produced by `defineSchemaWithEntity` don't need this: their structure co
 
 ### Declared indexes
 
-An [`indexes`](/guide/schemas#indexes) declaration is a promise rapiq trusts: it never inspects the database, it just enforces the combinations an `indexed` filters or sort policy allows. Drift turns that promise into a lie, so `assertSchemaMatchesEntity` verifies each declared sequence on top of the key rules: it must be a **leftmost prefix** of the entity's primary key, of a unique constraint, or of an index. Prefix rather than equality, since a real `(realm_id, email)` index also serves a declared `['realm_id']`:
+An [`indexes`](/guide/schemas#indexes) declaration is a promise rapiq trusts: it never inspects the database, it just enforces the combinations an `indexed` filters or sorts policy allows. Drift turns that promise into a lie, so `assertSchemaMatchesEntity` verifies each declared sequence on top of the key rules: it must be a **leftmost prefix** of the entity's primary key, of a unique constraint, or of an index. Prefix rather than equality, since a real `(realm_id, email)` index also serves a declared `['realm_id']`:
 
 ```typescript
 const userSchema = defineSchema<User>({
@@ -243,7 +243,7 @@ const adapter = new TypeormAdapter({ queryBuilder });
 adapter.execute(new Query({ filters: query.filters }));
 ```
 
-For lower-level control, each per-parameter sub-adapter (`adapter.filters`, `adapter.fields`, `adapter.sort`, `adapter.pagination`, `adapter.relations`) pairs with the matching `@rapiq/adapter-sql` visitor (`FiltersVisitor`, `FieldsVisitor`, `SortsVisitor`, `PaginationVisitor`, `RelationsVisitor`) and applies via its own `execute()`; the query builder is already bound from the adapter's construction.
+For lower-level control, each per-parameter sub-adapter (`adapter.filters`, `adapter.fields`, `adapter.sorts`, `adapter.pagination`, `adapter.relations`) pairs with the matching `@rapiq/adapter-sql` visitor (`FiltersVisitor`, `FieldsVisitor`, `SortsVisitor`, `PaginationVisitor`, `RelationsVisitor`) and applies via its own `execute()`; the query builder is already bound from the adapter's construction.
 
 ## End-to-end example
 

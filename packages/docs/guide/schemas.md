@@ -28,7 +28,7 @@ const userSchema = defineSchema<User>({
     relations: {
         allowed: ['realm', 'items'],
     },
-    sort: {
+    sorts: {
         allowed: ['id', 'name', 'age'],
         default: { id: 'DESC' },
     },
@@ -52,7 +52,7 @@ Field keys are typed against `RECORD` via recursive key paths: `allowed` and `de
 | `throwOnFailure` | `boolean` | Throw on disallowed input instead of dropping it. Inherited by every sub-schema that doesn't set its own value. |
 | `strict` | `boolean` | A parameter without an explicit allow-list rejects all client input instead of permitting any syntactically valid key. Inherited like `throwOnFailure`. See [Strict mode](#strict-mode). |
 | `schemaMapping` | `Record<string, string>` | Maps a relation name to a registered schema name, so nested input (`realm.name`) validates against the related record's schema. |
-| `indexes` | `string[][]` | Ordered column lists of the record's storage indexes, own-table keys only. Inert on its own; the `filters` and `sort` sub-schemas opt into enforcement via `indexed`. See [Indexes](#indexes). |
+| `indexes` | `string[][]` | Ordered column lists of the record's storage indexes, own-table keys only. Inert on its own; the `filters` and `sorts` sub-schemas opt into enforcement via `indexed`. See [Indexes](#indexes). |
 
 ## Per-parameter options
 
@@ -63,10 +63,10 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | `fields` | `allowed`, `default`, `mapping` (alias to field), `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `sort` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
+| `sorts` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
 
-Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortSchema`, `definePaginationSchema`), useful when calling a single parameter parser directly.
+Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortsSchema`, `definePaginationSchema`), useful when calling a single parameter parser directly.
 
 ::: tip Empty vs. absent
 `allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything, unless [strict mode](#strict-mode) is on. Be deliberate about which one you mean.
@@ -78,7 +78,7 @@ Defaults fill the gaps when a client sends nothing (or nothing valid) for a para
 
 - `fields.default`: the selection when no fields are requested; `+`/`-` modifiers in client input extend/shrink it instead of replacing it.
 - `filters.default`: a condition applied when the client sends no filters.
-- `sort.default`: the order applied when nothing valid was requested.
+- `sorts.default`: the order applied when nothing valid was requested.
 - `pagination.maxLimit`: doubles as the applied limit when the client requests none.
 
 A parameter absent from the input is still parsed, so defaults always apply, even when the client sends nothing at all.
@@ -92,7 +92,7 @@ const userSchema = defineSchema<User>({
     name: 'user',
     strict: true,
     filters: { allowed: ['id', 'name'] },
-    // fields/relations/sort declare nothing -> client input for them is rejected
+    // fields/relations/sorts declare nothing -> client input for them is rejected
 });
 ```
 
@@ -102,7 +102,7 @@ Per parameter, "declared" means:
 |---|---|
 | `fields` | `allowed` or `default` is set (validated against both lists) |
 | `filters` | `allowed` is set (a `default` condition alone still applies, but clients cannot filter) |
-| `sort` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
+| `sorts` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
 | `relations` | `allowed` is set |
 | `pagination` | always; `maxLimit` remains the only constraint |
 
@@ -130,7 +130,7 @@ const userSchema = defineSchema<User>({
         ['email'],
     ],
     filters: { indexed: true },     // true | 'anchor' | 'cover'
-    sort: { indexed: true },
+    sorts: { indexed: true },
 });
 ```
 
@@ -138,15 +138,15 @@ const userSchema = defineSchema<User>({
 
 **Filters.** With `indexed: true` (alias `'anchor'`), every AND group of the final parsed tree must contain at least one conjunct whose field is the leading column of a declared index: that index narrows the row set, and every other conjunct, leaf or compound, is residual filtering that need not be index-served on its own. An `or(...)` that has to carry the group itself (as the root, an OR branch, or the anchoring conjunct) passes only when every branch passes, since a database can only avoid a scan on an OR when each branch is indexed. With `indexed: 'cover'`, additionally every filtered field must be index-served: per relation path, the AND group's field set must equal a leftmost prefix (as a set, since AND order is meaningless) of one declared index.
 
-**Sort.** With `sort: { indexed: true }`, the requested keys must equal, in order, a leftmost prefix of one declared index. Directions are ignored, and all keys must share one relation path: no single index anywhere serves cross-table ordering.
+**Sorts.** With `sorts: { indexed: true }`, the requested keys must equal, in order, a leftmost prefix of one declared index. Directions are ignored, and all keys must share one relation path: no single index anywhere serves cross-table ordering.
 
 **The check is structural.** Operators, negation and case folding are deliberately ignored: which operators an index can serve differs per engine (a Postgres trigram index serves `contains`, a hash index only equality, an expression index changes the picture entirely), so rapiq trusts the declaration and enforces combinations only. Declare only what your storage actually serves. With TypeORM, [`assertSchemaMatchesEntity`](/packages/adapter-typeorm#declared-indexes) checks each declaration against the entity's real indexes at boot, so the promise cannot drift away from the schema it describes.
 
 **Relations.** A dotted key such as `items.title` checks the declaration of the schema governing `items` (resolved through the registry and `schemaMapping`), so each schema declares its own indexes. A governing schema without a declaration contributes no anchors and fails cover mode.
 
-**Server-authored conditions.** The filters `default` and sort defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
+**Server-authored conditions.** The filters `default` and sorts defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
 
-**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sort to its defaults), or throws a typed error with code `KEY_COMBINATION_NOT_INDEXED` under `throwOnFailure`. Two guardrails harden the filters drop path: a violating tree that carries a [preserved](/guide/filters#schema-options) condition refuses to drop it and throws `SCHEMA_PRESERVED_CONDITION_PRUNED` (mirroring relation pruning), and a violation on a schema without a filters `default` always throws, since dropping to an empty filter set would execute exactly the unfiltered scan the policy exists to prevent.
+**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sorts to their defaults), or throws a typed error with code `KEY_COMBINATION_NOT_INDEXED` under `throwOnFailure`. Two guardrails harden the filters drop path: a violating tree that carries a [preserved](/guide/filters#schema-options) condition refuses to drop it and throws `SCHEMA_PRESERVED_CONDITION_PRUNED` (mirroring relation pruning), and a violation on a schema without a filters `default` always throws, since dropping to an empty filter set would execute exactly the unfiltered scan the policy exists to prevent.
 
 ::: warning Footgun
 `indexed` without any reachable `indexes` declaration (own or on related schemas) can never be satisfied: every non-empty request drops to the `default`, or throws when there is none. Declaring `indexes: []` means exactly that: nothing is indexed.
@@ -154,7 +154,7 @@ const userSchema = defineSchema<User>({
 
 ## Validate hooks and parse context {#validate-hooks-parse-context}
 
-Allow-lists are static, decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sort` sub-schemas may declare a hook that answers for each client-requested key with that context in hand:
+Allow-lists are static, decided when the schema is defined. The `validate` hooks decide **per request**: every parse/decode call may carry an opaque `context` (typically the authenticated actor), and the `relations`, `fields` and `sorts` sub-schemas may declare a hook that answers for each client-requested key with that context in hand:
 
 ```typescript
 type Actor = { can: (permission: string) => Promise<boolean> };
@@ -193,13 +193,13 @@ Every hook receives a third argument describing *where* the key sits, so it can 
 
 ```typescript
 type KeyValidationScope = {
-    parameter: 'fields' | 'filters' | 'pagination' | 'relations' | 'sort',
+    parameter: 'fields' | 'filters' | 'pagination' | 'relations' | 'sorts',
     path: string,       // dotted relation path of the governing schema; '' at the query root
     schema?: string,    // registered name of that schema; undefined for an inline schema
 };
 ```
 
-`parameter` lets one hook factory serve `fields` and `sort`. `path` distinguishes the positions a single schema occupies in one query: the root, `'items'`, `'items.realm'`. Here the `user` schema is reachable twice, and `email` is readable only on the collection itself, not when the same record hangs off an item:
+`parameter` lets one hook factory serve `fields` and `sorts`. `path` distinguishes the positions a single schema occupies in one query: the root, `'items'`, `'items.realm'`. Here the `user` schema is reachable twice, and `email` is readable only on the collection itself, not when the same record hangs off an item:
 
 ```typescript
 const userSchema = defineSchema<User, Actor>({
@@ -294,16 +294,16 @@ const guarded = applyFieldConditions(query.fields, rows);
 For genuinely secret columns on an entity that is also reachable as an include, prefer a condition over a plain `return false`: a boolean denial only removes the field from the *query*, while a fieldset-free include still hydrates the whole record, leaving nothing for the post-fetch pass to act on. A condition keeps the gate attached to the field, so `applyFieldConditions` strips the value per row wherever the row came from.
 :::
 
-`sort` and `relations` have no column to gate, so a condition returned there is refused rather than silently ignored: it counts as a rejection and follows the failure policy. Narrowing the *rows* of an included relation is a separate, unrelated feature.
+`sorts` and `relations` have no column to gate, so a condition returned there is refused rather than silently ignored: it counts as a rejection and follows the failure policy. Narrowing the *rows* of an included relation is a separate, unrelated feature.
 
 A gate is server-side state and has no wire form, so a query carrying one cannot be encoded: `encode()` throws `FEATURE_UNSUPPORTED` (`fields:condition`) on both URL dialects rather than emitting the bare field name, which would hand the next hop an ungated column. This only affects re-encoding a query you decoded server-side, for example to build pagination links; strip the gated fields first, or rebuild the link from the original input. The schema-aware encode pass is unaffected, since it discards the conditions its own validation round trip derives.
 
 ### Rules that apply to every hook
 
 - **Target-schema authorization.** Hooks run on the canonical (alias-resolved) key against the schema that governs it: `include=items.realm` invokes the *user* schema's hook with `items` and the *item* schema's hook with `realm` (resolved via `schemaMapping`). An include can never bypass the related schema's own gate.
-- **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sort` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches, evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
-- **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sort` key.
-- **Client input only.** Schema `default`s are server-authored and bypass the hooks. For `sort`, a hook that empties the selection leaves it empty (no ORDER BY). For `fields`, an empty selection would be read by every backend as *project everything*, so a hook that empties it falls back to the input-less projection (defaults, or the allow-list expansion) **minus the rejected names**: a denial never resurrects, and it never widens the projection either. A schema that uses a deny-capable fields hook should declare `fields.default` so the fallback has something safe to land on.
+- **Relations are authorized wherever they are traversed, not only in `include=`.** A dotted `filters` / `fields` / `sorts` key resolves through a relation the backends then auto-join (`filter[items.id]`, `fields[items]`, `sort=items.name`), so the `relations` hook runs for every relation *any* parameter reaches, evaluated **once per distinct relation** across the whole query (deduped with the include-driven checks). Rejecting the relation prunes every dependent key in every parameter together. There is a single authorization point for a join, regardless of which parameter forced it.
+- **Rejection follows the failure policy.** Dropped by default, thrown (`ErrorCode.KEY_VALIDATE_REJECTED`) under [`throwOnFailure`](#failure-behavior-drop-vs-throw), naming the full client-facing path. A rejected relation also drops every deeper relation reached through it. A relation's authorization always follows the `relations` sub-schema's own policy, even when the relation was reached through a `filters`/`fields`/`sorts` key.
+- **Client input only.** Schema `default`s are server-authored and bypass the hooks. For `sorts`, a hook that empties the selection leaves it empty (no ORDER BY). For `fields`, an empty selection would be read by every backend as *project everything*, so a hook that empties it falls back to the input-less projection (defaults, or the allow-list expansion) **minus the rejected names**: a denial never resurrects, and it never widens the projection either. A schema that uses a deny-capable fields hook should declare `fields.default` so the fallback has something safe to land on.
 - **Sync/async mirrors the filters validator.** A hook returning a Promise requires the `parseAsync()`/`decodeAsync()` entry points; the sync paths refuse it with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`.
 - **The context is opaque**: typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none; there is no automatic fail-closed behavior, so a permission hook must guard the context itself and return `false` when it is missing rather than assume an actor is present.
 
@@ -367,7 +367,7 @@ userSchema.describe();
 //         allowed: ['realm', 'items'],
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
-//     sort: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
+//     sorts: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
 // }
 ```
 
@@ -415,7 +415,7 @@ try {
 }
 ```
 
-Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
+Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
 ## Next steps
 

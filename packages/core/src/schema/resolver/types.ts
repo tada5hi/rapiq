@@ -15,7 +15,7 @@ import type {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
-    SortSchema,
+    SortsSchema,
 } from '../parameter';
 import type { KeyResolutionErrorCode } from './constants';
 import type { ResolutionScope } from './module';
@@ -31,8 +31,8 @@ export type ParameterSchema<
             PaginationSchema :
             P extends `${Parameter.RELATIONS}` ?
                 RelationsSchema<RECORD> :
-                P extends `${Parameter.SORT}` ?
-                    SortSchema<RECORD> :
+                P extends `${Parameter.SORTS}` | `${Parameter.SORT}` ?
+                    SortsSchema<RECORD> :
                     never;
 
 export type KeyResolutionSuccess<
