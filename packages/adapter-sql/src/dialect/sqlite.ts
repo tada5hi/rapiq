@@ -15,4 +15,5 @@ import type { DialectOptions } from './types';
 export const sqlite : DialectOptions = {
     paramPlaceholder: mysql.paramPlaceholder,
     escapeField: mysql.escapeField,
+    mod: mysql.mod,
 };

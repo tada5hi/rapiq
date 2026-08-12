@@ -17,4 +17,6 @@ export const mssql : DialectOptions = {
     // Override with a lower()-wrapping caseFold when columns use
     // *_CS_* / *_BIN collations.
     caseFold: (input) => input,
+    // SQL Server has no MOD() function; the modulo operator is `%`.
+    mod: (field, divisorPlaceholder, remainderPlaceholder) => `${field} % ${divisorPlaceholder} = ${remainderPlaceholder}`,
 };

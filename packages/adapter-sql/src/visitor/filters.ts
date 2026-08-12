@@ -200,11 +200,11 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
     }
 
     mod(plan: ModPlan): IFiltersAdapter {
-        const values : [number, number] = [plan.divisor, plan.remainder];
-        const params = this.adapter.buildParamsPlaceholders(values);
-        const sql = `mod(${this.adapter.buildField(plan.field)}, ${params[0]}) = ${params[1]}`;
+        const divisorPlaceholder = this.adapter.buildParamPlaceholder();
+        const remainderPlaceholder = this.adapter.buildParamPlaceholder();
+        const sql = this.adapter.mod(this.adapter.buildField(plan.field), divisorPlaceholder, remainderPlaceholder);
 
-        return this.adapter.whereRaw(sql, ...values);
+        return this.adapter.whereRaw(sql, plan.divisor, plan.remainder);
     }
 
     // no `size` handler: an array-length check needs per-dialect

@@ -139,6 +139,14 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         throw AdapterError.featureUnsupported('regexp');
     }
 
+    override mod(field: string, divisorPlaceholder: string, remainderPlaceholder: string): string {
+        if (this.dialect.mod) {
+            return this.dialect.mod(field, divisorPlaceholder, remainderPlaceholder);
+        }
+
+        throw AdapterError.featureUnsupported('filters:mod');
+    }
+
     override caseFold(input: string) : string {
         if (this.dialect.caseFold) {
             return this.dialect.caseFold(input);

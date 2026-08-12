@@ -14,4 +14,5 @@ export const pg : DialectOptions = {
     },
     escapeField: (field: string) => `"${field}"`,
     paramPlaceholder: (index) => `$${index}`,
+    mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
 };

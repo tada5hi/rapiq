@@ -16,6 +16,8 @@ type DialectOptions = {
     paramPlaceholder: (index: number) => string, // pg: $1, mysql: ?
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
     caseFold?: (input: string) => string,        // default: lower(input); mysql/mssql: identity
+    mod?: (field: string, divisorPlaceholder: string, remainderPlaceholder: string) => string,
+    // default: mod(field, divisor) = remainder; mssql: field % divisor = remainder
 };
 ```
 
@@ -36,6 +38,8 @@ resolveDialect('mariadb'); // mysql preset
 ::: warning Dialects without regex support
 The `mssql` and `sqlite` presets omit the `regexp` callback: SQL Server has no regex operator, and stock SQLite ships without a `REGEXP` function. On those dialects the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
 :::
+
+No single `mod` spelling works everywhere: `pg`, `mysql`, `sqlite` and `oracle` render `mod(field, divisor) = remainder` (a `MOD()` function or equivalent); `mssql` has no `MOD()` function, so its preset renders `field % divisor = remainder` instead, using SQL Server's modulo operator. A custom dialect that omits the `mod` callback raises a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`, feature `filters:mod`) for the `mod` filter operator, exactly like an omitted `regexp`.
 
 ## The root adapter
 

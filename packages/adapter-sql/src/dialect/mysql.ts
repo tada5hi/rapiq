@@ -16,4 +16,5 @@ export const mysql : DialectOptions = {
     // Override with a lower()-wrapping caseFold when columns use
     // *_bin / *_cs collations.
     caseFold: (input) => input,
+    mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
 };
