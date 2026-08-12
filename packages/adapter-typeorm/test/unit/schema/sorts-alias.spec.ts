@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { ErrorCode, SchemaError } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { defineSchemaWithEntity } from '../../../src';
 import { createUnconnectedDataSource } from '../../data/factory';
@@ -39,6 +40,13 @@ describe('src/schema/module.ts', () => {
         expect(() => defineSchemaWithEntity(User, dataSource, {
             sorts: { allowed: ['id'] },
             sort: { allowed: ['id'] },
-        } as any)).toThrow();
+        } as any)).toThrowError(
+            expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }),
+        );
+
+        expect(() => defineSchemaWithEntity(User, dataSource, {
+            sorts: { allowed: ['id'] },
+            sort: { allowed: ['id'] },
+        } as any)).toThrow(SchemaError);
     });
 });
