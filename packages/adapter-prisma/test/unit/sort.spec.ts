@@ -6,6 +6,8 @@
  */
 
 import {
+    AdapterError,
+    ErrorCode,
     Pagination,
     Query,
     Sort,
@@ -51,6 +53,29 @@ describe('src/adapter/sort.ts', () => {
             new Sort('id', SortDirection.DESC),
             new Sort('id', SortDirection.ASC),
         ]))).toEqual([{ id: 'desc' }]);
+    });
+
+    // A7 (plan 032): parity with @rapiq/adapter-drizzle's typed refusal —
+    // prisma cannot order by a to-many relation's field (only `_count`
+    // is available there), so the illegal input fails typed here instead
+    // of reaching prisma as a non-rapiq validation error.
+    describe('to-many relation paths (A7)', () => {
+        it('throws a typed featureUnsupported(sorts:relation) error for a to-many relation path', () => {
+            try {
+                orderBy(new Sorts([new Sort('items.title', SortDirection.ASC)]));
+                expect.fail('sorting by a to-many relation path must throw');
+            } catch (e) {
+                expect(e).toBeInstanceOf(AdapterError);
+                expect((e as AdapterError).code).toEqual(ErrorCode.FEATURE_UNSUPPORTED);
+                expect((e as AdapterError).feature).toEqual('sorts:relation');
+            }
+        });
+
+        it('still allows ordering by a to-one relation path', () => {
+            expect(orderBy(new Sorts([
+                new Sort('realm.name', SortDirection.DESC),
+            ]))).toEqual([{ realm: { name: 'desc' } }]);
+        });
     });
 });
 

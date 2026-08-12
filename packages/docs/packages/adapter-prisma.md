@@ -279,10 +279,10 @@ Operators without a Prisma equivalent raise a typed `AdapterError` (`FEATURE_UNS
 - `mod`: no modulo filter
 - `size`: no array-length filter
 - the `$this` element marker: the element itself is not addressable
+- **sorting by a to-many relation path**: not expressible in Prisma (only `_count` is). The adapter checks `metadata.isToMany(...)` for every relation segment along a dotted sort name and raises `featureUnsupported('sorts:relation')` before building `orderBy`, instead of emitting the sort as written and letting Prisma reject it with a non-rapiq error; ordering by a to-one relation path is unaffected. This matches the typed refusal [@rapiq/adapter-drizzle](/packages/adapter-drizzle) throws for every relation-path sort.
 
-Three further deviations are worth knowing:
+One further deviation is worth knowing:
 
-- **Ordering by a to-many relation** is not expressible in Prisma (only `_count` is). Such a sort is emitted as written and rejected by Prisma.
 - **`elemMatch` targets a to-many relation.** Applying it to a to-one relation emits `some`, which Prisma rejects.
 - **SQLite compares case-sensitively.** It has no `mode: 'insensitive'` and its `=` is case-sensitive, so the case-insensitive default does not hold there. `contains`/`startsWith`/`endsWith` are ASCII-case-insensitive via `LIKE`. Column-level `COLLATE NOCASE` is the fix. This is measured by the engine suite, not assumed.
 
