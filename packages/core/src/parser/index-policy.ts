@@ -271,7 +271,7 @@ export function applySortIndexPolicy<
     schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context: IndexPolicyContext = {},
 ) : ISorts {
-    const scope = ResolutionScope.for(registry, Parameter.SORT, schema, { throwOnFailure: context.throwOnFailure });
+    const scope = ResolutionScope.for(registry, Parameter.SORTS, schema, { throwOnFailure: context.throwOnFailure });
 
     const sortSchema = scope.schema as SortsSchema<RECORD>;
     if (!sortSchema.indexed || output.value.length === 0) {

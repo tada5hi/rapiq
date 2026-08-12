@@ -31,7 +31,7 @@ import type {
     SortSchema,
 } from '@rapiq/core';
 
-type SortScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORT}`, RECORD>;
+type SortScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORTS}`, RECORD>;
 
 export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
     parse<
@@ -137,7 +137,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         options: SortParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : SortScope<RECORD> {
-        return ResolutionScope.for(this.registry, Parameter.SORT, options.schema, {
+        return ResolutionScope.for(this.registry, Parameter.SORTS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
@@ -159,7 +159,7 @@ export class SimpleSortParser extends BaseParser<SortParseOptions, ISorts> {
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
-        scope: ResolutionScope<`${Parameter.SORT}`, RECORD>,
+        scope: ResolutionScope<`${Parameter.SORTS}`, RECORD>,
         pending: PendingKeyValidation[],
     ) : Sorts {
         const { schema } = scope;
