@@ -229,6 +229,29 @@ describe('URLCodec', () => {
         });
     });
 
+    describe('throwOnFailure call-time override (A1)', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'user',
+            filters: { allowed: ['id', 'name'] },
+        }));
+
+        const aware = createURLCodec(registry);
+
+        it('drops a disallowed filter key by default', () => {
+            const decoded = aware.decode('filter[secret]=x', { schema: 'user' });
+
+            expect(decoded!.filters).toEqual(new Filters('and', []));
+        });
+
+        it('throws when the call opts into throwOnFailure, even though the schema does not', () => {
+            expect(() => aware.decode('filter[secret]=x', {
+                schema: 'user',
+                throwOnFailure: true,
+            })).toThrowError(FiltersParseError);
+        });
+    });
+
     it('should fail loudly for an unregistered stamped codec', () => {
         try {
             codec.decode('codec=url-mongo&filter[name]=John');

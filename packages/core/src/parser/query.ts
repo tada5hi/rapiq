@@ -207,6 +207,10 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             parameterOptions.strict = options.strict;
         }
 
+        if (typeof options.throwOnFailure !== 'undefined') {
+            parameterOptions.throwOnFailure = options.throwOnFailure;
+        }
+
         if (typeof options.context !== 'undefined') {
             parameterOptions.context = options.context;
         }
@@ -250,7 +254,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const schema = this.registry.getOrFail(options.schema);
 
         return applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: schema.relations.throwOnFailure ?? false,
+            throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
         });
     }
@@ -268,7 +272,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const schema = this.registry.getOrFail(options.schema);
 
         return applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: schema.relations.throwOnFailure ?? false,
+            throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
         });
     }
@@ -323,11 +327,11 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD>,
     ) : void {
         if (output.filters) {
-            output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema);
+            output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema, { throwOnFailure: options.throwOnFailure });
         }
 
         if (output.sorts) {
-            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema);
+            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema, { throwOnFailure: options.throwOnFailure });
         }
     }
 

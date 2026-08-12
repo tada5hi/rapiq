@@ -268,6 +268,39 @@ describe('relations.validate for traversed relation paths (#815)', () => {
         });
     });
 
+    describe('query parser — throwOnFailure call-time override (A1)', () => {
+        it('drops a rejected traversed relation when neither the schema nor the call opts into throwing', () => {
+            // schema-level throwOnFailure defaults to false here.
+            const parser = new SimpleParser(buildRegistry(() => false, false));
+
+            const query = parser.parse(
+                { filters: { 'items.id': '1' } },
+                { schema: 'user', context: actor },
+            );
+
+            expect(filterFields(query.filters)).toEqual([]);
+        });
+
+        it('throws RelationsParseError when the parse-option override opts in, even though the schema does not', () => {
+            const parser = new SimpleParser(buildRegistry(() => false, false));
+
+            expect.assertions(2);
+            try {
+                parser.parse(
+                    { filters: { 'items.id': '1' } },
+                    {
+                        schema: 'user', 
+                        context: actor, 
+                        throwOnFailure: true, 
+                    },
+                );
+            } catch (e) {
+                expect(e).toBeInstanceOf(RelationsParseError);
+                expect((e as RelationsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+            }
+        });
+    });
+
     describe('query parser — async parity', () => {
         it('awaits an async hook and prunes the traversed relation', async () => {
             const validate = vi.fn(async (name: string) => name !== 'items');
