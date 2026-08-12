@@ -5,9 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { Parameter } from '../constants';
+import { BuildError } from '../errors';
 import type { QueryContext } from '../parameter';
 import { Query } from '../parameter';
 import type { ObjectLiteral } from '../types';
+import { assertKnownInputKeys } from '../utils';
 import {
     defineFields,
     defineFilters,
@@ -16,6 +19,14 @@ import {
     defineSorts,
 } from './parameter';
 import type { QueryBuildInput } from './types';
+
+const BUILD_INPUT_KEYS : string[] = [
+    Parameter.FIELDS,
+    Parameter.FILTERS,
+    Parameter.PAGINATION,
+    Parameter.RELATIONS,
+    Parameter.SORT,
+];
 
 /**
  * Build a {@link Query} (the IR) directly from typed input — no string
@@ -28,6 +39,12 @@ export function defineQuery<
     DEPTH extends number = 5,
 >(input?: QueryBuildInput<RECORD, DEPTH>) : Query;
 export function defineQuery(input: QueryBuildInput<ObjectLiteral> = {}) : Query {
+    assertKnownInputKeys(
+        input,
+        BUILD_INPUT_KEYS,
+        (key, suggestion) => BuildError.keyUnknown(key, suggestion),
+    );
+
     const context : QueryContext = {};
 
     if (typeof input.fields !== 'undefined') {
