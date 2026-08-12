@@ -6,6 +6,7 @@
  */
 
 import type { ObjectLiteral } from '../types';
+import { isPropertySet } from './object';
 
 /**
  * Spellings that are not input keys but are close enough to be typed
@@ -44,4 +45,33 @@ export function assertKnownInputKeys(
             throw createError(key, suggestInputKey(key));
         }
     }
+}
+
+/**
+ * Read a canonical key or its deprecated alias. Supplying both is a
+ * caller mistake, never a merge: the two spell one parameter, and
+ * picking a winner would silently drop the other.
+ */
+export function resolveAliasedKey(
+    input: ObjectLiteral,
+    canonical: string,
+    alias: string,
+    createError: (canonical: string, alias: string) => Error,
+) : unknown {
+    const hasCanonical = isPropertySet(input, canonical);
+    const hasAlias = isPropertySet(input, alias);
+
+    if (hasCanonical && hasAlias) {
+        throw createError(canonical, alias);
+    }
+
+    if (hasCanonical) {
+        return input[canonical];
+    }
+
+    if (hasAlias) {
+        return input[alias];
+    }
+
+    return undefined;
 }

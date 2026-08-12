@@ -10,7 +10,7 @@ import { BuildError } from '../errors';
 import type { QueryContext } from '../parameter';
 import { Query } from '../parameter';
 import type { ObjectLiteral } from '../types';
-import { assertKnownInputKeys } from '../utils';
+import { assertKnownInputKeys, resolveAliasedKey } from '../utils';
 import {
     defineFields,
     defineFilters,
@@ -25,6 +25,7 @@ const BUILD_INPUT_KEYS : string[] = [
     Parameter.FILTERS,
     Parameter.PAGINATION,
     Parameter.RELATIONS,
+    Parameter.SORTS,
     Parameter.SORT,
 ];
 
@@ -63,8 +64,15 @@ export function defineQuery(input: QueryBuildInput<ObjectLiteral> = {}) : Query 
         context.relations = defineRelations(input.relations);
     }
 
-    if (typeof input.sort !== 'undefined') {
-        context.sorts = defineSorts(input.sort);
+    const sorts = resolveAliasedKey(
+        input,
+        Parameter.SORTS,
+        Parameter.SORT,
+        (canonical, alias) => BuildError.keyAmbiguous(canonical, alias),
+    );
+
+    if (typeof sorts !== 'undefined') {
+        context.sorts = defineSorts(sorts as NonNullable<QueryBuildInput['sorts']>);
     }
 
     return new Query(context);

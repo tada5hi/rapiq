@@ -18,6 +18,7 @@ export {
     isPropertySet,
     normalizeParameter,
     parseKey,
+    resolveAliasedKey,
     stringifyKey,
 } from './utils';
 export type { KeyDetails } from './utils';

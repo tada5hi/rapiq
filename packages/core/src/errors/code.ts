@@ -26,6 +26,8 @@ export enum ErrorCode {
 
     KEY_UNKNOWN = 'keyUnknown',
 
+    KEY_AMBIGUOUS = 'keyAmbiguous',
+
     KEY_COMBINATION_NOT_INDEXED = 'keyCombinationNotIndexed',
 
     LIMIT_EXCEEDED = 'limitExceeded',
