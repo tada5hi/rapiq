@@ -8,9 +8,9 @@
 import type { SortDirection } from '@rapiq/core';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
-import type { ISortAdapter } from './types';
+import type { ISortsAdapter } from './types';
 
-export abstract class SortBaseAdapter implements ISortAdapter {
+export abstract class SortsBaseAdapter implements ISortsAdapter {
     protected relations: RelationsBaseAdapter;
 
     protected value : Record<string, `${SortDirection}`>;
@@ -98,3 +98,13 @@ export abstract class SortBaseAdapter implements ISortAdapter {
         return this.escapeField(name);
     }
 }
+
+/**
+ * @deprecated use {@link SortsBaseAdapter}. Removed in 3.0.
+ */
+export const SortBaseAdapter = SortsBaseAdapter;
+
+/**
+ * @deprecated use {@link SortsBaseAdapter}. Removed in 3.0.
+ */
+export type SortBaseAdapter = SortsBaseAdapter;

@@ -10,7 +10,7 @@ import type { IFieldsAdapter } from './fields';
 import type { IFiltersAdapter } from './filters';
 import type { IPaginationAdapter } from './pagination';
 import type { IRelationsAdapter } from './relations';
-import type { ISortAdapter } from './sort';
+import type { ISortsAdapter } from './sort';
 
 /**
  * Options for a single {@link IRootAdapter.execute} call.
@@ -59,7 +59,12 @@ export interface IRootAdapter<
 
     pagination : IPaginationAdapter;
 
-    sort : ISortAdapter;
+    sorts : ISortsAdapter;
+
+    /**
+     * @deprecated use {@link IRootAdapter.sorts}. Removed in 3.0.
+     */
+    sort? : ISortsAdapter;
 
     /**
      * Walk `query` into the sub-adapters and emit the backend result.

@@ -33,7 +33,7 @@ import type {
     IPaginationAdapter,
     IRelationsAdapter,
     IRootAdapter,
-    ISortAdapter,
+    ISortsAdapter,
 } from '../adapter';
 import { FieldsVisitor } from './fields';
 import { FiltersVisitor } from './filters';
@@ -50,8 +50,8 @@ export class QueryVisitor implements IQueryVisitor<IRootAdapter>,
     IPaginationVisitor<IPaginationAdapter>,
     IRelationsVisitor<IRelationsAdapter>,
     IRelationVisitor<IRelationsAdapter>,
-    ISortsVisitor<ISortAdapter>,
-    ISortVisitor<ISortAdapter> {
+    ISortsVisitor<ISortsAdapter>,
+    ISortVisitor<ISortsAdapter> {
     protected container : IRootAdapter;
 
     protected options: VisitorOptions;
@@ -76,7 +76,7 @@ export class QueryVisitor implements IQueryVisitor<IRootAdapter>,
         this.filters = new FiltersVisitor(adapter.filters, options);
         this.pagination = new PaginationVisitor(adapter.pagination, options);
         this.relations = new RelationsVisitor(adapter.relations, options);
-        this.sorts = new SortsVisitor(adapter.sort, options);
+        this.sorts = new SortsVisitor(adapter.sorts, options);
     }
 
     // -----------------------------------------------------------
@@ -119,11 +119,11 @@ export class QueryVisitor implements IQueryVisitor<IRootAdapter>,
         return expr.accept(this.relations);
     }
 
-    visitSorts(expr: Sorts): ISortAdapter {
+    visitSorts(expr: Sorts): ISortsAdapter {
         return expr.accept(this.sorts);
     }
 
-    visitSort(expr: Sort): ISortAdapter {
+    visitSort(expr: Sort): ISortsAdapter {
         return expr.accept(this.sorts);
     }
 }

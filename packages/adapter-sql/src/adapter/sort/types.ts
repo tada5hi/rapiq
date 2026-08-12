@@ -8,6 +8,11 @@
 import type { SortDirection } from '@rapiq/core';
 import type { ISubAdapter } from '../types';
 
-export interface ISortAdapter extends ISubAdapter {
+export interface ISortsAdapter extends ISubAdapter {
     add(input: string, value: `${SortDirection}`) : void;
 }
+
+/**
+ * @deprecated use {@link ISortsAdapter}. Removed in 3.0.
+ */
+export type ISortAdapter = ISortsAdapter;

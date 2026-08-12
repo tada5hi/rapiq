@@ -18,7 +18,7 @@ import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
-import { SortAdapter } from './sort';
+import { SortsAdapter } from './sort';
 
 export type AdapterOptions = DialectOptions & {
     rootAlias?: string,
@@ -40,7 +40,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
 
     public readonly pagination : PaginationAdapter;
 
-    public readonly sort : SortAdapter;
+    public sorts : SortsAdapter;
 
     // -----------------------------------------------------------
 
@@ -64,10 +64,26 @@ export class Adapter implements IRootAdapter<SqlFragments> {
 
         this.pagination = new PaginationAdapter();
 
-        this.sort = new SortAdapter(this.relations, {
+        this.sorts = new SortsAdapter(this.relations, {
             escapeField: options.escapeField,
             rootAlias: options.rootAlias,
         });
+    }
+
+    // -----------------------------------------------------------
+
+    /**
+     * @deprecated use {@link Adapter.sorts}. Removed in 3.0.
+     */
+    get sort() : SortsAdapter {
+        return this.sorts;
+    }
+
+    /**
+     * @deprecated use {@link Adapter.sorts}. Removed in 3.0.
+     */
+    set sort(value: SortsAdapter) {
+        this.sorts = value;
     }
 
     // -----------------------------------------------------------
@@ -76,7 +92,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
         this.fields.clear();
         this.filters.clear();
         this.pagination.clear();
-        this.sort.clear();
+        this.sorts.clear();
         this.relations.clear();
     }
 
@@ -100,7 +116,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
             columns: this.fields.getColumns(),
             where,
             params,
-            orderBy: this.sort.getOrderBy(),
+            orderBy: this.sorts.getOrderBy(),
             limit: this.pagination.limit,
             offset: this.pagination.offset,
             relations: this.relations.getPaths(),

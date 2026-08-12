@@ -14,17 +14,22 @@ import type {
 import type { IRelationsAdapter } from '../adapter';
 import type { VisitorOptions } from './types';
 
-export type RelationInterpreterOptions = VisitorOptions;
+export type RelationsInterpreterOptions = VisitorOptions;
+
+/**
+ * @deprecated use {@link RelationsInterpreterOptions}. Removed in 3.0.
+ */
+export type RelationInterpreterOptions = RelationsInterpreterOptions;
 
 export class RelationsVisitor implements IRelationsVisitor<IRelationsAdapter>,
 IRelationVisitor<IRelationsAdapter> {
     protected adapter: IRelationsAdapter;
 
-    protected options: RelationInterpreterOptions = {};
+    protected options: RelationsInterpreterOptions = {};
 
     constructor(
         adapter: IRelationsAdapter,
-        options: RelationInterpreterOptions = {},
+        options: RelationsInterpreterOptions = {},
     ) {
         this.adapter = adapter;
         this.options = options;
