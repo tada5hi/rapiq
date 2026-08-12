@@ -53,7 +53,7 @@ describe('src/schema/module.ts', () => {
         }
     });
 
-    it('should describe under both keys', () => {
+    it('should describe under the sorts key only', () => {
         const schema = defineSchema<User>({ sorts: { allowed: ['id'] } });
         const output = schema.describe();
 
@@ -62,7 +62,7 @@ describe('src/schema/module.ts', () => {
             default: null,
             indexed: false,
         });
-        expect(output.sort).toEqual(output.sorts);
+        expect(output.sort).toBeUndefined();
     });
 
     it('should select the same parameter from either describe mask', () => {

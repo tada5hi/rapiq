@@ -176,10 +176,7 @@ export class Schema<
         }
 
         if (parameters.includes(Parameter.SORTS)) {
-            const sorts = this.sorts.describe();
-
-            output.sorts = sorts;
-            output.sort = sorts;
+            output.sorts = this.sorts.describe();
         }
 
         return output;

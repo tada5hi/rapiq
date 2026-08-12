@@ -355,7 +355,6 @@ userSchema.describe();
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
 //     sorts: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
-//     sort: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false }, // same object, back-compat key
 // }
 ```
 

@@ -226,8 +226,4 @@ export type SchemaDescription = {
     pagination?: PaginationSchemaDescription,
     relations?: RelationsSchemaDescription,
     sorts?: SortsSchemaDescription,
-    /**
-     * @deprecated use {@link SchemaDescription.sorts}. Removed in 3.0.
-     */
-    sort?: SortsSchemaDescription,
 };

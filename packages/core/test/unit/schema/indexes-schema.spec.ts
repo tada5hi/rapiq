@@ -61,7 +61,7 @@ describe('src/schema/indexes/*.ts', () => {
         const output = schema.describe();
         expect(output.indexes).toEqual([['realm_id', 'created_at']]);
         expect(output.filters!.indexed).toBe('cover');
-        expect(output.sort!.indexed).toBe(true);
+        expect(output.sorts!.indexed).toBe(true);
 
         // the description is a copy: mutating it never touches the schema.
         output.indexes![0]!.push('mutated');
@@ -70,6 +70,6 @@ describe('src/schema/indexes/*.ts', () => {
         const bare = defineSchema<Row>({}).describe();
         expect(bare.indexes).toBeNull();
         expect(bare.filters!.indexed).toBe(false);
-        expect(bare.sort!.indexed).toBe(false);
+        expect(bare.sorts!.indexed).toBe(false);
     });
 });
