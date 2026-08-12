@@ -94,6 +94,32 @@ export class Schema<
     // ---------------------------------------------------------
 
     /**
+     * Reassigning the name restamps every sub-schema, which the
+     * constructor otherwise does once. A sub-schema reaches back into
+     * the registry by the name it carries, so a stale one would resolve
+     * to the schema this used to be.
+     */
+    override set name(input: string | undefined) {
+        super.name = input;
+
+        this.propagateName();
+    }
+
+    override get name() : string | undefined {
+        return super.name;
+    }
+
+    private propagateName() {
+        this.fields.name = this.options.name;
+        this.filters.name = this.options.name;
+        this.pagination.name = this.options.name;
+        this.relations.name = this.options.name;
+        this.sort.name = this.options.name;
+    }
+
+    // ---------------------------------------------------------
+
+    /**
      * Serialize the declared constraints of every (selected)
      * parameter into a JSON-safe {@link SchemaDescription}. The
      * relation target map is composed here, since the schema
