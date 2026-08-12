@@ -21,6 +21,11 @@ The input key is `sorts`, matching the `Query.sorts` AST property and the
 `FieldsSchema`/`FiltersSchema` naming of the other parameters. The older
 `sort` key is still accepted and will be removed in 3.0. The URL wire
 parameter stays `sort`, exactly as `filters` is carried as `filter`.
+Supplying both `sorts` and `sort` in the same input throws `KEY_AMBIGUOUS`,
+unconditionally and regardless of `throwOnFailure`, on `defineQuery`,
+`defineSchema` and every parser/codec `parse()`/`decode()` call: the two
+spellings name one parameter, and picking a winner would silently drop
+the other.
 :::
 
 Parser input shapes:

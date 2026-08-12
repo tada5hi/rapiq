@@ -32,6 +32,8 @@ BaseError { code: ErrorCode }
 | `INPUT_INVALID` | input that isn't a valid build shape |
 | `KEY_INVALID` | syntactically invalid field key |
 | `KEY_VALUE_INVALID` | value shape doesn't fit the operator |
+| `KEY_UNKNOWN` | unrecognized top-level `defineQuery` input key |
+| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied together |
 | `OPERATOR_UNSUPPORTED` | unknown `$` operator key |
 
 ### Merge time (caller bug)
@@ -53,12 +55,15 @@ Most parser parameters throw subclasses of `ParseError` when `throwOnFailure` is
 | `KEY_INVALID` | syntactically invalid key under an open schema |
 | `KEY_PATH_INVALID` | unresolvable relation path |
 | `KEY_VALUE_INVALID` | malformed value for an operator |
+| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied at once |
 | `LIMIT_EXCEEDED` | `page[limit]` above the schema's `maxLimit` |
 | `OPERATOR_UNSUPPORTED` | a recognized dialect operator with no AST counterpart (MongoDB-style parser: known operators like `$type` / `$where` / `$text` / `$expr`, or `$not` over a bare `$regex`); a grammar error that throws regardless of the drop policy |
 | `SYNTAX_INVALID` | malformed expression / document grammar |
 | `INPUT_INVALID` | non-object top-level input |
 
 Two dialects are stricter than the drop policy for grammar: **grammar errors always throw**, regardless of schema settings. A malformed expression string ([expression parser](/packages/parser-expression)) or a broken `$`-operator document ([MongoDB-style parser](/packages/parser-mongo)) has no silent-drop reading.
+
+`KEY_AMBIGUOUS` is unconditional too, on every surface (`defineQuery`, `defineSchema`, and every parser/codec `parse()`/`decode()`): supplying both `sorts` and its deprecated alias `sort` throws regardless of `throwOnFailure`, since the two spellings name one parameter and picking a winner would silently drop the other. This is a narrower guarantee than [unknown keys are rejected](/guide/building-queries): parsers still ignore an unrelated key they don't recognize; only `defineQuery` and `defineSchema` reject those.
 
 ### Encode/apply time (query exceeds the target)
 
@@ -84,6 +89,8 @@ The URL encoders throw these too; a codec never silently changes what a query me
 |---|---|
 | `SCHEMA_NAME_INVALID` | `registry.add()` with a schema that has no `name` |
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
+| `KEY_UNKNOWN` | `defineSchema()` with a top-level option key it doesn't recognize |
+| `KEY_AMBIGUOUS` | `defineSchema()` with both `sorts` and its deprecated alias `sort` |
 | `SCHEMA_KEY_VALIDATOR_CONFLICT` | a `fields`/`relations`/`sorts` sub-schema declares both [`validate` and `validateMany`](/guide/schemas#batched-validation-with-validatemany); thrown while the schema is constructed, since there is no sensible precedence between them |
 | `SCHEMA_PRESERVED_CONDITION_PRUNED` | the [relations gate](/guide/relations#validate-hooks) rejected a relation that a [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) filter condition needs; the two validators contradict each other, see [scoping a filterable field](/guide/recipes/authorization#scoping-server-conditions) |
 | `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async validator (a filter validator or a key validation hook); use the corresponding `Async` method |
