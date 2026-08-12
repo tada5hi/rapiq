@@ -71,7 +71,7 @@ const query = defineQuery<User>({
     fields: ['id', 'name'],
     filters: { age: { $gte: 18 } },
     relations: ['realm'],
-    sort: '-id',
+    sorts: '-id',
     pagination: { limit: 20 },
 });
 
@@ -104,7 +104,7 @@ registry.add(defineSchema<User>({
     fields: { allowed: ['id', 'name', 'email'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'name'] },
+    sorts: { allowed: ['id', 'name'] },
     pagination: { maxLimit: 20 },
     schemaMapping: { realm: 'realm' },
 }));
@@ -242,7 +242,7 @@ The query scheme is based on the [JSON-API](https://jsonapi.org/format/) specifi
 | `filters` | `filter` | Filter the resources, according to specific criteria. |
 | `relations` | `include` | Include related resources of the primary resource. |
 | `pagination` | `page` | Limit the number of resources returned from the entire collection. |
-| `sort` | `sort` | Sort the resources according to one or more keys in asc/desc direction. |
+| `sorts` | `sort` | Sort the resources according to one or more keys in asc/desc direction. |
 
 ## License
 

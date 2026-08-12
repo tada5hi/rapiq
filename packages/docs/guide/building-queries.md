@@ -9,7 +9,7 @@ const query = defineQuery<User>({
     fields: ['id', 'name'],
     filters: { name: { $contains: 'jo' }, 'realm.id': [1, null] },
     relations: ['realm'],
-    sort: '-created_at',
+    sorts: '-created_at',
     pagination: { limit: 10 },
 });
 ```
@@ -20,6 +20,15 @@ The input types recurse through nested records up to a default depth of 5. For s
 
 ::: info No validation here
 The build layer constructs the query verbatim. What a client *may* request is decided on the receiving side, where parsers validate against a [Schema](/guide/schemas). Keeping the two concerns apart is deliberate: the caller doesn't need the schema, and the receiver never trusts the caller.
+:::
+
+::: warning Unknown keys are rejected
+`defineQuery` and `defineSchema` throw on a top-level key they do not
+recognise, rather than dropping it. A dropped filter key would produce an
+empty query, which downstream means unfiltered data rather than no data.
+The URL wire names get a pointer at the right key: `filter` suggests
+`filters`, `page` and `limit` suggest `pagination`, `include` suggests
+`relations`.
 :::
 
 ## Filters
@@ -131,7 +140,7 @@ The URL codec writes the [expression dialect](/packages/codec-url#expression-dia
 | Parameter | Input forms |
 |---|---|
 | `fields` | array of keys with optional `+`/`-` prefix (`['id', '+email', '-password']`), per-relation record (`{ realm: ['id'] }`), or tuple `[keys, record]`; see [Fields](/guide/fields) |
-| `sort` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`); see [Sort](/guide/sort) |
+| `sorts` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`); see [Sort](/guide/sort) |
 | `relations` | dot-path names (`['realm', 'items.user']`) or record (`{ realm: true, items: { user: true } }`); see [Relations](/guide/relations) |
 | `pagination` | `{ limit?, offset? }`; see [Pagination](/guide/pagination) |
 

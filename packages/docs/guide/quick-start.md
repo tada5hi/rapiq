@@ -31,7 +31,7 @@ const query = defineQuery<User>({
     fields: ['id', 'name'],
     filters: { age: { $gte: 18 } },
     relations: ['realm'],
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25, offset: 0 },
 });
 
@@ -62,7 +62,7 @@ registry.add(defineSchema<User>({
     fields: { allowed: ['id', 'name', 'email', 'age'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'name', 'age'] },
+    sorts: { allowed: ['id', 'name', 'age'] },
     pagination: { maxLimit: 50 },
     schemaMapping: { realm: 'realm' },
 }));

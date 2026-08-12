@@ -36,7 +36,7 @@ registry.add(defineSchema<User>({
     },
     filters: { allowed: ['id', 'name', 'age', 'realm.id'] },
     relations: { allowed: ['realm'] },
-    sort: {
+    sorts: {
         allowed: ['id', 'name', 'age'],
         default: { id: 'DESC' },
     },

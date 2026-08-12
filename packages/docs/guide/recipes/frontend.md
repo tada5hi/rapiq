@@ -36,7 +36,7 @@ const codec = createURLCodec();
 const defaults = defineQuery<User>({
     fields: ['id', 'name', 'email'],
     filters: { age: { $gte: 18 } },
-    sort: '-id',
+    sorts: '-id',
     pagination: { limit: 25 },
 });
 
