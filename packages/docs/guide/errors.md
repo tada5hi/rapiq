@@ -77,6 +77,20 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 
 The URL encoders throw these too; a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
 
+A `FEATURE_UNSUPPORTED` error from `AdapterError.featureUnsupported(...)` also carries the refused capability tag (e.g. `regexp`, `filters:mod`, `filters:regex`) as a structured `error.feature` string, so a capability matrix can be built by reading the property instead of parsing the message:
+
+```typescript
+try {
+    adapter.execute(query);
+} catch (e) {
+    if (e instanceof AdapterError && e.code === ErrorCode.FEATURE_UNSUPPORTED) {
+        // e.feature, e.g. 'filters:mod'
+    }
+}
+```
+
+`error.feature` is `undefined` for every other `AdapterError` factory (`operatorUnsupported`, `conditionDetached`).
+
 ### Codec dispatch
 
 `CodecError` with `CODEC_UNRESOLVABLE`: a payload named a codec that isn't registered. See [@rapiq/codec-url](/packages/codec-url).

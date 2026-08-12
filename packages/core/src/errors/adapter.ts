@@ -10,13 +10,27 @@ import { BaseError } from './base';
 import { ErrorCode } from './code';
 import type { BaseErrorOptions } from './types';
 
+export type AdapterErrorOptions = BaseErrorOptions & {
+    /**
+     * The capability tag {@link AdapterError.featureUnsupported} refuses
+     * (e.g. `regexp`, `filters:mod`, `filters:regex`), structured
+     * alongside `code` so a consumer can build a capability matrix
+     * without parsing the message. `undefined` for every other factory.
+     */
+    feature?: string,
+};
+
 export class AdapterError extends BaseError {
-    constructor(message?: string | BaseErrorOptions) {
+    public readonly feature : string | undefined;
+
+    constructor(message?: string | AdapterErrorOptions) {
         if (isObject(message)) {
             message.message = message.message || 'An adapter error has occurred.';
         }
 
         super(message || 'An adapter error has occurred.');
+
+        this.feature = isObject(message) ? message.feature : undefined;
     }
 
     static operatorUnsupported(operator: string) {
@@ -44,6 +58,7 @@ export class AdapterError extends BaseError {
         return new this({
             message: `The feature ${feature} is not supported by the dialect.`,
             code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature,
         });
     }
 }
