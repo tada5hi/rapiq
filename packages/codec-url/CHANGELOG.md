@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.0](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0...codec-url-v2.1.0) (2026-08-12)
+
+
+### Miscellaneous Chores
+
+* **codec-url:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/parser-expression bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/parser-simple bumped from ^2.0.0 to ^2.1.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/parser-expression bumped from ^2.0.0 to ^2.1.0
+    * @rapiq/parser-simple bumped from ^2.0.0 to ^2.1.0
+
 ## [2.0.0](https://github.com/tada5hi/rapiq/compare/codec-url-v2.0.0-beta.20...codec-url-v2.0.0) (2026-08-11)
 
 
