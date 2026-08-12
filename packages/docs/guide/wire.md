@@ -22,7 +22,7 @@ New payloads use the expression filter dialect and carry `codec=url-expression`.
 | filters | `filter` | `filter=and(gte(age,'18'),eq(active,'true'))` |
 | pagination | `page` | `page[limit]=25&page[offset]=50` |
 | relations | `include` | `include=realm,items` |
-| sort | `sort` | `sort=name,-age` |
+| sorts | `sort` | `sort=name,-age` |
 
 When root and relation fieldsets encode together, the root group is spelled with the reserved `$root` token: `fields[$root]=id,name&fields[items]=id`. A lone root group keeps the bare form (`fields=id,name`). Decoding accepts `$root` and the legacy `__DEFAULT__` spelling written by early 2.0 betas.
 

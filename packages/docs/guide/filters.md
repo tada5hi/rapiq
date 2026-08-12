@@ -148,7 +148,7 @@ String matching is **case-insensitive by default**, uniformly across every adapt
 
 - The **equality family** (`eq`, `ne`, `in`, `nin`) compares string values case-insensitively: `eq('name', 'super hero')` matches `Super Hero`. Non-string values (numbers, booleans, dates, `null`) are unaffected.
 - The **anchored operators** (`contains`, `startsWith`, `endsWith` and their negations) match case-insensitively as well.
-- **Range comparisons** (`lt`/`lte`/`gt`/`gte`) and `sort` follow the backend's collation; rapiq does not fold string ordering.
+- **Range comparisons** (`lt`/`lte`/`gt`/`gte`) and `sorts` follow the backend's collation; rapiq does not fold string ordering.
 
 Opt out per field with the `caseSensitive` schema option where exactness matters (identifiers, tokens, enum-like codes):
 
