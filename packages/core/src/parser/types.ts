@@ -42,6 +42,10 @@ export type ParseQueryOptions<
     filters?: boolean,
     pagination?: boolean,
     relations?: boolean,
+    sorts?: boolean,
+    /**
+     * @deprecated use {@link ParseQueryOptions.sorts}. Removed in 3.0.
+     */
     sort?: boolean,
     /**
      * Process only the listed parameters. A parameter that is not

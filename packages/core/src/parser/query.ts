@@ -6,6 +6,7 @@
  */
 
 import { Parameter } from '../constants';
+import { ParseError } from '../errors';
 import type {
     IFields,
     IFilters,
@@ -17,7 +18,12 @@ import type {
 import { Query } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { isObject, isPropertySet } from '../utils';
+import { 
+    isObject, 
+    isPropertySet, 
+    normalizeParameter, 
+    resolveAliasedKey, 
+} from '../utils';
 import { BaseParser } from './base';
 import { applyFiltersIndexPolicy, applySortIndexPolicy } from './index-policy';
 import { RelationsParseError } from './parameter/relations/error';
@@ -37,20 +43,6 @@ import type {
     ParseQueryOptions,
     RelationLedger,
 } from './types';
-
-/**
- * `ParseQueryOptions` still exposes the sort per-parameter flag under
- * its single deprecated `sort` name (widening it to `sorts` is a
- * later task's concern). Fold the canonical `sorts` parameter back
- * onto it so `options` can still be indexed by parameter name.
- */
-function toOptionsProperty<P extends `${Parameter}`>(
-    parameter: P,
-) : Exclude<`${Parameter}`, `${Parameter.SORTS}`> {
-    return parameter === Parameter.SORTS ?
-        Parameter.SORT :
-        parameter as Exclude<`${Parameter}`, `${Parameter.SORTS}`>;
-}
 
 /**
  * Shared query parse orchestration. Dialect packages supply the
@@ -118,9 +110,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             );
         }
 
-        if (!this.skipParameter(options, Parameter.SORT)) {
+        if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = this.sortParser.parseParameter(
-                this.readParameter(data, Parameter.SORT),
+                this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
             );
@@ -176,9 +168,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             );
         }
 
-        if (!this.skipParameter(options, Parameter.SORT)) {
+        if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = await this.sortParser.parseParameterAsync(
-                this.readParameter(data, Parameter.SORT),
+                this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
             );
@@ -471,6 +463,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: ObjectLiteral,
         key: `${Parameter}`,
     ) : unknown {
+        if (key === Parameter.SORTS) {
+            return resolveAliasedKey(
+                input,
+                Parameter.SORTS,
+                Parameter.SORT,
+                (canonical, alias) => ParseError.keyAmbiguous(canonical, alias),
+            );
+        }
+
         if (isPropertySet(input, key)) {
             return input[key];
         }
@@ -492,12 +493,21 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : boolean {
         if (
             typeof options.parameters !== 'undefined' &&
-            !options.parameters.includes(parameter)
+            !options.parameters
+                .map((item) => normalizeParameter(item))
+                .includes(normalizeParameter(parameter))
         ) {
             return true;
         }
 
-        const flag = options[toOptionsProperty(parameter)];
+        const flag = parameter === Parameter.SORTS ?
+            resolveAliasedKey(
+                options,
+                Parameter.SORTS,
+                Parameter.SORT,
+                (canonical, alias) => ParseError.keyAmbiguous(canonical, alias),
+            ) :
+            options[parameter];
 
         return typeof flag === 'boolean' && !flag;
     }
