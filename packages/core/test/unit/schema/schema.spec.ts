@@ -10,6 +10,7 @@ import {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
+    SchemaRegistry,
     SortSchema,
     defineFieldsSchema,
     defineSchema,
@@ -111,6 +112,52 @@ describe('src/schema/*.ts', () => {
 
             expect(schema.fields.strict).toBe(false);
             expect(schema.filters.strict).toBe(true);
+        });
+    });
+
+    describe('name', () => {
+        it('should restamp every sub-schema when the name is reassigned', () => {
+            const schema = defineSchema<User>({ name: 'before' });
+
+            schema.name = 'after';
+
+            expect(schema.name).toBe('after');
+            expect(schema.fields.name).toBe('after');
+            expect(schema.filters.name).toBe('after');
+            expect(schema.pagination.name).toBe('after');
+            expect(schema.relations.name).toBe('after');
+            expect(schema.sorts.name).toBe('after');
+        });
+
+        it('should restamp every sub-schema when a name is assigned for the first time', () => {
+            const schema = defineSchema<User>({});
+
+            schema.name = 'user';
+
+            expect(schema.fields.name).toBe('user');
+            expect(schema.sorts.name).toBe('user');
+        });
+
+        it('should clear the sub-schema name when the name is unset', () => {
+            const schema = defineSchema<User>({ name: 'user' });
+
+            schema.name = undefined;
+
+            expect(schema.name).toBeUndefined();
+            expect(schema.fields.name).toBeUndefined();
+            expect(schema.sorts.name).toBeUndefined();
+        });
+
+        it('should let a renamed schema resolve through the registry again', () => {
+            const registry = new SchemaRegistry();
+            const schema = defineSchema<User>({ name: 'before' });
+
+            schema.name = 'after';
+            registry.add(schema);
+
+            // the sub-schema names are what a ResolutionScope resolves back through
+            expect(registry.get(schema.fields.name as string)).toBe(schema);
+            expect(registry.get(schema.sorts.name as string)).toBe(schema);
         });
     });
 });
