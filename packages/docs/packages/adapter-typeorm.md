@@ -115,7 +115,7 @@ Skipping the post-fetch call ships the gated value to the client, so treat this 
 
 ## Embedded columns
 
-Dotted field paths resolve against the entity metadata segment by segment: only real relations join. A path into an [embedded entity](https://typeorm.io/docs/entity/embedded-entities/) (`@Column(() => Profile)`), e.g. `profile.firstName`, is dotted without anything to join: it renders against its parent alias with the embedded column's database name (`"user"."profileFirstname"`) instead of producing a bogus `LEFT JOIN`. This applies uniformly to filters, sort and field selection, and composes with relations: `role.profile.firstName` joins only `role` and resolves the embedded remainder against that join's alias.
+Dotted field paths resolve against the entity metadata segment by segment: only real relations join. A path into an [embedded entity](https://typeorm.io/docs/entity/embedded-entities/) (`@Column(() => Profile)`), e.g. `profile.firstName`, is dotted without anything to join: it renders against its parent alias with the embedded column's database name (`"user"."profileFirstname"`) instead of producing a bogus `LEFT JOIN`. This applies uniformly to filters, sorts and field selection, and composes with relations: `role.profile.firstName` joins only `role` and resolves the embedded remainder against that join's alias.
 
 ## Deriving schemas from entities
 

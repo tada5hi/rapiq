@@ -77,7 +77,7 @@ defineSchema<User>({
 
 A `validate` / `validateMany` hook runs once per client-requested sort key, against the schema that governs it (the target schema for dotted keys such as `items.id`) and before the [index policy](/guide/schemas#indexes) is applied. Schema `default`s are server-authored and bypass the hook. The general contract (verdicts, the scope argument, batching, sync/async) lives at [Validate hooks and parse context](/guide/schemas#validate-hooks-parse-context). The hook's `scope.parameter` is `'sorts'` (it used to be `'sort'`), so a hook factory shared with `fields` that branches on that value needs updating.
 
-An ordering is not a row set, so there is nothing for an `ICondition` verdict to gate: a condition answer counts as a rejection for sort (only `fields` hooks may gate with a condition).
+An ordering is not a row set, so there is nothing for an `ICondition` verdict to gate: a condition answer counts as a rejection for `sorts` (only `fields` hooks may gate with a condition).
 
 ## On violation
 
