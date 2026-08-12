@@ -55,6 +55,17 @@ export class SchemaRegistry<CONTEXT = any> {
         return schema;
     }
 
+    /**
+     * Every registered schema, in registration order. The array is a fresh
+     * snapshot the caller owns: sorting or splicing it changes nothing here,
+     * and a later {@link add} or {@link drop} leaves an array already held
+     * untouched. Its elements are the live instances {@link get} returns, so
+     * one can be handed straight back to a parser, a codec or an adapter.
+     */
+    getAll() : Schema<any, CONTEXT>[] {
+        return Array.from(this.entities.values());
+    }
+
     // ----------------------------------------------------
 
     resolve(...input: (undefined | Schema | string)[]) : Schema | undefined {

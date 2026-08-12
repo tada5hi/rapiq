@@ -320,8 +320,21 @@ registry.add(userSchema);
 
 registry.get('user');                 // Schema<User> | undefined
 registry.getOrFail('user');           // throws if missing
+registry.getAll();                    // every registered schema
 registry.resolve('user', 'items');    // → 'item' schema, via schemaMapping
 ```
+
+`getAll()` lists every registered schema in registration order, as a fresh array you own: sorting or splicing it changes nothing in the registry, and a later `add()` / `drop()` leaves an array you already hold untouched. Re-registering a name replaces the entry in place and keeps its position; a `drop()` followed by an `add()` moves it to the end. The elements are the same live instances `get()` returns, so one can be handed straight back to a parser or codec. It never throws: an empty registry yields `[]`.
+
+That makes the registry the iteration source for server-side sweeps over the whole queryable surface, such as asserting that every schema's declared [indexes](#indexes) actually cover its allow-lists:
+
+```typescript
+const declared = registry.getAll()
+    .map((schema) => ({ schema, description: schema.describe() }))
+    .filter(({ description }) => description.indexes !== null);
+```
+
+Elements are typed `Schema<any>`, because a registry holds a heterogeneous set of record types. Note that `schema.name` stays `string | undefined` on the type level even though `add()` refuses a nameless schema, so keying a lookup off it needs an assertion. Renaming a schema after `add()` leaves the registry key behind, so `get()` keeps resolving it under the name it was registered with.
 
 Hand the registry to a parser (or URL decoder) and reference schemas by name:
 
