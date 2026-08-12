@@ -361,7 +361,7 @@ userSchema.describe();
 //     strict: false,
 //     indexes: null,
 //     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
-//     filters: { allowed: ['id', 'name', 'age'], indexed: false },
+//     filters: { allowed: ['id', 'name', 'age'], caseSensitive: null, indexed: false },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
