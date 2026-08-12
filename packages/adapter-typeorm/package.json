@@ -26,10 +26,10 @@
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
         "mysql2": "^3.22.6",
-        "pg": "^8.13.0",
+        "pg": "^8.23.0",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^1.1.0",
-        "unplugin-swc": "^1.5.9"
+        "unplugin-swc": "^1.5.10"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.0.0",
