@@ -59,7 +59,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
     protected abstract relationsParser : IQueryParameterParser<IRelations>;
 
-    protected abstract sortsParser : IQueryParameterParser<ISorts>;
+    protected abstract sortParser : IQueryParameterParser<ISorts>;
 
     // -----------------------------------------------------
 
@@ -111,7 +111,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = this.sortsParser.parseParameter(
+            output.sorts = this.sortParser.parseParameter(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
@@ -169,7 +169,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = await this.sortsParser.parseParameterAsync(
+            output.sorts = await this.sortParser.parseParameterAsync(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
@@ -441,7 +441,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : ISorts {
-        return this.sortsParser.parse(input, options);
+        return this.sortParser.parse(input, options);
     }
 
     parseSortsAsync<
@@ -450,7 +450,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : Promise<ISorts> {
-        return this.sortsParser.parseAsync(input, options);
+        return this.sortParser.parseAsync(input, options);
     }
 
     /**
