@@ -65,6 +65,36 @@ describe('src/schema/registry/*.ts', () => {
             local.drop('foo');
             expect(local.get('foo')).toBeUndefined();
         });
+
+        it('should register a schema under an explicitly passed name', () => {
+            const local = new SchemaRegistry();
+            const schema = defineSchema({});
+
+            local.add('foo', schema);
+
+            expect(local.get('foo')).toBe(schema);
+        });
+
+        it('should adopt the explicitly passed name on the schema itself', () => {
+            const local = new SchemaRegistry();
+            const schema = defineSchema({});
+
+            local.add('foo', schema);
+
+            expect(schema.name).toBe('foo');
+            expect(schema.fields.name).toBe('foo');
+        });
+
+        it('should let an explicitly passed name replace the declared one', () => {
+            const local = new SchemaRegistry();
+            const schema = defineSchema({ name: 'declared' });
+
+            local.add('explicit', schema);
+
+            expect(local.get('explicit')).toBe(schema);
+            expect(local.get('declared')).toBeUndefined();
+            expect(schema.name).toBe('explicit');
+        });
     });
 
     describe('getAll', () => {
@@ -84,6 +114,17 @@ describe('src/schema/registry/*.ts', () => {
             local.add(baz);
 
             expect(local.getAll()).toEqual([foo, bar, baz]);
+        });
+
+        it('should carry the registered name on every element', () => {
+            const local = new SchemaRegistry();
+            local.add(defineSchema({ name: 'foo' }));
+            local.add('bar', defineSchema({}));
+
+            // typed string, not string | undefined: registration guarantees it
+            const names : string[] = local.getAll().map((schema) => schema.name);
+
+            expect(names).toEqual(['foo', 'bar']);
         });
 
         it('should return the same instances as get', () => {
@@ -138,8 +179,11 @@ describe('src/schema/registry/*.ts', () => {
             const foo = defineSchema({ name: 'foo' });
             local.add(foo);
 
+            const other = new SchemaRegistry();
+            other.add(defineSchema({ name: 'bar' }));
+
             const schemas = local.getAll();
-            schemas.push(defineSchema({ name: 'bar' }));
+            schemas.push(...other.getAll());
             schemas.reverse();
 
             expect(local.getAll()).toEqual([foo]);

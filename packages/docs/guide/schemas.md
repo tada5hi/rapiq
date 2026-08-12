@@ -317,12 +317,15 @@ The `SchemaRegistry` stores schemas by name and resolves relation paths through 
 const registry = new SchemaRegistry();
 registry.add(realmSchema);
 registry.add(userSchema);
+registry.add('item', itemSchema);     // or name it at registration
 
 registry.get('user');                 // Schema<User> | undefined
 registry.getOrFail('user');           // throws if missing
 registry.getAll();                    // every registered schema
 registry.resolve('user', 'items');    // → 'item' schema, via schemaMapping
 ```
+
+A schema is always registered under a name. Either it declares one (`defineSchema({ name: 'user' })`) and `add(schema)` uses it, or you pass one as the first argument and the schema adopts it, which takes precedence over a declared name. `add(schema)` on a schema that declares no name throws `SchemaError` (`SCHEMA_NAME_INVALID`).
 
 `getAll()` lists every registered schema in registration order, as a fresh array you own: sorting or splicing it changes nothing in the registry, and a later `add()` / `drop()` leaves an array you already hold untouched. Re-registering a name replaces the entry in place and keeps its position; a `drop()` followed by an `add()` moves it to the end. The elements are the same live instances `get()` returns, so one can be handed straight back to a parser or codec. It never throws: an empty registry yields `[]`.
 
@@ -334,7 +337,15 @@ const declared = registry.getAll()
     .filter(({ description }) => description.indexes !== null);
 ```
 
-Elements are typed `Schema<any>`, because a registry holds a heterogeneous set of record types. Note that `schema.name` stays `string | undefined` on the type level even though `add()` refuses a nameless schema, so keying a lookup off it needs an assertion. Renaming a schema after `add()` leaves the registry key behind, so `get()` keeps resolving it under the name it was registered with.
+Elements are typed `RegisteredSchema<any>`, which is `Schema<any>` with `name` narrowed to `string`: registration guarantees the name, so keying a lookup off it needs no assertion. The record type stays `any` because a registry holds a heterogeneous set.
+
+```typescript
+for (const schema of registry.getAll()) {
+    const entity = ENTITY_TARGETS[schema.name];   // string, no assertion
+}
+```
+
+The guarantee covers registration, not later mutation. `name` stays settable: reassigning it restamps the schema's sub-schemas, but the registry keeps the key the schema was registered under, so `get()` keeps resolving it under the old name until you re-register it.
 
 Hand the registry to a parser (or URL decoder) and reference schemas by name:
 
