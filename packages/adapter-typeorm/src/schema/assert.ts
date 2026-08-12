@@ -14,7 +14,7 @@ import {
 } from '@rapiq/core';
 import { DataSource, EntityMetadata } from 'typeorm';
 import type { EntityTarget } from 'typeorm';
-import { SchemaEntityMismatchError } from '../errors';
+import { SchemaEntityIndexMismatchError, SchemaEntityMismatchError } from '../errors';
 
 /**
  * Verify that every key referenced by the schema exists on the entity:
@@ -24,7 +24,14 @@ import { SchemaEntityMismatchError } from '../errors';
  * drift (e.g. a renamed column) into a boot-time failure instead of
  * a dead allow-list entry or a runtime adapter error.
  *
+ * Declared `indexes` are verified on top: every sequence must be a
+ * leftmost prefix of the primary key, of a unique constraint or of
+ * an index of the entity, so an index policy cannot outlive the
+ * index it promises.
+ *
  * @throws SchemaEntityMismatchError carrying every offending key.
+ * @throws SchemaEntityIndexMismatchError carrying every unbacked
+ *         index sequence.
  */
 export function assertSchemaMatchesEntity<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -120,6 +127,10 @@ export function assertSchemaMatchesEntity<
     checkColumnKeys(schema.sort.allowed);
     checkColumnKeys(schema.sort.defaultKeys);
 
+    // an index key is a column of the entity's own table: a drifted
+    // one is reported as such rather than as an unbacked sequence.
+    checkColumnKeys(schema.indexes);
+
     // relation keys resolve against relations only — the first
     // (or sole) segment must be a relation property name.
     for (const key of schema.relations.allowed || []) {
@@ -133,6 +144,36 @@ export function assertSchemaMatchesEntity<
             schema: schema.name,
             entity: metadata.name,
             keys: [...invalid],
+        });
+    }
+
+    // every declared index sequence must be a leftmost prefix of a
+    // real one: the primary key, a unique constraint or an index.
+    // Both lists are consulted, since a `@Unique` lands in `indices`
+    // on the mysql family and a unique `@Index` in `uniques` on
+    // cockroachdb.
+    const sequences : string[][] = [
+        metadata.primaryColumns.map((column) => column.propertyPath),
+        ...metadata.uniques.map((unique) => unique.columns.map(
+            (column) => column.propertyPath,
+        )),
+        ...metadata.indices.map((index) => index.columns.map(
+            (column) => column.propertyPath,
+        )),
+    ];
+
+    // a declared prefix is served by any longer real index, never the
+    // other way round.
+    const indexes = schema.indexes.filter((index) => !sequences.some(
+        (sequence) => index.length <= sequence.length &&
+            index.every((key, position) => sequence[position] === key),
+    ));
+
+    if (indexes.length > 0) {
+        throw new SchemaEntityIndexMismatchError({
+            schema: schema.name,
+            entity: metadata.name,
+            indexes,
         });
     }
 }

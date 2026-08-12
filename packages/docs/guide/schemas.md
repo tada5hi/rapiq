@@ -140,7 +140,7 @@ const userSchema = defineSchema<User>({
 
 **Sort.** With `sort: { indexed: true }`, the requested keys must equal, in order, a leftmost prefix of one declared index. Directions are ignored, and all keys must share one relation path: no single index anywhere serves cross-table ordering.
 
-**The check is structural.** Operators, negation and case folding are deliberately ignored: which operators an index can serve differs per engine (a Postgres trigram index serves `contains`, a hash index only equality, an expression index changes the picture entirely), so rapiq trusts the declaration and enforces combinations only. Declare only what your storage actually serves.
+**The check is structural.** Operators, negation and case folding are deliberately ignored: which operators an index can serve differs per engine (a Postgres trigram index serves `contains`, a hash index only equality, an expression index changes the picture entirely), so rapiq trusts the declaration and enforces combinations only. Declare only what your storage actually serves. With TypeORM, [`assertSchemaMatchesEntity`](/packages/adapter-typeorm#declared-indexes) checks each declaration against the entity's real indexes at boot, so the promise cannot drift away from the schema it describes.
 
 **Relations.** A dotted key such as `items.title` checks the declaration of the schema governing `items` (resolved through the registry and `schemaMapping`), so each schema declares its own indexes. A governing schema without a declaration contributes no anchors and fails cover mode.
 

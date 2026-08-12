@@ -17,7 +17,8 @@ BaseError { code: ErrorCode }
 ├── AdapterError          backends & encoders: query exceeds the target's subset
 ├── CodecError            codec registry: unresolvable dialect
 └── SchemaError           schema registry: misconfigured or unresolvable schema
-    └── SchemaEntityMismatchError   @rapiq/adapter-typeorm: schema keys unknown to the entity
+    ├── SchemaEntityMismatchError        @rapiq/adapter-typeorm: schema keys unknown to the entity
+    └── SchemaEntityIndexMismatchError   @rapiq/adapter-typeorm: declared indexes the entity lacks
 ```
 
 ## Where errors come from
@@ -87,6 +88,7 @@ The URL encoders throw these too; a codec never silently changes what a query me
 | `SCHEMA_PRESERVED_CONDITION_PRUNED` | the [relations gate](/guide/relations#validate-hooks) rejected a relation that a [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) filter condition needs; the two validators contradict each other, see [scoping a filterable field](/guide/recipes/authorization#scoping-server-conditions) |
 | `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async validator (a filter validator or a key validation hook); use the corresponding `Async` method |
 | `SCHEMA_ENTITY_MISMATCH` | `assertSchemaMatchesEntity` (`@rapiq/adapter-typeorm`) found schema keys unknown to the entity; thrown as `SchemaEntityMismatchError`, which carries the offending `schema`, `entity` and `keys`; see [validating schemas against entities](/packages/adapter-typeorm#validating-schemas-against-entities) |
+| `SCHEMA_ENTITY_INDEX_MISMATCH` | `assertSchemaMatchesEntity` (`@rapiq/adapter-typeorm`) found an [`indexes`](/guide/schemas#indexes) sequence that leads no primary key, unique constraint or index of the entity; thrown as `SchemaEntityIndexMismatchError`, which carries `schema`, `entity` and the offending `indexes`; see [declared indexes](/packages/adapter-typeorm#declared-indexes) |
 
 ## Mapping to HTTP responses
 

@@ -180,7 +180,7 @@ assertSchemaMatchesEntity(userSchema, User, dataSource);
 assertSchemaMatchesEntity(userSchema, dataSource.getMetadata(User));
 ```
 
-Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sort.allowed` (tuple groups included) and the keys of `sort.default`, and `relations.allowed`. The rules:
+Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sort.allowed` and the keys of `sort.default`, the keys of every `indexes` sequence, and `relations.allowed`. The rules:
 
 - Plain keys must be column property paths, embedded paths like `profile.firstName` included.
 - Dotted keys that aren't a column path must be headed by a relation. Only the head is checked; the remainder belongs to the related entity, so validate that schema against its own entity.
@@ -202,6 +202,35 @@ try {
 ```
 
 Schemas produced by `defineSchemaWithEntity` don't need this: their structure comes from the metadata in the first place. The helper targets curated, hand-written schemas kept next to derived ones.
+
+### Declared indexes
+
+An [`indexes`](/guide/schemas#indexes) declaration is a promise rapiq trusts: it never inspects the database, it just enforces the combinations an `indexed` filters or sort policy allows. Drift turns that promise into a lie, so `assertSchemaMatchesEntity` verifies each declared sequence on top of the key rules: it must be a **leftmost prefix** of the entity's primary key, of a unique constraint, or of an index. Prefix rather than equality, since a real `(realm_id, email)` index also serves a declared `['realm_id']`:
+
+```typescript
+const userSchema = defineSchema<User>({
+    name: 'user',
+    indexes: [['realm_id', 'email'], ['realm_id']], // both backed by @Index(['realm_id', 'email'])
+    filters: { allowed: ['realm_id', 'email'], indexed: true },
+});
+```
+
+Both `@Unique` constraints and `@Index` declarations count, whichever list the driver keeps them in (the mysql family stores unique constraints as unique indexes). Keys of a declared sequence are checked like any other column key first, so a renamed column surfaces as a `SchemaEntityMismatchError`; a sequence of live columns that no real index leads throws a `SchemaEntityIndexMismatchError` (code `schemaEntityIndexMismatch`) carrying `schema`, `entity` and every offending `indexes` sequence:
+
+```typescript
+import { SchemaEntityIndexMismatchError } from '@rapiq/adapter-typeorm';
+
+try {
+    assertSchemaMatchesEntity(userSchema, User, dataSource);
+} catch (e) {
+    if (e instanceof SchemaEntityIndexMismatchError) {
+        console.error(e.indexes); // [['email', 'realm_id']]
+    }
+    throw e;
+}
+```
+
+A schema without an `indexes` declaration skips the check entirely.
 
 ## Applying a single parameter
 

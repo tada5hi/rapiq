@@ -6,17 +6,19 @@
  */
 
 import {
-    Column, 
-    Entity, 
-    JoinColumn, 
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
     ManyToOne,
-    PrimaryGeneratedColumn, 
+    PrimaryGeneratedColumn,
     Unique,
 } from 'typeorm';
 import { Profile } from './profile';
 import { Realm } from './realm';
 import { Role } from './role';
 
+@Index(['realm_id', 'email'])
 @Unique(['first_name', 'last_name'])
 @Entity()
 export class User {

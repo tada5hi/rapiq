@@ -38,6 +38,8 @@ export enum ErrorCode {
 
     CODEC_UNRESOLVABLE = 'codecUnresolvable',
 
+    SCHEMA_ENTITY_INDEX_MISMATCH = 'schemaEntityIndexMismatch',
+
     SCHEMA_ENTITY_MISMATCH = 'schemaEntityMismatch',
 
     SCHEMA_KEY_VALIDATOR_CONFLICT = 'schemaKeyValidatorConflict',
