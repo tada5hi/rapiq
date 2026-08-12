@@ -20,7 +20,7 @@ export class QuerySerializer implements ISerializer<string | null> {
 
     readonly relations : ArraySerializer;
 
-    readonly sort : ArraySerializer;
+    readonly sorts : ArraySerializer;
 
     constructor() {
         this.fields = new RecordArraySerializer(
@@ -35,7 +35,7 @@ export class QuerySerializer implements ISerializer<string | null> {
         this.relations = new ArraySerializer(
             URLParameter.RELATIONS,
         );
-        this.sort = new ArraySerializer(
+        this.sorts = new ArraySerializer(
             URLParameter.SORT,
         );
     }
@@ -45,7 +45,7 @@ export class QuerySerializer implements ISerializer<string | null> {
         this.filters.reset();
         this.pagination.reset();
         this.relations.reset();
-        this.sort.reset();
+        this.sorts.reset();
     }
 
     serialize(): string | null {
@@ -54,7 +54,7 @@ export class QuerySerializer implements ISerializer<string | null> {
             this.filters.serialize(),
             this.pagination.serialize(),
             this.relations.serialize(),
-            this.sort.serialize(),
+            this.sorts.serialize(),
         ]
             .filter(Boolean)
             .join('&');

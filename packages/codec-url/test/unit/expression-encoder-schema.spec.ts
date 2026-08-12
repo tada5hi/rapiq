@@ -48,7 +48,7 @@ describe('encoder (schema-aware)', () => {
     it('should resolve named schemas in per-parameter encodes', () => {
         const query = defineQuery({ sort: ['-id', 'secret'] });
 
-        const encoded = encoder.encodeSort(query.sorts, { schema: 'user' });
+        const encoded = encoder.encodeSorts(query.sorts, { schema: 'user' });
 
         expect(decodeURIComponent(encoded!)).toEqual('sort=-id');
     });

@@ -194,7 +194,7 @@ export abstract class BaseURLDecoder {
         return this.parser.parseRelations(output, options);
     }
 
-    decodeSort(
+    decodeSorts(
         input: string,
         options: ParseParameterOptions = {},
     ) : ISorts | null {

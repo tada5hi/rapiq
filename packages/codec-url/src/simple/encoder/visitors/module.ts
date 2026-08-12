@@ -58,7 +58,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
     protected relations: RelationsVisitor;
 
-    protected sort : SortsVisitor;
+    protected sorts : SortsVisitor;
 
     constructor() {
         const serializer = new QuerySerializer();
@@ -68,7 +68,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.filters = new FiltersVisitor(serializer.filters);
         this.pagination = new PaginationVisitor(serializer.pagination);
         this.relations = new RelationsVisitor(serializer.relations);
-        this.sort = new SortsVisitor(serializer.sort);
+        this.sorts = new SortsVisitor(serializer.sorts);
     }
 
     reset() : void {
@@ -97,7 +97,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         }
 
         if (!parameters || includesParameter(parameters, Parameter.SORTS)) {
-            expr.sorts.accept(this.sort);
+            expr.sorts.accept(this.sorts);
         }
 
         return this.serializer;
@@ -132,10 +132,10 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     }
 
     visitSort(expr: ISort): ArraySerializer {
-        return expr.accept(this.sort);
+        return expr.accept(this.sorts);
     }
 
     visitSorts(expr: ISorts): ArraySerializer {
-        return expr.accept(this.sort);
+        return expr.accept(this.sorts);
     }
 }

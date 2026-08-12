@@ -213,7 +213,7 @@ export class SimpleURLEncoder {
         return this.runSerializer(this.visitor.visitRelations(decoded));
     }
 
-    encodeSort(input: ISorts, options: ParseParameterOptions = {}) {
+    encodeSorts(input: ISorts, options: ParseParameterOptions = {}) {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitSorts(input));
@@ -221,7 +221,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeSort(encoded, options);
+        const decoded = this.decoder.decodeSorts(encoded, options);
         if (!decoded) {
             return null;
         }

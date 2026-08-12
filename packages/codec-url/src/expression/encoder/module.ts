@@ -149,8 +149,8 @@ export class ExpressionURLEncoder {
         return this.simple.encodeRelations(input, options);
     }
 
-    encodeSort(input: ISorts, options: ParseParameterOptions = {}) {
-        return this.simple.encodeSort(input, options);
+    encodeSorts(input: ISorts, options: ParseParameterOptions = {}) {
+        return this.simple.encodeSorts(input, options);
     }
 
     // --------------------------------------------------
@@ -170,7 +170,7 @@ export class ExpressionURLEncoder {
                 this.simple.encodeRelations(query.relations) :
                 null,
             (!parameters || includesParameter(parameters, Parameter.SORTS)) ?
-                this.simple.encodeSort(query.sorts) :
+                this.simple.encodeSorts(query.sorts) :
                 null,
         ].filter(Boolean);
 
