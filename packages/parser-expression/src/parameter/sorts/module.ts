@@ -5,8 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SimpleSortParser } from '@rapiq/parser-simple';
+import { SimpleSortsParser } from '@rapiq/parser-simple';
 
-export class ExpressionSortParser extends SimpleSortParser {
+export class ExpressionSortsParser extends SimpleSortsParser {
 
 }
+
+/**
+ * @deprecated use {@link ExpressionSortsParser}. Removed in 3.0.
+ */
+export const ExpressionSortParser = ExpressionSortsParser;
+
+/**
+ * @deprecated use {@link ExpressionSortsParser}. Removed in 3.0.
+ */
+export type ExpressionSortParser = ExpressionSortsParser;
