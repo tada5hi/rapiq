@@ -488,7 +488,7 @@ export class ResolutionScope<
     /**
      * The obligation for a leaf `name` that is *itself* a relation of this
      * scope's record. For the relations parameter the leaf always is one (an
-     * include). For fields/filters/sort it is one only when it maps to a related
+     * include). For fields/filters/sorts it is one only when it maps to a related
      * schema — an operator applied directly to a relation array
      * (`$size`/`$all`/`$elemMatch`) that the backends join; unlike a dotted path,
      * {@link resolveKey} classifies such a leaf as the terminal `name` (empty

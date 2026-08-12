@@ -24,7 +24,7 @@ export class MongoParser extends BaseQueryParser {
 
     protected relationsParser : MongoRelationsParser;
 
-    protected sortParser : MongoSortParser;
+    protected sortsParser : MongoSortParser;
 
     // -----------------------------------------------------
 
@@ -35,6 +35,6 @@ export class MongoParser extends BaseQueryParser {
         this.filtersParser = new MongoFiltersParser(this.registry);
         this.paginationParser = new MongoPaginationParser(this.registry);
         this.relationsParser = new MongoRelationsParser(this.registry);
-        this.sortParser = new MongoSortParser(this.registry);
+        this.sortsParser = new MongoSortParser(this.registry);
     }
 }

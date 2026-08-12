@@ -17,7 +17,7 @@ import {
     SortsParseError,
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
-    applySortIndexPolicy,
+    applySortsIndexPolicy,
     isObject,
     parseKey,
     pruneSortsByRelations,
@@ -27,11 +27,11 @@ import type {
     ObjectLiteral,
     PendingKeyValidation,
     RelationLedger,
-    SortSchema,
     SortsParseOptions,
+    SortsSchema,
 } from '@rapiq/core';
 
-type SortScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORTS}`, RECORD>;
+type SortsScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORTS}`, RECORD>;
 
 export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     parse<
@@ -40,11 +40,11 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = this.build(input, options, ledger);
 
-        return applySortIndexPolicy(
+        return applySortsIndexPolicy(
             pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as SortSchema<RECORD>),
+            }), scope.schema as SortsSchema<RECORD>),
             this.registry,
             options.schema,
             { throwOnFailure: options.throwOnFailure },
@@ -60,11 +60,11 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         const ledger : RelationLedger = [];
         const { output, scope } = await this.buildAsync(input, options, ledger);
 
-        return applySortIndexPolicy(
+        return applySortsIndexPolicy(
             pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as SortSchema<RECORD>),
+            }), scope.schema as SortsSchema<RECORD>),
             this.registry,
             options.schema,
             { throwOnFailure: options.throwOnFailure },
@@ -97,7 +97,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { output: Sorts, scope: SortScope<RECORD> } {
+    ) : { output: Sorts, scope: SortsScope<RECORD> } {
         const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -117,7 +117,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : Promise<{ output: Sorts, scope: SortScope<RECORD> }> {
+    ) : Promise<{ output: Sorts, scope: SortsScope<RECORD> }> {
         const scope = this.scopeFor(options, ledger);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -136,7 +136,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     >(
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : SortScope<RECORD> {
+    ) : SortsScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.SORTS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
@@ -247,7 +247,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
 
     protected buildDefaults<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(schema: SortSchema<RECORD>) {
+    >(schema: SortsSchema<RECORD>) {
         const output = new Sorts();
 
         if (schema.default) {

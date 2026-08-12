@@ -25,7 +25,7 @@ import {
     resolveAliasedKey,
 } from '../utils';
 import { BaseParser } from './base';
-import { applyFiltersIndexPolicy, applySortIndexPolicy } from './index-policy';
+import { applyFiltersIndexPolicy, applySortsIndexPolicy } from './index-policy';
 import { RelationsParseError } from './parameter/relations/error';
 import {
     applyKeySchemaValidation,
@@ -59,7 +59,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
     protected abstract relationsParser : IQueryParameterParser<IRelations>;
 
-    protected abstract sortParser : IQueryParameterParser<ISorts>;
+    protected abstract sortsParser : IQueryParameterParser<ISorts>;
 
     // -----------------------------------------------------
 
@@ -111,7 +111,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = this.sortParser.parseParameter(
+            output.sorts = this.sortsParser.parseParameter(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
@@ -169,7 +169,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = await this.sortParser.parseParameterAsync(
+            output.sorts = await this.sortsParser.parseParameterAsync(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
@@ -275,7 +275,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
     /**
      * Drop every field/filter/sort/relation traversing a rejected relation from
-     * the assembled query. Filters and sort fall back to their schema defaults
+     * the assembled query. Filters and sorts fall back to their schema defaults
      * when pruning empties them, matching the parser's own default fallback.
      */
     protected pruneByRelations<
@@ -327,7 +327,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (output.sorts) {
-            output.sorts = applySortIndexPolicy(output.sorts, this.registry, options.schema);
+            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema);
         }
     }
 
@@ -430,7 +430,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     }
 
     /**
-     * Parse sort input parameter.
+     * Parse sorts input parameter.
      *
      * @param input
      * @param options
@@ -441,7 +441,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : ISorts {
-        return this.sortParser.parse(input, options);
+        return this.sortsParser.parse(input, options);
     }
 
     parseSortsAsync<
@@ -450,7 +450,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : Promise<ISorts> {
-        return this.sortParser.parseAsync(input, options);
+        return this.sortsParser.parseAsync(input, options);
     }
 
     /**

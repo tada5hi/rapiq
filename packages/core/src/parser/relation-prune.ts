@@ -89,7 +89,7 @@ export function pruneSortsByRelations(
         .map((sort) => new Sort(sort.name, sort.operator));
 
     if (value.length === 0 && schema) {
-        return buildSortDefaults(schema);
+        return buildSortsDefaults(schema);
     }
 
     return new Sorts(value);
@@ -272,7 +272,7 @@ function isConditionPreserved(node: ICondition) : boolean {
     return false;
 }
 
-export function buildSortDefaults(schema: SortsSchema) : Sorts {
+export function buildSortsDefaults(schema: SortsSchema) : Sorts {
     const output = new Sorts();
     if (!schema.default) {
         return output;
@@ -286,3 +286,8 @@ export function buildSortDefaults(schema: SortsSchema) : Sorts {
 
     return output;
 }
+
+/**
+ * @deprecated use {@link buildSortsDefaults}. Removed in 3.0.
+ */
+export const buildSortDefaults = buildSortsDefaults;

@@ -24,7 +24,7 @@ export class SimpleParser extends BaseQueryParser {
 
     protected relationsParser : SimpleRelationsParser;
 
-    protected sortParser : SimpleSortsParser;
+    protected sortsParser : SimpleSortsParser;
 
     // -----------------------------------------------------
 
@@ -35,6 +35,6 @@ export class SimpleParser extends BaseQueryParser {
         this.filtersParser = new SimpleFiltersParser(this.registry);
         this.paginationParser = new SimplePaginationParser(this.registry);
         this.relationsParser = new SimpleRelationsParser(this.registry);
-        this.sortParser = new SimpleSortsParser(this.registry);
+        this.sortsParser = new SimpleSortsParser(this.registry);
     }
 }

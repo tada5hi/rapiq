@@ -99,7 +99,7 @@ class StubQueryParser extends BaseQueryParser {
 
     protected relationsParser : IQueryParameterParser<IRelations>;
 
-    protected sortParser : IQueryParameterParser<ISorts>;
+    protected sortsParser : IQueryParameterParser<ISorts>;
 
     constructor(
         registry: SchemaRegistry,
@@ -116,7 +116,7 @@ class StubQueryParser extends BaseQueryParser {
         this.filtersParser = parsers.filters;
         this.paginationParser = parsers.pagination;
         this.relationsParser = parsers.relations;
-        this.sortParser = parsers.sort;
+        this.sortsParser = parsers.sort;
     }
 }
 

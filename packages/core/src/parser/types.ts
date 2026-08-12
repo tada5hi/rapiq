@@ -19,7 +19,7 @@ export type ParseParameterOptions<
     strict?: boolean,
     /**
      * Caller-defined context forwarded to the schema validate hooks
-     * (relations/fields/sort key validators, filters leaf validator).
+     * (relations/fields/sorts key validators, filters leaf validator).
      * Opaque to the parser.
      */
     context?: unknown,

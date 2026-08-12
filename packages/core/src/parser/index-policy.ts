@@ -32,7 +32,7 @@ import { parseKey } from '../utils';
 import { FiltersParseError } from './parameter/filters/error';
 import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
-import { buildSortDefaults } from './relation-prune';
+import { buildSortsDefaults } from './relation-prune';
 
 type IndexPolicyContext = {
     throwOnFailure?: boolean,
@@ -258,12 +258,12 @@ export function applyFiltersIndexPolicy<
 }
 
 /**
- * Sort counterpart of {@link applyFiltersIndexPolicy}: ordered
+ * Sorts counterpart of {@link applyFiltersIndexPolicy}: ordered
  * leftmost-prefix rule applied to the client-authored keys only
  * (server-authored default entries, root or relation-scoped, are
  * exempt), standard failure policy.
  */
-export function applySortIndexPolicy<
+export function applySortsIndexPolicy<
     RECORD extends ObjectLiteral = ObjectLiteral,
 >(
     output: ISorts,
@@ -292,5 +292,10 @@ export function applySortIndexPolicy<
         throw SortsParseError.keyCombinationNotIndexed(result.keys);
     }
 
-    return buildSortDefaults(sortSchema);
+    return buildSortsDefaults(sortSchema);
 }
+
+/**
+ * @deprecated use {@link applySortsIndexPolicy}. Removed in 3.0.
+ */
+export const applySortIndexPolicy = applySortsIndexPolicy;

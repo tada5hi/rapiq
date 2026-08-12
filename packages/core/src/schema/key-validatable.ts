@@ -18,7 +18,7 @@ import type {
 
 /**
  * Shared base of the three sub-schemas whose keys go through the
- * key-validation pass: fields, relations and sort. Owns the `validate` /
+ * key-validation pass: fields, relations and sorts. Owns the `validate` /
  * `validateMany` hook pair so the mutual-exclusion rule and the
  * no-hook fast path are stated once.
  */
