@@ -268,7 +268,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
         });
     });
 
-    describe('query parser — throwOnFailure call-time override (A1)', () => {
+    describe('query parser: throwOnFailure call-time override (A1)', () => {
         it('drops a rejected traversed relation when neither the schema nor the call opts into throwing', () => {
             // schema-level throwOnFailure defaults to false here.
             const parser = new SimpleParser(buildRegistry(() => false, false));

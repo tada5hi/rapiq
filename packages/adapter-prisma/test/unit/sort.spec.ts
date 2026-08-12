@@ -55,7 +55,7 @@ describe('src/adapter/sort.ts', () => {
         ]))).toEqual([{ id: 'desc' }]);
     });
 
-    // A7 (plan 032): parity with @rapiq/adapter-drizzle's typed refusal —
+    // A7 (plan 032): parity with @rapiq/adapter-drizzle's typed refusal:
     // prisma cannot order by a to-many relation's field (only `_count`
     // is available there), so the illegal input fails typed here instead
     // of reaching prisma as a non-rapiq validation error.

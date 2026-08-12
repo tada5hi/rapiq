@@ -24,7 +24,7 @@ describe('src/errors/adapter.ts', () => {
     });
 
     describe('operatorUnsupported / conditionDetached', () => {
-        it('leave feature undefined — the tag is featureUnsupported-specific', () => {
+        it('leave feature undefined: the tag is featureUnsupported-specific', () => {
             expect(AdapterError.operatorUnsupported('mod').feature).toBeUndefined();
             expect(AdapterError.conditionDetached('mod').feature).toBeUndefined();
         });

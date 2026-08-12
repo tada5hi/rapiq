@@ -87,7 +87,7 @@ function resolveDelegate(options: PrismaAdapterClientOptions, client?: object) :
  * Prisma orders by a to-one relation's scalar (nested `orderBy`), but
  * not by a to-many relation's field directly (only `_count` is
  * available there, which rapiq does not express). A to-many segment
- * anywhere along a dotted sort path — not only its immediate parent —
+ * anywhere along a dotted sort path, not only its immediate parent,
  * therefore fails typed here instead of being emitted as written and
  * rejected by prisma with a non-rapiq error, matching the refusal
  * `@rapiq/adapter-drizzle` already throws for every relation-path sort.
