@@ -21,3 +21,20 @@ export type SchemaEntityMismatchErrorOptions = {
      */
     keys: string[],
 };
+
+export type SchemaEntityIndexMismatchErrorOptions = {
+    /**
+     * Name of the offending schema (a schema may be unnamed).
+     */
+    schema?: string,
+
+    /**
+     * Name of the entity the schema was validated against.
+     */
+    entity: string,
+
+    /**
+     * Every declared index sequence the entity does not back.
+     */
+    indexes: string[][],
+};

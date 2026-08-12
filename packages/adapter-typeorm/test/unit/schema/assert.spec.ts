@@ -15,10 +15,14 @@ import {
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import {
+    SchemaEntityIndexMismatchError,
     SchemaEntityMismatchError,
     assertSchemaMatchesEntity,
 } from '../../../src';
-import { createUnconnectedDataSource } from '../../data/factory';
+import {
+    createMysqlDataSourceOptions,
+    createUnconnectedDataSource,
+} from '../../data/factory';
 import { Role } from '../../data/entity/role';
 import { User } from '../../data/entity/user';
 
@@ -31,6 +35,17 @@ function grabError(fn: () => void) : SchemaEntityMismatchError {
     }
 
     throw new Error('Expected a SchemaEntityMismatchError to be thrown.');
+}
+
+function grabIndexError(fn: () => void) : SchemaEntityIndexMismatchError {
+    try {
+        fn();
+    } catch (e) {
+        expect(e).toBeInstanceOf(SchemaEntityIndexMismatchError);
+        return e as SchemaEntityIndexMismatchError;
+    }
+
+    throw new Error('Expected a SchemaEntityIndexMismatchError to be thrown.');
 }
 
 describe('src/schema/assert.ts', () => {
@@ -161,6 +176,80 @@ describe('src/schema/assert.ts', () => {
 
         expect(grabError(() => assertSchemaMatchesEntity(schema, dataSource.getMetadata(User))).keys)
             .toEqual(['renamedAway', 'deadDefault']);
+    });
+
+    it('should accept declared indexes backed by the entity', () => {
+        const schema = defineSchema({
+            name: 'indexes-valid',
+            // primary key, unique constraint (full and leftmost prefix)
+            // and a composite index (full and leftmost prefix).
+            indexes: [
+                ['id'],
+                ['first_name', 'last_name'],
+                ['first_name'],
+                ['realm_id', 'email'],
+                ['realm_id'],
+            ],
+        });
+
+        expect(() => assertSchemaMatchesEntity(schema, dataSource.getMetadata(User)))
+            .not.toThrow();
+    });
+
+    it('should reject declared indexes that are no leftmost prefix', () => {
+        const schema = defineSchema({
+            name: 'indexes-invalid',
+            // a trailing column alone, a reordered composite, a column
+            // no index leads and a key of a related table.
+            indexes: [
+                ['id'],
+                ['last_name'],
+                ['email', 'realm_id'],
+                ['age'],
+                ['realm.name'],
+            ],
+        });
+
+        const error = grabIndexError(() => assertSchemaMatchesEntity(
+            schema,
+            dataSource.getMetadata(User),
+        ));
+
+        expect(error.schema).toEqual('indexes-invalid');
+        expect(error.entity).toEqual('User');
+        expect(error.indexes).toEqual([
+            ['last_name'],
+            ['email', 'realm_id'],
+            ['age'],
+            ['realm.name'],
+        ]);
+        expect(error.code).toEqual('schemaEntityIndexMismatch');
+        expect(error.message).toContain('indexes-invalid');
+        expect(error.message).toContain('(last_name), (email, realm_id), (age), (realm.name)');
+    });
+
+    it('should accept declared indexes independent of the driver', async () => {
+        // the mysql family stores unique constraints as unique indexes
+        // (`metadata.indices`), other drivers as `metadata.uniques`.
+        const mysql = await createUnconnectedDataSource(createMysqlDataSourceOptions());
+
+        const schema = defineSchema({
+            name: 'indexes-mysql',
+            indexes: [['first_name', 'last_name'], ['realm_id']],
+        });
+
+        expect(() => assertSchemaMatchesEntity(schema, mysql.getMetadata(User)))
+            .not.toThrow();
+    });
+
+    it('should report a dead column key of an index as key drift', () => {
+        const schema = defineSchema({
+            name: 'indexes-dead-key',
+            indexes: [['first_name', 'renamedAway']],
+        });
+
+        expect(grabError(() => assertSchemaMatchesEntity(schema, dataSource.getMetadata(User))).keys)
+            .toEqual(['renamedAway']);
     });
 
     it('should aggregate offending keys across parameters', () => {
