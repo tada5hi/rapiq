@@ -435,7 +435,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
      * @param input
      * @param options
      */
-    parseSort<
+    parseSorts<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
@@ -444,13 +444,37 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return this.sortParser.parse(input, options);
     }
 
-    parseSortAsync<
+    parseSortsAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
         options: ParseParameterOptions<RECORD> = {},
     ) : Promise<ISorts> {
         return this.sortParser.parseAsync(input, options);
+    }
+
+    /**
+     * @deprecated use {@link BaseQueryParser.parseSorts}. Removed in 3.0.
+     */
+    parseSort<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : ISorts {
+        return this.parseSorts(input, options);
+    }
+
+    /**
+     * @deprecated use {@link BaseQueryParser.parseSortsAsync}. Removed in 3.0.
+     */
+    parseSortAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD> = {},
+    ) : Promise<ISorts> {
+        return this.parseSortsAsync(input, options);
     }
 
     // --------------------------------------------------

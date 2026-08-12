@@ -13,7 +13,7 @@ import { FieldsParseError } from '../../parser/parameter/fields/error';
 import { FiltersParseError } from '../../parser/parameter/filters/error';
 import { PaginationParseError } from '../../parser/parameter/pagination/error';
 import { RelationsParseError } from '../../parser/parameter/relations/error';
-import { SortParseError } from '../../parser/parameter/sort/error';
+import { SortsParseError } from '../../parser/parameter/sort/error';
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
 import { Schema } from '../module';
@@ -47,8 +47,8 @@ const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FILTERS]: FiltersParseError,
     [Parameter.PAGINATION]: PaginationParseError,
     [Parameter.RELATIONS]: RelationsParseError,
-    [Parameter.SORTS]: SortParseError,
-    [Parameter.SORT]: SortParseError,
+    [Parameter.SORTS]: SortsParseError,
+    [Parameter.SORT]: SortsParseError,
 };
 
 /**

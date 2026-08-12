@@ -7,6 +7,16 @@
 
 import { ParseError } from '../../../errors';
 
-export class SortParseError extends ParseError {
+export class SortsParseError extends ParseError {
 
 }
+
+/**
+ * @deprecated use {@link SortsParseError}. Removed in 3.0.
+ */
+export const SortParseError = SortsParseError;
+
+/**
+ * @deprecated use {@link SortsParseError}. Removed in 3.0.
+ */
+export type SortParseError = SortsParseError;

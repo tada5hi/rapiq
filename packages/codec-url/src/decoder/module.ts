@@ -204,10 +204,10 @@ export abstract class BaseURLDecoder {
         }
 
         if (isPropertySet(output, URLParameter.SORT)) {
-            return this.parser.parseSort(output[URLParameter.SORT], options);
+            return this.parser.parseSorts(output[URLParameter.SORT], options);
         }
 
-        return this.parser.parseSort(output, options);
+        return this.parser.parseSorts(output, options);
     }
 
     // --------------------------------------------------

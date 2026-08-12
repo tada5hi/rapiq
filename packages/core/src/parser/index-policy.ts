@@ -30,7 +30,7 @@ import type {
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
 import { FiltersParseError } from './parameter/filters/error';
-import { SortParseError } from './parameter/sort/error';
+import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
 import { buildSortDefaults } from './relation-prune';
 
@@ -289,7 +289,7 @@ export function applySortIndexPolicy<
     }
 
     if (scope.throwOnFailure) {
-        throw SortParseError.keyCombinationNotIndexed(result.keys);
+        throw SortsParseError.keyCombinationNotIndexed(result.keys);
     }
 
     return buildSortDefaults(sortSchema);

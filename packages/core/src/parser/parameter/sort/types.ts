@@ -11,7 +11,7 @@ import type {
     ObjectLiteral,
 } from '../../../types';
 
-export type SortParseOptions<
+export type SortsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     relations?: Relations,
@@ -20,3 +20,10 @@ export type SortParseOptions<
     schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context?: unknown,
 };
+
+/**
+ * @deprecated use {@link SortsParseOptions}. Removed in 3.0.
+ */
+export type SortParseOptions<
+    RECORD extends ObjectLiteral = ObjectLiteral,
+> = SortsParseOptions<RECORD>;
