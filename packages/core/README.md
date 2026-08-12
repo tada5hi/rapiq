@@ -54,7 +54,7 @@ const query = defineQuery<User>({
     fields: ['id', 'name'],
     filters: or(gte('age', 18), eq('deleted_at', null)),
     relations: ['realm'],
-    sort: '-created_at',
+    sorts: '-created_at',
     pagination: { limit: 10 },
 });
 ```
@@ -75,7 +75,7 @@ registry.add(defineSchema<User>({
     fields: { allowed: ['id', 'name', 'age'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'age'] },
+    sorts: { allowed: ['id', 'age'] },
     pagination: { maxLimit: 50 },
     schemaMapping: { realm: 'realm' },
 }));

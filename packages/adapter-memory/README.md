@@ -34,7 +34,7 @@ Same visitor-pattern surface as the SQL/TypeORM adapters, but the visitors compi
 - ⚡ **Compile once, run many**: the AST is turned into closures up front; apply them across large collections without re-walking the tree.
 - 🧪 **No database required**: perfect for tests, mock servers, edge/serverless caches, or filtering data you already hold in memory.
 - 🤝 **Backend-parity semantics**: matches `@rapiq/adapter-sql` for positive operators and the complement law for negations (`ne` / `nin` / `not*` match null & missing), same-element binding for dotted paths over arrays.
-- 🧱 **Whole-query or à la carte**: `applyQuery` runs everything, or compile just the filters / sort / fields / pagination on their own.
+- 🧱 **Whole-query or à la carte**: `applyQuery` runs everything, or compile just the filters / sorts / fields / pagination on their own.
 
 ```typescript
 import { and, eq, gte } from '@rapiq/core';
@@ -62,7 +62,7 @@ import { applyQuery } from '@rapiq/adapter-memory';
 
 const query = defineQuery<User>({
     filters: { age: { $gte: 18 } },
-    sort: { name: 'ASC' },
+    sorts: { name: 'ASC' },
     pagination: { limit: 10 },
     fields: ['id', 'name'],
 });

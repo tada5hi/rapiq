@@ -9,7 +9,7 @@
 <p align="center">
   <b>Apply a rapiq <code>Query</code> straight to a TypeORM <code>SelectQueryBuilder</code>.</b><br>
   Filters become parameterized <code>WHERE</code> conditions, relations become joins,<br>
-  <code>fields</code> / <code>sort</code> / <code>pagination</code> map to <code>select</code> / <code>orderBy</code> / <code>take</code>&nbsp;+&nbsp;<code>skip</code>.
+  <code>fields</code> / <code>sorts</code> / <code>pagination</code> map to <code>select</code> / <code>orderBy</code> / <code>take</code>&nbsp;+&nbsp;<code>skip</code>.
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ A single `adapter.execute(query)` walks the parsed AST and applies it to your bu
 | `filters: { age: gte(18) }` | `.andWhere('"user"."age" >= :p0', { p0: 18 })` |
 | `relations: ['realm']` | `.leftJoinAndSelect('user.realm', 'realm')` |
 | `fields: ['id', 'name']` | `.select(['user.id', 'user.name'])` |
-| `sort: '-createdAt'` | `.orderBy('user.createdAt', 'DESC')` |
+| `sorts: '-createdAt'` | `.orderBy('user.createdAt', 'DESC')` |
 | `pagination: { limit, offset }` | `.take(limit).skip(offset)` |
 
 ## Installation

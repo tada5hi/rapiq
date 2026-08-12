@@ -6,7 +6,7 @@ Parses plain object/array input (the URL-query-like "simple" dialect) into a [`Q
 npm install @rapiq/core @rapiq/parser-simple
 ```
 
-**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`), e.g. a JSON request body or an internal call. For raw URL input, use [`@rapiq/codec-url`](/packages/codec-url) instead.
+**Reach for it directly when** your input already uses the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sorts`), e.g. a JSON request body or an internal call. For raw URL input, use [`@rapiq/codec-url`](/packages/codec-url) instead.
 
 ## Usage
 
@@ -20,7 +20,7 @@ registry.add(defineSchema<User>({
     fields: { allowed: ['id', 'name', 'age'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'age'] },
+    sorts: { allowed: ['id', 'age'] },
     pagination: { maxLimit: 50 },
 }));
 
@@ -30,7 +30,7 @@ const query = parser.parse({
     fields: ['id', 'name'],
     filters: { name: '~jo~', age: '>=18' },
     relations: ['realm'],
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 }, { schema: 'user' });
 ```
@@ -43,13 +43,13 @@ const query = parser.parse({
 | `strict` | Override the schema's [strict mode](/guide/schemas#strict-mode) for this call. |
 | `parameters` | Allow-list of parameters to parse, e.g. `['filters']`. A parameter not listed is neither parsed nor defaulted: the resulting `Query` leaves it empty, exactly as if neither input nor schema mentioned it. |
 | `context` | Caller-defined value (e.g. the authenticated actor) forwarded to every [schema validate hook](/guide/schemas#validate-hooks-parse-context) this parse run invokes. Opaque to the parser; typing happens at the schema definition site (`defineSchema<RECORD, CONTEXT>`). |
-| `fields` / `filters` / `relations` / `pagination` / `sort` | Set to `false` to skip a parameter entirely. |
+| `fields` / `filters` / `relations` / `pagination` / `sorts` | Set to `false` to skip a parameter entirely. |
 
 If `filters.validate` may return a Promise, use `await parser.parseAsync(input, options)`. `parse()` remains synchronous for schemas whose validators are synchronous and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` if it encounters an async result.
 
 ## Schema defaults
 
-A parameter absent from the input is still parsed, so schema defaults always apply: `fields.default` (or, without one, the `fields.allowed` selection), `filters.default`, `sort.default` and `pagination.maxLimit` shape the resulting `Query` even when the input is empty.
+A parameter absent from the input is still parsed, so schema defaults always apply: `fields.default` (or, without one, the `fields.allowed` selection), `filters.default`, `sorts.default` and `pagination.maxLimit` shape the resulting `Query` even when the input is empty.
 
 To keep schema defaults from materializing for parameters you do not intend to apply, mask them with the `parameters` option:
 

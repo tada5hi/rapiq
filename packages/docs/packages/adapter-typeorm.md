@@ -1,6 +1,6 @@
 # @rapiq/adapter-typeorm
 
-Applies a parsed [`Query`](/guide/query-ast) directly to a TypeORM `SelectQueryBuilder`: filters become parameterized `WHERE` conditions, relations become joins, fields/sort/pagination map to `select`/`orderBy`/`take`+`skip`.
+Applies a parsed [`Query`](/guide/query-ast) directly to a TypeORM `SelectQueryBuilder`: filters become parameterized `WHERE` conditions, relations become joins, fields/sorts/pagination map to `select`/`orderBy`/`take`+`skip`.
 
 ```sh
 npm install @rapiq/core @rapiq/adapter-sql @rapiq/adapter-typeorm
@@ -128,7 +128,7 @@ const registry = defineSchemaRegistryWithDataSource(dataSource, {
     schemas: {
         user: {
             filters: { allowed: 'inherit' },
-            sort: { allowed: 'inherit' },
+            sorts: { allowed: 'inherit' },
         },
     },
 });
@@ -145,7 +145,7 @@ const schema = defineSchemaWithEntity(User, dataSource, {
     strict: true,
     fields: { allowed: 'inherit' },
     filters: { allowed: ['id', 'name'] },   // explicit list, nothing derived
-    sort: { default: { id: 'DESC' } },
+    sorts: { default: { id: 'DESC' } },
 });
 ```
 
@@ -180,7 +180,7 @@ assertSchemaMatchesEntity(userSchema, User, dataSource);
 assertSchemaMatchesEntity(userSchema, dataSource.getMetadata(User));
 ```
 
-Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sort.allowed` and the keys of `sort.default`, the keys of every `indexes` sequence, and `relations.allowed`. The rules:
+Validated keys: `fields.default` and `fields.allowed`, `filters.allowed` and the leaf fields of a `filters.default` condition tree, `sorts.allowed` and the keys of `sorts.default`, the keys of every `indexes` sequence, and `relations.allowed`. The rules:
 
 - Plain keys must be column property paths, embedded paths like `profile.firstName` included.
 - Dotted keys that aren't a column path must be headed by a relation. Only the head is checked; the remainder belongs to the related entity, so validate that schema against its own entity.

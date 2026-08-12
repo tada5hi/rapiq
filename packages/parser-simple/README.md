@@ -30,7 +30,7 @@
 Part of [**rapiq**](https://github.com/tada5hi/rapiq). Typed REST queries: *build, transport, validate, execute.*
 This is the **validate** end for URL-query-shaped input: plain objects and arrays go in, a schema-checked `Query` AST comes out.
 
-- 📥 **URL-query shaped**: the exact structure you get from a query string, e.g. `{ fields: [...], filters: {...}, sort: '-age', … }`.
+- 📥 **URL-query shaped**: the exact structure you get from a query string, e.g. `{ fields: [...], filters: {...}, sorts: '-age', … }`.
 - 🛡️ **Schema-validated**: anything outside the allow-list is dropped by default, or throws with `throwOnFailure`; absent parameters still receive schema defaults.
 - 🔣 **Compact operators**: filter values carry inline operators like `'>=18'`, `'~jo~'`, `'!5'`, `null`.
 - 🧱 **Per-parameter parsers**: `SimpleFieldsParser`, `SimpleFiltersParser`, … are exported for parsing a single parameter.
@@ -53,7 +53,7 @@ registry.add(defineSchema<User>({
     fields: { allowed: ['id', 'name', 'age'] },
     filters: { allowed: ['id', 'name', 'age'] },
     relations: { allowed: ['realm'] },
-    sort: { allowed: ['id', 'age'] },
+    sorts: { allowed: ['id', 'age'] },
     pagination: { maxLimit: 50 },
 }));
 
@@ -63,14 +63,14 @@ const query = parser.parse({
     fields: ['id', 'name'],
     filters: { name: '~jo~', age: '>=18' },
     relations: ['realm'],
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 }, { schema: 'user' });
 ```
 
 Anything outside the schema's allow-lists is silently dropped; set `throwOnFailure: true` on the schema to get a `ParseError` instead. Parameters absent from the input still receive schema defaults.
 
-The parser is transport-agnostic: it reads the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sort`) only. To consume a raw URL query string or an express-style `req.query` object (JSON:API wire names like `filter`, `page`, `include`), use the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url): its decoder maps the wire names and delegates to this parser.
+The parser is transport-agnostic: it reads the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sorts`) only. To consume a raw URL query string or an express-style `req.query` object (JSON:API wire names like `filter`, `page`, `include`), use the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url): its decoder maps the wire names and delegates to this parser.
 
 Per-parameter parser classes (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser`) are exported for parsing a single parameter.
 

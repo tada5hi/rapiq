@@ -51,12 +51,12 @@ const parser = new ExpressionParser(registry);
 
 const query = parser.parse({
     filters: "and(eq(name, 'John'), gte(age, '18'))",
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 }, { schema: 'user' });
 ```
 
-Only the `filters` parameter uses the expression language; fields, relations, pagination and sort accept the same input as the [simple parser](/packages/parser-simple), and the whole thing returns the same [`Query`](/guide/query-ast).
+Only the `filters` parameter uses the expression language; fields, relations, pagination and sorts accept the same input as the [simple parser](/packages/parser-simple), and the whole thing returns the same [`Query`](/guide/query-ast).
 
 There is also a standalone `parseFilters(input, options)` returning just the `Filters` node. For schemas with asynchronous filter validators, use `parseAsync()` / `parseFiltersAsync()` on the query parser, or `parseAsync()` / `parseExactAsync()` on `ExpressionFiltersParser`.
 
