@@ -9,6 +9,7 @@ import {
     AdapterError,
     FILTER_OPERATOR_SEMANTICS,
     FilterFieldOperator,
+    FiltersParseError,
 } from '@rapiq/core';
 import type { Scalar } from '@rapiq/core';
 import {
@@ -98,7 +99,7 @@ function normalizeFilterValue(input: unknown) : Scalar | Scalar[] {
         return null;
     }
 
-    throw new SyntaxError('Value can not be normalized.');
+    throw FiltersParseError.syntaxInvalid('the wire value could not be normalized');
 }
 
 /**
@@ -141,7 +142,7 @@ function decodeToken(input: string) : FilterWireCondition {
     }
 
     /* v8 ignore next 2 -- unreachable: the eq row matches every token. */
-    throw new SyntaxError('Value can not be normalized.');
+    throw FiltersParseError.syntaxInvalid('the wire value could not be normalized');
 }
 
 /**

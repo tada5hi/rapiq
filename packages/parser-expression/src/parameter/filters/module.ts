@@ -843,6 +843,6 @@ export class ExpressionFiltersParser extends BaseParser<
             return null;
         }
 
-        throw new SyntaxError('Value can not be normalized.');
+        throw FiltersParseError.syntaxInvalid('the value could not be normalized');
     }
 }

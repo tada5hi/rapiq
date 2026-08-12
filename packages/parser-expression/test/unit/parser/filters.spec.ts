@@ -737,6 +737,24 @@ describe('filters/expr-parser', () => {
                 .toThrow(FiltersParseError.keyNotPermitted('name'));
         });
     });
+
+    // A5 (plan 032): normalizeValue is unreachable from the public grammar
+    // today (every token it receives is already a string), but stays
+    // `protected`, so a subclass override or a future call path must still
+    // surface a typed error instead of a raw SyntaxError.
+    describe('normalizeValue guard (A5)', () => {
+        it('throws a typed FiltersParseError instead of a raw SyntaxError for an unnormalizable value', () => {
+            const instance = parser as unknown as { normalizeValue(input: unknown): unknown };
+
+            try {
+                instance.normalizeValue(Symbol('unnormalizable'));
+                expect.fail('expected a FiltersParseError');
+            } catch (e) {
+                expect(e).toBeInstanceOf(FiltersParseError);
+                expect((e as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+            }
+        });
+    });
 });
 
 /**
