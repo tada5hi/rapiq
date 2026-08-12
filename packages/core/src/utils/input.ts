@@ -6,7 +6,6 @@
  */
 
 import type { ObjectLiteral } from '../types';
-import { isPropertySet } from './object';
 
 /**
  * Spellings that are not input keys but are close enough to be typed
@@ -48,9 +47,12 @@ export function assertKnownInputKeys(
 }
 
 /**
- * Read a canonical key or its deprecated alias. Supplying both is a
- * caller mistake, never a merge: the two spell one parameter, and
- * picking a winner would silently drop the other.
+ * Read a canonical key or its deprecated alias. Supplying both with a
+ * defined value each is a caller mistake, never a merge: the two spell
+ * one parameter, and picking a winner would silently drop the other.
+ * An `undefined` side (including one that is present but unset, e.g.
+ * `{ sorts: undefined }` from a spread migration wrapper) never
+ * triggers the ambiguity check, since there is nothing to drop.
  */
 export function resolveAliasedKey(
     input: ObjectLiteral,
@@ -58,8 +60,8 @@ export function resolveAliasedKey(
     alias: string,
     createError: (canonical: string, alias: string) => Error,
 ) : unknown {
-    const hasCanonical = isPropertySet(input, canonical);
-    const hasAlias = isPropertySet(input, alias);
+    const hasCanonical = typeof input[canonical] !== 'undefined';
+    const hasAlias = typeof input[alias] !== 'undefined';
 
     if (hasCanonical && hasAlias) {
         throw createError(canonical, alias);

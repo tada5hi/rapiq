@@ -31,7 +31,7 @@ export type ParameterSchema<
             PaginationSchema :
             P extends `${Parameter.RELATIONS}` ?
                 RelationsSchema<RECORD> :
-                P extends `${Parameter.SORT}` ?
+                P extends `${Parameter.SORTS}` | `${Parameter.SORT}` ?
                     SortsSchema<RECORD> :
                     never;
 
