@@ -67,6 +67,86 @@ describe('src/schema/registry/*.ts', () => {
         });
     });
 
+    describe('getAll', () => {
+        it('should return an empty array for an empty registry', () => {
+            const local = new SchemaRegistry();
+            expect(local.getAll()).toEqual([]);
+        });
+
+        it('should return every registered schema in registration order', () => {
+            const local = new SchemaRegistry();
+            const foo = defineSchema({ name: 'foo' });
+            const bar = defineSchema({ name: 'bar' });
+            const baz = defineSchema({ name: 'baz' });
+
+            local.add(foo);
+            local.add(bar);
+            local.add(baz);
+
+            expect(local.getAll()).toEqual([foo, bar, baz]);
+        });
+
+        it('should return the same instances as get', () => {
+            const local = new SchemaRegistry();
+            const schema = defineSchema({ name: 'foo' });
+            local.add(schema);
+
+            expect(local.getAll()[0]).toBe(local.get('foo'));
+        });
+
+        it('should keep the position of a re-registered name', () => {
+            const local = new SchemaRegistry();
+            const foo = defineSchema({ name: 'foo' });
+            const bar = defineSchema({ name: 'bar' });
+            const fooReplacement = defineSchema({ name: 'foo' });
+
+            local.add(foo);
+            local.add(bar);
+            local.add(fooReplacement);
+
+            expect(local.getAll()).toEqual([fooReplacement, bar]);
+        });
+
+        it('should move a dropped and re-added schema to the end', () => {
+            const local = new SchemaRegistry();
+            const foo = defineSchema({ name: 'foo' });
+            const bar = defineSchema({ name: 'bar' });
+
+            local.add(foo);
+            local.add(bar);
+            local.drop('foo');
+            local.add(foo);
+
+            expect(local.getAll()).toEqual([bar, foo]);
+        });
+
+        it('should return a snapshot unaffected by later registry mutation', () => {
+            const local = new SchemaRegistry();
+            const foo = defineSchema({ name: 'foo' });
+            local.add(foo);
+
+            const schemas = local.getAll();
+
+            local.add(defineSchema({ name: 'bar' }));
+            local.drop('foo');
+
+            expect(schemas).toEqual([foo]);
+        });
+
+        it('should not write back to the registry when the array is mutated', () => {
+            const local = new SchemaRegistry();
+            const foo = defineSchema({ name: 'foo' });
+            local.add(foo);
+
+            const schemas = local.getAll();
+            schemas.push(defineSchema({ name: 'bar' }));
+            schemas.reverse();
+
+            expect(local.getAll()).toEqual([foo]);
+            expect(local.get('bar')).toBeUndefined();
+        });
+    });
+
     describe('resolve', () => {
         it('should resolve a single registered name', () => {
             expect(registry.resolve('user')?.name).toBe('user');

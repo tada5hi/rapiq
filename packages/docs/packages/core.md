@@ -15,7 +15,7 @@ npm install @rapiq/core
 | **Condition helpers** | `eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `inArray`, `nin`, `startsWith`, `notStartsWith`, `endsWith`, `notEndsWith`, `contains`, `notContains`, `regex`, `mod`, `size`, `exists`, `elemMatch`, `and`, `or`, `not`, `preserve` | [Condition helpers](/guide/building-queries#condition-helpers) |
 | **Composition** | `mergeQueries`, `Filters.merge` / `.and` / `.or`; `mergeFiltersInput` for per-field replace on build input; `preserve` for relation-pruning policy | [Merging & Composition](/guide/merging-queries) |
 | **Plan layer** | `planCondition`, `interpretPlan`, `distributeNegation`, `IPlanInterpreter`, `FILTER_OPERATOR_SEMANTICS`, plan types (`ConditionPlan`, `ComparePlan`, `CompoundPlan`, …) | [The visitor pattern](/guide/query-ast#the-visitor-pattern) |
-| **Schema system** | `defineSchema`, `Schema`, `SchemaRegistry`, per-parameter `define*Schema` factories, `ResolutionScope`, `Schema.describe()` | [Schemas & Validation](/guide/schemas) |
+| **Schema system** | `defineSchema`, `Schema`, `SchemaRegistry` (incl. `getAll()`), per-parameter `define*Schema` factories, `ResolutionScope`, `Schema.describe()` | [Schemas & Validation](/guide/schemas) |
 | **Parser base** | `BaseParser`, per-parameter parse-option types | [Custom parsers](/guide/query-ast#writing-a-custom-parser-resolutionscope) |
 | **Errors** | `BaseError`, `ParseError` + per-parameter subclasses, `BuildError`, `MergeError`, `AdapterError`, `CodecError`, `ErrorCode` | [Error Handling](/guide/errors) |
 | **Utils** | `parseKey`, `stringifyKey`, `isObject`, `isPropertySet` | |
