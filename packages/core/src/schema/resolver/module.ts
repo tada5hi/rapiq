@@ -38,6 +38,7 @@ const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FILTERS]: FiltersSchema,
     [Parameter.PAGINATION]: PaginationSchema,
     [Parameter.RELATIONS]: RelationsSchema,
+    [Parameter.SORTS]: SortSchema,
     [Parameter.SORT]: SortSchema,
 } as const;
 
@@ -46,8 +47,23 @@ const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FILTERS]: FiltersParseError,
     [Parameter.PAGINATION]: PaginationParseError,
     [Parameter.RELATIONS]: RelationsParseError,
+    [Parameter.SORTS]: SortParseError,
     [Parameter.SORT]: SortParseError,
 };
+
+/**
+ * `Schema` still exposes its sort sub-schema under the single
+ * deprecated `sort` property (renaming it is a later task's
+ * concern). Fold the canonical `sorts` parameter back onto it so a
+ * `Schema` instance can still be indexed by parameter name.
+ */
+function toSchemaProperty<P extends `${Parameter}`>(
+    parameter: P,
+) : Exclude<`${Parameter}`, `${Parameter.SORTS}`> {
+    return parameter === Parameter.SORTS ?
+        Parameter.SORT :
+        parameter as Exclude<`${Parameter}`, `${Parameter.SORTS}`>;
+}
 
 /**
  * Relation names may contain digits and dashes (unlike attribute names).
@@ -238,7 +254,7 @@ export class ResolutionScope<
 
         if (typeof schema === 'string' || schema instanceof Schema) {
             base = registry.getOrFail(schema);
-            parameterSchema = base[parameter as Parameter] as ParameterSchema<P, RECORD>;
+            parameterSchema = base[toSchemaProperty(parameter)] as ParameterSchema<P, RECORD>;
         } else if (schema instanceof PARAMETER_SCHEMA_CLASSES[parameter as Parameter]) {
             parameterSchema = schema as ParameterSchema<P, RECORD>;
         } else {
@@ -396,7 +412,7 @@ export class ResolutionScope<
 
         let schema : ParameterSchema<P, RECORD>;
         if (childBase) {
-            schema = childBase[this.parameter as Parameter] as ParameterSchema<P, RECORD>;
+            schema = childBase[toSchemaProperty(this.parameter)] as ParameterSchema<P, RECORD>;
         } else {
             schema = buildEmptyParameterSchema<P, RECORD>(this.parameter);
         }
@@ -568,6 +584,7 @@ export class ResolutionScope<
                     undefined :
                     KeyResolutionErrorCode.KEY_NOT_PERMITTED;
             }
+            case Parameter.SORTS:
             case Parameter.SORT: {
                 const schema = this.schema as SortSchema<RECORD>;
                 if (schema.allowedIsUndefined) {

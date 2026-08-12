@@ -39,6 +39,20 @@ import type {
 } from './types';
 
 /**
+ * `ParseQueryOptions` still exposes the sort per-parameter flag under
+ * its single deprecated `sort` name (widening it to `sorts` is a
+ * later task's concern). Fold the canonical `sorts` parameter back
+ * onto it so `options` can still be indexed by parameter name.
+ */
+function toOptionsProperty<P extends `${Parameter}`>(
+    parameter: P,
+) : Exclude<`${Parameter}`, `${Parameter.SORTS}`> {
+    return parameter === Parameter.SORTS ?
+        Parameter.SORT :
+        parameter as Exclude<`${Parameter}`, `${Parameter.SORTS}`>;
+}
+
+/**
  * Shared query parse orchestration. Dialect packages supply the
  * per-parameter sub-parsers; this base owns the composition:
  * parameter key lookup, relation gating and the delegation order
@@ -483,7 +497,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             return true;
         }
 
-        const flag = options[parameter];
+        const flag = options[toOptionsProperty(parameter)];
 
         return typeof flag === 'boolean' && !flag;
     }

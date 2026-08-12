@@ -36,7 +36,7 @@ export class SortSchema<
     // ---------------------------------------------------------
 
     constructor(input: SortOptions<T, CONTEXT> = {}) {
-        super(input, Parameter.SORT);
+        super(input, Parameter.SORTS);
 
         this.allowed = [];
         this.allowedIsUndefined = true;

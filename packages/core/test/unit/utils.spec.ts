@@ -6,8 +6,10 @@
  */
 
 import {
+    Parameter,
     isObject,
     isPropertySet,
+    normalizeParameter,
     parseKey,
     stringifyKey,
 } from '../../src';
@@ -77,5 +79,25 @@ describe('src/utils/*.ts', () => {
     it('should detect set properties', () => {
         expect(isPropertySet({ foo: undefined }, 'foo')).toBeTruthy();
         expect(isPropertySet({}, 'foo' as never)).toBeFalsy();
+    });
+});
+
+describe('src/utils/parameter.ts', () => {
+    it('should fold the deprecated sort spelling onto sorts', () => {
+        expect(normalizeParameter(Parameter.SORT)).toBe(Parameter.SORTS);
+        expect(normalizeParameter('sort')).toBe('sorts');
+    });
+
+    it('should pass every other parameter through unchanged', () => {
+        expect(normalizeParameter('fields')).toBe('fields');
+        expect(normalizeParameter('filters')).toBe('filters');
+        expect(normalizeParameter('pagination')).toBe('pagination');
+        expect(normalizeParameter('relations')).toBe('relations');
+        expect(normalizeParameter('sorts')).toBe('sorts');
+    });
+
+    it('should keep the deprecated enum member value stable', () => {
+        expect(Parameter.SORT).toBe('sort');
+        expect(Parameter.SORTS).toBe('sorts');
     });
 });

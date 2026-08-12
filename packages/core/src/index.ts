@@ -16,6 +16,7 @@ export * from './types';
 export {
     isObject,
     isPropertySet,
+    normalizeParameter,
     parseKey,
     stringifyKey,
 } from './utils';

@@ -339,7 +339,7 @@ describe('src/parser/parameter/validate.ts', () => {
             });
 
             expect(scopes).toEqual([{
-                parameter: Parameter.SORT,
+                parameter: Parameter.SORTS,
                 path: '',
                 schema: undefined,
             }]);
