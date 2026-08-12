@@ -280,10 +280,9 @@ Operators without a Prisma equivalent raise a typed `AdapterError` (`FEATURE_UNS
 - `size`: no array-length filter
 - the `$this` element marker: the element itself is not addressable
 
-Four further deviations are worth knowing:
+Three further deviations are worth knowing:
 
 - **Ordering by a to-many relation** is not expressible in Prisma (only `_count` is). Such a sort is emitted as written and rejected by Prisma.
-- **Same-element binding.** Two conditions on the same to-many path (`filter[items.title]` and `filter[items.color]`) bind to the *same* joined row in the SQL backends, but Prisma evaluates each `some` independently, so they may match different elements. Use [`elemMatch`](/guide/filters#elemmatch) when the conditions must hold for one and the same element; it maps to a single `some` scope and agrees on every backend.
 - **`elemMatch` targets a to-many relation.** Applying it to a to-one relation emits `some`, which Prisma rejects.
 - **SQLite compares case-sensitively.** It has no `mode: 'insensitive'` and its `=` is case-sensitive, so the case-insensitive default does not hold there. `contains`/`startsWith`/`endsWith` are ASCII-case-insensitive via `LIKE`. Column-level `COLLATE NOCASE` is the fix. This is measured by the engine suite, not assumed.
 

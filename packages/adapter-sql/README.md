@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@rapiq/adapter-sql"><img src="https://img.shields.io/npm/v/@rapiq/adapter-sql/beta?color=%23a21caf&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/adapter-sql"><img src="https://img.shields.io/npm/v/@rapiq/adapter-sql?color=%23a21caf&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@rapiq/adapter-sql"><img src="https://img.shields.io/npm/types/@rapiq/adapter-sql?color=%23db2777" alt="types"></a>
   <a href="https://github.com/tada5hi/rapiq/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@rapiq/adapter-sql?color=blue" alt="License: MIT"></a>
 </p>
@@ -94,6 +94,7 @@ The package deliberately stops at fragments: composing the final `SELECT`, in pa
 | **[@rapiq/adapter-sql](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-sql)** | Dialect-agnostic SQL fragment adapter (pg, mysql, sqlite, mssql, oracle) |
 | [@rapiq/adapter-typeorm](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-typeorm) | Apply a query to a TypeORM `SelectQueryBuilder` |
 | [@rapiq/adapter-prisma](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-prisma) | Serialize a query into a Prisma argument object |
+| [@rapiq/adapter-drizzle](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-drizzle) | Serialize a query into a Drizzle relational query config |
 | [@rapiq/adapter-memory](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-memory) | Evaluate a query against in-memory objects & arrays |
 
 ## Documentation

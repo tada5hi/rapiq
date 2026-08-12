@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@rapiq/adapter-drizzle"><img src="https://img.shields.io/npm/v/@rapiq/adapter-drizzle/beta?color=%23a21caf&label=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@rapiq/adapter-drizzle"><img src="https://img.shields.io/npm/v/@rapiq/adapter-drizzle?color=%23a21caf&label=npm" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@rapiq/adapter-drizzle"><img src="https://img.shields.io/npm/types/@rapiq/adapter-drizzle?color=%23db2777" alt="types"></a>
   <a href="https://github.com/tada5hi/rapiq/blob/master/LICENSE"><img src="https://img.shields.io/npm/l/@rapiq/adapter-drizzle?color=blue" alt="License: MIT"></a>
 </p>
@@ -112,6 +112,25 @@ const { config } = adapter.execute(query, {
 ```
 
 The merge rules behind `base` are exported as `mergeConfig(base, override)` for use outside the adapter.
+
+## The rapiq family
+
+| Package | Purpose |
+|---|---|
+| [@rapiq/core](https://github.com/tada5hi/rapiq/tree/master/packages/core) | Query AST, typed build layer & schema system (the shared foundation) |
+| [@rapiq/parser-simple](https://github.com/tada5hi/rapiq/tree/master/packages/parser-simple) | Parse plain object/array input (the "simple" dialect) |
+| [@rapiq/parser-expression](https://github.com/tada5hi/rapiq/tree/master/packages/parser-expression) | Parse filter expressions like `and(eq(name,'John'), gte(age,'18'))` |
+| [@rapiq/parser-mongo](https://github.com/tada5hi/rapiq/tree/master/packages/parser-mongo) | Parse MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
+| [@rapiq/codec-url](https://github.com/tada5hi/rapiq/tree/master/packages/codec-url) | URL query-string transport codec |
+| [@rapiq/adapter-sql](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-sql) | Dialect-agnostic SQL fragment adapter (pg, mysql, sqlite, mssql, oracle) |
+| [@rapiq/adapter-typeorm](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-typeorm) | Apply a query to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/adapter-prisma](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-prisma) | Serialize a query into a Prisma argument object |
+| **[@rapiq/adapter-drizzle](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-drizzle)** | Serialize a query into a Drizzle relational query config |
+| [@rapiq/adapter-memory](https://github.com/tada5hi/rapiq/tree/master/packages/adapter-memory) | Evaluate a query against in-memory objects & arrays |
+
+## Documentation
+
+Full guide (dialect presets, table metadata, limitations): [rapiq.tada5hi.net/packages/adapter-drizzle](https://rapiq.tada5hi.net/packages/adapter-drizzle)
 
 ## License
 
