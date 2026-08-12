@@ -6,6 +6,7 @@
  */
 
 import type { ObjectLiteral } from '../types';
+import { isPropertySet } from './object';
 
 /**
  * Spellings that are not input keys but are close enough to be typed
@@ -53,6 +54,10 @@ export function assertKnownInputKeys(
  * An `undefined` side (including one that is present but unset, e.g.
  * `{ sorts: undefined }` from a spread migration wrapper) never
  * triggers the ambiguity check, since there is nothing to drop.
+ *
+ * Presence is still checked as an OWN property (`isPropertySet`), not a
+ * bare `typeof` read: a bare read walks the prototype chain, so an
+ * array input would see `Array.prototype.sort` as a "defined" alias.
  */
 export function resolveAliasedKey(
     input: ObjectLiteral,
@@ -60,8 +65,8 @@ export function resolveAliasedKey(
     alias: string,
     createError: (canonical: string, alias: string) => Error,
 ) : unknown {
-    const hasCanonical = typeof input[canonical] !== 'undefined';
-    const hasAlias = typeof input[alias] !== 'undefined';
+    const hasCanonical = isPropertySet(input, canonical) && typeof input[canonical] !== 'undefined';
+    const hasAlias = isPropertySet(input, alias) && typeof input[alias] !== 'undefined';
 
     if (hasCanonical && hasAlias) {
         throw createError(canonical, alias);

@@ -124,6 +124,13 @@ describe('src/utils/input.ts', () => {
             createError,
         )).toBeUndefined();
     });
+
+    it('should treat a prototype-inherited key as absent, not defined', () => {
+        // an array inherits `sort` (Array.prototype.sort) without ever
+        // owning it: a bare `typeof input[key] !== 'undefined'` read
+        // would see it as a defined alias and misfire.
+        expect(resolveAliasedKey([], 'sorts', 'sort', createError)).toBeUndefined();
+    });
 });
 
 describe('src/utils/parameter.ts', () => {

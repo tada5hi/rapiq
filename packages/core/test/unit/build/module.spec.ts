@@ -462,6 +462,19 @@ describe('src/build/module.ts', () => {
         expect(output.pagination.limit).toBeUndefined();
     });
 
+    it('should treat an array input as empty rather than reading its inherited sort method', () => {
+        // regression guard: an array has no own `sorts`/`sort` property, but
+        // it inherits `Array.prototype.sort`; resolveAliasedKey must not
+        // mistake that inherited method for a supplied `sort` alias.
+        const output = defineQuery([] as any);
+
+        expect(output.fields.value).toEqual([]);
+        expect(output.filters.value).toEqual([]);
+        expect(output.relations.value).toEqual([]);
+        expect(output.sorts.value).toEqual([]);
+        expect(output.pagination.limit).toBeUndefined();
+    });
+
     it('should accept a compound helper tree as filters value', () => {
         const output = defineQuery<User>({ filters: or(gte('age', 18), eq('email', null)) });
 

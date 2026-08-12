@@ -18,11 +18,11 @@ import type {
 import { Query } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import { 
-    isObject, 
-    isPropertySet, 
-    normalizeParameter, 
-    resolveAliasedKey, 
+import {
+    isObject,
+    isPropertySet,
+    normalizeParameter,
+    resolveAliasedKey,
 } from '../utils';
 import { BaseParser } from './base';
 import { applyFiltersIndexPolicy, applySortIndexPolicy } from './index-policy';

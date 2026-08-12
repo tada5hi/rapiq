@@ -58,9 +58,9 @@ describe('src/schema/module.ts', () => {
         const output = schema.describe();
 
         expect(output.sorts).toEqual({
-            allowed: ['id'], 
-            default: null, 
-            indexed: false, 
+            allowed: ['id'],
+            default: null,
+            indexed: false,
         });
         expect(output.sort).toEqual(output.sorts);
     });
