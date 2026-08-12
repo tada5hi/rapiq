@@ -51,6 +51,11 @@ describe('src/schema/**/describe', () => {
                 default: { name: 'DESC' },
                 indexed: false,
             },
+            sorts: {
+                allowed: ['id', 'name'],
+                default: { name: 'DESC' },
+                indexed: false,
+            },
         });
     });
 
@@ -66,9 +71,14 @@ describe('src/schema/**/describe', () => {
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
             sort: {
-                allowed: null, 
-                default: null, 
-                indexed: false, 
+                allowed: null,
+                default: null,
+                indexed: false,
+            },
+            sorts: {
+                allowed: null,
+                default: null,
+                indexed: false,
             },
         });
     });

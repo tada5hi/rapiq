@@ -164,6 +164,10 @@ export type SchemaOptionsNormalized<
     filters: FiltersOptions<RECORD, CONTEXT> | FiltersSchema<RECORD, CONTEXT>,
     relations: RelationsOptions<RECORD, CONTEXT> | RelationsSchema<RECORD, CONTEXT>,
     pagination: PaginationOptions | PaginationSchema
+    sorts : SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT>,
+    /**
+     * @deprecated use {@link SchemaOptionsNormalized.sorts}. Removed in 3.0.
+     */
     sort : SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT>,
     /**
      * Ordered column lists of the record's storage indexes, consumed
@@ -221,5 +225,9 @@ export type SchemaDescription = {
     filters?: FiltersSchemaDescription,
     pagination?: PaginationSchemaDescription,
     relations?: RelationsSchemaDescription,
+    sorts?: SortSchemaDescription,
+    /**
+     * @deprecated use {@link SchemaDescription.sorts}. Removed in 3.0.
+     */
     sort?: SortSchemaDescription,
 };
