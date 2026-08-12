@@ -6,7 +6,7 @@
  */
 
 import type { Relations } from '../../../parameter';
-import type { Schema, SortSchema } from '../../../schema';
+import type { Schema, SortsSchema } from '../../../schema';
 import type {
     ObjectLiteral,
 } from '../../../types';
@@ -17,6 +17,6 @@ export type SortParseOptions<
     relations?: Relations,
     throwOnFailure?: boolean,
     strict?: boolean,
-    schema?: string | Schema<RECORD> | SortSchema<RECORD>,
+    schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context?: unknown,
 };

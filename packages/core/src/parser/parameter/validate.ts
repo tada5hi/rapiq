@@ -18,7 +18,7 @@ import type { MaybeAsync } from '../../types';
 
 /**
  * The slice of a parameter schema the key-validation pass consumes —
- * implemented by RelationsSchema, FieldsSchema and SortSchema. The
+ * implemented by RelationsSchema, FieldsSchema and SortsSchema. The
  * batched members are optional, so an external implementation without
  * them stays source compatible and is simply driven per key.
  */

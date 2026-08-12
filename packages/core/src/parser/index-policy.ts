@@ -25,7 +25,7 @@ import type {
     IndexesResolver,
     Schema,
     SchemaRegistry,
-    SortSchema,
+    SortsSchema,
 } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
@@ -163,7 +163,7 @@ function collectClientSortKeys(
     output: ISorts,
     scope: ResolutionScope<any, any>,
 ) : string[] {
-    const rootSchema = scope.schema as SortSchema;
+    const rootSchema = scope.schema as SortsSchema;
     const rootDefaults = rootSchema.defaultIsUndefined ? null : rootSchema.default;
 
     const cache = new Map<string, Record<string, string> | null>();
@@ -184,7 +184,7 @@ function collectClientSortKeys(
             if (path !== '') {
                 const child = scope.descend(path);
                 if (child instanceof ResolutionScope) {
-                    const childSchema = child.schema as SortSchema;
+                    const childSchema = child.schema as SortsSchema;
                     if (!childSchema.defaultIsUndefined) {
                         defaults = childSchema.default;
                     }
@@ -268,12 +268,12 @@ export function applySortIndexPolicy<
 >(
     output: ISorts,
     registry: SchemaRegistry,
-    schema?: string | Schema<RECORD> | SortSchema<RECORD>,
+    schema?: string | Schema<RECORD> | SortsSchema<RECORD>,
     context: IndexPolicyContext = {},
 ) : ISorts {
     const scope = ResolutionScope.for(registry, Parameter.SORT, schema, { throwOnFailure: context.throwOnFailure });
 
-    const sortSchema = scope.schema as SortSchema<RECORD>;
+    const sortSchema = scope.schema as SortsSchema<RECORD>;
     if (!sortSchema.indexed || output.value.length === 0) {
         return output;
     }

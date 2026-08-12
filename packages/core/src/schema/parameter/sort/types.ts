@@ -11,17 +11,17 @@ import type {
 import type { SortDirection } from './constants';
 import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
 
-export type SortOptionDefault<T extends Record<string, any>> = {
+export type SortsOptionDefault<T extends Record<string, any>> = {
     [K in SimpleKeys<T>]?: `${SortDirection}`
 };
 
-export type SortOptions<
+export type SortsOptions<
     T extends Record<string, any> = Record<string, any>,
     CONTEXT = any,
 > = KeyValidatableSchemaOptions<CONTEXT> & {
     allowed?: SimpleKeys<T>[],
     mapping?: Record<string, string>,
-    default?: SortOptionDefault<T>,
+    default?: SortsOptionDefault<T>,
     /**
      * Check requested sort keys against the schema-level `indexes`
      * declaration: they must form a leftmost prefix of one index,
@@ -36,11 +36,11 @@ export type SortOptions<
      *
      * An ordering is not a row set, so there is nothing for an
      * `ICondition` answer to gate and it counts as a rejection.
-     * Mutually exclusive with {@link SortOptions.validateMany}.
+     * Mutually exclusive with {@link SortsOptions.validateMany}.
      */
     validate?: KeyValidator<CONTEXT>,
     /**
-     * Batched form of {@link SortOptions.validate}: called once per
+     * Batched form of {@link SortsOptions.validate}: called once per
      * relation position with every sort key this schema governs there.
      * A key missing from the returned record is rejected.
      * Mutually exclusive with `validate`.
@@ -54,7 +54,7 @@ export type SortOptions<
  * constraint was never declared (fallback semantics apply); an empty
  * array is an explicit "nothing".
  */
-export type SortSchemaDescription = {
+export type SortsSchemaDescription = {
     allowed: string[] | null,
     default: Record<string, `${SortDirection}`> | null,
     indexed: boolean,

@@ -27,7 +27,7 @@ import type {
     ISorts,
 } from '../parameter';
 import { FilterCompoundOperator, FilterFieldOperator } from '../schema';
-import type { FiltersSchema, SortSchema } from '../schema';
+import type { FiltersSchema, SortsSchema } from '../schema';
 import { parseKey } from '../utils';
 import { buildFiltersDefaults } from './parameter/filters/validate';
 
@@ -78,7 +78,7 @@ export function pruneFieldsByRelations(fields: IFields, rejected: string[]) : IF
 export function pruneSortsByRelations(
     sorts: ISorts,
     rejected: string[],
-    schema?: SortSchema,
+    schema?: SortsSchema,
 ) : ISorts {
     if (rejected.length === 0) {
         return sorts;
@@ -272,7 +272,7 @@ function isConditionPreserved(node: ICondition) : boolean {
     return false;
 }
 
-export function buildSortDefaults(schema: SortSchema) : Sorts {
+export function buildSortDefaults(schema: SortsSchema) : Sorts {
     const output = new Sorts();
     if (!schema.default) {
         return output;

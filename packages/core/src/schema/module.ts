@@ -10,15 +10,15 @@ import {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
-    SortSchema,
+    SortsSchema,
 
     defineFieldsSchema,
     defineFiltersSchema,
     definePaginationSchema,
     defineRelationsSchema,
-    defineSortSchema,
+    defineSortsSchema,
 } from './parameter';
-import type { SortOptions } from './parameter';
+import type { SortsOptions } from './parameter';
 import type {
     SchemaDescribeOptions,
     SchemaDescription,
@@ -56,13 +56,13 @@ export class Schema<
 
     public readonly relations: RelationsSchema<RECORD, CONTEXT>;
 
-    public readonly sorts: SortSchema<RECORD, CONTEXT>;
+    public readonly sorts: SortsSchema<RECORD, CONTEXT>;
 
     /**
      * @deprecated use {@link Schema.sorts}. The identical instance.
      * Removed in 3.0.
      */
-    public readonly sort: SortSchema<RECORD, CONTEXT>;
+    public readonly sort: SortsSchema<RECORD, CONTEXT>;
 
     public readonly indexes : string[][];
 
@@ -108,12 +108,12 @@ export class Schema<
             Parameter.SORTS,
             Parameter.SORT,
             (canonical, alias) => SchemaError.keyAmbiguous(canonical, alias),
-        ) as SortOptions<RECORD, CONTEXT> | SortSchema<RECORD, CONTEXT> | undefined;
+        ) as SortsOptions<RECORD, CONTEXT> | SortsSchema<RECORD, CONTEXT> | undefined;
 
-        if (sortsInput instanceof SortSchema) {
+        if (sortsInput instanceof SortsSchema) {
             this.sorts = sortsInput;
         } else {
-            this.sorts = defineSortSchema(sortsInput);
+            this.sorts = defineSortsSchema(sortsInput);
         }
 
         this.sort = this.sorts;

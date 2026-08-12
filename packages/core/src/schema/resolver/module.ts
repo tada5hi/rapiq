@@ -22,7 +22,7 @@ import {
     FiltersSchema,
     PaginationSchema,
     RelationsSchema,
-    SortSchema,
+    SortsSchema,
 } from '../parameter';
 import type { SchemaRegistry } from '../registry';
 import { KeyResolutionErrorCode } from './constants';
@@ -38,8 +38,8 @@ const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FILTERS]: FiltersSchema,
     [Parameter.PAGINATION]: PaginationSchema,
     [Parameter.RELATIONS]: RelationsSchema,
-    [Parameter.SORTS]: SortSchema,
-    [Parameter.SORT]: SortSchema,
+    [Parameter.SORTS]: SortsSchema,
+    [Parameter.SORT]: SortsSchema,
 } as const;
 
 const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
@@ -572,7 +572,7 @@ export class ResolutionScope<
             }
             case Parameter.SORTS:
             case Parameter.SORT: {
-                const schema = this.schema as SortSchema<RECORD>;
+                const schema = this.schema as SortsSchema<RECORD>;
                 if (schema.allowedIsUndefined) {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;

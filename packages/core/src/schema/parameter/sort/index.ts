@@ -7,5 +7,6 @@
 
 export * from './constants';
 export * from './define';
+export * from './deprecated';
 export * from './schema';
 export * from './types';
