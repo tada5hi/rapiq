@@ -24,8 +24,23 @@ import type {
     SchemaOptions,
 } from './types';
 import { Parameter } from '../constants';
+import { SchemaError } from '../errors';
 import type { ObjectLiteral } from '../types';
+import { assertKnownInputKeys } from '../utils';
 import { BaseSchema } from './base';
+
+const SCHEMA_INPUT_KEYS : string[] = [
+    'name',
+    'throwOnFailure',
+    'strict',
+    'schemaMapping',
+    'indexes',
+    Parameter.FIELDS,
+    Parameter.FILTERS,
+    Parameter.PAGINATION,
+    Parameter.RELATIONS,
+    Parameter.SORT,
+];
 
 export class Schema<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -49,6 +64,12 @@ export class Schema<
 
     constructor(options: SchemaOptions<RECORD, CONTEXT> = {}) {
         super(options);
+
+        assertKnownInputKeys(
+            options,
+            SCHEMA_INPUT_KEYS,
+            (key, suggestion) => SchemaError.keyUnknown(key, suggestion),
+        );
 
         if (options.fields instanceof FieldsSchema) {
             this.fields = options.fields;

@@ -64,4 +64,13 @@ export class SchemaError extends BaseError {
             code: ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER,
         });
     }
+
+    static keyUnknown(key: string, suggestion?: string) {
+        return new this({
+            message: suggestion ?
+                `The schema key ${key} is unknown. Did you mean ${suggestion}?` :
+                `The schema key ${key} is unknown.`,
+            code: ErrorCode.KEY_UNKNOWN,
+        });
+    }
 }
