@@ -72,7 +72,7 @@ Anything outside the schema's allow-lists is silently dropped; set `throwOnFailu
 
 The parser is transport-agnostic: it reads the canonical parameter keys (`fields`, `filters`, `pagination`, `relations`, `sorts`), and additionally accepts the deprecated `sort` spelling as an alias for `sorts`. It knows nothing about URL wire names: to consume a raw URL query string or an express-style `req.query` object (JSON:API wire names like `filter`, `page`, `include`), use the [URL codec](https://www.npmjs.com/package/@rapiq/codec-url): its decoder maps the wire names and delegates to this parser.
 
-Per-parameter parser classes (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser`) are exported for parsing a single parameter.
+Per-parameter parser classes (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortsParser`) are exported for parsing a single parameter.
 
 ## The rapiq family
 

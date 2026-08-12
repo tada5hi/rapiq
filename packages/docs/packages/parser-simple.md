@@ -72,11 +72,11 @@ Per-parameter input shapes and the wire operator syntax are documented on the pa
 - [Filters](/guide/filters): `!`, `<`, `<=`, `>`, `>=`, `~…~`, comma lists, `null`
 - [Pagination](/guide/pagination): `{ limit, offset }`
 - [Relations](/guide/relations): comma strings, arrays, dotted paths
-- [Sort](/guide/sort): `-` prefix, comma lists, direction objects
+- [Sorts](/guide/sort): `-` prefix, comma lists, direction objects
 
 ## Per-parameter parsers
 
-Each parameter also has a standalone parser class (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortParser`) with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
+Each parameter also has a standalone parser class (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortsParser`) with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
 
 ### Typed filter input
 

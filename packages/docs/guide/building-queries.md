@@ -140,7 +140,7 @@ The URL codec writes the [expression dialect](/packages/codec-url#expression-dia
 | Parameter | Input forms |
 |---|---|
 | `fields` | array of keys with optional `+`/`-` prefix (`['id', '+email', '-password']`), per-relation record (`{ realm: ['id'] }`), or tuple `[keys, record]`; see [Fields](/guide/fields) |
-| `sorts` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`); see [Sort](/guide/sort) |
+| `sorts` | key with optional `-` prefix (`'-created_at'`), array of such keys, or record (`{ created_at: 'DESC', realm: { name: 'ASC' } }`); see [Sorts](/guide/sort) |
 | `relations` | dot-path names (`['realm', 'items.user']`) or record (`{ realm: true, items: { user: true } }`); see [Relations](/guide/relations) |
 | `pagination` | `{ limit?, offset? }`; see [Pagination](/guide/pagination) |
 

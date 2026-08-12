@@ -54,11 +54,11 @@ The v2 URL codec writes stamped expression filters by default. Its decoder still
 
 In v1, `eq`/`in` on strings delegated case behavior to the database: the same query matched `Super Hero` for `super hero` on MySQL (`*_ci` collation) but not on Postgres. v2 normalizes the whole equality family (`eq`, `ne`, `in`, `nin`) **and** the anchored operators (`contains`, `startsWith`, `endsWith`) to case-insensitive string matching on every backend; `@rapiq/adapter-sql` renders `lower(field) = lower(?)` on case-sensitive dialects. Opt identifier/token fields out with the schema's [`caseSensitive`](/guide/filters#case-sensitivity) list.
 
-### Sort: tuple-group allow-lists replaced by index declarations (breaking)
+### Sorts: tuple-group allow-lists replaced by index declarations (breaking)
 
-In v1 (and early v2 betas), `sort.allowed` accepted a nested list (`[['name', 'age']]`) matched all-or-nothing against the request. v2 removes the nested form: `allowed` is a flat list, and combination constraints come from the schema-level [`indexes` declaration](/guide/schemas#indexes) with `sort: { indexed: true }`. The prefix semantics are strictly more permissive for the combinations you declare: an index `['name', 'age']` permits sorting by `name` alone or by `name, age`, where a tuple group demanded the exact pair.
+In v1 (and early v2 betas), `sort.allowed` accepted a nested list (`[['name', 'age']]`) matched all-or-nothing against the request. v2 removes the nested form: `allowed` is a flat list, and combination constraints come from the schema-level [`indexes` declaration](/guide/schemas#indexes) with `sorts: { indexed: true }`. The prefix semantics are strictly more permissive for the combinations you declare: an index `['name', 'age']` permits sorting by `name` alone or by `name, age`, where a tuple group demanded the exact pair.
 
-Separately, the input key itself is renamed: v2 uses `sorts` (`defineQuery`, `defineSchema`, `parse()` input, `Query.sorts`), and the v1 spelling `sort` is still accepted but deprecated for removal in 3.0. The URL wire parameter is unaffected, still `sort`. See [Sort](/guide/sort).
+Separately, the input key itself is renamed: v2 uses `sorts` (`defineQuery`, `defineSchema`, `parse()` input, `Query.sorts`), and the v1 spelling `sort` is still accepted but deprecated for removal in 3.0. The URL wire parameter is unaffected, still `sort`. See [Sorts](/guide/sort).
 
 ## Coming from typeorm-extension?
 

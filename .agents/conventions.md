@@ -96,5 +96,5 @@ This builds a cumulative mapping over time so future work can quickly find corre
 
 | Change | Docs to update |
 |--------|----------------|
-| Parameter syntax/semantics (fields, filters, sort, …) | `packages/docs/guide/` API reference pages |
+| Parameter syntax/semantics (fields, filters, sorts, …) | `packages/docs/guide/` API reference pages |
 | New package or export | `packages/docs/guide/` + root `README.md` |

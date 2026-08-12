@@ -22,7 +22,7 @@ import { createURLCodec } from '@rapiq/codec-url';
 
 const query = defineQuery<User>({
     filters: { age: { $gte: 18 } },
-    sort: '-age',
+    sorts: '-age',
     pagination: { limit: 25 },
 });
 
@@ -41,7 +41,7 @@ registry.add(defineSchema<User>({
     name: 'user',
     fields: { allowed: ['id', 'name', 'age'] },
     filters: { allowed: ['id', 'name', 'age'] },
-    sort: { allowed: ['id', 'name', 'age'] },
+    sorts: { allowed: ['id', 'name', 'age'] },
     pagination: { maxLimit: 50 },
 }));
 

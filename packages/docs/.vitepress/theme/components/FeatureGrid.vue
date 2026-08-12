@@ -9,7 +9,7 @@ const features: Feature[] = [
     {
         icon: '🌐',
         title: 'JSON:API-style',
-        detail: 'Fields, filters, relations, pagination & sort: one consistent query scheme based on the JSON:API specification.',
+        detail: 'Fields, filters, relations, pagination & sorts: one consistent query scheme based on the JSON:API specification.',
     },
     {
         icon: '🌲',

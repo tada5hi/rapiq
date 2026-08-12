@@ -144,9 +144,9 @@ const userSchema = defineSchema<User>({
 
 **Relations.** A dotted key such as `items.title` checks the declaration of the schema governing `items` (resolved through the registry and `schemaMapping`), so each schema declares its own indexes. A governing schema without a declaration contributes no anchors and fails cover mode.
 
-**Server-authored conditions.** The filters `default` and sort defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
+**Server-authored conditions.** The filters `default` and sorts defaults bypass the check, and the check runs on the final tree after [`validate` hooks](#validate-hooks-parse-context): a policy residual that conjoins an indexed condition (e.g. `eq('realm_id', actorRealm)`) legitimately anchors the executed query.
 
-**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sort to its defaults), or throws a typed error with code `KEY_COMBINATION_NOT_INDEXED` under `throwOnFailure`. Two guardrails harden the filters drop path: a violating tree that carries a [preserved](/guide/filters#schema-options) condition refuses to drop it and throws `SCHEMA_PRESERVED_CONDITION_PRUNED` (mirroring relation pruning), and a violation on a schema without a filters `default` always throws, since dropping to an empty filter set would execute exactly the unfiltered scan the policy exists to prevent.
+**Failure** follows the standard [drop vs. throw](#failure-behavior-drop-vs-throw) policy: a violating parameter is dropped whole (filters fall back to the `default`, sorts to their defaults), or throws a typed error with code `KEY_COMBINATION_NOT_INDEXED` under `throwOnFailure`. Two guardrails harden the filters drop path: a violating tree that carries a [preserved](/guide/filters#schema-options) condition refuses to drop it and throws `SCHEMA_PRESERVED_CONDITION_PRUNED` (mirroring relation pruning), and a violation on a schema without a filters `default` always throws, since dropping to an empty filter set would execute exactly the unfiltered scan the policy exists to prevent.
 
 ::: warning Footgun
 `indexed` without any reachable `indexes` declaration (own or on related schemas) can never be satisfied: every non-empty request drops to the `default`, or throws when there is none. Declaring `indexes: []` means exactly that: nothing is indexed.
@@ -402,7 +402,7 @@ try {
 }
 ```
 
-Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
+Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
 ## Next steps
 

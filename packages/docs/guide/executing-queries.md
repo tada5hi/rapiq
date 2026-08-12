@@ -14,7 +14,7 @@ All five consume the same AST, and they agree on semantics: the records a query 
 
 ## TypeORM
 
-The most common server setup: the adapter applies filters as parameterized `WHERE` conditions, relations as joins, fields/sort/pagination as `select`/`orderBy`/`take`+`skip`:
+The most common server setup: the adapter applies filters as parameterized `WHERE` conditions, relations as joins, fields/sorts/pagination as `select`/`orderBy`/`take`+`skip`:
 
 ```typescript
 import { TypeormAdapter } from '@rapiq/adapter-typeorm';

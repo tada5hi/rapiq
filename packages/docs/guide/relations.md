@@ -98,7 +98,7 @@ A schema `default` filter is exempt from pruning: it is the server-authored base
 
 ## Interaction with other parameters
 
-Parsed relations feed back into the other parameter parsers: fields, filters and sort input that addresses a relation (`items.id`, `realm.name`) is only accepted when the relation was requested and allowed. Request the relation first, then reference its fields. A [validate hook](#validate-hooks) participates in the same wiring: it also authorizes the relations those keys traverse.
+Parsed relations feed back into the other parameter parsers: fields, filters and sorts input that addresses a relation (`items.id`, `realm.name`) is only accepted when the relation was requested and allowed. Request the relation first, then reference its fields. A [validate hook](#validate-hooks) participates in the same wiring: it also authorizes the relations those keys traverse.
 
 ## On violation
 

@@ -1,4 +1,4 @@
-# Sort
+# Sorts
 
 Order the collection by one or more keys, ascending or descending.
 
@@ -81,4 +81,4 @@ An ordering is not a row set, so there is nothing for an `ICondition` verdict to
 
 ## On violation
 
-Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortParseError` instead.
+Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortsParseError` instead.

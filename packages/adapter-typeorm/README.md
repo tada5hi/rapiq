@@ -150,7 +150,7 @@ The SQL dialect is resolved from the attached builder's connection type; joins a
 
 ### Applying part of a query
 
-`adapter.execute()` runs everything, but the per-parameter sub-adapters (`adapter.filters`, `adapter.sort`, `adapter.fields`, …) are public: pair one with its matching [@rapiq/adapter-sql](https://www.npmjs.com/package/@rapiq/adapter-sql) visitor to apply a single parameter:
+`adapter.execute()` runs everything, but the per-parameter sub-adapters (`adapter.filters`, `adapter.sorts`, `adapter.fields`, …) are public: pair one with its matching [@rapiq/adapter-sql](https://www.npmjs.com/package/@rapiq/adapter-sql) visitor to apply a single parameter:
 
 ```typescript
 import { FiltersVisitor } from '@rapiq/adapter-sql';

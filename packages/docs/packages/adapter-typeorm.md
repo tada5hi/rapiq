@@ -205,7 +205,7 @@ Schemas produced by `defineSchemaWithEntity` don't need this: their structure co
 
 ### Declared indexes
 
-An [`indexes`](/guide/schemas#indexes) declaration is a promise rapiq trusts: it never inspects the database, it just enforces the combinations an `indexed` filters or sort policy allows. Drift turns that promise into a lie, so `assertSchemaMatchesEntity` verifies each declared sequence on top of the key rules: it must be a **leftmost prefix** of the entity's primary key, of a unique constraint, or of an index. Prefix rather than equality, since a real `(realm_id, email)` index also serves a declared `['realm_id']`:
+An [`indexes`](/guide/schemas#indexes) declaration is a promise rapiq trusts: it never inspects the database, it just enforces the combinations an `indexed` filters or sorts policy allows. Drift turns that promise into a lie, so `assertSchemaMatchesEntity` verifies each declared sequence on top of the key rules: it must be a **leftmost prefix** of the entity's primary key, of a unique constraint, or of an index. Prefix rather than equality, since a real `(realm_id, email)` index also serves a declared `['realm_id']`:
 
 ```typescript
 const userSchema = defineSchema<User>({
@@ -243,7 +243,7 @@ const adapter = new TypeormAdapter({ queryBuilder });
 adapter.execute(new Query({ filters: query.filters }));
 ```
 
-For lower-level control, each per-parameter sub-adapter (`adapter.filters`, `adapter.fields`, `adapter.sort`, `adapter.pagination`, `adapter.relations`) pairs with the matching `@rapiq/adapter-sql` visitor (`FiltersVisitor`, `FieldsVisitor`, `SortsVisitor`, `PaginationVisitor`, `RelationsVisitor`) and applies via its own `execute()`; the query builder is already bound from the adapter's construction.
+For lower-level control, each per-parameter sub-adapter (`adapter.filters`, `adapter.fields`, `adapter.sorts`, `adapter.pagination`, `adapter.relations`) pairs with the matching `@rapiq/adapter-sql` visitor (`FiltersVisitor`, `FieldsVisitor`, `SortsVisitor`, `PaginationVisitor`, `RelationsVisitor`) and applies via its own `execute()`; the query builder is already bound from the adapter's construction.
 
 ## End-to-end example
 

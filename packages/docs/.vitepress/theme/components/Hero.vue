@@ -50,7 +50,7 @@ const query = computed(() => parser.parse({
         ...(name.value ? { name: `~${name.value}~` } : {}),
         ...(Number.isFinite(age.value) ? { age: `>=${age.value}` } : {}),
     },
-    sort: sort.value,
+    sorts: sort.value,
     pagination: { limit: limit.value },
 }));
 

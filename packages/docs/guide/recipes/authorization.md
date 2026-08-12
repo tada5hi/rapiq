@@ -166,7 +166,7 @@ const scoped = new Query({
 
 `@rapiq/adapter-memory` aims for **SQL parity** (null handling, string matching and relation-path binding match what the SQL/TypeORM adapters produce), so the guard and the query cannot drift apart. Semantics details: [@rapiq/adapter-memory](/packages/adapter-memory#filter-semantics).
 
-For whole-query checks (fields, sort, pagination included), compile once and reuse:
+For whole-query checks (fields, sorts, pagination included), compile once and reuse:
 
 ```typescript
 import { compileQuery } from '@rapiq/adapter-memory';

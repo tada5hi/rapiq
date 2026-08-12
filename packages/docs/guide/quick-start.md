@@ -88,7 +88,7 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-Fields, relations, sort and pagination follow the schema's drop-vs-throw policy. Expression-filter violations are precise and reject the request; legacy simple filters drop invalid leaves unless `throwOnFailure` is enabled. See [Schemas & Validation](/guide/schemas).
+Fields, relations, sorts and pagination follow the schema's drop-vs-throw policy. Expression-filter violations are precise and reject the request; legacy simple filters drop invalid leaves unless `throwOnFailure` is enabled. See [Schemas & Validation](/guide/schemas).
 
 ## 4. Execute (server)
 

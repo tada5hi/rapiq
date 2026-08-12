@@ -13,7 +13,7 @@ BaseError { code: ErrorCode }
 │   ├── FiltersParseError
 │   ├── PaginationParseError
 │   ├── RelationsParseError
-│   └── SortParseError
+│   └── SortsParseError
 ├── AdapterError          backends & encoders: query exceeds the target's subset
 ├── CodecError            codec registry: unresolvable dialect
 └── SchemaError           schema registry: misconfigured or unresolvable schema
