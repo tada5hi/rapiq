@@ -34,7 +34,7 @@ const URL_PARAMETER_MAP = [
     [URLParameter.FILTERS, Parameter.FILTERS],
     [URLParameter.PAGINATION, Parameter.PAGINATION],
     [URLParameter.RELATIONS, Parameter.RELATIONS],
-    [URLParameter.SORT, Parameter.SORT],
+    [URLParameter.SORT, Parameter.SORTS],
 ] as const;
 
 /**

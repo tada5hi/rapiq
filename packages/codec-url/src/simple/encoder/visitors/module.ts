@@ -27,7 +27,7 @@ import type {
     ISorts,
     ISortsVisitor,
 } from '@rapiq/core';
-import { Parameter } from '@rapiq/core';
+import { Parameter, normalizeParameter } from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
 import { FieldsVisitor } from './fields';
@@ -95,7 +95,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
             expr.relations.accept(this.relations);
         }
 
-        if (!parameters || parameters.includes(Parameter.SORT)) {
+        if (!parameters || parameters.map((item) => normalizeParameter(item)).includes(Parameter.SORTS)) {
             expr.sorts.accept(this.sort);
         }
 

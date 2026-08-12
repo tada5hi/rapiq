@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '@rapiq/core';
+import { Parameter, normalizeParameter } from '@rapiq/core';
 import type {
     IQuery,
     ParseParameterOptions,
@@ -43,7 +43,7 @@ export function buildQueryParameters(input: IQuery) : `${Parameter}`[] {
     }
 
     if (input.sorts.value.length > 0) {
-        output.push(Parameter.SORT);
+        output.push(Parameter.SORTS);
     }
 
     return output;
@@ -64,8 +64,10 @@ export function intersectQueryParameters(
         return input;
     }
 
+    const normalized = mask.map((parameter) => normalizeParameter(parameter));
+
     return input.filter(
-        (parameter) => mask.includes(parameter),
+        (parameter) => normalized.includes(normalizeParameter(parameter)),
     );
 }
 

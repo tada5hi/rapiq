@@ -16,7 +16,7 @@ import type {
     ParseQueryOptions,
     SchemaRegistry,
 } from '@rapiq/core';
-import { Parameter } from '@rapiq/core';
+import { Parameter, normalizeParameter } from '@rapiq/core';
 import {
     SimpleURLEncoder,
 } from '../../simple/encoder';
@@ -168,7 +168,7 @@ export class ExpressionURLEncoder {
             (!parameters || parameters.includes(Parameter.RELATIONS)) ?
                 this.simple.encodeRelations(query.relations) :
                 null,
-            (!parameters || parameters.includes(Parameter.SORT)) ?
+            (!parameters || parameters.map((item) => normalizeParameter(item)).includes(Parameter.SORTS)) ?
                 this.simple.encodeSort(query.sorts) :
                 null,
         ].filter(Boolean);
