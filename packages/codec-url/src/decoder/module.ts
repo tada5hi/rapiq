@@ -127,6 +127,25 @@ export abstract class BaseURLDecoder {
         return this.parser.parseFields(normalizeFieldsWireInput(output), options);
     }
 
+    async decodeFieldsAsync(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : Promise<IFields | null> {
+        const output = parseQueryString(input);
+        if (!isObject(output)) {
+            return null;
+        }
+
+        if (isPropertySet(output, URLParameter.FIELDS)) {
+            return this.parser.parseFieldsAsync(
+                normalizeFieldsWireInput(output[URLParameter.FIELDS]),
+                options,
+            );
+        }
+
+        return this.parser.parseFieldsAsync(normalizeFieldsWireInput(output), options);
+    }
+
     decodeFilters(
         input: string,
         options: ParseParameterOptions = {},
@@ -178,6 +197,22 @@ export abstract class BaseURLDecoder {
         return this.parser.parsePagination(output, options);
     }
 
+    async decodePaginationAsync(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : Promise<IPagination | null> {
+        const output = parseQueryString(input);
+        if (!isObject(output)) {
+            return null;
+        }
+
+        if (isPropertySet(output, URLParameter.PAGINATION)) {
+            return this.parser.parsePaginationAsync(output[URLParameter.PAGINATION], options);
+        }
+
+        return this.parser.parsePaginationAsync(output, options);
+    }
+
     decodeRelations(
         input: string,
         options: ParseParameterOptions = {},
@@ -194,6 +229,22 @@ export abstract class BaseURLDecoder {
         return this.parser.parseRelations(output, options);
     }
 
+    async decodeRelationsAsync(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : Promise<IRelations | null> {
+        const output = parseQueryString(input);
+        if (!isObject(output)) {
+            return null;
+        }
+
+        if (isPropertySet(output, URLParameter.RELATIONS)) {
+            return this.parser.parseRelationsAsync(output[URLParameter.RELATIONS], options);
+        }
+
+        return this.parser.parseRelationsAsync(output, options);
+    }
+
     decodeSorts(
         input: string,
         options: ParseParameterOptions = {},
@@ -208,6 +259,22 @@ export abstract class BaseURLDecoder {
         }
 
         return this.parser.parseSorts(output, options);
+    }
+
+    async decodeSortsAsync(
+        input: string,
+        options: ParseParameterOptions = {},
+    ) : Promise<ISorts | null> {
+        const output = parseQueryString(input);
+        if (!isObject(output)) {
+            return null;
+        }
+
+        if (isPropertySet(output, URLParameter.SORT)) {
+            return this.parser.parseSortsAsync(output[URLParameter.SORT], options);
+        }
+
+        return this.parser.parseSortsAsync(output, options);
     }
 
     // --------------------------------------------------

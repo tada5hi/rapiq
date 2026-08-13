@@ -5,7 +5,9 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { SchemaError } from '@rapiq/core';
 import {
+    ErrorCode,
     ParseError,
     defineQuery,
     defineSchema,
@@ -148,5 +150,53 @@ describe('encoder (schema-aware)', () => {
 
         expect(decodeURIComponent(encoded!)).toEqual('filter[name]=JOHN');
         expect(decodeURIComponent(encodedFilters!)).toEqual('filter[name]=JOHN');
+    });
+
+    it('should await asynchronous field validators through encodeFieldsAsync, and refuse them through the sync path', async () => {
+        expect.assertions(2);
+
+        const schema = defineSchema<User>({ fields: { validate: async (name) => name !== 'secret' } });
+        const query = defineQuery({ fields: ['id', 'secret'] });
+
+        const encoded = await encoder.encodeFieldsAsync(query.fields, { schema });
+        expect(decodeURIComponent(encoded!)).toEqual('fields=id');
+
+        try {
+            encoder.encodeFields(query.fields, { schema });
+        } catch (e) {
+            expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER);
+        }
+    });
+
+    it('should await asynchronous relation validators through encodeRelationsAsync, and refuse them through the sync path', async () => {
+        expect.assertions(2);
+
+        const schema = defineSchema<User>({ relations: { validate: async (name) => name === 'realm' } });
+        const query = defineQuery({ relations: ['realm', 'items'] });
+
+        const encoded = await encoder.encodeRelationsAsync(query.relations, { schema });
+        expect(decodeURIComponent(encoded!)).toEqual('include=realm');
+
+        try {
+            encoder.encodeRelations(query.relations, { schema });
+        } catch (e) {
+            expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER);
+        }
+    });
+
+    it('should await asynchronous sort validators through encodeSortsAsync, and refuse them through the sync path', async () => {
+        expect.assertions(2);
+
+        const schema = defineSchema<User>({ sorts: { validate: async (name) => name !== 'name' } });
+        const query = defineQuery({ sort: ['id', 'name'] });
+
+        const encoded = await encoder.encodeSortsAsync(query.sorts, { schema });
+        expect(decodeURIComponent(encoded!)).toEqual('sort=id');
+
+        try {
+            encoder.encodeSorts(query.sorts, { schema });
+        } catch (e) {
+            expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER);
+        }
     });
 });

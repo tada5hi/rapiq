@@ -110,6 +110,10 @@ export class ExpressionURLEncoder {
         return this.simple.encodeFields(input, options);
     }
 
+    encodeFieldsAsync(input: IFields, options: ParseParameterOptions = {}) {
+        return this.simple.encodeFieldsAsync(input, options);
+    }
+
     encodeFilters(input: IFilters, options: ParseParameterOptions = {}) : string | null {
         const encoded = this.serializeFilters(input);
         if (encoded === null || !isSchemaAware(options)) {
@@ -145,12 +149,24 @@ export class ExpressionURLEncoder {
         return this.simple.encodePagination(input, options);
     }
 
+    encodePaginationAsync(input: IPagination, options: ParseParameterOptions = {}) {
+        return this.simple.encodePaginationAsync(input, options);
+    }
+
     encodeRelations(input: IRelations, options: ParseParameterOptions = {}) {
         return this.simple.encodeRelations(input, options);
     }
 
+    encodeRelationsAsync(input: IRelations, options: ParseParameterOptions = {}) {
+        return this.simple.encodeRelationsAsync(input, options);
+    }
+
     encodeSorts(input: ISorts, options: ParseParameterOptions = {}) {
         return this.simple.encodeSorts(input, options);
+    }
+
+    encodeSortsAsync(input: ISorts, options: ParseParameterOptions = {}) {
+        return this.simple.encodeSortsAsync(input, options);
     }
 
     // --------------------------------------------------
