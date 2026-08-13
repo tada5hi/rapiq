@@ -150,11 +150,11 @@ parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' })
 
 The thrown class, `code` and `message` stay those of the first violation, so existing `catch` logic and assertions keep working; `issues` is additive and non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
 
-Severity is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one trace. Warnings ride along behind the failure and never cause one: a limit clamped to `maxLimit`, defaults substituted for input that was dropped, entries a rejected relation dragged along.
+Severity is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one trace. A violation takes the policy of the site that found it: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp. Only what a parse does without rejecting anything is unconditionally a warning: defaults substituted for input that was dropped, entries a rejected relation dragged along.
 
 Everything that discards or alters client input is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations dropped back to defaults. The trace is capped at `MAX_ISSUES` (100), and the issue the parse fails on is exempt from the cap.
 
-Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render, and the original throw rides along as the native `cause`. An abort that follows an earlier rejection does not displace it.
+Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort is raised as itself with the trace attached — never rebuilt, so a custom error class keeps its own shape, stack and identity. An abort that follows an earlier rejection does not displace it.
 
 Two consequences worth knowing when you enable `throwOnFailure`:
 

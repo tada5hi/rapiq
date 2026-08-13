@@ -84,16 +84,18 @@ describe('src/errors/issue.ts', () => {
         expect(buildErrorFromIssueCollector(collector)).toBeInstanceOf(FiltersParseError);
     });
 
-    it('should keep the origin of a caught error as the cause', () => {
+    it('should raise a caught error as itself', () => {
         const collector = new IssueCollector();
         const origin = FieldsParseError.inputInvalid();
 
         collector.error(origin, Parameter.FIELDS);
 
+        // the origin IS the raised error now, so there is nothing left for it
+        // to point at as a cause
         const error = buildErrorFromIssueCollector(collector);
-        expect(error).toBeInstanceOf(FieldsParseError);
+        expect(error).toBe(origin);
         expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
-        expect(error?.cause).toBe(origin);
+        expect(error?.issues).toHaveLength(1);
     });
 
     it('should normalize the deprecated sort parameter', () => {

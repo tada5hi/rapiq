@@ -107,7 +107,6 @@ describe('src/parameter/filters — issue traces', () => {
         // populate it too
         expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
         expect(error?.issues).toHaveLength(1);
-        expect(error?.cause).toBeInstanceOf(FiltersParseError);
     });
 
     it('should leave a legal elemMatch on a non-relation field alone', () => {

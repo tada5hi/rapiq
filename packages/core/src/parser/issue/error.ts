@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { attachIssues } from '../../errors';
 import type { IParseError } from '../../errors';
 import { PARAMETER_ERROR_CLASSES } from './constants';
 import type { IIssueCollector } from './types';
@@ -28,6 +29,20 @@ export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseErr
         return undefined;
     }
 
+    // An error the parse CAUGHT is re-raised as itself, with the trace
+    // attached. Rebuilding it would mean calling a constructor nobody checked:
+    // `code`, `message` and the trace all come from `BaseErrorOptions`, and a
+    // consumer's error class is free to take something else entirely — an
+    // app-defined `TenantParseError(field)` would be rebuilt with the options
+    // object as its field, and a class with a bespoke options shape would
+    // throw a TypeError out of the rebuild. Reuse also keeps the stack and the
+    // brand, which a rebuild silently drops.
+    if (failure.cause) {
+        attachIssues(failure.cause, input.issues);
+
+        return failure.cause;
+    }
+
     const ErrorClass = failure.errorClass ??
         PARAMETER_ERROR_CLASSES[failure.issue.parameter];
 
@@ -35,7 +50,6 @@ export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseErr
         code: failure.issue.code,
         message: failure.issue.message,
         issues: input.issues,
-        cause: failure.cause,
     });
 }
 

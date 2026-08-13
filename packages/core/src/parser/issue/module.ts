@@ -67,7 +67,9 @@ export class IssueCollector implements IIssueCollector {
      * Record a thrown parse error as the issue it never got to be: the
      * structural failures (a malformed expression, an input of the wrong
      * shape) abort their parameter instead of dropping one key, so the
-     * caller catches them here.
+     * caller catches them here. The error itself is kept as the failure's
+     * cause, and raised as itself if it turns out to be the first one — its
+     * class is a consumer's to define, so it is never reconstructed.
      */
     error(input: IParseError, parameter: `${Parameter}`, path: string[] = []) : void {
         this.record({
@@ -76,7 +78,7 @@ export class IssueCollector implements IIssueCollector {
             path,
             severity: 'error',
             message: input.message,
-        }, input.constructor as IParseErrorConstructor, input);
+        }, undefined, input);
     }
 
     record(

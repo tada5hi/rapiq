@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { ObjectLiteral } from '../types';
 import type { IBaseError, IParseError } from './types';
 
 /**
@@ -25,7 +26,7 @@ export const PARSE_ERROR_MARKER : unique symbol = Symbol.for('@rapiq/core/error/
  * Brand an error, invisibly: an error's enumerable shape is what deep equality
  * and `JSON.stringify` see, and identity is not part of what it reports.
  */
-export function markError(input: object, marker: symbol) : void {
+export function markError(input: ObjectLiteral, marker: symbol) : void {
     Object.defineProperty(input, marker, {
         value: true,
         enumerable: false,

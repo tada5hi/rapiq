@@ -66,7 +66,6 @@ describe('src/parameter/filters — issue traces', () => {
         // dialect must populate it too
         expect(error?.issues).toHaveLength(1);
         expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
-        expect(error?.cause).toBeInstanceOf(FiltersParseError);
     });
 
     it('should keep the other parameters parsing after a filter failure', () => {
@@ -92,7 +91,7 @@ describe('src/parameter/filters — issue traces', () => {
         expect(issues.some((issue) => issue.parameter === Parameter.FIELDS)).toBeTruthy();
     });
 
-    it('should keep the origin of the aggregated failure as its cause', () => {
+    it('should raise the abort as itself', () => {
         const parser = new ExpressionParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
@@ -102,9 +101,9 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
+        // the abort IS the raised error, carrying the trace it produced
         expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
-        expect(error?.cause).toBeInstanceOf(FiltersParseError);
-        expect((error?.cause as FiltersParseError).message).toBe(error?.message);
+        expect(error?.issues).toHaveLength(1);
     });
 
     it('should not let its always-throwing scope govern the leaf validator', () => {

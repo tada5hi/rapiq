@@ -6,11 +6,17 @@
  */
 
 import { BASE_ERROR_MARKER, markError } from './check';
+import type { ObjectLiteral } from '../types';
 import { ErrorCode } from './code';
 import type { Issue } from './issue';
 import type { BaseErrorOptions, IBaseError } from './types';
 
-function defineIssues(error: BaseError, issues: readonly Issue[]) : void {
+/**
+ * Attach a trace to an error without rebuilding it, so class, `code`,
+ * `message`, stack and brand all survive. Declared `configurable`, so an
+ * error caught mid-parse can be given the trace it was raised from.
+ */
+export function attachIssues(error: ObjectLiteral, issues: readonly Issue[]) : void {
     Object.defineProperty(error, 'issues', {
         value: issues,
         enumerable: false,
@@ -39,7 +45,7 @@ export class BaseError extends Error implements IBaseError {
             super(input);
 
             this.code = ErrorCode.NONE;
-            defineIssues(this, []);
+            attachIssues(this, []);
             markError(this, BASE_ERROR_MARKER);
         } else {
             super(input.message, typeof input.cause === 'undefined' ?
@@ -47,7 +53,7 @@ export class BaseError extends Error implements IBaseError {
                 { cause: input.cause });
 
             this.code = input.code || ErrorCode.NONE;
-            defineIssues(this, input.issues ?? []);
+            attachIssues(this, input.issues ?? []);
             markError(this, BASE_ERROR_MARKER);
         }
     }
