@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IQuery, IQueryVisitor } from '@rapiq/core';
+import type { IQuery, IQueryVisitor, ISorts } from '@rapiq/core';
 import { AdapterError, ErrorCode, hasFieldConditions } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
 import { defineMetadata, resolveDelegateClient, resolveModelName } from '../metadata';
@@ -84,6 +84,29 @@ function resolveDelegate(options: PrismaAdapterClientOptions, client?: object) :
 }
 
 /**
+ * Prisma orders by a to-one relation's scalar (nested `orderBy`), but
+ * not by a to-many relation's field directly (only `_count` is
+ * available there, which rapiq does not express). A to-many segment
+ * anywhere along a dotted sort path, not only its immediate parent,
+ * therefore fails typed here instead of being emitted as written and
+ * rejected by prisma with a non-rapiq error, matching the refusal
+ * `@rapiq/adapter-drizzle` already throws for every relation-path sort.
+ * `isToMany` answering `undefined` (unknown, or not a relation) is not
+ * a to-many verdict: the path proceeds exactly as before.
+ */
+function guardSortRelationPaths(sorts: ISorts, metadata: IMetadata) : void {
+    for (const sort of sorts.value) {
+        const segments = sort.name.split('.');
+
+        for (let i = 1; i < segments.length; i += 1) {
+            if (metadata.isToMany(segments.slice(0, i).join('.'))) {
+                throw AdapterError.featureUnsupported('sorts:relation');
+            }
+        }
+    }
+}
+
+/**
  * Serializes a parsed query into a prisma `findMany` argument object.
  *
  * A pure serializer: `execute` maps a value to a value, holds no
@@ -108,6 +131,8 @@ export class PrismaAdapter<
 > implements IQueryVisitor<PrismaAdapterOutput<ARGS>> {
     protected renderer : WhereRenderer;
 
+    protected metadata : IMetadata;
+
     protected options : PrismaAdapterOptions;
 
     protected model : Record<string, any> | undefined;
@@ -118,6 +143,7 @@ export class PrismaAdapter<
         if ('model' in options) {
             const resolved = resolveClientOptions(options);
 
+            this.metadata = resolved.metadata;
             this.renderer = new WhereRenderer(
                 resolved.metadata,
                 resolved.provider,
@@ -131,6 +157,7 @@ export class PrismaAdapter<
             return;
         }
 
+        this.metadata = options.metadata;
         this.renderer = new WhereRenderer(
             options.metadata,
             resolveProviderOptions(options.provider),
@@ -160,6 +187,8 @@ export class PrismaAdapter<
             produced,
             buildSelection(query.fields, collectRelationPaths(query.relations)),
         );
+
+        guardSortRelationPaths(query.sorts, this.metadata);
 
         const orderBy = buildOrderBy(query.sorts);
         if (orderBy.length > 0) {

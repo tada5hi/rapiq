@@ -13,4 +13,5 @@ export const oracle : DialectOptions = {
         `regexp_like(${field}, ${placeholder})`,
     escapeField: (field: string) => `"${field}"`,
     paramPlaceholder: (index) => `:${index}`,
+    mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
 };

@@ -361,7 +361,7 @@ userSchema.describe();
 //     strict: false,
 //     indexes: null,
 //     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
-//     filters: { allowed: ['id', 'name', 'age'], indexed: false },
+//     filters: { allowed: ['id', 'name', 'age'], caseSensitive: null, indexed: false },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
@@ -416,6 +416,13 @@ try {
 ```
 
 Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
+
+`throwOnFailure` can also be set per parse call, overriding the schema setting, exactly like [`strict`](#strict-mode). The override reaches the whole-query `parse()`/`parseAsync()`, `URLCodec.decode()`/`decodeAsync()`, and is inherited into relation recursion:
+
+```typescript
+parser.parse(input, { schema: 'user', throwOnFailure: true });
+codec.decode(queryString, { schema: 'user', throwOnFailure: true });
+```
 
 ## Next steps
 

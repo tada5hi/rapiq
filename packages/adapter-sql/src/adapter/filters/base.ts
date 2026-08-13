@@ -63,6 +63,17 @@ export abstract class FiltersBaseAdapter<
     abstract regexp(field: string, placeholder: string, ignoreCase: boolean) : string;
 
     /**
+     * Build a modulo-equality condition. The universal SQL-92 default
+     * (`mod(field, divisor) = remainder`); dialects without a matching
+     * `MOD()` function override this (see `@rapiq/adapter-sql`'s
+     * `FiltersAdapter`, which consults `DialectOptions.mod` and throws a
+     * typed `filters:mod` refusal when the active dialect omits it).
+     */
+    mod(field: string, divisorPlaceholder: string, remainderPlaceholder: string) : string {
+        return `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`;
+    }
+
+    /**
      * Apply the accumulated state to a backend target.
      * Fragment-emitting backends have nothing to apply.
      */

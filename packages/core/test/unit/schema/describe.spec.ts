@@ -37,7 +37,11 @@ describe('src/schema/**/describe', () => {
                 default: ['id', 'name'],
                 allowed: ['email'],
             },
-            filters: { allowed: ['id', 'name'], indexed: false },
+            filters: {
+                allowed: ['id', 'name'], 
+                caseSensitive: null, 
+                indexed: false, 
+            },
             pagination: { maxLimit: 50 },
             relations: {
                 allowed: ['realm', 'items'],
@@ -62,7 +66,11 @@ describe('src/schema/**/describe', () => {
             strict: false,
             indexes: null,
             fields: { default: null, allowed: null },
-            filters: { allowed: null, indexed: false },
+            filters: {
+                allowed: null, 
+                caseSensitive: null, 
+                indexed: false, 
+            },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
             sorts: {
@@ -77,13 +85,18 @@ describe('src/schema/**/describe', () => {
         const schema = defineSchema<User>({
             fields: { allowed: [] },
             relations: { allowed: [] },
+            filters: { caseSensitive: [] },
         });
 
         const output = schema.describe();
 
         expect(output.fields).toEqual({ default: null, allowed: [] });
         expect(output.relations).toEqual({ allowed: [], schemas: {} });
-        expect(output.filters).toEqual({ allowed: null, indexed: false });
+        expect(output.filters).toEqual({
+            allowed: null, 
+            caseSensitive: [], 
+            indexed: false, 
+        });
     });
 
     it('should restrict the description to the selected parameters', () => {
@@ -106,6 +119,25 @@ describe('src/schema/**/describe', () => {
                 schemas: { realm: 'realm' },
             },
         });
+    });
+
+    it('should serialize the declared caseSensitive list', () => {
+        const schema = defineSchema<User>({ filters: { allowed: ['id', 'name'], caseSensitive: ['name'] } });
+
+        expect(schema.describe().filters).toEqual({
+            allowed: ['id', 'name'],
+            caseSensitive: ['name'],
+            indexed: false,
+        });
+    });
+
+    it('should not expose the caseSensitive list to description mutations', () => {
+        const schema = defineSchema<User>({ filters: { allowed: ['id'], caseSensitive: ['id'] } });
+
+        const output = schema.describe();
+        output.filters!.caseSensitive!.push('mutated');
+
+        expect(schema.filters.caseSensitive).toEqual(['id']);
     });
 
     it('should serialize a sort allow-list derived from default keys', () => {

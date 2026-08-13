@@ -228,4 +228,27 @@ describe('src/adapter/module.ts', () => {
         expect(fragments.params).toEqual([18, 'a', 18, 'a']);
         expect(fragments.columns).toHaveLength(6);
     });
+
+    // regression (plan 032): the constructor forwarded a hand-picked
+    // subset of DialectOptions to the internal FiltersAdapter and
+    // omitted `mod`, so every mod filter threw featureUnsupported
+    // through the PUBLIC Adapter even on dialects whose preset defines
+    // `mod` (a directly constructed FiltersAdapter, exercised by
+    // test/unit/interpreters/mod.spec.ts, never reproduced this).
+    it.each([
+        ['pg', pg, 'mod("qty", $1) = $2'],
+        ['mysql', mysql, 'mod(`qty`, ?) = ?'],
+        ['sqlite', sqlite, 'mod(`qty`, ?) = ?'],
+        ['oracle', oracle, 'mod("qty", :1) = :2'],
+        ['mssql', mssql, '[qty] % ? = ?'],
+    ] as [string, DialectOptions, string][])('should render a mod filter for %s through the public Adapter', (_name, dialect, expectedWhere) => {
+        const adapter = new Adapter(dialect);
+
+        const query = new Query({ filters: new Filters('and', [new Filter('mod', 'qty', [4, 0])]) });
+
+        const fragments = adapter.execute(query);
+
+        expect(fragments.where).toEqual(expectedWhere);
+        expect(fragments.params).toEqual([4, 0]);
+    });
 });

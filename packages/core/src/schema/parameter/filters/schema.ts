@@ -28,6 +28,8 @@ export class FiltersSchema<
 
     public caseSensitive : string[];
 
+    public caseSensitiveIsUndefined : boolean;
+
     public indexes : string[][];
 
     public indexesIsUndefined : boolean;
@@ -46,6 +48,7 @@ export class FiltersSchema<
         this.defaultIsUndefined = true;
 
         this.caseSensitive = [];
+        this.caseSensitiveIsUndefined = true;
 
         this.indexes = [];
         this.indexesIsUndefined = true;
@@ -79,6 +82,7 @@ export class FiltersSchema<
     describe() : FiltersSchemaDescription {
         return {
             allowed: this.allowedIsUndefined ? null : [...this.allowed],
+            caseSensitive: this.caseSensitiveIsUndefined ? null : [...this.caseSensitive],
             indexed: this.indexed,
         };
     }
@@ -116,7 +120,14 @@ export class FiltersSchema<
     }
 
     setCaseSensitive(input?: SimpleKeys<T>[]) {
-        this.caseSensitive = input || [];
+        if (typeof input === 'undefined') {
+            this.caseSensitive = [];
+            this.caseSensitiveIsUndefined = true;
+            return;
+        }
+
+        this.caseSensitive = input;
+        this.caseSensitiveIsUndefined = false;
     }
 
     setIndexes(input?: string[][]) {

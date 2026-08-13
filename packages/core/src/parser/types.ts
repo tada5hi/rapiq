@@ -18,6 +18,12 @@ export type ParseParameterOptions<
     relations?: Relations,
     strict?: boolean,
     /**
+     * Call-time override: takes precedence over the schema-level setting.
+     * Effective policy is `throwOnFailure ?? schema.throwOnFailure ?? false`,
+     * mirroring {@link ParseParameterOptions.strict}.
+     */
+    throwOnFailure?: boolean,
+    /**
      * Caller-defined context forwarded to the schema validate hooks
      * (relations/fields/sorts key validators, filters leaf validator).
      * Opaque to the parser.
@@ -65,6 +71,13 @@ export type ParseQueryOptions<
      * every client key instead of falling back to the syntactic name check.
      */
     strict?: boolean,
+    /**
+     * Call-time override: takes precedence over the schema-level setting.
+     * Effective policy is `throwOnFailure ?? schema.throwOnFailure ?? false`,
+     * inherited into relation recursion exactly like
+     * {@link ParseQueryOptions.strict}.
+     */
+    throwOnFailure?: boolean,
     /**
      * Caller-defined context (e.g. the authenticated actor) forwarded to
      * every schema validate hook this parse run invokes. Hooks receive

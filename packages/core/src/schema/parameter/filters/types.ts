@@ -69,5 +69,6 @@ export type FiltersOptions<
  */
 export type FiltersSchemaDescription = {
     allowed: string[] | null,
+    caseSensitive: string[] | null,
     indexed: IndexedMode | false,
 };

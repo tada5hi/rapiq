@@ -54,13 +54,12 @@ export class Adapter implements IRootAdapter<SqlFragments> {
             rootAlias: options.rootAlias,
         });
 
-        this.filters = new FiltersAdapter(this.relations, {
-            paramPlaceholder: options.paramPlaceholder,
-            regexp: options.regexp,
-            caseFold: options.caseFold,
-            escapeField: options.escapeField,
-            rootAlias: options.rootAlias,
-        });
+        // forward the full DialectOptions rather than hand-picking known
+        // members: FiltersContainerOptions is `{ rootAlias? } & DialectOptions`,
+        // so a hand-picked subset silently drops any option added later
+        // (this is how `mod` went missing here while `FiltersAdapter`
+        // itself supported it all along).
+        this.filters = new FiltersAdapter(this.relations, options);
 
         this.pagination = new PaginationAdapter();
 

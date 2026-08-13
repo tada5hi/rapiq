@@ -71,11 +71,25 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 
 | Code | Trigger |
 |---|---|
-| `OPERATOR_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
-| `FEATURE_UNSUPPORTED` | e.g. `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
+| `OPERATOR_UNSUPPORTED` | e.g. `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
+| `FEATURE_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `mod` on a dialect without a modulo spelling; `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
 | `CONDITION_DETACHED` | a condition the built-in consumer cannot lower: either a live custom `ICondition` that needs a compatible custom adapter/visitor, or detached runtime data from a JSON/RPC/cache round trip. Rebuild detached data with the condition helpers; dropping either would silently widen the result set |
 
 The URL encoders throw these too; a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
+
+A `FEATURE_UNSUPPORTED` error from `AdapterError.featureUnsupported(...)` also carries the refused capability tag (e.g. `regexp`, `filters:mod`, `filters:regex`) as a structured `error.feature` string, so a capability matrix can be built by reading the property instead of parsing the message:
+
+```typescript
+try {
+    adapter.execute(query);
+} catch (e) {
+    if (e instanceof AdapterError && e.code === ErrorCode.FEATURE_UNSUPPORTED) {
+        // e.feature, e.g. 'filters:mod'
+    }
+}
+```
+
+`error.feature` is `undefined` for every other `AdapterError` factory (`operatorUnsupported`, `conditionDetached`).
 
 ### Codec dispatch
 

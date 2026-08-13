@@ -15,4 +15,12 @@ import type { DialectOptions } from './types';
 export const sqlite : DialectOptions = {
     paramPlaceholder: mysql.paramPlaceholder,
     escapeField: mysql.escapeField,
+    // mod() is a SQLite math function: available since 3.35 and only in
+    // builds compiled with SQLITE_ENABLE_MATH_FUNCTIONS. Every mainstream
+    // Node driver enables it (better-sqlite3, node:sqlite, sqlite3); on an
+    // embedded build without it, override this callback (SQLite's `%` is
+    // core syntax but casts both operands to INTEGER, so it only matches
+    // the float-capable semantics of @rapiq/adapter-memory for integers)
+    // or set it to undefined for the typed filters:mod refusal.
+    mod: mysql.mod,
 };

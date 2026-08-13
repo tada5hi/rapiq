@@ -131,6 +131,15 @@ describe('regex', () => {
         expect(() => {
             condition.accept(visitor);
         }).toThrow('The feature regexp is not supported by the dialect.');
+
+        try {
+            condition.accept(visitor);
+            expect.fail('regex must throw');
+        } catch (e) {
+            // A6 (plan 032): the tag is also available structured, not
+            // only embedded in the message text.
+            expect((e as AdapterError).feature).toBe('regexp');
+        }
     });
 
     it('falls back to LIKE for anchored operators on MSSQL', () => {

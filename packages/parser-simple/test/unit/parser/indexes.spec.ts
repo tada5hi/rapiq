@@ -148,5 +148,20 @@ describe('indexed schemas', () => {
             expect(query.sorts.value.map((sort) => [sort.name, sort.operator]))
                 .toEqual([['created_at', SortDirection.DESC]]);
         });
+
+        // A1: the call-time throwOnFailure override reaches applyIndexPolicies,
+        // not only the schema-level setting (buildRegistry() below defaults it
+        // to undefined/false).
+        it('should let a parse-option throwOnFailure override throw on the composed query, without the schema opting in', () => {
+            const parser = new SimpleParser(buildRegistry());
+
+            try {
+                parser.parse({ filters: { created_at: 'x' } }, { schema: 'row', throwOnFailure: true });
+                expect.fail('expected a FiltersParseError');
+            } catch (e) {
+                expect(e).toBeInstanceOf(FiltersParseError);
+                expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
+            }
+        });
     });
 });

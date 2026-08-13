@@ -27,6 +27,8 @@ export interface IFiltersAdapter extends ISubAdapter {
 
     isRegexpSupported() : boolean;
 
+    mod(field: string, divisorPlaceholder: string, remainderPlaceholder: string) : string;
+
     caseFold(input: string) : string;
 
     isCaseFoldable(field: string) : boolean;
