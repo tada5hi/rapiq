@@ -9,45 +9,29 @@ import type { Parameter } from '../../constants';
 import { MAX_ISSUES } from '../../errors';
 import type { IParseError, IParseErrorConstructor, Issue } from '../../errors';
 import { normalizeParameter } from '../../utils';
-import { PARAMETER_ERROR_CLASSES } from './constants';
-import type { IIssueCollector } from './types';
+import type { IIssueCollector, IssueFailure } from './types';
 
 /**
- * The trace of one parse call: every issue its sites recorded, and the
- * failure the call owes its caller.
+ * The trace of one parse call: every issue its sites recorded, and which of
+ * them the parse failed on.
  *
  * A collector inverts the failure policy. Instead of throwing where a
  * violation is found, a site records it and takes the drop path, so a request
- * with several bad keys reports all of them; the call that CREATED the
- * collector rebuilds the first error-severity issue and throws it at the end,
- * with the whole trace attached. The rebuilt error is indistinguishable from
- * the fail-fast one — same class, same `code`, same message — so
- * first-issue-wins holds by construction.
+ * with several bad keys reports all of them. What to do about that is not its
+ * decision: it collects and serves, and the call that owns the parse raises
+ * the failure through {@link buildIssueError}.
  *
  * The trace is not observable anywhere else: a parse that raises nothing
  * discards it. `error.issues` is the single channel.
  *
  * A site without a collector keeps throwing immediately: `ResolutionScope` is
- * public API and usable outside a parse, where nobody would ever finish the
+ * public API and usable outside a parse, where nobody would ever raise the
  * trace.
  */
 export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
-    protected failure : Issue | undefined;
-
-    /**
-     * The error CLASS the failing site would have thrown, when it is not
-     * simply its parameter's (a scope may be built with an explicit override).
-     */
-    protected failureClass : IParseErrorConstructor | undefined;
-
-    /**
-     * The error the failure was caught as, when it was one. The rebuilt error
-     * carries it as its `cause`, so an aggregated structural failure keeps
-     * the stack of the throw it actually came from.
-     */
-    protected failureCause : IParseError | undefined;
+    protected first : IssueFailure | undefined;
 
     constructor() {
         this.items = [];
@@ -105,11 +89,13 @@ export class IssueCollector implements IIssueCollector {
             parameter: normalizeParameter(input.parameter) as `${Parameter}`,
         };
 
-        const isFailure = !this.failure && issue.severity === 'error';
+        const isFailure = !this.first && issue.severity === 'error';
         if (isFailure) {
-            this.failure = issue;
-            this.failureClass = errorClass;
-            this.failureCause = cause;
+            this.first = {
+                issue, 
+                errorClass, 
+                cause, 
+            };
         }
 
         // The tail of a hostile request changes nothing about the outcome: the
@@ -129,33 +115,11 @@ export class IssueCollector implements IIssueCollector {
         return this.items;
     }
 
+    get failure() : IssueFailure | undefined {
+        return this.first;
+    }
+
     get failed() : boolean {
-        return typeof this.failure !== 'undefined';
-    }
-
-    /**
-     * The error this trace owes its caller, or undefined when nothing was
-     * rejected outright.
-     */
-    toError() : IParseError | undefined {
-        if (!this.failure) {
-            return undefined;
-        }
-
-        const ErrorClass = this.failureClass ?? PARAMETER_ERROR_CLASSES[this.failure.parameter];
-
-        return new ErrorClass({
-            code: this.failure.code,
-            message: this.failure.message,
-            issues: this.items,
-            cause: this.failureCause,
-        });
-    }
-
-    throwIfFailed() : void {
-        const error = this.toError();
-        if (error) {
-            throw error;
-        }
+        return typeof this.first !== 'undefined';
     }
 }

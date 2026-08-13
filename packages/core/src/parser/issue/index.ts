@@ -6,5 +6,6 @@
  */
 
 export * from './constants';
+export * from './error';
 export * from './module';
 export * from './types';

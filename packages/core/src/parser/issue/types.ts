@@ -13,8 +13,31 @@ import type {
 } from '../../errors';
 
 /**
- * The trace of one parse call: what its sites recorded, and the failure it
- * owes its caller.
+ * The failure a trace holds: the first issue recorded with `severity: 'error'`,
+ * plus what the site that found it would have thrown.
+ *
+ * Everything an error is rebuilt FROM, and nothing about how — building it is
+ * {@link buildIssueError}'s job.
+ */
+export type IssueFailure = {
+    issue: Issue,
+    /**
+     * The class the failing site named, when it is not simply its parameter's
+     * (a scope may be built with an explicit override).
+     */
+    errorClass?: IParseErrorConstructor,
+    /**
+     * The error the failure was caught as, when it was one, so the rebuilt
+     * error can keep the stack of the throw it came from.
+     */
+    cause?: IParseError,
+};
+
+/**
+ * The trace of one parse call: it collects what its sites record and serves
+ * it back. It does not raise, and it does not build errors — a trace is
+ * evidence, and deciding what to throw from it belongs to the caller that
+ * owns the parse.
  *
  * Referenced instead of the class wherever a trace is threaded, so a parser
  * that wants to observe or wrap the recording can supply its own.
@@ -50,13 +73,11 @@ export interface IIssueCollector {
 
     readonly issues : Issue[];
 
-    readonly failed : boolean;
-
     /**
-     * The error this trace owes its caller, or undefined when nothing was
-     * rejected outright.
+     * The failure this trace holds, or undefined when nothing was rejected
+     * outright.
      */
-    toError() : IParseError | undefined;
+    readonly failure : IssueFailure | undefined;
 
-    throwIfFailed() : void;
+    readonly failed : boolean;
 }

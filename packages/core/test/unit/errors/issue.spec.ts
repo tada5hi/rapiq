@@ -15,6 +15,8 @@ import {
     MAX_ISSUES,
     Parameter,
     ParseError,
+    buildIssueError,
+    raiseIssueError,
 } from '../../../src';
 import type { Issue } from '../../../src';
 
@@ -39,7 +41,7 @@ describe('src/errors/issue.ts', () => {
             severity: 'warning',
         }]);
         expect(collector.failed).toBeFalsy();
-        expect(collector.toError()).toBeUndefined();
+        expect(buildIssueError(collector)).toBeUndefined();
     });
 
     it('should record a violation as an error under a throwing policy', () => {
@@ -63,7 +65,7 @@ describe('src/errors/issue.ts', () => {
         }), true);
         collector.violation(violation({ path: ['later'] }), true);
 
-        const error = collector.toError();
+        const error = buildIssueError(collector);
         expect(error).toBeInstanceOf(FiltersParseError);
         expect(error?.code).toBe(ErrorCode.KEY_VALUE_INVALID);
         expect(error?.message).toBe(ErrorMessage.keyValueInvalid('name'));
@@ -74,7 +76,7 @@ describe('src/errors/issue.ts', () => {
         const collector = new IssueCollector();
         collector.violation(violation({ parameter: Parameter.SORTS }), true, FiltersParseError);
 
-        expect(collector.toError()).toBeInstanceOf(FiltersParseError);
+        expect(buildIssueError(collector)).toBeInstanceOf(FiltersParseError);
     });
 
     it('should keep the origin of a caught error as the cause', () => {
@@ -83,7 +85,7 @@ describe('src/errors/issue.ts', () => {
 
         collector.error(origin, Parameter.FIELDS);
 
-        const error = collector.toError();
+        const error = buildIssueError(collector);
         expect(error).toBeInstanceOf(FieldsParseError);
         expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
         expect(error?.cause).toBe(origin);
@@ -105,7 +107,7 @@ describe('src/errors/issue.ts', () => {
         }
 
         expect(collector.issues).toHaveLength(MAX_ISSUES);
-        expect(collector.toError()?.issues).toHaveLength(MAX_ISSUES);
+        expect(buildIssueError(collector)?.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
     });
 
@@ -119,7 +121,7 @@ describe('src/errors/issue.ts', () => {
 
         // an error whose own issue the cap evicted would hand a consumer a
         // 400 with nothing in it.
-        const error = collector.toError();
+        const error = buildIssueError(collector);
         expect(error?.issues).toHaveLength(MAX_ISSUES + 1);
         expect(error?.issues.some((issue) => issue.severity === 'error')).toBeTruthy();
     });
@@ -127,10 +129,10 @@ describe('src/errors/issue.ts', () => {
     it('should throw only when something was rejected', () => {
         const collector = new IssueCollector();
         collector.violation(violation(), false);
-        expect(() => collector.throwIfFailed()).not.toThrow();
+        expect(() => raiseIssueError(collector)).not.toThrow();
 
         collector.violation(violation(), true);
-        expect(() => collector.throwIfFailed()).toThrow(ParseError);
+        expect(() => raiseIssueError(collector)).toThrow(ParseError);
     });
 });
 
@@ -171,7 +173,7 @@ describe('src/errors/types.ts', () => {
 
         // the rebuild depends on the constructor contract, not on the class
         // hierarchy, so a dialect package can name its own error class
-        const error = collector.toError();
+        const error = buildIssueError(collector);
         expect(error).toBeInstanceOf(DialectParseError);
         expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
         expect(error?.issues).toHaveLength(1);
