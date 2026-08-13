@@ -79,6 +79,18 @@ function recordDefaults(
 }
 
 /**
+ * Every pass below is skipped once the trace has already failed
+ * (`issues.failed`).
+ *
+ * A parse that recorded a rejection is over: it raises that rejection, so the
+ * tree these passes would produce is never observed. Skipping them keeps the
+ * raised error the FIRST violation instead of a structural conflict found
+ * while cleaning up after it — a preserved condition over a rejected relation
+ * raises `SCHEMA_PRESERVED_CONDITION_PRUNED`, which would otherwise displace
+ * the relation rejection that caused the pruning in the first place.
+ */
+
+/**
  * Whether an entry survives the gate, recording it when it does not.
  */
 function keep(
@@ -131,7 +143,7 @@ export function pruneFieldsByRelations(
     rejected: string[],
     issues?: IssueCollector,
 ) : IFields {
-    if (rejected.length === 0) {
+    if (rejected.length === 0 || issues?.failed) {
         return fields;
     }
 
@@ -155,7 +167,7 @@ export function pruneSortsByRelations(
     schema?: SortsSchema,
     issues?: IssueCollector,
 ) : ISorts {
-    if (rejected.length === 0) {
+    if (rejected.length === 0 || issues?.failed) {
         return sorts;
     }
 
@@ -181,7 +193,7 @@ export function pruneRelationsByRelations(
     rejected: string[],
     issues?: IssueCollector,
 ) : IRelations {
-    if (rejected.length === 0) {
+    if (rejected.length === 0 || issues?.failed) {
         return relations;
     }
 
@@ -216,7 +228,7 @@ export function pruneFiltersByRelations(
     schema?: FiltersSchema,
     issues?: IssueCollector,
 ) : IFilters {
-    if (rejected.length === 0) {
+    if (rejected.length === 0 || issues?.failed) {
         return filters;
     }
 

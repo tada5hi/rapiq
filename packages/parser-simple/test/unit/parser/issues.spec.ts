@@ -13,9 +13,11 @@ import {
     MAX_ISSUES,
     PaginationParseError,
     Parameter,
+    RelationsParseError,
     SchemaRegistry,
     defineSchema,
     eq,
+    preserve,
 } from '@rapiq/core';
 import type { Issue } from '@rapiq/core';
 import { SimpleFieldsParser, SimpleParser } from '../../../src';
@@ -286,6 +288,28 @@ describe('src/parser — issue traces', () => {
                 .toThrow(FieldsParseError);
 
             expect(issues).toHaveLength(1);
+        });
+    });
+
+    describe('ordering', () => {
+        it('should raise the relation rejection, not the pruning conflict it causes', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<User>({
+                name: 'user',
+                throwOnFailure: true,
+                filters: { allowed: ['id'], default: preserve(eq('items.id', '1')) },
+                relations: { allowed: ['items'], validate: () => false },
+                schemaMapping: { items: 'item' },
+            }));
+            registry.add(defineSchema({ name: 'item', filters: { allowed: ['id'] } }));
+
+            const parser = new SimpleParser(registry);
+
+            // pruning a preserved condition off a rejected relation is a
+            // SchemaError, but it is a CONSEQUENCE of the rejection: the
+            // client-facing failure stays the first violation.
+            expect(() => parser.parse({ relations: ['items'] }, { schema: 'user' }))
+                .toThrow(RelationsParseError.keyValidateRejected('items'));
         });
     });
 

@@ -98,7 +98,7 @@ export class ExpressionFiltersParser extends BaseParser<
         const ledger : RelationLedger = [];
         const issues = this.beginIssues(options);
 
-        const { output, scope } = this.record(issues, () => this.build(input, options, ledger));
+        const { output, scope } = this.record(options, issues, () => this.build(input, options, ledger));
         if (!scope) {
             this.finishIssues(options, issues);
 
@@ -128,7 +128,7 @@ export class ExpressionFiltersParser extends BaseParser<
         const ledger : RelationLedger = [];
         const issues = this.beginIssues(options);
 
-        const { output, scope } = await this.recordAsync(issues, () => this.buildAsync(input, options, ledger));
+        const { output, scope } = await this.recordAsync(options, issues, () => this.buildAsync(input, options, ledger));
         if (!scope) {
             this.finishIssues(options, issues);
 
@@ -164,25 +164,45 @@ export class ExpressionFiltersParser extends BaseParser<
      * where it is found — but a caller watching the trace should still see
      * what happened, so it is recorded before it propagates.
      */
-    protected record<T>(issues: IssueCollector, fn: () => T) : T {
+    protected record<RECORD extends ObjectLiteral, T>(
+        options: FiltersParseOptions<RECORD>,
+        issues: IssueCollector,
+        fn: () => T,
+    ) : T {
         try {
             return fn();
         } catch (e) {
-            if (e instanceof ParseError) {
-                issues.error(e, Parameter.FILTERS);
+            if (!(e instanceof ParseError)) {
+                throw e;
             }
+
+            issues.error(e, Parameter.FILTERS);
+
+            // raise the rebuilt error, so a caller that reads `error.issues`
+            // (the documented way to render a failure) finds the failure it is
+            // rendering. Identical class, code and message; the original rides
+            // along as the `cause`. A no-op when an enclosing parse owns the
+            // trace: that call raises for us.
+            this.finishIssues(options, issues);
 
             throw e;
         }
     }
 
-    protected async recordAsync<T>(issues: IssueCollector, fn: () => Promise<T>) : Promise<T> {
+    protected async recordAsync<RECORD extends ObjectLiteral, T>(
+        options: FiltersParseOptions<RECORD>,
+        issues: IssueCollector,
+        fn: () => Promise<T>,
+    ) : Promise<T> {
         try {
             return await fn();
         } catch (e) {
-            if (e instanceof ParseError) {
-                issues.error(e, Parameter.FILTERS);
+            if (!(e instanceof ParseError)) {
+                throw e;
             }
+
+            issues.error(e, Parameter.FILTERS);
+            this.finishIssues(options, issues);
 
             throw e;
         }

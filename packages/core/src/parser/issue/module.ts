@@ -5,28 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter } from '../constants';
-import { MAX_ISSUES } from '../errors';
-import type { Issue, ParseError } from '../errors';
-import { normalizeParameter } from '../utils';
-import { FieldsParseError } from './parameter/fields/error';
-import { FiltersParseError } from './parameter/filters/error';
-import { PaginationParseError } from './parameter/pagination/error';
-import { RelationsParseError } from './parameter/relations/error';
-import { SortsParseError } from './parameter/sort/error';
-
-/**
- * The error class each parameter rejects client input with — the default
- * reconstruction target for an issue whose site recorded no explicit class.
- */
-export const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
-    [Parameter.FIELDS]: FieldsParseError,
-    [Parameter.FILTERS]: FiltersParseError,
-    [Parameter.PAGINATION]: PaginationParseError,
-    [Parameter.RELATIONS]: RelationsParseError,
-    [Parameter.SORTS]: SortsParseError,
-    [Parameter.SORT]: SortsParseError,
-};
+import type { Parameter } from '../../constants';
+import { MAX_ISSUES } from '../../errors';
+import type { Issue, ParseError } from '../../errors';
+import { normalizeParameter } from '../../utils';
+import { PARAMETER_ERROR_CLASSES } from './constants';
 
 /**
  * The trace of one parse call: every issue its sites recorded, and the
@@ -102,7 +85,7 @@ export class IssueCollector {
      * Record a thrown parse error as the issue it never got to be: the
      * structural failures (a malformed expression, an input of the wrong
      * shape) abort their parameter instead of dropping one key, so the
-     * orchestrator catches them here.
+     * caller catches them here.
      */
     error(input: ParseError, parameter: `${Parameter}`, path: string[] = []) : void {
         this.record({
@@ -124,15 +107,18 @@ export class IssueCollector {
             parameter: normalizeParameter(input.parameter) as `${Parameter}`,
         };
 
-        if (!this.failure && issue.severity === 'error') {
+        const isFailure = !this.failure && issue.severity === 'error';
+        if (isFailure) {
             this.failure = issue;
             this.failureErrors = errors;
             this.failureCause = cause;
         }
 
-        // the tail of a hostile request changes nothing about the outcome:
-        // the failure is already pinned, and the trace is a diagnostic.
-        if (this.items.length >= MAX_ISSUES) {
+        // The tail of a hostile request changes nothing about the outcome: the
+        // failure is already pinned, and the trace is a diagnostic. The issue
+        // the parse FAILS on is exempt — an error whose own issue the cap
+        // evicted would hand a consumer a 400 with nothing in it.
+        if (this.items.length >= MAX_ISSUES && !isFailure) {
             return;
         }
 

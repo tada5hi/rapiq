@@ -48,6 +48,23 @@ describe('src/parameter/filters — issue traces', () => {
         });
     });
 
+    it('should carry the trace on a standalone failure', () => {
+        const parser = new ExpressionParser(buildRegistry());
+
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parseFilters("eq(secret, 'x')", { schema: 'row' });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
+
+        // rendering a failure goes through error.issues, so a fail-fast
+        // dialect must populate it too
+        expect(error?.issues).toHaveLength(1);
+        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.cause).toBeInstanceOf(FiltersParseError);
+    });
+
     it('should keep the other parameters parsing after a filter failure', () => {
         const parser = new ExpressionParser(buildRegistry());
         const issues : Issue[] = [];

@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Parameter } from '../constants';
-import type { ErrorCode } from './code';
+import type { Parameter } from '../../constants';
+import type { ErrorCode } from '../code';
 
 /**
- * `error`: the input was rejected — under `throwOnFailure` the first issue of
+ * `error`: the input was rejected. Under `throwOnFailure` the first issue of
  * this severity is the one the parse throws.
  *
  * `warning`: the input was dropped, clamped or defaulted without failing the
@@ -49,7 +49,7 @@ export type Issue = {
      */
     key?: string,
     /**
-     * The offending value, echoed JSON-safe. Absent when the key itself,
+     * The offending value, echoed as received. Absent when the key itself,
      * not a value, was the problem.
      */
     input?: unknown,
@@ -59,11 +59,3 @@ export type Issue = {
      */
     message: string,
 };
-
-/**
- * Upper bound of issues one parse records. Hostile input can violate a policy
- * once per key, and the trace is a diagnostic, not a transcript — the first
- * error decides what the parse throws, so a truncated tail changes nothing
- * about the outcome.
- */
-export const MAX_ISSUES = 100;

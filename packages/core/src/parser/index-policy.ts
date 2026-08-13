@@ -229,7 +229,14 @@ export function applyFiltersIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { throwOnFailure: context.throwOnFailure });
 
     const filtersSchema = scope.schema as FiltersSchema<RECORD>;
-    if (!filtersSchema.indexed || isFiltersDefaults(output, filtersSchema)) {
+    if (
+        !filtersSchema.indexed ||
+        isFiltersDefaults(output, filtersSchema) ||
+        // an already-failed parse raises its first violation; this policy can
+        // only add noise behind it (and its preserved-condition refusal would
+        // displace it).
+        context.issues?.failed
+    ) {
         return output;
     }
 
@@ -293,7 +300,11 @@ export function applySortsIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.SORTS, schema, { throwOnFailure: context.throwOnFailure });
 
     const sortSchema = scope.schema as SortsSchema<RECORD>;
-    if (!sortSchema.indexed || output.value.length === 0) {
+    if (
+        !sortSchema.indexed ||
+        output.value.length === 0 ||
+        context.issues?.failed
+    ) {
         return output;
     }
 

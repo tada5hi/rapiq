@@ -123,6 +123,21 @@ describe('src/errors/issue.ts', () => {
         expect(collector.issues[0]?.path).toEqual(['first']);
     });
 
+    it('should keep the issue it failed on even past the cap', () => {
+        const collector = new IssueCollector();
+
+        for (let i = 0; i < MAX_ISSUES + 10; i++) {
+            collector.violation(violation({ path: [`key${i}`] }), false);
+        }
+        collector.violation(violation({ path: ['late'] }), true);
+
+        // an error whose own issue the cap evicted would hand a consumer a
+        // 400 with nothing in it.
+        const error = collector.toError();
+        expect(error?.issues).toHaveLength(MAX_ISSUES + 1);
+        expect(error?.issues.some((issue) => issue.severity === 'error')).toBeTruthy();
+    });
+
     it('should throw only when something was rejected', () => {
         const collector = new IssueCollector();
         collector.violation(violation(), false);
