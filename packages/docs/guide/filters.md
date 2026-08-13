@@ -260,7 +260,7 @@ const schema = defineSchema<User>({
 });
 ```
 
-A leaf rejected by `validate` is silently dropped, independent of the `throwOnFailure` policy; throw from the hook to turn a client-submitted regex into an error response instead. Softer gates work the same way: cap the pattern's source length or match it against a vetted list, and return the filter when it passes.
+A leaf rejected by `validate` follows the same drop-vs-throw policy as every other rejection: it is dropped by default, and raises `KEY_VALIDATE_REJECTED` under [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw). Either way it is [reported as an issue](/guide/errors#issue-traces). To drop a leaf quietly under a throwing schema, return a replacement condition instead of `undefined`. Softer gates work the same way: cap the pattern's source length or match it against a vetted list, and return the filter when it passes.
 
 ## On violation
 
