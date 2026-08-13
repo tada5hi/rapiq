@@ -20,6 +20,7 @@ import type {
 } from '../../../parameter';
 import { FilterFieldOperator } from '../../../schema';
 import type { FiltersSchema } from '../../../schema';
+import { toIssuePath } from '../../../utils';
 import { Parameter } from '../../../constants';
 import { ErrorCode, ErrorMessage, SchemaError } from '../../../errors';
 import type { IIssueCollector } from '../../issue';
@@ -81,7 +82,7 @@ function rejectLeaf(
         options.issueCollector.violation({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: Parameter.FILTERS,
-            path: leaf.field.split('.'),
+            path: toIssuePath(leaf.field),
             message: ErrorMessage.keyValidateRejected(leaf.field),
         }, throwOnFailure, FiltersParseError);
 

@@ -5,6 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { pathToArray } from 'pathtrace';
+
 export type KeyDetails = {
     name: string,
     group?: string,
@@ -78,4 +80,15 @@ export function stringifyKey(
     key: KeyDetails,
 ) : string {
     return `${key.group ? `${key.group}:` : ''}${key.path ? `${key.path}.` : ''}${key.name}`;
+}
+
+/**
+ * The canonical segments of a dotted key, as an {@link Issue} records them.
+ *
+ * `pathToArray` rather than `split('.')`, so a key whose segment carries an
+ * escaped dot is not torn in half, and bracket indices survive. Segments are
+ * stringified: an issue path is what a client reads back, not an accessor.
+ */
+export function toIssuePath(input: string) : string[] {
+    return pathToArray(input).map((segment) => String(segment));
 }

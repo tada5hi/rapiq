@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { toIssuePath } from '../../utils';
 import { Parameter } from '../../constants';
 import { ErrorCode, ErrorMessage, SchemaError } from '../../errors';
 import type { ParseError } from '../../errors';
@@ -401,7 +402,7 @@ function reject(
         options.issueCollector.violation({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: entry.schema.parameter,
-            path: entry.path.split('.'),
+            path: toIssuePath(entry.path),
             message: ErrorMessage.keyValidateRejected(entry.path),
         }, throwOnFailure, options.errors);
 

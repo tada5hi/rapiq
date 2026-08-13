@@ -6,6 +6,7 @@
  */
 
 import type { ObjectLiteral } from '../types';
+import { isObject } from '../utils';
 import type { IBaseError, IParseError } from './types';
 
 /**
@@ -36,10 +37,7 @@ export function markError(input: ObjectLiteral, marker: symbol) : void {
 }
 
 function isMarked(input: unknown, marker: symbol) : boolean {
-    if (
-        input === null ||
-        typeof input !== 'object'
-    ) {
+    if (!isObject(input)) {
         return false;
     }
 

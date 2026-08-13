@@ -29,7 +29,7 @@ import type {
 } from '../parameter';
 import { FilterCompoundOperator, FilterFieldOperator } from '../schema';
 import type { FiltersSchema, SortsSchema } from '../schema';
-import { parseKey } from '../utils';
+import { parseKey, toIssuePath } from '../utils';
 import type { IIssueCollector } from './issue';
 import { buildFiltersDefaults } from './parameter/filters/validate';
 
@@ -51,7 +51,7 @@ function recordPruned(
     issueCollector.notice({
         code: ErrorCode.KEY_PATH_NOT_ALLOWED,
         parameter,
-        path: name.split('.'),
+        path: toIssuePath(name),
         message: ErrorMessage.keyPathNotPermitted(name),
     });
 }

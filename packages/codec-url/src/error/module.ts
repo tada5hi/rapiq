@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { arrayToPath } from 'pathtrace';
 import type { Issue } from '@rapiq/core';
 import { PARAMETER_WIRE_NAMES } from './constants';
 import type { FormatErrorsOptions, FormattedError } from './types';
@@ -43,7 +44,7 @@ export function formatErrors(
 
         error.meta = { severity: issue.severity };
         if (issue.path.length > 0) {
-            error.meta.path = issue.path.join('.');
+            error.meta.path = arrayToPath(issue.path);
         }
 
         output.push(error);
