@@ -126,6 +126,27 @@ export class SimpleURLEncoder {
         return this.runSerializer(this.visitor.visitFields(stripFieldConditions(decoded)));
     }
 
+    async encodeFieldsAsync(
+        input: IFields,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitFields(input));
+        if (encoded === null || !isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeFieldsAsync(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitFields(stripFieldConditions(decoded)));
+    }
+
     encodeField(input: IField) {
         this.visitor.reset();
 
@@ -195,6 +216,27 @@ export class SimpleURLEncoder {
         return this.runSerializer(this.visitor.visitPagination(decoded));
     }
 
+    async encodePaginationAsync(
+        input: IPagination,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitPagination(input));
+        if (encoded === null || !isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodePaginationAsync(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitPagination(decoded));
+    }
+
     encodeRelations(input: IRelations, options: ParseParameterOptions = {}) {
         this.visitor.reset();
 
@@ -213,6 +255,27 @@ export class SimpleURLEncoder {
         return this.runSerializer(this.visitor.visitRelations(decoded));
     }
 
+    async encodeRelationsAsync(
+        input: IRelations,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitRelations(input));
+        if (encoded === null || !isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeRelationsAsync(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitRelations(decoded));
+    }
+
     encodeSorts(input: ISorts, options: ParseParameterOptions = {}) {
         this.visitor.reset();
 
@@ -222,6 +285,27 @@ export class SimpleURLEncoder {
         }
 
         const decoded = this.decoder.decodeSorts(encoded, options);
+        if (!decoded) {
+            return null;
+        }
+
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitSorts(decoded));
+    }
+
+    async encodeSortsAsync(
+        input: ISorts,
+        options: ParseParameterOptions = {},
+    ) : Promise<string | null> {
+        this.visitor.reset();
+
+        const encoded = this.runSerializer(this.visitor.visitSorts(input));
+        if (encoded === null || !isSchemaAware(options)) {
+            return encoded;
+        }
+
+        const decoded = await this.decoder.decodeSortsAsync(encoded, options);
         if (!decoded) {
             return null;
         }
