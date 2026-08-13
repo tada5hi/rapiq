@@ -42,17 +42,17 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = this.build(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-            issues,
-        }), issues);
+        const result = this.recordFailure(undefined, issues, Parameter.FIELDS, () => {
+            const { output, scope } = this.build(input, options, ledger, issues);
+
+            return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issues,
+            }), issues);
+        });
 
         this.finishIssues(undefined, issues);
 
@@ -66,17 +66,17 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = await this.buildAsync(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-            issues,
-        }), issues);
+        const result = await this.recordFailureAsync(undefined, issues, Parameter.FIELDS, async () => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issues);
+
+            return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issues,
+            }), issues);
+        });
 
         this.finishIssues(undefined, issues);
 

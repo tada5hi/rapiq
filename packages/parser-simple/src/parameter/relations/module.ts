@@ -43,17 +43,17 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = this.build(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = this.prune(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-            issues,
-        }));
+        const result = this.recordFailure(undefined, issues, Parameter.RELATIONS, () => {
+            const { output, scope } = this.build(input, options, ledger, issues);
+
+            return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issues,
+            }));
+        });
 
         this.finishIssues(undefined, issues);
 
@@ -67,17 +67,17 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = this.build(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-            issues,
-        }));
+        const result = await this.recordFailureAsync(undefined, issues, Parameter.RELATIONS, async () => {
+            const { output, scope } = this.build(input, options, ledger, issues);
+
+            return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issues,
+            }));
+        });
 
         this.finishIssues(undefined, issues);
 

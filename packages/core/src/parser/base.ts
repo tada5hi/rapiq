@@ -7,6 +7,7 @@
 
 import { setPathValue } from 'pathtrace';
 import { DEFAULT_ID, MAX_TRAVERSAL_DEPTH } from '../constants';
+import type { Parameter } from '../constants';
 import { ParseError } from '../errors';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
@@ -82,6 +83,72 @@ export abstract class BaseParser<
         }
 
         collector.throwIfFailed();
+    }
+
+    /**
+     * Run a parse body whose failures belong in `issues`.
+     *
+     * A structural failure (a malformed expression, an input of the wrong
+     * shape, a hostile key) aborts by throwing rather than by dropping one
+     * key, so without this it would escape the call before anything recorded
+     * it: the caller would catch an error whose `issues` is empty, and
+     * `toJsonApiErrors(error.issues)` — the documented way to render a
+     * failure — would answer with nothing at all.
+     *
+     * Recorded, the throw is re-raised through the trace, so the error that
+     * leaves is the FIRST violation with the whole trace attached (an earlier
+     * recorded rejection still wins over a structural abort that follows it).
+     * A call driven by an enclosing parse records nothing here and simply
+     * propagates: that parse catches the abort per parameter, keeps the other
+     * four parsing, and decides.
+     */
+    protected recordFailure<T>(
+        driver: IssueCollector | undefined,
+        issues: IssueCollector,
+        parameter: `${Parameter}`,
+        fn: () => T,
+    ) : T {
+        try {
+            return fn();
+        } catch (e) {
+            throw this.failure(e, driver, issues, parameter);
+        }
+    }
+
+    protected async recordFailureAsync<T>(
+        driver: IssueCollector | undefined,
+        issues: IssueCollector,
+        parameter: `${Parameter}`,
+        fn: () => Promise<T>,
+    ) : Promise<T> {
+        try {
+            return await fn();
+        } catch (e) {
+            throw this.failure(e, driver, issues, parameter);
+        }
+    }
+
+    /**
+     * The error a caught throw should leave the call as.
+     */
+    protected failure(
+        input: unknown,
+        driver: IssueCollector | undefined,
+        issues: IssueCollector,
+        parameter: `${Parameter}`,
+    ) : unknown {
+        if (
+            !(input instanceof ParseError) ||
+            driver === issues
+        ) {
+            return input;
+        }
+
+        if (!issues.failed) {
+            issues.error(input, parameter);
+        }
+
+        return issues.toError() ?? input;
     }
 
     protected getBaseSchema<

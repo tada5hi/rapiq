@@ -13,6 +13,7 @@ import {
     MAX_ISSUES,
     PaginationParseError,
     Parameter,
+    ParseError,
     RelationsParseError,
     SchemaRegistry,
     defineSchema,
@@ -310,6 +311,57 @@ describe('src/parser — issue traces', () => {
             // client-facing failure stays the first violation.
             expect(() => parser.parse({ relations: ['items'] }, { schema: 'user' }))
                 .toThrow(RelationsParseError.keyValidateRejected('items'));
+        });
+    });
+
+    describe('structural failures', () => {
+        it('should carry the trace on every standalone abort', () => {
+            const registry = buildRegistry();
+            const issues : Issue[] = [];
+
+            // a structural abort ends its parameter by throwing rather than
+            // by dropping a key, so without recording it the caller would
+            // render a 400 out of an empty error.issues
+            const cases : (() => unknown)[] = [
+                () => new SimpleFieldsParser(registry)
+                    .parse(['__proto__'], { schema: 'user', issues }),
+                () => new SimpleParser(registry)
+                    .parseFilters(JSON.parse('{"__proto__":{"x":1}}'), { schema: 'user', issues }),
+                () => new SimpleParser(registry)
+                    .parsePagination('nope', {
+                        schema: 'user', 
+                        throwOnFailure: true, 
+                        issues, 
+                    }),
+            ];
+
+            for (const run of cases) {
+                let error : FieldsParseError | undefined;
+                try {
+                    run();
+                } catch (e) {
+                    error = e as FieldsParseError;
+                }
+
+                expect(error).toBeInstanceOf(ParseError);
+                expect(error?.issues.length).toBeGreaterThan(0);
+            }
+        });
+
+        it('should let an earlier rejection win over a later abort', () => {
+            const parser = new SimpleParser(buildRegistry(true));
+            const issues : Issue[] = [];
+
+            let error : FieldsParseError | undefined;
+            try {
+                parser.parse({ fields: ['nope'], filters: 'not-an-object' }, { schema: 'user', issues });
+            } catch (e) {
+                error = e as FieldsParseError;
+            }
+
+            expect(error).toBeInstanceOf(FieldsParseError);
+            expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+            expect(error?.issues.length).toBeGreaterThan(1);
         });
     });
 

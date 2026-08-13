@@ -96,27 +96,30 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const {
-            scope, 
-            parsed, 
-            issues, 
-            sent,
-        } = this.prepare(input, options, ledger);
-        const output = !parsed ?
-            this.buildDefaultOutput(scope, sent) :
-            (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, issues)) as IFilters | undefined ??
-                this.buildDefaultOutput(scope, true));
+        const issues = this.beginIssues(options);
 
-        const result = applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issues,
-            }), scope.schema as FiltersSchema<RECORD>, issues),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
-        );
+        const result = this.recordFailure(undefined, issues, Parameter.FILTERS, () => {
+            const {
+                scope, 
+                parsed, 
+                sent, 
+            } = this.prepare(input, options, ledger, issues);
+            const output = !parsed ?
+                this.buildDefaultOutput(scope, sent) :
+                (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, issues)) as IFilters | undefined ??
+                    this.buildDefaultOutput(scope, true));
+
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issues,
+                }), scope.schema as FiltersSchema<RECORD>, issues),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issues },
+            );
+        });
 
         this.finishIssues(undefined, issues);
 
@@ -128,27 +131,30 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const {
-            scope, 
-            parsed, 
-            issues, 
-            sent,
-        } = this.prepare(input, options, ledger);
-        const output = !parsed ?
-            this.buildDefaultOutput(scope, sent) :
-            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, issues)) as
-                IFilters | undefined ?? this.buildDefaultOutput(scope, true));
+        const issues = this.beginIssues(options);
 
-        const result = applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issues,
-            }), scope.schema as FiltersSchema<RECORD>, issues),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
-        );
+        const result = await this.recordFailureAsync(undefined, issues, Parameter.FILTERS, async () => {
+            const {
+                scope, 
+                parsed, 
+                sent, 
+            } = this.prepare(input, options, ledger, issues);
+            const output = !parsed ?
+                this.buildDefaultOutput(scope, sent) :
+                (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, issues)) as
+                    IFilters | undefined ?? this.buildDefaultOutput(scope, true));
+
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issues,
+                }), scope.schema as FiltersSchema<RECORD>, issues),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issues },
+            );
+        });
 
         this.finishIssues(undefined, issues);
 

@@ -79,6 +79,20 @@ export class SimplePaginationParser<
         driver?: IssueCollector,
     ) : IPagination {
         const issues = this.beginIssues(options, driver);
+
+        const result = this.recordFailure(driver, issues, Parameter.PAGINATION, () => this.run(input, options, issues));
+        this.finishIssues(driver, issues);
+
+        return result;
+    }
+
+    protected run<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        issues: IssueCollector,
+    ) : IPagination {
         const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, {
             throwOnFailure: options.throwOnFailure,
             issues,
@@ -102,10 +116,7 @@ export class SimplePaginationParser<
                 });
             }
 
-            const fallback = this.finalizePagination(output, schema, scope);
-            this.finishIssues(driver, issues);
-
-            return fallback;
+            return this.finalizePagination(output, schema, scope);
         }
 
         // pagination performs no key grouping, so the prototype-member
@@ -146,10 +157,7 @@ export class SimplePaginationParser<
             }
         }
 
-        const result = this.finalizePagination(output, schema, scope);
-        this.finishIssues(driver, issues);
-
-        return result;
+        return this.finalizePagination(output, schema, scope);
     }
 
     protected finalizePagination<

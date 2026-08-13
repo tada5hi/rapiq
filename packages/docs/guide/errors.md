@@ -174,6 +174,8 @@ The thrown class, `code` and `message` stay those of the first violation, so exi
 
 Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). The failure ends the parse, and the error it raises carries the original as its native `cause`.
 
+**Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort that follows an earlier rejection does not displace it: the raised error stays the first violation, with the abort recorded behind it.
+
 Two consequences worth knowing when you enable `throwOnFailure`:
 
 - `validate` hooks now run for keys that the first throw used to shield.

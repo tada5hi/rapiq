@@ -41,22 +41,22 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortsParseOptions<RECORD> = {}) : Sorts {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = this.build(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = applySortsIndexPolicy(
-            pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issues,
-            }), scope.schema as SortsSchema<RECORD>, issues),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
-        );
+        const result = this.recordFailure(undefined, issues, Parameter.SORTS, () => {
+            const { output, scope } = this.build(input, options, ledger, issues);
+
+            return applySortsIndexPolicy(
+                pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issues,
+                }), scope.schema as SortsSchema<RECORD>, issues),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issues },
+            );
+        });
 
         this.finishIssues(undefined, issues);
 
@@ -70,22 +70,22 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         options: SortsParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
         const ledger : RelationLedger = [];
-        const {
-            output, 
-            scope, 
-            issues, 
-        } = await this.buildAsync(input, options, ledger);
+        const issues = this.beginIssues(options);
 
-        const result = applySortsIndexPolicy(
-            pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issues,
-            }), scope.schema as SortsSchema<RECORD>, issues),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
-        );
+        const result = await this.recordFailureAsync(undefined, issues, Parameter.SORTS, async () => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issues);
+
+            return applySortsIndexPolicy(
+                pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issues,
+                }), scope.schema as SortsSchema<RECORD>, issues),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issues },
+            );
+        });
 
         this.finishIssues(undefined, issues);
 

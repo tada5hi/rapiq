@@ -83,6 +83,23 @@ describe('src/parameter/filters — issue traces', () => {
         expect(issues[0]?.parameter).toBe(Parameter.FILTERS);
     });
 
+    it('should carry the trace on a standalone grammar abort', () => {
+        const parser = new MongoParser(buildRegistry());
+
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parseFilters('not-a-document', { schema: 'row' });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
+
+        // rendering a failure reads error.issues, so a grammar abort has to
+        // populate it too
+        expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
+        expect(error?.issues).toHaveLength(1);
+        expect(error?.cause).toBeInstanceOf(FiltersParseError);
+    });
+
     it('should leave a legal elemMatch on a non-relation field alone', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
