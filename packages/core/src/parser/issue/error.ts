@@ -22,7 +22,7 @@ import type { IIssueCollector } from './types';
  * what to raise from it are separate jobs, and only the call that owns the
  * parse is in a position to do the second.
  */
-export function buildIssueError(input: IIssueCollector) : IParseError | undefined {
+export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseError | undefined {
     const { failure } = input;
     if (!failure) {
         return undefined;
@@ -42,8 +42,8 @@ export function buildIssueError(input: IIssueCollector) : IParseError | undefine
 /**
  * Raise what a trace collected, if anything was rejected outright.
  */
-export function raiseIssueError(input: IIssueCollector) : void {
-    const error = buildIssueError(input);
+export function raiseErrorFromIssueCollector(input: IIssueCollector) : void {
+    const error = buildErrorFromIssueCollector(input);
     if (error) {
         throw error;
     }

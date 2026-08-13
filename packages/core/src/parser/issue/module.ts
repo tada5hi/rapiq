@@ -19,7 +19,7 @@ import type { IIssueCollector, IssueFailure } from './types';
  * violation is found, a site records it and takes the drop path, so a request
  * with several bad keys reports all of them. What to do about that is not its
  * decision: it collects and serves, and the call that owns the parse raises
- * the failure through {@link buildIssueError}.
+ * the failure through {@link buildErrorFromIssueCollector}.
  *
  * The trace is not observable anywhere else: a parse that raises nothing
  * discards it. `error.issues` is the single channel.

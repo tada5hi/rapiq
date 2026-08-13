@@ -18,7 +18,7 @@ import {
     parseKey, 
     stringifyKey,
 } from '../utils';
-import { IssueCollector, buildIssueError, raiseIssueError } from './issue';
+import { IssueCollector, buildErrorFromIssueCollector, raiseErrorFromIssueCollector } from './issue';
 import type { IIssueCollector } from './issue';
 import type { IParser } from './types';
 
@@ -81,7 +81,7 @@ export abstract class BaseParser<
             return;
         }
 
-        raiseIssueError(collector);
+        raiseErrorFromIssueCollector(collector);
     }
 
     /**
@@ -147,7 +147,7 @@ export abstract class BaseParser<
             issueCollector.error(input, parameter);
         }
 
-        return buildIssueError(issueCollector) ?? input;
+        return buildErrorFromIssueCollector(issueCollector) ?? input;
     }
 
     protected getBaseSchema<

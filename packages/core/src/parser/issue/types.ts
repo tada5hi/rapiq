@@ -17,7 +17,7 @@ import type {
  * plus what the site that found it would have thrown.
  *
  * Everything an error is rebuilt FROM, and nothing about how — building it is
- * {@link buildIssueError}'s job.
+ * {@link buildErrorFromIssueCollector}'s job.
  */
 export type IssueFailure = {
     issue: Issue,
