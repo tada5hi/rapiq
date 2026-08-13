@@ -41,6 +41,24 @@ The `mssql` and `sqlite` presets omit the `regexp` callback: SQL Server has no r
 
 No single `mod` spelling works everywhere: `pg`, `mysql`, `sqlite` and `oracle` render `mod(field, divisor) = remainder` (a `MOD()` function or equivalent); `mssql` has no `MOD()` function, so its preset renders `field % divisor = remainder` instead, using SQL Server's modulo operator. A custom dialect that omits the `mod` callback raises a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`, feature `filters:mod`) for the `mod` filter operator, exactly like an omitted `regexp`.
 
+::: warning SQLite needs a build with math functions
+SQLite's `mod()` is a [math function](https://sqlite.org/lang_mathfunc.html): available since SQLite 3.35, and only in builds compiled with `SQLITE_ENABLE_MATH_FUNCTIONS`. Every mainstream Node driver enables it (`better-sqlite3`, `node:sqlite`, `sqlite3`), so the preset renders `mod(...)`; a build without it reports `no such function: mod`. Some embedded targets the preset also covers (`sql.js`, `cordova`, `react-native`, `capacitor`, `expo`, `nativescript`) make no such guarantee, so override the callback there:
+
+```typescript
+import { sqlite } from '@rapiq/adapter-sql';
+
+const dialect = {
+    ...sqlite,
+    // `%` is core syntax and always available, but SQLite casts both
+    // operands to INTEGER: `5.5 % 2` is 1, whereas `mod(5.5, 2)` is 1.5.
+    // Only equivalent for integer operands.
+    mod: (field: string, divisor: string, remainder: string) => `${field} % ${divisor} = ${remainder}`,
+};
+```
+
+Setting `mod: undefined` instead turns the operator into the typed `filters:mod` refusal, which is the safer choice when non-integer operands are possible: `@rapiq/adapter-memory` evaluates `mod` with JavaScript's `%` (float-capable), so an integer-casting `%` would answer differently for the same query.
+:::
+
 ## The root adapter
 
 Each parameter has an adapter/visitor pair (`FieldsAdapter`/`FieldsVisitor`, `SortsAdapter`/`SortsVisitor`, `PaginationAdapter`/`PaginationVisitor`, `RelationsAdapter`/`RelationsVisitor`) that collects the walked state: selected columns, order map, limit/offset, relation paths. A root `Adapter` bundles all five; `execute(query)` walks a whole `Query` into it and returns the accumulated clause fragments:
