@@ -7,7 +7,7 @@
 
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES } from '../../errors';
-import type { Issue, ParseError } from '../../errors';
+import type { IParseError, IParseErrorConstructor, Issue } from '../../errors';
 import { normalizeParameter } from '../../utils';
 import { PARAMETER_ERROR_CLASSES } from './constants';
 
@@ -36,17 +36,17 @@ export class IssueCollector {
     protected failure : Issue | undefined;
 
     /**
-     * The class the failing site would have thrown, when it is not simply its
-     * parameter's (a scope may be built with an explicit `errors` override).
+     * The error CLASS the failing site would have thrown, when it is not
+     * simply its parameter's (a scope may be built with an explicit override).
      */
-    protected failureErrors : typeof ParseError | undefined;
+    protected failureClass : IParseErrorConstructor | undefined;
 
     /**
      * The error the failure was caught as, when it was one. The rebuilt error
      * carries it as its `cause`, so an aggregated structural failure keeps
      * the stack of the throw it actually came from.
      */
-    protected failureCause : ParseError | undefined;
+    protected failureCause : IParseError | undefined;
 
     constructor() {
         this.items = [];
@@ -62,12 +62,12 @@ export class IssueCollector {
     violation(
         input: Omit<Issue, 'severity'>,
         throwOnFailure?: boolean,
-        errors?: typeof ParseError,
+        errorClass?: IParseErrorConstructor,
     ) : void {
         this.record({
             ...input,
             severity: throwOnFailure ? 'error' : 'warning',
-        }, errors);
+        }, errorClass);
     }
 
     /**
@@ -84,20 +84,20 @@ export class IssueCollector {
      * shape) abort their parameter instead of dropping one key, so the
      * caller catches them here.
      */
-    error(input: ParseError, parameter: `${Parameter}`, path: string[] = []) : void {
+    error(input: IParseError, parameter: `${Parameter}`, path: string[] = []) : void {
         this.record({
             code: input.code,
             parameter,
             path,
             severity: 'error',
             message: input.message,
-        }, input.constructor as typeof ParseError, input);
+        }, input.constructor as IParseErrorConstructor, input);
     }
 
     record(
         input: Issue,
-        errors?: typeof ParseError,
-        cause?: ParseError,
+        errorClass?: IParseErrorConstructor,
+        cause?: IParseError,
     ) : void {
         const issue : Issue = {
             ...input,
@@ -107,7 +107,7 @@ export class IssueCollector {
         const isFailure = !this.failure && issue.severity === 'error';
         if (isFailure) {
             this.failure = issue;
-            this.failureErrors = errors;
+            this.failureClass = errorClass;
             this.failureCause = cause;
         }
 
@@ -136,12 +136,12 @@ export class IssueCollector {
      * The error this trace owes its caller, or undefined when nothing was
      * rejected outright.
      */
-    toError() : ParseError | undefined {
+    toError() : IParseError | undefined {
         if (!this.failure) {
             return undefined;
         }
 
-        const ErrorClass = this.failureErrors ?? PARAMETER_ERROR_CLASSES[this.failure.parameter];
+        const ErrorClass = this.failureClass ?? PARAMETER_ERROR_CLASSES[this.failure.parameter];
 
         return new ErrorClass({
             code: this.failure.code,

@@ -9,9 +9,9 @@ import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
-import type { BaseErrorOptions } from './types';
+import type { BaseErrorOptions, IParseError } from './types';
 
-export class ParseError extends BaseError {
+export class ParseError extends BaseError implements IParseError {
     constructor(message?: string | BaseErrorOptions) {
         if (isObject(message)) {
             message.message = message.message || 'A parsing error has occurred.';

@@ -7,7 +7,7 @@
 
 import { ErrorCode } from './code';
 import type { Issue } from './issue';
-import type { BaseErrorOptions } from './types';
+import type { BaseErrorOptions, IBaseError } from './types';
 
 function defineIssues(error: BaseError, issues: readonly Issue[]) : void {
     Object.defineProperty(error, 'issues', {
@@ -18,7 +18,7 @@ function defineIssues(error: BaseError, issues: readonly Issue[]) : void {
     });
 }
 
-export class BaseError extends Error {
+export class BaseError extends Error implements IBaseError {
     public readonly code : `${ErrorCode}`;
 
     /**

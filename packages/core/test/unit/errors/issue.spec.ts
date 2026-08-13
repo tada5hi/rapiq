@@ -161,3 +161,19 @@ describe('src/errors/base.ts', () => {
         expect(error.issues).toHaveLength(1);
     });
 });
+
+describe('src/errors/types.ts', () => {
+    it('should let any conforming class stand in as the rebuild target', () => {
+        class DialectParseError extends ParseError {}
+
+        const collector = new IssueCollector();
+        collector.violation(violation(), true, DialectParseError);
+
+        // the rebuild depends on the constructor contract, not on the class
+        // hierarchy, so a dialect package can name its own error class
+        const error = collector.toError();
+        expect(error).toBeInstanceOf(DialectParseError);
+        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.issues).toHaveLength(1);
+    });
+});

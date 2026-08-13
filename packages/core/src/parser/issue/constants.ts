@@ -16,6 +16,10 @@ import { SortsParseError } from '../parameter/sort/error';
 /**
  * The error class each parameter rejects client input with — the default
  * reconstruction target for an issue whose site recorded no explicit class.
+ *
+ * Typed by the class rather than by {@link IParseErrorConstructor}: the
+ * resolver reaches for the static factories through the same table, while a
+ * rebuild only ever needs the constructor.
  */
 export const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FIELDS]: FieldsParseError,

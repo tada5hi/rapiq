@@ -15,3 +15,4 @@ export * from './merge';
 export * from './messages';
 export * from './parse';
 export * from './schema';
+export * from './types';

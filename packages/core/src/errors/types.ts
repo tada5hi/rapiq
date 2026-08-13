@@ -21,3 +21,27 @@ export type BaseErrorOptions = {
      */
     issues?: readonly Issue[]
 };
+
+/**
+ * The shape every error rapiq raises satisfies: a native `Error` carrying a
+ * machine-readable {@link ErrorCode} and the trace it was raised from.
+ */
+export interface IBaseError extends Error {
+    readonly code : `${ErrorCode}`,
+    readonly issues : readonly Issue[],
+}
+
+/**
+ * A client-input failure, as consumers see it.
+ */
+export interface IParseError extends IBaseError {}
+
+/**
+ * The constructor side of a parse error: what rebuilding one from its issue
+ * needs, and no more. Referencing this instead of `typeof ParseError` keeps
+ * the rebuild from depending on the class hierarchy — any error class the
+ * failing site names satisfies it, including one a dialect package defines.
+ */
+export interface IParseErrorConstructor {
+    new (input?: string | BaseErrorOptions) : IParseError,
+}
