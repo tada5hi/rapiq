@@ -10,7 +10,7 @@ import { ErrorCode, ErrorMessage } from '../../errors';
 import type { Issue, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
-import { PARAMETER_ERROR_CLASSES } from '../../parser/issue';
+import { PARAMETER_ERROR_CLASSES } from '../../parser/issue/constants';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
