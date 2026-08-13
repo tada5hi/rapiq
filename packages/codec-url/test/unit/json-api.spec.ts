@@ -12,7 +12,7 @@ import {
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
-import type { Issue } from '@rapiq/core';
+import type { Issue, ParseError  } from '@rapiq/core';
 import { URLParameter, createURLCodec, toJsonApiErrors } from '../../src';
 
 const issue = (overrides: Partial<Issue> = {}) : Issue => ({
@@ -70,42 +70,29 @@ describe('src/json-api.ts', () => {
         expect(toJsonApiErrors([issue({ path: [] })])[0]?.meta).toEqual({ severity: 'error' });
     });
 
-    it('should render what a decode reported', () => {
+    it('should render what a decode raised', () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
             name: 'user',
+            throwOnFailure: true,
             filters: { allowed: ['id'] },
         }));
 
         const codec = createURLCodec(registry);
-        const issues : Issue[] = [];
 
-        codec.decode('filter[secret]=x', { schema: 'user', issues });
+        let error : ParseError | undefined;
+        try {
+            codec.decode('filter[secret]=x', { schema: 'user' });
+        } catch (e) {
+            error = e as ParseError;
+        }
 
-        expect(toJsonApiErrors(issues, { warnings: true, status: '400' })).toEqual([{
+        expect(toJsonApiErrors(error?.issues ?? [], { status: '400' })).toEqual([{
             status: '400',
             code: ErrorCode.KEY_NOT_ALLOWED,
             detail: ErrorMessage.keyNotPermitted('secret'),
             source: { parameter: URLParameter.FILTERS },
-            meta: { severity: 'warning', path: 'secret' },
+            meta: { severity: 'error', path: 'secret' },
         }]);
-    });
-
-    it('should keep a schema-aware encode out of the caller trace', () => {
-        const registry = new SchemaRegistry();
-        registry.add(defineSchema({
-            name: 'user',
-            filters: { allowed: ['id'] },
-        }));
-
-        const codec = createURLCodec(registry);
-        const issues : Issue[] = [];
-
-        const query = codec.decode('filter[id]=1');
-        codec.encode(query!, { schema: 'user', issues });
-
-        // the encode's internal validation decode re-reads output the caller
-        // is producing — its issues are not the caller's request trace.
-        expect(issues).toEqual([]);
     });
 });

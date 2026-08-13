@@ -50,18 +50,6 @@ describe('src/errors/issue.ts', () => {
         expect(collector.issues[0]?.severity).toBe('error');
     });
 
-    it('should mirror into the caller sink as it records', () => {
-        const sink : Issue[] = [];
-        const collector = new IssueCollector(sink);
-
-        collector.violation(violation(), false);
-        expect(sink).toHaveLength(1);
-
-        collector.notice(violation({ code: ErrorCode.NONE }));
-        expect(sink).toHaveLength(2);
-        expect(sink[1]?.severity).toBe('warning');
-    });
-
     it('should rebuild the first error-severity issue into its error', () => {
         const collector = new IssueCollector();
 
@@ -109,8 +97,7 @@ describe('src/errors/issue.ts', () => {
     });
 
     it('should cap the recorded issues without losing the failure', () => {
-        const sink : Issue[] = [];
-        const collector = new IssueCollector(sink);
+        const collector = new IssueCollector();
 
         collector.violation(violation({ path: ['first'] }), true);
         for (let i = 0; i < MAX_ISSUES + 10; i++) {
@@ -118,7 +105,6 @@ describe('src/errors/issue.ts', () => {
         }
 
         expect(collector.issues).toHaveLength(MAX_ISSUES);
-        expect(sink).toHaveLength(MAX_ISSUES);
         expect(collector.toError()?.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
     });

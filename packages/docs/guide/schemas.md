@@ -417,12 +417,14 @@ try {
 
 Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
-Neither mode is silent any more. Pass an [`issues` sink](/guide/errors#issue-traces) to see what a dropping parse discarded, and note that a throwing parse reports every violation it found rather than only the first: the thrown class, `code` and `message` stay those of the first violation, and `error.issues` carries the rest.
+A throwing parse reports every violation it found rather than only the first: the thrown class, `code` and `message` stay those of the first violation, and [`error.issues`](/guide/errors#issue-traces) carries the rest.
 
 ```typescript
-const issues: Issue[] = [];
-parser.parse({ filters: { secret: 'x' } }, { schema: 'user', issues });
-// issues[0].code === 'keyNotAllowed', issues[0].path === ['secret']
+try {
+    parser.parse({ fields: ['secret'], filters: { nope: 'x' } }, { schema: 'user' });
+} catch (e) {
+    e.issues; // both violations, in the order the parse hit them
+}
 ```
 
 `throwOnFailure` can also be set per parse call, overriding the schema setting, exactly like [`strict`](#strict-mode). The override reaches the whole-query `parse()`/`parseAsync()`, `URLCodec.decode()`/`decodeAsync()`, and is inherited into relation recursion:

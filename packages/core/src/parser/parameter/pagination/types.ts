@@ -7,11 +7,10 @@
 
 import type { ObjectLiteral } from '../../../types';
 import type { PaginationSchema, Schema } from '../../../schema';
-import type { ParseIssueOptions } from '../../types';
 
 export type PaginationParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = ParseIssueOptions & {
+> = {
     schema?: string | Schema<RECORD> | PaginationSchema,
     throwOnFailure?: boolean
 };

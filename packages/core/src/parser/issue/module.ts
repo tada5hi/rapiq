@@ -18,9 +18,13 @@ import { PARAMETER_ERROR_CLASSES } from './constants';
  * A collector inverts the failure policy. Instead of throwing where a
  * violation is found, a site records it and takes the drop path, so a request
  * with several bad keys reports all of them; the call that CREATED the
- * collector rebuilds the first error-severity issue and throws it at the end.
- * The rebuilt error is indistinguishable from the fail-fast one — same class,
- * same `code`, same message — so first-issue-wins holds by construction.
+ * collector rebuilds the first error-severity issue and throws it at the end,
+ * with the whole trace attached. The rebuilt error is indistinguishable from
+ * the fail-fast one — same class, same `code`, same message — so
+ * first-issue-wins holds by construction.
+ *
+ * The trace is not observable anywhere else: a parse that raises nothing
+ * discards it. `error.issues` is the single channel.
  *
  * A site without a collector keeps throwing immediately: `ResolutionScope` is
  * public API and usable outside a parse, where nobody would ever finish the
@@ -28,12 +32,6 @@ import { PARAMETER_ERROR_CLASSES } from './constants';
  */
 export class IssueCollector {
     protected items : Issue[];
-
-    /**
-     * The caller-supplied array. Written at record time, not on finish, so a
-     * structural error escaping the parse still leaves the trace behind.
-     */
-    protected sink : Issue[] | undefined;
 
     protected failure : Issue | undefined;
 
@@ -50,9 +48,8 @@ export class IssueCollector {
      */
     protected failureCause : ParseError | undefined;
 
-    constructor(sink?: Issue[]) {
+    constructor() {
         this.items = [];
-        this.sink = sink;
     }
 
     // -----------------------------------------------------
@@ -123,10 +120,6 @@ export class IssueCollector {
         }
 
         this.items.push(issue);
-
-        if (this.sink) {
-            this.sink.push(issue);
-        }
     }
 
     // -----------------------------------------------------

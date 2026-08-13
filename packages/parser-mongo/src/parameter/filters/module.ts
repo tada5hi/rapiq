@@ -96,7 +96,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = this.recordFailure(undefined, issues, Parameter.FILTERS, () => {
             const {
@@ -131,7 +131,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = await this.recordFailureAsync(undefined, issues, Parameter.FILTERS, async () => {
             const {
@@ -249,7 +249,7 @@ export class MongoFiltersParser extends BaseParser<
              */
         sent: boolean,
     } {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,

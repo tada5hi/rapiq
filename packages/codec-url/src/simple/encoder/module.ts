@@ -24,7 +24,6 @@ import {
     isSchemaAware,
     stripFieldConditions,
     stripQueryFieldConditions,
-    withoutIssues,
 } from '../../utils';
 import { SimpleURLDecoder } from '../decoder';
 import type { ISerializer } from './serializer';
@@ -69,7 +68,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...withoutIssues(options), parameters });
+        const decoded = this.decoder.decode(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
@@ -97,7 +96,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...withoutIssues(options), parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
         if (!decoded) {
             return null;
         }
@@ -117,7 +116,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeFields(encoded, withoutIssues(options));
+        const decoded = this.decoder.decodeFields(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -138,7 +137,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeFieldsAsync(encoded, withoutIssues(options));
+        const decoded = await this.decoder.decodeFieldsAsync(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -162,7 +161,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeFilters(encoded, withoutIssues(options));
+        const decoded = this.decoder.decodeFilters(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -183,7 +182,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeFiltersAsync(encoded, withoutIssues(options));
+        const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -207,7 +206,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodePagination(encoded, withoutIssues(options));
+        const decoded = this.decoder.decodePagination(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -228,7 +227,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodePaginationAsync(encoded, withoutIssues(options));
+        const decoded = await this.decoder.decodePaginationAsync(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -246,7 +245,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeRelations(encoded, withoutIssues(options));
+        const decoded = this.decoder.decodeRelations(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -267,7 +266,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeRelationsAsync(encoded, withoutIssues(options));
+        const decoded = await this.decoder.decodeRelationsAsync(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -285,7 +284,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeSorts(encoded, withoutIssues(options));
+        const decoded = this.decoder.decodeSorts(encoded, options);
         if (!decoded) {
             return null;
         }
@@ -306,7 +305,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeSortsAsync(encoded, withoutIssues(options));
+        const decoded = await this.decoder.decodeSortsAsync(encoded, options);
         if (!decoded) {
             return null;
         }

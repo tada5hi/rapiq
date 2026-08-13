@@ -43,7 +43,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = this.recordFailure(undefined, issues, Parameter.RELATIONS, () => {
             const { output, scope } = this.build(input, options, ledger, issues);
@@ -67,7 +67,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = await this.recordFailureAsync(undefined, issues, Parameter.RELATIONS, async () => {
             const { output, scope } = this.build(input, options, ledger, issues);
@@ -140,7 +140,7 @@ export class SimpleRelationsParser extends BaseParser<
         scope: RelationsScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,

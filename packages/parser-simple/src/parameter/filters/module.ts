@@ -56,7 +56,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = this.recordFailure(undefined, issues, Parameter.FILTERS, () => {
             const { output, scope } = this.build(input, options, ledger, issues);
@@ -83,7 +83,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = await this.recordFailureAsync(undefined, issues, Parameter.FILTERS, async () => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issues);
@@ -149,7 +149,7 @@ export class SimpleFiltersParser extends BaseParser<
         scope: FiltersScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issues);
 
         const parsed = this.run(input, scope);
@@ -185,7 +185,7 @@ export class SimpleFiltersParser extends BaseParser<
         scope: FiltersScope<RECORD>, 
         issues: IssueCollector 
     }> {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issues);
 
         const parsed = this.run(input, scope);

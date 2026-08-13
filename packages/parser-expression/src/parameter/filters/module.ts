@@ -96,7 +96,7 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const { output, scope } = this.recordFailure(undefined, issues, Parameter.FILTERS, () => this.build(input, options, ledger, issues));
         if (!scope) {
@@ -126,7 +126,7 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const { output, scope } = await this.recordFailureAsync(
             undefined,

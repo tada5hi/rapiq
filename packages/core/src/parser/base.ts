@@ -19,7 +19,7 @@ import {
     stringifyKey,
 } from '../utils';
 import { IssueCollector } from './issue';
-import type { IParser, ParseIssueOptions } from './types';
+import type { IParser } from './types';
 
 export type TempType = {
     attributes: Record<string, any>,
@@ -58,13 +58,11 @@ export abstract class BaseParser<
     /**
      * The trace this parse call records into: the enclosing call's when a
      * driver handed one down (a query parse driving its five parameters), a
-     * fresh one bound to the caller's sink otherwise.
+     * fresh one otherwise. A trace nothing raises is discarded — the error a
+     * parse throws is the only way it is ever read.
      */
-    protected beginIssues(
-        options: ParseIssueOptions,
-        driver?: IssueCollector,
-    ) : IssueCollector {
-        return driver ?? new IssueCollector(options.issues);
+    protected beginIssues(driver?: IssueCollector) : IssueCollector {
+        return driver ?? new IssueCollector();
     }
 
     /**

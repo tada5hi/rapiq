@@ -12,7 +12,6 @@ import {
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
-import type { Issue } from '@rapiq/core';
 import { MongoParser } from '../../src';
 
 type Item = { id: string, title: string };
@@ -43,44 +42,55 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 
 describe('src/parameter/filters — issue traces', () => {
     it('should report a dropped field key', () => {
-        const parser = new MongoParser(buildRegistry());
-        const issues : Issue[] = [];
+        const parser = new MongoParser(buildRegistry(true));
 
-        const query = parser.parse({ filters: { secret: 'x' } }, { schema: 'row', issues });
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parse({ filters: { secret: 'x' } }, { schema: 'row' });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
 
-        expect(query.filters.value).toHaveLength(0);
-        expect(issues).toEqual([{
+        expect(error?.issues).toEqual([{
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.FILTERS,
             path: ['secret'],
             key: 'secret',
             message: 'The key secret is not permitted.',
-            severity: 'warning',
+            severity: 'error',
         }]);
     });
 
     it('should aggregate dropped keys under a throwing schema', () => {
         const parser = new MongoParser(buildRegistry(true));
-        const issues : Issue[] = [];
 
-        expect(() => parser.parse({ filters: { $or: [{ secret: 'x' }, { other: 'y' }] } }, { schema: 'row', issues })).toThrow(FiltersParseError);
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parse({ filters: { $or: [{ secret: 'x' }, { other: 'y' }] } }, { schema: 'row' });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
 
-        expect(issues.map((item) => item.path)).toEqual([['secret'], ['other']]);
-        expect(issues.every((item) => item.severity === 'error')).toBeTruthy();
+        expect(error).toBeInstanceOf(FiltersParseError);
+        expect((error?.issues ?? []).map((item) => item.path)).toEqual([['secret'], ['other']]);
+        expect((error?.issues ?? []).every((item) => item.severity === 'error')).toBeTruthy();
     });
 
     it('should keep a grammar error a grammar error', () => {
         const parser = new MongoParser(buildRegistry());
-        const issues : Issue[] = [];
 
         // grammar failures are policy-independent and abort the parameter;
-        // the query parse records one issue and raises it.
-        expect(() => parser.parse({ filters: { id: { $nope: 1 } } }, { schema: 'row', issues }))
-            .toThrow(FiltersParseError);
+        // the parse records one issue and raises it.
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parse({ filters: { id: { $nope: 1 } } }, { schema: 'row' });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
 
-        expect(issues).toHaveLength(1);
-        expect(issues[0]?.severity).toBe('error');
-        expect(issues[0]?.parameter).toBe(Parameter.FILTERS);
+        expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.severity).toBe('error');
+        expect(error?.issues[0]?.parameter).toBe(Parameter.FILTERS);
     });
 
     it('should carry the trace on a standalone grammar abort', () => {
@@ -109,15 +119,13 @@ describe('src/parameter/filters — issue traces', () => {
         }));
 
         const parser = new MongoParser(registry);
-        const issues : Issue[] = [];
 
         // an array of scalars is not a relation: "no schema for this key" is
         // an answer here, not a violation, so nothing is recorded and the
         // parse does not fail.
-        const query = parser.parse({ filters: { tags: { $elemMatch: { $eq: 'x' } } } }, { schema: 'row', issues });
+        const query = parser.parse({ filters: { tags: { $elemMatch: { $eq: 'x' } } } }, { schema: 'row' });
 
         expect(query.filters.value).toHaveLength(1);
-        expect(issues).toEqual([]);
     });
 
     it('should report an elemMatch interior key the related schema rejects', () => {
@@ -133,19 +141,21 @@ describe('src/parameter/filters — issue traces', () => {
         }));
 
         const parser = new MongoParser(registry);
-        const issues : Issue[] = [];
 
-        const query = parser.parse({ filters: { items: { $elemMatch: { secret: '1' } } } }, { schema: 'row', issues });
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parse({ filters: { items: { $elemMatch: { secret: '1' } } } }, { schema: 'row', throwOnFailure: true });
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
 
-        // the emptied interior drops the whole entry
-        expect(query.filters.value).toHaveLength(0);
-        expect(issues[0]).toMatchObject({
+        expect(error?.issues[0]).toMatchObject({
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.FILTERS,
             // the interior is addressed relative to the element, but the
             // canonical position keeps the relation it hangs off
             path: ['items', 'secret'],
-            severity: 'warning',
+            severity: 'error',
         });
     });
 });

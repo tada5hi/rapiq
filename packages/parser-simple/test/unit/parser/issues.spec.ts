@@ -40,6 +40,7 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 
     registry.add(defineSchema({
         name: 'item',
+        throwOnFailure,
         fields: { allowed: ['id'] },
         filters: { allowed: ['id'] },
         sorts: { allowed: ['id'] },
@@ -48,22 +49,50 @@ const buildRegistry = (throwOnFailure?: boolean) => {
     return registry;
 };
 
+/**
+ * The trace has exactly one channel: the error a parse raises. A parse that
+ * raises nothing discards it.
+ */
+const trace = (run: () => unknown) : { error?: ParseError, issues: readonly Issue[] } => {
+    try {
+        run();
+    } catch (e) {
+        const error = e as ParseError;
+
+        return { error, issues: error.issues ?? [] };
+    }
+
+    return { issues: [] };
+};
+
 const findIssue = (
-    issues: Issue[],
+    issues: readonly Issue[],
     parameter: `${Parameter}`,
     code?: `${ErrorCode}`,
 ) => issues.find((issue) => issue.parameter === parameter &&
     (typeof code === 'undefined' || issue.code === code));
 
 describe('src/parser — issue traces', () => {
-    describe('drop mode', () => {
-        it('should report a disallowed key it silently dropped', () => {
+    describe('the raise condition', () => {
+        it('should raise nothing while the policy drops', () => {
             const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
 
-            const query = parser.parse({ fields: ['id', 'secret'] }, { schema: 'user', issues });
+            const query = parser.parse({ fields: ['id', 'secret'] }, { schema: 'user' });
 
             expect(query.fields.value.map((field) => field.name)).toEqual(['id']);
+        });
+
+        it('should raise the first violation once the policy throws', () => {
+            const parser = new SimpleParser(buildRegistry(true));
+
+            const { error, issues } = trace(() => parser.parse({ fields: ['id', 'secret'] }, { schema: 'user' }));
+
+            // first-issue-wins: same class, code and message the fail-fast
+            // path threw before aggregation existed
+            expect(error).toBeInstanceOf(FieldsParseError);
+            expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+            expect(error?.message).toBe(ErrorMessage.keyNotPermitted('secret'));
+
             expect(issues).toHaveLength(1);
             expect(issues[0]).toEqual({
                 code: ErrorCode.KEY_NOT_ALLOWED,
@@ -71,224 +100,131 @@ describe('src/parser — issue traces', () => {
                 path: ['secret'],
                 key: 'secret',
                 message: ErrorMessage.keyNotPermitted('secret'),
-                severity: 'warning',
+                severity: 'error',
             });
         });
+    });
 
-        it('should report the raw client key of a rejected relation path', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+    describe('aggregation', () => {
+        it('should report every parameter rather than only the first', () => {
+            const parser = new SimpleParser(buildRegistry(true));
 
-            parser.parse({ filters: { 'items.secret': 'x' } }, { schema: 'user', issues });
+            const { error, issues } = trace(() => parser.parse({
+                fields: ['nope1'],
+                filters: { nope2: 'x' },
+                sorts: ['nope3'],
+                relations: ['nope4'],
+            }, { schema: 'user' }));
 
-            const issue = findIssue(issues, Parameter.FILTERS);
-            // the canonical position is complete; `key` is the raw spelling
-            // at the position that failed, which is what alias mapping makes
-            // worth keeping.
-            expect(issue?.path).toEqual(['items', 'secret']);
-            expect(issue?.key).toBe('secret');
-            expect(issue?.severity).toBe('warning');
-        });
+            // relations parse first, so theirs is the first violation
+            expect(error).toBeInstanceOf(RelationsParseError);
+            expect(issues.filter((issue) => issue.severity === 'error').length)
+                .toBeGreaterThanOrEqual(4);
 
-        it('should report every dropped key rather than only the first', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
-
-            parser.parse({
-                fields: ['nope1', 'nope2'],
-                filters: { nope3: 'x' },
-                sorts: ['nope4'],
-                relations: ['nope5'],
-            }, { schema: 'user', issues });
-
-            expect(issues.filter((issue) => issue.severity === 'warning').length)
-                .toBeGreaterThanOrEqual(5);
             expect(findIssue(issues, Parameter.FIELDS)).toBeDefined();
             expect(findIssue(issues, Parameter.FILTERS)).toBeDefined();
             expect(findIssue(issues, Parameter.SORTS)).toBeDefined();
             expect(findIssue(issues, Parameter.RELATIONS)).toBeDefined();
         });
 
-        it('should report a clamped pagination limit', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+        it('should aggregate the keys of one parameter', () => {
+            const parser = new SimpleParser(buildRegistry(true));
 
-            const query = parser.parse({ pagination: { limit: 500 } }, { schema: 'user', issues });
+            const { issues } = trace(() => parser.parse({ fields: ['a', 'b', 'c'] }, { schema: 'user' }));
 
-            expect(query.pagination.limit).toBe(50);
-            expect(findIssue(issues, Parameter.PAGINATION)).toEqual({
-                code: ErrorCode.LIMIT_EXCEEDED,
-                parameter: Parameter.PAGINATION,
-                path: ['limit'],
-                input: 500,
-                message: ErrorMessage.limitExceeded(50),
-                severity: 'warning',
-            });
+            expect(issues.map((issue) => issue.path)).toEqual([['a'], ['b'], ['c']]);
         });
 
-        it('should report an unusable pagination value', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+        it('should keep a parameter abort from hiding the others', () => {
+            const parser = new SimpleParser(buildRegistry(true));
 
-            parser.parse({ pagination: { offset: 'abc' } }, { schema: 'user', issues });
+            const { error, issues } = trace(() => parser.parse({
+                filters: 'not-an-object',
+                sorts: ['nope'],
+            }, { schema: 'user' }));
 
-            const issue = findIssue(issues, Parameter.PAGINATION, ErrorCode.KEY_VALUE_INVALID);
-            expect(issue?.path).toEqual(['offset']);
-            expect(issue?.input).toBe('abc');
+            expect(error).toBeInstanceOf(FiltersParseError);
+            expect(findIssue(issues, Parameter.FILTERS, ErrorCode.INPUT_INVALID)).toBeDefined();
+            expect(findIssue(issues, Parameter.SORTS)).toBeDefined();
         });
 
-        it('should report substituted defaults', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+        it('should report the raw client key of a rejected relation path', () => {
+            const parser = new SimpleParser(buildRegistry(true));
 
-            const query = parser.parse({ sorts: ['nope'] }, { schema: 'user', issues });
+            const { issues } = trace(() => parser.parse({ filters: { 'items.secret': 'x' } }, { schema: 'user' }));
 
-            expect(query.sorts.value.map((sort) => sort.name)).toEqual(['name']);
-            expect(findIssue(issues, Parameter.SORTS, ErrorCode.NONE)?.message)
-                .toBe(ErrorMessage.defaultsApplied());
-        });
-
-        it('should report an input of the wrong shape', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
-
-            parser.parse({ pagination: 'nope' }, { schema: 'user', issues });
-
-            expect(findIssue(issues, Parameter.PAGINATION, ErrorCode.INPUT_INVALID)).toBeDefined();
-        });
-
-        it('should leave the trace untouched when nothing was dropped', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
-
-            parser.parse({ fields: ['id'], filters: { name: 'x' } }, { schema: 'user', issues });
-
-            expect(issues).toEqual([]);
+            const issue = findIssue(issues, Parameter.FILTERS);
+            // the canonical position is complete; `key` is the raw spelling
+            // at the position that failed, which is what alias mapping makes
+            // worth keeping
+            expect(issue?.path).toEqual(['items', 'secret']);
+            expect(issue?.key).toBe('secret');
         });
 
         it('should cap a hostile trace', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+            const parser = new SimpleParser(buildRegistry(true));
 
             const fields : string[] = [];
             for (let i = 0; i < MAX_ISSUES + 50; i++) {
                 fields.push(`nope${i}`);
             }
 
-            parser.parse({ fields }, { schema: 'user', issues });
+            const { issues } = trace(() => parser.parse({ fields }, { schema: 'user' }));
 
             expect(issues).toHaveLength(MAX_ISSUES);
         });
     });
 
-    describe('throw mode', () => {
-        it('should throw the first violation with the trace attached', () => {
-            const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
-
-            let error : FieldsParseError | undefined;
-            try {
-                parser.parse({
-                    fields: ['nope1'],
-                    filters: { nope2: 'x' },
-                    sorts: ['nope3'],
-                }, { schema: 'user', issues });
-            } catch (e) {
-                error = e as FieldsParseError;
-            }
-
-            // first-issue-wins: same class, code and message the fail-fast
-            // path threw before aggregation existed.
-            expect(error).toBeInstanceOf(FieldsParseError);
-            expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
-            expect(error?.message).toBe(ErrorMessage.keyNotPermitted('nope1'));
-
-            // ... but every parameter got its say
-            expect(issues).toEqual([...(error?.issues ?? [])]);
-            expect(issues.filter((issue) => issue.severity === 'error')).toHaveLength(3);
-
-            expect(findIssue(issues, Parameter.FILTERS)).toBeDefined();
-            expect(findIssue(issues, Parameter.SORTS)).toBeDefined();
-        });
-
-        it('should aggregate the keys of one parameter', () => {
-            const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
-
-            expect(() => parser.parse({ fields: ['a', 'b', 'c'] }, { schema: 'user', issues }))
-                .toThrow(FieldsParseError);
-
-            expect(issues.map((issue) => issue.path)).toEqual([['a'], ['b'], ['c']]);
-        });
-
-        it('should keep a parameter failure from hiding the others', () => {
-            const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
-
-            expect(() => parser.parse({
-                filters: 'not-an-object',
-                sorts: ['nope'],
-            }, { schema: 'user', issues })).toThrow(FiltersParseError);
-
-            // the filters input aborted its own parameter, the sorts key
-            // still reported
-            expect(findIssue(issues, Parameter.FILTERS, ErrorCode.INPUT_INVALID)).toBeDefined();
-            expect(findIssue(issues, Parameter.SORTS)).toBeDefined();
-        });
-
-        it('should throw the pagination limit violation it used to throw', () => {
+    describe('what rides along', () => {
+        it('should carry a clamped pagination limit', () => {
             const parser = new SimpleParser(buildRegistry(true));
 
-            expect(() => parser.parse({ pagination: { limit: 500 } }, { schema: 'user' }))
-                .toThrow(PaginationParseError.limitExceeded(50));
+            const { error, issues } = trace(() => parser.parse({ pagination: { limit: 500 } }, { schema: 'user' }));
+
+            expect(error).toBeInstanceOf(PaginationParseError);
+            expect(findIssue(issues, Parameter.PAGINATION)).toEqual({
+                code: ErrorCode.LIMIT_EXCEEDED,
+                parameter: Parameter.PAGINATION,
+                path: ['limit'],
+                input: 500,
+                message: ErrorMessage.limitExceeded(50),
+                severity: 'error',
+            });
         });
 
-        it('should still populate the sink of a failing parse', () => {
+        it('should carry an unusable pagination value', () => {
             const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
 
-            expect(() => parser.parse({ fields: ['nope'] }, { schema: 'user', issues }))
-                .toThrow(FieldsParseError);
+            const { issues } = trace(() => parser.parse({ pagination: { offset: 'abc' } }, { schema: 'user' }));
 
-            expect(issues).toHaveLength(1);
-            expect(issues[0]?.severity).toBe('error');
+            const issue = findIssue(issues, Parameter.PAGINATION, ErrorCode.KEY_VALUE_INVALID);
+            expect(issue?.path).toEqual(['offset']);
+            expect(issue?.input).toBe('abc');
         });
-    });
 
-    describe('standalone parameter parsers', () => {
-        it('should record and raise on their own', () => {
+        it('should carry substituted defaults as a warning behind the failure', () => {
             const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
 
-            expect(() => parser.parseFields(['nope'], { schema: 'user', issues }))
-                .toThrow(FieldsParseError);
+            const { issues } = trace(() => parser.parse({ sorts: ['nope'] }, { schema: 'user' }));
 
-            expect(issues).toHaveLength(1);
-            expect(issues[0]?.parameter).toBe(Parameter.FIELDS);
+            // the rejection fails the parse; the substitution it caused rides
+            // behind it, never as a failure of its own
+            expect(findIssue(issues, Parameter.SORTS, ErrorCode.KEY_NOT_ALLOWED)?.severity).toBe('error');
+            expect(findIssue(issues, Parameter.SORTS, ErrorCode.NONE)).toEqual({
+                code: ErrorCode.NONE,
+                parameter: Parameter.SORTS,
+                path: [],
+                message: ErrorMessage.defaultsApplied(),
+                severity: 'warning',
+            });
         });
 
-        it('should record drops without raising', () => {
-            const parser = new SimpleParser(buildRegistry());
-            const issues : Issue[] = [];
+        it('should carry an input of the wrong shape', () => {
+            const parser = new SimpleParser(buildRegistry(true));
 
-            parser.parseSorts(['nope'], { schema: 'user', issues });
+            const { issues } = trace(() => parser.parse({ pagination: 'nope' }, { schema: 'user' }));
 
-            expect(issues.some((issue) => issue.severity === 'warning')).toBeTruthy();
-        });
-    });
-
-    describe('parameter drivers', () => {
-        it('should raise a violation it recorded when driven directly', () => {
-            const parser = new SimpleFieldsParser(buildRegistry(true));
-            const issues : Issue[] = [];
-
-            // parseParameter is the query orchestrator's driver, but nothing
-            // stops a caller from using it: whoever starts a trace finishes
-            // it, so a rejection never degrades into a silent drop.
-            expect(() => parser.parseParameter(['nope'], { schema: 'user', issues }, []))
-                .toThrow(FieldsParseError);
-
-            expect(issues).toHaveLength(1);
+            expect(findIssue(issues, Parameter.PAGINATION, ErrorCode.INPUT_INVALID)).toBeDefined();
         });
     });
 
@@ -308,60 +244,54 @@ describe('src/parser — issue traces', () => {
 
             // pruning a preserved condition off a rejected relation is a
             // SchemaError, but it is a CONSEQUENCE of the rejection: the
-            // client-facing failure stays the first violation.
+            // client-facing failure stays the first violation
             expect(() => parser.parse({ relations: ['items'] }, { schema: 'user' }))
                 .toThrow(RelationsParseError.keyValidateRejected('items'));
-        });
-    });
-
-    describe('structural failures', () => {
-        it('should carry the trace on every standalone abort', () => {
-            const registry = buildRegistry();
-            const issues : Issue[] = [];
-
-            // a structural abort ends its parameter by throwing rather than
-            // by dropping a key, so without recording it the caller would
-            // render a 400 out of an empty error.issues
-            const cases : (() => unknown)[] = [
-                () => new SimpleFieldsParser(registry)
-                    .parse(['__proto__'], { schema: 'user', issues }),
-                () => new SimpleParser(registry)
-                    .parseFilters(JSON.parse('{"__proto__":{"x":1}}'), { schema: 'user', issues }),
-                () => new SimpleParser(registry)
-                    .parsePagination('nope', {
-                        schema: 'user', 
-                        throwOnFailure: true, 
-                        issues, 
-                    }),
-            ];
-
-            for (const run of cases) {
-                let error : FieldsParseError | undefined;
-                try {
-                    run();
-                } catch (e) {
-                    error = e as FieldsParseError;
-                }
-
-                expect(error).toBeInstanceOf(ParseError);
-                expect(error?.issues.length).toBeGreaterThan(0);
-            }
         });
 
         it('should let an earlier rejection win over a later abort', () => {
             const parser = new SimpleParser(buildRegistry(true));
-            const issues : Issue[] = [];
 
-            let error : FieldsParseError | undefined;
-            try {
-                parser.parse({ fields: ['nope'], filters: 'not-an-object' }, { schema: 'user', issues });
-            } catch (e) {
-                error = e as FieldsParseError;
-            }
+            const { error, issues } = trace(() => parser.parse({
+                fields: ['nope'],
+                filters: 'not-an-object',
+            }, { schema: 'user' }));
 
             expect(error).toBeInstanceOf(FieldsParseError);
             expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
-            expect(error?.issues.length).toBeGreaterThan(1);
+            expect(issues.length).toBeGreaterThan(1);
+        });
+    });
+
+    describe('parameter drivers', () => {
+        it('should raise a violation it recorded when driven directly', () => {
+            const parser = new SimpleFieldsParser(buildRegistry(true));
+
+            // parseParameter is the query orchestrator's driver, but nothing
+            // stops a caller from using it: whoever starts a trace raises it,
+            // so a rejection never degrades into a silent drop
+            expect(() => parser.parseParameter(['nope'], { schema: 'user' }, []))
+                .toThrow(FieldsParseError);
+        });
+
+        it('should carry the trace on every standalone abort', () => {
+            const registry = buildRegistry();
+
+            // a structural abort ends its parameter by throwing rather than
+            // by dropping a key, so it has to be recorded on the way out
+            const cases : (() => unknown)[] = [
+                () => new SimpleFieldsParser(registry).parse(['__proto__'], { schema: 'user' }),
+                () => new SimpleParser(registry).parseFilters(JSON.parse('{"__proto__":{"x":1}}'), { schema: 'user' }),
+                () => new SimpleParser(registry)
+                    .parsePagination('nope', { schema: 'user', throwOnFailure: true }),
+            ];
+
+            for (const run of cases) {
+                const { error, issues } = trace(run);
+
+                expect(error).toBeInstanceOf(ParseError);
+                expect(issues.length).toBeGreaterThan(0);
+            }
         });
     });
 
@@ -370,42 +300,14 @@ describe('src/parser — issue traces', () => {
             const registry = new SchemaRegistry();
             registry.add(defineSchema<User>({
                 name: 'user',
+                throwOnFailure: true,
                 fields: { allowed: ['id', 'name'], validate: (key) => key !== 'name' },
             }));
 
             const parser = new SimpleParser(registry);
-            const issues : Issue[] = [];
+            const { issues } = trace(() => parser.parse({ fields: ['id', 'name'] }, { schema: 'user' }));
 
-            parser.parse({ fields: ['id', 'name'] }, { schema: 'user', issues });
-
-            const issue = findIssue(issues, Parameter.FIELDS, ErrorCode.KEY_VALIDATE_REJECTED);
-            expect(issue?.path).toEqual(['name']);
-            expect(issue?.severity).toBe('warning');
-        });
-
-        it('should report a rejected filter leaf', () => {
-            const registry = new SchemaRegistry();
-            registry.add(defineSchema<User>({
-                name: 'user',
-                filters: {
-                    allowed: ['id', 'name'],
-                    validate: (leaf) => (leaf.field === 'name' ? undefined : leaf),
-                },
-            }));
-
-            const parser = new SimpleParser(registry);
-            const issues : Issue[] = [];
-
-            const query = parser.parse({ filters: { id: '1', name: 'x' } }, { schema: 'user', issues });
-
-            expect(query.filters.value).toHaveLength(1);
-            expect(findIssue(issues, Parameter.FILTERS, ErrorCode.KEY_VALIDATE_REJECTED)).toEqual({
-                code: ErrorCode.KEY_VALIDATE_REJECTED,
-                parameter: Parameter.FILTERS,
-                path: ['name'],
-                message: ErrorMessage.keyValidateRejected('name'),
-                severity: 'warning',
-            });
+            expect(findIssue(issues, Parameter.FIELDS, ErrorCode.KEY_VALIDATE_REJECTED)?.path).toEqual(['name']);
         });
 
         it('should raise a rejected filter leaf under a throwing schema', () => {
@@ -444,13 +346,8 @@ describe('src/parser — issue traces', () => {
             expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: true }))
                 .toThrow(FiltersParseError.keyValidateRejected('name'));
 
-            const issues : Issue[] = [];
-            parser.parse({ filters: { name: 'x' } }, {
-                schema: 'user', 
-                throwOnFailure: false, 
-                issues, 
-            });
-            expect(issues[0]?.severity).toBe('warning');
+            expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: false }))
+                .not.toThrow();
         });
 
         it('should not raise a replaced filter leaf', () => {
@@ -465,12 +362,9 @@ describe('src/parser — issue traces', () => {
             }));
 
             const parser = new SimpleParser(registry);
-            const issues : Issue[] = [];
-
-            const query = parser.parse({ filters: { name: 'x' } }, { schema: 'user', issues });
+            const query = parser.parse({ filters: { name: 'x' } }, { schema: 'user' });
 
             expect(query.filters.value).toHaveLength(1);
-            expect(issues).toEqual([]);
         });
     });
 
@@ -480,7 +374,11 @@ describe('src/parser — issue traces', () => {
             registry.add(defineSchema<User>({
                 name: 'user',
                 fields: { allowed: ['id'] },
-                relations: { allowed: ['items'], validate: () => false },
+                relations: {
+                    allowed: ['items'], 
+                    validate: () => false, 
+                    throwOnFailure: true, 
+                },
                 schemaMapping: { items: 'item' },
             }));
             registry.add(defineSchema({
@@ -489,22 +387,14 @@ describe('src/parser — issue traces', () => {
             }));
 
             const parser = new SimpleParser(registry);
-            const issues : Issue[] = [];
-
-            const query = parser.parse({
+            const { error, issues } = trace(() => parser.parse({
                 relations: ['items'],
                 fields: { items: ['id'] },
-            }, { schema: 'user', issues });
+            }, { schema: 'user' }));
 
-            expect(query.relations.value).toHaveLength(0);
-            expect(query.fields.value.map((field) => field.name)).not.toContain('items.id');
-
-            // the relation itself, reported once by the gate ...
+            expect(error).toBeInstanceOf(RelationsParseError);
             expect(findIssue(issues, Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED)?.path)
                 .toEqual(['items']);
-            // ... and the field it dragged along
-            expect(findIssue(issues, Parameter.FIELDS, ErrorCode.KEY_PATH_NOT_ALLOWED)?.path)
-                .toEqual(['items', 'id']);
         });
     });
 });

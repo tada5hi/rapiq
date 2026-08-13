@@ -295,7 +295,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         // one trace for the whole query: the sub-parsers record into it and
         // defer throwing, so a violation in the first parameter no longer
         // hides what the other four would have reported.
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         // the trace reaches the sub-parsers as a driver argument, never as an
         // option: a consumer able to supply one would take over the decision

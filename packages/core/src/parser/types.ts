@@ -6,7 +6,6 @@
  */
 
 import type { Parameter } from '../constants';
-import type { Issue } from '../errors';
 import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
@@ -25,22 +24,9 @@ import type { PendingKeyValidation } from './parameter/validate';
  */
 export type IssueTrace = IssueCollector;
 
-/**
- * The trace options every parse entry point accepts.
- */
-export type ParseIssueOptions = {
-    /**
-     * Sink for the issues this parse records: every key it drops, value it
-     * refuses, limit it clamps and default it substitutes, appended as it
-     * happens. Purely observational — supplying it changes nothing about
-     * what the parse returns or throws.
-     */
-    issues?: Issue[],
-};
-
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = ParseIssueOptions & {
+> = {
     schema?: Schema<RECORD> | string,
     relations?: Relations,
     strict?: boolean,
@@ -70,7 +56,7 @@ export type RelationLedger = PendingKeyValidation[];
 
 export type ParseQueryOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = ParseIssueOptions & {
+> = {
     fields?: boolean,
     filters?: boolean,
     pagination?: boolean,

@@ -7,11 +7,10 @@
 
 import type { RelationsSchema, Schema } from '../../../schema';
 import type { ObjectLiteral } from '../../../types';
-import type { ParseIssueOptions } from '../../types';
 
 export type RelationsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = ParseIssueOptions & {
+> = {
     throwOnFailure?: boolean,
     strict?: boolean,
     schema?: string | Schema<RECORD> | RelationsSchema<RECORD>,

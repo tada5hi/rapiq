@@ -78,7 +78,7 @@ export class SimplePaginationParser<
         options: PaginationParseOptions<RECORD>,
         driver?: IssueCollector,
     ) : IPagination {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
 
         const result = this.recordFailure(driver, issues, Parameter.PAGINATION, () => this.run(input, options, issues));
         this.finishIssues(driver, issues);

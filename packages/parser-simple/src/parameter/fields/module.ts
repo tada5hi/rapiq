@@ -42,7 +42,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = this.recordFailure(undefined, issues, Parameter.FIELDS, () => {
             const { output, scope } = this.build(input, options, ledger, issues);
@@ -66,7 +66,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues();
 
         const result = await this.recordFailureAsync(undefined, issues, Parameter.FIELDS, async () => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issues);
@@ -139,7 +139,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         scope: FieldsScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -171,7 +171,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         scope: FieldsScope<RECORD>, 
         issues: IssueCollector 
     }> {
-        const issues = this.beginIssues(options, driver);
+        const issues = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);

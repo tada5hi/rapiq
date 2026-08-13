@@ -113,73 +113,53 @@ try {
 
 ## Issue traces
 
-An error names one failure. A request can carry several, and under the default drop policy it carries them silently: disallowed keys, unresolvable paths, unusable values and clamped limits are discarded, and the only way to notice was to diff the input against the returned query.
-
-Pass an `issues` array to any `parse()` / `decode()` and the parse appends one plain-data `Issue` per thing it dropped, clamped or replaced:
-
-```typescript
-import type { Issue } from '@rapiq/core';
-
-const issues: Issue[] = [];
-const query = codec.decode(req.query, { schema: 'user', issues });
-
-// issues:
-// [{
-//     code: 'keyNotAllowed',
-//     parameter: 'fields',
-//     path: ['secret'],
-//     key: 'secret',
-//     severity: 'warning',
-//     message: 'The key secret is not permitted.',
-// }]
-```
-
-The sink is purely observational: supplying it changes nothing about what the parse returns or throws.
-
-| Field | Meaning |
-|---|---|
-| `code` | the same `ErrorCode` the equivalent error carries: the machine contract |
-| `parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`) |
-| `path` | canonical, alias-resolved position, leaf included: `['items', 'title']`. Empty for a parameter-level issue |
-| `key` | raw client spelling at the position that failed, when it differs (alias mapping) |
-| `input` | the offending value, when a value rather than a key was the problem |
-| `severity` | `error` = rejected, `warning` = dropped, clamped or defaulted |
-| `message` | human-facing text. **Not** contractual: branch on `code` |
-
-Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. The trace is capped at `MAX_ISSUES` (100) per parse.
-
-### What gets reported
-
-Everything that discards or silently alters client input: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, a limit clamped to `maxLimit`, [`indexed`](/guide/schemas#indexes) combinations dropped back to defaults, entries a rejected relation dragged along, and defaults substituted for input that was dropped. Defaults for a parameter the client never sent are ordinary operation and are not reported.
-
-### Severity follows the policy
-
-Severity is decided per site by the failure policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one trace. Under `throwOnFailure` every violation is an `error`; under the default policy it is a `warning`.
-
-### Aggregation under throwOnFailure
-
-Throw mode no longer stops at the first violation. The parse records violations, keeps going across all five parameters, and raises the **first error-severity issue** at the end, with the whole trace attached to `error.issues`:
+An error names one failure. A request can carry several, so every error a parse raises carries the whole trace of what went wrong on `error.issues`:
 
 ```typescript
 try {
-    parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' });
+    codec.decode(req.query, { schema: 'user' });
 } catch (e) {
-    e.code;            // 'keyNotAllowed', the FIRST violation, as before
-    e.message;         // 'The key nope1 is not permitted.', as before
-    e.issues;          // ... but now all of them, in the order they were hit
+    e.code;       // 'keyNotAllowed', the FIRST violation
+    e.message;    // 'The key secret is not permitted.'
+    e.issues;     // ... and everything else the parse found
 }
+```
+
+Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack.
+
+| Field | Meaning |
+|---|---|
+| `code` | the same `ErrorCode` the error carries: the machine contract |
+| `parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`) |
+| `path` | canonical, alias-resolved position, leaf included: `['items', 'title']`. Empty for a parameter-level issue |
+| `key` | raw client spelling at the position that failed, which is what alias mapping makes worth keeping |
+| `input` | the offending value, when a value rather than a key was the problem |
+| `severity` | `error` = rejected, `warning` = dropped, clamped or defaulted behind the failure |
+| `message` | human-facing text. **Not** contractual: branch on `code` |
+
+The trace has exactly one channel. A parse that raises nothing discards it, so under the default drop policy there is no trace to read: [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) is what turns rejections into something you can inspect.
+
+### The raise condition
+
+Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises the **first error-severity issue** at the end:
+
+```typescript
+parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' });
+// FieldsParseError, code 'keyNotAllowed', issues: [fields/nope1, filters/nope2]
 ```
 
 The thrown class, `code` and `message` stay those of the first violation, so existing `catch` logic and assertions keep working; `issues` is additive and non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
 
-Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). The failure ends the parse, and the error it raises carries the original as its native `cause`.
+Severity is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one trace. Warnings ride along behind the failure and never cause one: a limit clamped to `maxLimit`, defaults substituted for input that was dropped, entries a rejected relation dragged along.
 
-**Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort that follows an earlier rejection does not displace it: the raised error stays the first violation, with the abort recorded behind it.
+Everything that discards or alters client input is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations dropped back to defaults. The trace is capped at `MAX_ISSUES` (100), and the issue the parse fails on is exempt from the cap.
+
+Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render, and the original throw rides along as the native `cause`. An abort that follows an earlier rejection does not displace it.
 
 Two consequences worth knowing when you enable `throwOnFailure`:
 
 - `validate` hooks now run for keys that the first throw used to shield.
-- A filters `validate` hook that returns `undefined` now throws `KEY_VALIDATE_REJECTED`, symmetric with the fields/sorts/relations hooks. A hook that means "drop this quietly" under a throwing schema returns a replacement condition instead.
+- A filters `validate` hook that returns `undefined` now throws `KEY_VALIDATE_REJECTED`, symmetric with the fields/sorts/relations hooks. A hook that means "drop this quietly" returns a replacement condition instead.
 
 ### Rendering JSON:API errors
 
@@ -188,7 +168,7 @@ Two consequences worth knowing when you enable `throwOnFailure`:
 ```typescript
 import { toJsonApiErrors } from '@rapiq/codec-url';
 
-toJsonApiErrors(issues, { status: '400' });
+toJsonApiErrors(error.issues, { status: '400' });
 // [{
 //     status: '400',
 //     code: 'keyNotAllowed',
@@ -199,8 +179,6 @@ toJsonApiErrors(issues, { status: '400' });
 ```
 
 Warnings are skipped unless you pass `warnings: true`.
-
-A schema-aware `encode()` does not feed the sink: that pass validates output you are producing, not input you received.
 
 ## Mapping to HTTP responses
 
@@ -230,17 +208,6 @@ app.get('/users', async (req, res) => {
     }
     // ...
 });
-```
-
-Under the default drop policy nothing throws, so collect the trace instead and decide for yourself whether a dropped key is worth a 400:
-
-```typescript
-const issues: Issue[] = [];
-const query = codec.decode(req.query, { schema: 'user', issues });
-
-if (issues.length > 0) {
-    logger.info({ issues }, 'query narrowed');
-}
 ```
 
 - `ParseError` (with `throwOnFailure`) → **400**: the client broke the contract; `e.message` names the offending key.
