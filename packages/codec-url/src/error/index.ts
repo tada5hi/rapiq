@@ -6,9 +6,5 @@
  */
 
 export * from './constants';
-export * from './error';
-export * from './expression/constants';
-export * from './factory';
 export * from './module';
-export * from './simple/constants';
 export * from './types';

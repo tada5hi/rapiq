@@ -13,7 +13,7 @@ import {
     defineSchema,
 } from '@rapiq/core';
 import type { Issue, ParseError  } from '@rapiq/core';
-import { URLParameter, createURLCodec, toJsonApiErrors } from '../../src';
+import { URLParameter, createURLCodec, formatErrors } from '../../src';
 
 const issue = (overrides: Partial<Issue> = {}) : Issue => ({
     code: ErrorCode.KEY_NOT_ALLOWED,
@@ -24,9 +24,9 @@ const issue = (overrides: Partial<Issue> = {}) : Issue => ({
     ...overrides,
 });
 
-describe('src/json-api.ts', () => {
+describe('src/error/*.ts', () => {
     it('should render an issue against its wire parameter name', () => {
-        expect(toJsonApiErrors([issue()])).toEqual([{
+        expect(formatErrors([issue()])).toEqual([{
             code: ErrorCode.KEY_NOT_ALLOWED,
             detail: ErrorMessage.keyNotPermitted('secret'),
             source: { parameter: URLParameter.FILTERS },
@@ -44,7 +44,7 @@ describe('src/json-api.ts', () => {
             Parameter.SORT,
         ];
 
-        expect(toJsonApiErrors(parameters.map((parameter) => issue({ parameter })))
+        expect(formatErrors(parameters.map((parameter) => issue({ parameter })))
             .map((error) => error.source.parameter)).toEqual([
             URLParameter.FIELDS,
             URLParameter.FILTERS,
@@ -58,16 +58,16 @@ describe('src/json-api.ts', () => {
     it('should skip warnings unless asked', () => {
         const input = [issue(), issue({ severity: 'warning' })];
 
-        expect(toJsonApiErrors(input)).toHaveLength(1);
-        expect(toJsonApiErrors(input, { warnings: true })).toHaveLength(2);
+        expect(formatErrors(input)).toHaveLength(1);
+        expect(formatErrors(input, { warnings: true })).toHaveLength(2);
     });
 
     it('should stamp a status when given one', () => {
-        expect(toJsonApiErrors([issue()], { status: '400' })[0]?.status).toBe('400');
+        expect(formatErrors([issue()], { status: '400' })[0]?.status).toBe('400');
     });
 
     it('should omit the path of a parameter-level issue', () => {
-        expect(toJsonApiErrors([issue({ path: [] })])[0]?.meta).toEqual({ severity: 'error' });
+        expect(formatErrors([issue({ path: [] })])[0]?.meta).toEqual({ severity: 'error' });
     });
 
     it('should render what a decode raised', () => {
@@ -87,7 +87,7 @@ describe('src/json-api.ts', () => {
             error = e as ParseError;
         }
 
-        expect(toJsonApiErrors(error?.issues ?? [], { status: '400' })).toEqual([{
+        expect(formatErrors(error?.issues ?? [], { status: '400' })).toEqual([{
             status: '400',
             code: ErrorCode.KEY_NOT_ALLOWED,
             detail: ErrorMessage.keyNotPermitted('secret'),

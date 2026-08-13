@@ -161,14 +161,14 @@ Two consequences worth knowing when you enable `throwOnFailure`:
 - `validate` hooks now run for keys that the first throw used to shield.
 - A filters `validate` hook that returns `undefined` now throws `KEY_VALIDATE_REJECTED`, symmetric with the fields/sorts/relations hooks. A hook that means "drop this quietly" returns a replacement condition instead.
 
-### Rendering JSON:API errors
+### Formatting a trace for a response
 
-`@rapiq/codec-url` maps a trace onto the wire vocabulary, since only the transport knows that canonical `filters` reaches the client as `filter`:
+`@rapiq/codec-url` normalizes a trace into its response format, mapping the canonical parameter onto the wire vocabulary — only the transport knows that `filters` reaches the client as `filter`. The members follow the JSON:API error object rapiq's query vocabulary is modelled on, so the output drops straight into an `errors` array:
 
 ```typescript
-import { toJsonApiErrors } from '@rapiq/codec-url';
+import { formatErrors } from '@rapiq/codec-url';
 
-toJsonApiErrors(error.issues, { status: '400' });
+formatErrors(error.issues, { status: '400' });
 // [{
 //     status: '400',
 //     code: 'keyNotAllowed',
@@ -186,7 +186,7 @@ A pragmatic mapping for a typical endpoint:
 
 ```typescript
 import { ParseError } from '@rapiq/core';
-import { toJsonApiErrors } from '@rapiq/codec-url';
+import { formatErrors } from '@rapiq/codec-url';
 
 app.get('/users', async (req, res) => {
     let query;
@@ -197,7 +197,7 @@ app.get('/users', async (req, res) => {
             // client sent something outside the contract: every violation
             // of the request, not just the first one
             return res.status(400).json({
-                errors: toJsonApiErrors(e.issues, { status: '400' }),
+                errors: formatErrors(e.issues, { status: '400' }),
             });
         }
         throw e; // everything else is a server bug

@@ -90,7 +90,7 @@ export abstract class BaseParser<
      * shape, a hostile key) aborts by throwing rather than by dropping one
      * key, so without this it would escape the call before anything recorded
      * it: the caller would catch an error whose `issues` is empty, and
-     * `toJsonApiErrors(error.issues)` — the documented way to render a
+     * `formatErrors(error.issues)` — the documented way to render a
      * failure — would answer with nothing at all.
      *
      * Recorded, the throw is re-raised through the trace, so the error that
