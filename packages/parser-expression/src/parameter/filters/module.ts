@@ -28,7 +28,6 @@ import {
     ITSELF,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
-    ParseError,
     RelationsParseError,
     ResolutionScope,
     applyFiltersIndexPolicy,
@@ -39,6 +38,7 @@ import {
     buildFiltersDefaults,
     isFilter,
     isFilters,
+    isParseError,
     pruneFiltersByRelations,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -773,7 +773,7 @@ export class ExpressionFiltersParser extends BaseParser<
             // always throwing) falls back to the unbound scope; every
             // other failure (e.g. relations gating) propagates.
             if (
-                !(e instanceof ParseError) ||
+                !isParseError(e) ||
                 e.code !== ErrorCode.KEY_PATH_INVALID
             ) {
                 throw e;

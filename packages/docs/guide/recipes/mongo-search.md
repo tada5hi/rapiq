@@ -11,7 +11,7 @@ This chapter adds `POST /users/search` next to chapter 3's `GET /users`. The con
 ```typescript
 // src/routes/users-search.ts
 import type { Request, Response } from 'express';
-import { ParseError } from '@rapiq/core';
+import { isParseError } from '@rapiq/core';
 import { MongoParser } from '@rapiq/parser-mongo';
 import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 import { dataSource } from '../data-source';
@@ -25,7 +25,7 @@ export async function searchUsers(req: Request, res: Response) {
     try {
         query = parser.parse(req.body, { schema: 'user' });
     } catch (e) {
-        if (e instanceof ParseError) {
+        if (isParseError(e)) {
             return res.status(400).json({ error: e.message, code: e.code });
         }
         throw e;

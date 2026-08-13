@@ -8,6 +8,7 @@
 export * from './adapter';
 export * from './base';
 export * from './build';
+export * from './check';
 export * from './code';
 export * from './codec';
 export * from './issue';

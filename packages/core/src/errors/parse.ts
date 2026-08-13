@@ -7,6 +7,7 @@
 
 import { isObject } from '../utils';
 import { BaseError } from './base';
+import { PARSE_ERROR_MARKER, markError } from './check';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
 import type { BaseErrorOptions, IParseError } from './types';
@@ -18,6 +19,8 @@ export class ParseError extends BaseError implements IParseError {
         }
 
         super(message || 'A parsing error has occurred.');
+
+        markError(this, PARSE_ERROR_MARKER);
     }
 
     static inputInvalid() {

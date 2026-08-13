@@ -8,7 +8,7 @@
 import { setPathValue } from 'pathtrace';
 import { DEFAULT_ID, MAX_TRAVERSAL_DEPTH } from '../constants';
 import type { Parameter } from '../constants';
-import { ParseError } from '../errors';
+import { ParseError, isParseError } from '../errors';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
@@ -137,7 +137,7 @@ export abstract class BaseParser<
         parameter: `${Parameter}`,
     ) : unknown {
         if (
-            !(input instanceof ParseError) ||
+            !isParseError(input) ||
             driver === issueCollector
         ) {
             return input;

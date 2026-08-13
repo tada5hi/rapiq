@@ -121,14 +121,14 @@ Schema-aware encoding validates by piping the output through the schema-bound de
 `formatErrors` normalizes the [trace](/guide/errors#issue-traces) a raised error carries into this codec's response format, with the wire parameter names this package owns (canonical `filters` becomes `filter`, `relations` becomes `include`). The members follow the JSON:API error object, so the output drops straight into an `errors` array:
 
 ```typescript
-import { ParseError } from '@rapiq/core';
+import { isParseError } from '@rapiq/core';
 import { formatErrors } from '@rapiq/codec-url';
 
 try {
     const query = codec.decode(req.query, { schema: 'user' });
     // ...
 } catch (e) {
-    if (e instanceof ParseError) {
+    if (isParseError(e)) {
         res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
     }
 }

@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { BASE_ERROR_MARKER, markError } from './check';
 import { ErrorCode } from './code';
 import type { Issue } from './issue';
 import type { BaseErrorOptions, IBaseError } from './types';
@@ -39,6 +40,7 @@ export class BaseError extends Error implements IBaseError {
 
             this.code = ErrorCode.NONE;
             defineIssues(this, []);
+            markError(this, BASE_ERROR_MARKER);
         } else {
             super(input.message, typeof input.cause === 'undefined' ?
                 undefined :
@@ -46,6 +48,7 @@ export class BaseError extends Error implements IBaseError {
 
             this.code = input.code || ErrorCode.NONE;
             defineIssues(this, input.issues ?? []);
+            markError(this, BASE_ERROR_MARKER);
         }
     }
 }

@@ -180,12 +180,26 @@ formatErrors(error.issues, { status: '400' });
 
 Warnings are skipped unless you pass `warnings: true`.
 
+## Recognizing an error
+
+`instanceof` compares class identity, which two copies of `@rapiq/core` in one process do not share — mixed ESM/bundled builds, or a dual-packaged dependency. On any boundary a foreign copy could reach, prefer the guards:
+
+```typescript
+import { isParseError } from '@rapiq/core';
+
+if (isParseError(e)) {
+    // e.code, e.issues
+}
+```
+
+`isBaseError` and `isParseError` read a `Symbol.for` brand every rapiq error carries, so they survive the duplication that `instanceof` does not. The brand is non-enumerable, like `issues`: it changes neither deep equality nor `JSON.stringify(error)`. rapiq's own parsers use these guards internally — a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
+
 ## Mapping to HTTP responses
 
 A pragmatic mapping for a typical endpoint:
 
 ```typescript
-import { ParseError } from '@rapiq/core';
+import { isParseError } from '@rapiq/core';
 import { formatErrors } from '@rapiq/codec-url';
 
 app.get('/users', async (req, res) => {
@@ -193,7 +207,7 @@ app.get('/users', async (req, res) => {
     try {
         query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
-        if (e instanceof ParseError) {
+        if (isParseError(e)) {
             // client sent something outside the contract: every violation
             // of the request, not just the first one
             return res.status(400).json({

@@ -6,6 +6,7 @@
  */
 
 import {
+    BASE_ERROR_MARKER,
     BaseError,
     ErrorCode,
     ErrorMessage,
@@ -13,9 +14,13 @@ import {
     FiltersParseError,
     IssueCollector,
     MAX_ISSUES,
+    PARSE_ERROR_MARKER,
     Parameter,
     ParseError,
     buildErrorFromIssueCollector,
+    isBaseError,
+    isParseError,
+    markError,
     raiseErrorFromIssueCollector,
 } from '../../../src';
 import type { Issue } from '../../../src';
@@ -177,5 +182,46 @@ describe('src/errors/types.ts', () => {
         expect(error).toBeInstanceOf(DialectParseError);
         expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
         expect(error?.issues).toHaveLength(1);
+    });
+});
+
+describe('src/errors/check.ts', () => {
+    it('should recognize an error a foreign copy of the library raised', () => {
+        // two copies of @rapiq/core in one process do not share class
+        // identity, so the brand stands in for it. A hand-built stand-in
+        // proves the guard never reaches for the class.
+        const foreign = new Error('The key secret is not permitted.');
+        markError(foreign, BASE_ERROR_MARKER);
+        markError(foreign, PARSE_ERROR_MARKER);
+
+        expect(foreign instanceof ParseError).toBeFalsy();
+        expect(isParseError(foreign)).toBeTruthy();
+        expect(isBaseError(foreign)).toBeTruthy();
+    });
+
+    it('should recognize the errors it raises itself', () => {
+        expect(isParseError(FieldsParseError.inputInvalid())).toBeTruthy();
+        expect(isBaseError(FieldsParseError.inputInvalid())).toBeTruthy();
+
+        expect(isBaseError(new BaseError('failed'))).toBeTruthy();
+        // a plain BaseError is not a client-input failure
+        expect(isParseError(new BaseError('failed'))).toBeFalsy();
+    });
+
+    it('should reject anything else', () => {
+        expect(isParseError(new Error('nope'))).toBeFalsy();
+        expect(isParseError({ code: 'keyNotAllowed' })).toBeFalsy();
+        expect(isParseError(undefined)).toBeFalsy();
+        expect(isParseError(null)).toBeFalsy();
+
+        // the brand is asserted, not merely present
+        expect(isParseError({ [PARSE_ERROR_MARKER]: false })).toBeFalsy();
+    });
+
+    it('should keep the brand out of the enumerable shape', () => {
+        const error = FieldsParseError.inputInvalid();
+
+        expect(Object.keys(error)).toEqual(['code']);
+        expect(JSON.parse(JSON.stringify(error))).toEqual({ code: ErrorCode.INPUT_INVALID });
     });
 });

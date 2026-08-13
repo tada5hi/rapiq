@@ -6,7 +6,7 @@
  */
 
 import { Parameter } from '../constants';
-import { ParseError } from '../errors';
+import { ParseError, isParseError } from '../errors';
 import type {
     IFields,
     IFilters,
@@ -246,7 +246,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         try {
             return fn();
         } catch (e) {
-            if (e instanceof ParseError) {
+            if (isParseError(e)) {
                 issueCollector.error(e, parameter);
 
                 return fallback;
@@ -265,7 +265,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         try {
             return await fn();
         } catch (e) {
-            if (e instanceof ParseError) {
+            if (isParseError(e)) {
                 issueCollector.error(e, parameter);
 
                 return fallback;
