@@ -8,6 +8,8 @@
 import {
     BaseParser,
     DEFAULT_ID,
+    ErrorCode,
+    ErrorMessage,
     Field,
     FieldOperator,
     Fields,
@@ -23,6 +25,7 @@ import {
 import type {
     ICondition,
     IFields,
+    IssueCollector,
     ObjectLiteral,
     PendingKeyValidation,
     RelationLedger,
@@ -39,12 +42,21 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        const {
+            output, 
+            scope, 
+            issues, 
+        } = this.build(input, options, ledger);
 
-        return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+        const result = pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
-        }));
+            issues,
+        }), issues);
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     override async parseAsync<
@@ -54,12 +66,21 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
-        const { output, scope } = await this.buildAsync(input, options, ledger);
+        const {
+            output, 
+            scope, 
+            issues, 
+        } = await this.buildAsync(input, options, ledger);
 
-        return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+        const result = pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
             throwOnFailure: scope.relationsThrowOnFailure,
             errors: RelationsParseError,
-        }));
+            issues,
+        }), issues);
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     parseParameter<
@@ -69,7 +90,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : IFields {
-        return this.build(input, options, ledger).output;
+        const { output, issues } = this.build(input, options, ledger);
+
+        // a no-op when the query orchestrator owns the trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody finished
+        // the trace it was recorded into.
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     async parseParameterAsync<
@@ -79,7 +108,10 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : Promise<IFields> {
-        return (await this.buildAsync(input, options, ledger)).output;
+        const { output, issues } = await this.buildAsync(input, options, ledger);
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     /**
@@ -94,8 +126,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { output: IFields, scope: FieldsScope<RECORD> } {
-        const scope = this.scopeFor(options, ledger);
+    ) : {
+        output: IFields, 
+        scope: FieldsScope<RECORD>, 
+        issues: IssueCollector 
+    } {
+        const issues = this.beginIssues(options);
+        const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
         const conditions = new Map<string, ICondition>();
@@ -104,11 +141,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             throwOnFailure: scope.throwOnFailure,
             errors: FieldsParseError,
             conditions,
+            issues,
         });
 
         return {
-            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger),
+            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger, issues),
             scope,
+            issues,
         };
     }
 
@@ -118,8 +157,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : Promise<{ output: IFields, scope: FieldsScope<RECORD> }> {
-        const scope = this.scopeFor(options, ledger);
+    ) : Promise<{
+        output: IFields, 
+        scope: FieldsScope<RECORD>, 
+        issues: IssueCollector 
+    }> {
+        const issues = this.beginIssues(options);
+        const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
         const conditions = new Map<string, ICondition>();
@@ -128,11 +172,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             throwOnFailure: scope.throwOnFailure,
             errors: FieldsParseError,
             conditions,
+            issues,
         });
 
         return {
-            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger),
+            output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger, issues),
             scope,
+            issues,
         };
     }
 
@@ -157,16 +203,28 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         rejected: string[],
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : IFields {
         if (pruned.value.length > 0 || parsed.value.length === 0) {
             return pruned;
         }
 
-        const output = this.parseWithScope(undefined, this.scopeFor(options, ledger), []);
+        const output = this.parseWithScope(undefined, this.scopeFor(options, ledger, issues), []);
 
-        return new Fields(output.value.filter(
+        const fields = new Fields(output.value.filter(
             (field) => !rejected.includes(field.name),
         ));
+
+        if (issues && fields.value.length > 0) {
+            issues.notice({
+                code: ErrorCode.NONE,
+                parameter: Parameter.FIELDS,
+                path: [],
+                message: ErrorMessage.defaultsApplied(),
+            });
+        }
+
+        return fields;
     }
 
     protected scopeFor<
@@ -174,12 +232,14 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
     >(
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : FieldsScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.FIELDS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
+            issues,
         });
     }
 
@@ -224,7 +284,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             return new Fields();
         }
 
-        const normalized = this.normalize(input, scope.throwOnFailure);
+        const normalized = this.normalize(input, scope);
 
         if (schema.name) {
             const named = normalized[schema.name];
@@ -367,15 +427,17 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         return new Fields(unique);
     }
 
-    protected normalize(
+    protected normalize<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         input: unknown,
-        throwOnFailure?: boolean,
+        scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>,
     ) : Record<string, string[]> {
         if (this.isTupleInput(input)) {
             return this.normalize({
                 [DEFAULT_ID]: input[0],
                 ...input[1],
-            });
+            }, scope);
         }
 
         if (
@@ -392,9 +454,11 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             const parts : string[] = [];
             for (const element of temp) {
                 if (typeof element !== 'string') {
-                    if (throwOnFailure) {
-                        throw FieldsParseError.inputInvalid();
-                    }
+                    scope.refuse({
+                        code: ErrorCode.INPUT_INVALID,
+                        message: ErrorMessage.inputInvalid(),
+                        input: element,
+                    });
 
                     continue;
                 }
@@ -414,7 +478,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
             const keys = Object.keys(input);
             for (const key of keys) {
-                const temp = this.normalize(input[key], throwOnFailure);
+                const temp = this.normalize(input[key], scope);
                 for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
                     if (tempKey === DEFAULT_ID) {
@@ -433,9 +497,11 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             return {};
         }
 
-        if (throwOnFailure) {
-            throw FieldsParseError.inputInvalid();
-        }
+        scope.refuse({
+            code: ErrorCode.INPUT_INVALID,
+            message: ErrorMessage.inputInvalid(),
+            input,
+        });
 
         return {};
     }

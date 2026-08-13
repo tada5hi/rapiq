@@ -10,10 +10,11 @@ import type { Schema, SortsSchema } from '../../../schema';
 import type {
     ObjectLiteral,
 } from '../../../types';
+import type { ParseIssueOptions } from '../../types';
 
 export type SortsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
-> = {
+> = ParseIssueOptions & {
     relations?: Relations,
     throwOnFailure?: boolean,
     strict?: boolean,

@@ -6,10 +6,11 @@
  */
 
 import { Parameter } from '../../constants';
-import { SchemaError } from '../../errors';
+import { ErrorCode, ErrorMessage, SchemaError } from '../../errors';
 import type { ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
 import { isCondition } from '../../parameter';
+import type { IssueCollector } from '../issue';
 import type {
     KeyValidationVerdict,
     KeyValidationVerdictRecord,
@@ -89,6 +90,11 @@ export type KeyValidationOptions = {
     throwOnFailure: boolean,
     errors: typeof ParseError,
     /**
+     * Trace of the enclosing parse. A rejection records an issue there and
+     * lets the parse continue on the drop path; the owning call raises it.
+     */
+    issues?: IssueCollector,
+    /**
      * Sink for the conditions of condition-gated keys, keyed by output
      * path. Supplied by callers that can carry a condition onward (the
      * fields parsers, onto the `Field` node). Absent means a condition
@@ -138,9 +144,7 @@ export function applyKeySchemaValidation(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (entry.throwOnFailure ?? options.throwOnFailure) {
-                throw options.errors.keyValidateRejected(entry.path);
-            }
+            reject(entry, options);
 
             rejected.push(entry.path);
         }
@@ -183,9 +187,7 @@ export async function applyKeySchemaValidationAsync(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (entry.throwOnFailure ?? options.throwOnFailure) {
-                throw options.errors.keyValidateRejected(entry.path);
-            }
+            reject(entry, options);
 
             rejected.push(entry.path);
         }
@@ -383,6 +385,32 @@ function settle(
     }
 
     return !!verdict;
+}
+
+/**
+ * A hook rejection: recorded into the trace when the parse collects one, and
+ * thrown where it is found otherwise (a standalone pass outside a parse).
+ */
+function reject(
+    entry: PendingKeyValidation,
+    options: KeyValidationOptions,
+) : void {
+    const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
+
+    if (options.issues) {
+        options.issues.violation({
+            code: ErrorCode.KEY_VALIDATE_REJECTED,
+            parameter: entry.schema.parameter,
+            path: entry.path.split('.'),
+            message: ErrorMessage.keyValidateRejected(entry.path),
+        }, throwOnFailure, options.errors);
+
+        return;
+    }
+
+    if (throwOnFailure) {
+        throw options.errors.keyValidateRejected(entry.path);
+    }
 }
 
 function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {

@@ -7,8 +7,9 @@
 
 import {
     BaseParser,
+    ErrorCode,
+    ErrorMessage,
     Pagination,
-    PaginationParseError,
     Parameter,
     ResolutionScope,
     isObject,
@@ -30,9 +31,13 @@ export class SimplePaginationParser<
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
     ) : IPagination {
-        const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, { throwOnFailure: options.throwOnFailure });
+        const issues = this.beginIssues(options);
+        const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, {
+            throwOnFailure: options.throwOnFailure,
+            issues,
+        });
 
-        const { schema, throwOnFailure } = scope;
+        const { schema } = scope;
 
         const output = new Pagination();
 
@@ -41,13 +46,19 @@ export class SimplePaginationParser<
             // (e.g. maxLimit) still apply.
             if (
                 typeof input !== 'undefined' &&
-                input !== null &&
-                throwOnFailure
+                input !== null
             ) {
-                throw PaginationParseError.inputInvalid();
+                scope.refuse({
+                    code: ErrorCode.INPUT_INVALID,
+                    message: ErrorMessage.inputInvalid(),
+                    input,
+                });
             }
 
-            return this.finalizePagination(output, schema, throwOnFailure);
+            const fallback = this.finalizePagination(output, schema, scope);
+            this.finishIssues(options, issues);
+
+            return fallback;
         }
 
         // pagination performs no key grouping, so the prototype-member
@@ -55,15 +66,21 @@ export class SimplePaginationParser<
         // a hostile key is rejected typed, not ignored.
         this.assertSafeObjectKeys(input);
 
-        let { limit, offset } = input as Record<string, any>;
+        const source = input as Record<string, any>;
+        let { limit, offset } = source;
 
         if (typeof limit !== 'undefined') {
             limit = Number.parseInt(limit, 10);
 
             if (!Number.isNaN(limit) && limit > 0) {
                 output.limit = limit;
-            } else if (throwOnFailure) {
-                throw PaginationParseError.keyValueInvalid('limit');
+            } else {
+                scope.refuse({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: ErrorMessage.keyValueInvalid('limit'),
+                    path: ['limit'],
+                    input: source.limit,
+                });
             }
         }
 
@@ -72,12 +89,20 @@ export class SimplePaginationParser<
 
             if (!Number.isNaN(offset) && offset >= 0) {
                 output.offset = offset;
-            } else if (throwOnFailure) {
-                throw PaginationParseError.keyValueInvalid('offset');
+            } else {
+                scope.refuse({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: ErrorMessage.keyValueInvalid('offset'),
+                    path: ['offset'],
+                    input: source.offset,
+                });
             }
         }
 
-        return this.finalizePagination(output, schema, throwOnFailure);
+        const result = this.finalizePagination(output, schema, scope);
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     override async parseAsync<
@@ -110,18 +135,25 @@ export class SimplePaginationParser<
         return this.parseAsync(input, options);
     }
 
-    protected finalizePagination(
+    protected finalizePagination<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         data: Pagination,
         schema: PaginationSchema,
-        throwOnFailure?: boolean,
+        scope: ResolutionScope<`${Parameter.PAGINATION}`, RECORD>,
     ) : Pagination {
         if (typeof schema.maxLimit !== 'undefined') {
             if (typeof data.limit === 'undefined') {
                 data.limit = schema.maxLimit;
             } else if (data.limit > schema.maxLimit) {
-                if (throwOnFailure) {
-                    throw PaginationParseError.limitExceeded(schema.maxLimit);
-                }
+                // a clamped limit reads exactly like an honored one on the
+                // way out, so the trace is the only way to tell them apart.
+                scope.refuse({
+                    code: ErrorCode.LIMIT_EXCEEDED,
+                    message: ErrorMessage.limitExceeded(schema.maxLimit),
+                    path: ['limit'],
+                    input: data.limit,
+                });
 
                 data.limit = schema.maxLimit;
             }

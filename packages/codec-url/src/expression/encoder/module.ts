@@ -27,6 +27,7 @@ import {
     intersectQueryParameters,
     isSchemaAware,
     stripQueryFieldConditions,
+    withoutIssues,
 } from '../../utils';
 import { ExpressionURLDecoder } from '../decoder';
 import { serializeFiltersExpression } from './filters';
@@ -76,7 +77,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, { ...withoutIssues(options), parameters });
         if (!decoded) {
             return null;
         }
@@ -98,7 +99,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, { ...withoutIssues(options), parameters });
         if (!decoded) {
             return null;
         }
@@ -120,7 +121,7 @@ export class ExpressionURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeFilters(encoded, options);
+        const decoded = this.decoder.decodeFilters(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -137,7 +138,7 @@ export class ExpressionURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
+        const decoded = await this.decoder.decodeFiltersAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }

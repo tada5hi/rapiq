@@ -10,12 +10,14 @@ import type {
     FiltersSchema,
     ICondition,
     IFilters,
+    IssueCollector,
     ObjectLiteral,
     RelationLedger,
 } from '@rapiq/core';
 import {
     BaseParser,
     ErrorCode,
+    ErrorMessage,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
@@ -25,7 +27,6 @@ import {
     KeyResolutionErrorCode,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
-    ParseError,
     RelationsParseError,
     ResolutionScope,
     applyFiltersIndexPolicy,
@@ -83,21 +84,31 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const { scope, parsed } = this.prepare(input, options, ledger);
+        const {
+            scope, 
+            parsed, 
+            issues, 
+            sent,
+        } = this.prepare(input, options, ledger);
         const output = !parsed ?
-            this.buildDefaultOutput(scope) :
-            (applyFiltersSchemaValidation(parsed, scope.schema, options.context) as IFilters | undefined ??
-                this.buildDefaultOutput(scope));
+            this.buildDefaultOutput(scope, sent) :
+            (applyFiltersSchemaValidation(parsed, scope.schema, options.context, issues) as IFilters | undefined ??
+                this.buildDefaultOutput(scope, true));
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -105,21 +116,31 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const { scope, parsed } = this.prepare(input, options, ledger);
+        const {
+            scope, 
+            parsed, 
+            issues, 
+            sent,
+        } = this.prepare(input, options, ledger);
         const output = !parsed ?
-            this.buildDefaultOutput(scope) :
-            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context) as IFilters | undefined ??
-                this.buildDefaultOutput(scope));
+            this.buildDefaultOutput(scope, sent) :
+            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, issues) as
+                IFilters | undefined ?? this.buildDefaultOutput(scope, true));
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -127,12 +148,25 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : IFilters {
-        const { scope, parsed } = this.prepare(input, options, ledger);
+        const {
+            scope,
+            parsed,
+            issues,
+            sent,
+        } = this.prepare(input, options, ledger);
 
-        return !parsed ?
-            this.buildDefaultOutput(scope) :
-            (applyFiltersSchemaValidation(parsed, scope.schema, options.context) as IFilters | undefined ??
-                this.buildDefaultOutput(scope));
+        const output = !parsed ?
+            this.buildDefaultOutput(scope, sent) :
+            (applyFiltersSchemaValidation(parsed, scope.schema, options.context, issues) as IFilters | undefined ??
+                this.buildDefaultOutput(scope, true));
+
+        // a no-op when the query orchestrator owns the trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody finished
+        // the trace it was recorded into.
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -140,12 +174,21 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : Promise<IFilters> {
-        const { scope, parsed } = this.prepare(input, options, ledger);
+        const {
+            scope,
+            parsed,
+            issues,
+            sent,
+        } = this.prepare(input, options, ledger);
 
-        return !parsed ?
-            this.buildDefaultOutput(scope) :
-            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context) as IFilters | undefined ??
-                this.buildDefaultOutput(scope));
+        const output = !parsed ?
+            this.buildDefaultOutput(scope, sent) :
+            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, issues) as
+                IFilters | undefined ?? this.buildDefaultOutput(scope, true));
+
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -174,17 +217,34 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { scope: FiltersScope, parsed: IFilters | null } {
+    ) : {
+        scope: FiltersScope,
+        parsed: IFilters | null,
+        issues: IssueCollector,
+        /**
+             * Whether the client sent a document at all. Defaults substituted
+             * for an absent parameter are ordinary operation; defaults
+             * replacing what it sent are worth reporting.
+             */
+        sent: boolean,
+    } {
+        const issues = this.beginIssues(options);
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
+            issues,
         }) as FiltersScope;
 
         // absent input is not a failure — schema defaults still apply.
         if (typeof input === 'undefined' || input === null) {
-            return { scope, parsed: null };
+            return {
+                scope, 
+                parsed: null, 
+                issues, 
+                sent: false,
+            };
         }
 
         // the dialect travels as a JSON document — anything that is not
@@ -199,12 +259,22 @@ export class MongoFiltersParser extends BaseParser<
             !scope.schema.allowedIsUndefined &&
             scope.schema.allowed.length === 0
         ) {
-            return { scope, parsed: null };
+            return {
+                scope, 
+                parsed: null, 
+                issues, 
+                sent: true,
+            };
         }
 
         const conditions = this.parseDocument(input, scope, false, 0);
         if (conditions.length === 0) {
-            return { scope, parsed: null };
+            return {
+                scope, 
+                parsed: null, 
+                issues, 
+                sent: true,
+            };
         }
 
         // An explicit root compound is returned as-is; everything else wraps
@@ -215,14 +285,24 @@ export class MongoFiltersParser extends BaseParser<
             first :
             new Filters(FilterCompoundOperator.AND, conditions);
 
-        return { scope, parsed };
+        return {
+            scope, 
+            parsed, 
+            issues, 
+            sent: true,
+        };
     }
 
-    private buildDefaultOutput(scope: FiltersScope) : IFilters {
-        return new Filters(
-            FilterCompoundOperator.AND,
-            buildFiltersDefaults(scope.schema),
-        );
+    private buildDefaultOutput(scope: FiltersScope, dropped = false) : IFilters {
+        const defaults = buildFiltersDefaults(scope.schema);
+        if (defaults.length > 0 && dropped) {
+            scope.notice({
+                code: ErrorCode.NONE,
+                message: ErrorMessage.defaultsApplied(),
+            });
+        }
+
+        return new Filters(FilterCompoundOperator.AND, defaults);
     }
 
     // ---------------------------------------------------------
@@ -931,29 +1011,20 @@ export class MongoFiltersParser extends BaseParser<
             // the element itself is never schema-resolvable.
             child = this.buildUnboundScope(resolved.scope);
         } else {
-            try {
-                const verdict = resolved.scope.descend(resolved.name);
-                if (verdict instanceof ResolutionScope) {
-                    // the target relation's obligation was recorded when
-                    // resolveField resolved it; here we only need the child
-                    // scope for the interior conditions.
-                    child = verdict;
-                } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
-                    // relations gating (pathNotPermitted) is a schema-policy
-                    // failure for the entry — drop it.
-                    return undefined;
-                }
-            } catch (e) {
-                // $elemMatch on a non-relation field is legal — a missing
-                // related schema (thrown as keyPathInvalid under
-                // throwOnFailure) falls back to the unbound scope;
-                // every other failure propagates.
-                if (
-                    !(e instanceof ParseError) ||
-                    e.code !== ErrorCode.KEY_PATH_INVALID
-                ) {
-                    throw e;
-                }
+            // $elemMatch on a non-relation field is legal, so a missing
+            // related schema is an answer rather than a violation and comes
+            // back as a bare verdict — every other failure was recorded (or
+            // thrown) by the descent itself and drops the entry.
+            const verdict = resolved.scope.descend(resolved.name, { optional: true });
+            if (verdict instanceof ResolutionScope) {
+                // the target relation's obligation was recorded when
+                // resolveField resolved it; here we only need the child
+                // scope for the interior conditions.
+                child = verdict;
+            } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
+                // relations gating (pathNotPermitted) is a schema-policy
+                // failure for the entry — drop it.
+                return undefined;
             }
         }
 
@@ -976,6 +1047,7 @@ export class MongoFiltersParser extends BaseParser<
         return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
             throwOnFailure: current.throwOnFailure,
             strict: current.strict,
+            issues: current.issues,
         }) as FiltersScope;
     }
 }

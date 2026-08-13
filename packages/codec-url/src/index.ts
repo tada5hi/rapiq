@@ -8,6 +8,7 @@
 export * from './constants';
 export * from './expression/constants';
 export * from './factory';
+export * from './json-api';
 export * from './module';
 export * from './simple/constants';
 export * from './types';

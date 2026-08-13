@@ -116,6 +116,24 @@ const decoded = codec.decode(req.query, {
 
 Schema-aware encoding validates by piping the output through the schema-bound decoder: a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
 
+## Reporting what a decode dropped
+
+`decode()` accepts an [`issues` sink](/guide/errors#issue-traces) like any parser, and `toJsonApiErrors` renders the collected trace with the wire parameter names this package owns (canonical `filters` becomes `filter`, `relations` becomes `include`):
+
+```typescript
+import { toJsonApiErrors } from '@rapiq/codec-url';
+import type { Issue } from '@rapiq/core';
+
+const issues: Issue[] = [];
+const query = codec.decode(req.query, { schema: 'user', issues });
+
+if (issues.length > 0) {
+    res.status(400).json({ errors: toJsonApiErrors(issues, { status: '400', warnings: true }) });
+}
+```
+
+Warnings (dropped keys under the default policy) are skipped unless `warnings: true` is passed. A schema-aware `encode()` never writes to the sink: its internal validation decode re-reads output you are producing, not input you received.
+
 ## Custom codecs
 
 Advanced callers can construct `URLCodec`, register a `URLCodecDefinition` (`{ name, encoder, decoder, detect? }`) and choose whether it becomes the default. The optional `detect(payload)` hook lets a dialect claim untagged payloads structurally: hooks are probed in registration order, and a payload no hook claims decodes with the default dialect. Optional async methods fall back to their synchronous counterparts when omitted.

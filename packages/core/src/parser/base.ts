@@ -17,7 +17,8 @@ import {
     parseKey, 
     stringifyKey,
 } from '../utils';
-import type { IParser } from './types';
+import { IssueCollector } from './issue';
+import type { IParser, ParseIssueOptions } from './types';
 
 export type TempType = {
     attributes: Record<string, any>,
@@ -52,6 +53,32 @@ export abstract class BaseParser<
     }
 
     // --------------------------------------------------
+
+    /**
+     * The trace this parse call records into: the enclosing call's when it
+     * runs as part of one (a query parse driving its five parameters), a
+     * fresh one bound to the caller's sink otherwise.
+     */
+    protected beginIssues(options: ParseIssueOptions) : IssueCollector {
+        return options.issueCollector ?? new IssueCollector(options.issues);
+    }
+
+    /**
+     * Raise what the trace collected, but only in the call that started it:
+     * a sub-parser driven by a query parse records across all five parameters
+     * and lets the orchestrator decide, so a single bad key no longer hides
+     * the other four parameters' issues.
+     */
+    protected finishIssues(
+        options: ParseIssueOptions,
+        collector: IssueCollector,
+    ) : void {
+        if (options.issueCollector === collector) {
+            return;
+        }
+
+        collector.throwIfFailed();
+    }
 
     protected getBaseSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,

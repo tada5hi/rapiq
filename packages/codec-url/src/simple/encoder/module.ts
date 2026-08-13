@@ -24,6 +24,7 @@ import {
     isSchemaAware,
     stripFieldConditions,
     stripQueryFieldConditions,
+    withoutIssues,
 } from '../../utils';
 import { SimpleURLDecoder } from '../decoder';
 import type { ISerializer } from './serializer';
@@ -68,7 +69,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, { ...withoutIssues(options), parameters });
         if (!decoded) {
             return null;
         }
@@ -96,7 +97,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, { ...withoutIssues(options), parameters });
         if (!decoded) {
             return null;
         }
@@ -116,7 +117,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeFields(encoded, options);
+        const decoded = this.decoder.decodeFields(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -137,7 +138,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeFieldsAsync(encoded, options);
+        const decoded = await this.decoder.decodeFieldsAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -161,7 +162,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeFilters(encoded, options);
+        const decoded = this.decoder.decodeFilters(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -182,7 +183,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
+        const decoded = await this.decoder.decodeFiltersAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -206,7 +207,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodePagination(encoded, options);
+        const decoded = this.decoder.decodePagination(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -227,7 +228,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodePaginationAsync(encoded, options);
+        const decoded = await this.decoder.decodePaginationAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -245,7 +246,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeRelations(encoded, options);
+        const decoded = this.decoder.decodeRelations(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -266,7 +267,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeRelationsAsync(encoded, options);
+        const decoded = await this.decoder.decodeRelationsAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -284,7 +285,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = this.decoder.decodeSorts(encoded, options);
+        const decoded = this.decoder.decodeSorts(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }
@@ -305,7 +306,7 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        const decoded = await this.decoder.decodeSortsAsync(encoded, options);
+        const decoded = await this.decoder.decodeSortsAsync(encoded, withoutIssues(options));
         if (!decoded) {
             return null;
         }

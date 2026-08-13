@@ -13,7 +13,7 @@ import {
     isFilters,
 } from '../parameter';
 import type { ICondition, IFilters, ISorts } from '../parameter';
-import { SchemaError } from '../errors';
+import { ErrorCode, ErrorMessage, SchemaError } from '../errors';
 import {
     FilterCompoundOperator,
     ResolutionScope,
@@ -29,6 +29,7 @@ import type {
 } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
+import type { IssueCollector } from './issue';
 import { FiltersParseError } from './parameter/filters/error';
 import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
@@ -36,6 +37,11 @@ import { buildSortsDefaults } from './relation-prune';
 
 type IndexPolicyContext = {
     throwOnFailure?: boolean,
+    /**
+     * Trace of the enclosing parse. Present: the violation is recorded and
+     * the parse continues to its own end. Absent: it throws here.
+     */
+    issues?: IssueCollector,
 };
 
 /**
@@ -236,21 +242,34 @@ export function applyFiltersIndexPolicy<
         return output;
     }
 
-    if (scope.throwOnFailure) {
-        throw FiltersParseError.keyCombinationNotIndexed(result.keys);
-    }
-
     // A preserved (must-survive) condition cannot be dropped with the
     // tree: mirror relation pruning and refuse loudly.
-    if (hasPreservedCondition(output)) {
+    if (!scope.throwOnFailure && hasPreservedCondition(output)) {
         throw SchemaError.preservedConditionNotIndexed(result.keys);
     }
 
-    const defaults = buildFiltersDefaults(filtersSchema);
-    if (defaults.length === 0) {
-        // Dropping to an empty filter set would execute an unfiltered
-        // scan, the exact outcome the policy exists to prevent: with
-        // no fallback, the violation always throws.
+    const defaults = scope.throwOnFailure ? [] : buildFiltersDefaults(filtersSchema);
+
+    // Dropping to an empty filter set would execute an unfiltered scan, the
+    // exact outcome the policy exists to prevent: with no fallback to fall
+    // back to, the violation always fails the parse.
+    const fatal = scope.throwOnFailure || defaults.length === 0;
+
+    if (context.issues) {
+        context.issues.violation({
+            code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+            parameter: Parameter.FILTERS,
+            path: [],
+            input: result.keys,
+            message: ErrorMessage.keyCombinationNotIndexed(result.keys),
+        }, fatal, FiltersParseError);
+
+        // the parse ends on the recorded issue; the tree it ends with is
+        // never observed.
+        return fatal ? output : new Filters(FilterCompoundOperator.AND, defaults);
+    }
+
+    if (fatal) {
         throw FiltersParseError.keyCombinationNotIndexed(result.keys);
     }
 
@@ -286,6 +305,18 @@ export function applySortsIndexPolicy<
     const result = checkSortKeysIndexed(names, indexesResolverFor(scope));
     if (result.ok) {
         return output;
+    }
+
+    if (context.issues) {
+        context.issues.violation({
+            code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+            parameter: Parameter.SORTS,
+            path: [],
+            input: result.keys,
+            message: ErrorMessage.keyCombinationNotIndexed(result.keys),
+        }, scope.throwOnFailure, SortsParseError);
+
+        return scope.throwOnFailure ? output : buildSortsDefaults(sortSchema);
     }
 
     if (scope.throwOnFailure) {

@@ -100,3 +100,26 @@ export function isSchemaAware(options: ParseQueryOptions | ParseParameterOptions
     return typeof options.schema !== 'undefined' ||
         typeof options.strict !== 'undefined';
 }
+
+/**
+ * Options for the decode pass a schema-aware ENCODE runs internally.
+ *
+ * The trace is stripped: that pass validates output the caller is producing,
+ * not input it received, and its issues would arrive in a sink the caller
+ * opened to observe requests — reported against wire-shaped positions of a
+ * query it just wrote. An encode that drops something says so by leaving it
+ * out (or by throwing, under a `throwOnFailure` schema).
+ *
+ * @param options
+ */
+export function withoutIssues<
+    T extends ParseQueryOptions | ParseParameterOptions,
+>(options: T) : T {
+    const {
+        issues: _issues,
+        issueCollector: _issueCollector,
+        ...rest
+    } = options;
+
+    return rest as T;
+}

@@ -8,6 +8,7 @@
 import type { Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
+import type { IssueCollector } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import type {
@@ -100,4 +101,12 @@ export type ResolutionScopeContext = {
      * the dependent keys. Absent: resolution records nothing.
      */
     obligationSink?: PendingKeyValidation[],
+    /**
+     * Trace of the parse this scope resolves for. When present, a failed
+     * resolution records its verdict as an issue and returns the failure
+     * verdict even under `throwOnFailure` — the owning parse call
+     * raises the first error-severity issue once every parameter has been
+     * seen. Absent: failures throw where they are found.
+     */
+    issues?: IssueCollector,
 };

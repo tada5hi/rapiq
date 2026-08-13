@@ -6,14 +6,12 @@
  */
 
 import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
-import type { ParseError } from '../../errors';
+import { ErrorCode, ErrorMessage } from '../../errors';
+import type { Issue, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
+import type { IssueCollector } from '../../parser/issue';
+import { PARAMETER_ERROR_CLASSES } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
-import { FieldsParseError } from '../../parser/parameter/fields/error';
-import { FiltersParseError } from '../../parser/parameter/filters/error';
-import { PaginationParseError } from '../../parser/parameter/pagination/error';
-import { RelationsParseError } from '../../parser/parameter/relations/error';
-import { SortsParseError } from '../../parser/parameter/sort/error';
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
 import { Schema } from '../module';
@@ -42,13 +40,31 @@ const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.SORT]: SortsSchema,
 } as const;
 
-const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
-    [Parameter.FIELDS]: FieldsParseError,
-    [Parameter.FILTERS]: FiltersParseError,
-    [Parameter.PAGINATION]: PaginationParseError,
-    [Parameter.RELATIONS]: RelationsParseError,
-    [Parameter.SORTS]: SortsParseError,
-    [Parameter.SORT]: SortsParseError,
+/**
+ * How a key-resolution verdict reads on both failure channels: the
+ * {@link ErrorCode} and message text a thrown error carries, and the issue a
+ * collecting parse records instead.
+ */
+const KEY_RESOLUTION_FAILURES : Record<KeyResolutionErrorCode, {
+    code: `${ErrorCode}`,
+    message: (name: string) => string,
+}> = {
+    [KeyResolutionErrorCode.KEY_INVALID]: {
+        code: ErrorCode.KEY_INVALID,
+        message: ErrorMessage.keyInvalid,
+    },
+    [KeyResolutionErrorCode.KEY_NOT_PERMITTED]: {
+        code: ErrorCode.KEY_NOT_ALLOWED,
+        message: ErrorMessage.keyNotPermitted,
+    },
+    [KeyResolutionErrorCode.PATH_NOT_PERMITTED]: {
+        code: ErrorCode.KEY_PATH_NOT_ALLOWED,
+        message: ErrorMessage.keyPathNotPermitted,
+    },
+    [KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE]: {
+        code: ErrorCode.KEY_PATH_INVALID,
+        message: ErrorMessage.keyPathInvalid,
+    },
 };
 
 /**
@@ -78,6 +94,7 @@ type ResolutionScopeOptions<
     segment?: string,
     path?: string[],
     obligationSink?: PendingKeyValidation[],
+    issues?: IssueCollector,
     depth?: number,
     throwOnFailure?: boolean,
     strict?: boolean,
@@ -148,6 +165,15 @@ export class ResolutionScope<
      */
     protected obligationSink: PendingKeyValidation[] | undefined;
 
+    /**
+     * Trace of the parse this scope resolves for; propagated to descendants.
+     * Present: {@link fail} records its verdict and lets the parse continue on
+     * the drop path, and the owning parse call raises the first error-severity
+     * issue at the end. Absent (a scope built outside a parse): failures throw
+     * where they are found, as they always did.
+     */
+    readonly issues: IssueCollector | undefined;
+
     protected bound: boolean;
 
     protected depth: number;
@@ -172,6 +198,7 @@ export class ResolutionScope<
         this.segment = options.segment;
         this.path = options.path ?? [];
         this.obligationSink = options.obligationSink;
+        this.issues = options.issues;
         this.depth = options.depth ?? 0;
         this.throwOnFailureContext = options.throwOnFailure;
         this.strictContext = options.strict;
@@ -265,6 +292,7 @@ export class ResolutionScope<
             throwOnFailure: context.throwOnFailure,
             strict: context.strict,
             obligationSink: context.obligationSink,
+            issues: context.issues,
             errors: context.errors ?? PARAMETER_ERROR_CLASSES[parameter as `${Parameter}`],
         });
     }
@@ -280,14 +308,14 @@ export class ResolutionScope<
      * Throws the parameter's ParseError subclass instead of returning `{ success: false }`
      * when the effective failure policy is set.
      */
-    resolveKey(key: string) : KeyResolution<P, RECORD> {
+    resolveKey(key: string, raw: string = key) : KeyResolution<P, RECORD> {
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
         if (separatorIndex === -1) {
             const code = this.checkName(mapped);
             if (code) {
-                return this.fail(code, key, mapped);
+                return this.fail(code, key, mapped, raw);
             }
 
             // resolution reached the leaf: record the authorization obligations
@@ -308,12 +336,12 @@ export class ResolutionScope<
         const segment = mapped.substring(0, separatorIndex);
         const rest = mapped.substring(separatorIndex + 1);
 
-        const child = this.descendSegment(segment, key);
+        const child = this.descendSegment(segment, key, raw);
         if (!(child instanceof ResolutionScope)) {
             return child;
         }
 
-        const resolved = child.resolveKey(rest);
+        const resolved = child.resolveKey(rest, raw);
         if (!resolved.success) {
             return { ...resolved, input: key };
         }
@@ -327,6 +355,91 @@ export class ResolutionScope<
     }
 
     /**
+     * Report a violation this scope's parameter found on its own — an input of
+     * the wrong shape, an unparseable value, a limit above the maximum —
+     * rather than one key resolution decided.
+     *
+     * Same policy as {@link resolveKey}: recorded into the parse's trace when
+     * there is one (the owning call raises it once every parameter has been
+     * seen), thrown here when there is not. The caller always continues on its
+     * drop path; whether that path's result is ever observed is the trace's
+     * decision, not the caller's.
+     */
+    refuse(input: {
+        code: `${ErrorCode}`,
+        message: string,
+        /**
+         * Canonical position, defaulting to this scope's relation path.
+         */
+        path?: string[],
+        key?: string,
+        input?: unknown,
+        /**
+         * Policy override, for a site governed by another sub-schema's
+         * failure policy than its own scope's.
+         */
+        throwOnFailure?: boolean,
+    }) : void {
+        const throwOnFailure = input.throwOnFailure ?? this.throwOnFailure;
+
+        if (this.issues) {
+            const issue : Omit<Issue, 'severity'> = {
+                code: input.code,
+                parameter: this.parameter,
+                path: input.path ?? [...this.path],
+                message: input.message,
+            };
+
+            if (typeof input.key !== 'undefined') {
+                issue.key = input.key;
+            }
+
+            if (typeof input.input !== 'undefined') {
+                issue.input = input.input;
+            }
+
+            this.issues.violation(issue, throwOnFailure, this.errors);
+
+            return;
+        }
+
+        if (throwOnFailure) {
+            const ErrorClass = this.errors;
+
+            throw new ErrorClass({ code: input.code, message: input.message });
+        }
+    }
+
+    /**
+     * Report something the parse did to the input without rejecting it: a
+     * clamped limit, substituted defaults. Never fails a parse, so unlike
+     * {@link refuse} it is a no-op without a trace to record into.
+     */
+    notice(input: {
+        code: `${ErrorCode}`,
+        message: string,
+        path?: string[],
+        input?: unknown,
+    }) : void {
+        if (!this.issues) {
+            return;
+        }
+
+        const issue : Omit<Issue, 'severity'> = {
+            code: input.code,
+            parameter: this.parameter,
+            path: input.path ?? [...this.path],
+            message: input.message,
+        };
+
+        if (typeof input.input !== 'undefined') {
+            issue.input = input.input;
+        }
+
+        this.issues.notice(issue);
+    }
+
+    /**
      * Enter a relation: checks the (alias-resolved) segment against the permitted
      * relations, resolves the child schema via the registry (schemaMapping-aware,
      * starting from the schema instance when available), extracts the child
@@ -334,24 +447,33 @@ export class ResolutionScope<
      *
      * A mapping alias may expand to a dotted path — every segment is walked,
      * and the returned scope reports the full relative path as its segment.
+     *
+     * `optional` marks a descent whose target may legitimately not be a
+     * relation at all: an array operator's interior (`elemMatch`) addresses
+     * the elements of whatever it names, so "no schema for this key" is an
+     * answer, not a violation, and is returned as a bare verdict without
+     * being thrown or recorded. Every other failure stays a failure.
      */
-    descend(key: string) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
+    descend(
+        key: string,
+        options: { optional?: boolean } = {},
+    ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
         if (separatorIndex === -1) {
-            return this.descendSegment(mapped, key);
+            return this.descendSegment(mapped, key, key, options.optional);
         }
 
         const segments = mapped.split('.');
 
-        let scope = this.descendSegment(segments[0] as string, key);
+        let scope = this.descendSegment(segments[0] as string, key, key, options.optional);
         for (const segment of segments.slice(1)) {
             if (!(scope instanceof ResolutionScope)) {
                 return scope;
             }
 
-            scope = scope.descendSegment(segment, key);
+            scope = scope.descendSegment(segment, key, key, options.optional);
         }
 
         if (!(scope instanceof ResolutionScope)) {
@@ -366,14 +488,16 @@ export class ResolutionScope<
     protected descendSegment(
         segment: string,
         input: string,
+        raw: string = input,
+        optional?: boolean,
     ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         if (this.depth >= MAX_DEPTH) {
-            return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment);
+            return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
         }
 
         const code = this.checkSegment(segment);
         if (code) {
-            return this.fail(code, input, segment);
+            return this.fail(code, input, segment, raw);
         }
 
         const base = this.resolveBase();
@@ -393,7 +517,16 @@ export class ResolutionScope<
             // relations semantics differ: child schemas are optional refinements.
             // Unbound scopes (no schema identity) impose no traversal constraints,
             // so both descend into an unbound child scope instead of failing.
-            return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment);
+            if (optional) {
+                return {
+                    success: false,
+                    code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+                    input: raw,
+                    segment,
+                };
+            }
+
+            return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
         }
 
         let schema : ParameterSchema<P, RECORD>;
@@ -420,6 +553,7 @@ export class ResolutionScope<
             segment,
             path: [...this.path, segment],
             obligationSink: this.obligationSink,
+            issues: this.issues,
             depth: this.depth + 1,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,
@@ -665,6 +799,7 @@ export class ResolutionScope<
             segment,
             path: this.path,
             obligationSink: this.obligationSink,
+            issues: this.issues,
             depth: this.depth,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,
@@ -676,8 +811,25 @@ export class ResolutionScope<
         code: KeyResolutionErrorCode,
         input: string,
         segment?: string,
+        raw: string = input,
     ) : KeyResolutionFailure {
-        if (this.throwOnFailure) {
+        const { throwOnFailure } = this;
+
+        if (this.issues) {
+            const failure = KEY_RESOLUTION_FAILURES[code] ??
+                KEY_RESOLUTION_FAILURES[KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE];
+            const name = segment ?? input;
+
+            this.issues.violation({
+                code: failure.code,
+                parameter: this.parameter,
+                path: segment ? [...this.path, segment] : [...this.path],
+                key: raw,
+                message: failure.message(name),
+            }, throwOnFailure, this.errors);
+        } else if (throwOnFailure) {
+            // no trace to finish: a scope built outside a parse still fails
+            // where the violation is, exactly as it always did.
             switch (code) {
                 case KeyResolutionErrorCode.KEY_INVALID:
                     throw this.errors.keyInvalid(segment ?? input);

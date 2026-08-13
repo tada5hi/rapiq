@@ -8,6 +8,7 @@
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
+import { ErrorMessage } from './messages';
 import type { BaseErrorOptions } from './types';
 
 export class ParseError extends BaseError {
@@ -21,87 +22,84 @@ export class ParseError extends BaseError {
 
     static inputInvalid() {
         return new this({
-            message: 'The shape of the input is not valid.',
+            message: ErrorMessage.inputInvalid(),
             code: ErrorCode.INPUT_INVALID,
         });
     }
 
     static syntaxInvalid(details?: string) {
         return new this({
-            message: details ?
-                `The input syntax is invalid: ${details}` :
-                'The input syntax is invalid.',
+            message: ErrorMessage.syntaxInvalid(details),
             code: ErrorCode.SYNTAX_INVALID,
         });
     }
 
     static keyNotPermitted(name: string) {
         return new this({
-            message: `The key ${name} is not permitted.`,
+            message: ErrorMessage.keyNotPermitted(name),
             code: ErrorCode.KEY_NOT_ALLOWED,
         });
     }
 
     static keyInvalid(key: string) {
         return new this({
-            message: `The key ${key} is invalid.`,
+            message: ErrorMessage.keyInvalid(key),
             code: ErrorCode.KEY_INVALID,
         });
     }
 
     static keyPathInvalid(key: string) {
         return new this({
-            message: `The key path ${key} is invalid.`,
+            message: ErrorMessage.keyPathInvalid(key),
             code: ErrorCode.KEY_PATH_INVALID,
         });
     }
 
     static keyPathNotPermitted(key: string) {
         return new this({
-            message: `The key path ${key} is not permitted.`,
+            message: ErrorMessage.keyPathNotPermitted(key),
             code: ErrorCode.KEY_PATH_NOT_ALLOWED,
         });
     }
 
     static keyValueInvalid(key: string) {
         return new this({
-            message: `The value of the key ${key} is invalid.`,
+            message: ErrorMessage.keyValueInvalid(key),
             code: ErrorCode.KEY_VALUE_INVALID,
         });
     }
 
     static keyValidateRejected(key: string) {
         return new this({
-            message: `The key ${key} was rejected by the schema validator.`,
+            message: ErrorMessage.keyValidateRejected(key),
             code: ErrorCode.KEY_VALIDATE_REJECTED,
         });
     }
 
     static keyCombinationNotIndexed(keys: string[]) {
         return new this({
-            message: `The key combination ${keys.join(', ')} is not indexed.`,
+            message: ErrorMessage.keyCombinationNotIndexed(keys),
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
         });
     }
 
     static operatorUnsupported(operator: string) {
         return new this({
-            message: `The operator ${operator} is not supported.`,
+            message: ErrorMessage.operatorUnsupported(operator),
             code: ErrorCode.OPERATOR_UNSUPPORTED,
         });
     }
 
     static featureUnsupported(feature: string) {
         return new this({
-            message: `The feature ${feature} is not supported.`,
+            message: ErrorMessage.featureUnsupported(feature),
             code: ErrorCode.FEATURE_UNSUPPORTED,
         });
     }
 
     static keyAmbiguous(canonical: string, alias: string) {
         return new this({
-            message: `The keys ${canonical} and ${alias} are two spellings of the ` +
-                `same parameter. Use ${canonical}.`,
+            message: ErrorMessage.keyAmbiguous(canonical, alias),
             code: ErrorCode.KEY_AMBIGUOUS,
         });
     }

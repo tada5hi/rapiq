@@ -10,6 +10,7 @@ import type {
     FiltersSchema,
     ICondition,
     IFilters,
+    IssueCollector,
     ObjectLiteral,
     RelationLedger,
     Scalar,
@@ -95,20 +96,29 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        const issues = this.beginIssues(options);
+
+        const { output, scope } = this.record(issues, () => this.build(input, options, ledger));
         if (!scope) {
+            this.finishIssues(options, issues);
+
             return output;
         }
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -116,20 +126,66 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const { output, scope } = await this.buildAsync(input, options, ledger);
+        const issues = this.beginIssues(options);
+
+        const { output, scope } = await this.recordAsync(issues, () => this.buildAsync(input, options, ledger));
         if (!scope) {
+            this.finishIssues(options, issues);
+
             return output;
         }
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
+    }
+
+    // ---------------------------------------------------------
+
+    /**
+     * Run the fail-fast front-end, leaving the failure in the trace on its way
+     * out.
+     *
+     * The expression dialect resolves under an always-throwing scope on
+     * purpose: an expression cannot be partially reinterpreted, so pruning a
+     * leaf inside `or(...)` would change the compound's meaning rather than
+     * narrow it. That makes every failure structural — it ends this parameter
+     * where it is found — but a caller watching the trace should still see
+     * what happened, so it is recorded before it propagates.
+     */
+    protected record<T>(issues: IssueCollector, fn: () => T) : T {
+        try {
+            return fn();
+        } catch (e) {
+            if (e instanceof ParseError) {
+                issues.error(e, Parameter.FILTERS);
+            }
+
+            throw e;
+        }
+    }
+
+    protected async recordAsync<T>(issues: IssueCollector, fn: () => Promise<T>) : Promise<T> {
+        try {
+            return await fn();
+        } catch (e) {
+            if (e instanceof ParseError) {
+                issues.error(e, Parameter.FILTERS);
+            }
+
+            throw e;
+        }
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -139,6 +195,7 @@ export class ExpressionFiltersParser extends BaseParser<
     ) : IFilters {
         return this.build(input, options, ledger).output;
     }
+
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
@@ -215,7 +272,7 @@ export class ExpressionFiltersParser extends BaseParser<
             return { result: expr };
         }
 
-        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context);
+        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context, options.issueCollector);
 
         return {
             result: validated ?? new Filters(
@@ -236,7 +293,12 @@ export class ExpressionFiltersParser extends BaseParser<
             return { result: expr };
         }
 
-        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema, options.context);
+        const validated = await applyFiltersSchemaValidationAsync(
+            expr,
+            scope.schema,
+            options.context,
+            options.issueCollector,
+        );
 
         return {
             result: validated ?? new Filters(

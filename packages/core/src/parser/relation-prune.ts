@@ -5,7 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaError } from '../errors';
+import { Parameter } from '../constants';
+import { ErrorCode, ErrorMessage, SchemaError } from '../errors';
 import {
     Field,
     Fields,
@@ -29,7 +30,76 @@ import type {
 import { FilterCompoundOperator, FilterFieldOperator } from '../schema';
 import type { FiltersSchema, SortsSchema } from '../schema';
 import { parseKey } from '../utils';
+import type { IssueCollector } from './issue';
 import { buildFiltersDefaults } from './parameter/filters/validate';
+
+/**
+ * Record what a rejected relation took with it. The rejection itself was
+ * already reported by the relations gate; these are its consequences, so they
+ * never fail a parse that the gate let through — but they are the difference
+ * between "my sort was ignored" and knowing why.
+ */
+function recordPruned(
+    issues: IssueCollector | undefined,
+    parameter: `${Parameter}`,
+    name: string,
+) : void {
+    if (!issues) {
+        return;
+    }
+
+    issues.notice({
+        code: ErrorCode.KEY_PATH_NOT_ALLOWED,
+        parameter,
+        path: name.split('.'),
+        message: ErrorMessage.keyPathNotPermitted(name),
+    });
+}
+
+/**
+ * Record that a parameter fell back to its schema default because nothing the
+ * client sent survived — the "I asked for X and got Y" case, which is
+ * otherwise indistinguishable from a request that asked for nothing.
+ */
+function recordDefaults(
+    issues: IssueCollector | undefined,
+    parameter: `${Parameter}`,
+    applied: boolean,
+) : void {
+    if (!issues || !applied) {
+        return;
+    }
+
+    issues.notice({
+        code: ErrorCode.NONE,
+        parameter,
+        path: [],
+        message: ErrorMessage.defaultsApplied(),
+    });
+}
+
+/**
+ * Whether an entry survives the gate, recording it when it does not.
+ */
+function keep(
+    name: string,
+    rejected: string[],
+    issues: IssueCollector | undefined,
+    parameter: `${Parameter}`,
+) : boolean {
+    const matched = matchRelationRejected(name, rejected);
+    if (typeof matched === 'undefined') {
+        return true;
+    }
+
+    // the rejected relation itself was already reported by the gate that
+    // rejected it; only what it dragged along is news.
+    if (!(parameter === Parameter.RELATIONS && matched === name)) {
+        recordPruned(issues, parameter, name);
+    }
+
+    return false;
+}
 
 /**
  * The rejected relation governing a canonical relation/field path: the path
@@ -56,14 +126,18 @@ function joinPath(prefix: string, segment: string) : string {
 /**
  * Drop every field whose canonical name traverses a rejected relation.
  */
-export function pruneFieldsByRelations(fields: IFields, rejected: string[]) : IFields {
+export function pruneFieldsByRelations(
+    fields: IFields,
+    rejected: string[],
+    issues?: IssueCollector,
+) : IFields {
     if (rejected.length === 0) {
         return fields;
     }
 
     return new Fields(
         fields.value
-            .filter((field) => !isRelationRejected(field.name, rejected))
+            .filter((field) => keep(field.name, rejected, issues, Parameter.FIELDS))
             // the visibility condition must survive the rebuild: dropping it
             // would turn a gated field into an ungated one.
             .map((field) => new Field(field.name, field.operator, field.condition)),
@@ -79,17 +153,21 @@ export function pruneSortsByRelations(
     sorts: ISorts,
     rejected: string[],
     schema?: SortsSchema,
+    issues?: IssueCollector,
 ) : ISorts {
     if (rejected.length === 0) {
         return sorts;
     }
 
     const value = sorts.value
-        .filter((sort) => !isRelationRejected(sort.name, rejected))
+        .filter((sort) => keep(sort.name, rejected, issues, Parameter.SORTS))
         .map((sort) => new Sort(sort.name, sort.operator));
 
     if (value.length === 0 && schema) {
-        return buildSortsDefaults(schema);
+        const defaults = buildSortsDefaults(schema);
+        recordDefaults(issues, Parameter.SORTS, defaults.value.length > 0);
+
+        return defaults;
     }
 
     return new Sorts(value);
@@ -98,14 +176,18 @@ export function pruneSortsByRelations(
 /**
  * Drop every relation at or below a rejected relation.
  */
-export function pruneRelationsByRelations(relations: IRelations, rejected: string[]) : IRelations {
+export function pruneRelationsByRelations(
+    relations: IRelations,
+    rejected: string[],
+    issues?: IssueCollector,
+) : IRelations {
     if (rejected.length === 0) {
         return relations;
     }
 
     return new Relations(
         relations.value
-            .filter((relation) => !isRelationRejected(relation.name, rejected))
+            .filter((relation) => keep(relation.name, rejected, issues, Parameter.RELATIONS))
             .map((relation) => new Relation(relation.name)),
     );
 }
@@ -132,12 +214,13 @@ export function pruneFiltersByRelations(
     filters: IFilters,
     rejected: string[],
     schema?: FiltersSchema,
+    issues?: IssueCollector,
 ) : IFilters {
     if (rejected.length === 0) {
         return filters;
     }
 
-    const pruned = pruneCondition(filters, rejected, '', false);
+    const pruned = pruneCondition(filters, rejected, '', false, issues);
     if (pruned && isFilters(pruned)) {
         return pruned;
     }
@@ -147,6 +230,7 @@ export function pruneFiltersByRelations(
         conditions = [pruned];
     } else {
         conditions = schema ? buildFiltersDefaults(schema) : [];
+        recordDefaults(issues, Parameter.FILTERS, conditions.length > 0);
 
         // The default is the server's own baseline and is exempt from the gate:
         // it is re-applied here un-pruned, even when it names a rejected
@@ -188,6 +272,7 @@ function pruneCondition(
     rejected: string[],
     prefix: string,
     preserved: boolean,
+    issues?: IssueCollector,
 ) : ICondition | undefined {
     // The marker protects the whole subtree it heads. `preserve()` sets it on
     // the built-in nodes and wraps anything else, but the marker itself is
@@ -203,11 +288,15 @@ function pruneCondition(
         // interior condition (`elemMatch`, or any operator built the same way)
         // can carry the marker its parent does not.
         if (typeof rejectedBy === 'string') {
-            return dropUnlessPreserved(
+            const output = dropUnlessPreserved(
                 rejectedBy,
                 field,
                 preserved2 || isConditionPreserved(node),
             );
+
+            recordPruned(issues, Parameter.FILTERS, field);
+
+            return output;
         }
 
         // Descending is gated on the operator, not on the value shape: only
@@ -217,7 +306,7 @@ function pruneCondition(
             node.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(node.value)
         ) {
-            const interior = pruneCondition(node.value, rejected, field, preserved2);
+            const interior = pruneCondition(node.value, rejected, field, preserved2, issues);
             if (!interior) {
                 return undefined;
             }
@@ -236,7 +325,7 @@ function pruneCondition(
 
     const conditions : ICondition[] = [];
     for (const child of node.value) {
-        const child2 = pruneCondition(child, rejected, prefix, preserved2);
+        const child2 = pruneCondition(child, rejected, prefix, preserved2, issues);
         if (child2) {
             conditions.push(child2);
         }

@@ -8,10 +8,11 @@
 import {
     BaseParser,
     DEFAULT_ID,
+    ErrorCode,
+    ErrorMessage,
     Filter,
     FilterCompoundOperator,
     Filters,
-    FiltersParseError,
     Parameter,
     RelationsParseError,
     ResolutionScope,
@@ -34,6 +35,7 @@ import type {
     ICondition,
     IFilter,
     IFilters,
+    IssueCollector,
     ObjectLiteral,
     RelationLedger,
 
@@ -54,17 +56,26 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        const {
+            output, 
+            scope, 
+            issues, 
+        } = this.build(input, options, ledger);
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -72,17 +83,26 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const { output, scope } = await this.buildAsync(input, options, ledger);
+        const {
+            output, 
+            scope, 
+            issues, 
+        } = await this.buildAsync(input, options, ledger);
 
-        return applyFiltersIndexPolicy(
+        const result = applyFiltersIndexPolicy(
             pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
+                issues,
+            }), scope.schema as FiltersSchema<RECORD>, issues),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure },
+            { throwOnFailure: options.throwOnFailure, issues },
         );
+
+        this.finishIssues(options, issues);
+
+        return result;
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -90,7 +110,10 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : IFilters {
-        return this.build(input, options, ledger).output;
+        const { output, issues } = this.build(input, options, ledger);
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -98,62 +121,110 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger)).output;
+        const { output, issues } = await this.buildAsync(input, options, ledger);
+        this.finishIssues(options, issues);
+
+        return output;
     }
 
     protected build<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { output: IFilters, scope: FiltersScope<RECORD> } {
-        const scope = this.scopeFor(options, ledger);
+    ) : {
+        output: IFilters, 
+        scope: FiltersScope<RECORD>, 
+        issues: IssueCollector 
+    } {
+        const issues = this.beginIssues(options);
+        const scope = this.scopeFor(options, ledger, issues);
 
-        let items: ICondition[] = this.run(input, scope);
+        const parsed = this.run(input, scope);
+
+        let items: ICondition[] = parsed;
         if (items.length > 0) {
             items = items
-                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context))
+                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, issues))
                 .filter((item): item is ICondition => typeof item !== 'undefined');
         }
 
         if (items.length === 0) {
-            items = buildFiltersDefaults(scope.schema);
+            items = this.defaults(scope, parsed.length > 0);
         }
 
-        return { output: new Filters(FilterCompoundOperator.AND, items), scope };
+        return {
+            output: new Filters(FilterCompoundOperator.AND, items), 
+            scope, 
+            issues, 
+        };
     }
 
     protected async buildAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : Promise<{ output: IFilters, scope: FiltersScope<RECORD> }> {
-        const scope = this.scopeFor(options, ledger);
+    ) : Promise<{
+        output: IFilters, 
+        scope: FiltersScope<RECORD>, 
+        issues: IssueCollector 
+    }> {
+        const issues = this.beginIssues(options);
+        const scope = this.scopeFor(options, ledger, issues);
+
+        const parsed = this.run(input, scope);
 
         let items: ICondition[] = [];
-        for (const item of this.run(input, scope)) {
-            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context);
+        for (const item of parsed) {
+            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, issues);
             if (validated) {
                 items.push(validated);
             }
         }
 
         if (items.length === 0) {
-            items = buildFiltersDefaults(scope.schema);
+            items = this.defaults(scope, parsed.length > 0);
         }
 
-        return { output: new Filters(FilterCompoundOperator.AND, items), scope };
+        return {
+            output: new Filters(FilterCompoundOperator.AND, items), 
+            scope, 
+            issues, 
+        };
     }
 
     protected scopeFor<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : FiltersScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
+            issues,
         });
+    }
+
+    /**
+     * The schema baseline, standing in for everything the client sent (or
+     * for nothing at all). Only the former is worth reporting: defaults for
+     * an absent parameter are ordinary operation, defaults REPLACING what the
+     * client sent are the surprise.
+     */
+    protected defaults<RECORD extends ObjectLiteral = ObjectLiteral>(
+        scope: FiltersScope<RECORD>,
+        dropped: boolean,
+    ) : ICondition[] {
+        const output = buildFiltersDefaults(scope.schema);
+        if (output.length > 0 && dropped) {
+            scope.notice({
+                code: ErrorCode.NONE,
+                message: ErrorMessage.defaultsApplied(),
+            });
+        }
+
+        return output;
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -188,10 +259,13 @@ export class SimpleFiltersParser extends BaseParser<
             // absent input is not a failure — schema defaults still apply.
             if (
                 typeof input !== 'undefined' &&
-                input !== null &&
-                scope.throwOnFailure
+                input !== null
             ) {
-                throw FiltersParseError.inputInvalid();
+                scope.refuse({
+                    code: ErrorCode.INPUT_INVALID,
+                    message: ErrorMessage.inputInvalid(),
+                    input,
+                });
             }
 
             return [];
@@ -248,9 +322,13 @@ export class SimpleFiltersParser extends BaseParser<
             // schema drop-vs-throw policy.
             const decoded = decodeFilterWireValue(data.attributes[key_]);
             if (!decoded.success) {
-                if (scope.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(resolvedName);
-                }
+                scope.refuse({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: ErrorMessage.keyValueInvalid(resolvedName),
+                    path: [...resolved.path, resolved.name],
+                    key: key.name,
+                    input: data.attributes[key_],
+                });
 
                 continue;
             }

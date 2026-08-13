@@ -10,6 +10,8 @@ export * from './base';
 export * from './build';
 export * from './code';
 export * from './codec';
+export * from './issue';
 export * from './merge';
+export * from './messages';
 export * from './parse';
 export * from './schema';
