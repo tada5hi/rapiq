@@ -14,6 +14,18 @@ import type { IssueCollector } from './issue';
 import type { PendingKeyValidation } from './parameter/validate';
 
 /**
+ * The trace of the enclosing query parse, threaded into the per-parameter
+ * drivers so the five parameters report into one trace and the orchestrator
+ * decides when to raise.
+ *
+ * An explicit driver argument, never part of the public parse options, for
+ * the same reason as {@link RelationLedger}: a consumer who supplied one
+ * would take over the decision to raise, and a recorded rejection that
+ * nobody raises is a rejection that silently became a drop.
+ */
+export type IssueTrace = IssueCollector;
+
+/**
  * The trace options every parse entry point accepts.
  */
 export type ParseIssueOptions = {
@@ -24,12 +36,6 @@ export type ParseIssueOptions = {
      * what the parse returns or throws.
      */
     issues?: Issue[],
-    /**
-     * Internal driver: the trace of an ENCLOSING parse call, so a
-     * sub-parser records into it and leaves the throwing to its owner.
-     * Set by the query orchestrator, never by consumers.
-     */
-    issueCollector?: IssueCollector,
 };
 
 export type ParseParameterOptions<
@@ -141,9 +147,19 @@ export interface IQueryParameterParser<Output = unknown> {
 
     parseParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Output;
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD>,
+        ledger: RelationLedger,
+        issues?: IssueTrace,
+    ): Output;
 
     parseParameterAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Promise<Output>;
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD>,
+        ledger: RelationLedger,
+        issues?: IssueTrace,
+    ): Promise<Output>;
 }

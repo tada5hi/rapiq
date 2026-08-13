@@ -25,6 +25,26 @@ import { ErrorCode, ErrorMessage, SchemaError } from '../../../errors';
 import type { IssueCollector } from '../../issue';
 import { FiltersParseError } from './error';
 
+export type FiltersValidationOptions = {
+    /**
+     * Trace of the enclosing parse.
+     */
+    issues?: IssueCollector,
+    /**
+     * Call-time failure-policy override, taking precedence over the filters
+     * sub-schema's own setting exactly like everywhere else
+     * (`throwOnFailure ?? schema.throwOnFailure ?? false`). Without it a leaf
+     * rejection would be the one violation a call-time override cannot
+     * govern.
+     *
+     * Deliberately NOT the resolving scope's effective policy: the expression
+     * dialect forces its scope to throw because an expression cannot be
+     * partially reinterpreted, and that says nothing about whether a policy
+     * hook declining a leaf should fail the request.
+     */
+    throwOnFailure?: boolean,
+};
+
 /**
  * The conditions a parser falls back to when the input carries no
  * (surviving) filters — the schema `default`, or nothing.
@@ -53,12 +73,12 @@ export function buildFiltersDefaults(schema: FiltersSchema) : ICondition[] {
 function rejectLeaf(
     leaf: IFilter<string, unknown>,
     schema: FiltersSchema,
-    issues?: IssueCollector,
+    options: FiltersValidationOptions,
 ) : void {
-    const throwOnFailure = schema.throwOnFailure ?? false;
+    const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure ?? false;
 
-    if (issues) {
-        issues.violation({
+    if (options.issues) {
+        options.issues.violation({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: Parameter.FILTERS,
             path: leaf.field.split('.'),
@@ -97,19 +117,19 @@ export function applyFiltersSchemaValidation(
     input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options?: FiltersValidationOptions,
 ) : IFilters | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options?: FiltersValidationOptions,
 ) : ICondition | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options: FiltersValidationOptions = {},
 ) : ICondition | undefined {
     if (!schema.hasValidator()) {
         return input;
@@ -121,7 +141,7 @@ export function applyFiltersSchemaValidation(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = applyFiltersSchemaValidation(input.value, schema, context, issues);
+            const interior = applyFiltersSchemaValidation(input.value, schema, context, options);
             if (!interior) {
                 return undefined;
             }
@@ -138,7 +158,7 @@ export function applyFiltersSchemaValidation(
         }
 
         if (!output) {
-            rejectLeaf(leaf, schema, issues);
+            rejectLeaf(leaf, schema, options);
 
             return undefined;
         }
@@ -154,7 +174,7 @@ export function applyFiltersSchemaValidation(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = applyFiltersSchemaValidation(child, schema, context, issues);
+        const validated = applyFiltersSchemaValidation(child, schema, context, options);
         if (validated) {
             conditions.push(validated);
         }
@@ -176,19 +196,19 @@ export function applyFiltersSchemaValidationAsync(
     input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options?: FiltersValidationOptions,
 ) : Promise<IFilters | undefined>;
 export function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options?: FiltersValidationOptions,
 ) : Promise<ICondition | undefined>;
 export async function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
-    issues?: IssueCollector,
+    options: FiltersValidationOptions = {},
 ) : Promise<ICondition | undefined> {
     if (!schema.hasValidator()) {
         return input;
@@ -200,7 +220,7 @@ export async function applyFiltersSchemaValidationAsync(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context, issues);
+            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context, options);
             if (!interior) {
                 return undefined;
             }
@@ -212,7 +232,7 @@ export async function applyFiltersSchemaValidationAsync(
 
         const output = await schema.validate(leaf, context);
         if (!output) {
-            rejectLeaf(leaf, schema, issues);
+            rejectLeaf(leaf, schema, options);
 
             return undefined;
         }
@@ -226,7 +246,7 @@ export async function applyFiltersSchemaValidationAsync(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = await applyFiltersSchemaValidationAsync(child, schema, context, issues);
+        const validated = await applyFiltersSchemaValidationAsync(child, schema, context, options);
         if (validated) {
             conditions.push(validated);
         }

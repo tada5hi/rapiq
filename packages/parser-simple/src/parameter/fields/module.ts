@@ -54,7 +54,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             issues,
         }), issues);
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -78,7 +78,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             issues,
         }), issues);
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -89,16 +89,17 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : IFields {
-        const { output, issues } = this.build(input, options, ledger);
+        const trace = this.build(input, options, ledger, issues);
 
-        // a no-op when the query orchestrator owns the trace, and the
+        // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody finished
+        // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(options, issues);
+        this.finishIssues(issues, trace.issues);
 
-        return output;
+        return trace.output;
     }
 
     async parseParameterAsync<
@@ -107,11 +108,17 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<IFields> {
-        const { output, issues } = await this.buildAsync(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = await this.buildAsync(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     /**
@@ -126,12 +133,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : {
         output: IFields, 
         scope: FieldsScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -157,12 +165,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : Promise<{
         output: IFields, 
         scope: FieldsScope<RECORD>, 
         issues: IssueCollector 
     }> {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);

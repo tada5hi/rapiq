@@ -55,7 +55,7 @@ export class SimpleRelationsParser extends BaseParser<
             issues,
         }));
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -79,7 +79,7 @@ export class SimpleRelationsParser extends BaseParser<
             issues,
         }));
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -90,11 +90,17 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : IRelations {
-        const { output, issues } = this.build(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = this.build(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     async parseParameterAsync<
@@ -103,11 +109,17 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<IRelations> {
-        const { output, issues } = this.build(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = this.build(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     /**
@@ -122,12 +134,13 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : {
         output: Relations, 
         scope: RelationsScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,

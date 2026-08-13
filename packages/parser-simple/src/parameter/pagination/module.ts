@@ -16,6 +16,7 @@ import {
 } from '@rapiq/core';
 import type {
     IPagination,
+    IssueCollector,
     ObjectLiteral,
     PaginationParseOptions,
     PaginationSchema,
@@ -31,7 +32,53 @@ export class SimplePaginationParser<
         input: unknown,
         options: PaginationParseOptions<RECORD> = {},
     ) : IPagination {
-        const issues = this.beginIssues(options);
+        return this.build(input, options);
+    }
+
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD> = {},
+    ) : Promise<IPagination> {
+        return this.build(input, options);
+    }
+
+    // pagination traverses no relations — the ledger is unused.
+    parseParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        _ledger?: RelationLedger,
+        issues?: IssueCollector,
+    ) : IPagination {
+        return this.build(input, options, issues);
+    }
+
+    parseParameterAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        _ledger?: RelationLedger,
+        issues?: IssueCollector,
+    ) : Promise<IPagination> {
+        return Promise.resolve(this.build(input, options, issues));
+    }
+
+    /**
+     * `driver` is the enclosing query parse's trace, when there is one: this
+     * parser then records into it and leaves the raising to its owner.
+     */
+    protected build<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: PaginationParseOptions<RECORD>,
+        driver?: IssueCollector,
+    ) : IPagination {
+        const issues = this.beginIssues(options, driver);
         const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, {
             throwOnFailure: options.throwOnFailure,
             issues,
@@ -56,7 +103,7 @@ export class SimplePaginationParser<
             }
 
             const fallback = this.finalizePagination(output, schema, scope);
-            this.finishIssues(options, issues);
+            this.finishIssues(driver, issues);
 
             return fallback;
         }
@@ -100,39 +147,9 @@ export class SimplePaginationParser<
         }
 
         const result = this.finalizePagination(output, schema, scope);
-        this.finishIssues(options, issues);
+        this.finishIssues(driver, issues);
 
         return result;
-    }
-
-    override async parseAsync<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        input: unknown,
-        options: PaginationParseOptions<RECORD> = {},
-    ) : Promise<IPagination> {
-        return this.parse(input, options);
-    }
-
-    // pagination traverses no relations — the ledger is unused.
-    parseParameter<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        input: unknown,
-        options: PaginationParseOptions<RECORD>,
-        _ledger?: RelationLedger,
-    ) : IPagination {
-        return this.parse(input, options);
-    }
-
-    parseParameterAsync<
-        RECORD extends ObjectLiteral = ObjectLiteral,
-    >(
-        input: unknown,
-        options: PaginationParseOptions<RECORD>,
-        _ledger?: RelationLedger,
-    ) : Promise<IPagination> {
-        return this.parseAsync(input, options);
     }
 
     protected finalizePagination<

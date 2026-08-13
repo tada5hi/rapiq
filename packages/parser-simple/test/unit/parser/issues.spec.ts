@@ -375,6 +375,32 @@ describe('src/parser — issue traces', () => {
                 .toThrow(FiltersParseError.keyValidateRejected('name'));
         });
 
+        it('should honor a call-time policy override on a rejected filter leaf', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<User>({
+                name: 'user',
+                filters: {
+                    allowed: ['id', 'name'],
+                    validate: (leaf) => (leaf.field === 'name' ? undefined : leaf),
+                },
+            }));
+
+            const parser = new SimpleParser(registry);
+
+            // the leaf validator is the one rejection a call-time override
+            // must govern like any other
+            expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: true }))
+                .toThrow(FiltersParseError.keyValidateRejected('name'));
+
+            const issues : Issue[] = [];
+            parser.parse({ filters: { name: 'x' } }, {
+                schema: 'user', 
+                throwOnFailure: false, 
+                issues, 
+            });
+            expect(issues[0]?.severity).toBe('warning');
+        });
+
         it('should not raise a replaced filter leaf', () => {
             const registry = new SchemaRegistry();
             registry.add(defineSchema<User>({

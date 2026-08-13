@@ -98,9 +98,9 @@ export class ExpressionFiltersParser extends BaseParser<
         const ledger : RelationLedger = [];
         const issues = this.beginIssues(options);
 
-        const { output, scope } = this.record(options, issues, () => this.build(input, options, ledger));
+        const { output, scope } = this.record(issues, () => this.build(input, options, ledger, issues));
         if (!scope) {
-            this.finishIssues(options, issues);
+            this.finishIssues(undefined, issues);
 
             return output;
         }
@@ -116,7 +116,7 @@ export class ExpressionFiltersParser extends BaseParser<
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -128,9 +128,9 @@ export class ExpressionFiltersParser extends BaseParser<
         const ledger : RelationLedger = [];
         const issues = this.beginIssues(options);
 
-        const { output, scope } = await this.recordAsync(options, issues, () => this.buildAsync(input, options, ledger));
+        const { output, scope } = await this.recordAsync(issues, () => this.buildAsync(input, options, ledger, issues));
         if (!scope) {
-            this.finishIssues(options, issues);
+            this.finishIssues(undefined, issues);
 
             return output;
         }
@@ -146,7 +146,7 @@ export class ExpressionFiltersParser extends BaseParser<
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -164,8 +164,7 @@ export class ExpressionFiltersParser extends BaseParser<
      * where it is found — but a caller watching the trace should still see
      * what happened, so it is recorded before it propagates.
      */
-    protected record<RECORD extends ObjectLiteral, T>(
-        options: FiltersParseOptions<RECORD>,
+    protected record<T>(
         issues: IssueCollector,
         fn: () => T,
     ) : T {
@@ -181,16 +180,14 @@ export class ExpressionFiltersParser extends BaseParser<
             // raise the rebuilt error, so a caller that reads `error.issues`
             // (the documented way to render a failure) finds the failure it is
             // rendering. Identical class, code and message; the original rides
-            // along as the `cause`. A no-op when an enclosing parse owns the
-            // trace: that call raises for us.
-            this.finishIssues(options, issues);
+            // along as the `cause`.
+            this.finishIssues(undefined, issues);
 
             throw e;
         }
     }
 
-    protected async recordAsync<RECORD extends ObjectLiteral, T>(
-        options: FiltersParseOptions<RECORD>,
+    protected async recordAsync<T>(
         issues: IssueCollector,
         fn: () => Promise<T>,
     ) : Promise<T> {
@@ -202,7 +199,7 @@ export class ExpressionFiltersParser extends BaseParser<
             }
 
             issues.error(e, Parameter.FILTERS);
-            this.finishIssues(options, issues);
+            this.finishIssues(undefined, issues);
 
             throw e;
         }
@@ -212,8 +209,9 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : IFilters {
-        return this.build(input, options, ledger).output;
+        return this.build(input, options, ledger, issues).output;
     }
 
 
@@ -221,8 +219,9 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger)).output;
+        return (await this.buildAsync(input, options, ledger, issues)).output;
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -253,12 +252,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : { output: IFilters, scope?: FiltersScope } {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = this.parseValidated(input, options, ledger);
+        const { result, scope } = this.parseValidated(input, options, ledger, issues);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -267,12 +267,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<{ output: IFilters, scope?: FiltersScope }> {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = await this.parseValidatedAsync(input, options, ledger);
+        const { result, scope } = await this.parseValidatedAsync(input, options, ledger, issues);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -286,13 +287,17 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : { result: ICondition, scope?: FiltersScope } {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
             return { result: expr };
         }
 
-        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context, options.issueCollector);
+        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context, {
+            issues,
+            throwOnFailure: options.throwOnFailure,
+        });
 
         return {
             result: validated ?? new Filters(
@@ -307,6 +312,7 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<{ result: ICondition, scope?: FiltersScope }> {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
@@ -317,7 +323,7 @@ export class ExpressionFiltersParser extends BaseParser<
             expr,
             scope.schema,
             options.context,
-            options.issueCollector,
+            { issues, throwOnFailure: options.throwOnFailure },
         );
 
         return {

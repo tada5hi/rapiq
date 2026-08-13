@@ -55,25 +55,29 @@ export abstract class BaseParser<
     // --------------------------------------------------
 
     /**
-     * The trace this parse call records into: the enclosing call's when it
-     * runs as part of one (a query parse driving its five parameters), a
+     * The trace this parse call records into: the enclosing call's when a
+     * driver handed one down (a query parse driving its five parameters), a
      * fresh one bound to the caller's sink otherwise.
      */
-    protected beginIssues(options: ParseIssueOptions) : IssueCollector {
-        return options.issueCollector ?? new IssueCollector(options.issues);
+    protected beginIssues(
+        options: ParseIssueOptions,
+        driver?: IssueCollector,
+    ) : IssueCollector {
+        return driver ?? new IssueCollector(options.issues);
     }
 
     /**
      * Raise what the trace collected, but only in the call that started it:
      * a sub-parser driven by a query parse records across all five parameters
      * and lets the orchestrator decide, so a single bad key no longer hides
-     * the other four parameters' issues.
+     * the other four parameters' issues. Every other call raises its own,
+     * so a rejection can never end up recorded into a trace nobody reads.
      */
     protected finishIssues(
-        options: ParseIssueOptions,
+        driver: IssueCollector | undefined,
         collector: IssueCollector,
     ) : void {
-        if (options.issueCollector === collector) {
+        if (driver === collector) {
             return;
         }
 

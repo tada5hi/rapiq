@@ -95,7 +95,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = this.parseOne(issues, Parameter.RELATIONS, new Relations(), () => this.relationsParser
-                .parseParameter(relationsInput, parameterOptions, ledger));
+                .parseParameter(relationsInput, parameterOptions, ledger, issues));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
@@ -105,6 +105,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
                 ledger,
+                issues,
             ));
         }
 
@@ -114,6 +115,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.FILTERS),
                     parameterOptions,
                     ledger,
+                    issues,
                 ));
         }
 
@@ -123,6 +125,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.PAGINATION),
                     parameterOptions,
                     ledger,
+                    issues,
                 ));
         }
 
@@ -131,6 +134,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
+                issues,
             ));
         }
 
@@ -138,7 +142,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.pruneByRelations(output, rejected, options, issues);
         this.applyIndexPolicies(output, options, issues);
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return new Query(output);
     }
@@ -162,7 +166,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
             const relations = await this.parseOneAsync(issues, Parameter.RELATIONS, new Relations(), () => this
-                .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger));
+                .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger, issues));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
@@ -173,6 +177,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.FIELDS),
                     parameterOptions,
                     ledger,
+                    issues,
                 ));
         }
 
@@ -182,6 +187,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.FILTERS),
                     parameterOptions,
                     ledger,
+                    issues,
                 ));
         }
 
@@ -194,6 +200,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.PAGINATION),
                     parameterOptions,
                     ledger,
+                    issues,
                 ),
             );
         }
@@ -204,6 +211,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     this.readParameter(data, Parameter.SORTS),
                     parameterOptions,
                     ledger,
+                    issues,
                 ));
         }
 
@@ -211,7 +219,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.pruneByRelations(output, rejected, options, issues);
         this.applyIndexPolicies(output, options, issues);
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return new Query(output);
     }
@@ -289,7 +297,11 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         // hides what the other four would have reported.
         const issues = this.beginIssues(options);
 
-        const parameterOptions : ParseParameterOptions<RECORD> = { issueCollector: issues };
+        // the trace reaches the sub-parsers as a driver argument, never as an
+        // option: a consumer able to supply one would take over the decision
+        // to raise, and a rejection nobody raises is a rejection that became
+        // a silent drop.
+        const parameterOptions : ParseParameterOptions<RECORD> = {};
         if (options.schema) {
             parameterOptions.schema = options.schema;
         }

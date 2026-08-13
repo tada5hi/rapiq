@@ -11,6 +11,7 @@ import {
     Parameter,
     SchemaRegistry,
     defineSchema,
+    eq,
 } from '@rapiq/core';
 import type { Issue } from '@rapiq/core';
 import { ExpressionParser } from '../../src';
@@ -95,6 +96,29 @@ describe('src/parameter/filters — issue traces', () => {
         expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
         expect(error?.cause).toBeInstanceOf(FiltersParseError);
         expect((error?.cause as FiltersParseError).message).toBe(error?.message);
+    });
+
+    it('should not let its always-throwing scope govern the leaf validator', () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<Row>({
+            name: 'row',
+            filters: {
+                allowed: ['id', 'name'],
+                default: eq('id', '1'),
+                validate: (leaf) => (leaf.field === 'name' ? undefined : leaf),
+            },
+        }));
+
+        const parser = new ExpressionParser(registry);
+        const issues : Issue[] = [];
+
+        // the dialect throws on unresolvable KEYS because an expression cannot
+        // be partially reinterpreted; that says nothing about a policy hook
+        // declining a leaf, which still drops to the schema default.
+        const query = parser.parse({ filters: "eq(name, 'x')" }, { schema: 'row', issues });
+
+        expect(query.filters.value).toHaveLength(1);
+        expect(issues.every((issue) => issue.severity === 'warning')).toBeTruthy();
     });
 
     it('should report the drops of the parameters it delegates', () => {

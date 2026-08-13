@@ -58,7 +58,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -87,7 +87,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -98,11 +98,17 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : ISorts {
-        const { output, issues } = this.build(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = this.build(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     async parseParameterAsync<
@@ -111,11 +117,17 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<ISorts> {
-        const { output, issues } = await this.buildAsync(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = await this.buildAsync(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     protected build<
@@ -124,12 +136,13 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : {
         output: Sorts, 
         scope: SortsScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -151,12 +164,13 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : Promise<{
         output: Sorts, 
         scope: SortsScope<RECORD>, 
         issues: IssueCollector 
     }> {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);

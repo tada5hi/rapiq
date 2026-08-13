@@ -73,7 +73,7 @@ export class SimpleFiltersParser extends BaseParser<
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -100,7 +100,7 @@ export class SimpleFiltersParser extends BaseParser<
             { throwOnFailure: options.throwOnFailure, issues },
         );
 
-        this.finishIssues(options, issues);
+        this.finishIssues(undefined, issues);
 
         return result;
     }
@@ -109,34 +109,47 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : IFilters {
-        const { output, issues } = this.build(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = this.build(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issues?: IssueCollector,
     ) : Promise<IFilters> {
-        const { output, issues } = await this.buildAsync(input, options, ledger);
-        this.finishIssues(options, issues);
+        const trace = await this.buildAsync(input, options, ledger, issues);
 
-        return output;
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into.
+        this.finishIssues(issues, trace.issues);
+
+        return trace.output;
     }
 
     protected build<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : {
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
         issues: IssueCollector 
     } {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
 
         const parsed = this.run(input, scope);
@@ -144,7 +157,10 @@ export class SimpleFiltersParser extends BaseParser<
         let items: ICondition[] = parsed;
         if (items.length > 0) {
             items = items
-                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, issues))
+                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, {
+                    issues,
+                    throwOnFailure: options.throwOnFailure,
+                }))
                 .filter((item): item is ICondition => typeof item !== 'undefined');
         }
 
@@ -163,19 +179,23 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        driver?: IssueCollector,
     ) : Promise<{
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
         issues: IssueCollector 
     }> {
-        const issues = this.beginIssues(options);
+        const issues = this.beginIssues(options, driver);
         const scope = this.scopeFor(options, ledger, issues);
 
         const parsed = this.run(input, scope);
 
         let items: ICondition[] = [];
         for (const item of parsed) {
-            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, issues);
+            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, {
+                issues,
+                throwOnFailure: options.throwOnFailure,
+            });
             if (validated) {
                 items.push(validated);
             }
