@@ -29,7 +29,7 @@ import type {
 } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
-import type { IssueCollector } from './issue';
+import type { IIssueCollector } from './issue';
 import { FiltersParseError } from './parameter/filters/error';
 import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
@@ -41,7 +41,7 @@ type IndexPolicyContext = {
      * Trace of the enclosing parse. Present: the violation is recorded and
      * the parse continues to its own end. Absent: it throws here.
      */
-    issues?: IssueCollector,
+    issueCollector?: IIssueCollector,
 };
 
 /**
@@ -235,7 +235,7 @@ export function applyFiltersIndexPolicy<
         // an already-failed parse raises its first violation; this policy can
         // only add noise behind it (and its preserved-condition refusal would
         // displace it).
-        context.issues?.failed
+        context.issueCollector?.failed
     ) {
         return output;
     }
@@ -262,8 +262,8 @@ export function applyFiltersIndexPolicy<
     // back to, the violation always fails the parse.
     const fatal = scope.throwOnFailure || defaults.length === 0;
 
-    if (context.issues) {
-        context.issues.violation({
+    if (context.issueCollector) {
+        context.issueCollector.violation({
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.FILTERS,
             path: [],
@@ -303,7 +303,7 @@ export function applySortsIndexPolicy<
     if (
         !sortSchema.indexed ||
         output.value.length === 0 ||
-        context.issues?.failed
+        context.issueCollector?.failed
     ) {
         return output;
     }
@@ -318,8 +318,8 @@ export function applySortsIndexPolicy<
         return output;
     }
 
-    if (context.issues) {
-        context.issues.violation({
+    if (context.issueCollector) {
+        context.issueCollector.violation({
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.SORTS,
             path: [],

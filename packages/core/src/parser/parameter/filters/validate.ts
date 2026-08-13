@@ -22,14 +22,14 @@ import { FilterFieldOperator } from '../../../schema';
 import type { FiltersSchema } from '../../../schema';
 import { Parameter } from '../../../constants';
 import { ErrorCode, ErrorMessage, SchemaError } from '../../../errors';
-import type { IssueCollector } from '../../issue';
+import type { IIssueCollector } from '../../issue';
 import { FiltersParseError } from './error';
 
 export type FiltersValidationOptions = {
     /**
      * Trace of the enclosing parse.
      */
-    issues?: IssueCollector,
+    issueCollector?: IIssueCollector,
     /**
      * Call-time failure-policy override, taking precedence over the filters
      * sub-schema's own setting exactly like everywhere else
@@ -77,8 +77,8 @@ function rejectLeaf(
 ) : void {
     const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure ?? false;
 
-    if (options.issues) {
-        options.issues.violation({
+    if (options.issueCollector) {
+        options.issueCollector.violation({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: Parameter.FILTERS,
             path: leaf.field.split('.'),

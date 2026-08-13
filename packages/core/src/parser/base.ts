@@ -19,6 +19,7 @@ import {
     stringifyKey,
 } from '../utils';
 import { IssueCollector } from './issue';
+import type { IIssueCollector } from './issue';
 import type { IParser } from './types';
 
 export type TempType = {
@@ -61,7 +62,7 @@ export abstract class BaseParser<
      * fresh one otherwise. A trace nothing raises is discarded — the error a
      * parse throws is the only way it is ever read.
      */
-    protected beginIssues(driver?: IssueCollector) : IssueCollector {
+    protected beginIssues(driver?: IIssueCollector) : IIssueCollector {
         return driver ?? new IssueCollector();
     }
 
@@ -69,12 +70,12 @@ export abstract class BaseParser<
      * Raise what the trace collected, but only in the call that started it:
      * a sub-parser driven by a query parse records across all five parameters
      * and lets the orchestrator decide, so a single bad key no longer hides
-     * the other four parameters' issues. Every other call raises its own,
+     * the other four parameters' issueCollector. Every other call raises its own,
      * so a rejection can never end up recorded into a trace nobody reads.
      */
     protected finishIssues(
-        driver: IssueCollector | undefined,
-        collector: IssueCollector,
+        driver: IIssueCollector | undefined,
+        collector: IIssueCollector,
     ) : void {
         if (driver === collector) {
             return;
@@ -84,12 +85,12 @@ export abstract class BaseParser<
     }
 
     /**
-     * Run a parse body whose failures belong in `issues`.
+     * Run a parse body whose failures belong in `issueCollector`.
      *
      * A structural failure (a malformed expression, an input of the wrong
      * shape, a hostile key) aborts by throwing rather than by dropping one
      * key, so without this it would escape the call before anything recorded
-     * it: the caller would catch an error whose `issues` is empty, and
+     * it: the caller would catch an error whose `issueCollector` is empty, and
      * `formatErrors(error.issues)` — the documented way to render a
      * failure — would answer with nothing at all.
      *
@@ -101,28 +102,28 @@ export abstract class BaseParser<
      * four parsing, and decides.
      */
     protected recordFailure<T>(
-        driver: IssueCollector | undefined,
-        issues: IssueCollector,
+        driver: IIssueCollector | undefined,
+        issueCollector: IIssueCollector,
         parameter: `${Parameter}`,
         fn: () => T,
     ) : T {
         try {
             return fn();
         } catch (e) {
-            throw this.failure(e, driver, issues, parameter);
+            throw this.failure(e, driver, issueCollector, parameter);
         }
     }
 
     protected async recordFailureAsync<T>(
-        driver: IssueCollector | undefined,
-        issues: IssueCollector,
+        driver: IIssueCollector | undefined,
+        issueCollector: IIssueCollector,
         parameter: `${Parameter}`,
         fn: () => Promise<T>,
     ) : Promise<T> {
         try {
             return await fn();
         } catch (e) {
-            throw this.failure(e, driver, issues, parameter);
+            throw this.failure(e, driver, issueCollector, parameter);
         }
     }
 
@@ -131,22 +132,22 @@ export abstract class BaseParser<
      */
     protected failure(
         input: unknown,
-        driver: IssueCollector | undefined,
-        issues: IssueCollector,
+        driver: IIssueCollector | undefined,
+        issueCollector: IIssueCollector,
         parameter: `${Parameter}`,
     ) : unknown {
         if (
             !(input instanceof ParseError) ||
-            driver === issues
+            driver === issueCollector
         ) {
             return input;
         }
 
-        if (!issues.failed) {
-            issues.error(input, parameter);
+        if (!issueCollector.failed) {
+            issueCollector.error(input, parameter);
         }
 
-        return issues.toError() ?? input;
+        return issueCollector.toError() ?? input;
     }
 
     protected getBaseSchema<

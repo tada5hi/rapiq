@@ -34,7 +34,7 @@ import {
 } from '../utils';
 import { BaseParser } from './base';
 import { applyFiltersIndexPolicy, applySortsIndexPolicy } from './index-policy';
-import type { IssueCollector } from './issue';
+import type { IIssueCollector } from './issue';
 import { RelationsParseError } from './parameter/relations/error';
 import {
     applyKeySchemaValidation,
@@ -82,7 +82,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const {
             data, 
             parameterOptions, 
-            issues, 
+            issueCollector, 
         } = this.prepareQueryContext(input, options);
 
         // pooled relation-authorization obligations across every parameter, so
@@ -94,55 +94,56 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = this.parseOne(issues, Parameter.RELATIONS, new Relations(), () => this.relationsParser
-                .parseParameter(relationsInput, parameterOptions, ledger, issues));
+            const relations = this.parseOne(issueCollector, Parameter.RELATIONS, new Relations(), () => this.relationsParser
+                .parseParameter(relationsInput, parameterOptions, ledger, issueCollector));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = this.parseOne(issues, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
+            output.fields = this.parseOne(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
                 ledger,
-                issues,
+                issueCollector,
             ));
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = this.parseOne(issues, Parameter.FILTERS, new Filters(FilterCompoundOperator.AND, []), () => this.filtersParser
+            const empty = new Filters(FilterCompoundOperator.AND, []);
+            output.filters = this.parseOne(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameter(
                     this.readParameter(data, Parameter.FILTERS),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ));
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
-            output.pagination = this.parseOne(issues, Parameter.PAGINATION, new Pagination(), () => this.paginationParser
+            output.pagination = this.parseOne(issueCollector, Parameter.PAGINATION, new Pagination(), () => this.paginationParser
                 .parseParameter(
                     this.readParameter(data, Parameter.PAGINATION),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ));
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = this.parseOne(issues, Parameter.SORTS, new Sorts(), () => this.sortParser.parseParameter(
+            output.sorts = this.parseOne(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser.parseParameter(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
-                issues,
+                issueCollector,
             ));
         }
 
-        const rejected = this.applyRelationValidations(ledger, options, issues);
-        this.pruneByRelations(output, rejected, options, issues);
-        this.applyIndexPolicies(output, options, issues);
+        const rejected = this.applyRelationValidations(ledger, options, issueCollector);
+        this.pruneByRelations(output, rejected, options, issueCollector);
+        this.applyIndexPolicies(output, options, issueCollector);
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return new Query(output);
     }
@@ -157,7 +158,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const {
             data, 
             parameterOptions, 
-            issues, 
+            issueCollector, 
         } = this.prepareQueryContext(input, options);
 
         const ledger : RelationLedger = [];
@@ -165,61 +166,62 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = await this.parseOneAsync(issues, Parameter.RELATIONS, new Relations(), () => this
-                .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger, issues));
+            const relations = await this.parseOneAsync(issueCollector, Parameter.RELATIONS, new Relations(), () => this
+                .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger, issueCollector));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = await this.parseOneAsync(issues, Parameter.FIELDS, new Fields(), () => this.fieldsParser
+            output.fields = await this.parseOneAsync(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser
                 .parseParameterAsync(
                     this.readParameter(data, Parameter.FIELDS),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ));
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = await this.parseOneAsync(issues, Parameter.FILTERS, new Filters(FilterCompoundOperator.AND, []), () => this.filtersParser
+            const empty = new Filters(FilterCompoundOperator.AND, []);
+            output.filters = await this.parseOneAsync(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameterAsync(
                     this.readParameter(data, Parameter.FILTERS),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ));
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
             output.pagination = await this.parseOneAsync(
-                issues,
+                issueCollector,
                 Parameter.PAGINATION,
                 new Pagination(),
                 () => this.paginationParser.parseParameterAsync(
                     this.readParameter(data, Parameter.PAGINATION),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ),
             );
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = await this.parseOneAsync(issues, Parameter.SORTS, new Sorts(), () => this.sortParser
+            output.sorts = await this.parseOneAsync(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser
                 .parseParameterAsync(
                     this.readParameter(data, Parameter.SORTS),
                     parameterOptions,
                     ledger,
-                    issues,
+                    issueCollector,
                 ));
         }
 
-        const rejected = await this.applyRelationValidationsAsync(ledger, options, issues);
-        this.pruneByRelations(output, rejected, options, issues);
-        this.applyIndexPolicies(output, options, issues);
+        const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
+        this.pruneByRelations(output, rejected, options, issueCollector);
+        this.applyIndexPolicies(output, options, issueCollector);
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return new Query(output);
     }
@@ -236,7 +238,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
      * earlier one) exactly as it would have ended on the immediate throw.
      */
     protected parseOne<T>(
-        issues: IssueCollector,
+        issueCollector: IIssueCollector,
         parameter: `${Parameter}`,
         fallback: T,
         fn: () => T,
@@ -245,7 +247,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             return fn();
         } catch (e) {
             if (e instanceof ParseError) {
-                issues.error(e, parameter);
+                issueCollector.error(e, parameter);
 
                 return fallback;
             }
@@ -255,7 +257,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     }
 
     protected async parseOneAsync<T>(
-        issues: IssueCollector,
+        issueCollector: IIssueCollector,
         parameter: `${Parameter}`,
         fallback: T,
         fn: () => Promise<T>,
@@ -264,7 +266,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             return await fn();
         } catch (e) {
             if (e instanceof ParseError) {
-                issues.error(e, parameter);
+                issueCollector.error(e, parameter);
 
                 return fallback;
             }
@@ -288,14 +290,14 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : {
         data: ObjectLiteral,
         parameterOptions: ParseParameterOptions<RECORD>,
-        issues: IssueCollector,
+        issueCollector: IIssueCollector,
     } {
         const data : ObjectLiteral = isObject(input) ? input : {};
 
         // one trace for the whole query: the sub-parsers record into it and
         // defer throwing, so a violation in the first parameter no longer
         // hides what the other four would have reported.
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
         // the trace reaches the sub-parsers as a driver argument, never as an
         // option: a consumer able to supply one would take over the decision
@@ -321,7 +323,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return {
             data, 
             parameterOptions, 
-            issues, 
+            issueCollector, 
         };
     }
 
@@ -353,7 +355,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         ledger: RelationLedger,
         options: ParseQueryOptions<RECORD>,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : string[] {
         if (ledger.length === 0 || !options.schema) {
             return [];
@@ -364,7 +366,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return applyKeySchemaValidation(ledger, options.context, {
             throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
-            issues,
+            issueCollector,
         });
     }
 
@@ -373,7 +375,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         ledger: RelationLedger,
         options: ParseQueryOptions<RECORD>,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<string[]> {
         if (ledger.length === 0 || !options.schema) {
             return [];
@@ -384,7 +386,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return applyKeySchemaValidationAsync(ledger, options.context, {
             throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
-            issues,
+            issueCollector,
         });
     }
 
@@ -399,7 +401,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         output: QueryContext,
         rejected: string[],
         options: ParseQueryOptions<RECORD>,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : void {
         if (rejected.length === 0) {
             return;
@@ -410,19 +412,19 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             undefined;
 
         if (output.relations) {
-            output.relations = pruneRelationsByRelations(output.relations, rejected, issues);
+            output.relations = pruneRelationsByRelations(output.relations, rejected, issueCollector);
         }
 
         if (output.fields) {
-            output.fields = pruneFieldsByRelations(output.fields, rejected, issues);
+            output.fields = pruneFieldsByRelations(output.fields, rejected, issueCollector);
         }
 
         if (output.sorts) {
-            output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort, issues);
+            output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort, issueCollector);
         }
 
         if (output.filters) {
-            output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters, issues);
+            output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters, issueCollector);
         }
     }
 
@@ -437,9 +439,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         output: QueryContext,
         options: ParseQueryOptions<RECORD>,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : void {
-        const context = { throwOnFailure: options.throwOnFailure, issues };
+        const context = { throwOnFailure: options.throwOnFailure, issueCollector };
 
         if (output.filters) {
             output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema, context);

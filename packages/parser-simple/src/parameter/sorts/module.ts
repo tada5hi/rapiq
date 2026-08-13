@@ -25,8 +25,8 @@ import {
     pruneSortsByRelations,
 } from '@rapiq/core';
 import type {
+    IIssueCollector,
     ISorts,
-    IssueCollector,
     ObjectLiteral,
     PendingKeyValidation,
     RelationLedger,
@@ -41,24 +41,24 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortsParseOptions<RECORD> = {}) : Sorts {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = this.recordFailure(undefined, issues, Parameter.SORTS, () => {
-            const { output, scope } = this.build(input, options, ledger, issues);
+        const result = this.recordFailure(undefined, issueCollector, Parameter.SORTS, () => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
                 pruneSortsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as SortsSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as SortsSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -70,24 +70,24 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         options: SortsParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = await this.recordFailureAsync(undefined, issues, Parameter.SORTS, async () => {
-            const { output, scope } = await this.buildAsync(input, options, ledger, issues);
+        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.SORTS, async () => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
                 pruneSortsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as SortsSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as SortsSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -98,15 +98,15 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : ISorts {
-        const trace = this.build(input, options, ledger, issues);
+        const trace = this.build(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -117,15 +117,15 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<ISorts> {
-        const trace = await this.buildAsync(input, options, ledger, issues);
+        const trace = await this.buildAsync(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -136,14 +136,14 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : {
         output: Sorts, 
         scope: SortsScope<RECORD>, 
-        issues: IssueCollector 
+        issueCollector: IIssueCollector 
     } {
-        const issues = this.beginIssues(driver);
-        const scope = this.scopeFor(options, ledger, issues);
+        const issueCollector = this.beginIssues(driver);
+        const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
 
@@ -151,10 +151,10 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
             output: this.prune(output, applyKeySchemaValidation(pending, options.context, {
                 throwOnFailure: scope.throwOnFailure,
                 errors: SortsParseError,
-                issues,
+                issueCollector,
             })),
             scope,
-            issues,
+            issueCollector,
         };
     }
 
@@ -164,14 +164,14 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : Promise<{
         output: Sorts, 
         scope: SortsScope<RECORD>, 
-        issues: IssueCollector 
+        issueCollector: IIssueCollector 
     }> {
-        const issues = this.beginIssues(driver);
-        const scope = this.scopeFor(options, ledger, issues);
+        const issueCollector = this.beginIssues(driver);
+        const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
 
@@ -179,10 +179,10 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
             output: this.prune(output, await applyKeySchemaValidationAsync(pending, options.context, {
                 throwOnFailure: scope.throwOnFailure,
                 errors: SortsParseError,
-                issues,
+                issueCollector,
             })),
             scope,
-            issues,
+            issueCollector,
         };
     }
 
@@ -191,14 +191,14 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     >(
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : SortsScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.SORTS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
-            issues,
+            issueCollector,
         });
     }
 

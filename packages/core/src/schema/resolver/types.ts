@@ -8,7 +8,7 @@
 import type { Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
-import type { IssueCollector } from '../../parser/issue';
+import type { IIssueCollector } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import type {
@@ -108,5 +108,5 @@ export type ResolutionScopeContext = {
      * raises the first error-severity issue once every parameter has been
      * seen. Absent: failures throw where they are found.
      */
-    issues?: IssueCollector,
+    issueCollector?: IIssueCollector,
 };

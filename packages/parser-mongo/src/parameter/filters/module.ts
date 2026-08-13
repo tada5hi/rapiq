@@ -11,7 +11,7 @@ import type {
     FiltersValidationOptions,
     ICondition,
     IFilters,
-    IssueCollector,
+    IIssueCollector,
     ObjectLiteral,
     RelationLedger,
 } from '@rapiq/core';
@@ -57,9 +57,9 @@ type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
  */
 function validation(
     options: { throwOnFailure?: boolean },
-    issues: IssueCollector,
+    issueCollector: IIssueCollector,
 ) : FiltersValidationOptions {
-    return { issues, throwOnFailure: options.throwOnFailure };
+    return { issueCollector, throwOnFailure: options.throwOnFailure };
 }
 
 type FieldResolution = {
@@ -96,32 +96,32 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = this.recordFailure(undefined, issues, Parameter.FILTERS, () => {
+        const result = this.recordFailure(undefined, issueCollector, Parameter.FILTERS, () => {
             const {
                 scope, 
                 parsed, 
                 sent, 
-            } = this.prepare(input, options, ledger, issues);
+            } = this.prepare(input, options, ledger, issueCollector);
             const output = !parsed ?
                 this.buildDefaultOutput(scope, sent) :
-                (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, issues)) as IFilters | undefined ??
+                (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, issueCollector)) as IFilters | undefined ??
                     this.buildDefaultOutput(scope, true));
 
             return applyFiltersIndexPolicy(
                 pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as FiltersSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -131,32 +131,32 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = await this.recordFailureAsync(undefined, issues, Parameter.FILTERS, async () => {
+        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.FILTERS, async () => {
             const {
                 scope, 
                 parsed, 
                 sent, 
-            } = this.prepare(input, options, ledger, issues);
+            } = this.prepare(input, options, ledger, issueCollector);
             const output = !parsed ?
                 this.buildDefaultOutput(scope, sent) :
-                (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, issues)) as
+                (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, issueCollector)) as
                     IFilters | undefined ?? this.buildDefaultOutput(scope, true));
 
             return applyFiltersIndexPolicy(
                 pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as FiltersSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -165,14 +165,14 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : IFilters {
         const {
             scope,
             parsed,
-            issues: trace,
+            issueCollector: trace,
             sent,
-        } = this.prepare(input, options, ledger, issues);
+        } = this.prepare(input, options, ledger, issueCollector);
 
         const output = !parsed ?
             this.buildDefaultOutput(scope, sent) :
@@ -183,7 +183,7 @@ export class MongoFiltersParser extends BaseParser<
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace);
+        this.finishIssues(issueCollector, trace);
 
         return output;
     }
@@ -192,21 +192,21 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
         const {
             scope,
             parsed,
-            issues: trace,
+            issueCollector: trace,
             sent,
-        } = this.prepare(input, options, ledger, issues);
+        } = this.prepare(input, options, ledger, issueCollector);
 
         const output = !parsed ?
             this.buildDefaultOutput(scope, sent) :
             (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, trace)) as
                 IFilters | undefined ?? this.buildDefaultOutput(scope, true));
 
-        this.finishIssues(issues, trace);
+        this.finishIssues(issueCollector, trace);
 
         return output;
     }
@@ -237,11 +237,11 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : {
         scope: FiltersScope,
         parsed: IFilters | null,
-        issues: IssueCollector,
+        issueCollector: IIssueCollector,
         /**
              * Whether the client sent a document at all. Defaults substituted
              * for an absent parameter are ordinary operation; defaults
@@ -249,13 +249,13 @@ export class MongoFiltersParser extends BaseParser<
              */
         sent: boolean,
     } {
-        const issues = this.beginIssues(driver);
+        const issueCollector = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
-            issues,
+            issueCollector,
         }) as FiltersScope;
 
         // absent input is not a failure — schema defaults still apply.
@@ -263,7 +263,7 @@ export class MongoFiltersParser extends BaseParser<
             return {
                 scope, 
                 parsed: null, 
-                issues, 
+                issueCollector, 
                 sent: false,
             };
         }
@@ -283,7 +283,7 @@ export class MongoFiltersParser extends BaseParser<
             return {
                 scope, 
                 parsed: null, 
-                issues, 
+                issueCollector, 
                 sent: true,
             };
         }
@@ -293,7 +293,7 @@ export class MongoFiltersParser extends BaseParser<
             return {
                 scope, 
                 parsed: null, 
-                issues, 
+                issueCollector, 
                 sent: true,
             };
         }
@@ -309,7 +309,7 @@ export class MongoFiltersParser extends BaseParser<
         return {
             scope, 
             parsed, 
-            issues, 
+            issueCollector, 
             sent: true,
         };
     }
@@ -1068,7 +1068,7 @@ export class MongoFiltersParser extends BaseParser<
         return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
             throwOnFailure: current.throwOnFailure,
             strict: current.strict,
-            issues: current.issues,
+            issueCollector: current.issueCollector,
         }) as FiltersScope;
     }
 }

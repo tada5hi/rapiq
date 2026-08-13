@@ -35,7 +35,7 @@ import type {
     ICondition,
     IFilter,
     IFilters,
-    IssueCollector,
+    IIssueCollector,
     ObjectLiteral,
     RelationLedger,
 
@@ -56,24 +56,24 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = this.recordFailure(undefined, issues, Parameter.FILTERS, () => {
-            const { output, scope } = this.build(input, options, ledger, issues);
+        const result = this.recordFailure(undefined, issueCollector, Parameter.FILTERS, () => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
                 pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as FiltersSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -83,24 +83,24 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = await this.recordFailureAsync(undefined, issues, Parameter.FILTERS, async () => {
-            const { output, scope } = await this.buildAsync(input, options, ledger, issues);
+        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.FILTERS, async () => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
                 pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                     throwOnFailure: scope.relationsThrowOnFailure,
                     errors: RelationsParseError,
-                    issues,
-                }), scope.schema as FiltersSchema<RECORD>, issues),
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
                 this.registry,
                 options.schema,
-                { throwOnFailure: options.throwOnFailure, issues },
+                { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -109,15 +109,15 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : IFilters {
-        const trace = this.build(input, options, ledger, issues);
+        const trace = this.build(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -126,15 +126,15 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        const trace = await this.buildAsync(input, options, ledger, issues);
+        const trace = await this.buildAsync(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -143,14 +143,14 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : {
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
-        issues: IssueCollector 
+        issueCollector: IIssueCollector 
     } {
-        const issues = this.beginIssues(driver);
-        const scope = this.scopeFor(options, ledger, issues);
+        const issueCollector = this.beginIssues(driver);
+        const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
 
@@ -158,7 +158,7 @@ export class SimpleFiltersParser extends BaseParser<
         if (items.length > 0) {
             items = items
                 .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, {
-                    issues,
+                    issueCollector,
                     throwOnFailure: options.throwOnFailure,
                 }))
                 .filter((item): item is ICondition => typeof item !== 'undefined');
@@ -171,7 +171,7 @@ export class SimpleFiltersParser extends BaseParser<
         return {
             output: new Filters(FilterCompoundOperator.AND, items), 
             scope, 
-            issues, 
+            issueCollector, 
         };
     }
 
@@ -179,21 +179,21 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : Promise<{
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
-        issues: IssueCollector 
+        issueCollector: IIssueCollector 
     }> {
-        const issues = this.beginIssues(driver);
-        const scope = this.scopeFor(options, ledger, issues);
+        const issueCollector = this.beginIssues(driver);
+        const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
 
         let items: ICondition[] = [];
         for (const item of parsed) {
             const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, {
-                issues,
+                issueCollector,
                 throwOnFailure: options.throwOnFailure,
             });
             if (validated) {
@@ -208,21 +208,21 @@ export class SimpleFiltersParser extends BaseParser<
         return {
             output: new Filters(FilterCompoundOperator.AND, items), 
             scope, 
-            issues, 
+            issueCollector, 
         };
     }
 
     protected scopeFor<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : FiltersScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
-            issues,
+            issueCollector,
         });
     }
 

@@ -21,8 +21,8 @@ import {
     parseKey,
 } from '@rapiq/core';
 import type {
+    IIssueCollector,
     IRelations,
-    IssueCollector,
     ObjectLiteral,
     RelationLedger,
     RelationsParseOptions,
@@ -43,19 +43,19 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = this.recordFailure(undefined, issues, Parameter.RELATIONS, () => {
-            const { output, scope } = this.build(input, options, ledger, issues);
+        const result = this.recordFailure(undefined, issueCollector, Parameter.RELATIONS, () => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-                issues,
+                issueCollector,
             }));
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -67,19 +67,19 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const result = await this.recordFailureAsync(undefined, issues, Parameter.RELATIONS, async () => {
-            const { output, scope } = this.build(input, options, ledger, issues);
+        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.RELATIONS, async () => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-                issues,
+                issueCollector,
             }));
         });
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -90,15 +90,15 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : IRelations {
-        const trace = this.build(input, options, ledger, issues);
+        const trace = this.build(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -109,15 +109,15 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<IRelations> {
-        const trace = this.build(input, options, ledger, issues);
+        const trace = this.build(input, options, ledger, issueCollector);
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
         // the trace it was recorded into.
-        this.finishIssues(issues, trace.issues);
+        this.finishIssues(issueCollector, trace.issueCollector);
 
         return trace.output;
     }
@@ -134,24 +134,24 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : {
         output: Relations, 
         scope: RelationsScope<RECORD>, 
-        issues: IssueCollector 
+        issueCollector: IIssueCollector 
     } {
-        const issues = this.beginIssues(driver);
+        const issueCollector = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
-            issues,
+            issueCollector,
         });
 
         return {
             output: this.parseWithScope(input, scope), 
             scope, 
-            issues, 
+            issueCollector, 
         };
     }
 

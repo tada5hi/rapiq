@@ -10,7 +10,7 @@ import { ErrorCode, ErrorMessage, SchemaError } from '../../errors';
 import type { ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
 import { isCondition } from '../../parameter';
-import type { IssueCollector } from '../issue';
+import type { IIssueCollector } from '../issue';
 import type {
     KeyValidationVerdict,
     KeyValidationVerdictRecord,
@@ -93,7 +93,7 @@ export type KeyValidationOptions = {
      * Trace of the enclosing parse. A rejection records an issue there and
      * lets the parse continue on the drop path; the owning call raises it.
      */
-    issues?: IssueCollector,
+    issueCollector?: IIssueCollector,
     /**
      * Sink for the conditions of condition-gated keys, keyed by output
      * path. Supplied by callers that can carry a condition onward (the
@@ -397,8 +397,8 @@ function reject(
 ) : void {
     const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
 
-    if (options.issues) {
-        options.issues.violation({
+    if (options.issueCollector) {
+        options.issueCollector.violation({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: entry.schema.parameter,
             path: entry.path.split('.'),

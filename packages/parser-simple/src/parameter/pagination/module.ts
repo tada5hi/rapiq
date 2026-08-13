@@ -15,8 +15,8 @@ import {
     isObject,
 } from '@rapiq/core';
 import type {
+    IIssueCollector,
     IPagination,
-    IssueCollector,
     ObjectLiteral,
     PaginationParseOptions,
     PaginationSchema,
@@ -51,9 +51,9 @@ export class SimplePaginationParser<
         input: unknown,
         options: PaginationParseOptions<RECORD>,
         _ledger?: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : IPagination {
-        return this.build(input, options, issues);
+        return this.build(input, options, issueCollector);
     }
 
     parseParameterAsync<
@@ -62,9 +62,9 @@ export class SimplePaginationParser<
         input: unknown,
         options: PaginationParseOptions<RECORD>,
         _ledger?: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<IPagination> {
-        return Promise.resolve(this.build(input, options, issues));
+        return Promise.resolve(this.build(input, options, issueCollector));
     }
 
     /**
@@ -76,12 +76,12 @@ export class SimplePaginationParser<
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD>,
-        driver?: IssueCollector,
+        driver?: IIssueCollector,
     ) : IPagination {
-        const issues = this.beginIssues(driver);
+        const issueCollector = this.beginIssues(driver);
 
-        const result = this.recordFailure(driver, issues, Parameter.PAGINATION, () => this.run(input, options, issues));
-        this.finishIssues(driver, issues);
+        const result = this.recordFailure(driver, issueCollector, Parameter.PAGINATION, () => this.run(input, options, issueCollector));
+        this.finishIssues(driver, issueCollector);
 
         return result;
     }
@@ -91,11 +91,11 @@ export class SimplePaginationParser<
     >(
         input: unknown,
         options: PaginationParseOptions<RECORD>,
-        issues: IssueCollector,
+        issueCollector: IIssueCollector,
     ) : IPagination {
         const scope = ResolutionScope.for(this.registry, Parameter.PAGINATION, options.schema, {
             throwOnFailure: options.throwOnFailure,
-            issues,
+            issueCollector,
         });
 
         const { schema } = scope;

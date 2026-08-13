@@ -10,6 +10,7 @@ import { MAX_ISSUES } from '../../errors';
 import type { IParseError, IParseErrorConstructor, Issue } from '../../errors';
 import { normalizeParameter } from '../../utils';
 import { PARAMETER_ERROR_CLASSES } from './constants';
+import type { IIssueCollector } from './types';
 
 /**
  * The trace of one parse call: every issue its sites recorded, and the
@@ -30,7 +31,7 @@ import { PARAMETER_ERROR_CLASSES } from './constants';
  * public API and usable outside a parse, where nobody would ever finish the
  * trace.
  */
-export class IssueCollector {
+export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
     protected failure : Issue | undefined;

@@ -9,7 +9,7 @@ import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
 import { ErrorCode, ErrorMessage } from '../../errors';
 import type { Issue, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
-import type { IssueCollector } from '../../parser/issue';
+import type { IIssueCollector } from '../../parser/issue';
 import { PARAMETER_ERROR_CLASSES } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
@@ -94,7 +94,7 @@ type ResolutionScopeOptions<
     segment?: string,
     path?: string[],
     obligationSink?: PendingKeyValidation[],
-    issues?: IssueCollector,
+    issueCollector?: IIssueCollector,
     depth?: number,
     throwOnFailure?: boolean,
     strict?: boolean,
@@ -172,7 +172,7 @@ export class ResolutionScope<
      * issue at the end. Absent (a scope built outside a parse): failures throw
      * where they are found, as they always did.
      */
-    readonly issues: IssueCollector | undefined;
+    readonly issueCollector: IIssueCollector | undefined;
 
     protected bound: boolean;
 
@@ -198,7 +198,7 @@ export class ResolutionScope<
         this.segment = options.segment;
         this.path = options.path ?? [];
         this.obligationSink = options.obligationSink;
-        this.issues = options.issues;
+        this.issueCollector = options.issueCollector;
         this.depth = options.depth ?? 0;
         this.throwOnFailureContext = options.throwOnFailure;
         this.strictContext = options.strict;
@@ -292,7 +292,7 @@ export class ResolutionScope<
             throwOnFailure: context.throwOnFailure,
             strict: context.strict,
             obligationSink: context.obligationSink,
-            issues: context.issues,
+            issueCollector: context.issueCollector,
             errors: context.errors ?? PARAMETER_ERROR_CLASSES[parameter as `${Parameter}`],
         });
     }
@@ -382,7 +382,7 @@ export class ResolutionScope<
     }) : void {
         const throwOnFailure = input.throwOnFailure ?? this.throwOnFailure;
 
-        if (this.issues) {
+        if (this.issueCollector) {
             const issue : Omit<Issue, 'severity'> = {
                 code: input.code,
                 parameter: this.parameter,
@@ -398,7 +398,7 @@ export class ResolutionScope<
                 issue.input = input.input;
             }
 
-            this.issues.violation(issue, throwOnFailure, this.errors);
+            this.issueCollector.violation(issue, throwOnFailure, this.errors);
 
             return;
         }
@@ -421,7 +421,7 @@ export class ResolutionScope<
         path?: string[],
         input?: unknown,
     }) : void {
-        if (!this.issues) {
+        if (!this.issueCollector) {
             return;
         }
 
@@ -436,7 +436,7 @@ export class ResolutionScope<
             issue.input = input.input;
         }
 
-        this.issues.notice(issue);
+        this.issueCollector.notice(issue);
     }
 
     /**
@@ -553,7 +553,7 @@ export class ResolutionScope<
             segment,
             path: [...this.path, segment],
             obligationSink: this.obligationSink,
-            issues: this.issues,
+            issueCollector: this.issueCollector,
             depth: this.depth + 1,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,
@@ -799,7 +799,7 @@ export class ResolutionScope<
             segment,
             path: this.path,
             obligationSink: this.obligationSink,
-            issues: this.issues,
+            issueCollector: this.issueCollector,
             depth: this.depth,
             throwOnFailure: this.throwOnFailureContext,
             strict: this.strictContext,
@@ -815,12 +815,12 @@ export class ResolutionScope<
     ) : KeyResolutionFailure {
         const { throwOnFailure } = this;
 
-        if (this.issues) {
+        if (this.issueCollector) {
             const failure = KEY_RESOLUTION_FAILURES[code] ??
                 KEY_RESOLUTION_FAILURES[KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE];
             const name = segment ?? input;
 
-            this.issues.violation({
+            this.issueCollector.violation({
                 code: failure.code,
                 parameter: this.parameter,
                 path: segment ? [...this.path, segment] : [...this.path],

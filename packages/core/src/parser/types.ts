@@ -9,20 +9,8 @@ import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
-import type { IssueCollector } from './issue';
+import type { IIssueCollector } from './issue';
 import type { PendingKeyValidation } from './parameter/validate';
-
-/**
- * The trace of the enclosing query parse, threaded into the per-parameter
- * drivers so the five parameters report into one trace and the orchestrator
- * decides when to raise.
- *
- * An explicit driver argument, never part of the public parse options, for
- * the same reason as {@link RelationLedger}: a consumer who supplied one
- * would take over the decision to raise, and a recorded rejection that
- * nobody raises is a rejection that silently became a drop.
- */
-export type IssueTrace = IssueCollector;
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -137,7 +125,7 @@ export interface IQueryParameterParser<Output = unknown> {
         input: unknown,
         options: ParseParameterOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueTrace,
+        issueCollector?: IIssueCollector,
     ): Output;
 
     parseParameterAsync<
@@ -146,6 +134,6 @@ export interface IQueryParameterParser<Output = unknown> {
         input: unknown,
         options: ParseParameterOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueTrace,
+        issueCollector?: IIssueCollector,
     ): Promise<Output>;
 }

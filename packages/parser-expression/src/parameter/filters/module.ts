@@ -10,7 +10,7 @@ import type {
     FiltersSchema,
     ICondition,
     IFilters,
-    IssueCollector,
+    IIssueCollector,
     ObjectLiteral,
     RelationLedger,
     Scalar,
@@ -96,11 +96,16 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
-        const { output, scope } = this.recordFailure(undefined, issues, Parameter.FILTERS, () => this.build(input, options, ledger, issues));
+        const { output, scope } = this.recordFailure(
+            undefined,
+            issueCollector,
+            Parameter.FILTERS,
+            () => this.build(input, options, ledger, issueCollector),
+        );
         if (!scope) {
-            this.finishIssues(undefined, issues);
+            this.finishIssues(undefined, issueCollector);
 
             return output;
         }
@@ -109,14 +114,14 @@ export class ExpressionFiltersParser extends BaseParser<
             pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-                issues,
-            }), scope.schema as FiltersSchema<RECORD>, issues),
+                issueCollector,
+            }), scope.schema as FiltersSchema<RECORD>, issueCollector),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
+            { throwOnFailure: options.throwOnFailure, issueCollector },
         );
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -126,16 +131,16 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issues = this.beginIssues();
+        const issueCollector = this.beginIssues();
 
         const { output, scope } = await this.recordFailureAsync(
             undefined,
-            issues,
+            issueCollector,
             Parameter.FILTERS,
-            () => this.buildAsync(input, options, ledger, issues),
+            () => this.buildAsync(input, options, ledger, issueCollector),
         );
         if (!scope) {
-            this.finishIssues(undefined, issues);
+            this.finishIssues(undefined, issueCollector);
 
             return output;
         }
@@ -144,14 +149,14 @@ export class ExpressionFiltersParser extends BaseParser<
             pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
-                issues,
-            }), scope.schema as FiltersSchema<RECORD>, issues),
+                issueCollector,
+            }), scope.schema as FiltersSchema<RECORD>, issueCollector),
             this.registry,
             options.schema,
-            { throwOnFailure: options.throwOnFailure, issues },
+            { throwOnFailure: options.throwOnFailure, issueCollector },
         );
 
-        this.finishIssues(undefined, issues);
+        this.finishIssues(undefined, issueCollector);
 
         return result;
     }
@@ -160,9 +165,9 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : IFilters {
-        return this.build(input, options, ledger, issues).output;
+        return this.build(input, options, ledger, issueCollector).output;
     }
 
 
@@ -170,9 +175,9 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger, issues)).output;
+        return (await this.buildAsync(input, options, ledger, issueCollector)).output;
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -203,13 +208,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : { output: IFilters, scope?: FiltersScope } {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = this.parseValidated(input, options, ledger, issues);
+        const { result, scope } = this.parseValidated(input, options, ledger, issueCollector);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -218,13 +223,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<{ output: IFilters, scope?: FiltersScope }> {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = await this.parseValidatedAsync(input, options, ledger, issues);
+        const { result, scope } = await this.parseValidatedAsync(input, options, ledger, issueCollector);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -238,7 +243,7 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : { result: ICondition, scope?: FiltersScope } {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
@@ -246,7 +251,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context, {
-            issues,
+            issueCollector,
             throwOnFailure: options.throwOnFailure,
         });
 
@@ -263,7 +268,7 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        issues?: IssueCollector,
+        issueCollector?: IIssueCollector,
     ) : Promise<{ result: ICondition, scope?: FiltersScope }> {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
@@ -274,7 +279,7 @@ export class ExpressionFiltersParser extends BaseParser<
             expr,
             scope.schema,
             options.context,
-            { issues, throwOnFailure: options.throwOnFailure },
+            { issueCollector, throwOnFailure: options.throwOnFailure },
         );
 
         return {
