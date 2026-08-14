@@ -7,24 +7,9 @@
 
 import { BaseError as EbecBaseError, markInstanceof } from '@ebec/core';
 import type { Issue } from 'blemish';
-import type { ObjectLiteral } from '../types';
 import { BASE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
 import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
-
-/**
- * Attach a trace to an error without rebuilding it, so class, `code`,
- * `message`, stack and brand all survive. Declared `configurable`, so an
- * error caught mid-parse can be given the trace it was raised from.
- */
-export function attachIssues(error: ObjectLiteral, issues: readonly Issue[]) : void {
-    Object.defineProperty(error, 'issues', {
-        value: issues,
-        enumerable: false,
-        writable: false,
-        configurable: true,
-    });
-}
 
 /**
  * The root of rapiq's error hierarchy.
@@ -52,10 +37,12 @@ export class BaseError extends EbecBaseError implements IBaseError {
      * Empty unless the operation collected a trace.
      *
      * Non-enumerable, like the native `message`: an error's enumerable shape
-     * is what deep equality sees, and a diagnostic that varies with the input
-     * must not decide whether two errors compare equal. {@link toJSON} emits
-     * it deliberately — an error whose trace does not survive the boundary is
-     * an error with nothing to say on the far side.
+     * is what deep equality sees, and two failures of the same kind must
+     * compare equal however many keys the client happened to get wrong.
+     * `declare` keeps the field out of the emitted output, since the value is
+     * installed below rather than assigned. {@link toJSON} emits it
+     * deliberately — an error whose trace does not survive the boundary is an
+     * error with nothing to say on the far side.
      */
     declare public readonly issues : readonly Issue[];
 
@@ -64,7 +51,13 @@ export class BaseError extends EbecBaseError implements IBaseError {
             input :
             { ...input, code: input.code || ErrorCode.NONE });
 
-        attachIssues(this, typeof input === 'string' ? [] : input.issues ?? []);
+        Object.defineProperty(this, 'issues', {
+            value: typeof input === 'string' ? [] : input.issues ?? [],
+            enumerable: false,
+            writable: false,
+            configurable: true,
+        });
+
         markInstanceof(this, BASE_ERROR_MARKER);
     }
 

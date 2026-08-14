@@ -18,7 +18,6 @@ import {
     PARSE_ERROR_MARKER,
     Parameter,
     ParseError,
-    attachIssues,
     buildIssue,
     extractIssueKey,
     extractIssueParameter,
@@ -140,8 +139,7 @@ describe('src/parser/issue/module.ts', () => {
     });
 
     it('should take over the trace a caught error carries', () => {
-        const origin = FiltersParseError.keyNotPermitted('secret');
-        attachIssues(origin, [buildIssue(violation({
+        const origin = FiltersParseError.keyNotPermitted('secret', [buildIssue(violation({
             parameter: Parameter.FILTERS,
             path: ['secret'],
         }))]);

@@ -59,31 +59,35 @@ export class ParseError extends BaseError implements IParseError {
         });
     }
 
-    static keyNotPermitted(name: string) {
+    static keyNotPermitted(name: string, issues: readonly Issue[] = []) {
         return new this({
             message: ErrorMessage.keyNotPermitted(name),
             code: ErrorCode.KEY_NOT_ALLOWED,
+            issues,
         });
     }
 
-    static keyInvalid(key: string) {
+    static keyInvalid(key: string, issues: readonly Issue[] = []) {
         return new this({
             message: ErrorMessage.keyInvalid(key),
             code: ErrorCode.KEY_INVALID,
+            issues,
         });
     }
 
-    static keyPathInvalid(key: string) {
+    static keyPathInvalid(key: string, issues: readonly Issue[] = []) {
         return new this({
             message: ErrorMessage.keyPathInvalid(key),
             code: ErrorCode.KEY_PATH_INVALID,
+            issues,
         });
     }
 
-    static keyPathNotPermitted(key: string) {
+    static keyPathNotPermitted(key: string, issues: readonly Issue[] = []) {
         return new this({
             message: ErrorMessage.keyPathNotPermitted(key),
             code: ErrorCode.KEY_PATH_NOT_ALLOWED,
+            issues,
         });
     }
 

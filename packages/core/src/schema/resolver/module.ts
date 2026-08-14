@@ -9,7 +9,6 @@ import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
 import {
     ErrorCode,
     ErrorMessage,
-    attachIssues,
     buildIssue,
 } from '../../errors';
 import type { IssueInput, ParseError } from '../../errors';
@@ -35,6 +34,7 @@ import type {
     ParameterSchema,
     ResolutionScopeContext,
 } from './types';
+import type { Issue } from 'blemish';
 
 const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FIELDS]: FieldsSchema,
@@ -103,8 +103,7 @@ type ResolutionScopeOptions<
     depth?: number,
     throwOnFailure?: boolean,
     resolutionThrowOnFailure?: boolean,
-    strict?: boolean,
-    errors: typeof ParseError,
+    strict?: boolean
 };
 
 /**
@@ -195,8 +194,6 @@ export class ResolutionScope<
 
     protected strictContext: boolean | undefined;
 
-    protected errors: typeof ParseError;
-
     // ---------------------------------------------------------
 
     protected constructor(options: ResolutionScopeOptions<P, RECORD>) {
@@ -216,7 +213,6 @@ export class ResolutionScope<
         this.throwOnFailureContext = options.throwOnFailure;
         this.resolutionThrowOnFailureContext = options.resolutionThrowOnFailure;
         this.strictContext = options.strict;
-        this.errors = options.errors;
     }
 
     // ---------------------------------------------------------
@@ -320,7 +316,6 @@ export class ResolutionScope<
             strict: context.strict,
             obligationSink: context.obligationSink,
             issueCollector: context.issueCollector,
-            errors: context.errors ?? PARAMETER_ERROR_CLASSES[parameter as `${Parameter}`],
         });
     }
 
@@ -434,12 +429,17 @@ export class ResolutionScope<
             return;
         }
 
-        const ErrorClass = this.errors;
+        const ErrorClass = PARAMETER_ERROR_CLASSES[
+            this.parameter as `${Parameter}`
+        ];
 
-        throw this.raising(
-            new ErrorClass({ code: input.code, message: input.message }),
-            issue,
-        );
+        throw new ErrorClass({
+            code: input.code,
+            message: input.message,
+            issues: [
+                buildIssue(issue),
+            ],
+        });
     }
 
     /**
@@ -561,7 +561,6 @@ export class ResolutionScope<
             throwOnFailure: this.throwOnFailureContext,
             resolutionThrowOnFailure: this.resolutionThrowOnFailureContext,
             strict: this.strictContext,
-            errors: this.errors,
         });
     }
 
@@ -808,7 +807,6 @@ export class ResolutionScope<
             throwOnFailure: this.throwOnFailureContext,
             resolutionThrowOnFailure: this.resolutionThrowOnFailureContext,
             strict: this.strictContext,
-            errors: this.errors,
         });
     }
 
@@ -839,7 +837,9 @@ export class ResolutionScope<
                 // no trace to finish: a scope built outside a parse still fails
                 // where the violation is, exactly as it always did — carrying
                 // that position, so a catch can merge it into its own trace.
-                throw this.raising(this.raise(code, name), issue);
+                throw this.raise(code, name, [
+                    buildIssue(issue),
+                ]);
             }
         }
 
@@ -860,29 +860,25 @@ export class ResolutionScope<
      * own static factories — so class, `code` and message stay what the
      * fail-fast path has always thrown.
      */
-    protected raise(code: KeyResolutionErrorCode, name: string) : ParseError {
+    protected raise(
+        code: KeyResolutionErrorCode,
+        name: string,
+        issues: readonly Issue[] = [],
+    ) : ParseError {
+        const error = PARAMETER_ERROR_CLASSES[
+            this.parameter as `${Parameter}`
+        ];
+
         switch (code) {
             case KeyResolutionErrorCode.KEY_INVALID:
-                return this.errors.keyInvalid(name);
+                return error.keyInvalid(name, issues);
             case KeyResolutionErrorCode.KEY_NOT_PERMITTED:
-                return this.errors.keyNotPermitted(name);
+                return error.keyNotPermitted(name, issues);
             case KeyResolutionErrorCode.PATH_NOT_PERMITTED:
-                return this.errors.keyPathNotPermitted(name);
+                return error.keyPathNotPermitted(name, issues);
             default:
-                return this.errors.keyPathInvalid(name);
+                return error.keyPathInvalid(name, issues);
         }
-    }
-
-    /**
-     * A throw carrying the position it was found at. Whoever catches it merges
-     * that position into its own trace, so a scope failing fast (the
-     * expression dialect resolves under an always-throwing one) reports where
-     * it failed rather than naming its parameter and nothing else.
-     */
-    protected raising<T extends ParseError>(error: T, issue: IssueInput) : T {
-        attachIssues(error, [buildIssue(issue)]);
-
-        return error;
     }
 
     protected get mapping() : Record<string, string> | undefined {

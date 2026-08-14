@@ -6,7 +6,6 @@
  */
 
 import type { Parameter } from '../../constants';
-import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
@@ -102,10 +101,6 @@ export type ResolutionScopeContext = {
      * every client key instead of falling back to the syntactic name check.
      */
     strict?: boolean,
-    /**
-     * Error class used when throwing; defaults to the parameter's ParseError subclass.
-     */
-    errors?: typeof ParseError,
     /**
      * Relation-authorization ledger. When present, every relation a resolved key
      * traverses (and a relation targeted directly, e.g. by `$size`/`$elemMatch`)
