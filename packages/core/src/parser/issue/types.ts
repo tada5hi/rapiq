@@ -35,16 +35,11 @@ export interface IIssueCollector {
      * Take over the issues of a nested trace, rebased onto the position it
      * was merged at.
      */
-    merge(issues: readonly Issue[], path?: string[], cause?: IParseError) : void;
+    merge(issues: readonly Issue[], path?: string[]) : void;
 
-    record(input: Issue, cause?: IParseError) : void;
+    record(input: Issue) : void;
 
     readonly issues : Issue[];
-
-    /**
-     * The throw a structural abort was caught as, when one was.
-     */
-    readonly cause : IParseError | undefined;
 
     readonly failed : boolean;
 }

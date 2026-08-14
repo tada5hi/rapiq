@@ -103,12 +103,10 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         // rendering a failure reads error.issues, so a grammar abort has to
-        // populate it too. The abort itself rides along as the cause, where it
-        // cannot be mistaken for a description of the whole request.
+        // populate it too
         expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
         expect(error?.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
-        expect((error?.cause as ParseError | undefined)?.code).toBe(ErrorCode.INPUT_INVALID);
     });
 
     it('should leave a legal elemMatch on a non-relation field alone', () => {

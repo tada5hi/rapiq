@@ -118,7 +118,7 @@ describe('src/parser/issue/module.ts', () => {
 
         // two parameters were rejected, so neither of their classes describes
         // the failure: what went wrong is the trace
-        const error = ParseError.inputRejected(collector.issues, collector.cause);
+        const error = ParseError.inputRejected(collector.issues);
         expect(error.constructor).toBe(ParseError);
         expect(error.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error.issues).toHaveLength(2);
@@ -134,11 +134,11 @@ describe('src/parser/issue/module.ts', () => {
 
         collector.error(origin, Parameter.FIELDS);
 
-        // the abort is not what the parse raises, but it is not discarded
-        // either: a consumer's own class can carry data no issue captures
-        expect(collector.cause).toBe(origin);
+        // the abort becomes an issue like any other rejection; the error
+        // object itself is not kept, because everything it knows is here
         expect(collector.issues).toHaveLength(1);
         expect(collector.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
+        expect(collector.issues[0]?.message).toBe(origin.message);
     });
 
     it('should take over the trace a caught error carries', () => {
@@ -160,7 +160,6 @@ describe('src/parser/issue/module.ts', () => {
             message: ErrorMessage.keyNotPermitted('secret'),
             meta: { parameter: Parameter.FILTERS },
         }]);
-        expect(collector.cause).toBe(origin);
     });
 
     it('should normalize the deprecated sort parameter', () => {
@@ -184,9 +183,7 @@ describe('src/parser/issue/module.ts', () => {
         expect(collector.issues[0]?.path).toEqual(['first']);
     });
 
-    it('should keep a consumer error class intact as the cause', () => {
-        // a class with its own constructor is never reconstructed, so the data
-        // it carries survives — which is the whole reason the trace keeps it
+    it('should reduce a consumer error class to its issue', () => {
         class TenantParseError extends ParseError {
             readonly field : string;
 
@@ -201,15 +198,15 @@ describe('src/parser/issue/module.ts', () => {
         }
 
         const collector = new IssueCollector();
-        const origin = new TenantParseError('salary');
 
-        collector.error(origin, Parameter.FILTERS);
+        collector.error(new TenantParseError('salary'), Parameter.FILTERS);
         collector.violation(violation(), true);
 
-        const error = ParseError.inputRejected(collector.issues, collector.cause);
-        expect(error.issues).toHaveLength(2);
-        expect(error.cause).toBe(origin);
-        expect((error.cause as TenantParseError).field).toBe('salary');
+        // only a branded parse error is ever caught, and a client-input
+        // failure says everything it has to say in its issue
+        expect(collector.issues).toHaveLength(2);
+        expect(collector.issues[0]?.message).toBe('The field salary is out of tenant scope.');
+        expect(collector.issues[0]?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
     });
 });
 

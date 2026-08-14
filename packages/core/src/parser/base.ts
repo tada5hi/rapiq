@@ -91,7 +91,7 @@ export abstract class BaseParser<
             return;
         }
 
-        throw ParseError.inputRejected(trace.collector.issues, trace.collector.cause);
+        throw ParseError.inputRejected(trace.collector.issues);
     }
 
     /**
@@ -185,7 +185,7 @@ export abstract class BaseParser<
             trace.collector.error(input, parameter);
         }
 
-        return ParseError.inputRejected(trace.collector.issues, trace.collector.cause);
+        return ParseError.inputRejected(trace.collector.issues);
     }
 
     protected getBaseSchema<

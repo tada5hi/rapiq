@@ -32,15 +32,15 @@ export class ParseError extends BaseError implements IParseError {
      * went wrong. The specific classes stay what a single violation throws
      * where no trace is collecting.
      *
-     * A structural abort that was caught on the way rides along as `cause`,
-     * so its stack survives without deciding what the parse raises.
+     * A structural abort caught on the way is not carried either: only branded
+     * parse errors are ever caught (a server bug propagates untouched), and
+     * everything a client-input failure knows is already in its issue.
      */
-    static inputRejected(issues: readonly Issue[], cause?: unknown) {
+    static inputRejected(issues: readonly Issue[]) {
         return new this({
             message: ErrorMessage.inputRejected(issues.length),
             code: ErrorCode.INPUT_REJECTED,
             issues,
-            cause,
         });
     }
 

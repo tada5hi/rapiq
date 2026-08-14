@@ -36,8 +36,6 @@ import type { IIssueCollector } from './types';
 export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
-    protected caught : IParseError | undefined;
-
     constructor() {
         this.items = [];
     }
@@ -61,9 +59,9 @@ export class IssueCollector implements IIssueCollector {
      * Record a thrown parse error as the issue it never got to be: the
      * structural failures (a malformed expression, an input of the wrong
      * shape) abort their parameter instead of dropping one key, so the
-     * caller catches them here. The error is kept as the trace's {@link cause}
-     * so its stack survives, but it is not what the parse raises: it describes
-     * one parameter, and the parse may have rejected input in four others.
+     * caller catches them here. The error OBJECT is not kept: only branded
+     * parse errors are ever recorded (a server bug propagates untouched), and
+     * everything a client-input failure knows is in the issue it becomes.
      *
      * A throw that already carries a trace hands over that trace rather than
      * a summary of it: the positions its sites recorded are the ones no
@@ -72,7 +70,7 @@ export class IssueCollector implements IIssueCollector {
     error(input: IParseError, parameter: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
         if (issues.length > 0) {
-            this.merge(issues, path, input);
+            this.merge(issues, path);
 
             return;
         }
@@ -82,24 +80,20 @@ export class IssueCollector implements IIssueCollector {
             parameter,
             path,
             message: input.message,
-        }), input);
+        }));
     }
 
     /**
      * Take over the issues of a nested trace, rebased onto the position it
      * was merged at.
      */
-    merge(issues: readonly Issue[], path: string[] = [], cause?: IParseError) : void {
+    merge(issues: readonly Issue[], path: string[] = []) : void {
         for (const issue of issues) {
-            this.record(prefixIssuePath(issue, path), cause);
+            this.record(prefixIssuePath(issue, path));
         }
     }
 
-    record(input: Issue, cause?: IParseError) : void {
-        if (cause && !this.caught) {
-            this.caught = cause;
-        }
-
+    record(input: Issue) : void {
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
@@ -114,14 +108,6 @@ export class IssueCollector implements IIssueCollector {
 
     get issues() : Issue[] {
         return this.items;
-    }
-
-    /**
-     * The throw a structural abort was caught as, when one was: kept so the
-     * raised failure can point at it, never so it can BE it.
-     */
-    get cause() : IParseError | undefined {
-        return this.caught;
     }
 
     get failed() : boolean {

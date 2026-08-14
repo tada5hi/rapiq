@@ -283,9 +283,6 @@ describe('src/parser — issue traces', () => {
             expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(issues).toHaveLength(1);
             expect(issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
-            // the abort itself survives as the cause, where it cannot be
-            // mistaken for a description of the whole request
-            expect((error?.cause as ParseError | undefined)?.code).toBe(ErrorCode.INPUT_INVALID);
         });
 
         it('should carry the trace on every standalone abort', () => {
