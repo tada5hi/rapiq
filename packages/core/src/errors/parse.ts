@@ -7,7 +7,8 @@
 
 import { isObject } from '../utils';
 import { BaseError } from './base';
-import { PARSE_ERROR_MARKER, markError } from './check';
+import { markInstanceof } from '@ebec/core';
+import { PARSE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
 import type { Issue } from 'blemish';
@@ -21,7 +22,7 @@ export class ParseError extends BaseError implements IParseError {
 
         super(message || 'A parsing error has occurred.');
 
-        markError(this, PARSE_ERROR_MARKER);
+        markInstanceof(this, PARSE_ERROR_MARKER);
     }
 
     /**

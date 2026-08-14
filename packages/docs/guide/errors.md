@@ -241,6 +241,29 @@ if (isParseError(e)) {
 
 `isBaseError` and `isParseError` read a `Symbol.for` brand every rapiq error carries, so they survive the duplication that `instanceof` does not. The brand is non-enumerable, like `issues`: it changes neither deep equality nor `JSON.stringify(error)`. rapiq's own parsers use these guards internally — a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
 
+## Crossing a boundary
+
+`JSON.stringify(error)` emits a rapiq error in full, so a failure survives a worker, an SSR
+hop or a gateway:
+
+```json
+{
+    "name": "FiltersParseError",
+    "message": "The input was rejected: 1 violation.",
+    "code": "inputRejected",
+    "issues": [{ "type": "item", "code": "keyNotAllowed", "path": ["secret"], "message": "…" }],
+    "@instanceof": ["@rapiq/core/error", "@rapiq/core/error/parse"]
+}
+```
+
+The `@instanceof` chain is what makes the guards keep working on the far side: `isParseError`
+matches a **plain object** carrying the chain, not just a live error, so a receiver can
+branch on it without reconstructing anything. `instanceof` could never answer that question.
+
+The chain mechanism is [`@ebec/core`](https://github.com/tada5hi/ebec)'s, shared with the
+other libraries in the family. What rides in the payload is rapiq's own: `issues`, and never
+a list of child errors — everything rapiq aggregates is a rejection, which is data.
+
 ## Mapping to HTTP responses
 
 A pragmatic mapping for a typical endpoint:

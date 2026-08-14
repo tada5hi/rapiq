@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral } from '../types';
-import { isObject } from '../utils';
+import { matchesInstanceof } from '@ebec/core';
 import type { IBaseError, IParseError } from './types';
 
 /**
@@ -16,48 +15,36 @@ import type { IBaseError, IParseError } from './types';
  * one process (mixed ESM/bundled builds, a dual-packaged dependency) do not
  * share. The failure mode is quiet and bad: a parse would rethrow a foreign
  * `ParseError` instead of recording it, and the trace would come back empty.
- * A `Symbol.for` brand survives the duplication, because the global symbol
- * registry is per process rather than per module instance.
+ *
+ * `@ebec/core` owns the mechanism, which is the house standard and stronger
+ * than one boolean per level: the markers form a CHAIN under one
+ * non-enumerable `@instanceof` key, so a subclass is recognized as its
+ * ancestors without marking itself twice, and the chain is serialized by
+ * {@link BaseError.toJSON} — `matchesInstanceof` therefore also recognizes an
+ * error that crossed a boundary as JSON and came back as a plain object.
+ *
+ * Only the brand utilities are borrowed. rapiq keeps its own `BaseError`,
+ * interfaces and wire shape, and deliberately does NOT take ebec's error-group
+ * mechanism (`errors: Error[]`): everything rapiq aggregates is a client-input
+ * rejection, which is data, and lives in `issues`.
  */
 export const BASE_ERROR_MARKER : unique symbol = Symbol.for('@rapiq/core/error');
 
 export const PARSE_ERROR_MARKER : unique symbol = Symbol.for('@rapiq/core/error/parse');
 
 /**
- * Brand an error, invisibly: an error's enumerable shape is what deep equality
- * and `JSON.stringify` see, and identity is not part of what it reports.
- */
-export function markError(input: ObjectLiteral, marker: symbol) : void {
-    Object.defineProperty(input, marker, {
-        value: true,
-        enumerable: false,
-        writable: false,
-        configurable: true,
-    });
-}
-
-function isMarked(input: unknown, marker: symbol) : boolean {
-    if (!isObject(input)) {
-        return false;
-    }
-
-    // the brand is asserted, not merely present, exactly like isCondition
-    return (input as Record<symbol, unknown>)[marker] === true;
-}
-
-/**
  * Whether the value is an error this library raised.
  *
  * Prefer it to `instanceof BaseError` on any boundary a foreign copy of the
- * library could reach.
+ * library — or a serialized error — could reach.
  */
 export function isBaseError(input: unknown) : input is IBaseError {
-    return isMarked(input, BASE_ERROR_MARKER);
+    return matchesInstanceof(input, BASE_ERROR_MARKER);
 }
 
 /**
  * Whether the value is a client-input failure.
  */
 export function isParseError(input: unknown) : input is IParseError {
-    return isMarked(input, PARSE_ERROR_MARKER);
+    return matchesInstanceof(input, PARSE_ERROR_MARKER);
 }

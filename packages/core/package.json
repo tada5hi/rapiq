@@ -58,6 +58,7 @@
     },
     "homepage": "https://github.com/Tada5hi/rapiq#readme",
     "dependencies": {
+        "@ebec/core": "^1.2.0",
         "blemish": "^1.0.0",
         "pathtrace": "^2.2.3"
     }

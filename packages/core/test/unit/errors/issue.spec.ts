@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { markInstanceof } from '@ebec/core';
 import {
     BASE_ERROR_MARKER,
     BaseError,
@@ -23,7 +24,6 @@ import {
     extractIssueParameter,
     isBaseError,
     isParseError,
-    markError,
 } from '../../../src';
 import type { IssueInput } from '../../../src';
 
@@ -228,10 +228,9 @@ describe('src/errors/base.ts', () => {
             issues: [buildIssue(violation())],
         });
 
-        // an error's enumerable shape decides deep equality and what
-        // JSON.stringify emits — the trace must not move either.
+        // an error's enumerable shape decides deep equality, so the trace
+        // must not move there (the wire form is serialization.spec.ts)
         expect(Object.keys(error)).toEqual(['code']);
-        expect(JSON.parse(JSON.stringify(error))).toEqual({ code: ErrorCode.INPUT_INVALID });
         expect(error.issues).toHaveLength(1);
     });
 });
@@ -242,8 +241,8 @@ describe('src/errors/check.ts', () => {
         // identity, so the brand stands in for it. A hand-built stand-in
         // proves the guard never reaches for the class.
         const foreign = new Error('The key secret is not permitted.');
-        markError(foreign, BASE_ERROR_MARKER);
-        markError(foreign, PARSE_ERROR_MARKER);
+        markInstanceof(foreign, BASE_ERROR_MARKER);
+        markInstanceof(foreign, PARSE_ERROR_MARKER);
 
         expect(foreign instanceof ParseError).toBeFalsy();
         expect(isParseError(foreign)).toBeTruthy();
@@ -270,9 +269,6 @@ describe('src/errors/check.ts', () => {
     });
 
     it('should keep the brand out of the enumerable shape', () => {
-        const error = FieldsParseError.inputInvalid();
-
-        expect(Object.keys(error)).toEqual(['code']);
-        expect(JSON.parse(JSON.stringify(error))).toEqual({ code: ErrorCode.INPUT_INVALID });
+        expect(Object.keys(FieldsParseError.inputInvalid())).toEqual(['code']);
     });
 });
