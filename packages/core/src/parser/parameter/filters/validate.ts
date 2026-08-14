@@ -77,6 +77,9 @@ function rejectLeaf(
     options: FiltersValidationOptions,
 ) : void {
     const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure ?? false;
+    if (!throwOnFailure) {
+        return;
+    }
 
     if (options.issueCollector) {
         options.issueCollector.add({
@@ -84,14 +87,12 @@ function rejectLeaf(
             parameter: Parameter.FILTERS,
             path: toIssuePath(leaf.field),
             message: ErrorMessage.keyValidateRejected(leaf.field),
-        }, throwOnFailure);
+        });
 
         return;
     }
 
-    if (throwOnFailure) {
-        throw FiltersParseError.keyValidateRejected(leaf.field);
-    }
+    throw FiltersParseError.keyValidateRejected(leaf.field);
 }
 
 function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {

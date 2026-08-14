@@ -429,7 +429,7 @@ export class ResolutionScope<
         }
 
         if (this.issueCollector) {
-            this.issueCollector.add(issue, throwOnFailure);
+            this.issueCollector.add(issue);
 
             return;
         }
@@ -834,7 +834,7 @@ export class ResolutionScope<
             };
 
             if (this.issueCollector) {
-                this.issueCollector.add(issue, throwOnFailure);
+                this.issueCollector.add(issue);
             } else {
                 // no trace to finish: a scope built outside a parse still fails
                 // where the violation is, exactly as it always did — carrying

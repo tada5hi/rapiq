@@ -263,17 +263,21 @@ export function applyFiltersIndexPolicy<
     const fatal = scope.throwOnFailure || defaults.length === 0;
 
     if (context.issueCollector) {
-        context.issueCollector.add({
-            code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
-            parameter: Parameter.FILTERS,
-            path: [],
-            received: result.keys,
-            message: ErrorMessage.keyCombinationNotIndexed(result.keys),
-        }, fatal);
+        if (fatal) {
+            context.issueCollector.add({
+                code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+                parameter: Parameter.FILTERS,
+                path: [],
+                received: result.keys,
+                message: ErrorMessage.keyCombinationNotIndexed(result.keys),
+            });
 
-        // the parse ends on the recorded issue; the tree it ends with is
-        // never observed.
-        return fatal ? output : new Filters(FilterCompoundOperator.AND, defaults);
+            // the parse ends on the recorded issue; the tree it ends with is
+            // never observed.
+            return output;
+        }
+
+        return new Filters(FilterCompoundOperator.AND, defaults);
     }
 
     if (fatal) {
@@ -319,15 +323,19 @@ export function applySortsIndexPolicy<
     }
 
     if (context.issueCollector) {
+        if (!scope.throwOnFailure) {
+            return buildSortsDefaults(sortSchema);
+        }
+
         context.issueCollector.add({
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.SORTS,
             path: [],
             received: result.keys,
             message: ErrorMessage.keyCombinationNotIndexed(result.keys),
-        }, scope.throwOnFailure);
+        });
 
-        return scope.throwOnFailure ? output : buildSortsDefaults(sortSchema);
+        return output;
     }
 
     if (scope.throwOnFailure) {

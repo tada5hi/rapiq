@@ -20,10 +20,10 @@ import type { IParseError, IssueInput } from '../../errors';
  */
 export interface IIssueCollector {
     /**
-     * Add a rejection, under the failure policy in effect where it was found.
-     * A policy that drops adds nothing.
+     * Add a rejection. A dropping policy adds nothing, which is the caller's
+     * decision, made where the policy is known.
      */
-    add(input: IssueInput, throwOnFailure?: boolean) : void;
+    add(input: IssueInput) : void;
 
     /**
      * Record a thrown parse error as the issue it never got to be, or its

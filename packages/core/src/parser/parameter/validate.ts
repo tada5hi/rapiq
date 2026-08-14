@@ -397,6 +397,9 @@ function reject(
     options: KeyValidationOptions,
 ) : void {
     const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
+    if (!throwOnFailure) {
+        return;
+    }
 
     if (options.issueCollector) {
         options.issueCollector.add({
@@ -404,14 +407,12 @@ function reject(
             parameter: entry.schema.parameter,
             path: toIssuePath(entry.path),
             message: ErrorMessage.keyValidateRejected(entry.path),
-        }, throwOnFailure);
+        });
 
         return;
     }
 
-    if (throwOnFailure) {
-        throw options.errors.keyValidateRejected(entry.path);
-    }
+    throw options.errors.keyValidateRejected(entry.path);
 }
 
 function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {

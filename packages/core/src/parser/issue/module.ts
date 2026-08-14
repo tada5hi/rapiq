@@ -43,15 +43,15 @@ export class IssueCollector implements IIssueCollector {
     // -----------------------------------------------------
 
     /**
-     * Add a rejection, under the failure policy in effect where it was found.
-     * A policy that drops adds nothing — there is no failure to raise, so
-     * there is nobody to read it.
+     * Add a rejection.
+     *
+     * Whether one is added at all is the caller's decision, made where the
+     * failure policy is known: a dropping policy adds nothing, because there
+     * is no failure to raise and so nobody to read it. The trace does not
+     * second-guess that — it would mean building an issue in order to bin it,
+     * and a collector that filters is a collector with an opinion.
      */
-    add(input: IssueInput, throwOnFailure?: boolean) : void {
-        if (!throwOnFailure) {
-            return;
-        }
-
+    add(input: IssueInput) : void {
         this.record(buildIssue(input));
     }
 

@@ -81,19 +81,17 @@ describe('src/errors/issue/module.ts', () => {
 });
 
 describe('src/parser/issue/module.ts', () => {
-    it('should record nothing while the policy drops', () => {
-        const collector = new IssueCollector();
-        collector.add(violation(), false);
-
-        // the key is dropped, nothing will be raised, and a trace nobody can
-        // read is a trace nobody should pay for
-        expect(collector.issues).toEqual([]);
-        expect(collector.failed).toBeFalsy();
+    it('should start with nothing to raise', () => {
+        // whether a rejection is added at all is the caller's decision, made
+        // where the failure policy is known — a dropping policy adds nothing,
+        // which the parser suites assert end to end
+        expect(new IssueCollector().issues).toEqual([]);
+        expect(new IssueCollector().failed).toBeFalsy();
     });
 
-    it('should record a violation under a throwing policy', () => {
+    it('should record what it is handed', () => {
         const collector = new IssueCollector();
-        collector.add(violation(), true);
+        collector.add(violation());
 
         expect(collector.failed).toBeTruthy();
         expect(collector.issues).toEqual([{
@@ -113,8 +111,8 @@ describe('src/parser/issue/module.ts', () => {
             path: ['name'],
             code: ErrorCode.KEY_VALUE_INVALID,
             message: ErrorMessage.keyValueInvalid('name'),
-        }), true);
-        collector.add(violation({ path: ['later'] }), true);
+        }));
+        collector.add(violation({ path: ['later'] }));
 
         // two parameters were rejected, so neither of their classes describes
         // the failure: what went wrong is the trace
@@ -164,7 +162,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should normalize the deprecated sort parameter', () => {
         const collector = new IssueCollector();
-        collector.add(violation({ parameter: Parameter.SORT }), true);
+        collector.add(violation({ parameter: Parameter.SORT }));
 
         expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
     });
@@ -172,9 +170,9 @@ describe('src/parser/issue/module.ts', () => {
     it('should cap a hostile trace without losing the failure', () => {
         const collector = new IssueCollector();
 
-        collector.add(violation({ path: ['first'] }), true);
+        collector.add(violation({ path: ['first'] }));
         for (let i = 0; i < MAX_ISSUES + 10; i++) {
-            collector.add(violation({ path: [`key${i}`] }), true);
+            collector.add(violation({ path: [`key${i}`] }));
         }
 
         // the failure is pinned by the first issue, so a truncated tail
@@ -200,7 +198,7 @@ describe('src/parser/issue/module.ts', () => {
         const collector = new IssueCollector();
 
         collector.addError(new TenantParseError('salary'), Parameter.FILTERS);
-        collector.add(violation(), true);
+        collector.add(violation());
 
         // only a branded parse error is ever caught, and a client-input
         // failure says everything it has to say in its issue
