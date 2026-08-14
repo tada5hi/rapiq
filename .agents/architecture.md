@@ -261,3 +261,13 @@ leaf-literal table) with drizzle spellings settled by engine measurement (2026-0
 - All errors extend `BaseError` (carries a `code` from `ErrorCode`), in `packages/core/src/errors/`.
 - Parsers throw `ParseError` / `FiltersParseError` when `throwOnFailure` is set on the schema; otherwise invalid input is silently dropped.
 - When adding new failure modes, add an `ErrorCode` member and a static factory on the error class rather than throwing raw `Error`.
+- Identity is a `Symbol.for` brand read by `isBaseError` / `isParseError`, never `instanceof`: two copies of the library in one process do not share a class, and a missed catch turns a 400 into a 500.
+
+**Issue traces (settled 2026-08-14, issue #896)**: a parse records what it rejects into an `IssueCollector` and raises the FIRST issue at the end, so one request reports every parameter instead of only the one that failed first. Settled, do not re-litigate:
+
+- **The raised error is the only channel.** A parse that raises nothing discards its trace; `throwOnFailure` is what makes rejections inspectable. There is no drop-mode sink.
+- **Every issue is a failure.** No `severity`, and under a dropping policy a site records NOTHING (`IssueCollector.violation` returns early). Notices for substituted defaults or entries a rejected relation dragged along were removed with it.
+- **The shape is validup's** (`IssueItem` | `IssueGroup`, discriminated by `type`, nesting IS the tree): rapiq keeps its own single `ErrorCode` vocabulary and does not fork an `IssueCode` or add `meta`/`data` until a producer needs them. `path` is ABSOLUTE on every node because a parent rewrites children when merging (`prefixIssuePath`), which is what makes a path-less issue impossible to construct; consumers read leaves through `flattenIssueItems`.
+- A site that CANNOT record (a scope built outside a parse; the expression dialect, whose `resolutionThrowOnFailure` forces throwing key resolution because an expression cannot be partially reinterpreted) attaches its issue to the error it throws, and the catching driver merges that trace rather than synthesizing one from the parameter name. A caught error is re-raised as ITSELF with the trace attached (`attachIssues`), never rebuilt: rebuilding calls a constructor nobody checked and drops message, stack and brand.
+- The trace is a driver argument on `parseParameter`, never a parse option: a caller able to supply one could switch off the failure policy and get back a query still carrying what a validate hook rejected. Whoever begins a trace finishes it, structural aborts included (`recordFailure`).
+- Relation pruning and the index policies are skipped once the trace has failed, so a consequence of a rejection cannot displace the rejection itself.
