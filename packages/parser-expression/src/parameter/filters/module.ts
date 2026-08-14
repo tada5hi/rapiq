@@ -345,7 +345,12 @@ export class ExpressionFiltersParser extends BaseParser<
         if (options.schema || options.strict) {
             scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
                 relations: options.relations,
-                throwOnFailure: true,
+                throwOnFailure: options.throwOnFailure,
+                // the forcing is about KEYS: an expression cannot be partially
+                // reinterpreted. Whether a relations validator declining a
+                // relation fails the request stays the caller's call, as
+                // everywhere else.
+                resolutionThrowOnFailure: true,
                 strict: options.strict,
                 obligationSink: ledger,
             }) as FiltersScope;

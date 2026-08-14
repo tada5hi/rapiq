@@ -403,5 +403,27 @@ describe('src/parser — issue traces', () => {
             expect(findIssue(issues, Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED)?.path)
                 .toEqual(['items']);
         });
+
+        it('should honor a call-time policy override on a standalone parse', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<User>({
+                name: 'user',
+                filters: { allowed: ['id'] },
+                relations: { allowed: ['items'], validate: () => false },
+                schemaMapping: { items: 'item' },
+            }));
+            registry.add(defineSchema({ name: 'item', filters: { allowed: ['id'] } }));
+
+            const parser = new SimpleParser(registry);
+
+            // `throwOnFailure ?? schema.relations.throwOnFailure ?? false` is
+            // what the query pass applies; a single-parameter parse authorizes
+            // relations under the same rule
+            expect(() => parser.parseFilters({ 'items.id': '1' }, { schema: 'user', throwOnFailure: true }))
+                .toThrow(RelationsParseError.keyValidateRejected('items'));
+
+            expect(parser.parseFilters({ 'items.id': '1' }, { schema: 'user' }).value)
+                .toHaveLength(0);
+        });
     });
 });

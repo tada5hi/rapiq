@@ -102,6 +102,7 @@ type ResolutionScopeOptions<
     issueCollector?: IIssueCollector,
     depth?: number,
     throwOnFailure?: boolean,
+    resolutionThrowOnFailure?: boolean,
     strict?: boolean,
     errors: typeof ParseError,
 };
@@ -185,6 +186,13 @@ export class ResolutionScope<
 
     protected throwOnFailureContext: boolean | undefined;
 
+    /**
+     * Key-resolution policy a dialect forces on this scope, overriding
+     * {@link throwOnFailureContext} for allow-list and traversal verdicts
+     * alone.
+     */
+    protected resolutionThrowOnFailureContext: boolean | undefined;
+
     protected strictContext: boolean | undefined;
 
     protected errors: typeof ParseError;
@@ -206,6 +214,7 @@ export class ResolutionScope<
         this.issueCollector = options.issueCollector;
         this.depth = options.depth ?? 0;
         this.throwOnFailureContext = options.throwOnFailure;
+        this.resolutionThrowOnFailureContext = options.resolutionThrowOnFailure;
         this.strictContext = options.strict;
         this.errors = options.errors;
     }
@@ -213,22 +222,34 @@ export class ResolutionScope<
     // ---------------------------------------------------------
 
     /**
-     * Effective failure policy: context override ?? schema setting ?? false.
+     * Effective failure policy for key resolution: the dialect's forced one
+     * ({@link ResolutionScopeContext.resolutionThrowOnFailure}) ?? context
+     * override ?? schema setting ?? false.
      */
     get throwOnFailure() : boolean {
-        return this.throwOnFailureContext ?? this.schema.throwOnFailure ?? false;
+        return this.resolutionThrowOnFailureContext ??
+            this.throwOnFailureContext ??
+            this.schema.throwOnFailure ??
+            false;
     }
 
     /**
      * Failure policy governing relation authorization for this scope's record:
-     * the relations sub-schema's own `throwOnFailure` (schema-level intent),
-     * independent of a parameter's key-resolution strictness — a dialect that
-     * forces throwing key resolution (expression) must still *drop* an
-     * unauthorized relation unless the relations schema opts into throwing.
-     * Mirrors the query pass, which authorizes under `schema.relations` too, so
-     * standalone and query parses agree.
+     * the call-time override, backed by the relations sub-schema's own
+     * `throwOnFailure` (schema-level intent) — the same
+     * `throwOnFailure ?? schema.relations.throwOnFailure ?? false` the query
+     * pass applies, so standalone and query parses agree.
+     *
+     * Deliberately blind to {@link throwOnFailure}'s forced half: a dialect
+     * that cannot resolve keys partially (expression) must still *drop* an
+     * unauthorized relation unless the caller or the relations schema opts
+     * into throwing.
      */
     get relationsThrowOnFailure() : boolean {
+        if (typeof this.throwOnFailureContext !== 'undefined') {
+            return this.throwOnFailureContext;
+        }
+
         if (this.rootBase) {
             return this.rootBase.relations.throwOnFailure ?? false;
         }
@@ -295,6 +316,7 @@ export class ResolutionScope<
             rootBase,
             relations: context.relations,
             throwOnFailure: context.throwOnFailure,
+            resolutionThrowOnFailure: context.resolutionThrowOnFailure,
             strict: context.strict,
             obligationSink: context.obligationSink,
             issueCollector: context.issueCollector,
@@ -537,6 +559,7 @@ export class ResolutionScope<
             issueCollector: this.issueCollector,
             depth: this.depth + 1,
             throwOnFailure: this.throwOnFailureContext,
+            resolutionThrowOnFailure: this.resolutionThrowOnFailureContext,
             strict: this.strictContext,
             errors: this.errors,
         });
@@ -783,6 +806,7 @@ export class ResolutionScope<
             issueCollector: this.issueCollector,
             depth: this.depth,
             throwOnFailure: this.throwOnFailureContext,
+            resolutionThrowOnFailure: this.resolutionThrowOnFailureContext,
             strict: this.strictContext,
             errors: this.errors,
         });

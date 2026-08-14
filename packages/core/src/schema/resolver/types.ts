@@ -84,6 +84,19 @@ export type ResolutionScopeContext = {
      */
     throwOnFailure?: boolean,
     /**
+     * Failure policy for KEY RESOLUTION alone (allow-list and traversal
+     * verdicts), taking precedence over {@link throwOnFailure} there and
+     * nowhere else.
+     *
+     * For a dialect whose resolution cannot drop: the expression parser
+     * forces it, because an expression cannot be partially reinterpreted.
+     * That says nothing about whether a relations validator declining a
+     * relation should fail the request, which stays the caller's
+     * `throwOnFailure` — the same separation the filters leaf validator makes
+     * with its own override.
+     */
+    resolutionThrowOnFailure?: boolean,
+    /**
      * Strict-mode override: takes precedence over the schema-level setting.
      * Under strict mode a parameter without an explicit allow-list rejects
      * every client key instead of falling back to the syntactic name check.
