@@ -20,8 +20,8 @@ import { SortsParseError } from '../parameter/sort/error';
  * there. A collecting parse raises the general `INPUT_REJECTED` instead, since
  * it may have rejected input in several parameters at once.
  *
- * Typed by the class rather than by {@link IParseErrorConstructor}: the
- * resolver reaches for the static factories through the same table.
+ * Typed by the class, not by a constructor signature: the resolver and the
+ * raise path both reach for the static factories through it.
  */
 export const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FIELDS]: FieldsParseError,

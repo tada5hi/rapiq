@@ -52,5 +52,4 @@ export const ErrorMessage = {
      * Not a violation: the parameter fell back to its schema default because
      * nothing the client sent survived.
      */
-    defaultsApplied: () => 'The schema defaults were applied.',
 } as const;

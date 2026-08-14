@@ -83,7 +83,7 @@ describe('src/errors/issue/module.ts', () => {
 describe('src/parser/issue/module.ts', () => {
     it('should record nothing while the policy drops', () => {
         const collector = new IssueCollector();
-        collector.violation(violation(), false);
+        collector.add(violation(), false);
 
         // the key is dropped, nothing will be raised, and a trace nobody can
         // read is a trace nobody should pay for
@@ -93,7 +93,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should record a violation under a throwing policy', () => {
         const collector = new IssueCollector();
-        collector.violation(violation(), true);
+        collector.add(violation(), true);
 
         expect(collector.failed).toBeTruthy();
         expect(collector.issues).toEqual([{
@@ -108,13 +108,13 @@ describe('src/parser/issue/module.ts', () => {
     it('should raise one general failure carrying every issue', () => {
         const collector = new IssueCollector();
 
-        collector.violation(violation({
+        collector.add(violation({
             parameter: Parameter.FILTERS,
             path: ['name'],
             code: ErrorCode.KEY_VALUE_INVALID,
             message: ErrorMessage.keyValueInvalid('name'),
         }), true);
-        collector.violation(violation({ path: ['later'] }), true);
+        collector.add(violation({ path: ['later'] }), true);
 
         // two parameters were rejected, so neither of their classes describes
         // the failure: what went wrong is the trace
@@ -132,7 +132,7 @@ describe('src/parser/issue/module.ts', () => {
         const collector = new IssueCollector();
         const origin = FieldsParseError.inputInvalid();
 
-        collector.error(origin, Parameter.FIELDS);
+        collector.addError(origin, Parameter.FIELDS);
 
         // the abort becomes an issue like any other rejection; the error
         // object itself is not kept, because everything it knows is here
@@ -149,7 +149,7 @@ describe('src/parser/issue/module.ts', () => {
         }))]);
 
         const collector = new IssueCollector();
-        collector.error(origin, Parameter.FILTERS, ['items']);
+        collector.addError(origin, Parameter.FILTERS, ['items']);
 
         // the position the throwing site recorded is one no enclosing site
         // could reconstruct, so it is forwarded rather than summarized
@@ -164,7 +164,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should normalize the deprecated sort parameter', () => {
         const collector = new IssueCollector();
-        collector.violation(violation({ parameter: Parameter.SORT }), true);
+        collector.add(violation({ parameter: Parameter.SORT }), true);
 
         expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
     });
@@ -172,9 +172,9 @@ describe('src/parser/issue/module.ts', () => {
     it('should cap a hostile trace without losing the failure', () => {
         const collector = new IssueCollector();
 
-        collector.violation(violation({ path: ['first'] }), true);
+        collector.add(violation({ path: ['first'] }), true);
         for (let i = 0; i < MAX_ISSUES + 10; i++) {
-            collector.violation(violation({ path: [`key${i}`] }), true);
+            collector.add(violation({ path: [`key${i}`] }), true);
         }
 
         // the failure is pinned by the first issue, so a truncated tail
@@ -199,8 +199,8 @@ describe('src/parser/issue/module.ts', () => {
 
         const collector = new IssueCollector();
 
-        collector.error(new TenantParseError('salary'), Parameter.FILTERS);
-        collector.violation(violation(), true);
+        collector.addError(new TenantParseError('salary'), Parameter.FILTERS);
+        collector.add(violation(), true);
 
         // only a branded parse error is ever caught, and a client-input
         // failure says everything it has to say in its issue

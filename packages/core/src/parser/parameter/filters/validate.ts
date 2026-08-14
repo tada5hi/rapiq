@@ -79,7 +79,7 @@ function rejectLeaf(
     const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure ?? false;
 
     if (options.issueCollector) {
-        options.issueCollector.violation({
+        options.issueCollector.add({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: Parameter.FILTERS,
             path: toIssuePath(leaf.field),

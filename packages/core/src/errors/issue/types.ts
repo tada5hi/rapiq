@@ -9,18 +9,19 @@ import type { Parameter } from '../../constants';
 import type { ErrorCode } from '../code';
 
 /**
- * The `meta` keys rapiq claims on an issue it produces.
+ * What a rapiq site reports when it rejects client input.
  *
- * Both meet blemish's bar for the field — provenance a consumer cannot
- * reconstruct from `path` — and neither is a rendering decision:
+ * The stored node is blemish's; this is the shape its producers speak, so a
+ * recording site names `parameter` under type control rather than assembling
+ * an untyped `meta` bag itself.
  *
- * - a `fields` rejection and a `filters` rejection at `['items', 'secret']`
- *   are indistinguishable by path, and which parameter's policy refused the
- *   input is what selects the wire name a response reports it under;
- * - `path` is alias-resolved, so the spelling the client actually sent is
- *   gone from it.
+ * `parameter` and `key` become blemish `meta` keys. Both meet its documented
+ * bar for that field — provenance a consumer cannot reconstruct from `path` —
+ * and neither is a rendering decision: a `fields` rejection and a `filters`
+ * rejection at `['items', 'secret']` are indistinguishable by path, and the
+ * path is alias-resolved, so the spelling the client sent is gone from it.
  */
-export type IssueMeta = {
+export type IssueInput = {
     /**
      * The parameter that owns the policy the input violated. A relation path
      * rejected inside a `fields` key reports `fields`, matching the error
@@ -32,16 +33,7 @@ export type IssueMeta = {
      * from the canonical path.
      */
     key?: string,
-};
 
-/**
- * What a rapiq site reports when it rejects client input.
- *
- * The stored node is blemish's; this is the shape its producers speak, so a
- * recording site names `parameter` under type control rather than assembling
- * an untyped `meta` bag itself.
- */
-export type IssueInput = IssueMeta & {
     /**
      * Machine contract, shared with the thrown error's `code`.
      */

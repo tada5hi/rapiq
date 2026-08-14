@@ -250,7 +250,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             return fn();
         } catch (e) {
             if (isParseError(e)) {
-                issueCollector.error(e, parameter);
+                issueCollector.addError(e, parameter);
 
                 return fallback;
             }
@@ -269,7 +269,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             return await fn();
         } catch (e) {
             if (isParseError(e)) {
-                issueCollector.error(e, parameter);
+                issueCollector.addError(e, parameter);
 
                 return fallback;
             }

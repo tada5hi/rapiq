@@ -20,24 +20,22 @@ import type { IParseError, IssueInput } from '../../errors';
  */
 export interface IIssueCollector {
     /**
-     * Record a violation under the failure policy in effect where it was
-     * found. A policy that drops records nothing.
+     * Add a rejection, under the failure policy in effect where it was found.
+     * A policy that drops adds nothing.
      */
-    violation(input: IssueInput, throwOnFailure?: boolean) : void;
+    add(input: IssueInput, throwOnFailure?: boolean) : void;
 
     /**
      * Record a thrown parse error as the issue it never got to be, or its
      * whole trace when it carries one.
      */
-    error(input: IParseError, parameter?: `${Parameter}`, path?: string[]) : void;
+    addError(input: IParseError, parameter?: `${Parameter}`, path?: string[]) : void;
 
     /**
      * Take over the issues of a nested trace, rebased onto the position it
      * was merged at.
      */
     merge(issues: readonly Issue[], path?: string[]) : void;
-
-    record(input: Issue) : void;
 
     readonly issues : Issue[];
 

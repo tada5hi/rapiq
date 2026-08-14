@@ -399,7 +399,7 @@ function reject(
     const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
 
     if (options.issueCollector) {
-        options.issueCollector.violation({
+        options.issueCollector.add({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: entry.schema.parameter,
             path: toIssuePath(entry.path),

@@ -35,13 +35,3 @@ export interface IBaseError extends Error {
  * A client-input failure, as consumers see it.
  */
 export interface IParseError extends IBaseError {}
-
-/**
- * The constructor side of a parse error: what rebuilding one from its issue
- * needs, and no more. Referencing this instead of `typeof ParseError` keeps
- * the rebuild from depending on the class hierarchy — any error class the
- * failing site names satisfies it, including one a dialect package defines.
- */
-export interface IParseErrorConstructor {
-    new (input?: string | BaseErrorOptions) : IParseError,
-}

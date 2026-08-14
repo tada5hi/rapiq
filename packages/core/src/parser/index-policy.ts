@@ -263,7 +263,7 @@ export function applyFiltersIndexPolicy<
     const fatal = scope.throwOnFailure || defaults.length === 0;
 
     if (context.issueCollector) {
-        context.issueCollector.violation({
+        context.issueCollector.add({
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.FILTERS,
             path: [],
@@ -319,7 +319,7 @@ export function applySortsIndexPolicy<
     }
 
     if (context.issueCollector) {
-        context.issueCollector.violation({
+        context.issueCollector.add({
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.SORTS,
             path: [],

@@ -43,11 +43,11 @@ export class IssueCollector implements IIssueCollector {
     // -----------------------------------------------------
 
     /**
-     * Record a violation under the failure policy in effect where it was
-     * found. A policy that drops records nothing — there is no failure to
-     * raise, so there is nobody to read it.
+     * Add a rejection, under the failure policy in effect where it was found.
+     * A policy that drops adds nothing — there is no failure to raise, so
+     * there is nobody to read it.
      */
-    violation(input: IssueInput, throwOnFailure?: boolean) : void {
+    add(input: IssueInput, throwOnFailure?: boolean) : void {
         if (!throwOnFailure) {
             return;
         }
@@ -67,7 +67,7 @@ export class IssueCollector implements IIssueCollector {
      * a summary of it: the positions its sites recorded are the ones no
      * enclosing site could reconstruct.
      */
-    error(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
+    addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
         if (issues.length > 0) {
             this.merge(issues, path);
@@ -93,7 +93,7 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
-    record(input: Issue) : void {
+    protected record(input: Issue) : void {
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
