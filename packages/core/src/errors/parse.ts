@@ -10,6 +10,7 @@ import { BaseError } from './base';
 import { PARSE_ERROR_MARKER, markError } from './check';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
+import type { Issue } from 'blemish';
 import type { BaseErrorOptions, IParseError } from './types';
 
 export class ParseError extends BaseError implements IParseError {
@@ -21,6 +22,26 @@ export class ParseError extends BaseError implements IParseError {
         super(message || 'A parsing error has occurred.');
 
         markError(this, PARSE_ERROR_MARKER);
+    }
+
+    /**
+     * The failure an aggregated parse raises: every violation it found, on
+     * `issues`. Deliberately NOT the first violation's own class and code —
+     * a parse that rejected keys in four parameters would then advertise one
+     * of them, and a consumer branching on that would act on a subset of what
+     * went wrong. The specific classes stay what a single violation throws
+     * where no trace is collecting.
+     *
+     * A structural abort that was caught on the way rides along as `cause`,
+     * so its stack survives without deciding what the parse raises.
+     */
+    static inputRejected(issues: readonly Issue[], cause?: unknown) {
+        return new this({
+            message: ErrorMessage.inputRejected(issues.length),
+            code: ErrorCode.INPUT_REJECTED,
+            issues,
+            cause,
+        });
     }
 
     static inputInvalid() {

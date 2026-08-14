@@ -59,6 +59,7 @@ Most parser parameters throw subclasses of `ParseError` when `throwOnFailure` is
 | `LIMIT_EXCEEDED` | `page[limit]` above the schema's `maxLimit` |
 | `OPERATOR_UNSUPPORTED` | a recognized dialect operator with no AST counterpart (MongoDB-style parser: known operators like `$type` / `$where` / `$text` / `$expr`, or `$not` over a bare `$regex`); a grammar error that throws regardless of the drop policy |
 | `SYNTAX_INVALID` | malformed expression / document grammar |
+| `INPUT_REJECTED` | one or more parts of the input were rejected: the code of every aggregated parse failure, see [Issue traces](#issue-traces) |
 | `INPUT_INVALID` | non-object top-level input |
 
 Two dialects are stricter than the drop policy for grammar: **grammar errors always throw**, regardless of schema settings. A malformed expression string ([expression parser](/packages/parser-expression)) or a broken `$`-operator document ([MongoDB-style parser](/packages/parser-mongo)) has no silent-drop reading.
@@ -113,17 +114,22 @@ try {
 
 ## Issue traces
 
-An error names one failure. A request can carry several, so every error a parse raises carries the whole trace of what went wrong on `error.issues`:
+A request can violate several policies at once, so a parse raises ONE general failure carrying the whole trace of what went wrong on `error.issues`:
 
 ```typescript
 try {
     codec.decode(req.query, { schema: 'user' });
 } catch (e) {
-    e.code;       // 'keyNotAllowed', the FIRST violation
-    e.message;    // 'The key secret is not permitted.'
-    e.issues;     // ... and everything else the parse found
+    e.code;       // 'inputRejected', always
+    e.issues;     // what was rejected, and where
 }
 ```
+
+::: warning Upgrading from 2.0?
+A throwing parse used to fail at the first violation and raise that parameter's own class, so `catch (e) { if (e instanceof FieldsParseError) }` matched. It now aggregates and raises `ParseError` (`inputRejected`) instead. Use [`isParseError`](#recognizing-an-error) to recognize a client-input failure, and branch on `e.issues` for what was rejected. The parameter classes are unchanged where a single violation is thrown outside a parse.
+:::
+
+The class is `ParseError` and the code is `INPUT_REJECTED`, however many violations there were and whichever parameters they came from. An error naming one of them would describe a *subset* of the failure, and a consumer branching on that class would act on the part it happened to be handed. The parameter-specific classes (`FieldsParseError`, `FiltersParseError`, …) stay what a SINGLE violation throws where no trace is collecting — a `ResolutionScope` used outside a parse — which is the case where naming one parameter is the whole truth.
 
 Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. Every issue is a **failure**: there is no severity, and nothing a parse does without rejecting anything (a substituted default, an entry a rejected relation dragged along) is recorded.
 
@@ -172,25 +178,26 @@ The trace has exactly one channel. A parse that raises nothing discards it, so u
 
 ### The raise condition
 
-Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises the **first issue** at the end:
+Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises once at the end:
 
 ```typescript
 parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' });
-// FieldsParseError, code 'keyNotAllowed', issues: [fields/nope1, filters/nope2]
+// ParseError, code 'inputRejected', issues: [fields/nope1, filters/nope2]
 ```
 
-The thrown class, `code` and `message` stay those of the first violation, so existing `catch` logic and assertions keep working; `issues` is additive and non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
+`issues` is non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
 
 Whether a violation is recorded is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one request: only the latter contributes. A violation takes the policy of the site that found it, which is also what decides what it means: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp.
 
 Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. The trace is capped at `MAX_ISSUES` (100); the failure is the first issue, so a truncated tail changes nothing about the outcome.
 
-Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort is raised as itself with the trace attached — never rebuilt, so a custom error class keeps its own shape, stack and identity. An abort that follows an earlier rejection does not displace it.
+Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. The abort itself rides along as `error.cause`, so its stack survives and a custom error class keeps its own shape and identity, without deciding what the parse raises.
 
 A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own (blemish's `prefixIssuePath` is that step), so the rejection reports `['secret']` rather than naming its parameter and nothing else.
 
-Two consequences worth knowing when you enable `throwOnFailure`:
+Three consequences worth knowing when you enable `throwOnFailure`:
 
+- Branch on `issues`, not on the error class. `catch (e) { if (e instanceof FieldsParseError) }` no longer matches an aggregated parse; `isParseError(e)` and `e.issues` do.
 - `validate` hooks now run for keys that the first throw used to shield.
 - A filters `validate` hook that returns `undefined` now throws `KEY_VALIDATE_REJECTED`, symmetric with the fields/sorts/relations hooks. A hook that means "drop this quietly" returns a replacement condition instead.
 

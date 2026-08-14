@@ -108,7 +108,7 @@ describe('src/parser/issue/module.ts', () => {
         }]);
     });
 
-    it('should rebuild the first issue into its error', () => {
+    it('should raise one general failure carrying every issue', () => {
         const collector = new IssueCollector();
 
         collector.violation(violation({
@@ -119,32 +119,29 @@ describe('src/parser/issue/module.ts', () => {
         }), true);
         collector.violation(violation({ path: ['later'] }), true);
 
+        // two parameters were rejected, so neither of their classes describes
+        // the failure: what went wrong is the trace
         const error = buildErrorFromIssueCollector(collector);
-        expect(error).toBeInstanceOf(FiltersParseError);
-        expect(error?.code).toBe(ErrorCode.KEY_VALUE_INVALID);
-        expect(error?.message).toBe(ErrorMessage.keyValueInvalid('name'));
+        expect(error?.constructor).toBe(ParseError);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(2);
+        expect(error?.issues.map((issue) => issue.code)).toEqual([
+            ErrorCode.KEY_VALUE_INVALID,
+            ErrorCode.KEY_NOT_ALLOWED,
+        ]);
     });
 
-    it('should rebuild through the error class the failing site named', () => {
-        const collector = new IssueCollector();
-        collector.violation(violation({ parameter: Parameter.SORTS }), true, FiltersParseError);
-
-        expect(buildErrorFromIssueCollector(collector)).toBeInstanceOf(FiltersParseError);
-    });
-
-    it('should raise a caught error as itself', () => {
+    it('should keep a caught abort as the cause', () => {
         const collector = new IssueCollector();
         const origin = FieldsParseError.inputInvalid();
 
         collector.error(origin, Parameter.FIELDS);
 
-        // the origin IS the raised error now, so there is nothing left for it
-        // to point at as a cause
         const error = buildErrorFromIssueCollector(collector);
-        expect(error).toBe(origin);
-        expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+        expect(error?.cause).toBe(origin);
         expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
     });
 
     it('should take over the trace a caught error carries', () => {
@@ -166,7 +163,7 @@ describe('src/parser/issue/module.ts', () => {
             message: ErrorMessage.keyNotPermitted('secret'),
             meta: { parameter: Parameter.FILTERS },
         }]);
-        expect(buildErrorFromIssueCollector(collector)).toBe(origin);
+        expect(buildErrorFromIssueCollector(collector)?.cause).toBe(origin);
     });
 
     it('should normalize the deprecated sort parameter', () => {
@@ -226,22 +223,6 @@ describe('src/errors/base.ts', () => {
         expect(Object.keys(error)).toEqual(['code']);
         expect(JSON.parse(JSON.stringify(error))).toEqual({ code: ErrorCode.INPUT_INVALID });
         expect(error.issues).toHaveLength(1);
-    });
-});
-
-describe('src/errors/types.ts', () => {
-    it('should let any conforming class stand in as the rebuild target', () => {
-        class DialectParseError extends ParseError {}
-
-        const collector = new IssueCollector();
-        collector.violation(violation(), true, DialectParseError);
-
-        // the rebuild depends on the constructor contract, not on the class
-        // hierarchy, so a dialect package can name its own error class
-        const error = buildErrorFromIssueCollector(collector);
-        expect(error).toBeInstanceOf(DialectParseError);
-        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
-        expect(error?.issues).toHaveLength(1);
     });
 });
 

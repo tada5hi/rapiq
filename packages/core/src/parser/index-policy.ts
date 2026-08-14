@@ -269,7 +269,7 @@ export function applyFiltersIndexPolicy<
             path: [],
             received: result.keys,
             message: ErrorMessage.keyCombinationNotIndexed(result.keys),
-        }, fatal, FiltersParseError);
+        }, fatal);
 
         // the parse ends on the recorded issue; the tree it ends with is
         // never observed.
@@ -325,7 +325,7 @@ export function applySortsIndexPolicy<
             path: [],
             received: result.keys,
             message: ErrorMessage.keyCombinationNotIndexed(result.keys),
-        }, scope.throwOnFailure, SortsParseError);
+        }, scope.throwOnFailure);
 
         return scope.throwOnFailure ? output : buildSortsDefaults(sortSchema);
     }

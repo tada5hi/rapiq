@@ -18,9 +18,9 @@ import {
     FilterFieldOperator,
     Filters,
     Pagination,
+    ParseError,
     Relation,
     Relations,
-    RelationsParseError,
     SchemaRegistry,
     Sort,
     SortDirection,
@@ -233,12 +233,13 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
             schema: relations, 
         });
 
-        expect.assertions(2);
+        expect.assertions(3);
         try {
             new StubQueryParser(registry, parsers).parse(INPUT, { schema: 'record', context: actor });
         } catch (e) {
-            expect(e).toBeInstanceOf(RelationsParseError);
-            expect((e as RelationsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+            expect(e).toBeInstanceOf(ParseError);
+            expect((e as ParseError).code).toEqual(ErrorCode.INPUT_REJECTED);
+            expect((e as ParseError).issues[0]?.code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
         }
     });
 

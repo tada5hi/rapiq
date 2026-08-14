@@ -7,12 +7,13 @@
 
 import {
     ErrorCode,
-    FiltersParseError,
     Parameter,
+    ParseError,
     SchemaRegistry,
     defineSchema,
     extractIssueParameter,
 } from '@rapiq/core';
+import type { FiltersParseError } from '@rapiq/core';
 import { MongoParser } from '../../src';
 
 type Item = { id: string, title: string };
@@ -71,7 +72,7 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        expect(error).toBeInstanceOf(FiltersParseError);
+        expect(error).toBeInstanceOf(ParseError);
         expect((error?.issues ?? []).map((item) => item.path)).toEqual([['secret'], ['other']]);
     });
 
@@ -102,9 +103,12 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         // rendering a failure reads error.issues, so a grammar abort has to
-        // populate it too
-        expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
+        // populate it too. The abort itself rides along as the cause, where it
+        // cannot be mistaken for a description of the whole request.
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
+        expect((error?.cause as ParseError | undefined)?.code).toBe(ErrorCode.INPUT_INVALID);
     });
 
     it('should leave a legal elemMatch on a non-relation field alone', () => {

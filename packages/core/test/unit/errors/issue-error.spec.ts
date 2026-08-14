@@ -9,7 +9,6 @@ import {
     BASE_ERROR_MARKER,
     ErrorCode,
     ErrorMessage,
-    FieldsParseError,
     FiltersParseError,
     IssueCollector,
     PARSE_ERROR_MARKER,
@@ -45,9 +44,7 @@ class TenantParseError extends FiltersParseError {
 }
 
 describe('src/parser/issue/error.ts', () => {
-    it('should raise a caught error as itself rather than rebuilding it', () => {
-        // rebuilding it would call that constructor with a BaseErrorOptions
-        // it never agreed to
+    it('should raise one general failure, whatever it caught', () => {
         const collector = new IssueCollector();
 
         const origin = new TenantParseError('salary');
@@ -56,14 +53,20 @@ describe('src/parser/issue/error.ts', () => {
 
         const error = buildErrorFromIssueCollector(collector);
 
-        expect(error).toBe(origin);
-        expect(error?.message).toBe('The field salary is out of tenant scope.');
-        expect((error as TenantParseError).field).toBe('salary');
+        // the abort describes one parameter; the parse also rejected a fields
+        // key, so raising the abort would advertise a subset of the failure
+        expect(error).not.toBe(origin);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(2);
+
+        // nothing is reconstructed either, so a consumer class with its own
+        // constructor survives untouched — as the cause
+        expect(error?.cause).toBe(origin);
+        expect((error?.cause as TenantParseError).field).toBe('salary');
         expect(isParseError(error)).toBeTruthy();
     });
 
-    it('should keep a branded stand-in intact', () => {
+    it('should keep a branded stand-in as the cause', () => {
         const foreign = new Error('The key secret is not permitted.');
         markError(foreign, BASE_ERROR_MARKER);
         markError(foreign, PARSE_ERROR_MARKER);
@@ -73,21 +76,21 @@ describe('src/parser/issue/error.ts', () => {
 
         const error = buildErrorFromIssueCollector(collector);
 
-        expect(error).toBe(foreign);
-        expect(error?.message).toBe('The key secret is not permitted.');
+        expect(error?.cause).toBe(foreign);
         expect(error?.issues).toHaveLength(1);
-        // the brand a rebuild would have stripped
+        expect(error?.issues[0]?.message).toBe('The key secret is not permitted.');
         expect(isParseError(error)).toBeTruthy();
     });
 
-    it('should still build from a recorded violation that was never thrown', () => {
+    it('should build from a recorded violation that was never thrown', () => {
         const collector = new IssueCollector();
         collector.violation(violation(), true);
 
         const error = buildErrorFromIssueCollector(collector);
 
-        expect(error).toBeInstanceOf(FieldsParseError);
-        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+        expect(error?.cause).toBeUndefined();
         expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
     });
 });

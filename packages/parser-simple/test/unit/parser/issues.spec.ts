@@ -8,13 +8,9 @@
 import {
     ErrorCode,
     ErrorMessage,
-    FieldsParseError,
-    FiltersParseError,
     MAX_ISSUES,
-    PaginationParseError,
     Parameter,
     ParseError,
-    RelationsParseError,
     SchemaRegistry,
     defineSchema,
     eq,
@@ -23,6 +19,7 @@ import {
 } from '@rapiq/core';
 import type { Issue } from 'blemish';
 import { SimpleFieldsParser, SimpleParser } from '../../../src';
+import { expectRejected } from '../../data';
 import type { User } from '../../data';
 
 const buildRegistry = (throwOnFailure?: boolean) => {
@@ -83,16 +80,17 @@ describe('src/parser — issue traces', () => {
             expect(query.fields.value.map((field) => field.name)).toEqual(['id']);
         });
 
-        it('should raise the first violation once the policy throws', () => {
+        it('should raise one general failure once the policy throws', () => {
             const parser = new SimpleParser(buildRegistry(true));
 
             const { error, issues } = trace(() => parser.parse({ fields: ['id', 'secret'] }, { schema: 'user' }));
 
-            // first-issue-wins: same class, code and message the fail-fast
-            // path threw before aggregation existed
-            expect(error).toBeInstanceOf(FieldsParseError);
-            expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
-            expect(error?.message).toBe(ErrorMessage.keyNotPermitted('secret'));
+            // one error for the request, never the first violation's own class:
+            // a parse can reject input in several parameters at once, and an
+            // error naming one of them describes a subset of what went wrong
+            expect(error).toBeInstanceOf(ParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+            expect(error?.constructor).toBe(ParseError);
 
             expect(issues).toHaveLength(1);
             expect(issues[0]).toEqual({
@@ -118,8 +116,7 @@ describe('src/parser — issue traces', () => {
                 relations: ['nope4'],
             }, { schema: 'user' }));
 
-            // relations parse first, so theirs is the first violation
-            expect(error).toBeInstanceOf(RelationsParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(issues.length).toBeGreaterThanOrEqual(4);
 
             expect(findIssue(issues, Parameter.FIELDS)).toBeDefined();
@@ -144,7 +141,7 @@ describe('src/parser — issue traces', () => {
                 sorts: ['nope'],
             }, { schema: 'user' }));
 
-            expect(error).toBeInstanceOf(FiltersParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(findIssue(issues, Parameter.FILTERS, ErrorCode.INPUT_INVALID)).toBeDefined();
             expect(findIssue(issues, Parameter.SORTS)).toBeDefined();
         });
@@ -182,7 +179,7 @@ describe('src/parser — issue traces', () => {
 
             const { error, issues } = trace(() => parser.parse({ pagination: { limit: 500 } }, { schema: 'user' }));
 
-            expect(error).toBeInstanceOf(PaginationParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(findIssue(issues, Parameter.PAGINATION)).toEqual({
                 type: 'item',
                 code: ErrorCode.LIMIT_EXCEEDED,
@@ -239,10 +236,13 @@ describe('src/parser — issue traces', () => {
             const parser = new SimpleParser(registry);
 
             // pruning a preserved condition off a rejected relation is a
-            // SchemaError, but it is a CONSEQUENCE of the rejection: the
-            // client-facing failure stays the first violation
-            expect(() => parser.parse({ relations: ['items'] }, { schema: 'user' }))
-                .toThrow(RelationsParseError.keyValidateRejected('items'));
+            // SchemaError, but it is a CONSEQUENCE of the rejection: what
+            // reaches the client is the rejection that caused it
+            const { error, issues } = trace(() => parser.parse({ relations: ['items'] }, { schema: 'user' }));
+
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+            expect(issues).toHaveLength(1);
+            expect(issues[0]?.code).toBe(ErrorCode.KEY_VALIDATE_REJECTED);
         });
 
         it('should let an earlier rejection win over a later abort', () => {
@@ -253,8 +253,10 @@ describe('src/parser — issue traces', () => {
                 filters: 'not-an-object',
             }, { schema: 'user' }));
 
-            expect(error).toBeInstanceOf(FieldsParseError);
-            expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+            // the abort is recorded behind the rejection that preceded it,
+            // and neither of them decides what the parse raises
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+            expect(issues[0]?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
             expect(issues.length).toBeGreaterThan(1);
         });
     });
@@ -267,7 +269,7 @@ describe('src/parser — issue traces', () => {
             // stops a caller from using it: whoever starts a trace raises it,
             // so a rejection never degrades into a silent drop
             expect(() => parser.parseParameter(['nope'], { schema: 'user' }, []))
-                .toThrow(FieldsParseError);
+                .toThrow(ParseError);
         });
 
         it('should carry the trace on an abort it was driven through', () => {
@@ -278,9 +280,12 @@ describe('src/parser — issue traces', () => {
             // be recorded on the way out or the trace comes back empty
             const { error, issues } = trace(() => parser.parseParameter(['__proto__'], { schema: 'user' }, []));
 
-            expect(error).toBeInstanceOf(ParseError);
-            expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(issues).toHaveLength(1);
+            expect(issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
+            // the abort itself survives as the cause, where it cannot be
+            // mistaken for a description of the whole request
+            expect((error?.cause as ParseError | undefined)?.code).toBe(ErrorCode.INPUT_INVALID);
         });
 
         it('should carry the trace on every standalone abort', () => {
@@ -334,8 +339,10 @@ describe('src/parser — issue traces', () => {
 
             // symmetric with the fields/sorts/relations key validators, which
             // have raised KEY_VALIDATE_REJECTED all along
-            expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user' }))
-                .toThrow(FiltersParseError.keyValidateRejected('name'));
+            expectRejected(
+                () => parser.parse({ filters: { name: 'x' } }, { schema: 'user' }),
+                { message: ErrorMessage.keyValidateRejected('name') },
+            );
         });
 
         it('should honor a call-time policy override on a rejected filter leaf', () => {
@@ -352,8 +359,10 @@ describe('src/parser — issue traces', () => {
 
             // the leaf validator is the one rejection a call-time override
             // must govern like any other
-            expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: true }))
-                .toThrow(FiltersParseError.keyValidateRejected('name'));
+            expectRejected(
+                () => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: true }),
+                { message: ErrorMessage.keyValidateRejected('name') },
+            );
 
             expect(() => parser.parse({ filters: { name: 'x' } }, { schema: 'user', throwOnFailure: false }))
                 .not.toThrow();
@@ -401,7 +410,7 @@ describe('src/parser — issue traces', () => {
                 fields: { items: ['id'] },
             }, { schema: 'user' }));
 
-            expect(error).toBeInstanceOf(RelationsParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(findIssue(issues, Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED)?.path)
                 .toEqual(['items']);
         });
@@ -421,8 +430,10 @@ describe('src/parser — issue traces', () => {
             // `throwOnFailure ?? schema.relations.throwOnFailure ?? false` is
             // what the query pass applies; a single-parameter parse authorizes
             // relations under the same rule
-            expect(() => parser.parseFilters({ 'items.id': '1' }, { schema: 'user', throwOnFailure: true }))
-                .toThrow(RelationsParseError.keyValidateRejected('items'));
+            expectRejected(
+                () => parser.parseFilters({ 'items.id': '1' }, { schema: 'user', throwOnFailure: true }),
+                { message: ErrorMessage.keyValidateRejected('items') },
+            );
 
             expect(parser.parseFilters({ 'items.id': '1' }, { schema: 'user' }).value)
                 .toHaveLength(0);

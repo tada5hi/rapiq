@@ -7,8 +7,7 @@
 
 import {
     ErrorCode,
-    FieldsParseError,
-    RelationsParseError,
+    ParseError,
     SchemaRegistry,
     defineSchema,
 } from '@rapiq/core';
@@ -198,12 +197,13 @@ describe('schema validate hooks with parse context', () => {
                 },
             });
 
-            expect.assertions(2);
+            expect.assertions(3);
             try {
                 parser.parse(['realm'], { schema });
             } catch (e) {
-                expect(e).toBeInstanceOf(RelationsParseError);
-                expect((e as RelationsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+                expect(e).toBeInstanceOf(ParseError);
+                expect((e as ParseError).code).toEqual(ErrorCode.INPUT_REJECTED);
+                expect((e as ParseError).issues[0]?.code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
             }
         });
 
@@ -300,12 +300,13 @@ describe('schema validate hooks with parse context', () => {
                 },
             });
 
-            expect.assertions(2);
+            expect.assertions(3);
             try {
                 parser.parse(['id'], { schema });
             } catch (e) {
-                expect(e).toBeInstanceOf(FieldsParseError);
-                expect((e as FieldsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+                expect(e).toBeInstanceOf(ParseError);
+                expect((e as ParseError).code).toEqual(ErrorCode.INPUT_REJECTED);
+                expect((e as ParseError).issues[0]?.code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
             }
         });
     });

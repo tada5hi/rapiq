@@ -5,67 +5,42 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import {
-    ErrorCode,
-    ParseError,
-    attachIssues,
-    extractIssueParameter,
-} from '../../errors';
+import { ParseError } from '../../errors';
 import type { IParseError } from '../../errors';
-import { PARAMETER_ERROR_CLASSES } from './constants';
 import type { IIssueCollector } from './types';
 
 /**
- * Rebuild the error a trace's failure stands for, or undefined when nothing
- * was rejected outright.
+ * The failure a trace stands for, or undefined when nothing was rejected.
  *
- * The rebuilt error is indistinguishable from the one the fail-fast path threw
- * before aggregation existed — same class, same `code`, same message — so
- * first-issue-wins holds by construction. It carries the whole trace as
- * `issues`, and the throw it was caught as (when it was one) as `cause`.
+ * One general `ParseError` (`INPUT_REJECTED`) carrying every issue, never the
+ * first violation's own class and code. A request can violate several policies
+ * at once — a bad `fields` key, a bad `filters` key, a rejected relation — and
+ * an error advertising one of them describes a subset of what went wrong,
+ * which is worse than describing none of it: a consumer branching on the class
+ * acts on the part it happened to be handed.
+ *
+ * `error.issues` is where what-and-where lives, and `formatErrors` renders it.
+ * The parameter-specific classes stay what a SINGLE violation throws where no
+ * trace is collecting (a `ResolutionScope` used outside a parse) — exactly the
+ * case where naming one parameter is the whole truth.
+ *
+ * A structural abort caught on the way rides along as `cause`, so the stack of
+ * the original throw survives without deciding what the parse raises.
  *
  * Deliberately not a method on the collector: collecting evidence and deciding
  * what to raise from it are separate jobs, and only the call that owns the
  * parse is in a position to do the second.
  */
 export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseError | undefined {
-    const { failure } = input;
-    if (!failure) {
+    if (!input.failed) {
         return undefined;
     }
 
-    // An error the parse CAUGHT is re-raised as itself, with the trace
-    // attached. Rebuilding it would mean calling a constructor nobody checked:
-    // `code`, `message` and the trace all come from `BaseErrorOptions`, and a
-    // consumer's error class is free to take something else entirely — an
-    // app-defined `TenantParseError(field)` would be rebuilt with the options
-    // object as its field, and a class with a bespoke options shape would
-    // throw a TypeError out of the rebuild. Reuse also keeps the stack and the
-    // brand, which a rebuild silently drops.
-    if (failure.cause) {
-        attachIssues(failure.cause, input.issues);
-
-        return failure.cause;
-    }
-
-    // an issue no parameter owns is nobody's dialect error: it is raised as
-    // the base class rather than through one parameter's, chosen at random.
-    const parameter = extractIssueParameter(failure.issue);
-    const ErrorClass = failure.errorClass ??
-        (parameter ? PARAMETER_ERROR_CLASSES[parameter] : ParseError);
-
-    return new ErrorClass({
-        // every issue rapiq records carries one of its own codes; a foreign one
-        // can only arrive through a merged trace, and then it is the code that
-        // failure genuinely has.
-        code: (failure.issue.code ?? ErrorCode.NONE) as `${ErrorCode}`,
-        message: failure.issue.message,
-        issues: input.issues,
-    });
+    return ParseError.inputRejected(input.issues, input.cause);
 }
 
 /**
- * Raise what a trace collected, if anything was rejected outright.
+ * Raise what a trace collected, if anything was rejected.
  */
 export function raiseErrorFromIssueCollector(input: IIssueCollector) : void {
     const error = buildErrorFromIssueCollector(input);

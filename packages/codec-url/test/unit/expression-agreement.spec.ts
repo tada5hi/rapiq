@@ -9,7 +9,7 @@ import {
     AdapterError,
     FilterCompoundOperator,
     Filters,
-    FiltersParseError,
+    ParseError,
     eq,
 } from '@rapiq/core';
 import {
@@ -80,6 +80,6 @@ describe('expression encoder ↔ parser-expression tokenizer agreement', () => {
         ['non-ascii identifier', 'naïve'],
     ])('should agree on rejecting %s', (_, field) => {
         expect(() => encodeField(field)).toThrow(AdapterError);
-        expect(() => decodeField(field)).toThrow(FiltersParseError);
+        expect(() => decodeField(field)).toThrow(ParseError);
     });
 });

@@ -21,6 +21,7 @@ import {
 } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 describe('filters/expr-parser', () => {
     let parser : ExpressionFiltersParser;
@@ -332,15 +333,7 @@ describe('filters/expr-parser', () => {
     });
 
     it('should treat an empty string as invalid input, not as absent', () => {
-        let error : unknown;
-        try {
-            parser.parse('');
-        } catch (e) {
-            error = e;
-        }
-
-        expect(error).toBeInstanceOf(FiltersParseError);
-        expect((error as FiltersParseError).code).toEqual(ErrorCode.SYNTAX_INVALID);
+        expectRejected(() => parser.parse(''), { code: ErrorCode.SYNTAX_INVALID });
     });
 
     it('should parse in expression', () => {
@@ -733,8 +726,10 @@ describe('filters/expr-parser', () => {
         it('should reject undeclared parameters when parsing with the strict option', () => {
             const composite = new ExpressionParser();
 
-            expect(() => composite.parse({ filters: 'eq(name, \'admin\')' }, { strict: true }))
-                .toThrow(FiltersParseError.keyNotPermitted('name'));
+            expectRejected(
+                () => composite.parse({ filters: 'eq(name, \'admin\')' }, { strict: true }),
+                FiltersParseError.keyNotPermitted('name'),
+            );
         });
     });
 

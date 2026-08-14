@@ -7,6 +7,7 @@
 
 import { ErrorCode, ParseError } from '@rapiq/core';
 import { SimpleParser } from '../../src';
+import { expectRejected } from '../data';
 
 describe('src/module.ts', () => {
     const parser = new SimpleParser();
@@ -31,12 +32,10 @@ describe('src/module.ts', () => {
     });
 
     it('should carry the ambiguous-key error code', () => {
-        try {
-            parser.parse({ sorts: {}, sort: {} });
-            expect.unreachable('parse did not throw');
-        } catch (e) {
-            expect((e as ParseError).code).toBe(ErrorCode.KEY_AMBIGUOUS);
-        }
+        expectRejected(
+            () => parser.parse({ sorts: {}, sort: {} }),
+            { code: ErrorCode.KEY_AMBIGUOUS },
+        );
     });
 
     it('should skip the parameter through either option spelling', () => {

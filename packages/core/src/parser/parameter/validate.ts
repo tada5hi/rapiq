@@ -404,7 +404,7 @@ function reject(
             parameter: entry.schema.parameter,
             path: toIssuePath(entry.path),
             message: ErrorMessage.keyValidateRejected(entry.path),
-        }, throwOnFailure, options.errors);
+        }, throwOnFailure);
 
         return;
     }

@@ -5,9 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { FiltersParseError } from '@rapiq/core';
 import {
     ErrorCode,
-    FiltersParseError,
     Parameter,
     SchemaRegistry,
     defineSchema,
@@ -45,7 +45,7 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        expect(error).toBeInstanceOf(FiltersParseError);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
         expect(extractIssueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
         expect(error?.issues[0]).toMatchObject({
@@ -71,7 +71,7 @@ describe('src/parameter/filters — issue traces', () => {
         // rendering a failure goes through error.issues, so a fail-fast
         // dialect must populate it too
         expect(error?.issues).toHaveLength(1);
-        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
     });
 
     it('should keep the other parameters parsing after a filter failure', () => {
@@ -107,9 +107,11 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        // the abort IS the raised error, carrying the trace it produced
-        expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
+        // the abort rides along as the cause of the general failure, which
+        // carries the trace it produced
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.SYNTAX_INVALID);
     });
 
     it('should not let its always-throwing scope govern the leaf validator', () => {
@@ -145,8 +147,9 @@ describe('src/parameter/filters — issue traces', () => {
 
         // the driver method owns the trace lifecycle too: whoever starts one
         // raises it, so a rejection never degrades into a silent drop
-        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
         expect(error?.issues[0]?.path).toEqual(['secret']);
     });
 

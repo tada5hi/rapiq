@@ -8,6 +8,14 @@
 export enum ErrorCode {
     NONE = 'none',
 
+    /**
+     * One or more parts of the input were rejected. The code of an aggregated
+     * parse failure: what was rejected, and why, is in `error.issues` — a
+     * request can violate several policies at once, and naming one of them on
+     * the error would describe a subset of what went wrong.
+     */
+    INPUT_REJECTED = 'inputRejected',
+
     INPUT_INVALID = 'inputInvalid',
 
     SYNTAX_INVALID = 'syntaxInvalid',

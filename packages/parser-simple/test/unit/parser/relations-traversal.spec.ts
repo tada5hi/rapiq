@@ -7,7 +7,7 @@
 
 import {
     ErrorCode,
-    RelationsParseError,
+    ParseError,
     SchemaError,
     SchemaRegistry,
     and,
@@ -258,12 +258,13 @@ describe('relations.validate for traversed relation paths (#815)', () => {
         it('throws RelationsParseError when a traversed relation is rejected', () => {
             const parser = new SimpleParser(buildRegistry(() => false, true));
 
-            expect.assertions(2);
+            expect.assertions(3);
             try {
                 parser.parse({ filters: { 'items.id': '1' } }, { schema: 'user', context: actor });
             } catch (e) {
-                expect(e).toBeInstanceOf(RelationsParseError);
-                expect((e as RelationsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+                expect(e).toBeInstanceOf(ParseError);
+                expect((e as ParseError).code).toEqual(ErrorCode.INPUT_REJECTED);
+                expect((e as ParseError).issues[0]?.code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
             }
         });
     });
@@ -284,7 +285,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
         it('throws RelationsParseError when the parse-option override opts in, even though the schema does not', () => {
             const parser = new SimpleParser(buildRegistry(() => false, false));
 
-            expect.assertions(2);
+            expect.assertions(3);
             try {
                 parser.parse(
                     { filters: { 'items.id': '1' } },
@@ -295,8 +296,9 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                     },
                 );
             } catch (e) {
-                expect(e).toBeInstanceOf(RelationsParseError);
-                expect((e as RelationsParseError).code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
+                expect(e).toBeInstanceOf(ParseError);
+                expect((e as ParseError).code).toEqual(ErrorCode.INPUT_REJECTED);
+                expect((e as ParseError).issues[0]?.code).toEqual(ErrorCode.KEY_VALIDATE_REJECTED);
             }
         });
     });

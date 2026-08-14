@@ -84,7 +84,7 @@ function rejectLeaf(
             parameter: Parameter.FILTERS,
             path: toIssuePath(leaf.field),
             message: ErrorMessage.keyValidateRejected(leaf.field),
-        }, throwOnFailure, FiltersParseError);
+        }, throwOnFailure);
 
         return;
     }

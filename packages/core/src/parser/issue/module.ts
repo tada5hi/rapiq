@@ -9,12 +9,8 @@ import { prefixIssuePath } from 'blemish';
 import type { Issue } from 'blemish';
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES, buildIssue } from '../../errors';
-import type {
-    IParseError,
-    IParseErrorConstructor,
-    IssueInput,
-} from '../../errors';
-import type { IIssueCollector, IssueFailure } from './types';
+import type { IParseError, IssueInput } from '../../errors';
+import type { IIssueCollector } from './types';
 
 /**
  * The trace of one parse call: every issue its sites recorded, and which of
@@ -40,7 +36,7 @@ import type { IIssueCollector, IssueFailure } from './types';
 export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
-    protected first : IssueFailure | undefined;
+    protected first : IParseError | undefined;
 
     constructor() {
         this.items = [];
@@ -53,25 +49,21 @@ export class IssueCollector implements IIssueCollector {
      * found. A policy that drops records nothing — there is no failure to
      * raise, so there is nobody to read it.
      */
-    violation(
-        input: IssueInput,
-        throwOnFailure?: boolean,
-        errorClass?: IParseErrorConstructor,
-    ) : void {
+    violation(input: IssueInput, throwOnFailure?: boolean) : void {
         if (!throwOnFailure) {
             return;
         }
 
-        this.record(buildIssue(input), errorClass);
+        this.record(buildIssue(input));
     }
 
     /**
      * Record a thrown parse error as the issue it never got to be: the
      * structural failures (a malformed expression, an input of the wrong
      * shape) abort their parameter instead of dropping one key, so the
-     * caller catches them here. The error itself is kept as the failure's
-     * cause, and raised as itself if it turns out to be the first one — its
-     * class is a consumer's to define, so it is never reconstructed.
+     * caller catches them here. The error is kept as the trace's {@link cause}
+     * so its stack survives, but it is not what the parse raises: it describes
+     * one parameter, and the parse may have rejected input in four others.
      *
      * A throw that already carries a trace hands over that trace rather than
      * a summary of it: the positions its sites recorded are the ones no
@@ -90,7 +82,7 @@ export class IssueCollector implements IIssueCollector {
             parameter,
             path,
             message: input.message,
-        }), undefined, input);
+        }), input);
     }
 
     /**
@@ -99,25 +91,18 @@ export class IssueCollector implements IIssueCollector {
      */
     merge(issues: readonly Issue[], path: string[] = [], cause?: IParseError) : void {
         for (const issue of issues) {
-            this.record(prefixIssuePath(issue, path), undefined, cause);
+            this.record(prefixIssuePath(issue, path), cause);
         }
     }
 
-    record(
-        input: Issue,
-        errorClass?: IParseErrorConstructor,
-        cause?: IParseError,
-    ) : void {
-        if (!this.first) {
-            this.first = {
-                issue: input,
-                errorClass,
-                cause,
-            };
+    record(input: Issue, cause?: IParseError) : void {
+        if (cause && !this.first) {
+            this.first = cause;
         }
 
         // The tail of a hostile request changes nothing about the outcome: the
-        // failure is already pinned, and the trace is a diagnostic.
+        // trace is a diagnostic, and what the parse raises does not depend on
+        // which issue came first.
         if (this.items.length >= MAX_ISSUES) {
             return;
         }
@@ -131,11 +116,15 @@ export class IssueCollector implements IIssueCollector {
         return this.items;
     }
 
-    get failure() : IssueFailure | undefined {
+    /**
+     * The throw a structural abort was caught as, when one was: kept so the
+     * raised failure can point at it, never so it can BE it.
+     */
+    get cause() : IParseError | undefined {
         return this.first;
     }
 
     get failed() : boolean {
-        return typeof this.first !== 'undefined';
+        return this.items.length > 0;
     }
 }

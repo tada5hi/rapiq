@@ -11,13 +11,14 @@ import type {
 } from '@rapiq/core';
 import {
     FieldsParseError,
+    ParseError,
     Relation,
     Relations,
     defineFieldsSchema,
     defineSchema,
 } from '@rapiq/core';
 import { SimpleFieldsParser } from '../../../src';
-import { registry } from '../../data';
+import { expectRejected, registry  } from '../../data';
 
 class FieldsSimpleInterpreter {
     interpret(input: Fields): string[] {
@@ -286,7 +287,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid input shape', async () => {
         const error = FieldsParseError.inputInvalid();
-        expect(() => parser.parse(false, { schema: defineSchema({ throwOnFailure: true }) })).toThrow(error);
+        expectRejected(() => parser.parse(false, { schema: defineSchema({ throwOnFailure: true }) }), error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -302,7 +303,7 @@ describe('src/fields/index.ts', () => {
             relations: new Relations([
                 new Relation('user'),
             ]),
-        })).toThrow(error);
+        }), error);
     });
 
     it('should throw on invalid key (pattern)', async () => {
@@ -312,7 +313,7 @@ describe('src/fields/index.ts', () => {
             fields: { allowed: ['id', 'name', 'email'] },
         });
 
-        expect(() => parser.parse(['baz'], { schema })).toThrow(FieldsParseError);
+        expect(() => parser.parse(['baz'], { schema })).toThrow(ParseError);
     });
 
     it('should keep the full path of a dotted mapping target', async () => {
@@ -357,14 +358,14 @@ describe('src/fields/index.ts', () => {
         // '!' is treated as a relation segment; a bound schema
         // without a resolvable child schema rejects the path.
         const error = FieldsParseError.keyPathInvalid('!');
-        expect(() => parser.parse(['!.bar'], { schema })).toThrow(error);
-        expect(() => parser.parse(['!.bar'], { schema })).toThrow(FieldsParseError);
+        expectRejected(() => parser.parse(['!.bar'], { schema }), error);
+        expect(() => parser.parse(['!.bar'], { schema })).toThrow(ParseError);
     });
 
     it('should throw on invalid key pattern (open schema)', async () => {
         const schema = defineSchema({ throwOnFailure: true });
 
         const error = FieldsParseError.keyInvalid('!bar');
-        expect(() => parser.parse(['!bar'], { schema })).toThrow(error);
+        expectRejected(() => parser.parse(['!bar'], { schema }), error);
     });
 });

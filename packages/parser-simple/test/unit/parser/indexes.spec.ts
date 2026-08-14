@@ -7,7 +7,6 @@
 
 import {
     ErrorCode,
-    FiltersParseError,
     SchemaRegistry,
     SortDirection,
     and,
@@ -15,6 +14,7 @@ import {
     eq,
 } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 type Item = {
     id: string,
@@ -82,13 +82,10 @@ describe('indexed schemas', () => {
         it('should throw typed under throwOnFailure', () => {
             const parser = new SimpleParser(buildRegistry({ throwOnFailure: true }));
 
-            try {
-                parser.parseFilters({ created_at: 'x' }, { schema: 'row' });
-                expect.fail('expected a FiltersParseError');
-            } catch (e) {
-                expect(e).toBeInstanceOf(FiltersParseError);
-                expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
-            }
+            expectRejected(
+                () => parser.parseFilters({ created_at: 'x' }, { schema: 'row' }),
+                { code: ErrorCode.KEY_COMBINATION_NOT_INDEXED },
+            );
         });
 
         it('should accept a validate residual as anchor', () => {
@@ -155,13 +152,10 @@ describe('indexed schemas', () => {
         it('should let a parse-option throwOnFailure override throw on the composed query, without the schema opting in', () => {
             const parser = new SimpleParser(buildRegistry());
 
-            try {
-                parser.parse({ filters: { created_at: 'x' } }, { schema: 'row', throwOnFailure: true });
-                expect.fail('expected a FiltersParseError');
-            } catch (e) {
-                expect(e).toBeInstanceOf(FiltersParseError);
-                expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
-            }
+            expectRejected(
+                () => parser.parse({ filters: { created_at: 'x' } }, { schema: 'row', throwOnFailure: true }),
+                { code: ErrorCode.KEY_COMBINATION_NOT_INDEXED },
+            );
         });
     });
 });

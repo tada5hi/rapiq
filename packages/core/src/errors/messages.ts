@@ -17,6 +17,10 @@
 export const ErrorMessage = {
     inputInvalid: () => 'The shape of the input is not valid.',
 
+    inputRejected: (count: number) => (count === 1 ?
+        'The input was rejected: 1 violation.' :
+        `The input was rejected: ${count} violations.`),
+
     syntaxInvalid: (details?: string) => (details ?
         `The input syntax is invalid: ${details}` :
         'The input syntax is invalid.'),

@@ -14,12 +14,14 @@ import { RelationsParseError } from '../parameter/relations/error';
 import { SortsParseError } from '../parameter/sort/error';
 
 /**
- * The error class each parameter rejects client input with — the default
- * reconstruction target for an issue whose site recorded no explicit class.
+ * The error class each parameter rejects client input with, where the
+ * rejection is thrown rather than recorded: a `ResolutionScope` used outside a
+ * parse fails on ONE violation, and naming its parameter is the whole truth
+ * there. A collecting parse raises the general `INPUT_REJECTED` instead, since
+ * it may have rejected input in several parameters at once.
  *
  * Typed by the class rather than by {@link IParseErrorConstructor}: the
- * resolver reaches for the static factories through the same table, while a
- * rebuild only ever needs the constructor.
+ * resolver reaches for the static factories through the same table.
  */
 export const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError> = {
     [Parameter.FIELDS]: FieldsParseError,

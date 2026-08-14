@@ -417,7 +417,7 @@ try {
 
 Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
-A throwing parse reports every violation it found rather than only the first: the thrown class, `code` and `message` stay those of the first violation, and [`error.issues`](/guide/errors#issue-traces) carries the rest.
+A throwing parse reports every violation it found rather than only the first: it raises one general `ParseError` (`inputRejected`) whose [`error.issues`](/guide/errors#issue-traces) carries them all.
 
 ```typescript
 try {
