@@ -43,7 +43,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        return this.withTrace(undefined, Parameter.RELATIONS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.RELATIONS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
@@ -61,7 +61,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        return this.withTraceAsync(undefined, Parameter.RELATIONS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.RELATIONS }, async (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
@@ -84,7 +84,7 @@ export class SimpleRelationsParser extends BaseParser<
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own, so a violation never degrades into a
         // silent drop. A structural abort takes the same route out.
-        return this.withTrace(issueCollector, Parameter.RELATIONS, (collector) =>
+        return this.withTrace({ parameter: Parameter.RELATIONS, driver: issueCollector }, (collector) =>
             this.build(input, options, ledger, collector).output);
     }
 
@@ -100,7 +100,7 @@ export class SimpleRelationsParser extends BaseParser<
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own, so a violation never degrades into a
         // silent drop. A structural abort takes the same route out.
-        return this.withTrace(issueCollector, Parameter.RELATIONS, (collector) =>
+        return this.withTrace({ parameter: Parameter.RELATIONS, driver: issueCollector }, (collector) =>
             this.build(input, options, ledger, collector).output);
     }
 

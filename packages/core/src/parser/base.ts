@@ -21,7 +21,7 @@ import {
 import { IssueCollector } from './issue';
 import { PARAMETER_ERROR_CLASSES } from './issue/constants';
 import type { IIssueCollector } from './issue';
-import type { IParser, ParseTrace } from './types';
+import type { IParser, ParseTrace, ParseTraceContext } from './types';
 
 export type TempType = {
     attributes: Record<string, any>,
@@ -140,11 +140,10 @@ export abstract class BaseParser<
      * silent drop, which is the failure this whole mechanism exists to prevent.
      */
     protected withTrace<T>(
-        driver: IIssueCollector | undefined,
-        parameter: `${Parameter}`,
+        context: ParseTraceContext,
         fn: (collector: IIssueCollector) => T,
     ) : T {
-        const trace = this.beginIssues(driver, parameter);
+        const trace = this.beginIssues(context.driver, context.parameter);
 
         const output = this.recordFailure(trace, () => fn(trace.collector));
         this.finishIssues(trace);
@@ -153,11 +152,10 @@ export abstract class BaseParser<
     }
 
     protected async withTraceAsync<T>(
-        driver: IIssueCollector | undefined,
-        parameter: `${Parameter}`,
+        context: ParseTraceContext,
         fn: (collector: IIssueCollector) => Promise<T>,
     ) : Promise<T> {
-        const trace = this.beginIssues(driver, parameter);
+        const trace = this.beginIssues(context.driver, context.parameter);
 
         const output = await this.recordFailureAsync(trace, () => fn(trace.collector));
         this.finishIssues(trace);

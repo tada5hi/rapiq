@@ -94,7 +94,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const {
                 scope, 
                 parsed, 
@@ -122,7 +122,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const {
                 scope, 
                 parsed, 
@@ -155,7 +155,7 @@ export class MongoFiltersParser extends BaseParser<
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own. A grammar abort takes the same route out,
         // so it cannot escape a directly driven call unrecorded.
-        return this.withTrace(issueCollector, Parameter.FILTERS, (trace) => {
+        return this.withTrace({ parameter: Parameter.FILTERS, driver: issueCollector }, (trace) => {
             const { scope, parsed } = this.prepare(input, options, ledger, trace);
 
             return !parsed ?
@@ -171,7 +171,7 @@ export class MongoFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (trace) => {
+        return this.withTraceAsync({ parameter: Parameter.FILTERS, driver: issueCollector }, async (trace) => {
             const { scope, parsed } = this.prepare(input, options, ledger, trace);
 
             return !parsed ?

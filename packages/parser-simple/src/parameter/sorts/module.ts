@@ -41,7 +41,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortsParseOptions<RECORD> = {}) : Sorts {
         const ledger : RelationLedger = [];
-        return this.withTrace(undefined, Parameter.SORTS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.SORTS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
@@ -64,7 +64,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         options: SortsParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
         const ledger : RelationLedger = [];
-        return this.withTraceAsync(undefined, Parameter.SORTS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.SORTS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
@@ -92,7 +92,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own, so a violation never degrades into a
         // silent drop. A structural abort takes the same route out.
-        return this.withTrace(issueCollector, Parameter.SORTS, (collector) =>
+        return this.withTrace({ parameter: Parameter.SORTS, driver: issueCollector }, (collector) =>
             this.build(input, options, ledger, collector).output);
     }
 
@@ -104,7 +104,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<ISorts> {
-        return this.withTraceAsync(issueCollector, Parameter.SORTS, async (collector) =>
+        return this.withTraceAsync({ parameter: Parameter.SORTS, driver: issueCollector }, async (collector) =>
             (await this.buildAsync(input, options, ledger, collector)).output);
     }
 

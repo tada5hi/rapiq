@@ -97,7 +97,7 @@ export class ExpressionFiltersParser extends BaseParser<
     ) : IFilters {
         const ledger : RelationLedger = [];
 
-        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
             if (!scope) {
                 return output;
@@ -122,7 +122,7 @@ export class ExpressionFiltersParser extends BaseParser<
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
 
-        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
             if (!scope) {
                 return output;
@@ -151,7 +151,7 @@ export class ExpressionFiltersParser extends BaseParser<
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own. The dialect resolves keys under an
         // always-throwing scope, so the abort route is the usual one here.
-        return this.withTrace(issueCollector, Parameter.FILTERS, (trace) =>
+        return this.withTrace({ parameter: Parameter.FILTERS, driver: issueCollector }, (trace) =>
             this.build(input, options, ledger, trace).output);
     }
 
@@ -162,7 +162,7 @@ export class ExpressionFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (trace) =>
+        return this.withTraceAsync({ parameter: Parameter.FILTERS, driver: issueCollector }, async (trace) =>
             (await this.buildAsync(input, options, ledger, trace)).output);
     }
 

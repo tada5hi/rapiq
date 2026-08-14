@@ -56,7 +56,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
@@ -77,7 +77,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
@@ -103,7 +103,7 @@ export class SimpleFiltersParser extends BaseParser<
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own, so a violation never degrades into a
         // silent drop. A structural abort takes the same route out.
-        return this.withTrace(issueCollector, Parameter.FILTERS, (collector) =>
+        return this.withTrace({ parameter: Parameter.FILTERS, driver: issueCollector }, (collector) =>
             this.build(input, options, ledger, collector).output);
     }
 
@@ -113,7 +113,7 @@ export class SimpleFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (collector) =>
+        return this.withTraceAsync({ parameter: Parameter.FILTERS, driver: issueCollector }, async (collector) =>
             (await this.buildAsync(input, options, ledger, collector)).output);
     }
 

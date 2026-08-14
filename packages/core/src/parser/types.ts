@@ -50,6 +50,23 @@ export type ParseParameterOptions<
  * driver and the collector to travel together and inverted silently when they
  * were swapped.
  */
+/**
+ * What opening a trace needs to know: which parameter the call parses, and
+ * whether an enclosing parse handed one down.
+ *
+ * An object rather than two positional arguments, because the driver is absent
+ * at every entry point and present only when a query parse drives a
+ * sub-parser — as positions that reads as a literal `undefined` at half the
+ * call sites, saying nothing.
+ */
+export type ParseTraceContext = {
+    parameter: `${Parameter}`,
+    /**
+     * The enclosing parse's trace. Absent: this call opens and raises its own.
+     */
+    driver?: IIssueCollector,
+};
+
 export type ParseTrace = {
     collector: IIssueCollector,
     owned: boolean,

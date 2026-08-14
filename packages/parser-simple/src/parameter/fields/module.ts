@@ -42,7 +42,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
-        return this.withTrace(undefined, Parameter.FIELDS, (issueCollector) => {
+        return this.withTrace({ parameter: Parameter.FIELDS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
@@ -60,7 +60,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
-        return this.withTraceAsync(undefined, Parameter.FIELDS, async (issueCollector) => {
+        return this.withTraceAsync({ parameter: Parameter.FIELDS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
@@ -83,7 +83,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         // this records into the enclosing one and decides nothing, driven
         // directly it raises its own, so a violation never degrades into a
         // silent drop. A structural abort takes the same route out.
-        return this.withTrace(issueCollector, Parameter.FIELDS, (collector) =>
+        return this.withTrace({ parameter: Parameter.FIELDS, driver: issueCollector }, (collector) =>
             this.build(input, options, ledger, collector).output);
     }
 
@@ -95,7 +95,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFields> {
-        return this.withTraceAsync(issueCollector, Parameter.FIELDS, async (collector) =>
+        return this.withTraceAsync({ parameter: Parameter.FIELDS, driver: issueCollector }, async (collector) =>
             (await this.buildAsync(input, options, ledger, collector)).output);
     }
 
