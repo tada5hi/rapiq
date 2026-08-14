@@ -192,7 +192,7 @@ parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' })
 // ParseError, code 'inputRejected', issues: [fields/nope1, filters/nope2]
 ```
 
-`issues` is non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
+`issues` is an ordinary property, so it shows up when you inspect or spread the error. One consequence worth knowing: deep equality reads enumerable properties, so `expect(fn).toThrow(FiltersParseError.keyNotPermitted('x'))` compares the **trace** too. Assert the class, the `code`, or reach into `issues` — not whole errors.
 
 Whether a violation is recorded is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one request: only the latter contributes. A violation takes the policy of the site that found it, which is also what decides what it means: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp.
 
@@ -239,7 +239,7 @@ if (isParseError(e)) {
 }
 ```
 
-`isBaseError` and `isParseError` read a `Symbol.for` brand every rapiq error carries, so they survive the duplication that `instanceof` does not. The brand is non-enumerable, like `issues`: it changes neither deep equality nor `JSON.stringify(error)`. rapiq's own parsers use these guards internally — a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
+`isBaseError` and `isParseError` read the `@instanceof` brand chain every rapiq error carries, so they survive the duplication that `instanceof` does not — and, because [`toJSON`](#crossing-a-boundary) emits the chain, they also recognize an error that arrived as JSON. The brand itself is non-enumerable, so it changes neither deep equality nor what a spread copies. rapiq's own parsers use these guards internally — a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
 
 ## Crossing a boundary
 

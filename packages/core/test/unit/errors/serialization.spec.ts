@@ -80,16 +80,18 @@ describe('src/errors/base.ts (serialization)', () => {
         expect(isParseError(revived)).toBeTruthy();
     });
 
-    it('should keep the trace out of the enumerable shape', () => {
+    it('should put the trace in the enumerable shape', () => {
         const options = { message: 'failed', code: ErrorCode.INPUT_REJECTED };
 
-        // deep equality reads enumerable own properties, NOT toJSON, so a
-        // trace that varies with the input must not decide error equality
+        // deep equality reads enumerable own properties, so two failures of
+        // the same kind compare equal only when their traces match. Assert the
+        // class, the code or the trace — not whole errors.
         expect(new ParseError({ ...options, issues: [issue()] }))
-            .toEqual(new ParseError({ ...options, issues: [] }));
+            .not.toEqual(new ParseError({ ...options, issues: [] }));
 
-        // pinned in ONE place: the members come from the base substrate, and
-        // a change there should fail here rather than in three unrelated specs
-        expect(Object.keys(new ParseError(options))).toEqual(['code', 'cause', 'errors']);
+        // pinned in ONE place: the rest of the members come from the base
+        // substrate, and a change there should fail here rather than in three
+        // unrelated specs
+        expect(Object.keys(new ParseError(options))).toEqual(['code', 'cause', 'errors', 'issues']);
     });
 });

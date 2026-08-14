@@ -36,27 +36,21 @@ export class BaseError extends EbecBaseError implements IBaseError {
      * Every rejection the operation recorded, in the order it hit them.
      * Empty unless the operation collected a trace.
      *
-     * Non-enumerable, like the native `message`: an error's enumerable shape
-     * is what deep equality sees, and two failures of the same kind must
-     * compare equal however many keys the client happened to get wrong.
-     * `declare` keeps the field out of the emitted output, since the value is
-     * installed below rather than assigned. {@link toJSON} emits it
-     * deliberately — an error whose trace does not survive the boundary is an
-     * error with nothing to say on the far side.
+     * An ordinary enumerable property, so it shows up when the error is
+     * inspected or spread. The cost, chosen deliberately: deep equality reads
+     * enumerable properties, so two failures of the same kind compare equal
+     * only when their traces match — `toThrow(SomeError.keyNotPermitted('x'))`
+     * asserts the trace too. Assert the class or the code, or reach into
+     * `issues`, rather than comparing whole errors.
      */
-    declare public readonly issues : readonly Issue[];
+    public readonly issues : readonly Issue[];
 
     constructor(input: BaseErrorOptions | string) {
         super(typeof input === 'string' ?
             input :
             { ...input, code: input.code || ErrorCode.NONE });
 
-        Object.defineProperty(this, 'issues', {
-            value: typeof input === 'string' ? [] : input.issues ?? [],
-            enumerable: false,
-            writable: false,
-            configurable: true,
-        });
+        this.issues = typeof input === 'string' ? [] : input.issues ?? [];
 
         markInstanceof(this, BASE_ERROR_MARKER);
     }

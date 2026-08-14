@@ -21,7 +21,7 @@ import {
 } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
-import { expectRejected } from '../../data';
+import { expectRejected, expectThrown } from '../../data';
 
 describe('filters/expr-parser', () => {
     let parser : ExpressionFiltersParser;
@@ -453,7 +453,7 @@ describe('filters/expr-parser', () => {
         it('should throw on a non allowed key', () => {
             const error = FiltersParseError.keyNotPermitted('age');
 
-            expect(() => constrained.parseExact('eq(age, \'18\')', { schema: 'user' })).toThrow(error);
+            expectThrown(() => constrained.parseExact('eq(age, \'18\')', { schema: 'user' }), error);
         });
 
         it('should walk a relation path through schemaMapping', () => {
@@ -465,13 +465,13 @@ describe('filters/expr-parser', () => {
         it('should validate the leaf against the related schema', () => {
             const error = FiltersParseError.keyNotPermitted('name');
 
-            expect(() => constrained.parseExact('eq(items.name, \'foo\')', { schema: 'user' })).toThrow(error);
+            expectThrown(() => constrained.parseExact('eq(items.name, \'foo\')', { schema: 'user' }), error);
         });
 
         it('should throw on an unresolvable relation segment', () => {
             const error = FiltersParseError.keyPathInvalid('foo');
 
-            expect(() => constrained.parseExact('eq(foo.id, \'1\')', { schema: 'user' })).toThrow(error);
+            expectThrown(() => constrained.parseExact('eq(foo.id, \'1\')', { schema: 'user' }), error);
         });
 
         it('should honor the relations context', () => {
@@ -480,7 +480,7 @@ describe('filters/expr-parser', () => {
             expect(() => constrained.parseExact('eq(items.id, \'1\')', {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
-            })).toThrow(error);
+            }), error);
 
             const output = constrained.parseExact('eq(items.id, \'1\')', {
                 schema: 'user',
@@ -603,8 +603,8 @@ describe('filters/expr-parser', () => {
         it('should throw on the ITSELF marker outside an elemMatch interior', () => {
             const error = FiltersParseError.keyInvalid(ITSELF);
 
-            expect(() => parser.parseExact('eq($this,\'5\')')).toThrow(error);
-            expect(() => parser.parseExact('elemMatch($this,eq(id,\'1\'))')).toThrow(error);
+            expectThrown(() => parser.parseExact('eq($this,\'5\')'), error);
+            expectThrown(() => parser.parseExact('elemMatch($this,eq(id,\'1\'))'), error);
         });
 
         it('should throw on an unknown marker', () => {
@@ -646,13 +646,13 @@ describe('filters/expr-parser', () => {
                 ));
 
                 const error = FiltersParseError.keyNotPermitted('name');
-                expect(() => constrained.parseExact('elemMatch(items,eq(name,\'x\'))', { schema: 'user' })).toThrow(error);
+                expectThrown(() => constrained.parseExact('elemMatch(items,eq(name,\'x\'))', { schema: 'user' }), error);
             });
 
             it('should throw on a non allowed elemMatch field', () => {
                 const error = FiltersParseError.keyNotPermitted('secret');
 
-                expect(() => constrained.parseExact('elemMatch(secret,eq(id,\'1\'))', { schema: 'user' })).toThrow(error);
+                expectThrown(() => constrained.parseExact('elemMatch(secret,eq(id,\'1\'))', { schema: 'user' }), error);
             });
 
             it('should fall back to an unbound interior scope on a schemaless field', () => {
@@ -671,7 +671,7 @@ describe('filters/expr-parser', () => {
                 expect(() => constrained.parseExact('elemMatch(items,eq(id,\'1\'))', {
                     schema: 'user',
                     relations: new Relations([new Relation('realm')]),
-                })).toThrow(error);
+                }), error);
             });
 
             it('should accept the ITSELF marker under a schema', () => {
@@ -690,14 +690,14 @@ describe('filters/expr-parser', () => {
         it('should throw for any key when parsing schemaless with the strict option', () => {
             const error = FiltersParseError.keyNotPermitted('name');
 
-            expect(() => parser.parseExact('eq(name, \'admin\')', { strict: true })).toThrow(error);
+            expectThrown(() => parser.parseExact('eq(name, \'admin\')', { strict: true }), error);
         });
 
         it('should throw for undeclared keys under a strict schema', () => {
             const schema = defineFiltersSchema({ strict: true });
             const error = FiltersParseError.keyNotPermitted('name');
 
-            expect(() => parser.parseExact('eq(name, \'admin\')', { schema })).toThrow(error);
+            expectThrown(() => parser.parseExact('eq(name, \'admin\')', { schema }), error);
         });
 
         it('should keep a declared allow-list working under strict', () => {

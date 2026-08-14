@@ -219,17 +219,16 @@ describe('src/errors/base.ts', () => {
         expect(error.cause).toBe(cause);
     });
 
-    it('should keep the issues out of the enumerable shape', () => {
+    it('should carry the trace as an ordinary property', () => {
         const error = new BaseError({
             message: 'failed',
             code: ErrorCode.INPUT_INVALID,
             issues: [buildIssue(violation())],
         });
 
-        // an error's enumerable shape decides deep equality, so the trace
-        // must not move there (the wire form is serialization.spec.ts)
-        expect(Object.keys(error)).not.toContain('issues');
-        expect(error.issues).toHaveLength(1);
+        // enumerable, so it shows up when the error is inspected or spread
+        expect(Object.keys(error)).toContain('issues');
+        expect({ ...error }.issues).toHaveLength(1);
     });
 });
 

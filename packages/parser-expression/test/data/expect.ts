@@ -50,3 +50,27 @@ export function expectRejected(
 
     expect(items).toContainEqual(expect.objectContaining(matcher));
 }
+
+/**
+ * Assert the error a fail-fast site threw: its class, code and message.
+ *
+ * `toThrow(someError)` compares whole errors, which now includes the trace —
+ * so it would demand that the expectation carry the same issues, which is not
+ * what these assertions are about.
+ */
+export function expectThrown(
+    fn: () => unknown,
+    expected: Error & { code?: string },
+) : void {
+    let error : (Error & { code?: string }) | undefined;
+
+    try {
+        fn();
+    } catch (e) {
+        error = e as Error & { code?: string };
+    }
+
+    expect(error).toBeInstanceOf(expected.constructor);
+    expect(error?.code).toBe(expected.code);
+    expect(error?.message).toBe(expected.message);
+}
