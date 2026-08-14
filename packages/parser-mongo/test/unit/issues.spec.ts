@@ -52,12 +52,12 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         expect(error?.issues).toEqual([{
+            type: 'item',
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.FILTERS,
             path: ['secret'],
             key: 'secret',
             message: 'The key secret is not permitted.',
-            severity: 'error',
         }]);
     });
 
@@ -73,7 +73,6 @@ describe('src/parameter/filters — issue traces', () => {
 
         expect(error).toBeInstanceOf(FiltersParseError);
         expect((error?.issues ?? []).map((item) => item.path)).toEqual([['secret'], ['other']]);
-        expect((error?.issues ?? []).every((item) => item.severity === 'error')).toBeTruthy();
     });
 
     it('should keep a grammar error a grammar error', () => {
@@ -89,7 +88,6 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         expect(error?.issues).toHaveLength(1);
-        expect(error?.issues[0]?.severity).toBe('error');
         expect(error?.issues[0]?.parameter).toBe(Parameter.FILTERS);
     });
 
@@ -154,7 +152,6 @@ describe('src/parameter/filters — issue traces', () => {
             // the interior is addressed relative to the element, but the
             // canonical position keeps the relation it hangs off
             path: ['items', 'secret'],
-            severity: 'error',
         });
     });
 });

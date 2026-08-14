@@ -165,7 +165,7 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         if (items.length === 0) {
-            items = this.defaults(scope, parsed.length > 0);
+            items = buildFiltersDefaults(scope.schema);
         }
 
         return {
@@ -202,7 +202,7 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         if (items.length === 0) {
-            items = this.defaults(scope, parsed.length > 0);
+            items = buildFiltersDefaults(scope.schema);
         }
 
         return {
@@ -224,27 +224,6 @@ export class SimpleFiltersParser extends BaseParser<
             obligationSink: ledger,
             issueCollector,
         });
-    }
-
-    /**
-     * The schema baseline, standing in for everything the client sent (or
-     * for nothing at all). Only the former is worth reporting: defaults for
-     * an absent parameter are ordinary operation, defaults REPLACING what the
-     * client sent are the surprise.
-     */
-    protected defaults<RECORD extends ObjectLiteral = ObjectLiteral>(
-        scope: FiltersScope<RECORD>,
-        dropped: boolean,
-    ) : ICondition[] {
-        const output = buildFiltersDefaults(scope.schema);
-        if (output.length > 0 && dropped) {
-            scope.notice({
-                code: ErrorCode.NONE,
-                message: ErrorMessage.defaultsApplied(),
-            });
-        }
-
-        return output;
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(

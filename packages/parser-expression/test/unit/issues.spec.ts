@@ -47,8 +47,13 @@ describe('src/parameter/filters — issue traces', () => {
         expect(error).toBeInstanceOf(FiltersParseError);
         expect(error?.issues).toHaveLength(1);
         expect(error?.issues[0]).toMatchObject({
+            type: 'item',
             parameter: Parameter.FILTERS,
-            severity: 'error',
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            // the dialect fails fast, but the position it failed at survives
+            // the throw: the catching driver merges it rather than replacing
+            // it with the parameter and nothing else
+            path: ['secret'],
         });
     });
 

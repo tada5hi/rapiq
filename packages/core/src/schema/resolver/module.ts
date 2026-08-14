@@ -6,8 +6,13 @@
  */
 
 import { MAX_TRAVERSAL_DEPTH, Parameter } from '../../constants';
-import { ErrorCode, ErrorMessage } from '../../errors';
-import type { Issue, ParseError } from '../../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    attachIssues,
+    defineIssueItem,
+} from '../../errors';
+import type { IssueItem, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
 import { PARAMETER_ERROR_CLASSES } from '../../parser/issue/constants';
@@ -168,9 +173,9 @@ export class ResolutionScope<
     /**
      * Trace of the parse this scope resolves for; propagated to descendants.
      * Present: {@link fail} records its verdict and lets the parse continue on
-     * the drop path, and the owning parse call raises the first error-severity
-     * issue at the end. Absent (a scope built outside a parse): failures throw
-     * where they are found, as they always did.
+     * the drop path, and the owning parse call raises the first issue at the
+     * end. Absent (a scope built outside a parse): failures throw where they
+     * are found, as they always did.
      */
     readonly issueCollector: IIssueCollector | undefined;
 
@@ -359,7 +364,8 @@ export class ResolutionScope<
      * the wrong shape, an unparseable value, a limit above the maximum —
      * rather than one key resolution decided.
      *
-     * Same policy as {@link resolveKey}: recorded into the parse's trace when
+     * Same policy as {@link resolveKey}: nothing at all while the policy
+     * drops, and under a throwing one recorded into the parse's trace when
      * there is one (the owning call raises it once every parameter has been
      * seen), thrown here when there is not. The caller always continues on its
      * drop path; whether that path's result is ever observed is the trace's
@@ -381,62 +387,37 @@ export class ResolutionScope<
         throwOnFailure?: boolean,
     }) : void {
         const throwOnFailure = input.throwOnFailure ?? this.throwOnFailure;
-
-        if (this.issueCollector) {
-            const issue : Omit<Issue, 'severity'> = {
-                code: input.code,
-                parameter: this.parameter,
-                path: input.path ?? [...this.path],
-                message: input.message,
-            };
-
-            if (typeof input.key !== 'undefined') {
-                issue.key = input.key;
-            }
-
-            if (typeof input.input !== 'undefined') {
-                issue.input = input.input;
-            }
-
-            this.issueCollector.violation(issue, throwOnFailure, this.errors);
-
+        if (!throwOnFailure) {
             return;
         }
 
-        if (throwOnFailure) {
-            const ErrorClass = this.errors;
-
-            throw new ErrorClass({ code: input.code, message: input.message });
-        }
-    }
-
-    /**
-     * Report something the parse did to the input without rejecting it: a
-     * clamped limit, substituted defaults. Never fails a parse, so unlike
-     * {@link refuse} it is a no-op without a trace to record into.
-     */
-    notice(input: {
-        code: `${ErrorCode}`,
-        message: string,
-        path?: string[],
-        input?: unknown,
-    }) : void {
-        if (!this.issueCollector) {
-            return;
-        }
-
-        const issue : Omit<Issue, 'severity'> = {
+        const issue : Omit<IssueItem, 'type'> = {
             code: input.code,
             parameter: this.parameter,
             path: input.path ?? [...this.path],
             message: input.message,
         };
 
+        if (typeof input.key !== 'undefined') {
+            issue.key = input.key;
+        }
+
         if (typeof input.input !== 'undefined') {
             issue.input = input.input;
         }
 
-        this.issueCollector.notice(issue);
+        if (this.issueCollector) {
+            this.issueCollector.violation(issue, throwOnFailure, this.errors);
+
+            return;
+        }
+
+        const ErrorClass = this.errors;
+
+        throw this.raising(
+            new ErrorClass({ code: input.code, message: input.message }),
+            issue,
+        );
     }
 
     /**
@@ -815,30 +796,26 @@ export class ResolutionScope<
     ) : KeyResolutionFailure {
         const { throwOnFailure } = this;
 
-        if (this.issueCollector) {
+        if (throwOnFailure) {
             const failure = KEY_RESOLUTION_FAILURES[code] ??
                 KEY_RESOLUTION_FAILURES[KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE];
             const name = segment ?? input;
 
-            this.issueCollector.violation({
+            const issue : Omit<IssueItem, 'type'> = {
                 code: failure.code,
                 parameter: this.parameter,
                 path: segment ? [...this.path, segment] : [...this.path],
                 key: raw,
                 message: failure.message(name),
-            }, throwOnFailure, this.errors);
-        } else if (throwOnFailure) {
-            // no trace to finish: a scope built outside a parse still fails
-            // where the violation is, exactly as it always did.
-            switch (code) {
-                case KeyResolutionErrorCode.KEY_INVALID:
-                    throw this.errors.keyInvalid(segment ?? input);
-                case KeyResolutionErrorCode.KEY_NOT_PERMITTED:
-                    throw this.errors.keyNotPermitted(segment ?? input);
-                case KeyResolutionErrorCode.PATH_NOT_PERMITTED:
-                    throw this.errors.keyPathNotPermitted(segment ?? input);
-                default:
-                    throw this.errors.keyPathInvalid(segment ?? input);
+            };
+
+            if (this.issueCollector) {
+                this.issueCollector.violation(issue, throwOnFailure, this.errors);
+            } else {
+                // no trace to finish: a scope built outside a parse still fails
+                // where the violation is, exactly as it always did — carrying
+                // that position, so a catch can merge it into its own trace.
+                throw this.raising(this.raise(code, name), issue);
             }
         }
 
@@ -852,6 +829,36 @@ export class ResolutionScope<
         }
 
         return output;
+    }
+
+    /**
+     * The error one key-resolution verdict fails with, through the parameter's
+     * own static factories — so class, `code` and message stay what the
+     * fail-fast path has always thrown.
+     */
+    protected raise(code: KeyResolutionErrorCode, name: string) : ParseError {
+        switch (code) {
+            case KeyResolutionErrorCode.KEY_INVALID:
+                return this.errors.keyInvalid(name);
+            case KeyResolutionErrorCode.KEY_NOT_PERMITTED:
+                return this.errors.keyNotPermitted(name);
+            case KeyResolutionErrorCode.PATH_NOT_PERMITTED:
+                return this.errors.keyPathNotPermitted(name);
+            default:
+                return this.errors.keyPathInvalid(name);
+        }
+    }
+
+    /**
+     * A throw carrying the position it was found at. Whoever catches it merges
+     * that position into its own trace, so a scope failing fast (the
+     * expression dialect resolves under an always-throwing one) reports where
+     * it failed rather than naming its parameter and nothing else.
+     */
+    protected raising<T extends ParseError>(error: T, issue: Omit<IssueItem, 'type'>) : T {
+        attachIssues(error, [defineIssueItem(issue)]);
+
+        return error;
     }
 
     protected get mapping() : Record<string, string> | undefined {

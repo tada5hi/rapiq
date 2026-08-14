@@ -17,15 +17,21 @@ import {
     PARSE_ERROR_MARKER,
     Parameter,
     ParseError,
+    attachIssues,
     buildErrorFromIssueCollector,
+    defineIssueGroup,
+    defineIssueItem,
+    flattenIssueGroups,
+    flattenIssueItems,
     isBaseError,
     isParseError,
     markError,
+    prefixIssuePath,
     raiseErrorFromIssueCollector,
 } from '../../../src';
-import type { Issue } from '../../../src';
+import type { IssueItem } from '../../../src';
 
-const violation = (overrides: Partial<Issue> = {}) : Omit<Issue, 'severity'> => ({
+const violation = (overrides: Partial<IssueItem> = {}) : Omit<IssueItem, 'type'> => ({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FIELDS,
     path: ['secret'],
@@ -33,35 +39,84 @@ const violation = (overrides: Partial<Issue> = {}) : Omit<Issue, 'severity'> => 
     ...overrides,
 });
 
-describe('src/errors/issue.ts', () => {
-    it('should record a violation as a warning under a dropping policy', () => {
+describe('src/errors/issue/module.ts', () => {
+    it('should build the two node kinds', () => {
+        const item = defineIssueItem(violation());
+        const group = defineIssueGroup({
+            parameter: Parameter.FIELDS,
+            path: [],
+            message: 'failed',
+            issues: [item],
+        });
+
+        expect(item.type).toBe('item');
+        expect(group.type).toBe('group');
+    });
+
+    it('should flatten a tree to its leaves', () => {
+        const inner = defineIssueItem(violation({ path: ['items', 'secret'] }));
+        const group = defineIssueGroup({
+            path: ['items'],
+            message: 'failed',
+            issues: [inner],
+        });
+        const outer = defineIssueItem(violation());
+
+        expect(flattenIssueItems([group, outer])).toEqual([inner, outer]);
+        expect(flattenIssueGroups([group, outer])).toEqual([group]);
+    });
+
+    it('should rebase a merged trace, children included', () => {
+        const nested = prefixIssuePath([
+            defineIssueGroup({
+                path: ['title'],
+                message: 'failed',
+                issues: [defineIssueItem(violation({ path: ['title'] }))],
+            }),
+        ], ['items']);
+
+        // a site reports where it failed relative to itself; the position it
+        // ends up at is whoever merged it
+        expect(nested[0]?.path).toEqual(['items', 'title']);
+        expect(flattenIssueItems(nested)[0]?.path).toEqual(['items', 'title']);
+    });
+
+    it('should leave a trace merged at the root untouched', () => {
+        const issues = [defineIssueItem(violation())];
+
+        expect(prefixIssuePath(issues, [])).toEqual(issues);
+    });
+});
+
+describe('src/parser/issue/module.ts', () => {
+    it('should record nothing while the policy drops', () => {
         const collector = new IssueCollector();
         collector.violation(violation(), false);
 
-        expect(collector.issues).toEqual([{
-            code: ErrorCode.KEY_NOT_ALLOWED,
-            parameter: Parameter.FIELDS,
-            path: ['secret'],
-            message: ErrorMessage.keyNotPermitted('secret'),
-            severity: 'warning',
-        }]);
+        // the key is dropped, nothing will be raised, and a trace nobody can
+        // read is a trace nobody should pay for
+        expect(collector.issues).toEqual([]);
         expect(collector.failed).toBeFalsy();
         expect(buildErrorFromIssueCollector(collector)).toBeUndefined();
     });
 
-    it('should record a violation as an error under a throwing policy', () => {
+    it('should record a violation under a throwing policy', () => {
         const collector = new IssueCollector();
         collector.violation(violation(), true);
 
         expect(collector.failed).toBeTruthy();
-        expect(collector.issues[0]?.severity).toBe('error');
+        expect(collector.issues).toEqual([{
+            type: 'item',
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            parameter: Parameter.FIELDS,
+            path: ['secret'],
+            message: ErrorMessage.keyNotPermitted('secret'),
+        }]);
     });
 
-    it('should rebuild the first error-severity issue into its error', () => {
+    it('should rebuild the first issue into its error', () => {
         const collector = new IssueCollector();
 
-        // a warning never decides the outcome, even when it comes first
-        collector.violation(violation({ path: ['dropped'] }), false);
         collector.violation(violation({
             parameter: Parameter.FILTERS,
             path: ['name'],
@@ -74,7 +129,7 @@ describe('src/errors/issue.ts', () => {
         expect(error).toBeInstanceOf(FiltersParseError);
         expect(error?.code).toBe(ErrorCode.KEY_VALUE_INVALID);
         expect(error?.message).toBe(ErrorMessage.keyValueInvalid('name'));
-        expect(error?.issues).toHaveLength(3);
+        expect(error?.issues).toHaveLength(2);
     });
 
     it('should rebuild through the error class the failing site named', () => {
@@ -98,39 +153,48 @@ describe('src/errors/issue.ts', () => {
         expect(error?.issues).toHaveLength(1);
     });
 
+    it('should take over the trace a caught error carries', () => {
+        const origin = FiltersParseError.keyNotPermitted('secret');
+        attachIssues(origin, [defineIssueItem(violation({
+            parameter: Parameter.FILTERS,
+            path: ['secret'],
+        }))]);
+
+        const collector = new IssueCollector();
+        collector.error(origin, Parameter.FILTERS, ['items']);
+
+        // the position the throwing site recorded is one no enclosing site
+        // could reconstruct, so it is forwarded rather than summarized
+        expect(collector.issues).toEqual([{
+            type: 'item',
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            parameter: Parameter.FILTERS,
+            path: ['items', 'secret'],
+            message: ErrorMessage.keyNotPermitted('secret'),
+        }]);
+        expect(buildErrorFromIssueCollector(collector)).toBe(origin);
+    });
+
     it('should normalize the deprecated sort parameter', () => {
         const collector = new IssueCollector();
-        collector.violation(violation({ parameter: Parameter.SORT }), false);
+        collector.violation(violation({ parameter: Parameter.SORT }), true);
 
         expect(collector.issues[0]?.parameter).toBe(Parameter.SORTS);
     });
 
-    it('should cap the recorded issues without losing the failure', () => {
+    it('should cap a hostile trace without losing the failure', () => {
         const collector = new IssueCollector();
 
         collector.violation(violation({ path: ['first'] }), true);
         for (let i = 0; i < MAX_ISSUES + 10; i++) {
-            collector.violation(violation({ path: [`key${i}`] }), false);
+            collector.violation(violation({ path: [`key${i}`] }), true);
         }
 
+        // the failure is pinned by the first issue, so a truncated tail
+        // changes nothing about the outcome
         expect(collector.issues).toHaveLength(MAX_ISSUES);
-        expect(buildErrorFromIssueCollector(collector)?.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
-    });
-
-    it('should keep the issue it failed on even past the cap', () => {
-        const collector = new IssueCollector();
-
-        for (let i = 0; i < MAX_ISSUES + 10; i++) {
-            collector.violation(violation({ path: [`key${i}`] }), false);
-        }
-        collector.violation(violation({ path: ['late'] }), true);
-
-        // an error whose own issue the cap evicted would hand a consumer a
-        // 400 with nothing in it.
-        const error = buildErrorFromIssueCollector(collector);
-        expect(error?.issues).toHaveLength(MAX_ISSUES + 1);
-        expect(error?.issues.some((issue) => issue.severity === 'error')).toBeTruthy();
+        expect(buildErrorFromIssueCollector(collector)?.issues).toHaveLength(MAX_ISSUES);
     });
 
     it('should throw only when something was rejected', () => {
@@ -160,7 +224,7 @@ describe('src/errors/base.ts', () => {
         const error = new BaseError({
             message: 'failed',
             code: ErrorCode.INPUT_INVALID,
-            issues: [{ ...violation(), severity: 'error' }],
+            issues: [defineIssueItem(violation())],
         });
 
         // an error's enumerable shape decides deep equality and what

@@ -10,17 +10,18 @@ import {
     ErrorMessage,
     Parameter,
     SchemaRegistry,
+    defineIssueGroup,
+    defineIssueItem,
     defineSchema,
 } from '@rapiq/core';
-import type { Issue, ParseError  } from '@rapiq/core';
+import type { IssueItem, ParseError } from '@rapiq/core';
 import { URLParameter, createURLCodec, formatErrors } from '../../src';
 
-const issue = (overrides: Partial<Issue> = {}) : Issue => ({
+const issue = (overrides: Partial<IssueItem> = {}) : IssueItem => defineIssueItem({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FILTERS,
     path: ['items', 'secret'],
     message: ErrorMessage.keyNotPermitted('secret'),
-    severity: 'error',
     ...overrides,
 });
 
@@ -30,7 +31,7 @@ describe('src/error/*.ts', () => {
             code: ErrorCode.KEY_NOT_ALLOWED,
             detail: ErrorMessage.keyNotPermitted('secret'),
             source: { parameter: URLParameter.FILTERS },
-            meta: { severity: 'error', path: 'items.secret' },
+            meta: { path: 'items.secret' },
         }]);
     });
 
@@ -45,7 +46,7 @@ describe('src/error/*.ts', () => {
         ];
 
         expect(formatErrors(parameters.map((parameter) => issue({ parameter })))
-            .map((error) => error.source.parameter)).toEqual([
+            .map((error) => error.source?.parameter)).toEqual([
             URLParameter.FIELDS,
             URLParameter.FILTERS,
             URLParameter.PAGINATION,
@@ -55,11 +56,22 @@ describe('src/error/*.ts', () => {
         ]);
     });
 
-    it('should skip warnings unless asked', () => {
-        const input = [issue(), issue({ severity: 'warning' })];
+    it('should render the leaves of a nested trace, not the groups', () => {
+        const leaf = issue({ path: ['items', 'title'] });
 
-        expect(formatErrors(input)).toHaveLength(1);
-        expect(formatErrors(input, { warnings: true })).toHaveLength(2);
+        // a group says nothing the leaves below it do not, and every leaf
+        // already knows its absolute position
+        expect(formatErrors([defineIssueGroup({
+            parameter: Parameter.FILTERS,
+            path: ['items'],
+            message: 'The relation items is not permitted.',
+            issues: [leaf],
+        })])).toEqual([{
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            detail: ErrorMessage.keyNotPermitted('secret'),
+            source: { parameter: URLParameter.FILTERS },
+            meta: { path: 'items.title' },
+        }]);
     });
 
     it('should stamp a status when given one', () => {
@@ -67,7 +79,7 @@ describe('src/error/*.ts', () => {
     });
 
     it('should omit the path of a parameter-level issue', () => {
-        expect(formatErrors([issue({ path: [] })])[0]?.meta).toEqual({ severity: 'error' });
+        expect(formatErrors([issue({ path: [] })])[0]?.meta).toBeUndefined();
     });
 
     it('should render what a decode raised', () => {
@@ -92,7 +104,7 @@ describe('src/error/*.ts', () => {
             code: ErrorCode.KEY_NOT_ALLOWED,
             detail: ErrorMessage.keyNotPermitted('secret'),
             source: { parameter: URLParameter.FILTERS },
-            meta: { severity: 'error', path: 'secret' },
+            meta: { path: 'secret' },
         }]);
     });
 });

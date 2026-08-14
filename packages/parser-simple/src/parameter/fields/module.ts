@@ -220,20 +220,9 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
         const output = this.parseWithScope(undefined, this.scopeFor(options, ledger, issueCollector), []);
 
-        const fields = new Fields(output.value.filter(
+        return new Fields(output.value.filter(
             (field) => !rejected.includes(field.name),
         ));
-
-        if (issueCollector && fields.value.length > 0) {
-            issueCollector.notice({
-                code: ErrorCode.NONE,
-                parameter: Parameter.FIELDS,
-                path: [],
-                message: ErrorMessage.defaultsApplied(),
-            });
-        }
-
-        return fields;
     }
 
     protected scopeFor<

@@ -6,8 +6,13 @@
  */
 
 import type { Parameter } from '../../constants';
-import { MAX_ISSUES } from '../../errors';
-import type { IParseError, IParseErrorConstructor, Issue } from '../../errors';
+import { MAX_ISSUES, defineIssueItem, prefixIssuePath } from '../../errors';
+import type {
+    IParseError,
+    IParseErrorConstructor,
+    Issue,
+    IssueItem,
+} from '../../errors';
 import { normalizeParameter } from '../../utils';
 import type { IIssueCollector, IssueFailure } from './types';
 
@@ -20,6 +25,10 @@ import type { IIssueCollector, IssueFailure } from './types';
  * with several bad keys reports all of them. What to do about that is not its
  * decision: it collects and serves, and the call that owns the parse raises
  * the failure through {@link buildErrorFromIssueCollector}.
+ *
+ * Every issue is a failure. Under a dropping policy nothing is recorded at
+ * all: the key is dropped, nothing will be raised, and a trace nobody can read
+ * is a trace nobody should pay for.
  *
  * The trace is not observable anywhere else: a parse that raises nothing
  * discards it. `error.issues` is the single channel.
@@ -41,26 +50,19 @@ export class IssueCollector implements IIssueCollector {
 
     /**
      * Record a violation under the failure policy in effect where it was
-     * found: a policy that throws makes the issue an `error` (and the parse
-     * will end on it), a dropping policy a `warning`.
+     * found. A policy that drops records nothing — there is no failure to
+     * raise, so there is nobody to read it.
      */
     violation(
-        input: Omit<Issue, 'severity'>,
+        input: Omit<IssueItem, 'type'>,
         throwOnFailure?: boolean,
         errorClass?: IParseErrorConstructor,
     ) : void {
-        this.record({
-            ...input,
-            severity: throwOnFailure ? 'error' : 'warning',
-        }, errorClass);
-    }
+        if (!throwOnFailure) {
+            return;
+        }
 
-    /**
-     * Record something the parse did to the input without rejecting it —
-     * a clamped limit, substituted defaults. Never fails a parse.
-     */
-    notice(input: Omit<Issue, 'severity'>) : void {
-        this.record({ ...input, severity: 'warning' });
+        this.record(defineIssueItem(input), errorClass);
     }
 
     /**
@@ -70,15 +72,35 @@ export class IssueCollector implements IIssueCollector {
      * caller catches them here. The error itself is kept as the failure's
      * cause, and raised as itself if it turns out to be the first one — its
      * class is a consumer's to define, so it is never reconstructed.
+     *
+     * A throw that already carries a trace hands over that trace rather than
+     * a summary of it: the positions its sites recorded are the ones no
+     * enclosing site could reconstruct.
      */
     error(input: IParseError, parameter: `${Parameter}`, path: string[] = []) : void {
-        this.record({
+        const issues = input.issues ?? [];
+        if (issues.length > 0) {
+            this.merge(issues, path, input);
+
+            return;
+        }
+
+        this.record(defineIssueItem({
             code: input.code,
             parameter,
             path,
-            severity: 'error',
             message: input.message,
-        }, undefined, input);
+        }), undefined, input);
+    }
+
+    /**
+     * Take over the issues of a nested trace, rebased onto the position it
+     * was merged at.
+     */
+    merge(issues: readonly Issue[], path: string[] = [], cause?: IParseError) : void {
+        for (const issue of prefixIssuePath(issues, path)) {
+            this.record(issue, undefined, cause);
+        }
     }
 
     record(
@@ -86,25 +108,21 @@ export class IssueCollector implements IIssueCollector {
         errorClass?: IParseErrorConstructor,
         cause?: IParseError,
     ) : void {
-        const issue : Issue = {
-            ...input,
-            parameter: normalizeParameter(input.parameter) as `${Parameter}`,
-        };
+        const issue : Issue = input.parameter ?
+            { ...input, parameter: normalizeParameter(input.parameter) as `${Parameter}` } :
+            input;
 
-        const isFailure = !this.first && issue.severity === 'error';
-        if (isFailure) {
+        if (!this.first) {
             this.first = {
-                issue, 
-                errorClass, 
-                cause, 
+                issue,
+                errorClass,
+                cause,
             };
         }
 
         // The tail of a hostile request changes nothing about the outcome: the
-        // failure is already pinned, and the trace is a diagnostic. The issue
-        // the parse FAILS on is exempt — an error whose own issue the cap
-        // evicted would hand a consumer a 400 with nothing in it.
-        if (this.items.length >= MAX_ISSUES && !isFailure) {
+        // failure is already pinned, and the trace is a diagnostic.
+        if (this.items.length >= MAX_ISSUES) {
             return;
         }
 

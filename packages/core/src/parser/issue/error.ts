@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { attachIssues } from '../../errors';
+import { ErrorCode, ParseError, attachIssues } from '../../errors';
 import type { IParseError } from '../../errors';
 import { PARAMETER_ERROR_CLASSES } from './constants';
 import type { IIssueCollector } from './types';
@@ -43,11 +43,15 @@ export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseErr
         return failure.cause;
     }
 
+    // an issue no parameter owns is nobody's dialect error: it is raised as
+    // the base class rather than through one parameter's, chosen at random.
     const ErrorClass = failure.errorClass ??
-        PARAMETER_ERROR_CLASSES[failure.issue.parameter];
+        (failure.issue.parameter ?
+            PARAMETER_ERROR_CLASSES[failure.issue.parameter] :
+            ParseError);
 
     return new ErrorClass({
-        code: failure.issue.code,
+        code: failure.issue.code ?? ErrorCode.NONE,
         message: failure.issue.message,
         issues: input.issues,
     });

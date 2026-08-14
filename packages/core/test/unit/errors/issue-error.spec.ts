@@ -18,9 +18,9 @@ import {
     isParseError, 
     markError, 
 } from '../../../src';
-import type { Issue } from '../../../src';
+import type { IssueItem } from '../../../src';
 
-const violation = (overrides: Partial<Issue> = {}) : Omit<Issue, 'severity'> => ({
+const violation = (overrides: Partial<IssueItem> = {}) : Omit<IssueItem, 'type'> => ({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FIELDS,
     path: ['secret'],
@@ -49,10 +49,10 @@ describe('src/parser/issue/error.ts', () => {
         // rebuilding it would call that constructor with a BaseErrorOptions
         // it never agreed to
         const collector = new IssueCollector();
-        collector.violation(violation({ severity: 'warning' } as never), false);
 
         const origin = new TenantParseError('salary');
         collector.error(origin, Parameter.FILTERS);
+        collector.violation(violation(), true);
 
         const error = buildErrorFromIssueCollector(collector);
 

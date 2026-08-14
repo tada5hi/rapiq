@@ -6,12 +6,17 @@
  */
 
 import { arrayToPath } from 'pathtrace';
+import { flattenIssueItems } from '@rapiq/core';
 import type { Issue } from '@rapiq/core';
 import { PARAMETER_WIRE_NAMES } from './constants';
 import type { FormatErrorsOptions, FormattedError } from './types';
 
 /**
  * Normalize the trace an error carries into this codec's response format.
+ *
+ * A trace is a tree: what a group stands for is already said by the leaves
+ * below it, so only those are rendered — one error per rejected key, each at
+ * the absolute position merging gave it.
  *
  * ```ts
  * try {
@@ -27,24 +32,22 @@ export function formatErrors(
 ) : FormattedError[] {
     const output : FormattedError[] = [];
 
-    for (const issue of input) {
-        if (issue.severity !== 'error' && !options.warnings) {
-            continue;
-        }
-
+    for (const issue of flattenIssueItems(input)) {
         const error : FormattedError = {
             code: issue.code,
             detail: issue.message,
-            source: { parameter: PARAMETER_WIRE_NAMES[issue.parameter] ?? issue.parameter },
         };
+
+        if (issue.parameter) {
+            error.source = { parameter: PARAMETER_WIRE_NAMES[issue.parameter] ?? issue.parameter };
+        }
 
         if (options.status) {
             error.status = options.status;
         }
 
-        error.meta = { severity: issue.severity };
         if (issue.path.length > 0) {
-            error.meta.path = arrayToPath(issue.path);
+            error.meta = { path: arrayToPath(issue.path) };
         }
 
         output.push(error);

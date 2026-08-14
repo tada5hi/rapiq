@@ -8,7 +8,7 @@
 /**
  * Upper bound of issues one parse records. Hostile input can violate a policy
  * once per key, and the trace is a diagnostic, not a transcript — the first
- * error decides what the parse throws, so a truncated tail changes nothing
- * about the outcome. The issue a parse fails on is kept regardless.
+ * issue decides what the parse throws, so a truncated tail changes nothing
+ * about the outcome.
  */
 export const MAX_ISSUES = 100;

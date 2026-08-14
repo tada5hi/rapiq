@@ -95,12 +95,12 @@ describe('src/parser — issue traces', () => {
 
             expect(issues).toHaveLength(1);
             expect(issues[0]).toEqual({
+                type: 'item',
                 code: ErrorCode.KEY_NOT_ALLOWED,
                 parameter: Parameter.FIELDS,
                 path: ['secret'],
                 key: 'secret',
                 message: ErrorMessage.keyNotPermitted('secret'),
-                severity: 'error',
             });
         });
     });
@@ -118,8 +118,7 @@ describe('src/parser — issue traces', () => {
 
             // relations parse first, so theirs is the first violation
             expect(error).toBeInstanceOf(RelationsParseError);
-            expect(issues.filter((issue) => issue.severity === 'error').length)
-                .toBeGreaterThanOrEqual(4);
+            expect(issues.length).toBeGreaterThanOrEqual(4);
 
             expect(findIssue(issues, Parameter.FIELDS)).toBeDefined();
             expect(findIssue(issues, Parameter.FILTERS)).toBeDefined();
@@ -183,12 +182,12 @@ describe('src/parser — issue traces', () => {
 
             expect(error).toBeInstanceOf(PaginationParseError);
             expect(findIssue(issues, Parameter.PAGINATION)).toEqual({
+                type: 'item',
                 code: ErrorCode.LIMIT_EXCEEDED,
                 parameter: Parameter.PAGINATION,
                 path: ['limit'],
                 input: 500,
                 message: ErrorMessage.limitExceeded(50),
-                severity: 'error',
             });
         });
 
@@ -202,21 +201,16 @@ describe('src/parser — issue traces', () => {
             expect(issue?.input).toBe('abc');
         });
 
-        it('should carry substituted defaults as a warning behind the failure', () => {
+        it('should report the rejection a substitution followed, and nothing else', () => {
             const parser = new SimpleParser(buildRegistry(true));
 
             const { issues } = trace(() => parser.parse({ sorts: ['nope'] }, { schema: 'user' }));
 
-            // the rejection fails the parse; the substitution it caused rides
-            // behind it, never as a failure of its own
-            expect(findIssue(issues, Parameter.SORTS, ErrorCode.KEY_NOT_ALLOWED)?.severity).toBe('error');
-            expect(findIssue(issues, Parameter.SORTS, ErrorCode.NONE)).toEqual({
-                code: ErrorCode.NONE,
-                parameter: Parameter.SORTS,
-                path: [],
-                message: ErrorMessage.defaultsApplied(),
-                severity: 'warning',
-            });
+            // every issue is a failure: the rejected key is the trace, and the
+            // schema default that replaced it is ordinary operation
+            expect(issues).toHaveLength(1);
+            expect(findIssue(issues, Parameter.SORTS, ErrorCode.KEY_NOT_ALLOWED)?.path)
+                .toEqual(['nope']);
         });
 
         it('should carry an input of the wrong shape', () => {

@@ -10,11 +10,12 @@ import type {
     IParseError,
     IParseErrorConstructor,
     Issue,
+    IssueItem,
 } from '../../errors';
 
 /**
- * The failure a trace holds: the first issue recorded with `severity: 'error'`,
- * plus what the site that found it would have thrown.
+ * The failure a trace holds: the first issue recorded, plus what the site that
+ * found it would have thrown.
  *
  * Everything an error is rebuilt FROM, and nothing about how — building it is
  * {@link buildErrorFromIssueCollector}'s job.
@@ -45,25 +46,25 @@ export type IssueFailure = {
 export interface IIssueCollector {
     /**
      * Record a violation under the failure policy in effect where it was
-     * found: a policy that throws makes the issue an `error` (and the parse
-     * will end on it), a dropping policy a `warning`.
+     * found. A policy that drops records nothing.
      */
     violation(
-        input: Omit<Issue, 'severity'>,
+        input: Omit<IssueItem, 'type'>,
         throwOnFailure?: boolean,
         errorClass?: IParseErrorConstructor,
     ) : void;
 
     /**
-     * Record something the parse did to the input without rejecting it —
-     * a clamped limit, substituted defaults. Never fails a parse.
-     */
-    notice(input: Omit<Issue, 'severity'>) : void;
-
-    /**
-     * Record a thrown parse error as the issue it never got to be.
+     * Record a thrown parse error as the issue it never got to be, or its
+     * whole trace when it carries one.
      */
     error(input: IParseError, parameter: `${Parameter}`, path?: string[]) : void;
+
+    /**
+     * Take over the issues of a nested trace, rebased onto the position it
+     * was merged at.
+     */
+    merge(issues: readonly Issue[], path?: string[], cause?: IParseError) : void;
 
     record(
         input: Issue,
@@ -74,8 +75,7 @@ export interface IIssueCollector {
     readonly issues : Issue[];
 
     /**
-     * The failure this trace holds, or undefined when nothing was rejected
-     * outright.
+     * The failure this trace holds, or undefined when nothing was rejected.
      */
     readonly failure : IssueFailure | undefined;
 

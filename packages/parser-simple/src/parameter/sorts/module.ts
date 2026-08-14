@@ -272,17 +272,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         }
 
         if (output.value.length === 0) {
-            const defaults = this.buildDefaults(schema);
-            output.value.push(...defaults.value);
-
-            // defaults for a parameter the client never sent are ordinary
-            // operation; defaults REPLACING what it sent are the surprise.
-            if (defaults.value.length > 0 && data && Object.keys(data).length > 0) {
-                scope.notice({
-                    code: ErrorCode.NONE,
-                    message: ErrorMessage.defaultsApplied(),
-                });
-            }
+            output.value.push(...this.buildDefaults(schema).value);
         }
 
         const keys = Object.keys(relationsData);
