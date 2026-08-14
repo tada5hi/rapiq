@@ -18,14 +18,12 @@ import {
     Parameter,
     ParseError,
     attachIssues,
-    buildErrorFromIssueCollector,
     buildIssue,
     extractIssueKey,
     extractIssueParameter,
     isBaseError,
     isParseError,
     markError,
-    raiseErrorFromIssueCollector,
 } from '../../../src';
 import type { IssueInput } from '../../../src';
 
@@ -91,7 +89,6 @@ describe('src/parser/issue/module.ts', () => {
         // read is a trace nobody should pay for
         expect(collector.issues).toEqual([]);
         expect(collector.failed).toBeFalsy();
-        expect(buildErrorFromIssueCollector(collector)).toBeUndefined();
     });
 
     it('should record a violation under a throwing policy', () => {
@@ -121,11 +118,11 @@ describe('src/parser/issue/module.ts', () => {
 
         // two parameters were rejected, so neither of their classes describes
         // the failure: what went wrong is the trace
-        const error = buildErrorFromIssueCollector(collector);
-        expect(error?.constructor).toBe(ParseError);
-        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
-        expect(error?.issues).toHaveLength(2);
-        expect(error?.issues.map((issue) => issue.code)).toEqual([
+        const error = ParseError.inputRejected(collector.issues, collector.cause);
+        expect(error.constructor).toBe(ParseError);
+        expect(error.code).toBe(ErrorCode.INPUT_REJECTED);
+        expect(error.issues).toHaveLength(2);
+        expect(error.issues.map((issue) => issue.code)).toEqual([
             ErrorCode.KEY_VALUE_INVALID,
             ErrorCode.KEY_NOT_ALLOWED,
         ]);
@@ -137,11 +134,11 @@ describe('src/parser/issue/module.ts', () => {
 
         collector.error(origin, Parameter.FIELDS);
 
-        const error = buildErrorFromIssueCollector(collector);
-        expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
-        expect(error?.cause).toBe(origin);
-        expect(error?.issues).toHaveLength(1);
-        expect(error?.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
+        // the abort is not what the parse raises, but it is not discarded
+        // either: a consumer's own class can carry data no issue captures
+        expect(collector.cause).toBe(origin);
+        expect(collector.issues).toHaveLength(1);
+        expect(collector.issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
     });
 
     it('should take over the trace a caught error carries', () => {
@@ -163,7 +160,7 @@ describe('src/parser/issue/module.ts', () => {
             message: ErrorMessage.keyNotPermitted('secret'),
             meta: { parameter: Parameter.FILTERS },
         }]);
-        expect(buildErrorFromIssueCollector(collector)?.cause).toBe(origin);
+        expect(collector.cause).toBe(origin);
     });
 
     it('should normalize the deprecated sort parameter', () => {
@@ -185,16 +182,34 @@ describe('src/parser/issue/module.ts', () => {
         // changes nothing about the outcome
         expect(collector.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
-        expect(buildErrorFromIssueCollector(collector)?.issues).toHaveLength(MAX_ISSUES);
     });
 
-    it('should throw only when something was rejected', () => {
-        const collector = new IssueCollector();
-        collector.violation(violation(), false);
-        expect(() => raiseErrorFromIssueCollector(collector)).not.toThrow();
+    it('should keep a consumer error class intact as the cause', () => {
+        // a class with its own constructor is never reconstructed, so the data
+        // it carries survives — which is the whole reason the trace keeps it
+        class TenantParseError extends ParseError {
+            readonly field : string;
 
+            constructor(field: string) {
+                super({
+                    code: ErrorCode.KEY_NOT_ALLOWED,
+                    message: `The field ${field} is out of tenant scope.`,
+                });
+
+                this.field = field;
+            }
+        }
+
+        const collector = new IssueCollector();
+        const origin = new TenantParseError('salary');
+
+        collector.error(origin, Parameter.FILTERS);
         collector.violation(violation(), true);
-        expect(() => raiseErrorFromIssueCollector(collector)).toThrow(ParseError);
+
+        const error = ParseError.inputRejected(collector.issues, collector.cause);
+        expect(error.issues).toHaveLength(2);
+        expect(error.cause).toBe(origin);
+        expect((error.cause as TenantParseError).field).toBe('salary');
     });
 });
 

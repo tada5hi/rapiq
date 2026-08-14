@@ -20,7 +20,7 @@ import type { IIssueCollector } from './types';
  * violation is found, a site records it and takes the drop path, so a request
  * with several bad keys reports all of them. What to do about that is not its
  * decision: it collects and serves, and the call that owns the parse raises
- * the failure through {@link buildErrorFromIssueCollector}.
+ * the failure (`BaseParser.finishIssues`).
  *
  * Every issue is a failure. Under a dropping policy nothing is recorded at
  * all: the key is dropped, nothing will be raised, and a trace nobody can read
@@ -36,7 +36,7 @@ import type { IIssueCollector } from './types';
 export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
-    protected first : IParseError | undefined;
+    protected caught : IParseError | undefined;
 
     constructor() {
         this.items = [];
@@ -96,8 +96,8 @@ export class IssueCollector implements IIssueCollector {
     }
 
     record(input: Issue, cause?: IParseError) : void {
-        if (cause && !this.first) {
-            this.first = cause;
+        if (cause && !this.caught) {
+            this.caught = cause;
         }
 
         // The tail of a hostile request changes nothing about the outcome: the
@@ -121,7 +121,7 @@ export class IssueCollector implements IIssueCollector {
      * raised failure can point at it, never so it can BE it.
      */
     get cause() : IParseError | undefined {
-        return this.first;
+        return this.caught;
     }
 
     get failed() : boolean {

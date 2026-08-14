@@ -18,7 +18,7 @@ import {
     parseKey, 
     stringifyKey,
 } from '../utils';
-import { IssueCollector, buildErrorFromIssueCollector, raiseErrorFromIssueCollector } from './issue';
+import { IssueCollector } from './issue';
 import type { IIssueCollector } from './issue';
 import type { IParser, ParseTrace } from './types';
 
@@ -87,11 +87,11 @@ export abstract class BaseParser<
      * way it is ever read.
      */
     protected finishIssues(trace: ParseTrace) : void {
-        if (!trace.owned) {
+        if (!trace.owned || !trace.collector.failed) {
             return;
         }
 
-        raiseErrorFromIssueCollector(trace.collector);
+        throw ParseError.inputRejected(trace.collector.issues, trace.collector.cause);
     }
 
     /**
@@ -185,7 +185,7 @@ export abstract class BaseParser<
             trace.collector.error(input, parameter);
         }
 
-        return buildErrorFromIssueCollector(trace.collector) ?? input;
+        return ParseError.inputRejected(trace.collector.issues, trace.collector.cause);
     }
 
     protected getBaseSchema<
