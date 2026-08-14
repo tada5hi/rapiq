@@ -8,7 +8,7 @@
 import { BASE_ERROR_MARKER, markError } from './check';
 import type { ObjectLiteral } from '../types';
 import { ErrorCode } from './code';
-import type { Issue } from './issue';
+import type { Issue } from 'blemish';
 import type { BaseErrorOptions, IBaseError } from './types';
 
 /**

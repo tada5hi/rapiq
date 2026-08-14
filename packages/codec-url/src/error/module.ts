@@ -6,8 +6,9 @@
  */
 
 import { arrayToPath } from 'pathtrace';
-import { flattenIssueItems } from '@rapiq/core';
-import type { Issue } from '@rapiq/core';
+import { flattenIssueItems } from 'blemish';
+import type { Issue } from 'blemish';
+import { issueParameter } from '@rapiq/core';
 import { PARAMETER_WIRE_NAMES } from './constants';
 import type { FormatErrorsOptions, FormattedError } from './types';
 
@@ -32,14 +33,15 @@ export function formatErrors(
 ) : FormattedError[] {
     const output : FormattedError[] = [];
 
-    for (const issue of flattenIssueItems(input)) {
+    for (const issue of flattenIssueItems([...input])) {
         const error : FormattedError = {
             code: issue.code,
             detail: issue.message,
         };
 
-        if (issue.parameter) {
-            error.source = { parameter: PARAMETER_WIRE_NAMES[issue.parameter] ?? issue.parameter };
+        const parameter = issueParameter(issue);
+        if (parameter) {
+            error.source = { parameter: PARAMETER_WIRE_NAMES[parameter] ?? parameter };
         }
 
         if (options.status) {

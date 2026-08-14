@@ -127,31 +127,46 @@ try {
 
 Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. Every issue is a **failure**: there is no severity, and nothing a parse does without rejecting anything (a substituted default, an entry a rejected relation dragged along) is recorded.
 
-An issue is one of two node kinds, discriminated by `type`. Both carry:
+The nodes are [blemish](https://github.com/tada5hi/blemish) issues, the shared issue-tree model, so a rapiq trace crosses library boundaries unchanged: a validator you call inside a [`validate` hook](/guide/schemas#validate-hooks) speaks the same shape, and a consumer can nest a rapiq trace inside its own. An issue is one of two node kinds, discriminated by `type`. Both carry:
 
 | Field | Meaning |
 |---|---|
 | `path` | canonical, alias-resolved position, leaf included: `['items', 'title']`. Empty for a parameter-level issue |
 | `message` | human-facing text. **Not** contractual: branch on `code` |
-| `parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`); absent on an issue no single parameter owns |
+| `meta` | provenance the position cannot express, see below |
 
 `type: 'item'` is a rejected piece of input, and adds:
 
 | Field | Meaning |
 |---|---|
 | `code` | the same `ErrorCode` the error carries: the machine contract |
-| `key` | raw client spelling at the position that failed, which is what alias mapping makes worth keeping |
-| `input` | the offending value, when a value rather than a key was the problem |
+| `received` | the offending value, when a value rather than a key was the problem |
 
-`type: 'group'` stands for the failures below it, in its own `issues` array (plus an optional `code`). Nesting is the whole tree: there is no parent pointer and no depth field. Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. `flattenIssueItems(error.issues)` therefore hands you leaves that already know where they sit:
+`type: 'group'` stands for the failures below it, in its own `issues` array (plus an optional `code`). Nesting is the whole tree: there is no parent pointer and no depth field.
+
+rapiq claims two `meta` keys, both of them facts a consumer cannot reconstruct from the path:
+
+| Key | Meaning |
+|---|---|
+| `meta.parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`). A `fields` rejection and a `filters` rejection at `['items', 'secret']` are otherwise indistinguishable |
+| `meta.key` | raw client spelling at the position that failed. The path is alias-resolved, so the spelling is gone from it |
+
+`meta` is an open bag, so read those through the accessors rather than casting:
 
 ```typescript
-import { flattenIssueItems } from '@rapiq/core';
+import { issueKey, issueParameter } from '@rapiq/core';
+
+issueParameter(issue); // 'filters' | 'fields' | ... | undefined
+issueKey(issue);       // the raw client spelling, when it differs
+```
+
+Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. `flattenIssueItems` therefore hands you leaves that already know where they sit:
+
+```typescript
+import { flattenIssueItems } from 'blemish';
 
 flattenIssueItems(e.issues).map((issue) => issue.path);
 ```
-
-The shape is the one [validup](https://github.com/tada5hi/validup) defines, so a trace crosses library boundaries unchanged; `defineIssueItem` / `defineIssueGroup` / `flattenIssueGroups` / `prefixIssuePath` round out the toolkit.
 
 The trace has exactly one channel. A parse that raises nothing discards it, so under the default drop policy there is no trace to read: [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) is what turns rejections into something you can inspect.
 
@@ -172,7 +187,7 @@ Every rejection is recorded: allow-list and relation-path rejections, `validate`
 
 Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort is raised as itself with the trace attached — never rebuilt, so a custom error class keeps its own shape, stack and identity. An abort that follows an earlier rejection does not displace it.
 
-A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own, so the rejection reports `['secret']` rather than naming its parameter and nothing else.
+A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own (blemish's `prefixIssuePath` is that step), so the rejection reports `['secret']` rather than naming its parameter and nothing else.
 
 Two consequences worth knowing when you enable `throwOnFailure`:
 

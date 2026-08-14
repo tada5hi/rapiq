@@ -134,7 +134,7 @@ try {
 }
 ```
 
-A trace is a tree, and `formatErrors` renders its **leaves**: what a group stands for is already said by the issues below it, each at the absolute position merging gave it. A decode that raises nothing has no trace: under the default drop policy the query comes back narrowed and silent.
+A trace is a tree of [blemish](https://github.com/tada5hi/blemish) issues, and `formatErrors` renders its **leaves**: what a group stands for is already said by the issues below it, each at the absolute position merging gave it. A decode that raises nothing has no trace: under the default drop policy the query comes back narrowed and silent.
 
 ## Custom codecs
 

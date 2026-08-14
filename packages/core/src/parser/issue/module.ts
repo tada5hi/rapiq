@@ -5,15 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { prefixIssuePath } from 'blemish';
+import type { Issue } from 'blemish';
 import type { Parameter } from '../../constants';
-import { MAX_ISSUES, defineIssueItem, prefixIssuePath } from '../../errors';
+import { MAX_ISSUES, buildIssue } from '../../errors';
 import type {
     IParseError,
     IParseErrorConstructor,
-    Issue,
-    IssueItem,
+    IssueInput,
 } from '../../errors';
-import { normalizeParameter } from '../../utils';
 import type { IIssueCollector, IssueFailure } from './types';
 
 /**
@@ -54,7 +54,7 @@ export class IssueCollector implements IIssueCollector {
      * raise, so there is nobody to read it.
      */
     violation(
-        input: Omit<IssueItem, 'type'>,
+        input: IssueInput,
         throwOnFailure?: boolean,
         errorClass?: IParseErrorConstructor,
     ) : void {
@@ -62,7 +62,7 @@ export class IssueCollector implements IIssueCollector {
             return;
         }
 
-        this.record(defineIssueItem(input), errorClass);
+        this.record(buildIssue(input), errorClass);
     }
 
     /**
@@ -85,7 +85,7 @@ export class IssueCollector implements IIssueCollector {
             return;
         }
 
-        this.record(defineIssueItem({
+        this.record(buildIssue({
             code: input.code,
             parameter,
             path,
@@ -98,8 +98,8 @@ export class IssueCollector implements IIssueCollector {
      * was merged at.
      */
     merge(issues: readonly Issue[], path: string[] = [], cause?: IParseError) : void {
-        for (const issue of prefixIssuePath(issues, path)) {
-            this.record(issue, undefined, cause);
+        for (const issue of issues) {
+            this.record(prefixIssuePath(issue, path), undefined, cause);
         }
     }
 
@@ -108,13 +108,9 @@ export class IssueCollector implements IIssueCollector {
         errorClass?: IParseErrorConstructor,
         cause?: IParseError,
     ) : void {
-        const issue : Issue = input.parameter ?
-            { ...input, parameter: normalizeParameter(input.parameter) as `${Parameter}` } :
-            input;
-
         if (!this.first) {
             this.first = {
-                issue,
+                issue: input,
                 errorClass,
                 cause,
             };
@@ -126,7 +122,7 @@ export class IssueCollector implements IIssueCollector {
             return;
         }
 
-        this.items.push(issue);
+        this.items.push(input);
     }
 
     // -----------------------------------------------------

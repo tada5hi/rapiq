@@ -11,6 +11,7 @@ import {
     Parameter,
     SchemaRegistry,
     defineSchema,
+    issueParameter,
 } from '@rapiq/core';
 import { MongoParser } from '../../src';
 
@@ -54,10 +55,9 @@ describe('src/parameter/filters — issue traces', () => {
         expect(error?.issues).toEqual([{
             type: 'item',
             code: ErrorCode.KEY_NOT_ALLOWED,
-            parameter: Parameter.FILTERS,
             path: ['secret'],
-            key: 'secret',
             message: 'The key secret is not permitted.',
+            meta: { parameter: Parameter.FILTERS, key: 'secret' },
         }]);
     });
 
@@ -88,7 +88,7 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         expect(error?.issues).toHaveLength(1);
-        expect(error?.issues[0]?.parameter).toBe(Parameter.FILTERS);
+        expect(issueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
     });
 
     it('should carry the trace on a standalone grammar abort', () => {
@@ -146,9 +146,9 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
+        expect(issueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
         expect(error?.issues[0]).toMatchObject({
             code: ErrorCode.KEY_NOT_ALLOWED,
-            parameter: Parameter.FILTERS,
             // the interior is addressed relative to the element, but the
             // canonical position keeps the relation it hangs off
             path: ['items', 'secret'],

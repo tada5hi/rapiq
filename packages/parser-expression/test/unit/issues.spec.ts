@@ -12,6 +12,7 @@ import {
     SchemaRegistry,
     defineSchema,
     eq,
+    issueParameter,
 } from '@rapiq/core';
 import { ExpressionFiltersParser, ExpressionParser } from '../../src';
 
@@ -46,9 +47,9 @@ describe('src/parameter/filters — issue traces', () => {
 
         expect(error).toBeInstanceOf(FiltersParseError);
         expect(error?.issues).toHaveLength(1);
+        expect(issueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
         expect(error?.issues[0]).toMatchObject({
             type: 'item',
-            parameter: Parameter.FILTERS,
             code: ErrorCode.KEY_NOT_ALLOWED,
             // the dialect fails fast, but the position it failed at survives
             // the throw: the catching driver merges it rather than replacing
@@ -89,11 +90,11 @@ describe('src/parameter/filters — issue traces', () => {
         const issues = error?.issues ?? [];
 
         // the malformed expression ended its own parameter ...
-        expect(issues.some((issue) => issue.parameter === Parameter.FILTERS &&
+        expect(issues.some((issue) => issueParameter(issue) === Parameter.FILTERS &&
             issue.code === ErrorCode.SYNTAX_INVALID)).toBeTruthy();
 
         // ... and the fields parameter still reported its own drop
-        expect(issues.some((issue) => issue.parameter === Parameter.FIELDS)).toBeTruthy();
+        expect(issues.some((issue) => issueParameter(issue) === Parameter.FIELDS)).toBeTruthy();
     });
 
     it('should raise the abort as itself', () => {
@@ -159,7 +160,7 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        expect((error?.issues ?? []).map((issue) => issue.parameter)).toEqual([
+        expect((error?.issues ?? []).map((issue) => issueParameter(issue))).toEqual([
             Parameter.FIELDS,
             Parameter.SORTS,
         ]);

@@ -267,7 +267,7 @@ export function applyFiltersIndexPolicy<
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.FILTERS,
             path: [],
-            input: result.keys,
+            received: result.keys,
             message: ErrorMessage.keyCombinationNotIndexed(result.keys),
         }, fatal, FiltersParseError);
 
@@ -323,7 +323,7 @@ export function applySortsIndexPolicy<
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
             parameter: Parameter.SORTS,
             path: [],
-            input: result.keys,
+            received: result.keys,
             message: ErrorMessage.keyCombinationNotIndexed(result.keys),
         }, scope.throwOnFailure, SortsParseError);
 

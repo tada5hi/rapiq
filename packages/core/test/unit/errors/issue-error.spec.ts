@@ -18,9 +18,9 @@ import {
     isParseError, 
     markError, 
 } from '../../../src';
-import type { IssueItem } from '../../../src';
+import type { IssueInput } from '../../../src';
 
-const violation = (overrides: Partial<IssueItem> = {}) : Omit<IssueItem, 'type'> => ({
+const violation = (overrides: Partial<IssueInput> = {}) : IssueInput => ({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FIELDS,
     path: ['secret'],

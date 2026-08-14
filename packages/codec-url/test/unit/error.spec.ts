@@ -10,14 +10,15 @@ import {
     ErrorMessage,
     Parameter,
     SchemaRegistry,
-    defineIssueGroup,
-    defineIssueItem,
+    buildIssue,
     defineSchema,
 } from '@rapiq/core';
-import type { IssueItem, ParseError } from '@rapiq/core';
+import type { IssueInput, ParseError } from '@rapiq/core';
+import { defineIssueGroup } from 'blemish';
+import type { IssueItem } from 'blemish';
 import { URLParameter, createURLCodec, formatErrors } from '../../src';
 
-const issue = (overrides: Partial<IssueItem> = {}) : IssueItem => defineIssueItem({
+const issue = (overrides: Partial<IssueInput> = {}) : IssueItem => buildIssue({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FILTERS,
     path: ['items', 'secret'],

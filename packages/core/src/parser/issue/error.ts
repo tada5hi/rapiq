@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, ParseError, attachIssues } from '../../errors';
+import {
+    ErrorCode,
+    ParseError,
+    attachIssues,
+    issueParameter,
+} from '../../errors';
 import type { IParseError } from '../../errors';
 import { PARAMETER_ERROR_CLASSES } from './constants';
 import type { IIssueCollector } from './types';
@@ -45,13 +50,15 @@ export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseErr
 
     // an issue no parameter owns is nobody's dialect error: it is raised as
     // the base class rather than through one parameter's, chosen at random.
+    const parameter = issueParameter(failure.issue);
     const ErrorClass = failure.errorClass ??
-        (failure.issue.parameter ?
-            PARAMETER_ERROR_CLASSES[failure.issue.parameter] :
-            ParseError);
+        (parameter ? PARAMETER_ERROR_CLASSES[parameter] : ParseError);
 
     return new ErrorClass({
-        code: failure.issue.code ?? ErrorCode.NONE,
+        // every issue rapiq records carries one of its own codes; a foreign one
+        // can only arrive through a merged trace, and then it is the code that
+        // failure genuinely has.
+        code: (failure.issue.code ?? ErrorCode.NONE) as `${ErrorCode}`,
         message: failure.issue.message,
         issues: input.issues,
     });

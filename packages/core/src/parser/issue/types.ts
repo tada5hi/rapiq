@@ -5,12 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { Issue } from 'blemish';
 import type { Parameter } from '../../constants';
 import type {
     IParseError,
     IParseErrorConstructor,
-    Issue,
-    IssueItem,
+    IssueInput,
 } from '../../errors';
 
 /**
@@ -49,7 +49,7 @@ export interface IIssueCollector {
      * found. A policy that drops records nothing.
      */
     violation(
-        input: Omit<IssueItem, 'type'>,
+        input: IssueInput,
         throwOnFailure?: boolean,
         errorClass?: IParseErrorConstructor,
     ) : void;

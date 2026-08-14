@@ -6,7 +6,7 @@
  */
 
 import type { ErrorCode } from './code';
-import type { Issue } from './issue';
+import type { Issue } from 'blemish';
 
 export type BaseErrorOptions = {
     code?: `${ErrorCode}`,

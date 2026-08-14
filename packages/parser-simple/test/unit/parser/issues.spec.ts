@@ -18,9 +18,10 @@ import {
     SchemaRegistry,
     defineSchema,
     eq,
+    issueParameter,
     preserve,
 } from '@rapiq/core';
-import type { Issue } from '@rapiq/core';
+import type { Issue } from 'blemish';
 import { SimpleFieldsParser, SimpleParser } from '../../../src';
 import type { User } from '../../data';
 
@@ -69,7 +70,7 @@ const findIssue = (
     issues: readonly Issue[],
     parameter: `${Parameter}`,
     code?: `${ErrorCode}`,
-) => issues.find((issue) => issue.parameter === parameter &&
+) => issues.find((issue) => issueParameter(issue) === parameter &&
     (typeof code === 'undefined' || issue.code === code));
 
 describe('src/parser — issue traces', () => {
@@ -97,10 +98,11 @@ describe('src/parser — issue traces', () => {
             expect(issues[0]).toEqual({
                 type: 'item',
                 code: ErrorCode.KEY_NOT_ALLOWED,
-                parameter: Parameter.FIELDS,
                 path: ['secret'],
-                key: 'secret',
                 message: ErrorMessage.keyNotPermitted('secret'),
+                // rapiq's two meta keys: neither is reconstructible from the
+                // path, which is what earns them a place there
+                meta: { parameter: Parameter.FIELDS, key: 'secret' },
             });
         });
     });
@@ -157,7 +159,7 @@ describe('src/parser — issue traces', () => {
             // at the position that failed, which is what alias mapping makes
             // worth keeping
             expect(issue?.path).toEqual(['items', 'secret']);
-            expect(issue?.key).toBe('secret');
+            expect(issue?.meta?.key).toBe('secret');
         });
 
         it('should cap a hostile trace', () => {
@@ -184,10 +186,10 @@ describe('src/parser — issue traces', () => {
             expect(findIssue(issues, Parameter.PAGINATION)).toEqual({
                 type: 'item',
                 code: ErrorCode.LIMIT_EXCEEDED,
-                parameter: Parameter.PAGINATION,
                 path: ['limit'],
-                input: 500,
+                received: 500,
                 message: ErrorMessage.limitExceeded(50),
+                meta: { parameter: Parameter.PAGINATION },
             });
         });
 
@@ -198,7 +200,7 @@ describe('src/parser — issue traces', () => {
 
             const issue = findIssue(issues, Parameter.PAGINATION, ErrorCode.KEY_VALUE_INVALID);
             expect(issue?.path).toEqual(['offset']);
-            expect(issue?.input).toBe('abc');
+            expect(issue?.received).toBe('abc');
         });
 
         it('should report the rejection a substitution followed, and nothing else', () => {

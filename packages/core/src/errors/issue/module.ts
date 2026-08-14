@@ -5,76 +5,67 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type {
-    Issue,
-    IssueGroup,
-    IssueItem,
-} from './types';
-
-export function defineIssueItem(input: Omit<IssueItem, 'type'>) : IssueItem {
-    return { type: 'item', ...input };
-}
-
-export function defineIssueGroup(input: Omit<IssueGroup, 'type'>) : IssueGroup {
-    return { type: 'group', ...input };
-}
+import { defineIssueItem } from 'blemish';
+import type { Issue, IssueItem } from 'blemish';
+import type { Parameter } from '../../constants';
+import { normalizeParameter } from '../../utils';
+import type { IssueInput } from './types';
 
 /**
- * The leaves of a trace, in the order the parse hit them. What a consumer
- * rendering one error per rejected key wants — every leaf already knows its
- * absolute position, because merging rewrote it.
- */
-export function flattenIssueItems(input: readonly Issue[]) : IssueItem[] {
-    const output : IssueItem[] = [];
-
-    for (const issue of input) {
-        if (issue.type === 'item') {
-            output.push(issue);
-        } else {
-            output.push(...flattenIssueItems(issue.issues));
-        }
-    }
-
-    return output;
-}
-
-/**
- * Every group of a trace, outer before inner.
- */
-export function flattenIssueGroups(input: readonly Issue[]) : IssueGroup[] {
-    const output : IssueGroup[] = [];
-
-    for (const issue of input) {
-        if (issue.type === 'group') {
-            output.push(issue);
-            output.push(...flattenIssueGroups(issue.issues));
-        }
-    }
-
-    return output;
-}
-
-/**
- * Rebase a trace onto the position it was merged at, children included.
+ * Build the issue a rapiq site reports.
  *
- * The step that makes a path-less issue impossible to construct: a site
- * reports where something failed relative to itself and never has to know
- * the whole position, because whoever merges its result owns the prefix.
+ * The parameter is normalized here, at the one point where it is still
+ * typed: past this call it lives in blemish's open `meta` bag, where the
+ * deprecated `sort` spelling would survive unnoticed.
  */
-export function prefixIssuePath(input: readonly Issue[], path: string[]) : Issue[] {
-    if (path.length === 0) {
-        return [...input];
+export function buildIssue(input: IssueInput) : IssueItem {
+    const meta : Record<string, unknown> = {};
+    if (input.parameter) {
+        meta.parameter = normalizeParameter(input.parameter) as `${Parameter}`;
     }
 
-    return input.map((issue) => {
-        if (issue.type === 'group') {
-            return {
-                ...issue,
-                path: [...path, ...issue.path],
-                issues: prefixIssuePath(issue.issues, path),
-            };
-        }
+    if (typeof input.key !== 'undefined') {
+        meta.key = input.key;
+    }
 
-        return { ...issue, path: [...path, ...issue.path] };
+    const output = defineIssueItem({
+        code: input.code,
+        path: input.path,
+        message: input.message,
     });
+
+    if (Object.keys(meta).length > 0) {
+        output.meta = meta;
+    }
+
+    if (typeof input.received !== 'undefined') {
+        output.received = input.received;
+    }
+
+    return output;
+}
+
+/**
+ * The parameter that owns the policy an issue reports, or undefined for an
+ * issue no single parameter owns.
+ *
+ * `meta` is an open bag by design (issues cross library boundaries), so the
+ * read is narrowed here once rather than at every consumer.
+ */
+export function issueParameter(input: Issue) : `${Parameter}` | undefined {
+    const value = input.meta?.parameter;
+
+    return typeof value === 'string' ?
+        value as `${Parameter}` :
+        undefined;
+}
+
+/**
+ * The raw client key an issue was recorded for, when it differs from the
+ * canonical (alias-resolved) path.
+ */
+export function issueKey(input: Issue) : string | undefined {
+    const value = input.meta?.key;
+
+    return typeof value === 'string' ? value : undefined;
 }

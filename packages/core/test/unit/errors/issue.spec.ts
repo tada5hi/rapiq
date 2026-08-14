@@ -19,19 +19,17 @@ import {
     ParseError,
     attachIssues,
     buildErrorFromIssueCollector,
-    defineIssueGroup,
-    defineIssueItem,
-    flattenIssueGroups,
-    flattenIssueItems,
+    buildIssue,
     isBaseError,
     isParseError,
+    issueKey,
+    issueParameter,
     markError,
-    prefixIssuePath,
     raiseErrorFromIssueCollector,
 } from '../../../src';
-import type { IssueItem } from '../../../src';
+import type { IssueInput } from '../../../src';
 
-const violation = (overrides: Partial<IssueItem> = {}) : Omit<IssueItem, 'type'> => ({
+const violation = (overrides: Partial<IssueInput> = {}) : IssueInput => ({
     code: ErrorCode.KEY_NOT_ALLOWED,
     parameter: Parameter.FIELDS,
     path: ['secret'],
@@ -40,51 +38,47 @@ const violation = (overrides: Partial<IssueItem> = {}) : Omit<IssueItem, 'type'>
 });
 
 describe('src/errors/issue/module.ts', () => {
-    it('should build the two node kinds', () => {
-        const item = defineIssueItem(violation());
-        const group = defineIssueGroup({
-            parameter: Parameter.FIELDS,
+    it('should claim rapiq\'s two meta keys', () => {
+        const issue = buildIssue(violation({ key: 'abc' }));
+
+        // the node is blemish's; parameter and key ride in `meta` because
+        // neither is reconstructible from `path`
+        expect(issue).toEqual({
+            type: 'item',
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            path: ['secret'],
+            message: ErrorMessage.keyNotPermitted('secret'),
+            meta: { parameter: Parameter.FIELDS, key: 'abc' },
+        });
+        expect(issueParameter(issue)).toBe(Parameter.FIELDS);
+        expect(issueKey(issue)).toBe('abc');
+    });
+
+    it('should leave meta off an issue that claims neither', () => {
+        const issue = buildIssue({
+            code: ErrorCode.INPUT_INVALID,
             path: [],
-            message: 'failed',
-            issues: [item],
+            message: 'nope',
         });
 
-        expect(item.type).toBe('item');
-        expect(group.type).toBe('group');
+        expect(issue.meta).toBeUndefined();
+        expect(issueParameter(issue)).toBeUndefined();
+        expect(issueKey(issue)).toBeUndefined();
     });
 
-    it('should flatten a tree to its leaves', () => {
-        const inner = defineIssueItem(violation({ path: ['items', 'secret'] }));
-        const group = defineIssueGroup({
-            path: ['items'],
-            message: 'failed',
-            issues: [inner],
-        });
-        const outer = defineIssueItem(violation());
-
-        expect(flattenIssueItems([group, outer])).toEqual([inner, outer]);
-        expect(flattenIssueGroups([group, outer])).toEqual([group]);
+    it('should carry the offending value as blemish names it', () => {
+        expect(buildIssue(violation({ received: 500 })).received).toBe(500);
     });
 
-    it('should rebase a merged trace, children included', () => {
-        const nested = prefixIssuePath([
-            defineIssueGroup({
-                path: ['title'],
-                message: 'failed',
-                issues: [defineIssueItem(violation({ path: ['title'] }))],
-            }),
-        ], ['items']);
-
-        // a site reports where it failed relative to itself; the position it
-        // ends up at is whoever merged it
-        expect(nested[0]?.path).toEqual(['items', 'title']);
-        expect(flattenIssueItems(nested)[0]?.path).toEqual(['items', 'title']);
-    });
-
-    it('should leave a trace merged at the root untouched', () => {
-        const issues = [defineIssueItem(violation())];
-
-        expect(prefixIssuePath(issues, [])).toEqual(issues);
+    it('should ignore a meta bag another library wrote', () => {
+        // meta is an open bag by design; a foreign key is not rapiq's to read
+        expect(issueParameter({
+            type: 'item',
+            code: 'value_invalid',
+            path: [],
+            message: 'nope',
+            meta: { parameter: 42 },
+        })).toBeUndefined();
     });
 });
 
@@ -108,9 +102,9 @@ describe('src/parser/issue/module.ts', () => {
         expect(collector.issues).toEqual([{
             type: 'item',
             code: ErrorCode.KEY_NOT_ALLOWED,
-            parameter: Parameter.FIELDS,
             path: ['secret'],
             message: ErrorMessage.keyNotPermitted('secret'),
+            meta: { parameter: Parameter.FIELDS },
         }]);
     });
 
@@ -155,7 +149,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should take over the trace a caught error carries', () => {
         const origin = FiltersParseError.keyNotPermitted('secret');
-        attachIssues(origin, [defineIssueItem(violation({
+        attachIssues(origin, [buildIssue(violation({
             parameter: Parameter.FILTERS,
             path: ['secret'],
         }))]);
@@ -168,9 +162,9 @@ describe('src/parser/issue/module.ts', () => {
         expect(collector.issues).toEqual([{
             type: 'item',
             code: ErrorCode.KEY_NOT_ALLOWED,
-            parameter: Parameter.FILTERS,
             path: ['items', 'secret'],
             message: ErrorMessage.keyNotPermitted('secret'),
+            meta: { parameter: Parameter.FILTERS },
         }]);
         expect(buildErrorFromIssueCollector(collector)).toBe(origin);
     });
@@ -179,7 +173,7 @@ describe('src/parser/issue/module.ts', () => {
         const collector = new IssueCollector();
         collector.violation(violation({ parameter: Parameter.SORT }), true);
 
-        expect(collector.issues[0]?.parameter).toBe(Parameter.SORTS);
+        expect(issueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
     });
 
     it('should cap a hostile trace without losing the failure', () => {
@@ -224,7 +218,7 @@ describe('src/errors/base.ts', () => {
         const error = new BaseError({
             message: 'failed',
             code: ErrorCode.INPUT_INVALID,
-            issues: [defineIssueItem(violation())],
+            issues: [buildIssue(violation())],
         });
 
         // an error's enumerable shape decides deep equality and what

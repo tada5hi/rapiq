@@ -10,9 +10,9 @@ import {
     ErrorCode,
     ErrorMessage,
     attachIssues,
-    defineIssueItem,
+    buildIssue,
 } from '../../errors';
-import type { IssueItem, ParseError } from '../../errors';
+import type { IssueInput, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
 import { PARAMETER_ERROR_CLASSES } from '../../parser/issue/constants';
@@ -413,7 +413,7 @@ export class ResolutionScope<
             return;
         }
 
-        const issue : Omit<IssueItem, 'type'> = {
+        const issue : IssueInput = {
             code: input.code,
             parameter: this.parameter,
             path: input.path ?? [...this.path],
@@ -425,7 +425,7 @@ export class ResolutionScope<
         }
 
         if (typeof input.input !== 'undefined') {
-            issue.input = input.input;
+            issue.received = input.input;
         }
 
         if (this.issueCollector) {
@@ -825,7 +825,7 @@ export class ResolutionScope<
                 KEY_RESOLUTION_FAILURES[KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE];
             const name = segment ?? input;
 
-            const issue : Omit<IssueItem, 'type'> = {
+            const issue : IssueInput = {
                 code: failure.code,
                 parameter: this.parameter,
                 path: segment ? [...this.path, segment] : [...this.path],
@@ -879,8 +879,8 @@ export class ResolutionScope<
      * expression dialect resolves under an always-throwing one) reports where
      * it failed rather than naming its parameter and nothing else.
      */
-    protected raising<T extends ParseError>(error: T, issue: Omit<IssueItem, 'type'>) : T {
-        attachIssues(error, [defineIssueItem(issue)]);
+    protected raising<T extends ParseError>(error: T, issue: IssueInput) : T {
+        attachIssues(error, [buildIssue(issue)]);
 
         return error;
     }
