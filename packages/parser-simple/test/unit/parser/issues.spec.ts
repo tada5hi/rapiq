@@ -8,6 +8,7 @@
 import {
     ErrorCode,
     ErrorMessage,
+    FieldsParseError,
     MAX_ISSUES,
     Parameter,
     ParseError,
@@ -102,6 +103,45 @@ describe('src/parser — issue traces', () => {
                 // path, which is what earns them a place there
                 meta: { parameter: Parameter.FIELDS, key: 'secret' },
             });
+        });
+    });
+
+    describe('what a failure is raised as', () => {
+        it('should name the parameter when a single-parameter parse fails', () => {
+            const parser = new SimpleFieldsParser(buildRegistry(true));
+
+            const { error } = trace(() => parser.parse(['secret'], { schema: 'user' }));
+
+            // the caller asked about one parameter, so saying which one is the
+            // whole truth — and it is the class that parameter always threw
+            expect(error).toBeInstanceOf(FieldsParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+        });
+
+        it('should name it for a parameter driver too', () => {
+            const parser = new SimpleFieldsParser(buildRegistry(true));
+
+            const { error } = trace(() => parser.parseParameter(['secret'], { schema: 'user' }, []));
+
+            expect(error).toBeInstanceOf(FieldsParseError);
+        });
+
+        it('should name none when a query parse fails', () => {
+            const parser = new SimpleParser(buildRegistry(true));
+
+            const { error, issues } = trace(() => parser.parse({
+                fields: ['nope1'],
+                filters: { nope2: 'x' },
+            }, { schema: 'user' }));
+
+            // two parameters rejected input: naming one would describe a
+            // subset, so the sub-parser failures are merged into a general one
+            expect(error?.constructor).toBe(ParseError);
+            expect(error).not.toBeInstanceOf(FieldsParseError);
+            expect(issues.map((issue) => extractIssueParameter(issue))).toEqual([
+                Parameter.FIELDS,
+                Parameter.FILTERS,
+            ]);
         });
     });
 

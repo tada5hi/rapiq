@@ -29,7 +29,7 @@ export interface IIssueCollector {
      * Record a thrown parse error as the issue it never got to be, or its
      * whole trace when it carries one.
      */
-    error(input: IParseError, parameter: `${Parameter}`, path?: string[]) : void;
+    error(input: IParseError, parameter?: `${Parameter}`, path?: string[]) : void;
 
     /**
      * Take over the issues of a nested trace, rebased onto the position it

@@ -67,7 +67,7 @@ export class IssueCollector implements IIssueCollector {
      * a summary of it: the positions its sites recorded are the ones no
      * enclosing site could reconstruct.
      */
-    error(input: IParseError, parameter: `${Parameter}`, path: string[] = []) : void {
+    error(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
         if (issues.length > 0) {
             this.merge(issues, path);

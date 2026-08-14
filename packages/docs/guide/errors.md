@@ -126,10 +126,17 @@ try {
 ```
 
 ::: warning Upgrading from 2.0?
-A throwing parse used to fail at the first violation and raise that parameter's own class, so `catch (e) { if (e instanceof FieldsParseError) }` matched. It now aggregates and raises `ParseError` (`inputRejected`) instead. Use [`isParseError`](#recognizing-an-error) to recognize a client-input failure, and branch on `e.issues` for what was rejected. The parameter classes are unchanged where a single violation is thrown outside a parse.
+A throwing parse used to fail at the first violation and raise that parameter's own class. A whole-query parse now aggregates and raises `ParseError` (`inputRejected`) instead, so `catch (e) { if (e instanceof FieldsParseError) }` no longer matches there. Use [`isParseError`](#recognizing-an-error) to recognize a client-input failure, and branch on `e.issues` for what was rejected. Single-parameter parses still raise their parameter's class.
 :::
 
-The class is `ParseError` and the code is `INPUT_REJECTED`, however many violations there were and whichever parameters they came from. An error naming one of them would describe a *subset* of the failure, and a consumer branching on that class would act on the part it happened to be handed. The parameter-specific classes (`FieldsParseError`, `FiltersParseError`, …) stay what a SINGLE violation throws where no trace is collecting — a `ResolutionScope` used outside a parse — which is the case where naming one parameter is the whole truth.
+The code is `INPUT_REJECTED`, and the class says which parse failed:
+
+| Call | Raises |
+|---|---|
+| a whole-query `parse()` / `decode()` | `ParseError` |
+| a single-parameter parse (`parseFields`, `SimpleSortsParser.parse`, …) | that parameter's class (`FieldsParseError`, `SortsParseError`, …) |
+
+A single-parameter parse names its parameter because the caller asked about one parameter, so saying which one is the whole truth. A query parse names none: a request can violate policies in four parameters at once, an error advertising one of them would describe a *subset*, and a consumer branching on that class would act on the part it happened to be handed. The sub-parser failures a query parse catches are merged into its trace rather than raised, so nothing is lost by generalizing — `error.issues` still says which parameter each rejection came from.
 
 Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. Every issue is a **failure**: there is no severity, and nothing a parse does without rejecting anything (a substituted default, an entry a rejected relation dragged along) is recorded.
 

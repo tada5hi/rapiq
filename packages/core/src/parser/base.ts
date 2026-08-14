@@ -19,6 +19,7 @@ import {
     stringifyKey,
 } from '../utils';
 import { IssueCollector } from './issue';
+import { PARAMETER_ERROR_CLASSES } from './issue/constants';
 import type { IIssueCollector } from './issue';
 import type { IParser, ParseTrace } from './types';
 
@@ -67,13 +68,49 @@ export abstract class BaseParser<
      * against the collector at each step, which meant passing both everywhere
      * and made an inverted comparison — a rejection silently degrading into a
      * drop — a plain argument-order mistake.
+     *
+     * It also carries the parameter the call parses, which decides what a
+     * failure is raised AS: see {@link raise}. A query parse opens its trace
+     * without one, because it speaks for all five.
      */
-    protected beginIssues(driver?: IIssueCollector) : ParseTrace {
+    protected beginIssues(
+        driver?: IIssueCollector,
+        parameter?: `${Parameter}`,
+    ) : ParseTrace {
         if (driver) {
-            return { collector: driver, owned: false };
+            return {
+                collector: driver, 
+                owned: false, 
+                parameter, 
+            };
         }
 
-        return { collector: new IssueCollector(), owned: true };
+        return {
+            collector: new IssueCollector(),
+            owned: true,
+            parameter,
+        };
+    }
+
+    /**
+     * The failure a trace stands for, raised as the parse that owns it.
+     *
+     * A single-parameter parse names its parameter (`parseFields` fails with
+     * `FieldsParseError`): the caller asked about one parameter, so saying
+     * which one is the whole truth, and it is the class that parameter has
+     * always thrown. A query parse names none, because a request can violate
+     * policies in four parameters at once and an error advertising one of them
+     * describes a SUBSET — a consumer branching on the class would act on the
+     * part it happened to be handed. Either way the code is `INPUT_REJECTED`
+     * and `error.issues` is what actually went wrong; the sub-parser failures
+     * a query parse catches are merged into its trace rather than raised.
+     */
+    protected raise(trace: ParseTrace) : ParseError {
+        const ErrorClass = trace.parameter ?
+            PARAMETER_ERROR_CLASSES[trace.parameter] :
+            ParseError;
+
+        return ErrorClass.inputRejected(trace.collector.issues);
     }
 
     /**
@@ -91,7 +128,7 @@ export abstract class BaseParser<
             return;
         }
 
-        throw ParseError.inputRejected(trace.collector.issues);
+        throw this.raise(trace);
     }
 
     /**
@@ -107,9 +144,9 @@ export abstract class BaseParser<
         parameter: `${Parameter}`,
         fn: (collector: IIssueCollector) => T,
     ) : T {
-        const trace = this.beginIssues(driver);
+        const trace = this.beginIssues(driver, parameter);
 
-        const output = this.recordFailure(trace, parameter, () => fn(trace.collector));
+        const output = this.recordFailure(trace, () => fn(trace.collector));
         this.finishIssues(trace);
 
         return output;
@@ -120,9 +157,9 @@ export abstract class BaseParser<
         parameter: `${Parameter}`,
         fn: (collector: IIssueCollector) => Promise<T>,
     ) : Promise<T> {
-        const trace = this.beginIssues(driver);
+        const trace = this.beginIssues(driver, parameter);
 
-        const output = await this.recordFailureAsync(trace, parameter, () => fn(trace.collector));
+        const output = await this.recordFailureAsync(trace, () => fn(trace.collector));
         this.finishIssues(trace);
 
         return output;
@@ -145,47 +182,35 @@ export abstract class BaseParser<
      * propagates: that parse catches the abort per parameter, keeps the other
      * four parsing, and decides.
      */
-    protected recordFailure<T>(
-        trace: ParseTrace,
-        parameter: `${Parameter}`,
-        fn: () => T,
-    ) : T {
+    protected recordFailure<T>(trace: ParseTrace, fn: () => T) : T {
         try {
             return fn();
         } catch (e) {
-            throw this.failure(e, trace, parameter);
+            throw this.failure(e, trace);
         }
     }
 
-    protected async recordFailureAsync<T>(
-        trace: ParseTrace,
-        parameter: `${Parameter}`,
-        fn: () => Promise<T>,
-    ) : Promise<T> {
+    protected async recordFailureAsync<T>(trace: ParseTrace, fn: () => Promise<T>) : Promise<T> {
         try {
             return await fn();
         } catch (e) {
-            throw this.failure(e, trace, parameter);
+            throw this.failure(e, trace);
         }
     }
 
     /**
      * The error a caught throw should leave the call as.
      */
-    protected failure(
-        input: unknown,
-        trace: ParseTrace,
-        parameter: `${Parameter}`,
-    ) : unknown {
+    protected failure(input: unknown, trace: ParseTrace) : unknown {
         if (!isParseError(input) || !trace.owned) {
             return input;
         }
 
         if (!trace.collector.failed) {
-            trace.collector.error(input, parameter);
+            trace.collector.error(input, trace.parameter);
         }
 
-        return ParseError.inputRejected(trace.collector.issues);
+        return this.raise(trace);
     }
 
     protected getBaseSchema<

@@ -53,6 +53,12 @@ export type ParseParameterOptions<
 export type ParseTrace = {
     collector: IIssueCollector,
     owned: boolean,
+    /**
+     * The parameter this call parses, when it parses exactly one. Decides what
+     * a failure is raised as: its parameter's own error class, or the general
+     * one for a query parse, which speaks for all five.
+     */
+    parameter?: `${Parameter}`,
 };
 
 export type RelationLedger = PendingKeyValidation[];
