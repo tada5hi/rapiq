@@ -163,21 +163,22 @@ export class MongoFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFilters {
-        const {
-            scope,
-            parsed,
-            issueCollector: trace,
-        } = this.prepare(input, options, ledger, issueCollector);
+        const trace = this.beginIssues(issueCollector);
 
-        const output = !parsed ?
-            this.buildDefaultOutput(scope) :
-            (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, trace)) as
-                IFilters | undefined ?? this.buildDefaultOutput(scope));
+        const output = this.recordFailure(issueCollector, trace, Parameter.FILTERS, () => {
+            const { scope, parsed } = this.prepare(input, options, ledger, trace);
+
+            return !parsed ?
+                this.buildDefaultOutput(scope) :
+                (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, trace)) as
+                    IFilters | undefined ?? this.buildDefaultOutput(scope));
+        });
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into.
+        // the trace it was recorded into. A grammar abort takes the same route
+        // out, so it cannot escape a directly driven call unrecorded.
         this.finishIssues(issueCollector, trace);
 
         return output;
@@ -189,16 +190,16 @@ export class MongoFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        const {
-            scope,
-            parsed,
-            issueCollector: trace,
-        } = this.prepare(input, options, ledger, issueCollector);
+        const trace = this.beginIssues(issueCollector);
 
-        const output = !parsed ?
-            this.buildDefaultOutput(scope) :
-            (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, trace)) as
-                IFilters | undefined ?? this.buildDefaultOutput(scope));
+        const output = await this.recordFailureAsync(issueCollector, trace, Parameter.FILTERS, async () => {
+            const { scope, parsed } = this.prepare(input, options, ledger, trace);
+
+            return !parsed ?
+                this.buildDefaultOutput(scope) :
+                (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, trace)) as
+                    IFilters | undefined ?? this.buildDefaultOutput(scope));
+        });
 
         this.finishIssues(issueCollector, trace);
 

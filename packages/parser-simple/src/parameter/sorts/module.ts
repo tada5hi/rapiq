@@ -100,15 +100,24 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : ISorts {
-        const trace = this.build(input, options, ledger, issueCollector);
+        const collector = this.beginIssues(issueCollector);
+
+        const output = this.recordFailure(
+            issueCollector,
+            collector,
+            Parameter.SORTS,
+            () => this.build(input, options, ledger, collector).output,
+        );
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into.
-        this.finishIssues(issueCollector, trace.issueCollector);
+        // the trace it was recorded into. A structural abort takes the same
+        // route out through recordFailure, so it cannot escape a directly
+        // driven call before anything recorded it.
+        this.finishIssues(issueCollector, collector);
 
-        return trace.output;
+        return output;
     }
 
     async parseParameterAsync<
@@ -119,15 +128,24 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<ISorts> {
-        const trace = await this.buildAsync(input, options, ledger, issueCollector);
+        const collector = this.beginIssues(issueCollector);
+
+        const output = await this.recordFailureAsync(
+            issueCollector,
+            collector,
+            Parameter.SORTS,
+            async () => (await this.buildAsync(input, options, ledger, collector)).output,
+        );
 
         // a no-op when the query orchestrator handed down its trace, and the
         // fail-fast raise when this parser was driven directly: a violation
         // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into.
-        this.finishIssues(issueCollector, trace.issueCollector);
+        // the trace it was recorded into. A structural abort takes the same
+        // route out through recordFailure, so it cannot escape a directly
+        // driven call before anything recorded it.
+        this.finishIssues(issueCollector, collector);
 
-        return trace.output;
+        return output;
     }
 
     protected build<

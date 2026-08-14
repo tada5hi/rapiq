@@ -268,6 +268,19 @@ describe('src/parser — issue traces', () => {
                 .toThrow(FieldsParseError);
         });
 
+        it('should carry the trace on an abort it was driven through', () => {
+            const parser = new SimpleFieldsParser(buildRegistry());
+
+            // the driver method has the same obligation as the entry point:
+            // a structural abort ends the parameter by throwing, so it has to
+            // be recorded on the way out or the trace comes back empty
+            const { error, issues } = trace(() => parser.parseParameter(['__proto__'], { schema: 'user' }, []));
+
+            expect(error).toBeInstanceOf(ParseError);
+            expect(error?.code).toBe(ErrorCode.INPUT_INVALID);
+            expect(issues).toHaveLength(1);
+        });
+
         it('should carry the trace on every standalone abort', () => {
             const registry = buildRegistry();
 

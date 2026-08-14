@@ -167,7 +167,23 @@ export class ExpressionFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFilters {
-        return this.build(input, options, ledger, issueCollector).output;
+        const trace = this.beginIssues(issueCollector);
+
+        const output = this.recordFailure(
+            issueCollector,
+            trace,
+            Parameter.FILTERS,
+            () => this.build(input, options, ledger, trace).output,
+        );
+
+        // a no-op when the query orchestrator handed down its trace, and the
+        // fail-fast raise when this parser was driven directly: a violation
+        // must never degrade into a silent drop just because nobody raised
+        // the trace it was recorded into. The dialect resolves keys under an
+        // always-throwing scope, so the abort route is the usual one here.
+        this.finishIssues(issueCollector, trace);
+
+        return output;
     }
 
 
@@ -177,7 +193,18 @@ export class ExpressionFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger, issueCollector)).output;
+        const trace = this.beginIssues(issueCollector);
+
+        const output = await this.recordFailureAsync(
+            issueCollector,
+            trace,
+            Parameter.FILTERS,
+            async () => (await this.buildAsync(input, options, ledger, trace)).output,
+        );
+
+        this.finishIssues(issueCollector, trace);
+
+        return output;
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(

@@ -13,7 +13,7 @@ import {
     defineSchema,
     eq,
 } from '@rapiq/core';
-import { ExpressionParser } from '../../src';
+import { ExpressionFiltersParser, ExpressionParser } from '../../src';
 
 type Row = { id: string, name: string };
 
@@ -130,6 +130,23 @@ describe('src/parameter/filters — issue traces', () => {
         const query = parser.parse({ filters: "eq(name, 'x')" }, { schema: 'row' });
 
         expect(query.filters.value).toHaveLength(1);
+    });
+
+    it('should carry the trace when driven as a parameter', () => {
+        const parser = new ExpressionFiltersParser(buildRegistry());
+
+        let error : FiltersParseError | undefined;
+        try {
+            parser.parseParameter("eq(secret, 'x')", { schema: 'row' }, []);
+        } catch (e) {
+            error = e as FiltersParseError;
+        }
+
+        // the driver method owns the trace lifecycle too: whoever starts one
+        // raises it, so a rejection never degrades into a silent drop
+        expect(error?.code).toBe(ErrorCode.KEY_NOT_ALLOWED);
+        expect(error?.issues).toHaveLength(1);
+        expect(error?.issues[0]?.path).toEqual(['secret']);
     });
 
     it('should report the drops of the parameters it delegates', () => {
