@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { INSTANCEOF_PROPERTY } from '@ebec/core';
+import { BASE_ERROR_INSTANCE, INSTANCEOF_PROPERTY } from '@ebec/core';
 import {
     BASE_ERROR_MARKER,
     BaseError,
@@ -46,7 +46,11 @@ describe('src/errors/base.ts (serialization)', () => {
                 message: ErrorMessage.keyNotPermitted('secret'),
                 meta: { parameter: Parameter.FILTERS },
             }],
+            // the base substrate marks itself first, so ebec's own guard
+            // recognizes a rapiq error through the chain rather than by
+            // duck-typing it
             [INSTANCEOF_PROPERTY]: [
+                BASE_ERROR_INSTANCE.description,
                 BASE_ERROR_MARKER.description,
                 PARSE_ERROR_MARKER.description,
             ],
@@ -81,8 +85,11 @@ describe('src/errors/base.ts (serialization)', () => {
 
         // deep equality reads enumerable own properties, NOT toJSON, so a
         // trace that varies with the input must not decide error equality
-        expect(Object.keys(new ParseError({ ...options, issues: [issue()] }))).toEqual(['code']);
         expect(new ParseError({ ...options, issues: [issue()] }))
             .toEqual(new ParseError({ ...options, issues: [] }));
+
+        // pinned in ONE place: the members come from the base substrate, and
+        // a change there should fail here rather than in three unrelated specs
+        expect(Object.keys(new ParseError(options))).toEqual(['code', 'cause', 'errors']);
     });
 });

@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { markInstanceof } from '@ebec/core';
+import { INSTANCEOF_PROPERTY, markInstanceof } from '@ebec/core';
 import {
     BASE_ERROR_MARKER,
     BaseError,
@@ -230,7 +230,7 @@ describe('src/errors/base.ts', () => {
 
         // an error's enumerable shape decides deep equality, so the trace
         // must not move there (the wire form is serialization.spec.ts)
-        expect(Object.keys(error)).toEqual(['code']);
+        expect(Object.keys(error)).not.toContain('issues');
         expect(error.issues).toHaveLength(1);
     });
 });
@@ -269,6 +269,9 @@ describe('src/errors/check.ts', () => {
     });
 
     it('should keep the brand out of the enumerable shape', () => {
-        expect(Object.keys(FieldsParseError.inputInvalid())).toEqual(['code']);
+        const keys = Object.keys(FieldsParseError.inputInvalid());
+
+        expect(keys).not.toContain(INSTANCEOF_PROPERTY);
+        expect(keys.some((key) => key.includes('rapiq'))).toBeFalsy();
     });
 });

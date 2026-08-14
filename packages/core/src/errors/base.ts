@@ -5,12 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { 
-    INSTANCEOF_PROPERTY, 
-    markInstanceof, 
-    serializeInstanceofChain, 
-    toSerializable, 
-} from '@ebec/core';
+import { BaseError as EbecBaseError, markInstanceof } from '@ebec/core';
 import type { Issue } from 'blemish';
 import type { ObjectLiteral } from '../types';
 import { BASE_ERROR_MARKER } from './check';
@@ -31,16 +26,26 @@ export function attachIssues(error: ObjectLiteral, issues: readonly Issue[]) : v
     });
 }
 
-export class BaseError extends Error implements IBaseError {
-    public readonly code : `${ErrorCode}`;
-
+/**
+ * The root of rapiq's error hierarchy.
+ *
+ * Extends `@ebec/core`'s, the house error substrate, for everything an error
+ * base does the same way everywhere: the class name, the stack capture, the
+ * `code`, the `cause` passthrough and the brand chain. rapiq adds the one
+ * thing that is its own — the trace — and narrows `code` to its vocabulary.
+ *
+ * What it does NOT take is the group half. `errors: Error[]` stays unset,
+ * because everything rapiq aggregates is a client-input rejection, which is
+ * data and lives in {@link issues}; minting an `Error` per rejected key is the
+ * carrier this design exists to avoid.
+ */
+export class BaseError extends EbecBaseError implements IBaseError {
     /**
-     * The class that was raised. The native default is `'Error'` for every
-     * subclass, which makes a log line and the wire form say nothing about
-     * which failure this is. Non-enumerable, like the native property it
-     * replaces.
+     * Narrowed to rapiq's vocabulary. Assigned by the base constructor, which
+     * only generates one from the class name when the caller passes none —
+     * rapiq always passes one.
      */
-    declare public readonly name : string;
+    declare public readonly code : `${ErrorCode}`;
 
     /**
      * Every rejection the operation recorded, in the order it hit them.
@@ -55,55 +60,25 @@ export class BaseError extends Error implements IBaseError {
     declare public readonly issues : readonly Issue[];
 
     constructor(input: BaseErrorOptions | string) {
-        if (typeof input === 'string') {
-            super(input);
+        super(typeof input === 'string' ?
+            input :
+            { ...input, code: input.code || ErrorCode.NONE });
 
-            this.nameFromClass();
-
-            this.code = ErrorCode.NONE;
-            attachIssues(this, []);
-            markInstanceof(this, BASE_ERROR_MARKER);
-        } else {
-            super(input.message, typeof input.cause === 'undefined' ?
-                undefined :
-                { cause: input.cause });
-
-            this.nameFromClass();
-
-            this.code = input.code || ErrorCode.NONE;
-            attachIssues(this, input.issues ?? []);
-            markInstanceof(this, BASE_ERROR_MARKER);
-        }
-    }
-
-    protected nameFromClass() : void {
-        Object.defineProperty(this, 'name', {
-            value: this.constructor.name,
-            enumerable: false,
-            writable: true,
-            configurable: true,
-        });
+        attachIssues(this, typeof input === 'string' ? [] : input.issues ?? []);
+        markInstanceof(this, BASE_ERROR_MARKER);
     }
 
     /**
-     * The wire form: what the far side of a boundary needs to act on this
-     * failure, which is the trace, plus the brand chain so `isParseError`
-     * still answers once the error is a plain object again.
+     * The wire form: the base's, plus the one thing rapiq adds.
      *
-     * rapiq's own shape rather than ebec's, because what rapiq aggregates is
-     * `issues` — data — and never `errors`, a bag of child `Error`s it has no
-     * use for.
+     * An error whose trace does not survive the boundary has nothing to say on
+     * the far side, and the `@instanceof` chain the base emits is what lets
+     * `isParseError` answer for the plain object that arrives.
      */
-    toJSON() : SerializedError {
+    override toJSON() : SerializedError {
         return {
-            name: this.name,
-            message: this.message,
-            code: this.code,
+            ...super.toJSON(),
             issues: this.issues,
-            ...(typeof this.cause === 'undefined' ?
-                {} :
-                { cause: toSerializable(this.cause) }),
-            [INSTANCEOF_PROPERTY]: serializeInstanceofChain(this),
-        };
+        } as SerializedError;
     }
 }

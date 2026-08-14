@@ -252,7 +252,7 @@ hop or a gateway:
     "message": "The input was rejected: 1 violation.",
     "code": "inputRejected",
     "issues": [{ "type": "item", "code": "keyNotAllowed", "path": ["secret"], "message": "…" }],
-    "@instanceof": ["@rapiq/core/error", "@rapiq/core/error/parse"]
+    "@instanceof": ["@ebec/core/BaseError", "@rapiq/core/error", "@rapiq/core/error/parse"]
 }
 ```
 
@@ -260,9 +260,11 @@ The `@instanceof` chain is what makes the guards keep working on the far side: `
 matches a **plain object** carrying the chain, not just a live error, so a receiver can
 branch on it without reconstructing anything. `instanceof` could never answer that question.
 
-The chain mechanism is [`@ebec/core`](https://github.com/tada5hi/ebec)'s, shared with the
-other libraries in the family. What rides in the payload is rapiq's own: `issues`, and never
-a list of child errors — everything rapiq aggregates is a rejection, which is data.
+rapiq's errors extend [`@ebec/core`](https://github.com/tada5hi/ebec)'s, the error substrate
+the other libraries in the family share, which is where the chain, the class name, the stack
+capture and this payload come from. rapiq adds the one part that is its own: `issues`. It
+does **not** use ebec's group mechanism (`errors: Error[]`), because everything rapiq
+aggregates is a rejection, which is data.
 
 ## Mapping to HTTP responses
 
