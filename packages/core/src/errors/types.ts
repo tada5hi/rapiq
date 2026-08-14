@@ -5,11 +5,24 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ErrorCode } from './code';
+import type { IBaseError as IError } from '@ebec/core';
 import type { Issue } from 'blemish';
+import type { ErrorCode } from './code';
+
+/**
+ * rapiq's own codes, without closing the vocabulary.
+ *
+ * The literals keep autocomplete and catch a typo in `e.code === '…'`, which
+ * matters because branching on `code` is the documented machine contract. The
+ * open half is not slack: a trace can merge issues another library recorded,
+ * and a consumer's own error class carries its own code, so a closed union
+ * would be describing a world rapiq does not control. Same idiom blemish uses
+ * for `IssueItem.code`, so the two agree.
+ */
+export type ErrorCodeInput = `${ErrorCode}` | (string & {});
 
 export type BaseErrorOptions = {
-    code?: `${ErrorCode}`,
+    code?: ErrorCodeInput,
     message: string,
     /**
      * The originating error, passed through to the native ES2022 `cause`
@@ -23,11 +36,11 @@ export type BaseErrorOptions = {
 };
 
 /**
- * The shape every error rapiq raises satisfies: a native `Error` carrying a
- * machine-readable {@link ErrorCode} and the trace it was raised from.
+ * The shape every error rapiq raises satisfies: an `@ebec/core` error carrying
+ * a machine-readable {@link ErrorCode} and the trace it was raised from.
  */
-export interface IBaseError extends Error {
-    readonly code : `${ErrorCode}`,
+export interface IBaseError extends IError {
+    readonly code : ErrorCodeInput,
     readonly issues : readonly Issue[],
 }
 
@@ -48,7 +61,7 @@ export interface IParseError extends IBaseError {}
 export type SerializedError = {
     name: string,
     message: string,
-    code: `${ErrorCode}`,
+    code: ErrorCodeInput,
     issues: readonly Issue[],
     cause?: unknown,
     '@instanceof': string[],

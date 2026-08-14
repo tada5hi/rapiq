@@ -6,7 +6,7 @@
  */
 
 import type { Parameter } from '../../constants';
-import type { ErrorCode } from '../code';
+import type { ErrorCodeInput } from '../types';
 
 /**
  * What a rapiq site reports when it rejects client input.
@@ -37,7 +37,7 @@ export type IssueInput = {
     /**
      * Machine contract, shared with the thrown error's `code`.
      */
-    code: `${ErrorCode}`,
+    code: ErrorCodeInput,
     /**
      * Canonical (alias-resolved) position, leaf included: `['items', 'title']`
      * for `items.title`. Empty for a parameter-level issue.

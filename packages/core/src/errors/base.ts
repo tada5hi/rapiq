@@ -26,13 +26,6 @@ import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
  */
 export class BaseError extends EbecBaseError implements IBaseError {
     /**
-     * Narrowed to rapiq's vocabulary. Assigned by the base constructor, which
-     * only generates one from the class name when the caller passes none —
-     * rapiq always passes one.
-     */
-    declare public readonly code : `${ErrorCode}`;
-
-    /**
      * Every rejection the operation recorded, in the order it hit them.
      * Empty unless the operation collected a trace.
      *
