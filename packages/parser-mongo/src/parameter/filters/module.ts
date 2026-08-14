@@ -94,9 +94,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = this.recordFailure(undefined, issueCollector, Parameter.FILTERS, () => {
+        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
             const {
                 scope, 
                 parsed, 
@@ -117,10 +115,6 @@ export class MongoFiltersParser extends BaseParser<
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -128,9 +122,7 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.FILTERS, async () => {
+        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
             const {
                 scope, 
                 parsed, 
@@ -151,10 +143,6 @@ export class MongoFiltersParser extends BaseParser<
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -163,9 +151,11 @@ export class MongoFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFilters {
-        const trace = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(issueCollector, trace, Parameter.FILTERS, () => {
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own. A grammar abort takes the same route out,
+        // so it cannot escape a directly driven call unrecorded.
+        return this.withTrace(issueCollector, Parameter.FILTERS, (trace) => {
             const { scope, parsed } = this.prepare(input, options, ledger, trace);
 
             return !parsed ?
@@ -173,15 +163,6 @@ export class MongoFiltersParser extends BaseParser<
                 (applyFiltersSchemaValidation(parsed, scope.schema, options.context, validation(options, trace)) as
                     IFilters | undefined ?? this.buildDefaultOutput(scope));
         });
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A grammar abort takes the same route
-        // out, so it cannot escape a directly driven call unrecorded.
-        this.finishIssues(issueCollector, trace);
-
-        return output;
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -190,9 +171,7 @@ export class MongoFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        const trace = this.beginIssues(issueCollector);
-
-        const output = await this.recordFailureAsync(issueCollector, trace, Parameter.FILTERS, async () => {
+        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (trace) => {
             const { scope, parsed } = this.prepare(input, options, ledger, trace);
 
             return !parsed ?
@@ -200,10 +179,6 @@ export class MongoFiltersParser extends BaseParser<
                 (await applyFiltersSchemaValidationAsync(parsed, scope.schema, options.context, validation(options, trace)) as
                     IFilters | undefined ?? this.buildDefaultOutput(scope));
         });
-
-        this.finishIssues(issueCollector, trace);
-
-        return output;
     }
 
     parseTyped<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -232,13 +207,12 @@ export class MongoFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : {
         scope: FiltersScope,
         parsed: IFilters | null,
         issueCollector: IIssueCollector,
     } {
-        const issueCollector = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,

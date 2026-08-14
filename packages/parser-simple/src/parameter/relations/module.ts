@@ -43,9 +43,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = this.recordFailure(undefined, issueCollector, Parameter.RELATIONS, () => {
+        return this.withTrace(undefined, Parameter.RELATIONS, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
@@ -54,10 +52,6 @@ export class SimpleRelationsParser extends BaseParser<
                 issueCollector,
             }));
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     override async parseAsync<
@@ -67,9 +61,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.RELATIONS, async () => {
+        return this.withTraceAsync(undefined, Parameter.RELATIONS, async (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
@@ -78,10 +70,6 @@ export class SimpleRelationsParser extends BaseParser<
                 issueCollector,
             }));
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     parseParameter<
@@ -92,24 +80,12 @@ export class SimpleRelationsParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IRelations {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            collector,
-            Parameter.RELATIONS,
-            () => this.build(input, options, ledger, collector).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace(issueCollector, Parameter.RELATIONS, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<
@@ -120,24 +96,12 @@ export class SimpleRelationsParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IRelations> {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            collector,
-            Parameter.RELATIONS,
-            () => this.build(input, options, ledger, collector).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace(issueCollector, Parameter.RELATIONS, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     /**
@@ -152,13 +116,11 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : {
         output: Relations, 
         scope: RelationsScope<RECORD>, 
-        issueCollector: IIssueCollector 
     } {
-        const issueCollector = this.beginIssues(driver);
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
@@ -169,7 +131,6 @@ export class SimpleRelationsParser extends BaseParser<
         return {
             output: this.parseWithScope(input, scope), 
             scope, 
-            issueCollector, 
         };
     }
 

@@ -41,9 +41,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortsParseOptions<RECORD> = {}) : Sorts {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = this.recordFailure(undefined, issueCollector, Parameter.SORTS, () => {
+        return this.withTrace(undefined, Parameter.SORTS, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
@@ -57,10 +55,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     override async parseAsync<
@@ -70,9 +64,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         options: SortsParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.SORTS, async () => {
+        return this.withTraceAsync(undefined, Parameter.SORTS, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applySortsIndexPolicy(
@@ -86,10 +78,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     parseParameter<
@@ -100,24 +88,12 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : ISorts {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            collector,
-            Parameter.SORTS,
-            () => this.build(input, options, ledger, collector).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace(issueCollector, Parameter.SORTS, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<
@@ -128,24 +104,8 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<ISorts> {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = await this.recordFailureAsync(
-            issueCollector,
-            collector,
-            Parameter.SORTS,
-            async () => (await this.buildAsync(input, options, ledger, collector)).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        return this.withTraceAsync(issueCollector, Parameter.SORTS, async (collector) =>
+            (await this.buildAsync(input, options, ledger, collector)).output);
     }
 
     protected build<
@@ -154,13 +114,11 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : {
         output: Sorts, 
         scope: SortsScope<RECORD>, 
-        issueCollector: IIssueCollector 
     } {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -172,7 +130,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                 issueCollector,
             })),
             scope,
-            issueCollector,
         };
     }
 
@@ -182,13 +139,11 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         input: unknown,
         options: SortsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : Promise<{
         output: Sorts, 
         scope: SortsScope<RECORD>, 
-        issueCollector: IIssueCollector 
     }> {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -200,7 +155,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                 issueCollector,
             })),
             scope,
-            issueCollector,
         };
     }
 

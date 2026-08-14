@@ -96,34 +96,24 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
 
-        const { output, scope } = this.recordFailure(
-            undefined,
-            issueCollector,
-            Parameter.FILTERS,
-            () => this.build(input, options, ledger, issueCollector),
-        );
-        if (!scope) {
-            this.finishIssues(undefined, issueCollector);
+        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
+            if (!scope) {
+                return output;
+            }
 
-            return output;
-        }
-
-        const result = applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issueCollector,
-            }), scope.schema as FiltersSchema<RECORD>, issueCollector),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issueCollector },
-        );
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -131,34 +121,24 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
 
-        const { output, scope } = await this.recordFailureAsync(
-            undefined,
-            issueCollector,
-            Parameter.FILTERS,
-            () => this.buildAsync(input, options, ledger, issueCollector),
-        );
-        if (!scope) {
-            this.finishIssues(undefined, issueCollector);
+        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
+            if (!scope) {
+                return output;
+            }
 
-            return output;
-        }
-
-        const result = applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-                issueCollector,
-            }), scope.schema as FiltersSchema<RECORD>, issueCollector),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure, issueCollector },
-        );
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -167,23 +147,12 @@ export class ExpressionFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFilters {
-        const trace = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            trace,
-            Parameter.FILTERS,
-            () => this.build(input, options, ledger, trace).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. The dialect resolves keys under an
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own. The dialect resolves keys under an
         // always-throwing scope, so the abort route is the usual one here.
-        this.finishIssues(issueCollector, trace);
-
-        return output;
+        return this.withTrace(issueCollector, Parameter.FILTERS, (trace) =>
+            this.build(input, options, ledger, trace).output);
     }
 
 
@@ -193,18 +162,8 @@ export class ExpressionFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        const trace = this.beginIssues(issueCollector);
-
-        const output = await this.recordFailureAsync(
-            issueCollector,
-            trace,
-            Parameter.FILTERS,
-            async () => (await this.buildAsync(input, options, ledger, trace)).output,
-        );
-
-        this.finishIssues(issueCollector, trace);
-
-        return output;
+        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (trace) =>
+            (await this.buildAsync(input, options, ledger, trace)).output);
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(

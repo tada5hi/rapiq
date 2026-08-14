@@ -50,6 +50,7 @@ import type {
     IQueryParameterParser,
     ParseParameterOptions,
     ParseQueryOptions,
+    ParseTrace,
     RelationLedger,
 } from './types';
 
@@ -82,8 +83,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const {
             data, 
             parameterOptions, 
-            issueCollector, 
+            trace, 
         } = this.prepareQueryContext(input, options);
+        const issueCollector = trace.collector;
 
         // pooled relation-authorization obligations across every parameter, so
         // the relations validate hook runs once per distinct relation and prunes
@@ -143,7 +145,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.pruneByRelations(output, rejected, options, issueCollector);
         this.applyIndexPolicies(output, options, issueCollector);
 
-        this.finishIssues(undefined, issueCollector);
+        this.finishIssues(trace);
 
         return new Query(output);
     }
@@ -158,8 +160,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         const {
             data, 
             parameterOptions, 
-            issueCollector, 
+            trace, 
         } = this.prepareQueryContext(input, options);
+        const issueCollector = trace.collector;
 
         const ledger : RelationLedger = [];
 
@@ -221,7 +224,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.pruneByRelations(output, rejected, options, issueCollector);
         this.applyIndexPolicies(output, options, issueCollector);
 
-        this.finishIssues(undefined, issueCollector);
+        this.finishIssues(trace);
 
         return new Query(output);
     }
@@ -290,14 +293,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : {
         data: ObjectLiteral,
         parameterOptions: ParseParameterOptions<RECORD>,
-        issueCollector: IIssueCollector,
+        trace: ParseTrace,
     } {
         const data : ObjectLiteral = isObject(input) ? input : {};
 
         // one trace for the whole query: the sub-parsers record into it and
         // defer throwing, so a violation in the first parameter no longer
-        // hides what the other four would have reported.
-        const issueCollector = this.beginIssues();
+        // hides what the other four would have reported. This call owns it,
+        // and raises it once every parameter has been seen.
+        const trace = this.beginIssues();
 
         // the trace reaches the sub-parsers as a driver argument, never as an
         // option: a consumer able to supply one would take over the decision
@@ -323,7 +327,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return {
             data, 
             parameterOptions, 
-            issueCollector, 
+            trace, 
         };
     }
 

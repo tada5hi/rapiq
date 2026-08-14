@@ -20,7 +20,7 @@ import {
 } from '../utils';
 import { IssueCollector, buildErrorFromIssueCollector, raiseErrorFromIssueCollector } from './issue';
 import type { IIssueCollector } from './issue';
-import type { IParser } from './types';
+import type { IParser, ParseTrace } from './types';
 
 export type TempType = {
     attributes: Record<string, any>,
@@ -57,40 +57,84 @@ export abstract class BaseParser<
     // --------------------------------------------------
 
     /**
-     * The trace this parse call records into: the enclosing call's when a
+     * Open the trace this parse call records into: the enclosing call's when a
      * driver handed one down (a query parse driving its five parameters), a
-     * fresh one otherwise. A trace nothing raises is discarded — the error a
-     * parse throws is the only way it is ever read.
+     * fresh one otherwise.
+     *
+     * The handle carries whether this call OWNS the trace, because that is the
+     * one thing every later step needs and the one thing a collector cannot
+     * answer about itself. It used to be re-derived by comparing a driver
+     * against the collector at each step, which meant passing both everywhere
+     * and made an inverted comparison — a rejection silently degrading into a
+     * drop — a plain argument-order mistake.
      */
-    protected beginIssues(driver?: IIssueCollector) : IIssueCollector {
-        return driver ?? new IssueCollector();
+    protected beginIssues(driver?: IIssueCollector) : ParseTrace {
+        if (driver) {
+            return { collector: driver, owned: false };
+        }
+
+        return { collector: new IssueCollector(), owned: true };
     }
 
     /**
-     * Raise what the trace collected, but only in the call that started it:
-     * a sub-parser driven by a query parse records across all five parameters
-     * and lets the orchestrator decide, so a single bad key no longer hides
-     * the other four parameters' issueCollector. Every other call raises its own,
-     * so a rejection can never end up recorded into a trace nobody reads.
+     * Raise what the trace collected, but only in the call that started it: a
+     * sub-parser driven by a query parse records across all five parameters and
+     * lets the orchestrator decide, so a single bad key no longer hides what the
+     * other four would have reported. Every other call raises its own, so a
+     * rejection can never end up recorded into a trace nobody reads.
+     *
+     * A trace nothing raises is discarded — the error a parse throws is the only
+     * way it is ever read.
      */
-    protected finishIssues(
-        driver: IIssueCollector | undefined,
-        collector: IIssueCollector,
-    ) : void {
-        if (driver === collector) {
+    protected finishIssues(trace: ParseTrace) : void {
+        if (!trace.owned) {
             return;
         }
 
-        raiseErrorFromIssueCollector(collector);
+        raiseErrorFromIssueCollector(trace.collector);
     }
 
     /**
-     * Run a parse body whose failures belong in `issueCollector`.
+     * Run one parse call end to end: open a trace, record what the body
+     * rejects into it, and raise it on the way out.
+     *
+     * Every entry point has this shape, so it is one call rather than three:
+     * a body that forgets to finish turns every rejection it recorded into a
+     * silent drop, which is the failure this whole mechanism exists to prevent.
+     */
+    protected withTrace<T>(
+        driver: IIssueCollector | undefined,
+        parameter: `${Parameter}`,
+        fn: (collector: IIssueCollector) => T,
+    ) : T {
+        const trace = this.beginIssues(driver);
+
+        const output = this.recordFailure(trace, parameter, () => fn(trace.collector));
+        this.finishIssues(trace);
+
+        return output;
+    }
+
+    protected async withTraceAsync<T>(
+        driver: IIssueCollector | undefined,
+        parameter: `${Parameter}`,
+        fn: (collector: IIssueCollector) => Promise<T>,
+    ) : Promise<T> {
+        const trace = this.beginIssues(driver);
+
+        const output = await this.recordFailureAsync(trace, parameter, () => fn(trace.collector));
+        this.finishIssues(trace);
+
+        return output;
+    }
+
+    /**
+     * Run a parse body whose failures belong in `trace`.
      *
      * A structural failure (a malformed expression, an input of the wrong
      * shape, a hostile key) aborts by throwing rather than by dropping one
      * key, so without this it would escape the call before anything recorded
-     * it: the caller would catch an error whose `issueCollector` is empty, and
+     * it: the caller would catch an error with an empty trace, and
      * `formatErrors(error.issues)` — the documented way to render a
      * failure — would answer with nothing at all.
      *
@@ -102,28 +146,26 @@ export abstract class BaseParser<
      * four parsing, and decides.
      */
     protected recordFailure<T>(
-        driver: IIssueCollector | undefined,
-        issueCollector: IIssueCollector,
+        trace: ParseTrace,
         parameter: `${Parameter}`,
         fn: () => T,
     ) : T {
         try {
             return fn();
         } catch (e) {
-            throw this.failure(e, driver, issueCollector, parameter);
+            throw this.failure(e, trace, parameter);
         }
     }
 
     protected async recordFailureAsync<T>(
-        driver: IIssueCollector | undefined,
-        issueCollector: IIssueCollector,
+        trace: ParseTrace,
         parameter: `${Parameter}`,
         fn: () => Promise<T>,
     ) : Promise<T> {
         try {
             return await fn();
         } catch (e) {
-            throw this.failure(e, driver, issueCollector, parameter);
+            throw this.failure(e, trace, parameter);
         }
     }
 
@@ -132,22 +174,18 @@ export abstract class BaseParser<
      */
     protected failure(
         input: unknown,
-        driver: IIssueCollector | undefined,
-        issueCollector: IIssueCollector,
+        trace: ParseTrace,
         parameter: `${Parameter}`,
     ) : unknown {
-        if (
-            !isParseError(input) ||
-            driver === issueCollector
-        ) {
+        if (!isParseError(input) || !trace.owned) {
             return input;
         }
 
-        if (!issueCollector.failed) {
-            issueCollector.error(input, parameter);
+        if (!trace.collector.failed) {
+            trace.collector.error(input, parameter);
         }
 
-        return buildErrorFromIssueCollector(issueCollector) ?? input;
+        return buildErrorFromIssueCollector(trace.collector) ?? input;
     }
 
     protected getBaseSchema<

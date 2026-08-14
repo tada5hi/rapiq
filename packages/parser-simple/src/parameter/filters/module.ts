@@ -56,9 +56,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = this.recordFailure(undefined, issueCollector, Parameter.FILTERS, () => {
+        return this.withTrace(undefined, Parameter.FILTERS, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
@@ -72,10 +70,6 @@ export class SimpleFiltersParser extends BaseParser<
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -83,9 +77,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.FILTERS, async () => {
+        return this.withTraceAsync(undefined, Parameter.FILTERS, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return applyFiltersIndexPolicy(
@@ -99,10 +91,6 @@ export class SimpleFiltersParser extends BaseParser<
                 { throwOnFailure: options.throwOnFailure, issueCollector },
             );
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -111,24 +99,12 @@ export class SimpleFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFilters {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            collector,
-            Parameter.FILTERS,
-            () => this.build(input, options, ledger, collector).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace(issueCollector, Parameter.FILTERS, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -137,37 +113,19 @@ export class SimpleFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = await this.recordFailureAsync(
-            issueCollector,
-            collector,
-            Parameter.FILTERS,
-            async () => (await this.buildAsync(input, options, ledger, collector)).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        return this.withTraceAsync(issueCollector, Parameter.FILTERS, async (collector) =>
+            (await this.buildAsync(input, options, ledger, collector)).output);
     }
 
     protected build<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : {
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
-        issueCollector: IIssueCollector 
     } {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
@@ -189,7 +147,6 @@ export class SimpleFiltersParser extends BaseParser<
         return {
             output: new Filters(FilterCompoundOperator.AND, items), 
             scope, 
-            issueCollector, 
         };
     }
 
@@ -197,13 +154,11 @@ export class SimpleFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : Promise<{
         output: IFilters, 
         scope: FiltersScope<RECORD>, 
-        issueCollector: IIssueCollector 
     }> {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
@@ -226,7 +181,6 @@ export class SimpleFiltersParser extends BaseParser<
         return {
             output: new Filters(FilterCompoundOperator.AND, items), 
             scope, 
-            issueCollector, 
         };
     }
 

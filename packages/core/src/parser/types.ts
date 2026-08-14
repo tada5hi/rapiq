@@ -40,6 +40,21 @@ export type ParseParameterOptions<
  * prunes the assembled query. An explicit driver argument, never part of the
  * public parse options.
  */
+/**
+ * One parse call's trace, and whether this call owns it.
+ *
+ * `owned` is the whole reason the handle exists: a driven sub-parser records
+ * into the enclosing trace and lets the orchestrator decide what to raise,
+ * while the call that opened one raises it itself. Carrying the answer beats
+ * re-deriving it from an identity comparison at every step, which needed the
+ * driver and the collector to travel together and inverted silently when they
+ * were swapped.
+ */
+export type ParseTrace = {
+    collector: IIssueCollector,
+    owned: boolean,
+};
+
 export type RelationLedger = PendingKeyValidation[];
 
 export type ParseQueryOptions<

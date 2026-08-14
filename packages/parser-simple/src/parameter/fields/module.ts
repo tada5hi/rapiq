@@ -42,9 +42,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = this.recordFailure(undefined, issueCollector, Parameter.FIELDS, () => {
+        return this.withTrace(undefined, Parameter.FIELDS, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
             return pruneFieldsByRelations(output, applyKeySchemaValidation(ledger, options.context, {
@@ -53,10 +51,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 issueCollector,
             }), issueCollector);
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     override async parseAsync<
@@ -66,9 +60,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
-        const issueCollector = this.beginIssues();
-
-        const result = await this.recordFailureAsync(undefined, issueCollector, Parameter.FIELDS, async () => {
+        return this.withTraceAsync(undefined, Parameter.FIELDS, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
             return pruneFieldsByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
@@ -77,10 +69,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 issueCollector,
             }), issueCollector);
         });
-
-        this.finishIssues(undefined, issueCollector);
-
-        return result;
     }
 
     parseParameter<
@@ -91,24 +79,12 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : IFields {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = this.recordFailure(
-            issueCollector,
-            collector,
-            Parameter.FIELDS,
-            () => this.build(input, options, ledger, collector).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace(issueCollector, Parameter.FIELDS, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<
@@ -119,24 +95,8 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         ledger: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IFields> {
-        const collector = this.beginIssues(issueCollector);
-
-        const output = await this.recordFailureAsync(
-            issueCollector,
-            collector,
-            Parameter.FIELDS,
-            async () => (await this.buildAsync(input, options, ledger, collector)).output,
-        );
-
-        // a no-op when the query orchestrator handed down its trace, and the
-        // fail-fast raise when this parser was driven directly: a violation
-        // must never degrade into a silent drop just because nobody raised
-        // the trace it was recorded into. A structural abort takes the same
-        // route out through recordFailure, so it cannot escape a directly
-        // driven call before anything recorded it.
-        this.finishIssues(issueCollector, collector);
-
-        return output;
+        return this.withTraceAsync(issueCollector, Parameter.FIELDS, async (collector) =>
+            (await this.buildAsync(input, options, ledger, collector)).output);
     }
 
     /**
@@ -151,13 +111,11 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : {
         output: IFields, 
         scope: FieldsScope<RECORD>, 
-        issueCollector: IIssueCollector 
     } {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -173,7 +131,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         return {
             output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger, issueCollector),
             scope,
-            issueCollector,
         };
     }
 
@@ -183,13 +140,11 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         input: unknown,
         options: SimpleFieldsParseOptions<RECORD>,
         ledger: RelationLedger,
-        driver?: IIssueCollector,
+        issueCollector: IIssueCollector,
     ) : Promise<{
         output: IFields, 
         scope: FieldsScope<RECORD>, 
-        issueCollector: IIssueCollector 
     }> {
-        const issueCollector = this.beginIssues(driver);
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
         const output = this.parseWithScope(input, scope, pending);
@@ -205,7 +160,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         return {
             output: this.fallback(this.prune(output, rejected, conditions), output, rejected, options, ledger, issueCollector),
             scope,
-            issueCollector,
         };
     }
 
