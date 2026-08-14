@@ -70,7 +70,9 @@ export function expectThrown(
         error = e as Error & { code?: string };
     }
 
-    expect(error).toBeInstanceOf(expected.constructor);
+    // the class itself, not a subclass of it: the point is that the fail-fast
+    // path preserved the error it threw
+    expect(error?.constructor).toBe(expected.constructor);
     expect(error?.code).toBe(expected.code);
     expect(error?.message).toBe(expected.message);
 }

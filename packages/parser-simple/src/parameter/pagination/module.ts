@@ -56,7 +56,10 @@ export class SimplePaginationParser<
         return this.build(input, options, issueCollector);
     }
 
-    parseParameterAsync<
+    // `async`, not a wrapped return: `build` raises synchronously, so without
+    // it the throw escapes before the promise exists and a caller's
+    // `.catch()` never sees it.
+    async parseParameterAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
@@ -64,7 +67,7 @@ export class SimplePaginationParser<
         _ledger?: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IPagination> {
-        return Promise.resolve(this.build(input, options, issueCollector));
+        return this.build(input, options, issueCollector);
     }
 
     /**

@@ -107,8 +107,8 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        // the abort rides along as the cause of the general failure, which
-        // carries the trace it produced
+        // the abort becomes an issue of the general failure, which carries
+        // the trace it produced
         expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error?.issues).toHaveLength(1);
         expect(error?.issues[0]?.code).toBe(ErrorCode.SYNTAX_INVALID);
@@ -132,7 +132,8 @@ describe('src/parameter/filters — issue traces', () => {
         // declining a leaf, which still drops to the schema default.
         const query = parser.parse({ filters: "eq(name, 'x')" }, { schema: 'row' });
 
-        expect(query.filters.value).toHaveLength(1);
+        // the schema default, not the leaf the validator declined
+        expect(query.filters.value).toEqual([eq('id', '1')]);
     });
 
     it('should carry the trace when driven as a parameter', () => {

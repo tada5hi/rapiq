@@ -19,7 +19,7 @@ import {
     preserve,
 } from '@rapiq/core';
 import type { Issue } from 'blemish';
-import { SimpleFieldsParser, SimpleParser } from '../../../src';
+import { SimpleFieldsParser, SimplePaginationParser, SimpleParser } from '../../../src';
 import { expectRejected } from '../../data';
 import type { User } from '../../data';
 
@@ -323,6 +323,16 @@ describe('src/parser — issue traces', () => {
             expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
             expect(issues).toHaveLength(1);
             expect(issues[0]?.code).toBe(ErrorCode.INPUT_INVALID);
+        });
+
+        it('should reject rather than throw from the async driver', async () => {
+            const parser = new SimplePaginationParser(buildRegistry(true));
+
+            // the body raises synchronously, so a driver that only wraps its
+            // result would throw before the promise exists and a caller's
+            // `.catch()` would never see it
+            await expect(parser.parseParameterAsync({ limit: 500 }, { schema: 'user' }, []))
+                .rejects.toThrow(ParseError);
         });
 
         it('should carry the trace on every standalone abort', () => {

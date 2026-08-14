@@ -128,9 +128,11 @@ try {
     const query = codec.decode(req.query, { schema: 'user' });
     // ...
 } catch (e) {
-    if (isParseError(e)) {
-        res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
+    if (!isParseError(e)) {
+        throw e; // not client input: a server bug, and not ours to swallow
     }
+
+    res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
 }
 ```
 
