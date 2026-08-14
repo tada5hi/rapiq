@@ -125,23 +125,39 @@ try {
 }
 ```
 
-Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack.
+Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. Every issue is a **failure**: there is no severity, and nothing a parse does without rejecting anything (a substituted default, an entry a rejected relation dragged along) is recorded.
+
+An issue is one of two node kinds, discriminated by `type`. Both carry:
+
+| Field | Meaning |
+|---|---|
+| `path` | canonical, alias-resolved position, leaf included: `['items', 'title']`. Empty for a parameter-level issue |
+| `message` | human-facing text. **Not** contractual: branch on `code` |
+| `parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`); absent on an issue no single parameter owns |
+
+`type: 'item'` is a rejected piece of input, and adds:
 
 | Field | Meaning |
 |---|---|
 | `code` | the same `ErrorCode` the error carries: the machine contract |
-| `parameter` | canonical parameter that owns the violated policy (`filters`, not the wire's `filter`) |
-| `path` | canonical, alias-resolved position, leaf included: `['items', 'title']`. Empty for a parameter-level issue |
 | `key` | raw client spelling at the position that failed, which is what alias mapping makes worth keeping |
 | `input` | the offending value, when a value rather than a key was the problem |
-| `severity` | `error` = rejected, `warning` = dropped, clamped or defaulted behind the failure |
-| `message` | human-facing text. **Not** contractual: branch on `code` |
+
+`type: 'group'` stands for the failures below it, in its own `issues` array (plus an optional `code`). Nesting is the whole tree: there is no parent pointer and no depth field. Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. `flattenIssueItems(error.issues)` therefore hands you leaves that already know where they sit:
+
+```typescript
+import { flattenIssueItems } from '@rapiq/core';
+
+flattenIssueItems(e.issues).map((issue) => issue.path);
+```
+
+The shape is the one [validup](https://github.com/tada5hi/validup) defines, so a trace crosses library boundaries unchanged; `defineIssueItem` / `defineIssueGroup` / `flattenIssueGroups` / `prefixIssuePath` round out the toolkit.
 
 The trace has exactly one channel. A parse that raises nothing discards it, so under the default drop policy there is no trace to read: [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) is what turns rejections into something you can inspect.
 
 ### The raise condition
 
-Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises the **first error-severity issue** at the end:
+Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises the **first issue** at the end:
 
 ```typescript
 parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' });
@@ -150,11 +166,13 @@ parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' })
 
 The thrown class, `code` and `message` stay those of the first violation, so existing `catch` logic and assertions keep working; `issues` is additive and non-enumerable, so it changes neither deep equality nor `JSON.stringify(error)`.
 
-Severity is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one trace. A violation takes the policy of the site that found it: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp. Only what a parse does without rejecting anything is unconditionally a warning: defaults substituted for input that was dropped, entries a rejected relation dragged along.
+Whether a violation is recorded is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one request: only the latter contributes. A violation takes the policy of the site that found it, which is also what decides what it means: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp.
 
-Everything that discards or alters client input is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations dropped back to defaults. The trace is capped at `MAX_ISSUES` (100), and the issue the parse fails on is exempt from the cap.
+Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. The trace is capped at `MAX_ISSUES` (100); the failure is the first issue, so a truncated tail changes nothing about the outcome.
 
 Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. An abort is raised as itself with the trace attached — never rebuilt, so a custom error class keeps its own shape, stack and identity. An abort that follows an earlier rejection does not displace it.
+
+A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own, so the rejection reports `['secret']` rather than naming its parameter and nothing else.
 
 Two consequences worth knowing when you enable `throwOnFailure`:
 
@@ -174,11 +192,11 @@ formatErrors(error.issues, { status: '400' });
 //     code: 'keyNotAllowed',
 //     detail: 'The key secret is not permitted.',
 //     source: { parameter: 'fields' },
-//     meta: { severity: 'error', path: 'secret' },
+//     meta: { path: 'secret' },
 // }]
 ```
 
-Warnings are skipped unless you pass `warnings: true`.
+It renders the **leaves**: what a group stands for is already said by the issues below it, each at the absolute position merging gave it.
 
 ## Recognizing an error
 
