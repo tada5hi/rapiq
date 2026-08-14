@@ -8,7 +8,7 @@
 import { arrayToPath } from 'pathtrace';
 import { flattenIssueItems } from 'blemish';
 import type { Issue } from 'blemish';
-import { issueParameter } from '@rapiq/core';
+import { extractIssueParameter } from '@rapiq/core';
 import { PARAMETER_WIRE_NAMES } from './constants';
 import type { FormatErrorsOptions, FormattedError } from './types';
 
@@ -39,7 +39,7 @@ export function formatErrors(
             detail: issue.message,
         };
 
-        const parameter = issueParameter(issue);
+        const parameter = extractIssueParameter(issue);
         if (parameter) {
             error.source = { parameter: PARAMETER_WIRE_NAMES[parameter] ?? parameter };
         }

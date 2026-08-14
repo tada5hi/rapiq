@@ -11,7 +11,7 @@ import {
     Parameter,
     SchemaRegistry,
     defineSchema,
-    issueParameter,
+    extractIssueParameter,
 } from '@rapiq/core';
 import { MongoParser } from '../../src';
 
@@ -88,7 +88,7 @@ describe('src/parameter/filters — issue traces', () => {
         }
 
         expect(error?.issues).toHaveLength(1);
-        expect(issueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
+        expect(extractIssueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
     });
 
     it('should carry the trace on a standalone grammar abort', () => {
@@ -146,7 +146,7 @@ describe('src/parameter/filters — issue traces', () => {
             error = e as FiltersParseError;
         }
 
-        expect(issueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
+        expect(extractIssueParameter(error!.issues[0]!)).toBe(Parameter.FILTERS);
         expect(error?.issues[0]).toMatchObject({
             code: ErrorCode.KEY_NOT_ALLOWED,
             // the interior is addressed relative to the element, but the

@@ -154,10 +154,10 @@ rapiq claims two `meta` keys, both of them facts a consumer cannot reconstruct f
 `meta` is an open bag, so read those through the accessors rather than casting:
 
 ```typescript
-import { issueKey, issueParameter } from '@rapiq/core';
+import { extractIssueKey, extractIssueParameter } from '@rapiq/core';
 
-issueParameter(issue); // 'filters' | 'fields' | ... | undefined
-issueKey(issue);       // the raw client spelling, when it differs
+extractIssueParameter(issue); // 'filters' | 'fields' | ... | undefined
+extractIssueKey(issue);       // the raw client spelling, when it differs
 ```
 
 Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. `flattenIssueItems` therefore hands you leaves that already know where they sit:

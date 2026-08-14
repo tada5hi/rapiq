@@ -9,7 +9,7 @@ import {
     ErrorCode,
     ParseError,
     attachIssues,
-    issueParameter,
+    extractIssueParameter,
 } from '../../errors';
 import type { IParseError } from '../../errors';
 import { PARAMETER_ERROR_CLASSES } from './constants';
@@ -50,7 +50,7 @@ export function buildErrorFromIssueCollector(input: IIssueCollector) : IParseErr
 
     // an issue no parameter owns is nobody's dialect error: it is raised as
     // the base class rather than through one parameter's, chosen at random.
-    const parameter = issueParameter(failure.issue);
+    const parameter = extractIssueParameter(failure.issue);
     const ErrorClass = failure.errorClass ??
         (parameter ? PARAMETER_ERROR_CLASSES[parameter] : ParseError);
 

@@ -18,7 +18,7 @@ import {
     SchemaRegistry,
     defineSchema,
     eq,
-    issueParameter,
+    extractIssueParameter,
     preserve,
 } from '@rapiq/core';
 import type { Issue } from 'blemish';
@@ -70,7 +70,7 @@ const findIssue = (
     issues: readonly Issue[],
     parameter: `${Parameter}`,
     code?: `${ErrorCode}`,
-) => issues.find((issue) => issueParameter(issue) === parameter &&
+) => issues.find((issue) => extractIssueParameter(issue) === parameter &&
     (typeof code === 'undefined' || issue.code === code));
 
 describe('src/parser — issue traces', () => {

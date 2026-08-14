@@ -20,10 +20,10 @@ import {
     attachIssues,
     buildErrorFromIssueCollector,
     buildIssue,
+    extractIssueKey,
+    extractIssueParameter,
     isBaseError,
     isParseError,
-    issueKey,
-    issueParameter,
     markError,
     raiseErrorFromIssueCollector,
 } from '../../../src';
@@ -50,8 +50,8 @@ describe('src/errors/issue/module.ts', () => {
             message: ErrorMessage.keyNotPermitted('secret'),
             meta: { parameter: Parameter.FIELDS, key: 'abc' },
         });
-        expect(issueParameter(issue)).toBe(Parameter.FIELDS);
-        expect(issueKey(issue)).toBe('abc');
+        expect(extractIssueParameter(issue)).toBe(Parameter.FIELDS);
+        expect(extractIssueKey(issue)).toBe('abc');
     });
 
     it('should leave meta off an issue that claims neither', () => {
@@ -62,8 +62,8 @@ describe('src/errors/issue/module.ts', () => {
         });
 
         expect(issue.meta).toBeUndefined();
-        expect(issueParameter(issue)).toBeUndefined();
-        expect(issueKey(issue)).toBeUndefined();
+        expect(extractIssueParameter(issue)).toBeUndefined();
+        expect(extractIssueKey(issue)).toBeUndefined();
     });
 
     it('should carry the offending value as blemish names it', () => {
@@ -72,7 +72,7 @@ describe('src/errors/issue/module.ts', () => {
 
     it('should ignore a meta bag another library wrote', () => {
         // meta is an open bag by design; a foreign key is not rapiq's to read
-        expect(issueParameter({
+        expect(extractIssueParameter({
             type: 'item',
             code: 'value_invalid',
             path: [],
@@ -173,7 +173,7 @@ describe('src/parser/issue/module.ts', () => {
         const collector = new IssueCollector();
         collector.violation(violation({ parameter: Parameter.SORT }), true);
 
-        expect(issueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
+        expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
     });
 
     it('should cap a hostile trace without losing the failure', () => {

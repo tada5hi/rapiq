@@ -52,7 +52,7 @@ export function buildIssue(input: IssueInput) : IssueItem {
  * `meta` is an open bag by design (issues cross library boundaries), so the
  * read is narrowed here once rather than at every consumer.
  */
-export function issueParameter(input: Issue) : `${Parameter}` | undefined {
+export function extractIssueParameter(input: Issue) : `${Parameter}` | undefined {
     const value = input.meta?.parameter;
 
     return typeof value === 'string' ?
@@ -64,7 +64,7 @@ export function issueParameter(input: Issue) : `${Parameter}` | undefined {
  * The raw client key an issue was recorded for, when it differs from the
  * canonical (alias-resolved) path.
  */
-export function issueKey(input: Issue) : string | undefined {
+export function extractIssueKey(input: Issue) : string | undefined {
     const value = input.meta?.key;
 
     return typeof value === 'string' ? value : undefined;
