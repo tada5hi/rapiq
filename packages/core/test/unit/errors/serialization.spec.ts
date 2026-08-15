@@ -64,12 +64,11 @@ describe('src/errors/base.ts (serialization)', () => {
         expect(JSON.parse(JSON.stringify(error)).name).toBe('FiltersParseError');
     });
 
-    it('should redact received and safely clone open issue values', () => {
-        const received : Record<string, unknown> = { secret: 'token', size: 1n };
+    it('should redact circular issue values without mutating the live issue', () => {
+        const expected : Record<string, unknown> = { type: 'string' };
+        expected.self = expected;
+        const received : Record<string, unknown> = { secret: 'token' };
         received.self = received;
-
-        const meta : Record<string, unknown> = { count: 2n };
-        meta.self = meta;
 
         const leaf = buildIssue({
             code: ErrorCode.KEY_VALUE_INVALID,
@@ -78,85 +77,20 @@ describe('src/errors/base.ts (serialization)', () => {
             message: ErrorMessage.keyValueInvalid('id'),
             received,
         });
+        leaf.expected = expected;
         const group = defineIssueGroup({
             path: ['items'],
             message: 'Nested validation failed.',
-            meta,
             issues: [leaf],
         });
         const error = ParseError.inputRejected([group]);
 
         const serialized = JSON.parse(JSON.stringify(error));
+        expect(serialized.issues[0].issues[0]).not.toHaveProperty('expected');
         expect(serialized.issues[0].issues[0]).not.toHaveProperty('received');
-        expect(serialized.issues[0].meta).toEqual({
-            count: '2',
-            self: '[Circular]',
-        });
         expect(error.issues[0]).toBe(group);
+        expect(leaf.expected).toBe(expected);
         expect(leaf.received).toBe(received);
-    });
-
-    it('should normalize unsupported issue values without calling user serializers', () => {
-        let toJSONCalls = 0;
-        const shared = { value: 'shared' };
-        const custom = {
-            value: 'safe',
-            toJSON() {
-                toJSONCalls++;
-                return 'unsafe';
-            },
-        };
-        const item = issue();
-        item.meta = {
-            custom,
-            first: shared,
-            second: shared,
-            omitted: undefined,
-            values: [undefined, Symbol('secret'), () => 'secret'],
-        };
-
-        const serialized = JSON.parse(JSON.stringify(ParseError.inputRejected([item])));
-
-        expect(serialized.issues[0].meta).toEqual({
-            custom: { value: 'safe' },
-            first: { value: 'shared' },
-            second: '[Circular]',
-            values: [null, null, null],
-        });
-        expect(toJSONCalls).toBe(0);
-    });
-
-    it('should redact received without evaluating it', () => {
-        const item = issue();
-        Object.defineProperty(item, 'received', {
-            enumerable: true,
-            get() {
-                throw new Error('received getter evaluated');
-            },
-        });
-
-        const serialized = JSON.parse(JSON.stringify(ParseError.inputRejected([item])));
-
-        expect(serialized.issues[0]).not.toHaveProperty('received');
-    });
-
-    it('should preserve an own __proto__ metadata property without changing the prototype', () => {
-        const meta : Record<string, unknown> = {};
-        Object.defineProperty(meta, '__proto__', {
-            enumerable: true,
-            value: { safe: true },
-        });
-        const item = issue();
-        item.meta = meta;
-        const error = ParseError.inputRejected([item]);
-
-        const serializedMeta = error.toJSON().issues[0]?.meta;
-        expect(Object.hasOwn(serializedMeta ?? {}, '__proto__')).toBeTruthy();
-        expect(Object.getPrototypeOf(serializedMeta)).toBe(Object.prototype);
-
-        const roundTrippedMeta = JSON.parse(JSON.stringify(error)).issues[0].meta;
-        expect(Object.hasOwn(roundTrippedMeta, '__proto__')).toBeTruthy();
-        expect(Reflect.get(roundTrippedMeta, '__proto__')).toEqual({ safe: true });
     });
 
     it('should carry a cause only when there is one', () => {

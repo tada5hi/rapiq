@@ -9,8 +9,19 @@ import { BaseError as EbecBaseError, markInstanceof } from '@ebec/core';
 import type { Issue } from 'blemish';
 import { BASE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
-import { serializeIssues } from './issue/serialize';
 import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
+
+function serializeIssue(input: Issue) : Issue {
+    const output = { ...input };
+    if (output.type === 'group') {
+        output.issues = output.issues.map(serializeIssue);
+    } else {
+        delete output.expected;
+        delete output.received;
+    }
+
+    return output;
+}
 
 /**
  * The root of rapiq's error hierarchy.
@@ -59,7 +70,7 @@ export class BaseError extends EbecBaseError implements IBaseError {
     override toJSON() : SerializedError {
         return {
             ...super.toJSON(),
-            issues: serializeIssues(this.issues),
+            issues: this.issues.map(serializeIssue),
         } as SerializedError;
     }
 }

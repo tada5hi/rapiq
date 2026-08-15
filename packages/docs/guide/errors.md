@@ -153,13 +153,14 @@ The nodes are [blemish](https://github.com/tada5hi/blemish) issues, the shared i
 | Field | Meaning |
 |---|---|
 | `code` | the same `ErrorCode` the error carries: the machine contract |
+| `expected` | the expected value, when a validator supplies one |
 | `received` | the offending value, when a value rather than a key was the problem |
 
 `type: 'group'` stands for the failures below it, in its own `issues` array (plus an optional `code`). Nesting is the whole tree: there is no parent pointer and no depth field.
 
-`received` is available on the live in-process issue for diagnostics. The default
-`BaseError.toJSON()` boundary omits it recursively; serialize a rapiq error directly
-without assuming raw client values will cross that boundary.
+`expected` and `received` are available on the live in-process issue for diagnostics.
+The default `BaseError.toJSON()` boundary omits both recursively; serialize a rapiq
+error directly without assuming raw validation values will cross that boundary.
 
 rapiq claims two `meta` keys, both of them facts a consumer cannot reconstruct from the path:
 
@@ -252,7 +253,8 @@ if (isParseError(e)) {
 ## Crossing a boundary
 
 `JSON.stringify(error)` emits a boundary-safe rapiq error, so a failure survives a worker, an SSR
-hop or a gateway. Its `issues` retain their structure, but live diagnostic `received` values are omitted:
+hop or a gateway. Its `issues` retain their structure, but live diagnostic `expected` and `received`
+values are omitted:
 
 ```json
 {

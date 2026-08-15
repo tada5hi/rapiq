@@ -14,7 +14,7 @@ five correctness gaps in the new trace path:
 - `parseExact` and empty allow-list shortcuts bypass parts of the trace and
   grammar validation lifecycle;
 - the issue cap counts tree roots instead of violations, while serialized
-  issues can expose raw client values and fail on non-JSON input.
+  issues can expose raw expected and received values.
 
 The fixes stay within the architecture introduced by the PR: parsers record
 plain blemish issues into a shared collector, an owning parse raises once, and
@@ -42,7 +42,7 @@ this change.
 - Do not expose caller-supplied issue collectors or change trace ownership.
 - Do not redesign relation pruning, schema validation hooks, or parser grammar.
 - Do not add a configurable redaction API. Default JSON serialization simply
-  omits raw `received` values for now.
+  omits raw `expected` and `received` values.
 - Do not turn drop mode into an observable diagnostics channel.
 
 ## Collector and Failure Semantics
@@ -124,22 +124,15 @@ and to Mongo filters.
 
 ## Serialization Boundary
 
-The live `BaseError.issues` tree remains unchanged and may contain `received`
-for trusted in-process diagnostics. `BaseError.toJSON()` emits a cloned issue
-tree with every `received` member omitted recursively, including leaves inside
-nested groups. The serialized type continues to contain the issue's code,
-message, path, metadata, structured data, expected value, and group shape.
+The live `BaseError.issues` tree remains unchanged and may contain `expected`
+and `received` values for trusted in-process diagnostics. `BaseError.toJSON()`
+shallow-copies each issue node, recursively rebuilds group children, and omits
+both value members from every leaf. Metadata and structured data follow their
+normal JSON semantics; rapiq does not implement a second general-purpose object
+serializer for them. Serialization does not mutate the live issues.
 
-Other open issue values are normalized into a JSON-safe form without invoking
-arbitrary object `toJSON` methods: primitive JSON values remain intact,
-`bigint` becomes its decimal string, unsupported scalar values are omitted (or
-`null` in arrays), and repeated/circular object references become the literal
-`"[Circular]"`. This ensures `JSON.stringify(error)` cannot fail because an
-issue contains a cycle or `bigint`. Serialization does not mutate the live
-issues.
-
-Documentation will state both sides of the contract: `received` is available
-in process and intentionally redacted from the default wire form.
+Documentation will state both sides of the contract: `expected` and `received`
+are available in process and intentionally redacted from the default wire form.
 
 ## Testing
 
@@ -151,8 +144,8 @@ Core regression tests cover:
   group pruning, and a flattened violation count in the raised message;
 - parameter-local index-policy suppression and simultaneous invalid filters
   and sorts;
-- safe, non-mutating serialization of nested groups, `received`, cycles, and
-  `bigint` values.
+- non-mutating serialization of nested groups with circular `expected` and
+  `received` values omitted.
 
 Dialect integration tests cover:
 
