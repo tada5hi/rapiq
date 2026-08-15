@@ -9,6 +9,7 @@ import { BaseError as EbecBaseError, markInstanceof } from '@ebec/core';
 import type { Issue } from 'blemish';
 import { BASE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
+import { serializeIssues } from './issue/serialize';
 import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
 
 /**
@@ -58,7 +59,7 @@ export class BaseError extends EbecBaseError implements IBaseError {
     override toJSON() : SerializedError {
         return {
             ...super.toJSON(),
-            issues: this.issues,
+            issues: serializeIssues(this.issues),
         } as SerializedError;
     }
 }

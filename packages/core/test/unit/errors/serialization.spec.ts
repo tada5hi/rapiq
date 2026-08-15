@@ -6,6 +6,7 @@
  */
 
 import { BASE_ERROR_INSTANCE, INSTANCEOF_PROPERTY } from '@ebec/core';
+import { defineIssueGroup } from 'blemish';
 import {
     BASE_ERROR_MARKER,
     BaseError,
@@ -61,6 +62,68 @@ describe('src/errors/base.ts (serialization)', () => {
         const error = FiltersParseError.inputRejected([issue()]);
 
         expect(JSON.parse(JSON.stringify(error)).name).toBe('FiltersParseError');
+    });
+
+    it('should redact received and safely clone open issue values', () => {
+        const received : Record<string, unknown> = { secret: 'token', size: 1n };
+        received.self = received;
+
+        const meta : Record<string, unknown> = { count: 2n };
+        meta.self = meta;
+
+        const leaf = buildIssue({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            parameter: Parameter.FILTERS,
+            path: ['items', 'id'],
+            message: ErrorMessage.keyValueInvalid('id'),
+            received,
+        });
+        const group = defineIssueGroup({
+            path: ['items'],
+            message: 'Nested validation failed.',
+            meta,
+            issues: [leaf],
+        });
+        const error = ParseError.inputRejected([group]);
+
+        const serialized = JSON.parse(JSON.stringify(error));
+        expect(serialized.issues[0].issues[0]).not.toHaveProperty('received');
+        expect(serialized.issues[0].meta).toEqual({
+            count: '2',
+            self: '[Circular]',
+        });
+        expect(error.issues[0]).toBe(group);
+        expect(leaf.received).toBe(received);
+    });
+
+    it('should normalize unsupported issue values without calling user serializers', () => {
+        let toJSONCalls = 0;
+        const shared = { value: 'shared' };
+        const custom = {
+            value: 'safe',
+            toJSON() {
+                toJSONCalls++;
+                return 'unsafe';
+            },
+        };
+        const item = issue();
+        item.meta = {
+            custom,
+            first: shared,
+            second: shared,
+            omitted: undefined,
+            values: [undefined, Symbol('secret'), () => 'secret'],
+        };
+
+        const serialized = JSON.parse(JSON.stringify(ParseError.inputRejected([item])));
+
+        expect(serialized.issues[0].meta).toEqual({
+            custom: { value: 'safe' },
+            first: { value: 'shared' },
+            second: '[Circular]',
+            values: [null, null, null],
+        });
+        expect(toJSONCalls).toBe(0);
     });
 
     it('should carry a cause only when there is one', () => {
