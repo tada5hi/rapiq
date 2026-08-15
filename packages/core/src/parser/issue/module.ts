@@ -126,6 +126,8 @@ export class IssueCollector implements IIssueCollector {
      * enclosing site could reconstruct.
      */
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
+        this.synchronizeLeafCount();
+
         const issues = input.issues ?? [];
         if (issues.length > 0) {
             const before = this.leafCount;
@@ -158,7 +160,13 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
+    protected synchronizeLeafCount() : void {
+        this.leafCount = flattenIssueItems(this.items).length;
+    }
+
     protected record(input: Issue, priority = false) : boolean {
+        this.synchronizeLeafCount();
+
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.

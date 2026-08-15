@@ -183,6 +183,19 @@ describe('src/parser/issue/module.ts', () => {
         expect(collector.issues[0]?.path).toEqual(['first']);
     });
 
+    it('should resynchronize the leaf limit after consumers mutate issues', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.issues.splice(0);
+        collector.add(violation({ path: ['later'] }));
+
+        expect(flattenIssueItems(collector.issues)).toHaveLength(1);
+        expect(collector.issues[0]?.path).toEqual(['later']);
+    });
+
     it('should cap nested groups by leaf count without flattening them', () => {
         const collector = new IssueCollector();
         const group = defineIssueGroup({
@@ -222,6 +235,25 @@ describe('src/parser/issue/module.ts', () => {
         const leaves = flattenIssueItems(collector.issues);
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
+    });
+
+    it('should replace the final leaf of a capped nested group with a structural abort', () => {
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            code: 'validation_failed',
+            path: [],
+            message: 'Validation failed.',
+            issues: Array.from({ length: MAX_ISSUES }, (_, index) =>
+                buildIssue(violation({ path: [`key${index}`] }))),
+        })]);
+
+        collector.addError(FiltersParseError.syntaxInvalid('broken'), Parameter.FILTERS);
+
+        expect(collector.issues[0]?.type).toBe('group');
+        expect(flattenIssueItems([collector.issues[0]!])).toHaveLength(MAX_ISSUES - 1);
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
     });
 
