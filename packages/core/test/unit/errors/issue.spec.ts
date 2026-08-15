@@ -7,6 +7,10 @@
 
 import { INSTANCEOF_PROPERTY, markInstanceof } from '@ebec/core';
 import {
+    defineIssueGroup,
+    flattenIssueItems,
+} from 'blemish';
+import {
     BASE_ERROR_MARKER,
     BaseError,
     ErrorCode,
@@ -177,6 +181,62 @@ describe('src/parser/issue/module.ts', () => {
         // changes nothing about the outcome
         expect(collector.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
+    });
+
+    it('should cap nested groups by leaf count without flattening them', () => {
+        const collector = new IssueCollector();
+        const group = defineIssueGroup({
+            code: 'validation_failed',
+            path: [],
+            message: 'Validation failed.',
+            issues: Array.from({ length: MAX_ISSUES + 50 }, (_, index) =>
+                buildIssue(violation({ path: [`key${index}`] }))),
+        });
+
+        collector.merge([group]);
+
+        expect(collector.issues).toHaveLength(1);
+        expect(collector.issues[0]?.type).toBe('group');
+        expect(flattenIssueItems(collector.issues)).toHaveLength(MAX_ISSUES);
+    });
+
+    it('should discard empty group shells', () => {
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            path: [],
+            message: 'Nothing failed.',
+            issues: [],
+        })]);
+
+        expect(collector.issues).toEqual([]);
+    });
+
+    it('should replace the final capped leaf with a later structural abort', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(FiltersParseError.syntaxInvalid('broken'), Parameter.FILTERS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
+    });
+
+    it('should count grouped leaves in the aggregated message', () => {
+        const group = defineIssueGroup({
+            path: [],
+            message: 'Validation failed.',
+            issues: [
+                buildIssue(violation({ path: ['a'] })),
+                buildIssue(violation({ path: ['b'] })),
+            ],
+        });
+
+        expect(ParseError.inputRejected([group]).message)
+            .toBe(ErrorMessage.inputRejected(2));
     });
 
     it('should reduce a consumer error class to its issue', () => {

@@ -11,6 +11,7 @@ import { markInstanceof } from '@ebec/core';
 import { PARSE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
+import { flattenIssueItems } from 'blemish';
 import type { Issue } from 'blemish';
 import type { BaseErrorOptions, IParseError } from './types';
 
@@ -39,7 +40,7 @@ export class ParseError extends BaseError implements IParseError {
      */
     static inputRejected(issues: readonly Issue[]) {
         return new this({
-            message: ErrorMessage.inputRejected(issues.length),
+            message: ErrorMessage.inputRejected(flattenIssueItems([...issues]).length),
             code: ErrorCode.INPUT_REJECTED,
             issues,
         });

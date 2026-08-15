@@ -5,12 +5,67 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { prefixIssuePath } from 'blemish';
+import {
+    flattenIssueItems,
+    isIssueGroup,
+    prefixIssuePath,
+} from 'blemish';
 import type { Issue } from 'blemish';
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES, buildIssue } from '../../errors';
 import type { IParseError, IssueInput } from '../../errors';
 import type { IIssueCollector } from './types';
+
+type IssueBudget = {
+    remaining: number;
+};
+
+function trimIssueToLeafBudget(input: Issue, budget: IssueBudget) : Issue | undefined {
+    if (budget.remaining <= 0) {
+        return undefined;
+    }
+
+    if (!isIssueGroup(input)) {
+        budget.remaining--;
+
+        return input;
+    }
+
+    const issues : Issue[] = [];
+    for (const child of input.issues) {
+        if (budget.remaining === 0) {
+            break;
+        }
+
+        const retained = trimIssueToLeafBudget(child, budget);
+        if (retained) {
+            issues.push(retained);
+        }
+    }
+
+    return issues.length > 0 ? { ...input, issues } : undefined;
+}
+
+function removeLastIssueItem(issues: Issue[]) : boolean {
+    for (let index = issues.length - 1; index >= 0; index--) {
+        const issue = issues[index]!;
+        if (!isIssueGroup(issue)) {
+            issues.splice(index, 1);
+
+            return true;
+        }
+
+        if (removeLastIssueItem(issue.issues)) {
+            if (issue.issues.length === 0) {
+                issues.splice(index, 1);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /**
  * The trace of one parse call: every issue its sites recorded, and which of
@@ -36,8 +91,11 @@ import type { IIssueCollector } from './types';
 export class IssueCollector implements IIssueCollector {
     protected items : Issue[];
 
+    protected leafCount : number;
+
     constructor() {
         this.items = [];
+        this.leafCount = 0;
     }
 
     // -----------------------------------------------------
@@ -70,9 +128,16 @@ export class IssueCollector implements IIssueCollector {
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
         if (issues.length > 0) {
+            const before = this.leafCount;
             this.merge(issues, path);
+            if (this.leafCount > before) {
+                return;
+            }
 
-            return;
+            const first = flattenIssueItems([...issues])[0];
+            if (first && this.record(prefixIssuePath(first, path), true)) {
+                return;
+            }
         }
 
         this.record(buildIssue({
@@ -80,7 +145,7 @@ export class IssueCollector implements IIssueCollector {
             parameter,
             path,
             message: input.message,
-        }));
+        }), true);
     }
 
     /**
@@ -93,15 +158,26 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
-    protected record(input: Issue) : void {
+    protected record(input: Issue, priority = false) : boolean {
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
-        if (this.items.length >= MAX_ISSUES) {
-            return;
+        if (priority && this.leafCount >= MAX_ISSUES) {
+            if (removeLastIssueItem(this.items)) {
+                this.leafCount--;
+            }
         }
 
-        this.items.push(input);
+        const budget = { remaining: MAX_ISSUES - this.leafCount };
+        const retained = trimIssueToLeafBudget(input, budget);
+        if (!retained) {
+            return false;
+        }
+
+        this.items.push(retained);
+        this.leafCount += flattenIssueItems([retained]).length;
+
+        return true;
     }
 
     // -----------------------------------------------------
