@@ -812,19 +812,32 @@ describe('filters/mongo-parser', () => {
             ]));
         });
 
-        it('should short-circuit to defaults on an empty allow-list', () => {
-            const schema = defineFiltersSchema({
+        it('should preserve defaults after dropping input under an empty allow-list', () => {
+            const dropping = defineFiltersSchema({
                 allowed: [],
                 default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-                throwOnFailure: true,
             });
+            expect(parser.parse({ name: 'x' }, { schema: dropping }).value)
+                .toEqual([new Filter(FilterFieldOperator.EQUAL, 'id', 1)]);
+        });
 
-            // the input is not walked — nothing throws despite the policy.
-            const output = parser.parse({ name: 'x' }, { schema });
+        it('should reject input under a throwing empty allow-list', () => {
+            const throwing = defineFiltersSchema({ allowed: [], throwOnFailure: true });
+            expectParseError(
+                () => parser.parse({ name: 'x' }, { schema: throwing }),
+                ErrorCode.KEY_NOT_ALLOWED,
+            );
+        });
 
-            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
-                new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-            ]));
+        it('should validate malformed input before applying an empty allow-list', () => {
+            const dropping = defineFiltersSchema({
+                allowed: [],
+                default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+            });
+            expectParseError(
+                () => parser.parse({ id: { $size: -1 } }, { schema: dropping }),
+                ErrorCode.KEY_VALUE_INVALID,
+            );
         });
     });
 

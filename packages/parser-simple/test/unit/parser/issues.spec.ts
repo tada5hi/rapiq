@@ -13,6 +13,7 @@ import {
     Parameter,
     ParseError,
     SchemaRegistry,
+    SortDirection,
     defineSchema,
     eq,
     extractIssueParameter,
@@ -161,6 +162,93 @@ describe('src/parser — issue traces', () => {
     });
 
     describe('aggregation', () => {
+        it('should validate every supplied parameter under empty allow-lists', async () => {
+            const lockedRegistry = new SchemaRegistry();
+            lockedRegistry.add(defineSchema({
+                name: 'locked',
+                throwOnFailure: true,
+                fields: { allowed: [], default: [] },
+                filters: { allowed: [] },
+                relations: { allowed: [] },
+                sort: { allowed: [] },
+            }));
+            const parser = new SimpleParser(lockedRegistry);
+            const input = {
+                fields: ['id'],
+                filters: { id: '1' },
+                relations: ['items'],
+                sorts: ['id'],
+            };
+
+            const results = [
+                trace(() => parser.parse(input, { schema: 'locked' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
+            ];
+            for (const { issues } of results) {
+                expect(issues
+                    .filter((issue) => issue.code === ErrorCode.KEY_NOT_ALLOWED)
+                    .map((issue) => [extractIssueParameter(issue), issue.path]))
+                    .toEqual([
+                        [Parameter.RELATIONS, ['items']],
+                        [Parameter.FIELDS, ['id']],
+                        [Parameter.FILTERS, ['id']],
+                        [Parameter.SORTS, ['id']],
+                    ]);
+            }
+        });
+
+        it('should validate malformed supplied parameters under empty allow-lists', async () => {
+            const lockedRegistry = new SchemaRegistry();
+            lockedRegistry.add(defineSchema({
+                name: 'locked',
+                throwOnFailure: true,
+                fields: { allowed: [], default: [] },
+                filters: { allowed: [] },
+                relations: { allowed: [] },
+                sort: { allowed: [] },
+            }));
+            const parser = new SimpleParser(lockedRegistry);
+            const input = {
+                fields: [500],
+                filters: 500,
+                relations: [500],
+                sorts: [500],
+            };
+
+            const results = [
+                trace(() => parser.parse(input, { schema: 'locked' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
+            ];
+            for (const { issues } of results) {
+                expect(issues
+                    .filter((issue) => issue.code === ErrorCode.INPUT_INVALID)
+                    .map((issue) => [extractIssueParameter(issue), issue.path, issue.received]))
+                    .toEqual([
+                        [Parameter.RELATIONS, [], 500],
+                        [Parameter.FIELDS, [], 500],
+                        [Parameter.FILTERS, [], 500],
+                        [Parameter.SORTS, [], 500],
+                    ]);
+            }
+        });
+
+        it('should preserve drop-mode defaults under empty allow-lists', () => {
+            const parser = new SimpleParser();
+            const schema = defineSchema({
+                filters: { allowed: [], default: eq('status', 'active') },
+                sort: { allowed: [], default: { created_at: 'DESC' } },
+            });
+
+            const query = parser.parse({
+                filters: { id: '1' },
+                sorts: ['id'],
+            }, { schema });
+
+            expect(query.filters.value).toEqual([eq('status', 'active')]);
+            expect(query.sorts.value.map((sort) => [sort.name, sort.operator]))
+                .toEqual([['created_at', SortDirection.DESC]]);
+        });
+
         it('should report every parameter rather than only the first', () => {
             const parser = new SimpleParser(buildRegistry(true));
 

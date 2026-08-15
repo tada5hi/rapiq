@@ -239,19 +239,6 @@ export class MongoFiltersParser extends BaseParser<
             throw FiltersParseError.inputInvalid();
         }
 
-        // if allowed is an empty array nothing is permitted — the input
-        // is not walked and only the schema defaults apply.
-        if (
-            !scope.schema.allowedIsUndefined &&
-            scope.schema.allowed.length === 0
-        ) {
-            return {
-                scope, 
-                parsed: null, 
-                issueCollector, 
-            };
-        }
-
         const conditions = this.parseDocument(input, scope, false, 0);
         if (conditions.length === 0) {
             return {

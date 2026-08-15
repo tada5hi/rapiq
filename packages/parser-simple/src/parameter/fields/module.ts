@@ -250,11 +250,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
     ) : IFields {
         const { schema } = scope;
 
-        // If it is an empty array, nothing is allowed
-        if (schema.allDenied) {
-            return new Fields();
-        }
-
         const normalized = this.normalize(input, scope);
 
         if (schema.name) {

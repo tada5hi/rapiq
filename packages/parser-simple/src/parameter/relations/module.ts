@@ -158,17 +158,7 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
     ) : Relations {
-        const { schema } = scope;
-
         const output = new Relations();
-
-        // If it is an empty array nothing is allowed
-        if (
-            Array.isArray(schema.allowed) &&
-            schema.allowed.length === 0
-        ) {
-            return output;
-        }
 
         const normalized = this.includeParents(this.normalize(input, scope));
         const grouped = this.groupArrayByBasePath(normalized);

@@ -218,14 +218,6 @@ export class SimpleFiltersParser extends BaseParser<
     ) : IFilter[] {
         const { schema } = scope;
 
-        // If it is an empty array nothing is allowed
-        if (
-            !schema.allowedIsUndefined &&
-            schema.allowed.length === 0
-        ) {
-            return [];
-        }
-
         if (!isObject(input)) {
             // absent input is not a failure — schema defaults still apply.
             if (

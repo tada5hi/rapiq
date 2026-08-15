@@ -194,14 +194,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     ) : Sorts {
         const { schema } = scope;
 
-        // If it is an empty array nothing is allowed
-        if (
-            !schema.allowedIsUndefined &&
-            schema.allowed.length === 0
-        ) {
-            return this.buildDefaults(schema);
-        }
-
         const normalized = this.normalize(input, scope);
         const grouped = this.groupObjectByBasePath(normalized);
         if (schema.name) {
