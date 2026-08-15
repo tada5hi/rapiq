@@ -73,6 +73,10 @@ describe('src/errors/issue/module.ts', () => {
         expect(buildIssue(violation({ received: 500 })).received).toBe(500);
     });
 
+    it('should omit received when the producer did not supply it', () => {
+        expect(buildIssue(violation())).not.toHaveProperty('received');
+    });
+
     it('should preserve an explicitly undefined offending value', () => {
         expect(buildIssue(violation({ received: undefined })))
             .toHaveProperty('received', undefined);

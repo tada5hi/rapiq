@@ -21,7 +21,11 @@ import {
     extractIssueParameter,
     preserve,
 } from '../../../../../src';
-import type { IFilter, Validator } from '../../../../../src';
+import type {
+    FiltersValidationOptions,
+    IFilter,
+    Validator,
+} from '../../../../../src';
 
 describe('src/parser/parameter/filters/validate.ts', () => {
     it('should replace and reject leaves while preserving compounds', () => {
@@ -218,6 +222,60 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             const collector = new IssueCollector();
             await run(collector);
             expect(collector.issues[0]?.path).toEqual(['items']);
+        }
+    });
+
+    it('should preserve a frozen prefix across recursive dotted elemMatch paths', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'orders.items',
+            new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'variants.parts',
+                new Filter(FilterFieldOperator.EQUAL, 'details.id', '1'),
+            ),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'details.id' ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (options: FiltersValidationOptions) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                options,
+            ),
+            async (options: FiltersValidationOptions) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                options,
+            ),
+        ]) {
+            const prefix : string[] = ['query'];
+            Object.freeze(prefix);
+            const collector = new IssueCollector();
+            const options : FiltersValidationOptions = {
+                issueCollector: collector,
+                path: prefix,
+            };
+            Object.freeze(options);
+
+            await run(options);
+
+            expect(collector.issues[0]?.path).toEqual([
+                'query',
+                'orders',
+                'items',
+                'variants',
+                'parts',
+                'details',
+                'id',
+            ]);
+            expect(options.path).toBe(prefix);
+            expect(prefix).toEqual(['query']);
         }
     });
 

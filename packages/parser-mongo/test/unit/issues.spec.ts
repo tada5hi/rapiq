@@ -7,15 +7,18 @@
 
 import {
     ErrorCode,
+    ErrorMessage,
+    FiltersParseError,
     ITSELF,
     Parameter,
     ParseError,
+    ResolutionScope,
     SchemaRegistry,
+    buildIssue,
     defineSchema,
     extractIssueParameter,
 } from '@rapiq/core';
-import type { FiltersParseError } from '@rapiq/core';
-import { MongoParser } from '../../src';
+import { MongoFiltersParser, MongoParser } from '../../src';
 
 type Item = { id: string, title: string };
 type Row = {
@@ -30,7 +33,7 @@ const buildRegistry = (throwOnFailure?: boolean) => {
     registry.add(defineSchema<Row>({
         name: 'row',
         throwOnFailure,
-        filters: { allowed: ['id', 'name'] },
+        filters: { allowed: ['id', 'name', 'items'] },
         relations: { allowed: ['items'] },
         schemaMapping: { items: 'item' },
     }));
@@ -42,6 +45,16 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 
     return registry;
 };
+
+class ExposedMongoFiltersParser extends MongoFiltersParser {
+    parseFieldEntryForTest(
+        key: string,
+        value: unknown,
+        scope: ResolutionScope<`${Parameter.FILTERS}`>,
+    ) {
+        return this.parseFieldEntry(key, value, scope, false, 0);
+    }
+}
 
 describe('src/parameter/filters — issue traces', () => {
     it('should retain a contextual structural abort after an earlier rejection', () => {
@@ -65,6 +78,97 @@ describe('src/parameter/filters — issue traces', () => {
                     received: { $size: -1 },
                 });
             }
+        }
+    });
+
+    it('should contextualize nested dotted structural failures synchronously and asynchronously', async () => {
+        const parser = new MongoParser(buildRegistry());
+        const offending = { $size: -1 };
+        const filters = { items: { $elemMatch: { profile: { id: offending } } } };
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseFilters(filters, { schema: 'row' })),
+            () => parser.parseFiltersAsync(filters, { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the nested structural rejection');
+            } catch (error) {
+                expect(error).toBeInstanceOf(FiltersParseError);
+                const parsed = error as FiltersParseError;
+                expect(parsed.code).toBe(ErrorCode.INPUT_REJECTED);
+                expect(parsed.message).toBe(ErrorMessage.inputRejected(1));
+                expect(parsed.issues).toHaveLength(1);
+                expect(parsed.issues[0]).toMatchObject({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    path: ['items', 'profile', 'id'],
+                    received: { $size: -1 },
+                });
+                expect(parsed.issues[0]?.received).toBe(offending);
+            }
+        }
+    });
+
+    it('should preserve the cause while contextualizing a nested dotted field once', () => {
+        const registry = buildRegistry(true);
+        const parser = new ExposedMongoFiltersParser(registry);
+        const root = ResolutionScope.for(registry, Parameter.FILTERS, 'row');
+        const scope = root.descend('items');
+        expect(scope).toBeInstanceOf(ResolutionScope);
+        if (!(scope instanceof ResolutionScope)) {
+            expect.fail('expected the item filter scope');
+        }
+        const offending = { $size: -1 };
+
+        try {
+            parser.parseFieldEntryForTest('profile', { id: offending }, scope);
+            expect.fail('expected the nested structural rejection');
+        } catch (error) {
+            expect(error).toBeInstanceOf(FiltersParseError);
+            const parsed = error as FiltersParseError;
+            expect(parsed.code).toBe(ErrorCode.KEY_VALUE_INVALID);
+            expect(parsed.message).toBe(ErrorMessage.keyValueInvalid('profile.id'));
+            expect(parsed.cause).toBeInstanceOf(FiltersParseError);
+            expect((parsed.cause as FiltersParseError).code).toBe(ErrorCode.KEY_VALUE_INVALID);
+            expect(parsed.issues).toHaveLength(1);
+            expect(parsed.issues[0]?.path).toEqual(['items', 'profile', 'id']);
+            expect(parsed.issues[0]?.received).toBe(offending);
+            expect(parsed.issues[0]?.received).toEqual({ $size: -1 });
+        }
+    });
+
+    it('should rethrow an already-traced field error by object identity', () => {
+        const registry = buildRegistry(true);
+        const parser = new ExposedMongoFiltersParser(registry);
+        const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'row');
+        const received = { $eq: 'bad' };
+        const traced = new FiltersParseError({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            message: ErrorMessage.keyValueInvalid('existing'),
+            issues: [buildIssue({
+                code: ErrorCode.KEY_VALUE_INVALID,
+                parameter: Parameter.FILTERS,
+                path: ['existing'],
+                message: ErrorMessage.keyValueInvalid('existing'),
+                received,
+            })],
+        });
+        const value = {};
+        Object.defineProperty(value, '$eq', {
+            enumerable: true,
+            get: () => {
+                throw traced;
+            },
+        });
+
+        try {
+            parser.parseFieldEntryForTest('id', value, scope);
+            expect.fail('expected the traced field error');
+        } catch (error) {
+            expect(error).toBe(traced);
+            expect(traced.issues).toHaveLength(1);
+            expect(traced.issues[0]?.path).toEqual(['existing']);
+            expect(traced.issues[0]?.received).toBe(received);
         }
     });
 
