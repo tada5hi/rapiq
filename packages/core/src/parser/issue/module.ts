@@ -10,7 +10,7 @@ import {
     isIssueGroup,
     prefixIssuePath,
 } from 'blemish';
-import type { Issue } from 'blemish';
+import type { Issue, IssueItem } from 'blemish';
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES, buildIssue } from '../../errors';
 import type { IParseError, IssueInput } from '../../errors';
@@ -46,16 +46,23 @@ function trimIssueToLeafBudget(input: Issue, budget: IssueBudget) : Issue | unde
     return issues.length > 0 ? { ...input, issues } : undefined;
 }
 
-function removeLastIssueItem(issues: Issue[]) : boolean {
+function removeLastIssueItem(
+    issues: Issue[],
+    priorityItems?: ReadonlySet<IssueItem>,
+) : boolean {
     for (let index = issues.length - 1; index >= 0; index--) {
         const issue = issues[index]!;
         if (!isIssueGroup(issue)) {
+            if (priorityItems?.has(issue)) {
+                continue;
+            }
+
             issues.splice(index, 1);
 
             return true;
         }
 
-        if (removeLastIssueItem(issue.issues)) {
+        if (removeLastIssueItem(issue.issues, priorityItems)) {
             if (issue.issues.length === 0) {
                 issues.splice(index, 1);
             }
@@ -93,9 +100,12 @@ export class IssueCollector implements IIssueCollector {
 
     protected leafCount : number;
 
+    private priorityItems : Set<IssueItem>;
+
     constructor() {
         this.items = [];
         this.leafCount = 0;
+        this.priorityItems = new Set();
     }
 
     // -----------------------------------------------------
@@ -126,7 +136,7 @@ export class IssueCollector implements IIssueCollector {
      * enclosing site could reconstruct.
      */
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
-        this.synchronizeLeafCount();
+        this.synchronizeItems();
 
         const issues = input.issues ?? [];
         if (issues.length > 0) {
@@ -160,20 +170,32 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
-    protected synchronizeLeafCount() : void {
-        this.leafCount = flattenIssueItems(this.items).length;
+    protected synchronizeItems() : void {
+        const items = flattenIssueItems(this.items);
+        const liveItems = new Set(items);
+        this.leafCount = items.length;
+
+        for (const item of this.priorityItems) {
+            if (!liveItems.has(item)) {
+                this.priorityItems.delete(item);
+            }
+        }
     }
 
     protected record(input: Issue, priority = false) : boolean {
-        this.synchronizeLeafCount();
+        this.synchronizeItems();
 
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
         if (priority && this.leafCount >= MAX_ISSUES) {
-            if (removeLastIssueItem(this.items)) {
-                this.leafCount--;
+            if (!removeLastIssueItem(this.items, this.priorityItems)) {
+                // When only structural aborts remain, retain the first issue
+                // and replace the newest abort to make room deterministically.
+                removeLastIssueItem(this.items);
             }
+
+            this.synchronizeItems();
         }
 
         const budget = { remaining: MAX_ISSUES - this.leafCount };
@@ -183,7 +205,14 @@ export class IssueCollector implements IIssueCollector {
         }
 
         this.items.push(retained);
-        this.leafCount += flattenIssueItems([retained]).length;
+
+        const items = flattenIssueItems([retained]);
+        this.leafCount += items.length;
+        if (priority) {
+            for (const item of items) {
+                this.priorityItems.add(item);
+            }
+        }
 
         return true;
     }
