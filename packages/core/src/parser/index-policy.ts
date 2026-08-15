@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { flattenIssueItems } from 'blemish';
 import { Parameter } from '../constants';
 import {
     Filters,
@@ -13,7 +14,12 @@ import {
     isFilters,
 } from '../parameter';
 import type { ICondition, IFilters, ISorts } from '../parameter';
-import { ErrorCode, ErrorMessage, SchemaError } from '../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    extractIssueParameter,
+} from '../errors';
 import {
     FilterCompoundOperator,
     ResolutionScope,
@@ -43,6 +49,14 @@ type IndexPolicyContext = {
      */
     issueCollector?: IIssueCollector,
 };
+
+function hasIssueForParameter(
+    collector: IIssueCollector | undefined,
+    parameter: `${Parameter}`,
+) : boolean {
+    return collector ? flattenIssueItems(collector.issues)
+        .some((issue) => extractIssueParameter(issue) === parameter) : false;
+}
 
 /**
  * Indexes are read from the schema governing each relation path, so a
@@ -232,10 +246,10 @@ export function applyFiltersIndexPolicy<
     if (
         !filtersSchema.indexed ||
         isFiltersDefaults(output, filtersSchema) ||
-        // an already-failed parse raises its first violation; this policy can
-        // only add noise behind it (and its preserved-condition refusal would
-        // displace it).
-        context.issueCollector?.failed
+        // A filter failure already explains why this tree cannot execute.
+        // Its index violation is only a consequence (and its preserved-
+        // condition refusal would displace that original failure).
+        hasIssueForParameter(context.issueCollector, Parameter.FILTERS)
     ) {
         return output;
     }
@@ -307,7 +321,9 @@ export function applySortsIndexPolicy<
     if (
         !sortSchema.indexed ||
         output.value.length === 0 ||
-        context.issueCollector?.failed
+        // A sort failure already explains why this list cannot execute; its
+        // index violation is only a consequence of that original failure.
+        hasIssueForParameter(context.issueCollector, Parameter.SORTS)
     ) {
         return output;
     }
