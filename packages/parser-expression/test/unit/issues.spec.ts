@@ -8,6 +8,7 @@
 import type { FiltersParseError } from '@rapiq/core';
 import {
     ErrorCode,
+    ITSELF,
     Parameter,
     SchemaRegistry,
     defineSchema,
@@ -32,6 +33,58 @@ const buildRegistry = () => {
 };
 
 describe('src/parameter/filters — issue traces', () => {
+    it('should report absolute validator paths inside elemMatch through exact entry points', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'row',
+            filters: {
+                allowed: ['items'],
+                throwOnFailure: true,
+                validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+            },
+        }));
+        const parser = new ExpressionFiltersParser(registry);
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseExact("elemMatch(items,eq(id,'1'))", { schema: 'row' })),
+            () => parser.parseExactAsync("elemMatch(items,eq(id,'1'))", { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the validator rejection');
+            } catch (error) {
+                const parsed = error as FiltersParseError;
+                expect(parsed.issues[0]?.path).toEqual(['items', 'id']);
+                expect(extractIssueParameter(parsed.issues[0]!)).toBe(Parameter.FILTERS);
+            }
+        }
+    });
+
+    it('should not add an ITSELF segment to an exact elemMatch validator path', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'row',
+            filters: {
+                allowed: ['items'],
+                throwOnFailure: true,
+                validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
+            },
+        }));
+        const parser = new ExpressionFiltersParser(registry);
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseExact("elemMatch(items,eq($this,'1'))", { schema: 'row' })),
+            () => parser.parseExactAsync("elemMatch(items,eq($this,'1'))", { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the validator rejection');
+            } catch (error) {
+                expect((error as FiltersParseError).issues[0]?.path).toEqual(['items']);
+            }
+        }
+    });
+
     it('should populate the trace of parseExact syntax failures', async () => {
         const parser = new ExpressionFiltersParser(buildRegistry());
 

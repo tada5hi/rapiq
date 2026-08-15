@@ -7,6 +7,7 @@
 
 import {
     ErrorCode,
+    ITSELF,
     Parameter,
     ParseError,
     SchemaRegistry,
@@ -43,18 +44,79 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 };
 
 describe('src/parameter/filters — issue traces', () => {
-    it('should retain a structural abort after an earlier standalone rejection', () => {
+    it('should retain a contextual structural abort after an earlier rejection', () => {
         const parser = new MongoParser(buildRegistry(true));
+        const filters = { secret: 1, id: { $size: -1 } };
 
-        try {
-            parser.parseFilters({ secret: 1, id: { $size: -1 } }, { schema: 'row' });
-            expect.fail('expected an aggregated rejection');
-        } catch (error) {
-            const parsed = error as FiltersParseError;
-            expect(parsed.issues.map((issue) => issue.code)).toEqual([
-                ErrorCode.KEY_NOT_ALLOWED,
-                ErrorCode.KEY_VALUE_INVALID,
-            ]);
+        for (const run of [
+            () => parser.parseFilters(filters, { schema: 'row' }),
+            () => parser.parse({ filters }, { schema: 'row' }),
+        ]) {
+            try {
+                run();
+                expect.fail('expected an aggregated rejection');
+            } catch (error) {
+                const parsed = error as FiltersParseError;
+                const [allowIssue, grammarIssue] = parsed.issues;
+                expect(allowIssue?.path).toEqual(['secret']);
+                expect(grammarIssue).toMatchObject({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    path: ['id'],
+                    received: { $size: -1 },
+                });
+            }
+        }
+    });
+
+    it('should report absolute validator paths inside elemMatch synchronously and asynchronously', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'row',
+            filters: {
+                allowed: ['items'],
+                throwOnFailure: true,
+                validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+            },
+        }));
+        const parser = new MongoParser(registry);
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseFilters({ items: { $elemMatch: { id: '1' } } }, { schema: 'row' })),
+            () => parser.parseFiltersAsync({ items: { $elemMatch: { id: '1' } } }, { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the validator rejection');
+            } catch (error) {
+                const parsed = error as FiltersParseError;
+                expect(parsed.issues[0]?.path).toEqual(['items', 'id']);
+                expect(extractIssueParameter(parsed.issues[0]!)).toBe(Parameter.FILTERS);
+            }
+        }
+    });
+
+    it('should not add an ITSELF segment to a Mongo elemMatch validator path', async () => {
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema({
+            name: 'row',
+            filters: {
+                allowed: ['items'],
+                throwOnFailure: true,
+                validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
+            },
+        }));
+        const parser = new MongoParser(registry);
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseFilters({ items: { $elemMatch: { $eq: '1' } } }, { schema: 'row' })),
+            () => parser.parseFiltersAsync({ items: { $elemMatch: { $eq: '1' } } }, { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the validator rejection');
+            } catch (error) {
+                expect((error as FiltersParseError).issues[0]?.path).toEqual(['items']);
+            }
         }
     });
 
@@ -64,6 +126,30 @@ describe('src/parameter/filters — issue traces', () => {
         const output = parser.parseFilters({ secret: 1 }, { schema: 'row' });
 
         expect(output.value).toEqual([]);
+    });
+
+    it('should propagate non-parse field-entry errors unchanged', async () => {
+        const failure = new Error('Field value failed.');
+        const value = {};
+        Object.defineProperty(value, '$eq', {
+            enumerable: true,
+            get: () => {
+                throw failure;
+            },
+        });
+        const parser = new MongoParser(buildRegistry());
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseFilters({ id: value }, { schema: 'row' })),
+            () => parser.parseFiltersAsync({ id: value }, { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the field value error');
+            } catch (error) {
+                expect(error).toBe(failure);
+            }
+        }
     });
 
     it('should report a dropped field key', () => {

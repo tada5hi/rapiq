@@ -22,6 +22,8 @@ import {
     PARSE_ERROR_MARKER,
     Parameter,
     ParseError,
+    ResolutionScope,
+    SchemaRegistry,
     buildIssue,
     extractIssueKey,
     extractIssueParameter,
@@ -69,6 +71,29 @@ describe('src/errors/issue/module.ts', () => {
 
     it('should carry the offending value as blemish names it', () => {
         expect(buildIssue(violation({ received: 500 })).received).toBe(500);
+    });
+
+    it('should preserve an explicitly undefined offending value', () => {
+        expect(buildIssue(violation({ received: undefined })))
+            .toHaveProperty('received', undefined);
+    });
+
+    it('should preserve explicitly undefined input refused by a resolution scope', () => {
+        const collector = new IssueCollector();
+        const scope = ResolutionScope.for(
+            new SchemaRegistry(),
+            Parameter.FILTERS,
+            undefined,
+            { issueCollector: collector, throwOnFailure: true },
+        );
+
+        scope.refuse({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            message: ErrorMessage.keyValueInvalid('id'),
+            input: undefined,
+        });
+
+        expect(collector.issues[0]).toHaveProperty('received', undefined);
     });
 
     it('should ignore a meta bag another library wrote', () => {

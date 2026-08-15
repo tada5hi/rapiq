@@ -11,10 +11,14 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    ITSELF,
+    IssueCollector,
+    Parameter,
     SchemaError,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     defineFiltersSchema,
+    extractIssueParameter,
     preserve,
 } from '../../../../../src';
 import type { IFilter, Validator } from '../../../../../src';
@@ -152,6 +156,69 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ),
         );
         expect(seen).toEqual(['name', 'items']);
+    });
+
+    it('should record an absolute elemMatch rejection path synchronously and asynchronously', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'id', '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (collector: IssueCollector) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+            async (collector: IssueCollector) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+        ]) {
+            const collector = new IssueCollector();
+            await run(collector);
+            expect(collector.issues[0]?.path).toEqual(['items', 'id']);
+            expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.FILTERS);
+        }
+    });
+
+    it('should not append the ITSELF marker to an elemMatch rejection path', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, ITSELF, '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (collector: IssueCollector) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+            async (collector: IssueCollector) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+        ]) {
+            const collector = new IssueCollector();
+            await run(collector);
+            expect(collector.issues[0]?.path).toEqual(['items']);
+        }
     });
 
     it('should drop an elemMatch leaf whose interior is fully rejected', () => {

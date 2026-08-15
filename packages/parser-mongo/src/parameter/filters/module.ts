@@ -34,9 +34,12 @@ import {
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
     buildFiltersDefaults,
+    buildIssue,
     isFilters,
     isObject,
+    isParseError,
     pruneFiltersByRelations,
+    toIssuePath,
 } from '@rapiq/core';
 import type { MongoComparisonOperator, MongoCompoundOperator } from './constants';
 import {
@@ -427,6 +430,35 @@ export class MongoFiltersParser extends BaseParser<
      * the schema failure policy.
      */
     protected parseFieldEntry(
+        key: string,
+        value: unknown,
+        scope: FiltersScope,
+        negated: boolean,
+        depth: number,
+    ) : ICondition[] {
+        try {
+            return this.parseFieldEntryUnchecked(key, value, scope, negated, depth);
+        } catch (error) {
+            if (!isParseError(error) || (error.issues ?? []).length > 0) {
+                throw error;
+            }
+
+            throw new FiltersParseError({
+                code: error.code,
+                message: error.message,
+                cause: error,
+                issues: [buildIssue({
+                    code: error.code,
+                    parameter: Parameter.FILTERS,
+                    path: [...scope.path, ...toIssuePath(key)],
+                    message: error.message,
+                    received: value,
+                })],
+            });
+        }
+    }
+
+    protected parseFieldEntryUnchecked(
         key: string,
         value: unknown,
         scope: FiltersScope,
