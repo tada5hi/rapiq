@@ -296,6 +296,130 @@ describe('src/parser/issue/module.ts', () => {
         ]);
     });
 
+    it('should retain contextual errors that filled the final free slot', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES - 1; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(new FiltersParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('filters'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.FILTERS,
+                path: ['filter-context'],
+                message: ErrorMessage.syntaxInvalid('filters'),
+            })],
+        }), Parameter.FILTERS);
+        collector.addError(new SortsParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.SORTS,
+                path: ['sort-context'],
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            })],
+        }), Parameter.SORTS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => ({
+            parameter: extractIssueParameter(issue),
+            path: issue.path,
+        }))).toEqual([
+            { parameter: Parameter.FILTERS, path: ['filter-context'] },
+            { parameter: Parameter.SORTS, path: ['sort-context'] },
+        ]);
+    });
+
+    it('should retain a prefixed carried group while recording a later contextual error', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES - 1; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(new FiltersParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('filters'),
+            issues: [defineIssueGroup({
+                code: 'context',
+                path: [],
+                message: 'Context failed.',
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.FILTERS,
+                    path: ['filter-context'],
+                    message: ErrorMessage.syntaxInvalid('filters'),
+                })],
+            })],
+        }), Parameter.FILTERS, ['items']);
+        collector.addError(new SortsParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.SORTS,
+                path: ['sort-context'],
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            })],
+        }), Parameter.SORTS);
+
+        const group = collector.issues[98]!;
+        expect(group.type).toBe('group');
+        expect(group.path).toEqual(['items']);
+        expect(flattenIssueItems([group])[0]?.path).toEqual(['items', 'filter-context']);
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => extractIssueParameter(issue))).toEqual([
+            Parameter.FILTERS,
+            Parameter.SORTS,
+        ]);
+    });
+
+    it('should treat duplicate public references to contextual errors as ordinary copies', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES - 1; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(new FiltersParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('filters'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.FILTERS,
+                path: ['filter-context'],
+                message: ErrorMessage.syntaxInvalid('filters'),
+            })],
+        }), Parameter.FILTERS);
+
+        const filterAbort = collector.issues.at(-1)!;
+        collector.issues.push(filterAbort);
+
+        collector.addError(new SortsParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.SORTS,
+                path: ['sort-context'],
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            })],
+        }), Parameter.SORTS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.filter((issue) => issue.path[0] === 'filter-context')).toHaveLength(1);
+        expect(leaves.at(-1)?.path).toEqual(['sort-context']);
+    });
+
     it('should replace the final leaf of a capped nested group with a structural abort', () => {
         const collector = new IssueCollector();
         collector.merge([defineIssueGroup({

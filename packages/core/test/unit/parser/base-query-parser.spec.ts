@@ -31,6 +31,7 @@ import {
     SortDirection,
     Sorts,
     SortsParseError,
+    buildIssue,
     defineSchema,
     extractIssueParameter,
 } from '../../../src';
@@ -213,18 +214,36 @@ function buildParsers(obligation: PendingKeyValidation) {
 
 function buildSaturatedAbortParsers() {
     return {
-        fields: new FailingParameterParser<IFields>(new Fields(), MAX_ISSUES),
+        fields: new FailingParameterParser<IFields>(new Fields(), MAX_ISSUES - 1),
         filters: new FailingParameterParser<IFilters>(
             new Filters(FilterCompoundOperator.AND, []),
             0,
-            FiltersParseError.syntaxInvalid('filters'),
+            new FiltersParseError({
+                code: ErrorCode.SYNTAX_INVALID,
+                message: ErrorMessage.syntaxInvalid('filters'),
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.FILTERS,
+                    path: ['filter-context'],
+                    message: ErrorMessage.syntaxInvalid('filters'),
+                })],
+            }),
         ),
         pagination: new FailingParameterParser<IPagination>(new Pagination()),
         relations: new FailingParameterParser<IRelations>(new Relations()),
         sort: new FailingParameterParser<ISorts>(
             new Sorts(),
             0,
-            SortsParseError.syntaxInvalid('sorts'),
+            new SortsParseError({
+                code: ErrorCode.SYNTAX_INVALID,
+                message: ErrorMessage.syntaxInvalid('sorts'),
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.SORTS,
+                    path: ['sort-context'],
+                    message: ErrorMessage.syntaxInvalid('sorts'),
+                })],
+            }),
         ),
     };
 }
