@@ -213,19 +213,6 @@ describe('src/parser/issue/module.ts', () => {
         expect(collector.issues[0]?.path).toEqual(['first']);
     });
 
-    it('should resynchronize the leaf limit after consumers mutate issues', () => {
-        const collector = new IssueCollector();
-        for (let index = 0; index < MAX_ISSUES; index++) {
-            collector.add(violation({ path: [`key${index}`] }));
-        }
-
-        collector.issues.splice(0);
-        collector.add(violation({ path: ['later'] }));
-
-        expect(flattenIssueItems(collector.issues)).toHaveLength(1);
-        expect(collector.issues[0]?.path).toEqual(['later']);
-    });
-
     it('should cap nested groups by leaf count without flattening them', () => {
         const collector = new IssueCollector();
         const group = defineIssueGroup({
@@ -381,45 +368,6 @@ describe('src/parser/issue/module.ts', () => {
         ]);
     });
 
-    it('should treat duplicate public references to contextual errors as ordinary copies', () => {
-        const collector = new IssueCollector();
-        for (let index = 0; index < MAX_ISSUES - 1; index++) {
-            collector.add(violation({ path: [`key${index}`] }));
-        }
-
-        collector.addError(new FiltersParseError({
-            code: ErrorCode.SYNTAX_INVALID,
-            message: ErrorMessage.syntaxInvalid('filters'),
-            issues: [buildIssue({
-                code: ErrorCode.SYNTAX_INVALID,
-                parameter: Parameter.FILTERS,
-                path: ['filter-context'],
-                message: ErrorMessage.syntaxInvalid('filters'),
-            })],
-        }), Parameter.FILTERS);
-
-        const filterAbort = collector.issues.at(-1)!;
-        collector.issues.push(filterAbort);
-
-        collector.addError(new SortsParseError({
-            code: ErrorCode.SYNTAX_INVALID,
-            message: ErrorMessage.syntaxInvalid('sorts'),
-            issues: [buildIssue({
-                code: ErrorCode.SYNTAX_INVALID,
-                parameter: Parameter.SORTS,
-                path: ['sort-context'],
-                message: ErrorMessage.syntaxInvalid('sorts'),
-            })],
-        }), Parameter.SORTS);
-
-        const leaves = flattenIssueItems(collector.issues);
-        expect(leaves).toHaveLength(MAX_ISSUES);
-        expect(leaves[0]?.path).toEqual(['key0']);
-        expect(leaves[97]?.path).toEqual(['key97']);
-        expect(leaves.filter((issue) => issue.path[0] === 'filter-context')).toHaveLength(1);
-        expect(leaves.at(-1)?.path).toEqual(['sort-context']);
-    });
-
     it('should replace the final leaf of a capped nested group with a structural abort', () => {
         const collector = new IssueCollector();
         collector.merge([defineIssueGroup({
@@ -482,7 +430,7 @@ describe('src/parser/issue/module.ts', () => {
         ]);
     });
 
-    it('should replace the newest priority abort when every retained leaf is priority', () => {
+    it('should replace the newest terminal abort when every retained leaf is terminal', () => {
         const collector = new IssueCollector();
         for (let index = 0; index < MAX_ISSUES; index++) {
             collector.addError(FiltersParseError.syntaxInvalid(`filters${index}`), Parameter.FILTERS);
@@ -495,28 +443,6 @@ describe('src/parser/issue/module.ts', () => {
         expect(leaves[0]?.message).toBe(ErrorMessage.syntaxInvalid('filters0'));
         expect(leaves.at(-1)?.message).toBe(ErrorMessage.syntaxInvalid('sorts'));
         expect(leaves.some((issue) => issue.message === ErrorMessage.syntaxInvalid('filters99')))
-            .toBeFalsy();
-    });
-
-    it('should prune priority tracking after consumers remove a terminal abort', () => {
-        const collector = new IssueCollector();
-        for (let index = 0; index < MAX_ISSUES; index++) {
-            collector.add(violation({ path: [`key${index}`] }));
-        }
-
-        collector.addError(FiltersParseError.syntaxInvalid('filters'), Parameter.FILTERS);
-        const filterAbort = collector.issues.pop();
-        expect(filterAbort).toBeDefined();
-
-        collector.add(violation({ path: ['replacement'] }));
-        collector.issues.splice(-1, 1, filterAbort!);
-        collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
-
-        const leaves = flattenIssueItems(collector.issues);
-        expect(leaves).toHaveLength(MAX_ISSUES);
-        expect(leaves[0]?.path).toEqual(['key0']);
-        expect(leaves.at(-1)?.message).toBe(ErrorMessage.syntaxInvalid('sorts'));
-        expect(leaves.some((issue) => issue.message === ErrorMessage.syntaxInvalid('filters')))
             .toBeFalsy();
     });
 

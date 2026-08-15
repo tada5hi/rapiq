@@ -46,59 +46,14 @@ function trimIssueToLeafBudget(input: Issue, budget: IssueBudget) : Issue | unde
     return issues.length > 0 ? { ...input, issues } : undefined;
 }
 
-function cloneIssue(input: Issue) : Issue {
-    return prefixIssuePath(input, []);
-}
-
-function containsPriorityItem(input: Issue, priorityItems: ReadonlySet<IssueItem>) : boolean {
-    if (!isIssueGroup(input)) {
-        return priorityItems.has(input);
-    }
-
-    return input.issues.some((issue) => containsPriorityItem(issue, priorityItems));
-}
-
-function cloneDuplicatePriorityItems(
-    issues: Issue[],
-    priorityItems: ReadonlySet<IssueItem>,
-    seenItems: Set<IssueItem> = new Set(),
-    seenGroups: Set<Issue> = new Set(),
-) : void {
-    for (let index = 0; index < issues.length; index++) {
-        const issue = issues[index]!;
-        if (isIssueGroup(issue)) {
-            if (seenGroups.has(issue)) {
-                if (containsPriorityItem(issue, priorityItems)) {
-                    issues[index] = cloneIssue(issue);
-                }
-
-                continue;
-            }
-
-            seenGroups.add(issue);
-            cloneDuplicatePriorityItems(issue.issues, priorityItems, seenItems, seenGroups);
-
-            continue;
-        }
-
-        if (priorityItems.has(issue)) {
-            if (seenItems.has(issue)) {
-                issues[index] = cloneIssue(issue);
-            } else {
-                seenItems.add(issue);
-            }
-        }
-    }
-}
-
 function removeLastIssueItem(
     issues: Issue[],
-    priorityItems?: ReadonlySet<IssueItem>,
+    terminalItems?: WeakSet<IssueItem>,
 ) : boolean {
     for (let index = issues.length - 1; index >= 0; index--) {
         const issue = issues[index]!;
         if (!isIssueGroup(issue)) {
-            if (priorityItems?.has(issue)) {
+            if (terminalItems?.has(issue)) {
                 continue;
             }
 
@@ -107,7 +62,7 @@ function removeLastIssueItem(
             return true;
         }
 
-        if (removeLastIssueItem(issue.issues, priorityItems)) {
+        if (removeLastIssueItem(issue.issues, terminalItems)) {
             if (issue.issues.length === 0) {
                 issues.splice(index, 1);
             }
@@ -141,16 +96,12 @@ function removeLastIssueItem(
  * trace.
  */
 export class IssueCollector implements IIssueCollector {
-    protected items : Issue[];
+    protected items : Issue[] = [];
 
-    protected leafCount : number;
+    private terminalItems = new WeakSet<IssueItem>();
 
-    private priorityItems : Set<IssueItem>;
-
-    constructor() {
-        this.items = [];
-        this.leafCount = 0;
-        this.priorityItems = new Set();
+    private get leafCount() : number {
+        return flattenIssueItems(this.items).length;
     }
 
     // -----------------------------------------------------
@@ -181,20 +132,21 @@ export class IssueCollector implements IIssueCollector {
      * enclosing site could reconstruct.
      */
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
-        this.synchronizeItems();
-
         const issues = input.issues ?? [];
         if (issues.length > 0) {
             const before = this.leafCount;
             for (const issue of issues) {
-                this.record(prefixIssuePath(issue, path), false, true);
+                this.record(prefixIssuePath(issue, path), { terminal: true });
             }
             if (this.leafCount > before) {
                 return;
             }
 
             const first = flattenIssueItems([...issues])[0];
-            if (first && this.record(prefixIssuePath(first, path), true)) {
+            if (first && this.record(prefixIssuePath(first, path), {
+                ensure: true,
+                terminal: true,
+            })) {
                 return;
             }
         }
@@ -204,7 +156,7 @@ export class IssueCollector implements IIssueCollector {
             parameter,
             path,
             message: input.message,
-        }), true);
+        }), { ensure: true, terminal: true });
     }
 
     /**
@@ -217,36 +169,19 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
-    protected synchronizeItems() : void {
-        cloneDuplicatePriorityItems(this.items, this.priorityItems);
-
-        const items = flattenIssueItems(this.items);
-        const liveItems = new Set(items);
-        this.leafCount = items.length;
-
-        for (const item of this.priorityItems) {
-            if (!liveItems.has(item)) {
-                this.priorityItems.delete(item);
-            }
-        }
-    }
-
-    protected record(input: Issue, priority = false, markPriority = priority) : boolean {
-        this.synchronizeItems();
-
+    protected record(
+        input: Issue,
+        options: { ensure?: boolean, terminal?: boolean } = {},
+    ) : boolean {
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
-        while (priority && this.leafCount >= MAX_ISSUES) {
-            if (!removeLastIssueItem(this.items, this.priorityItems)) {
+        if (options.ensure && this.leafCount >= MAX_ISSUES) {
+            if (!removeLastIssueItem(this.items, this.terminalItems)) {
                 // When only structural aborts remain, retain the first issue
                 // and replace the newest abort to make room deterministically.
-                if (!removeLastIssueItem(this.items)) {
-                    break;
-                }
+                removeLastIssueItem(this.items);
             }
-
-            this.synchronizeItems();
         }
 
         const budget = { remaining: MAX_ISSUES - this.leafCount };
@@ -255,14 +190,12 @@ export class IssueCollector implements IIssueCollector {
             return false;
         }
 
-        const stored = markPriority ? cloneIssue(retained) : retained;
-        this.items.push(stored);
+        this.items.push(retained);
 
-        const items = flattenIssueItems([stored]);
-        this.leafCount += items.length;
-        if (markPriority) {
+        if (options.terminal) {
+            const items = flattenIssueItems([retained]);
             for (const item of items) {
-                this.priorityItems.add(item);
+                this.terminalItems.add(item);
             }
         }
 
