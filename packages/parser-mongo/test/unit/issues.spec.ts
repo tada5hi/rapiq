@@ -43,6 +43,29 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 };
 
 describe('src/parameter/filters — issue traces', () => {
+    it('should retain a structural abort after an earlier standalone rejection', () => {
+        const parser = new MongoParser(buildRegistry(true));
+
+        try {
+            parser.parseFilters({ secret: 1, id: { $size: -1 } }, { schema: 'row' });
+            expect.fail('expected an aggregated rejection');
+        } catch (error) {
+            const parsed = error as FiltersParseError;
+            expect(parsed.issues.map((issue) => issue.code)).toEqual([
+                ErrorCode.KEY_NOT_ALLOWED,
+                ErrorCode.KEY_VALUE_INVALID,
+            ]);
+        }
+    });
+
+    it('should silently drop a rejected key under the drop policy', () => {
+        const parser = new MongoParser(buildRegistry());
+
+        const output = parser.parseFilters({ secret: 1 }, { schema: 'row' });
+
+        expect(output.value).toEqual([]);
+    });
+
     it('should report a dropped field key', () => {
         const parser = new MongoParser(buildRegistry(true));
 

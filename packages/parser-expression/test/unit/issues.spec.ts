@@ -32,6 +32,53 @@ const buildRegistry = () => {
 };
 
 describe('src/parameter/filters — issue traces', () => {
+    it('should populate the trace of parseExact syntax failures', async () => {
+        const parser = new ExpressionFiltersParser(buildRegistry());
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseExact('broken(')),
+            () => parser.parseExactAsync('broken('),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected a syntax rejection');
+            } catch (error) {
+                const parsed = error as FiltersParseError;
+                expect(parsed.code).toBe(ErrorCode.INPUT_REJECTED);
+                expect(parsed.issues).toHaveLength(1);
+                expect(parsed.issues[0]?.code).toBe(ErrorCode.SYNTAX_INVALID);
+                expect(extractIssueParameter(parsed.issues[0]!)).toBe(Parameter.FILTERS);
+            }
+        }
+    });
+
+    it('should propagate non-parse errors from parseExact unchanged', async () => {
+        const failure = new Error('Validator rejected.');
+        const registry = new SchemaRegistry();
+        registry.add(defineSchema<Row>({
+            name: 'row',
+            filters: {
+                allowed: ['id'],
+                validate: () => {
+                    throw failure;
+                },
+            },
+        }));
+        const parser = new ExpressionFiltersParser(registry);
+
+        for (const run of [
+            () => Promise.resolve().then(() => parser.parseExact("eq(id, '1')", { schema: 'row' })),
+            () => parser.parseExactAsync("eq(id, '1')", { schema: 'row' }),
+        ]) {
+            try {
+                await run();
+                expect.fail('expected the validator error');
+            } catch (error) {
+                expect(error).toBe(failure);
+            }
+        }
+    });
+
     it('should record the failure it fails fast on', () => {
         const parser = new ExpressionParser(buildRegistry());
 
