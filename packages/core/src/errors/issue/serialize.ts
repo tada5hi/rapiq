@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { isIssueGroup } from 'blemish';
-import type { Issue } from 'blemish';
+import type { Issue, IssueGroup } from 'blemish';
 
 const CIRCULAR = '[Circular]';
 
@@ -41,34 +40,38 @@ function serializeValue(input: unknown, seen: WeakSet<object>, arrayValue = fals
         return input.map((value) => serializeValue(value, seen, true));
     }
 
-    const output : Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input)) {
+    const entries : [string, unknown][] = [];
+    for (const key of Object.keys(input)) {
+        const value = (input as Record<string, unknown>)[key];
         const serialized = serializeValue(value, seen);
         if (typeof serialized !== 'undefined') {
-            output[key] = serialized;
+            entries.push([key, serialized]);
         }
     }
 
-    return output;
+    return Object.fromEntries(entries);
 }
 
 function serializeIssue(input: Issue, seen: WeakSet<object>) : Issue {
     seen.add(input);
 
-    const output : Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input)) {
+    const entries : [string, unknown][] = [];
+    for (const key of Object.keys(input)) {
         if (key === 'received' || key === 'issues') {
             continue;
         }
 
+        const value = (input as unknown as Record<string, unknown>)[key];
         const serialized = serializeValue(value, seen);
         if (typeof serialized !== 'undefined') {
-            output[key] = serialized;
+            entries.push([key, serialized]);
         }
     }
 
-    if (isIssueGroup(input)) {
-        output.issues = input.issues.map((issue) => serializeIssue(issue, seen));
+    const output : Record<string, unknown> = Object.fromEntries(entries);
+    if (output.type === 'group') {
+        const group = input as IssueGroup;
+        output.issues = group.issues.map((issue) => serializeIssue(issue, seen));
     }
 
     return output as unknown as Issue;

@@ -126,6 +126,39 @@ describe('src/errors/base.ts (serialization)', () => {
         expect(toJSONCalls).toBe(0);
     });
 
+    it('should redact received without evaluating it', () => {
+        const item = issue();
+        Object.defineProperty(item, 'received', {
+            enumerable: true,
+            get() {
+                throw new Error('received getter evaluated');
+            },
+        });
+
+        const serialized = JSON.parse(JSON.stringify(ParseError.inputRejected([item])));
+
+        expect(serialized.issues[0]).not.toHaveProperty('received');
+    });
+
+    it('should preserve an own __proto__ metadata property without changing the prototype', () => {
+        const meta : Record<string, unknown> = {};
+        Object.defineProperty(meta, '__proto__', {
+            enumerable: true,
+            value: { safe: true },
+        });
+        const item = issue();
+        item.meta = meta;
+        const error = ParseError.inputRejected([item]);
+
+        const serializedMeta = error.toJSON().issues[0]?.meta;
+        expect(Object.hasOwn(serializedMeta ?? {}, '__proto__')).toBeTruthy();
+        expect(Object.getPrototypeOf(serializedMeta)).toBe(Object.prototype);
+
+        const roundTrippedMeta = JSON.parse(JSON.stringify(error)).issues[0].meta;
+        expect(Object.hasOwn(roundTrippedMeta, '__proto__')).toBeTruthy();
+        expect(Reflect.get(roundTrippedMeta, '__proto__')).toEqual({ safe: true });
+    });
+
     it('should carry a cause only when there is one', () => {
         expect(JSON.parse(JSON.stringify(new BaseError('failed')))).not.toHaveProperty('cause');
 
