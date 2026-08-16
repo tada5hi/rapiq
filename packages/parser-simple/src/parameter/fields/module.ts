@@ -316,15 +316,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             }
         }
 
-        // an all-denied schema (`allowed: []` and `default: []`) contributes
-        // nothing below it, relation sub-trees and their defaults included: an
-        // empty projection is the whole subtree, and the includes decide what
-        // hydrates. The client keys above were still resolved, so a throwing
-        // policy reports each of them rather than short-circuiting silently.
-        if (schema.allDenied) {
-            return new Fields();
-        }
-
         const output = fields.execute({
             default: schema.default,
             allowed: schema.allowed,
@@ -386,8 +377,18 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             }
         }
 
+        // an all-denied schema (`allowed: []` and `default: []`) contributes
+        // nothing below it, relation sub-trees and their defaults included: an
+        // empty projection is the whole subtree, and the includes decide what
+        // hydrates. Every client key, nested ones included, was still resolved
+        // and validated above, so a throwing policy reports each of them
+        // rather than short-circuiting silently.
+        if (schema.allDenied) {
+            return new Fields();
+        }
+
         // alias groups and the relations sub-tree may materialize
-        // the same canonical field twice — keep the first occurrence.
+        // the same canonical field twice: keep the first occurrence.
         const seen = new Set<string>();
         const unique = output.value.filter((element) => {
             if (seen.has(element.name)) {

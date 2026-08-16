@@ -11,6 +11,7 @@ import type {
 } from '@rapiq/core';
 import {
     ErrorCode,
+    ErrorMessage,
     FieldsParseError,
     ParseError,
     Relation,
@@ -132,10 +133,19 @@ describe('src/fields/index.ts', () => {
         expect(interpreter.interpret(lockedParser.parse(undefined, { schema: 'user', relations }))).toEqual([]);
         expect(interpreter.interpret(lockedParser.parse({ items: ['title'] }, { schema: 'user', relations }))).toEqual([]);
 
-        // the client keys are still resolved, so a throwing policy reports them
+        // the client keys are still resolved, nested ones included, so a
+        // throwing policy reports them
         expectRejected(
             () => lockedParser.parse(['id'], { schema: 'user', throwOnFailure: true }),
             { code: ErrorCode.KEY_NOT_ALLOWED },
+        );
+        expectRejected(
+            () => lockedParser.parse({ items: ['secret'] }, {
+                schema: 'user', 
+                relations, 
+                throwOnFailure: true, 
+            }),
+            { code: ErrorCode.KEY_NOT_ALLOWED, message: ErrorMessage.keyNotPermitted('secret') },
         );
     });
 
