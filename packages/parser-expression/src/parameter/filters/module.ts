@@ -172,14 +172,16 @@ export class ExpressionFiltersParser extends BaseParser<
     ) : ICondition {
         // raw exact tree; a standalone caller wanting relation authorization
         // uses parse(). Obligations are discarded, not pooled.
-        return this.parseValidated(input, options, []).result;
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) =>
+            this.parseValidated(input, options, [], issueCollector).result);
     }
 
     async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<ICondition> {
-        return (await this.parseValidatedAsync(input, options, [])).result;
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) =>
+            (await this.parseValidatedAsync(input, options, [], issueCollector)).result);
     }
 
     // ---------------------------------------------------------

@@ -5,12 +5,74 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { prefixIssuePath } from 'blemish';
-import type { Issue } from 'blemish';
+import {
+    flattenIssueItems,
+    isIssueGroup,
+    prefixIssuePath,
+} from 'blemish';
+import type { Issue, IssueItem } from 'blemish';
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES, buildIssue } from '../../errors';
 import type { IParseError, IssueInput } from '../../errors';
 import type { IIssueCollector } from './types';
+
+type IssueBudget = {
+    remaining: number;
+};
+
+function trimIssueToLeafBudget(input: Issue, budget: IssueBudget) : Issue | undefined {
+    if (budget.remaining <= 0) {
+        return undefined;
+    }
+
+    if (!isIssueGroup(input)) {
+        budget.remaining--;
+
+        return input;
+    }
+
+    const issues : Issue[] = [];
+    for (const child of input.issues) {
+        if (budget.remaining === 0) {
+            break;
+        }
+
+        const retained = trimIssueToLeafBudget(child, budget);
+        if (retained) {
+            issues.push(retained);
+        }
+    }
+
+    return issues.length > 0 ? { ...input, issues } : undefined;
+}
+
+function removeLastIssueItem(
+    issues: Issue[],
+    terminalItems?: WeakSet<IssueItem>,
+) : boolean {
+    for (let index = issues.length - 1; index >= 0; index--) {
+        const issue = issues[index]!;
+        if (!isIssueGroup(issue)) {
+            if (terminalItems?.has(issue)) {
+                continue;
+            }
+
+            issues.splice(index, 1);
+
+            return true;
+        }
+
+        if (removeLastIssueItem(issue.issues, terminalItems)) {
+            if (issue.issues.length === 0) {
+                issues.splice(index, 1);
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /**
  * The trace of one parse call: every issue its sites recorded, and which of
@@ -34,10 +96,12 @@ import type { IIssueCollector } from './types';
  * trace.
  */
 export class IssueCollector implements IIssueCollector {
-    protected items : Issue[];
+    protected items : Issue[] = [];
 
-    constructor() {
-        this.items = [];
+    private terminalItems = new WeakSet<IssueItem>();
+
+    private get leafCount() : number {
+        return flattenIssueItems(this.items).length;
     }
 
     // -----------------------------------------------------
@@ -70,9 +134,21 @@ export class IssueCollector implements IIssueCollector {
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
         if (issues.length > 0) {
-            this.merge(issues, path);
+            const before = this.leafCount;
+            for (const issue of issues) {
+                this.record(prefixIssuePath(issue, path), { terminal: true });
+            }
+            if (this.leafCount > before) {
+                return;
+            }
 
-            return;
+            const first = flattenIssueItems([...issues])[0];
+            if (first && this.record(prefixIssuePath(first, path), {
+                ensure: true,
+                terminal: true,
+            })) {
+                return;
+            }
         }
 
         this.record(buildIssue({
@@ -80,7 +156,7 @@ export class IssueCollector implements IIssueCollector {
             parameter,
             path,
             message: input.message,
-        }));
+        }), { ensure: true, terminal: true });
     }
 
     /**
@@ -93,15 +169,37 @@ export class IssueCollector implements IIssueCollector {
         }
     }
 
-    protected record(input: Issue) : void {
+    protected record(
+        input: Issue,
+        options: { ensure?: boolean, terminal?: boolean } = {},
+    ) : boolean {
         // The tail of a hostile request changes nothing about the outcome: the
         // trace is a diagnostic, and what the parse raises does not depend on
         // which issue came first.
-        if (this.items.length >= MAX_ISSUES) {
-            return;
+        if (options.ensure && this.leafCount >= MAX_ISSUES) {
+            if (!removeLastIssueItem(this.items, this.terminalItems)) {
+                // When only structural aborts remain, retain the first issue
+                // and replace the newest abort to make room deterministically.
+                removeLastIssueItem(this.items);
+            }
         }
 
-        this.items.push(input);
+        const budget = { remaining: MAX_ISSUES - this.leafCount };
+        const retained = trimIssueToLeafBudget(input, budget);
+        if (!retained) {
+            return false;
+        }
+
+        this.items.push(retained);
+
+        if (options.terminal) {
+            const items = flattenIssueItems([retained]);
+            for (const item of items) {
+                this.terminalItems.add(item);
+            }
+        }
+
+        return true;
     }
 
     // -----------------------------------------------------

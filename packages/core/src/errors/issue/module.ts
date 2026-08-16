@@ -38,7 +38,7 @@ export function buildIssue(input: IssueInput) : IssueItem {
         output.meta = meta;
     }
 
-    if (typeof input.received !== 'undefined') {
+    if (Object.hasOwn(input, 'received')) {
         output.received = input.received;
     }
 

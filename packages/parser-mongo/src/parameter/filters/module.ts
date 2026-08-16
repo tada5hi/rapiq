@@ -34,9 +34,12 @@ import {
     applyKeySchemaValidation,
     applyKeySchemaValidationAsync,
     buildFiltersDefaults,
+    buildIssue,
     isFilters,
     isObject,
+    isParseError,
     pruneFiltersByRelations,
+    toIssuePath,
 } from '@rapiq/core';
 import type { MongoComparisonOperator, MongoCompoundOperator } from './constants';
 import {
@@ -236,19 +239,6 @@ export class MongoFiltersParser extends BaseParser<
             throw FiltersParseError.inputInvalid();
         }
 
-        // if allowed is an empty array nothing is permitted — the input
-        // is not walked and only the schema defaults apply.
-        if (
-            !scope.schema.allowedIsUndefined &&
-            scope.schema.allowed.length === 0
-        ) {
-            return {
-                scope, 
-                parsed: null, 
-                issueCollector, 
-            };
-        }
-
         const conditions = this.parseDocument(input, scope, false, 0);
         if (conditions.length === 0) {
             return {
@@ -427,6 +417,35 @@ export class MongoFiltersParser extends BaseParser<
      * the schema failure policy.
      */
     protected parseFieldEntry(
+        key: string,
+        value: unknown,
+        scope: FiltersScope,
+        negated: boolean,
+        depth: number,
+    ) : ICondition[] {
+        try {
+            return this.parseFieldEntryUnchecked(key, value, scope, negated, depth);
+        } catch (error) {
+            if (!isParseError(error) || (error.issues ?? []).length > 0) {
+                throw error;
+            }
+
+            throw new FiltersParseError({
+                code: error.code,
+                message: error.message,
+                cause: error,
+                issues: [buildIssue({
+                    code: error.code,
+                    parameter: Parameter.FILTERS,
+                    path: [...scope.path, ...toIssuePath(key)],
+                    message: error.message,
+                    received: value,
+                })],
+            });
+        }
+    }
+
+    protected parseFieldEntryUnchecked(
         key: string,
         value: unknown,
         scope: FiltersScope,

@@ -8,16 +8,21 @@
 // two small sub-parser stubs drive the orchestrator under test.
 /* eslint-disable max-classes-per-file */
 
+import { flattenIssueItems } from 'blemish';
 import {
     BaseQueryParser,
     ErrorCode,
+    ErrorMessage,
     Field,
     Fields,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    FiltersParseError,
+    MAX_ISSUES,
     Pagination,
+    Parameter,
     ParseError,
     Relation,
     Relations,
@@ -25,11 +30,15 @@ import {
     Sort,
     SortDirection,
     Sorts,
+    SortsParseError,
+    buildIssue,
     defineSchema,
+    extractIssueParameter,
 } from '../../../src';
 import type {
     IFields,
     IFilters,
+    IIssueCollector,
     IPagination,
     IQueryParameterParser,
     IRelations,
@@ -87,6 +96,48 @@ class StubParameterParser<T> implements IQueryParameterParser<T> {
 
     parseParameterAsync(input: unknown, options: unknown, ledger: RelationLedger) : Promise<T> {
         return Promise.resolve(this.parseParameter(input, options, ledger));
+    }
+}
+
+class FailingParameterParser<T> extends StubParameterParser<T> {
+    constructor(
+        node: T,
+        private readonly issueCount = 0,
+        private readonly error?: ParseError,
+    ) {
+        super(node);
+    }
+
+    override parseParameter(
+        input: unknown,
+        options: unknown,
+        ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
+    ) : T {
+        const output = super.parseParameter(input, options, ledger);
+        for (let index = 0; index < this.issueCount; index++) {
+            issueCollector?.add({
+                code: ErrorCode.KEY_NOT_ALLOWED,
+                parameter: Parameter.FIELDS,
+                path: [`key${index}`],
+                message: ErrorMessage.keyNotPermitted(`key${index}`),
+            });
+        }
+
+        if (this.error) {
+            throw this.error;
+        }
+
+        return output;
+    }
+
+    override async parseParameterAsync(
+        input: unknown,
+        options: unknown,
+        ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
+    ) : Promise<T> {
+        return this.parseParameter(input, options, ledger, issueCollector);
     }
 }
 
@@ -159,6 +210,64 @@ function buildParsers(obligation: PendingKeyValidation) {
         ),
         sort: new StubParameterParser<ISorts>(new Sorts([new Sort('id', SortDirection.ASC)])),
     };
+}
+
+function buildSaturatedAbortParsers() {
+    return {
+        fields: new FailingParameterParser<IFields>(new Fields(), MAX_ISSUES - 1),
+        filters: new FailingParameterParser<IFilters>(
+            new Filters(FilterCompoundOperator.AND, []),
+            0,
+            new FiltersParseError({
+                code: ErrorCode.SYNTAX_INVALID,
+                message: ErrorMessage.syntaxInvalid('filters'),
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.FILTERS,
+                    path: ['filter-context'],
+                    message: ErrorMessage.syntaxInvalid('filters'),
+                })],
+            }),
+        ),
+        pagination: new FailingParameterParser<IPagination>(new Pagination()),
+        relations: new FailingParameterParser<IRelations>(new Relations()),
+        sort: new FailingParameterParser<ISorts>(
+            new Sorts(),
+            0,
+            new SortsParseError({
+                code: ErrorCode.SYNTAX_INVALID,
+                message: ErrorMessage.syntaxInvalid('sorts'),
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.SORTS,
+                    path: ['sort-context'],
+                    message: ErrorMessage.syntaxInvalid('sorts'),
+                })],
+            }),
+        ),
+    };
+}
+
+function expectSaturatedParameterAborts(input: unknown) {
+    expect(input).toBeInstanceOf(ParseError);
+
+    const leaves = flattenIssueItems((input as ParseError).issues);
+    expect(leaves).toHaveLength(MAX_ISSUES);
+    expect(leaves[0]?.path).toEqual(['key0']);
+    expect(leaves[97]?.path).toEqual(['key97']);
+    expect(leaves.slice(-2).map((issue) => ({
+        parameter: extractIssueParameter(issue),
+        message: issue.message,
+    }))).toEqual([
+        {
+            parameter: Parameter.FILTERS,
+            message: ErrorMessage.syntaxInvalid('filters'),
+        },
+        {
+            parameter: Parameter.SORTS,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+        },
+    ]);
 }
 
 const INPUT = {
@@ -273,5 +382,31 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
 
         expect(validate).not.toHaveBeenCalled();
         expect(query.fields.value.map((f) => f.name)).toEqual(['user.email', 'id']);
+    });
+
+    it('retains saturated structural aborts across synchronous query parameters', () => {
+        const parsers = buildSaturatedAbortParsers();
+        let error : unknown;
+
+        try {
+            new StubQueryParser(new SchemaRegistry(), parsers).parse(INPUT);
+        } catch (e) {
+            error = e;
+        }
+
+        expectSaturatedParameterAborts(error);
+    });
+
+    it('retains saturated structural aborts across asynchronous query parameters', async () => {
+        const parsers = buildSaturatedAbortParsers();
+        let error : unknown;
+
+        try {
+            await new StubQueryParser(new SchemaRegistry(), parsers).parseAsync(INPUT);
+        } catch (e) {
+            error = e;
+        }
+
+        expectSaturatedParameterAborts(error);
     });
 });

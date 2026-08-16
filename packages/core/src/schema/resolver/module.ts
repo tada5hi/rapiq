@@ -419,7 +419,7 @@ export class ResolutionScope<
             issue.key = input.key;
         }
 
-        if (typeof input.input !== 'undefined') {
+        if (Object.hasOwn(input, 'input')) {
             issue.received = input.input;
         }
 

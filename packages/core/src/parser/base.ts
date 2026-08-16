@@ -204,10 +204,7 @@ export abstract class BaseParser<
             return input;
         }
 
-        if (!trace.collector.failed) {
-            trace.collector.addError(input, trace.parameter);
-        }
-
+        trace.collector.addError(input, trace.parameter);
         return this.raise(trace);
     }
 

@@ -153,9 +153,14 @@ The nodes are [blemish](https://github.com/tada5hi/blemish) issues, the shared i
 | Field | Meaning |
 |---|---|
 | `code` | the same `ErrorCode` the error carries: the machine contract |
+| `expected` | the expected value, when a validator supplies one |
 | `received` | the offending value, when a value rather than a key was the problem |
 
 `type: 'group'` stands for the failures below it, in its own `issues` array (plus an optional `code`). Nesting is the whole tree: there is no parent pointer and no depth field.
+
+`expected` and `received` are available on the live in-process issue for diagnostics.
+The default `BaseError.toJSON()` boundary omits both recursively; serialize a rapiq
+error directly without assuming raw validation values will cross that boundary.
 
 rapiq claims two `meta` keys, both of them facts a consumer cannot reconstruct from the path:
 
@@ -173,7 +178,7 @@ extractIssueParameter(issue); // 'filters' | 'fields' | ... | undefined
 extractIssueKey(issue);       // the raw client spelling, when it differs
 ```
 
-Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. `flattenIssueItems` therefore hands you leaves that already know where they sit:
+Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. Recursive validator paths stay absolute through nested filter/simple normalization; `ITSELF` adds no segment. `flattenIssueItems` therefore hands you leaves that already know where they sit:
 
 ```typescript
 import { flattenIssueItems } from 'blemish';
@@ -196,9 +201,13 @@ parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' })
 
 Whether a violation is recorded is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one request: only the latter contributes. A violation takes the policy of the site that found it, which is also what decides what it means: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp.
 
-Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. The trace is capped at `MAX_ISSUES` (100); the failure is the first issue, so a truncated tail changes nothing about the outcome.
+Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. `MAX_ISSUES` counts leaf violations, including leaves nested in groups. Group shape is preserved while an oversized tail is truncated, and ordinary issue leaves preserve encounter order. If a terminal structural abort arrives at a full trace, only the final retained ordinary leaf is displaced so the trace remains bounded and still records why that parameter stopped parsing. The first retained violation is unchanged and continues to determine first-failure semantics.
+
+An issue in one parameter does not suppress another parameter's independent index check: invalid `filters` and `sorts` combinations are both reported. Only a prior failure in the same parameter suppresses its consequence errors. An explicit empty allowlist denies every supplied key through normal validation; under the established drop policy that remains silent and defaults keep their established behavior. Mongo document grammar errors still throw independently of the policy.
 
 Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. The abort becomes an issue like any other rejection: only a rapiq parse error is ever caught (a genuine server bug propagates untouched), and everything a client-input failure knows is in its issue.
+
+The public expression parser's `parseExact()` and `parseExactAsync()` calls own and finalize an aggregate `filters` trace too. On failure they raise the aggregate `FiltersParseError` envelope and expose the underlying validation or syntax violations through `error.issues`; callers do not need to handle a raw structural error separately.
 
 A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own (blemish's `prefixIssuePath` is that step), so the rejection reports `['secret']` rather than naming its parameter and nothing else.
 
@@ -243,8 +252,9 @@ if (isParseError(e)) {
 
 ## Crossing a boundary
 
-`JSON.stringify(error)` emits a rapiq error in full, so a failure survives a worker, an SSR
-hop or a gateway:
+`JSON.stringify(error)` emits a boundary-safe rapiq error, so a failure survives a worker, an SSR
+hop or a gateway. Its `issues` retain their structure, but live diagnostic `expected` and `received`
+values are omitted:
 
 ```json
 {
@@ -296,7 +306,7 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-- `ParseError` (with `throwOnFailure`) → **400**: the client broke the contract; `e.message` names the offending key.
+- `ParseError` (with `throwOnFailure`) → **400**: the client broke the contract; inspect `e.issues` for each offending key. The aggregate envelope's `e.message` does not name a specific key.
 - `BuildError` / `MergeError` / `AdapterError` / `SchemaError` on the server → **500**: these mean *your* code produced or forwarded something invalid.
 - `AdapterError` on the caller (encode) → fix the query or switch wire dialect; it never leaves the caller.
 

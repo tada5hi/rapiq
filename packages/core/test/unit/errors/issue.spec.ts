@@ -7,6 +7,10 @@
 
 import { INSTANCEOF_PROPERTY, markInstanceof } from '@ebec/core';
 import {
+    defineIssueGroup,
+    flattenIssueItems,
+} from 'blemish';
+import {
     BASE_ERROR_MARKER,
     BaseError,
     ErrorCode,
@@ -18,6 +22,9 @@ import {
     PARSE_ERROR_MARKER,
     Parameter,
     ParseError,
+    ResolutionScope,
+    SchemaRegistry,
+    SortsParseError,
     buildIssue,
     extractIssueKey,
     extractIssueParameter,
@@ -65,6 +72,33 @@ describe('src/errors/issue/module.ts', () => {
 
     it('should carry the offending value as blemish names it', () => {
         expect(buildIssue(violation({ received: 500 })).received).toBe(500);
+    });
+
+    it('should omit received when the producer did not supply it', () => {
+        expect(buildIssue(violation())).not.toHaveProperty('received');
+    });
+
+    it('should preserve an explicitly undefined offending value', () => {
+        expect(buildIssue(violation({ received: undefined })))
+            .toHaveProperty('received', undefined);
+    });
+
+    it('should preserve explicitly undefined input refused by a resolution scope', () => {
+        const collector = new IssueCollector();
+        const scope = ResolutionScope.for(
+            new SchemaRegistry(),
+            Parameter.FILTERS,
+            undefined,
+            { issueCollector: collector, throwOnFailure: true },
+        );
+
+        scope.refuse({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            message: ErrorMessage.keyValueInvalid('id'),
+            input: undefined,
+        });
+
+        expect(collector.issues[0]).toHaveProperty('received', undefined);
     });
 
     it('should ignore a meta bag another library wrote', () => {
@@ -177,6 +211,253 @@ describe('src/parser/issue/module.ts', () => {
         // changes nothing about the outcome
         expect(collector.issues).toHaveLength(MAX_ISSUES);
         expect(collector.issues[0]?.path).toEqual(['first']);
+    });
+
+    it('should cap nested groups by leaf count without flattening them', () => {
+        const collector = new IssueCollector();
+        const group = defineIssueGroup({
+            code: 'validation_failed',
+            path: [],
+            message: 'Validation failed.',
+            issues: Array.from({ length: MAX_ISSUES + 50 }, (_, index) =>
+                buildIssue(violation({ path: [`key${index}`] }))),
+        });
+
+        collector.merge([group]);
+
+        expect(collector.issues).toHaveLength(1);
+        expect(collector.issues[0]?.type).toBe('group');
+        expect(flattenIssueItems(collector.issues)).toHaveLength(MAX_ISSUES);
+    });
+
+    it('should discard empty group shells', () => {
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            path: [],
+            message: 'Nothing failed.',
+            issues: [],
+        })]);
+
+        expect(collector.issues).toEqual([]);
+    });
+
+    it('should replace the final capped leaf with a later structural abort', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(FiltersParseError.syntaxInvalid('broken'), Parameter.FILTERS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
+    });
+
+    it('should retain earlier terminal aborts when a capped trace receives another', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(FiltersParseError.syntaxInvalid('filters'), Parameter.FILTERS);
+        collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => ({
+            parameter: extractIssueParameter(issue),
+            message: issue.message,
+        }))).toEqual([
+            {
+                parameter: Parameter.FILTERS,
+                message: ErrorMessage.syntaxInvalid('filters'),
+            },
+            {
+                parameter: Parameter.SORTS,
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            },
+        ]);
+    });
+
+    it('should retain contextual errors that filled the final free slot', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES - 1; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(new FiltersParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('filters'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.FILTERS,
+                path: ['filter-context'],
+                message: ErrorMessage.syntaxInvalid('filters'),
+            })],
+        }), Parameter.FILTERS);
+        collector.addError(new SortsParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.SORTS,
+                path: ['sort-context'],
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            })],
+        }), Parameter.SORTS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => ({
+            parameter: extractIssueParameter(issue),
+            path: issue.path,
+        }))).toEqual([
+            { parameter: Parameter.FILTERS, path: ['filter-context'] },
+            { parameter: Parameter.SORTS, path: ['sort-context'] },
+        ]);
+    });
+
+    it('should retain a prefixed carried group while recording a later contextual error', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES - 1; index++) {
+            collector.add(violation({ path: [`key${index}`] }));
+        }
+
+        collector.addError(new FiltersParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('filters'),
+            issues: [defineIssueGroup({
+                code: 'context',
+                path: [],
+                message: 'Context failed.',
+                issues: [buildIssue({
+                    code: ErrorCode.SYNTAX_INVALID,
+                    parameter: Parameter.FILTERS,
+                    path: ['filter-context'],
+                    message: ErrorMessage.syntaxInvalid('filters'),
+                })],
+            })],
+        }), Parameter.FILTERS, ['items']);
+        collector.addError(new SortsParseError({
+            code: ErrorCode.SYNTAX_INVALID,
+            message: ErrorMessage.syntaxInvalid('sorts'),
+            issues: [buildIssue({
+                code: ErrorCode.SYNTAX_INVALID,
+                parameter: Parameter.SORTS,
+                path: ['sort-context'],
+                message: ErrorMessage.syntaxInvalid('sorts'),
+            })],
+        }), Parameter.SORTS);
+
+        const group = collector.issues[98]!;
+        expect(group.type).toBe('group');
+        expect(group.path).toEqual(['items']);
+        expect(flattenIssueItems([group])[0]?.path).toEqual(['items', 'filter-context']);
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => extractIssueParameter(issue))).toEqual([
+            Parameter.FILTERS,
+            Parameter.SORTS,
+        ]);
+    });
+
+    it('should replace the final leaf of a capped nested group with a structural abort', () => {
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            code: 'validation_failed',
+            path: [],
+            message: 'Validation failed.',
+            issues: Array.from({ length: MAX_ISSUES }, (_, index) =>
+                buildIssue(violation({ path: [`key${index}`] }))),
+        })]);
+
+        collector.addError(FiltersParseError.syntaxInvalid('broken'), Parameter.FILTERS);
+
+        expect(collector.issues[0]?.type).toBe('group');
+        expect(flattenIssueItems([collector.issues[0]!])).toHaveLength(MAX_ISSUES - 1);
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
+    });
+
+    it('should retain priority aborts while evicting a nested ordinary tail', () => {
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            code: 'validation_failed',
+            path: [],
+            message: 'Validation failed.',
+            issues: [
+                defineIssueGroup({
+                    code: 'ordinary',
+                    path: [],
+                    message: 'Ordinary failures.',
+                    issues: Array.from({ length: MAX_ISSUES - 1 }, (_, index) =>
+                        buildIssue(violation({ path: [`key${index}`] }))),
+                }),
+                defineIssueGroup({
+                    code: 'tail',
+                    path: [],
+                    message: 'Tail failure.',
+                    issues: [buildIssue(violation({ path: ['key99'] }))],
+                }),
+            ],
+        })]);
+
+        collector.addError(FiltersParseError.syntaxInvalid('filters'), Parameter.FILTERS);
+        collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
+
+        const group = collector.issues[0]!;
+        expect(group.type).toBe('group');
+        if (group.type === 'group') {
+            expect(group.issues).toHaveLength(1);
+            expect(group.issues[0]?.type).toBe('group');
+        }
+        expect(flattenIssueItems([group])).toHaveLength(MAX_ISSUES - 2);
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.path).toEqual(['key0']);
+        expect(leaves[97]?.path).toEqual(['key97']);
+        expect(leaves.slice(-2).map((issue) => extractIssueParameter(issue))).toEqual([
+            Parameter.FILTERS,
+            Parameter.SORTS,
+        ]);
+    });
+
+    it('should replace the newest terminal abort when every retained leaf is terminal', () => {
+        const collector = new IssueCollector();
+        for (let index = 0; index < MAX_ISSUES; index++) {
+            collector.addError(FiltersParseError.syntaxInvalid(`filters${index}`), Parameter.FILTERS);
+        }
+
+        collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
+
+        const leaves = flattenIssueItems(collector.issues);
+        expect(leaves).toHaveLength(MAX_ISSUES);
+        expect(leaves[0]?.message).toBe(ErrorMessage.syntaxInvalid('filters0'));
+        expect(leaves.at(-1)?.message).toBe(ErrorMessage.syntaxInvalid('sorts'));
+        expect(leaves.some((issue) => issue.message === ErrorMessage.syntaxInvalid('filters99')))
+            .toBeFalsy();
+    });
+
+    it('should count grouped leaves in the aggregated message', () => {
+        const group = defineIssueGroup({
+            path: [],
+            message: 'Validation failed.',
+            issues: [
+                buildIssue(violation({ path: ['a'] })),
+                buildIssue(violation({ path: ['b'] })),
+            ],
+        });
+
+        expect(ParseError.inputRejected([group]).message)
+            .toBe(ErrorMessage.inputRejected(2));
     });
 
     it('should reduce a consumer error class to its issue', () => {

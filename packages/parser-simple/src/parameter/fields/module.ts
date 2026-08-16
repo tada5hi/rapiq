@@ -21,6 +21,7 @@ import {
     applyKeySchemaValidationAsync,
     isObject,
     pruneFieldsByRelations,
+    toIssuePath,
 } from '@rapiq/core';
 import type {
     ICondition,
@@ -249,11 +250,6 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
     ) : IFields {
         const { schema } = scope;
 
-        // If it is an empty array, nothing is allowed
-        if (schema.allDenied) {
-            return new Fields();
-        }
-
         const normalized = this.normalize(input, scope);
 
         if (schema.name) {
@@ -402,12 +398,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
     >(
         input: unknown,
         scope: ResolutionScope<`${Parameter.FIELDS}`, RECORD>,
+        path: string[] = [...scope.path],
     ) : Record<string, string[]> {
         if (this.isTupleInput(input)) {
             return this.normalize({
                 [DEFAULT_ID]: input[0],
                 ...input[1],
-            }, scope);
+            }, scope, path);
         }
 
         if (
@@ -427,6 +424,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                     scope.refuse({
                         code: ErrorCode.INPUT_INVALID,
                         message: ErrorMessage.inputInvalid(),
+                        path,
                         input: element,
                     });
 
@@ -448,7 +446,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
             const keys = Object.keys(input);
             for (const key of keys) {
-                const temp = this.normalize(input[key], scope);
+                const temp = this.normalize(input[key], scope, [...path, ...toIssuePath(key)]);
                 for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
                     if (tempKey === DEFAULT_ID) {
@@ -470,6 +468,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         scope.refuse({
             code: ErrorCode.INPUT_INVALID,
             message: ErrorMessage.inputInvalid(),
+            path,
             input,
         });
 

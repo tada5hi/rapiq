@@ -13,6 +13,7 @@ import {
     Parameter,
     ParseError,
     SchemaRegistry,
+    SortDirection,
     defineSchema,
     eq,
     extractIssueParameter,
@@ -55,6 +56,21 @@ const buildRegistry = (throwOnFailure?: boolean) => {
 const trace = (run: () => unknown) : { error?: ParseError, issues: readonly Issue[] } => {
     try {
         run();
+    } catch (e) {
+        const error = e as ParseError;
+
+        return { error, issues: error.issues ?? [] };
+    }
+
+    return { issues: [] };
+};
+
+const traceAsync = async (run: () => Promise<unknown>) : Promise<{
+    error?: ParseError,
+    issues: readonly Issue[],
+}> => {
+    try {
+        await run();
     } catch (e) {
         const error = e as ParseError;
 
@@ -146,6 +162,93 @@ describe('src/parser — issue traces', () => {
     });
 
     describe('aggregation', () => {
+        it('should validate every supplied parameter under empty allow-lists', async () => {
+            const lockedRegistry = new SchemaRegistry();
+            lockedRegistry.add(defineSchema({
+                name: 'locked',
+                throwOnFailure: true,
+                fields: { allowed: [], default: [] },
+                filters: { allowed: [] },
+                relations: { allowed: [] },
+                sort: { allowed: [] },
+            }));
+            const parser = new SimpleParser(lockedRegistry);
+            const input = {
+                fields: ['id'],
+                filters: { id: '1' },
+                relations: ['items'],
+                sorts: ['id'],
+            };
+
+            const results = [
+                trace(() => parser.parse(input, { schema: 'locked' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
+            ];
+            for (const { issues } of results) {
+                expect(issues
+                    .filter((issue) => issue.code === ErrorCode.KEY_NOT_ALLOWED)
+                    .map((issue) => [extractIssueParameter(issue), issue.path]))
+                    .toEqual([
+                        [Parameter.RELATIONS, ['items']],
+                        [Parameter.FIELDS, ['id']],
+                        [Parameter.FILTERS, ['id']],
+                        [Parameter.SORTS, ['id']],
+                    ]);
+            }
+        });
+
+        it('should validate malformed supplied parameters under empty allow-lists', async () => {
+            const lockedRegistry = new SchemaRegistry();
+            lockedRegistry.add(defineSchema({
+                name: 'locked',
+                throwOnFailure: true,
+                fields: { allowed: [], default: [] },
+                filters: { allowed: [] },
+                relations: { allowed: [] },
+                sort: { allowed: [] },
+            }));
+            const parser = new SimpleParser(lockedRegistry);
+            const input = {
+                fields: [500],
+                filters: 500,
+                relations: [500],
+                sorts: [500],
+            };
+
+            const results = [
+                trace(() => parser.parse(input, { schema: 'locked' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
+            ];
+            for (const { issues } of results) {
+                expect(issues
+                    .filter((issue) => issue.code === ErrorCode.INPUT_INVALID)
+                    .map((issue) => [extractIssueParameter(issue), issue.path, issue.received]))
+                    .toEqual([
+                        [Parameter.RELATIONS, [], 500],
+                        [Parameter.FIELDS, [], 500],
+                        [Parameter.FILTERS, [], 500],
+                        [Parameter.SORTS, [], 500],
+                    ]);
+            }
+        });
+
+        it('should preserve drop-mode defaults under empty allow-lists', () => {
+            const parser = new SimpleParser();
+            const schema = defineSchema({
+                filters: { allowed: [], default: eq('status', 'active') },
+                sort: { allowed: [], default: { created_at: 'DESC' } },
+            });
+
+            const query = parser.parse({
+                filters: { id: '1' },
+                sorts: ['id'],
+            }, { schema });
+
+            expect(query.filters.value).toEqual([eq('status', 'active')]);
+            expect(query.sorts.value.map((sort) => [sort.name, sort.operator]))
+                .toEqual([['created_at', SortDirection.DESC]]);
+        });
+
         it('should report every parameter rather than only the first', () => {
             const parser = new SimpleParser(buildRegistry(true));
 
@@ -214,6 +317,76 @@ describe('src/parser — issue traces', () => {
     });
 
     describe('what rides along', () => {
+        it('should locate nested invalid values in every simple normalizer', async () => {
+            const parser = new SimpleParser(buildRegistry(true));
+            const input = {
+                fields: { items: [500] },
+                relations: { items: 500 },
+                sorts: { items: { id: 500 } },
+            };
+
+            for (const result of [
+                trace(() => parser.parse(input, { schema: 'user' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'user' })),
+            ]) {
+                expect(findIssue(result.issues, Parameter.FIELDS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items'], received: 500 });
+                expect(findIssue(result.issues, Parameter.RELATIONS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items'], received: 500 });
+                expect(findIssue(result.issues, Parameter.SORTS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items', 'id'], received: 500 });
+            }
+        });
+
+        it('should expand dotted input locations in every simple normalizer', async () => {
+            const parser = new SimpleParser(buildRegistry(true));
+            const input = {
+                fields: { 'items.id': [500] },
+                relations: { 'items.id': 500 },
+                sorts: { 'items.id': 500 },
+            };
+
+            for (const result of [
+                trace(() => parser.parse(input, { schema: 'user' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'user' })),
+            ]) {
+                expect(findIssue(result.issues, Parameter.FIELDS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items', 'id'], received: 500 });
+                expect(findIssue(result.issues, Parameter.RELATIONS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items', 'id'], received: 500 });
+                expect(findIssue(result.issues, Parameter.SORTS, ErrorCode.INPUT_INVALID))
+                    .toMatchObject({ path: ['items', 'id'], received: 500 });
+            }
+        });
+
+        it('should report every non-string relation object value', async () => {
+            const parser = new SimpleParser(buildRegistry(true));
+            const values = [undefined, null, true, 500, [], {}];
+
+            for (const value of values) {
+                for (const result of [
+                    trace(() => parser.parse({ relations: { items: value } }, { schema: 'user' })),
+                    await traceAsync(() => parser.parseAsync({ relations: { items: value } }, { schema: 'user' })),
+                ]) {
+                    const issue = findIssue(result.issues, Parameter.RELATIONS, ErrorCode.INPUT_INVALID);
+
+                    expect(issue).toMatchObject({ path: ['items'] });
+                    expect(issue).toHaveProperty('received', value);
+                }
+            }
+        });
+
+        it('should silently drop invalid relation object values under a dropping policy', async () => {
+            const parser = new SimpleParser(buildRegistry());
+
+            for (const query of [
+                parser.parse({ relations: { items: 500 } }, { schema: 'user' }),
+                await parser.parseAsync({ relations: { items: 500 } }, { schema: 'user' }),
+            ]) {
+                expect(query.relations.value).toEqual([]);
+            }
+        });
+
         it('should carry a clamped pagination limit', () => {
             const parser = new SimpleParser(buildRegistry(true));
 

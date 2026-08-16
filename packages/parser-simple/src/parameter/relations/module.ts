@@ -19,6 +19,7 @@ import {
     applyKeySchemaValidationAsync,
     isObject,
     parseKey,
+    toIssuePath,
 } from '@rapiq/core';
 import type {
     IIssueCollector,
@@ -157,17 +158,7 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
     ) : Relations {
-        const { schema } = scope;
-
         const output = new Relations();
-
-        // If it is an empty array nothing is allowed
-        if (
-            Array.isArray(schema.allowed) &&
-            schema.allowed.length === 0
-        ) {
-            return output;
-        }
 
         const normalized = this.includeParents(this.normalize(input, scope));
         const grouped = this.groupArrayByBasePath(normalized);
@@ -254,11 +245,19 @@ export class SimpleRelationsParser extends BaseParser<
         if (isObject(input)) {
             const keys = Object.keys(input);
             for (const key of keys) {
-                if (typeof input[key] === 'string') {
-                    const path = `${key}.${input[key]}`;
+                const value = input[key];
+                if (typeof value === 'string') {
+                    output.push(`${key}.${value}`);
 
-                    output.push(path);
+                    continue;
                 }
+
+                scope.refuse({
+                    code: ErrorCode.INPUT_INVALID,
+                    message: ErrorMessage.inputInvalid(),
+                    path: [...scope.path, ...toIssuePath(key)],
+                    input: value,
+                });
             }
 
             return output;

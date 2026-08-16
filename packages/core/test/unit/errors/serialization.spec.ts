@@ -6,6 +6,7 @@
  */
 
 import { BASE_ERROR_INSTANCE, INSTANCEOF_PROPERTY } from '@ebec/core';
+import { defineIssueGroup } from 'blemish';
 import {
     BASE_ERROR_MARKER,
     BaseError,
@@ -61,6 +62,35 @@ describe('src/errors/base.ts (serialization)', () => {
         const error = FiltersParseError.inputRejected([issue()]);
 
         expect(JSON.parse(JSON.stringify(error)).name).toBe('FiltersParseError');
+    });
+
+    it('should redact circular issue values without mutating the live issue', () => {
+        const expected : Record<string, unknown> = { type: 'string' };
+        expected.self = expected;
+        const received : Record<string, unknown> = { secret: 'token' };
+        received.self = received;
+
+        const leaf = buildIssue({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            parameter: Parameter.FILTERS,
+            path: ['items', 'id'],
+            message: ErrorMessage.keyValueInvalid('id'),
+            received,
+        });
+        leaf.expected = expected;
+        const group = defineIssueGroup({
+            path: ['items'],
+            message: 'Nested validation failed.',
+            issues: [leaf],
+        });
+        const error = ParseError.inputRejected([group]);
+
+        const serialized = JSON.parse(JSON.stringify(error));
+        expect(serialized.issues[0].issues[0]).not.toHaveProperty('expected');
+        expect(serialized.issues[0].issues[0]).not.toHaveProperty('received');
+        expect(error.issues[0]).toBe(group);
+        expect(leaf.expected).toBe(expected);
+        expect(leaf.received).toBe(received);
     });
 
     it('should carry a cause only when there is one', () => {

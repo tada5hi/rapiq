@@ -8,6 +8,7 @@
 import {
     Filter,
     Filters,
+    ITSELF,
     isCondition,
     isFilter,
     isFilters,
@@ -44,7 +45,15 @@ export type FiltersValidationOptions = {
      * hook declining a leaf should fail the request.
      */
     throwOnFailure?: boolean,
+    /**
+     * Absolute path prefix carried through nested filter values.
+     */
+    path?: string[],
 };
+
+function appendFilterPath(path: string[], field: string) : string[] {
+    return field === ITSELF ? path : [...path, ...toIssuePath(field)];
+}
 
 /**
  * The conditions a parser falls back to when the input carries no
@@ -85,7 +94,7 @@ function rejectLeaf(
         options.issueCollector.add({
             code: ErrorCode.KEY_VALIDATE_REJECTED,
             parameter: Parameter.FILTERS,
-            path: toIssuePath(leaf.field),
+            path: appendFilterPath(options.path ?? [], leaf.field),
             message: ErrorMessage.keyValidateRejected(leaf.field),
         });
 
@@ -143,7 +152,11 @@ export function applyFiltersSchemaValidation(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = applyFiltersSchemaValidation(input.value, schema, context, options);
+            const nestedOptions = {
+                ...options,
+                path: appendFilterPath(options.path ?? [], input.field),
+            };
+            const interior = applyFiltersSchemaValidation(input.value, schema, context, nestedOptions);
             if (!interior) {
                 return undefined;
             }
@@ -222,7 +235,11 @@ export async function applyFiltersSchemaValidationAsync(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context, options);
+            const nestedOptions = {
+                ...options,
+                path: appendFilterPath(options.path ?? [], input.field),
+            };
+            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context, nestedOptions);
             if (!interior) {
                 return undefined;
             }

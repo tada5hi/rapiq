@@ -23,6 +23,7 @@ import {
     isObject,
     parseKey,
     pruneSortsByRelations,
+    toIssuePath,
 } from '@rapiq/core';
 import type {
     IIssueCollector,
@@ -193,14 +194,6 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     ) : Sorts {
         const { schema } = scope;
 
-        // If it is an empty array nothing is allowed
-        if (
-            !schema.allowedIsUndefined &&
-            schema.allowed.length === 0
-        ) {
-            return this.buildDefaults(schema);
-        }
-
         const normalized = this.normalize(input, scope);
         const grouped = this.groupObjectByBasePath(normalized);
         if (schema.name) {
@@ -315,6 +308,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     >(
         input: unknown,
         scope: ResolutionScope<`${Parameter.SORTS}`, RECORD>,
+        path: string[] = [...scope.path],
     ) : Record<string, SortDirection> {
         const output : Record<string, SortDirection> = Object.create(null);
 
@@ -334,6 +328,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                     scope.refuse({
                         code: ErrorCode.INPUT_INVALID,
                         message: ErrorMessage.inputInvalid(),
+                        path,
                         input: key,
                     });
 
@@ -365,7 +360,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                     }
                 }
 
-                const temp = this.normalize(value, scope);
+                const temp = this.normalize(value, scope, [...path, ...toIssuePath(key)]);
 
                 for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
@@ -389,6 +384,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         scope.refuse({
             code: ErrorCode.INPUT_INVALID,
             message: ErrorMessage.inputInvalid(),
+            path,
             input,
         });
 
