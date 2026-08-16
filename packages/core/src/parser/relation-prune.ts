@@ -29,7 +29,23 @@ import type {
 import { FilterCompoundOperator, FilterFieldOperator } from '../schema';
 import type { FiltersSchema, SortsSchema } from '../schema';
 import { parseKey } from '../utils';
+import type { IIssueCollector } from './issue';
 import { buildFiltersDefaults } from './parameter/filters/validate';
+
+/**
+ * Every pass below always yields the tree that would execute, whether or not
+ * the trace has already failed (`issueCollector.failed`): the index policies
+ * judge that tree afterwards, and judging an unpruned one would report the
+ * keys a rejected relation dragged along as violations of their own.
+ *
+ * What a failed trace does switch off is the one refusal pruning can raise. A
+ * preserved condition over a rejected relation is a contradiction between two
+ * validators and throws `SCHEMA_PRESERVED_CONDITION_PRUNED`; but a parse that
+ * recorded a rejection is over and raises that rejection, so the tree it ends
+ * with is never observed, and a structural conflict found while cleaning up
+ * after a rejection must not displace the rejection itself. The contradiction
+ * surfaces unchanged on the next request that violates nothing else.
+ */
 
 /**
  * The rejected relation governing a canonical relation/field path: the path
@@ -56,7 +72,10 @@ function joinPath(prefix: string, segment: string) : string {
 /**
  * Drop every field whose canonical name traverses a rejected relation.
  */
-export function pruneFieldsByRelations(fields: IFields, rejected: string[]) : IFields {
+export function pruneFieldsByRelations(
+    fields: IFields,
+    rejected: string[],
+) : IFields {
     if (rejected.length === 0) {
         return fields;
     }
@@ -98,7 +117,10 @@ export function pruneSortsByRelations(
 /**
  * Drop every relation at or below a rejected relation.
  */
-export function pruneRelationsByRelations(relations: IRelations, rejected: string[]) : IRelations {
+export function pruneRelationsByRelations(
+    relations: IRelations,
+    rejected: string[],
+) : IRelations {
     if (rejected.length === 0) {
         return relations;
     }
@@ -132,12 +154,17 @@ export function pruneFiltersByRelations(
     filters: IFilters,
     rejected: string[],
     schema?: FiltersSchema,
+    issueCollector?: IIssueCollector,
 ) : IFilters {
     if (rejected.length === 0) {
         return filters;
     }
 
-    const pruned = pruneCondition(filters, rejected, '', false);
+    // the refusal is suppressed once the trace has failed: see the note at
+    // the top of this module.
+    const refuse = !issueCollector?.failed;
+
+    const pruned = pruneCondition(filters, rejected, '', false, refuse);
     if (pruned && isFilters(pruned)) {
         return pruned;
     }
@@ -155,8 +182,10 @@ export function pruneFiltersByRelations(
         // same default would throw or survive depending on whether the client
         // sent a filter of its own, which is what decides whether it was
         // materialized before this pass or after it.
-        for (const condition of conditions) {
-            assertPreservedSurvivesPruning(condition, rejected);
+        if (refuse) {
+            for (const condition of conditions) {
+                assertPreservedSurvivesPruning(condition, rejected);
+            }
         }
     }
 
@@ -168,15 +197,21 @@ export function pruneFiltersByRelations(
  * than pruned. The pruned copy is discarded: only the throw matters here.
  */
 function assertPreservedSurvivesPruning(condition: ICondition, rejected: string[]) : void {
-    pruneCondition(condition, rejected, '', false);
+    pruneCondition(condition, rejected, '', false, true);
 }
 
 /**
  * Drop the condition at `field`, unless it is protected: a drop inside a preserved
- * subtree is the one case pruning must refuse rather than resolve.
+ * subtree is the one case pruning must refuse rather than resolve. `refuse`
+ * false drops it anyway, for a parse that is going to raise regardless.
  */
-function dropUnlessPreserved(relation: string, field: string, preserved: boolean) : undefined {
-    if (preserved) {
+function dropUnlessPreserved(
+    relation: string,
+    field: string,
+    preserved: boolean,
+    refuse: boolean,
+) : undefined {
+    if (preserved && refuse) {
         throw SchemaError.preservedConditionPruned(relation, field);
     }
 
@@ -188,6 +223,7 @@ function pruneCondition(
     rejected: string[],
     prefix: string,
     preserved: boolean,
+    refuse: boolean,
 ) : ICondition | undefined {
     // The marker protects the whole subtree it heads. `preserve()` sets it on
     // the built-in nodes and wraps anything else, but the marker itself is
@@ -207,6 +243,7 @@ function pruneCondition(
                 rejectedBy,
                 field,
                 preserved2 || isConditionPreserved(node),
+                refuse,
             );
         }
 
@@ -217,7 +254,7 @@ function pruneCondition(
             node.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(node.value)
         ) {
-            const interior = pruneCondition(node.value, rejected, field, preserved2);
+            const interior = pruneCondition(node.value, rejected, field, preserved2, refuse);
             if (!interior) {
                 return undefined;
             }
@@ -236,7 +273,7 @@ function pruneCondition(
 
     const conditions : ICondition[] = [];
     for (const child of node.value) {
-        const child2 = pruneCondition(child, rejected, prefix, preserved2);
+        const child2 = pruneCondition(child, rejected, prefix, preserved2, refuse);
         if (child2) {
             conditions.push(child2);
         }

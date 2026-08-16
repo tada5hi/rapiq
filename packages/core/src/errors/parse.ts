@@ -7,101 +7,130 @@
 
 import { isObject } from '../utils';
 import { BaseError } from './base';
+import { markInstanceof } from '@ebec/core';
+import { PARSE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
-import type { BaseErrorOptions } from './types';
+import { ErrorMessage } from './messages';
+import { flattenIssueItems } from 'blemish';
+import type { Issue } from 'blemish';
+import type { BaseErrorOptions, IParseError } from './types';
 
-export class ParseError extends BaseError {
+export class ParseError extends BaseError implements IParseError {
     constructor(message?: string | BaseErrorOptions) {
         if (isObject(message)) {
             message.message = message.message || 'A parsing error has occurred.';
         }
 
         super(message || 'A parsing error has occurred.');
+
+        markInstanceof(this, PARSE_ERROR_MARKER);
+    }
+
+    /**
+     * The failure an aggregated parse raises: every violation it found, on
+     * `issues`. Deliberately NOT the first violation's own class and code:
+     * a parse that rejected keys in four parameters would then advertise one
+     * of them, and a consumer branching on that would act on a subset of what
+     * went wrong. The specific classes stay what a single violation throws
+     * where no trace is collecting.
+     *
+     * A structural abort caught on the way is not carried either: only branded
+     * parse errors are ever caught (a server bug propagates untouched), and
+     * everything a client-input failure knows is already in its issue.
+     */
+    static inputRejected(issues: readonly Issue[]) {
+        return new this({
+            message: ErrorMessage.inputRejected(flattenIssueItems([...issues]).length),
+            code: ErrorCode.INPUT_REJECTED,
+            issues,
+        });
     }
 
     static inputInvalid() {
         return new this({
-            message: 'The shape of the input is not valid.',
+            message: ErrorMessage.inputInvalid(),
             code: ErrorCode.INPUT_INVALID,
         });
     }
 
     static syntaxInvalid(details?: string) {
         return new this({
-            message: details ?
-                `The input syntax is invalid: ${details}` :
-                'The input syntax is invalid.',
+            message: ErrorMessage.syntaxInvalid(details),
             code: ErrorCode.SYNTAX_INVALID,
         });
     }
 
-    static keyNotPermitted(name: string) {
+    static keyNotPermitted(name: string, issues: readonly Issue[] = []) {
         return new this({
-            message: `The key ${name} is not permitted.`,
+            message: ErrorMessage.keyNotPermitted(name),
             code: ErrorCode.KEY_NOT_ALLOWED,
+            issues,
         });
     }
 
-    static keyInvalid(key: string) {
+    static keyInvalid(key: string, issues: readonly Issue[] = []) {
         return new this({
-            message: `The key ${key} is invalid.`,
+            message: ErrorMessage.keyInvalid(key),
             code: ErrorCode.KEY_INVALID,
+            issues,
         });
     }
 
-    static keyPathInvalid(key: string) {
+    static keyPathInvalid(key: string, issues: readonly Issue[] = []) {
         return new this({
-            message: `The key path ${key} is invalid.`,
+            message: ErrorMessage.keyPathInvalid(key),
             code: ErrorCode.KEY_PATH_INVALID,
+            issues,
         });
     }
 
-    static keyPathNotPermitted(key: string) {
+    static keyPathNotPermitted(key: string, issues: readonly Issue[] = []) {
         return new this({
-            message: `The key path ${key} is not permitted.`,
+            message: ErrorMessage.keyPathNotPermitted(key),
             code: ErrorCode.KEY_PATH_NOT_ALLOWED,
+            issues,
         });
     }
 
     static keyValueInvalid(key: string) {
         return new this({
-            message: `The value of the key ${key} is invalid.`,
+            message: ErrorMessage.keyValueInvalid(key),
             code: ErrorCode.KEY_VALUE_INVALID,
         });
     }
 
-    static keyValidateRejected(key: string) {
+    static keyValidateRejected(key: string, issues: readonly Issue[] = []) {
         return new this({
-            message: `The key ${key} was rejected by the schema validator.`,
+            message: ErrorMessage.keyValidateRejected(key),
             code: ErrorCode.KEY_VALIDATE_REJECTED,
+            issues,
         });
     }
 
     static keyCombinationNotIndexed(keys: string[]) {
         return new this({
-            message: `The key combination ${keys.join(', ')} is not indexed.`,
+            message: ErrorMessage.keyCombinationNotIndexed(keys),
             code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
         });
     }
 
     static operatorUnsupported(operator: string) {
         return new this({
-            message: `The operator ${operator} is not supported.`,
+            message: ErrorMessage.operatorUnsupported(operator),
             code: ErrorCode.OPERATOR_UNSUPPORTED,
         });
     }
 
     static featureUnsupported(feature: string) {
         return new this({
-            message: `The feature ${feature} is not supported.`,
+            message: ErrorMessage.featureUnsupported(feature),
             code: ErrorCode.FEATURE_UNSUPPORTED,
         });
     }
 
     static keyAmbiguous(canonical: string, alias: string) {
         return new this({
-            message: `The keys ${canonical} and ${alias} are two spellings of the ` +
-                `same parameter. Use ${canonical}.`,
+            message: ErrorMessage.keyAmbiguous(canonical, alias),
             code: ErrorCode.KEY_AMBIGUOUS,
         });
     }

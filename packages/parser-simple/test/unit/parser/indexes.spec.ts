@@ -7,14 +7,17 @@
 
 import {
     ErrorCode,
-    FiltersParseError,
+    Parameter,
+    ParseError,
     SchemaRegistry,
     SortDirection,
     and,
     defineSchema,
     eq,
+    extractIssueParameter,
 } from '@rapiq/core';
 import { SimpleParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 type Item = {
     id: string,
@@ -31,7 +34,11 @@ type Row = {
     items: Item[],
 };
 
-const buildRegistry = (extra: { throwOnFailure?: boolean, validate?: boolean } = {}) => {
+const buildRegistry = (extra: {
+    throwOnFailure?: boolean,
+    validate?: boolean,
+    validateFailure?: Error,
+} = {}) => {
     const registry = new SchemaRegistry();
     registry.add(defineSchema<Row>({
         name: 'row',
@@ -40,10 +47,16 @@ const buildRegistry = (extra: { throwOnFailure?: boolean, validate?: boolean } =
         filters: {
             indexed: true,
             default: eq('flag', true),
-            ...(extra.validate ? {
-                validate: (input) => (input.field === 'flag' ?
-                    and(input, eq('realm_id', 'ctx-realm')) :
-                    input),
+            ...(extra.validate || extra.validateFailure ? {
+                validate: (input) => {
+                    if (extra.validateFailure) {
+                        throw extra.validateFailure;
+                    }
+
+                    return input.field === 'flag' ?
+                        and(input, eq('realm_id', 'ctx-realm')) :
+                        input;
+                },
             } : {}),
         },
         sort: {
@@ -82,13 +95,10 @@ describe('indexed schemas', () => {
         it('should throw typed under throwOnFailure', () => {
             const parser = new SimpleParser(buildRegistry({ throwOnFailure: true }));
 
-            try {
-                parser.parseFilters({ created_at: 'x' }, { schema: 'row' });
-                expect.fail('expected a FiltersParseError');
-            } catch (e) {
-                expect(e).toBeInstanceOf(FiltersParseError);
-                expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
-            }
+            expectRejected(
+                () => parser.parseFilters({ created_at: 'x' }, { schema: 'row' }),
+                { code: ErrorCode.KEY_COMBINATION_NOT_INDEXED },
+            );
         });
 
         it('should accept a validate residual as anchor', () => {
@@ -137,16 +147,21 @@ describe('indexed schemas', () => {
     });
 
     describe('composed parse', () => {
-        it('should enforce both parameters in one parse()', () => {
+        it('should silently fall back for both parameters in sync and async parses', async () => {
             const parser = new SimpleParser(buildRegistry());
-            const query = parser.parse({
+            const input = {
                 filters: { created_at: 'x' },
-                sort: 'created_at',
-            }, { schema: 'row' });
+                sorts: 'created_at',
+            };
 
-            expect(query.filters.value).toEqual([eq('flag', true)]);
-            expect(query.sorts.value.map((sort) => [sort.name, sort.operator]))
-                .toEqual([['created_at', SortDirection.DESC]]);
+            for (const query of [
+                parser.parse(input, { schema: 'row' }),
+                await parser.parseAsync(input, { schema: 'row' }),
+            ]) {
+                expect(query.filters.value).toEqual([eq('flag', true)]);
+                expect(query.sorts.value.map((sort) => [sort.name, sort.operator]))
+                    .toEqual([['created_at', SortDirection.DESC]]);
+            }
         });
 
         // A1: the call-time throwOnFailure override reaches applyIndexPolicies,
@@ -155,12 +170,52 @@ describe('indexed schemas', () => {
         it('should let a parse-option throwOnFailure override throw on the composed query, without the schema opting in', () => {
             const parser = new SimpleParser(buildRegistry());
 
-            try {
-                parser.parse({ filters: { created_at: 'x' } }, { schema: 'row', throwOnFailure: true });
-                expect.fail('expected a FiltersParseError');
-            } catch (e) {
-                expect(e).toBeInstanceOf(FiltersParseError);
-                expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
+            expectRejected(
+                () => parser.parse({ filters: { created_at: 'x' } }, { schema: 'row', throwOnFailure: true }),
+                { code: ErrorCode.KEY_COMBINATION_NOT_INDEXED },
+            );
+        });
+
+        it('should collect both indexed-parameter failures in sync and async parses', async () => {
+            const parser = new SimpleParser(buildRegistry());
+            const input = {
+                filters: { created_at: 'x' },
+                sorts: 'created_at',
+            };
+
+            for (const run of [
+                () => parser.parse(input, { schema: 'row', throwOnFailure: true }),
+                () => parser.parseAsync(input, { schema: 'row', throwOnFailure: true }),
+            ]) {
+                try {
+                    await run();
+                    expect.fail('expected a ParseError');
+                } catch (e) {
+                    expect(e).toBeInstanceOf(ParseError);
+                    const error = e as ParseError;
+                    expect(error.issues
+                        .filter((issue) => issue.code === ErrorCode.KEY_COMBINATION_NOT_INDEXED)
+                        .map((issue) => extractIssueParameter(issue)))
+                        .toEqual([Parameter.FILTERS, Parameter.SORTS]);
+                }
+            }
+        });
+
+        it('should propagate non-parse failures unchanged in sync and async parses', async () => {
+            const failure = new Error('validate failed');
+            const parser = new SimpleParser(buildRegistry({ validateFailure: failure }));
+            const input = { filters: { created_at: 'x' } };
+
+            for (const run of [
+                () => parser.parse(input, { schema: 'row' }),
+                () => parser.parseAsync(input, { schema: 'row' }),
+            ]) {
+                try {
+                    await run();
+                    expect.fail('expected the validate failure');
+                } catch (e) {
+                    expect(e).toBe(failure);
+                }
             }
         });
     });

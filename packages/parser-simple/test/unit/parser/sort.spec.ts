@@ -7,13 +7,14 @@
 
 import type { Sorts } from '@rapiq/core';
 import {
+    ParseError,
     Relation,
     Relations,
     SortDirection,
     SortParseError,
     defineSortSchema,
 } from '@rapiq/core';
-import { registry } from '../../data';
+import { expectRejected, registry  } from '../../data';
 import type { User } from '../../data';
 
 import { SimpleSortParser } from '../../../src';
@@ -221,14 +222,14 @@ describe('src/sort/index.ts', () => {
 
         const error = SortParseError.inputInvalid();
 
-        expect(() => parser.parse(false, { schema })).toThrow(error);
+        expectRejected(() => parser.parse(false, { schema }), error);
     });
 
     it('should throw on invalid key', async () => {
         const schema = defineSortSchema({ throwOnFailure: true });
 
         const error = SortParseError.keyInvalid('1foo');
-        expect(() => parser.parse({ '1foo': 'desc' }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ '1foo': 'desc' }, { schema }), error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -240,7 +241,7 @@ describe('src/sort/index.ts', () => {
                 new Relation('realm'),
             ]),
             throwOnFailure: true,
-        })).toThrow(error.message);
+        }), error);
 
         // the sort parameter throws its own error class for relation failures
         expect(() => parser.parse({ 'bar.bar': 'desc' }, {
@@ -249,7 +250,7 @@ describe('src/sort/index.ts', () => {
                 new Relation('realm'),
             ]),
             throwOnFailure: true,
-        })).toThrow(SortParseError);
+        })).toThrow(ParseError);
     });
 
     it('should throw on non allowed key which is not covered by a relation', async () => {
@@ -261,7 +262,7 @@ describe('src/sort/index.ts', () => {
                 new Relation('realm'),
             ]),
             throwOnFailure: true,
-        })).toThrow(error);
+        }), error);
     });
 
     it('should throw on invalid key value', async () => {
@@ -272,7 +273,7 @@ describe('src/sort/index.ts', () => {
 
         const error = SortParseError.inputInvalid();
 
-        expect(() => parser.parse({ bar: 1 }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ bar: 1 }, { schema }), error);
     });
 
     it('should throw on non allowed key', async () => {
@@ -283,6 +284,6 @@ describe('src/sort/index.ts', () => {
 
         const error = SortParseError.keyNotPermitted('bar');
 
-        expect(() => parser.parse({ bar: 'desc' }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ bar: 'desc' }, { schema }), error);
     });
 });

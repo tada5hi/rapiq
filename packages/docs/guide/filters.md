@@ -260,8 +260,8 @@ const schema = defineSchema<User>({
 });
 ```
 
-A leaf rejected by `validate` is silently dropped, independent of the `throwOnFailure` policy; throw from the hook to turn a client-submitted regex into an error response instead. Softer gates work the same way: cap the pattern's source length or match it against a vetted list, and return the filter when it passes.
+A leaf rejected by `validate` follows the same drop-vs-throw policy as every other rejection: it is dropped by default, and raises `KEY_VALIDATE_REJECTED` under [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw), where it appears in the [trace](/guide/errors#issue-traces) the error carries. A dropped leaf is not reported: the raised error is the only channel. To drop a leaf quietly under a throwing schema, return a replacement condition instead of `undefined`. Softer gates work the same way: cap the pattern's source length or match it against a vetted list, and return the filter when it passes.
 
 ## On violation
 
-Legacy simple and MongoDB field-key failures follow the schema's drop-vs-throw policy. Expression filters are precise: syntax and schema-key violations throw `FiltersParseError`. See [Error Handling](/guide/errors).
+Legacy simple and MongoDB field-key failures follow the schema's drop-vs-throw policy. Expression filters are precise: syntax and schema-key violations always fail the parse, recorded on the [issue trace](/guide/errors#issue-traces) of the raised `inputRejected` error. See [Error Handling](/guide/errors).

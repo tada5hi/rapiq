@@ -5,11 +5,18 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { toIssuePath } from '../../utils';
 import { Parameter } from '../../constants';
-import { SchemaError } from '../../errors';
-import type { ParseError } from '../../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    buildIssue,
+} from '../../errors';
+import type { IssueInput, ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
 import { isCondition } from '../../parameter';
+import type { IIssueCollector } from '../issue';
 import type {
     KeyValidationVerdict,
     KeyValidationVerdictRecord,
@@ -89,6 +96,11 @@ export type KeyValidationOptions = {
     throwOnFailure: boolean,
     errors: typeof ParseError,
     /**
+     * Trace of the enclosing parse. A rejection records an issue there and
+     * lets the parse continue on the drop path; the owning call raises it.
+     */
+    issueCollector?: IIssueCollector,
+    /**
      * Sink for the conditions of condition-gated keys, keyed by output
      * path. Supplied by callers that can carry a condition onward (the
      * fields parsers, onto the `Field` node). Absent means a condition
@@ -138,9 +150,7 @@ export function applyKeySchemaValidation(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (entry.throwOnFailure ?? options.throwOnFailure) {
-                throw options.errors.keyValidateRejected(entry.path);
-            }
+            reject(entry, options);
 
             rejected.push(entry.path);
         }
@@ -183,9 +193,7 @@ export async function applyKeySchemaValidationAsync(
         }
 
         if (!settle(verdict, entry, options)) {
-            if (entry.throwOnFailure ?? options.throwOnFailure) {
-                throw options.errors.keyValidateRejected(entry.path);
-            }
+            reject(entry, options);
 
             rejected.push(entry.path);
         }
@@ -383,6 +391,37 @@ function settle(
     }
 
     return !!verdict;
+}
+
+/**
+ * A hook rejection: recorded into the trace when the parse collects one, and
+ * thrown where it is found otherwise (a standalone pass outside a parse). The
+ * thrown error carries the same issue, so a catching driver can merge the
+ * position rather than synthesize a path-less one.
+ */
+function reject(
+    entry: PendingKeyValidation,
+    options: KeyValidationOptions,
+) : void {
+    const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
+    if (!throwOnFailure) {
+        return;
+    }
+
+    const issue : IssueInput = {
+        code: ErrorCode.KEY_VALIDATE_REJECTED,
+        parameter: entry.schema.parameter,
+        path: toIssuePath(entry.path),
+        message: ErrorMessage.keyValidateRejected(entry.path),
+    };
+
+    if (options.issueCollector) {
+        options.issueCollector.add(issue);
+
+        return;
+    }
+
+    throw options.errors.keyValidateRejected(entry.path, [buildIssue(issue)]);
 }
 
 function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {

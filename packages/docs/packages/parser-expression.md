@@ -62,4 +62,6 @@ There is also a standalone `parseFilters(input, options)` returning just the `Fi
 
 ## Errors
 
-Syntax errors and schema violations throw `FiltersParseError` immediately: the expression parser has **no silent-drop mode** for malformed expressions. Malformed expressions carry `ErrorCode.SYNTAX_INVALID`; schema violations carry the key-related codes (`keyNotAllowed`, `keyPathInvalid`, …). See [Error Handling](/guide/errors).
+Malformed syntax and invalid or disallowed expression keys always fail the parse, whatever the schema's policy: the expression parser has **no silent-drop mode** for them, because an expression cannot be partially reinterpreted. The raised error is the aggregated `inputRejected` failure (`FiltersParseError` from `parseFilters`, the general `ParseError` from a whole-query parse), and the [issue trace](/guide/errors#issue-traces) on `error.issues` carries the specific code: `SYNTAX_INVALID` for a malformed expression, the key-related codes (`keyNotAllowed`, `keyPathInvalid`, …) for key violations.
+
+Policy rejections are different: a `filters.validate` hook declining a leaf, or the relations hook declining a relation an expression traverses, follow [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) like every other dialect. Without it the leaf is dropped and the schema defaults apply when nothing survives; with it the rejection is recorded (`KEY_VALIDATE_REJECTED`) and fails the parse. See [Error Handling](/guide/errors).

@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { flattenIssueItems } from 'blemish';
 import { Parameter } from '../constants';
 import {
     Filters,
@@ -13,7 +14,12 @@ import {
     isFilters,
 } from '../parameter';
 import type { ICondition, IFilters, ISorts } from '../parameter';
-import { SchemaError } from '../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    extractIssueParameter,
+} from '../errors';
 import {
     FilterCompoundOperator,
     ResolutionScope,
@@ -29,6 +35,7 @@ import type {
 } from '../schema';
 import type { ObjectLiteral } from '../types';
 import { parseKey } from '../utils';
+import type { IIssueCollector } from './issue';
 import { FiltersParseError } from './parameter/filters/error';
 import { SortsParseError } from './parameter/sort/error';
 import { buildFiltersDefaults } from './parameter/filters/validate';
@@ -36,7 +43,20 @@ import { buildSortsDefaults } from './relation-prune';
 
 type IndexPolicyContext = {
     throwOnFailure?: boolean,
+    /**
+     * Trace of the enclosing parse. Present: the violation is recorded and
+     * the parse continues to its own end. Absent: it throws here.
+     */
+    issueCollector?: IIssueCollector,
 };
+
+function hasIssueForParameter(
+    collector: IIssueCollector | undefined,
+    parameter: `${Parameter}`,
+) : boolean {
+    return collector ? flattenIssueItems(collector.issues)
+        .some((issue) => extractIssueParameter(issue) === parameter) : false;
+}
 
 /**
  * Indexes are read from the schema governing each relation path, so a
@@ -223,7 +243,14 @@ export function applyFiltersIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { throwOnFailure: context.throwOnFailure });
 
     const filtersSchema = scope.schema as FiltersSchema<RECORD>;
-    if (!filtersSchema.indexed || isFiltersDefaults(output, filtersSchema)) {
+    if (
+        !filtersSchema.indexed ||
+        isFiltersDefaults(output, filtersSchema) ||
+        // A filter failure already explains why this tree cannot execute.
+        // Its index violation is only a consequence (and its preserved-
+        // condition refusal would displace that original failure).
+        hasIssueForParameter(context.issueCollector, Parameter.FILTERS)
+    ) {
         return output;
     }
 
@@ -236,21 +263,38 @@ export function applyFiltersIndexPolicy<
         return output;
     }
 
-    if (scope.throwOnFailure) {
-        throw FiltersParseError.keyCombinationNotIndexed(result.keys);
-    }
-
     // A preserved (must-survive) condition cannot be dropped with the
     // tree: mirror relation pruning and refuse loudly.
-    if (hasPreservedCondition(output)) {
+    if (!scope.throwOnFailure && hasPreservedCondition(output)) {
         throw SchemaError.preservedConditionNotIndexed(result.keys);
     }
 
-    const defaults = buildFiltersDefaults(filtersSchema);
-    if (defaults.length === 0) {
-        // Dropping to an empty filter set would execute an unfiltered
-        // scan, the exact outcome the policy exists to prevent: with
-        // no fallback, the violation always throws.
+    const defaults = scope.throwOnFailure ? [] : buildFiltersDefaults(filtersSchema);
+
+    // Dropping to an empty filter set would execute an unfiltered scan, the
+    // exact outcome the policy exists to prevent: with no fallback to fall
+    // back to, the violation always fails the parse.
+    const fatal = scope.throwOnFailure || defaults.length === 0;
+
+    if (context.issueCollector) {
+        if (fatal) {
+            context.issueCollector.add({
+                code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+                parameter: Parameter.FILTERS,
+                path: [],
+                received: result.keys,
+                message: ErrorMessage.keyCombinationNotIndexed(result.keys),
+            });
+
+            // the parse ends on the recorded issue; the tree it ends with is
+            // never observed.
+            return output;
+        }
+
+        return new Filters(FilterCompoundOperator.AND, defaults);
+    }
+
+    if (fatal) {
         throw FiltersParseError.keyCombinationNotIndexed(result.keys);
     }
 
@@ -274,7 +318,13 @@ export function applySortsIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.SORTS, schema, { throwOnFailure: context.throwOnFailure });
 
     const sortSchema = scope.schema as SortsSchema<RECORD>;
-    if (!sortSchema.indexed || output.value.length === 0) {
+    if (
+        !sortSchema.indexed ||
+        output.value.length === 0 ||
+        // A sort failure already explains why this list cannot execute; its
+        // index violation is only a consequence of that original failure.
+        hasIssueForParameter(context.issueCollector, Parameter.SORTS)
+    ) {
         return output;
     }
 
@@ -285,6 +335,22 @@ export function applySortsIndexPolicy<
 
     const result = checkSortKeysIndexed(names, indexesResolverFor(scope));
     if (result.ok) {
+        return output;
+    }
+
+    if (context.issueCollector) {
+        if (!scope.throwOnFailure) {
+            return buildSortsDefaults(sortSchema);
+        }
+
+        context.issueCollector.add({
+            code: ErrorCode.KEY_COMBINATION_NOT_INDEXED,
+            parameter: Parameter.SORTS,
+            path: [],
+            received: result.keys,
+            message: ErrorMessage.keyCombinationNotIndexed(result.keys),
+        });
+
         return output;
     }
 

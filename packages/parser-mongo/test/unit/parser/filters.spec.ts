@@ -23,6 +23,7 @@ import {
 import { registry } from '../../data/schema';
 import type { Entity, User } from '../../data/type';
 import { MongoFiltersParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 describe('filters/mongo-parser', () => {
     let parser : MongoFiltersParser;
@@ -36,16 +37,10 @@ describe('filters/mongo-parser', () => {
         return output;
     };
 
+    // a parse raises one general error carrying every issue, so the code that
+    // used to be on the throw is asserted on the trace it raised
     const expectParseError = (fn: () => unknown, code: ErrorCode) => {
-        let error : unknown;
-        try {
-            fn();
-        } catch (e) {
-            error = e;
-        }
-
-        expect(error).toBeInstanceOf(FiltersParseError);
-        expect((error as FiltersParseError).code).toEqual(code);
+        expectRejected(fn, { code });
     };
 
     beforeAll(() => {
@@ -245,7 +240,7 @@ describe('filters/mongo-parser', () => {
         it('should throw on a known but unsupported operator at field level', () => {
             const error = FiltersParseError.operatorUnsupported('$where');
 
-            expect(() => parser.parse({ items: { $where: 'true' } })).toThrow(error);
+            expectRejected(() => parser.parse({ items: { $where: 'true' } }), error);
 
             expectParseError(() => parser.parse({ age: { $type: 'number' } }), ErrorCode.OPERATOR_UNSUPPORTED);
         });
@@ -500,7 +495,7 @@ describe('filters/mongo-parser', () => {
         it('should throw on the $not RegExp shorthand', () => {
             const error = FiltersParseError.operatorUnsupported('$regex');
 
-            expect(() => parser.parse({ name: { $not: /a/ } })).toThrow(error);
+            expectRejected(() => parser.parse({ name: { $not: /a/ } }), error);
         });
 
         it('should throw on non negatable operators under $not', () => {
@@ -574,7 +569,7 @@ describe('filters/mongo-parser', () => {
         it('should throw on a known but unsupported operator at document level', () => {
             const error = FiltersParseError.operatorUnsupported('$where');
 
-            expect(() => parser.parse({ $where: 'this.a > 1' })).toThrow(error);
+            expectRejected(() => parser.parse({ $where: 'this.a > 1' }), error);
         });
 
         it('should throw on an unknown operator at document level', () => {
@@ -679,10 +674,10 @@ describe('filters/mongo-parser', () => {
         it('should throw on a non allowed key with throwOnFailure', () => {
             const error = FiltersParseError.keyNotPermitted('age');
 
-            expect(() => constrained.parse({ age: 18 }, {
+            expectRejected(() => constrained.parse({ age: 18 }, {
                 schema: 'user',
                 throwOnFailure: true,
-            })).toThrow(error);
+            }), error);
         });
 
         it('should throw on a non allowed key under a throwOnFailure schema', () => {
@@ -692,7 +687,7 @@ describe('filters/mongo-parser', () => {
             });
             const error = FiltersParseError.keyNotPermitted('name');
 
-            expect(() => constrained.parse({ name: 'x' }, { schema })).toThrow(error);
+            expectRejected(() => constrained.parse({ name: 'x' }, { schema }), error);
         });
 
         it('should walk a relation path through schemaMapping', () => {
@@ -709,10 +704,10 @@ describe('filters/mongo-parser', () => {
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyNotPermitted('name');
-            expect(() => constrained.parse({ 'items.name': 'foo' }, {
+            expectRejected(() => constrained.parse({ 'items.name': 'foo' }, {
                 schema: 'user',
                 throwOnFailure: true,
-            })).toThrow(error);
+            }), error);
         });
 
         it('should honor the relations context', () => {
@@ -723,11 +718,11 @@ describe('filters/mongo-parser', () => {
             expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyPathNotPermitted('items');
-            expect(() => constrained.parse({ 'items.id': 1 }, {
+            expectRejected(() => constrained.parse({ 'items.id': 1 }, {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
                 throwOnFailure: true,
-            })).toThrow(error);
+            }), error);
 
             const output = constrained.parse({ 'items.id': 1 }, {
                 schema: 'user',
@@ -817,19 +812,32 @@ describe('filters/mongo-parser', () => {
             ]));
         });
 
-        it('should short-circuit to defaults on an empty allow-list', () => {
-            const schema = defineFiltersSchema({
+        it('should preserve defaults after dropping input under an empty allow-list', () => {
+            const dropping = defineFiltersSchema({
                 allowed: [],
                 default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-                throwOnFailure: true,
             });
+            expect(parser.parse({ name: 'x' }, { schema: dropping }).value)
+                .toEqual([new Filter(FilterFieldOperator.EQUAL, 'id', 1)]);
+        });
 
-            // the input is not walked — nothing throws despite the policy.
-            const output = parser.parse({ name: 'x' }, { schema });
+        it('should reject input under a throwing empty allow-list', () => {
+            const throwing = defineFiltersSchema({ allowed: [], throwOnFailure: true });
+            expectParseError(
+                () => parser.parse({ name: 'x' }, { schema: throwing }),
+                ErrorCode.KEY_NOT_ALLOWED,
+            );
+        });
 
-            expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
-                new Filter(FilterFieldOperator.EQUAL, 'id', 1),
-            ]));
+        it('should validate malformed input before applying an empty allow-list', () => {
+            const dropping = defineFiltersSchema({
+                allowed: [],
+                default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
+            });
+            expectParseError(
+                () => parser.parse({ id: { $size: -1 } }, { schema: dropping }),
+                ErrorCode.KEY_VALUE_INVALID,
+            );
         });
     });
 
@@ -923,10 +931,10 @@ describe('filters/mongo-parser', () => {
         it('should throw for any key under strict with throwOnFailure', () => {
             const error = FiltersParseError.keyNotPermitted('name');
 
-            expect(() => parser.parse({ name: 'x' }, {
+            expectRejected(() => parser.parse({ name: 'x' }, {
                 strict: true,
                 throwOnFailure: true,
-            })).toThrow(error);
+            }), error);
         });
 
         it('should keep a declared allow-list working under strict', () => {
@@ -994,7 +1002,7 @@ describe('filters/mongo-parser', () => {
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyNotPermitted('name');
-            expect(() => constrained.parse({ items: { $elemMatch: { name: 'x' } } }, { schema: 'user', throwOnFailure: true })).toThrow(error);
+            expectRejected(() => constrained.parse({ items: { $elemMatch: { name: 'x' } } }, { schema: 'user', throwOnFailure: true }), error);
         });
 
         it('should combine a multi condition interior with an AND', () => {
@@ -1159,11 +1167,11 @@ describe('filters/mongo-parser', () => {
             expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyPathNotPermitted('items');
-            expect(() => constrained.parse({ items: { $elemMatch: { id: 1 } } }, {
+            expectRejected(() => constrained.parse({ items: { $elemMatch: { id: 1 } } }, {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
                 throwOnFailure: true,
-            })).toThrow(error);
+            }), error);
 
             const output = constrained.parse({ items: { $elemMatch: { id: 1 } } }, {
                 schema: 'user',

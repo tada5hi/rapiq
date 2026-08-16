@@ -71,3 +71,23 @@ Resolution semantics:
 - `FiltersVisitor`: `visitFilterNotEndsWith`/`visitFilterNotContains` signatures used wrong operator type parameters (copy-paste); in/nin and the six anchored-operator methods now share `whereIn`/`whereAnchored` helpers.
 - **Literal matching for anchored operators** (from PR #742 review): `createFilterRegexPattern` escapes regex metacharacters — the input is a filter value, not a regex. Previously `contains(name, 'a.b')` matched `axb` on regexp dialects (while the LIKE fallback matched literally) and values like `'('` threw a raw `SyntaxError`. The `regex` operator is unaffected and interprets a `RegExp` or string as a real pattern.
 - `notStartsWith` on regexp dialects now matches the empty string (`^(?!foo).*`, was `.+`), consistent with `NOT LIKE 'foo%'`.
+
+## Issue traces (issue #896, PR #914)
+
+Public API changes beyond the additive trace:
+
+1. `ResolutionScopeContext.errors` was **removed**. A scope's error class is derived from the
+   parameter it resolves for (`PARAMETER_ERROR_CLASSES`), so a caller can no longer supply
+   one. No in-repository parser or adapter passed it; an external caller that did should drop
+   the option, and subclass the parameter's error class if it needs its own identity.
+2. A whole-query `parse()` / `decode()` now raises the general `ParseError`
+   (`ErrorCode.INPUT_REJECTED`) carrying every rejection on `error.issues`, instead of the
+   first violation's own class and code. `catch (e) { if (e instanceof FieldsParseError) }`
+   no longer matches there; use `isParseError(e)` and branch on `e.issues`. A
+   single-parameter parse (`parseFields`, `SimpleSortsParser.parse`, ...) still raises that
+   parameter's class.
+3. `BaseError.issues` is an ordinary enumerable property, so deep equality compares it:
+   `toThrow(<error instance>)` now asserts the trace too. Assert the class, the `code`, or
+   the trace itself.
+4. `BaseError` extends `@ebec/core`'s and gained `toJSON`, so `JSON.stringify(error)` emits
+   `name`/`message`/`code`/`issues` and the `@instanceof` chain rather than `{ code }` alone.

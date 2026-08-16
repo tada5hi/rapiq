@@ -6,10 +6,16 @@
  */
 
 import {
+    defineIssueGroup,
+    flattenIssueItems,
+} from 'blemish';
+import {
     ErrorCode,
     FilterCompoundOperator,
     Filters,
     FiltersParseError,
+    IssueCollector,
+    Parameter,
     SchemaError,
     SchemaRegistry,
     Sort,
@@ -17,8 +23,10 @@ import {
     Sorts,
     applyFiltersIndexPolicy,
     applySortsIndexPolicy,
+    buildIssue,
     defineSchema,
     eq,
+    extractIssueParameter,
     preserve,
 } from '../../../src';
 
@@ -192,5 +200,98 @@ describe('src/parser/index-policy.ts', () => {
 
         expect(applySortsIndexPolicy(output, registry, 'row', { throwOnFailure: true }))
             .toBe(output);
+    });
+
+    it('should apply both index policies despite failures in other parameters', () => {
+        const registry = buildRegistry();
+        const collector = new IssueCollector();
+        collector.add({
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            parameter: Parameter.FIELDS,
+            path: ['secret'],
+            message: 'The key secret is not permitted.',
+        });
+
+        applyFiltersIndexPolicy(
+            new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]),
+            registry,
+            'row',
+            { throwOnFailure: true, issueCollector: collector },
+        );
+        applySortsIndexPolicy(
+            new Sorts([new Sort('created_at', SortDirection.ASC)]),
+            registry,
+            'row',
+            { throwOnFailure: true, issueCollector: collector },
+        );
+
+        expect(flattenIssueItems(collector.issues)
+            .filter((issue) => issue.code === ErrorCode.KEY_COMBINATION_NOT_INDEXED)
+            .map((issue) => extractIssueParameter(issue)))
+            .toEqual([Parameter.FILTERS, Parameter.SORTS]);
+    });
+
+    it('should suppress only a filter consequence for a filter failure', () => {
+        const registry = buildRegistry();
+        const collector = new IssueCollector();
+        collector.add({
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            parameter: Parameter.FILTERS,
+            path: ['secret'],
+            message: 'The key secret is not permitted.',
+        });
+
+        applyFiltersIndexPolicy(
+            new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]),
+            registry,
+            'row',
+            { throwOnFailure: true, issueCollector: collector },
+        );
+
+        expect(flattenIssueItems(collector.issues)).toHaveLength(1);
+    });
+
+    it('should suppress only a sort consequence for a sort failure', () => {
+        const registry = buildRegistry();
+        const collector = new IssueCollector();
+        collector.add({
+            code: ErrorCode.KEY_NOT_ALLOWED,
+            parameter: Parameter.SORTS,
+            path: ['secret'],
+            message: 'The key secret is not permitted.',
+        });
+
+        applySortsIndexPolicy(
+            new Sorts([new Sort('created_at', SortDirection.ASC)]),
+            registry,
+            'row',
+            { throwOnFailure: true, issueCollector: collector },
+        );
+
+        expect(flattenIssueItems(collector.issues)).toHaveLength(1);
+    });
+
+    it('should find a same-parameter failure inside an issue group', () => {
+        const registry = buildRegistry();
+        const collector = new IssueCollector();
+        collector.merge([defineIssueGroup({
+            path: [],
+            message: 'The filter input is invalid.',
+            issues: [buildIssue({
+                code: ErrorCode.KEY_NOT_ALLOWED,
+                parameter: Parameter.FILTERS,
+                path: ['secret'],
+                message: 'The key secret is not permitted.',
+            })],
+        })]);
+
+        applyFiltersIndexPolicy(
+            new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]),
+            registry,
+            'row',
+            { throwOnFailure: true, issueCollector: collector },
+        );
+
+        expect(flattenIssueItems(collector.issues)).toHaveLength(1);
     });
 });

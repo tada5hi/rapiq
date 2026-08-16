@@ -9,7 +9,7 @@ import {
     CodecError,
     ErrorCode,
     Filters,
-    FiltersParseError,
+    ParseError,
     SchemaRegistry,
     defineQuery,
     defineSchema,
@@ -78,12 +78,12 @@ describe('URLCodec', () => {
     });
 
     it('should fail loudly for an untagged non-expression filter string', () => {
-        expect(() => codec.decode('filter=John')).toThrowError(FiltersParseError);
+        expect(() => codec.decode('filter=John')).toThrowError(ParseError);
     });
 
     it('should fail loudly for a repeated untagged expression filter', () => {
         expect(() => codec.decode('filter=eq(name,\'a\')&filter=eq(name,\'b\')'))
-            .toThrowError(FiltersParseError);
+            .toThrowError(ParseError);
     });
 
     it('should treat an empty codec stamp as absent', () => {
@@ -248,7 +248,7 @@ describe('URLCodec', () => {
             expect(() => aware.decode('filter[secret]=x', {
                 schema: 'user',
                 throwOnFailure: true,
-            })).toThrowError(FiltersParseError);
+            })).toThrowError(ParseError);
         });
     });
 

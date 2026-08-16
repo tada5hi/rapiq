@@ -9,6 +9,7 @@ import type { Parameter } from '../constants';
 import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
+import type { IIssueCollector } from './issue';
 import type { PendingKeyValidation } from './parameter/validate';
 
 export type ParseParameterOptions<
@@ -29,6 +30,44 @@ export type ParseParameterOptions<
      * Opaque to the parser.
      */
     context?: unknown,
+};
+
+/**
+ * What opening a trace needs to know: which parameter the call parses, and
+ * whether an enclosing parse handed one down.
+ *
+ * An object rather than two positional arguments, because the driver is absent
+ * at every entry point and present only when a query parse drives a
+ * sub-parser; as positions that reads as a literal `undefined` at half the
+ * call sites, saying nothing.
+ */
+export type ParseTraceContext = {
+    parameter: `${Parameter}`,
+    /**
+     * The enclosing parse's trace. Absent: this call opens and raises its own.
+     */
+    driver?: IIssueCollector,
+};
+
+/**
+ * One parse call's trace, and whether this call owns it.
+ *
+ * `owned` is the whole reason the handle exists: a driven sub-parser records
+ * into the enclosing trace and lets the orchestrator decide what to raise,
+ * while the call that opened one raises it itself. Carrying the answer beats
+ * re-deriving it from an identity comparison at every step, which needed the
+ * driver and the collector to travel together and inverted silently when they
+ * were swapped.
+ */
+export type ParseTrace = {
+    collector: IIssueCollector,
+    owned: boolean,
+    /**
+     * The parameter this call parses, when it parses exactly one. Decides what
+     * a failure is raised as: its parameter's own error class, or the general
+     * one for a query parse, which speaks for all five.
+     */
+    parameter?: `${Parameter}`,
 };
 
 /**
@@ -120,9 +159,19 @@ export interface IQueryParameterParser<Output = unknown> {
 
     parseParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Output;
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD>,
+        ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
+    ): Output;
 
     parseParameterAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
-    >(input: unknown, options: ParseParameterOptions<RECORD>, ledger: RelationLedger): Promise<Output>;
+    >(
+        input: unknown,
+        options: ParseParameterOptions<RECORD>,
+        ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
+    ): Promise<Output>;
 }

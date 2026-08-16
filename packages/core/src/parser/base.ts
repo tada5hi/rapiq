@@ -7,7 +7,8 @@
 
 import { setPathValue } from 'pathtrace';
 import { DEFAULT_ID, MAX_TRAVERSAL_DEPTH } from '../constants';
-import { ParseError } from '../errors';
+import type { Parameter } from '../constants';
+import { ParseError, isParseError } from '../errors';
 import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
@@ -17,7 +18,10 @@ import {
     parseKey, 
     stringifyKey,
 } from '../utils';
-import type { IParser } from './types';
+import { IssueCollector } from './issue';
+import { PARAMETER_ERROR_CLASSES } from './issue/constants';
+import type { IIssueCollector } from './issue';
+import type { IParser, ParseTrace, ParseTraceContext } from './types';
 
 export type TempType = {
     attributes: Record<string, any>,
@@ -52,6 +56,157 @@ export abstract class BaseParser<
     }
 
     // --------------------------------------------------
+
+    /**
+     * Open the trace this parse call records into: the enclosing call's when a
+     * driver handed one down (a query parse driving its five parameters), a
+     * fresh one otherwise.
+     *
+     * The handle carries whether this call OWNS the trace, because that is the
+     * one thing every later step needs and the one thing a collector cannot
+     * answer about itself. It used to be re-derived by comparing a driver
+     * against the collector at each step, which meant passing both everywhere
+     * and made an inverted comparison (a rejection silently degrading into a
+     * drop) a plain argument-order mistake.
+     *
+     * It also carries the parameter the call parses, which decides what a
+     * failure is raised AS: see {@link raise}. A query parse opens its trace
+     * without one, because it speaks for all five.
+     */
+    protected beginIssues(
+        driver?: IIssueCollector,
+        parameter?: `${Parameter}`,
+    ) : ParseTrace {
+        if (driver) {
+            return {
+                collector: driver, 
+                owned: false, 
+                parameter, 
+            };
+        }
+
+        return {
+            collector: new IssueCollector(),
+            owned: true,
+            parameter,
+        };
+    }
+
+    /**
+     * The failure a trace stands for, raised as the parse that owns it.
+     *
+     * A single-parameter parse names its parameter (`parseFields` fails with
+     * `FieldsParseError`): the caller asked about one parameter, so saying
+     * which one is the whole truth, and it is the class that parameter has
+     * always thrown. A query parse names none, because a request can violate
+     * policies in four parameters at once and an error advertising one of them
+     * describes a SUBSET: a consumer branching on the class would act on the
+     * part it happened to be handed. Either way the code is `INPUT_REJECTED`
+     * and `error.issues` is what actually went wrong; the sub-parser failures
+     * a query parse catches are merged into its trace rather than raised.
+     */
+    protected raise(trace: ParseTrace) : ParseError {
+        const ErrorClass = trace.parameter ?
+            PARAMETER_ERROR_CLASSES[trace.parameter] :
+            ParseError;
+
+        return ErrorClass.inputRejected(trace.collector.issues);
+    }
+
+    /**
+     * Raise what the trace collected, but only in the call that started it: a
+     * sub-parser driven by a query parse records across all five parameters and
+     * lets the orchestrator decide, so a single bad key no longer hides what the
+     * other four would have reported. Every other call raises its own, so a
+     * rejection can never end up recorded into a trace nobody reads.
+     *
+     * A trace nothing raises is discarded: the error a parse throws is the only
+     * way it is ever read.
+     */
+    protected finishIssues(trace: ParseTrace) : void {
+        if (!trace.owned || !trace.collector.failed) {
+            return;
+        }
+
+        throw this.raise(trace);
+    }
+
+    /**
+     * Run one parse call end to end: open a trace, record what the body
+     * rejects into it, and raise it on the way out.
+     *
+     * Every entry point has this shape, so it is one call rather than three:
+     * a body that forgets to finish turns every rejection it recorded into a
+     * silent drop, which is the failure this whole mechanism exists to prevent.
+     */
+    protected withTrace<T>(
+        context: ParseTraceContext,
+        fn: (collector: IIssueCollector) => T,
+    ) : T {
+        const trace = this.beginIssues(context.driver, context.parameter);
+
+        const output = this.recordFailure(trace, () => fn(trace.collector));
+        this.finishIssues(trace);
+
+        return output;
+    }
+
+    protected async withTraceAsync<T>(
+        context: ParseTraceContext,
+        fn: (collector: IIssueCollector) => Promise<T>,
+    ) : Promise<T> {
+        const trace = this.beginIssues(context.driver, context.parameter);
+
+        const output = await this.recordFailureAsync(trace, () => fn(trace.collector));
+        this.finishIssues(trace);
+
+        return output;
+    }
+
+    /**
+     * Run a parse body whose failures belong in `trace`.
+     *
+     * A structural failure (a malformed expression, an input of the wrong
+     * shape, a hostile key) aborts by throwing rather than by dropping one
+     * key, so without this it would escape the call before anything recorded
+     * it: the caller would catch an error with an empty trace, and
+     * `formatErrors(error.issues)`, the documented way to render a
+     * failure, would answer with nothing at all.
+     *
+     * Recorded, the throw is re-raised through the trace, so the error that
+     * leaves is the FIRST violation with the whole trace attached (an earlier
+     * recorded rejection still wins over a structural abort that follows it).
+     * A call driven by an enclosing parse records nothing here and simply
+     * propagates: that parse catches the abort per parameter, keeps the other
+     * four parsing, and decides.
+     */
+    protected recordFailure<T>(trace: ParseTrace, fn: () => T) : T {
+        try {
+            return fn();
+        } catch (e) {
+            throw this.failure(e, trace);
+        }
+    }
+
+    protected async recordFailureAsync<T>(trace: ParseTrace, fn: () => Promise<T>) : Promise<T> {
+        try {
+            return await fn();
+        } catch (e) {
+            throw this.failure(e, trace);
+        }
+    }
+
+    /**
+     * The error a caught throw should leave the call as.
+     */
+    protected failure(input: unknown, trace: ParseTrace) : unknown {
+        if (!isParseError(input) || !trace.owned) {
+            return input;
+        }
+
+        trace.collector.addError(input, trace.parameter);
+        return this.raise(trace);
+    }
 
     protected getBaseSchema<
         RECORD extends ObjectLiteral = ObjectLiteral,

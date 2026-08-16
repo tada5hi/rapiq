@@ -7,12 +7,12 @@
 
 import {
     ErrorCode,
-    FiltersParseError,
     SchemaRegistry,
     defineSchema,
     eq,
 } from '@rapiq/core';
 import { ExpressionParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 type Row = {
     id: string,
@@ -52,12 +52,9 @@ describe('indexed schemas', () => {
     it('should throw typed under throwOnFailure', () => {
         const parser = new ExpressionParser(buildRegistry(true));
 
-        try {
-            parser.parseFilters("eq(created_at, 'x')", { schema: 'row' });
-            expect.fail('expected a FiltersParseError');
-        } catch (e) {
-            expect(e).toBeInstanceOf(FiltersParseError);
-            expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_COMBINATION_NOT_INDEXED);
-        }
+        expectRejected(
+            () => parser.parseFilters("eq(created_at, 'x')", { schema: 'row' }),
+            { code: ErrorCode.KEY_COMBINATION_NOT_INDEXED },
+        );
     });
 });

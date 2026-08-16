@@ -6,6 +6,7 @@
  */
 
 import {
+    ErrorMessage,
     Parameter,
     Relation,
     Relations,
@@ -19,6 +20,7 @@ import {
     SimpleParser,
     SimpleSortParser,
 } from '../../../src';
+import { expectRejected } from '../../data';
 
 const secretCondition = eq('id', 1);
 
@@ -458,9 +460,9 @@ describe('src/parameter/fields/module.ts (rejection safety)', () => {
         // the child schema opted into fail-loud validation; the pooled
         // pending list must honour its flag, exactly as the allow-list
         // failure path of the same schema already does.
-        expect(() => scoped.parse(
-            { user: ['id'], items: ['secret'] },
-            { schema: 'user' },
-        )).toThrow('items.secret');
+        expectRejected(
+            () => scoped.parse({ user: ['id'], items: ['secret'] }, { schema: 'user' }),
+            { message: ErrorMessage.keyValidateRejected('items.secret') },
+        );
     });
 });

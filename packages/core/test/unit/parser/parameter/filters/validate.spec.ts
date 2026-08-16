@@ -11,13 +11,22 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    ITSELF,
+    IssueCollector,
+    Parameter,
     SchemaError,
     applyFiltersSchemaValidation,
     applyFiltersSchemaValidationAsync,
     defineFiltersSchema,
+    extractIssueParameter,
     preserve,
 } from '../../../../../src';
-import type { IFilter, Validator } from '../../../../../src';
+import type {
+    FiltersParseError,
+    FiltersValidationOptions,
+    IFilter,
+    Validator,
+} from '../../../../../src';
 
 describe('src/parser/parameter/filters/validate.ts', () => {
     it('should replace and reject leaves while preserving compounds', () => {
@@ -152,6 +161,151 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ),
         );
         expect(seen).toEqual(['name', 'items']);
+    });
+
+    it('should record an absolute elemMatch rejection path synchronously and asynchronously', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'id', '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (collector: IssueCollector) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+            async (collector: IssueCollector) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+        ]) {
+            const collector = new IssueCollector();
+            await run(collector);
+            expect(collector.issues[0]?.path).toEqual(['items', 'id']);
+            expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.FILTERS);
+        }
+    });
+
+    it('should attach the rejection issue to a standalone throw', () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'id', '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+        });
+
+        // no collector: the site throws where it is, carrying the position a
+        // catching driver could not reconstruct
+        expect.assertions(2);
+        try {
+            applyFiltersSchemaValidation(input, schema);
+        } catch (e) {
+            expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_VALIDATE_REJECTED);
+            expect((e as FiltersParseError).issues).toEqual([
+                expect.objectContaining({
+                    code: ErrorCode.KEY_VALIDATE_REJECTED,
+                    path: ['items', 'id'],
+                    meta: { parameter: Parameter.FILTERS },
+                }),
+            ]);
+        }
+    });
+
+    it('should not append the ITSELF marker to an elemMatch rejection path', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, ITSELF, '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (collector: IssueCollector) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+            async (collector: IssueCollector) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                { issueCollector: collector },
+            ),
+        ]) {
+            const collector = new IssueCollector();
+            await run(collector);
+            expect(collector.issues[0]?.path).toEqual(['items']);
+        }
+    });
+
+    it('should preserve a frozen prefix across recursive dotted elemMatch paths', async () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'orders.items',
+            new Filter(
+                FilterFieldOperator.ELEM_MATCH,
+                'variants.parts',
+                new Filter(FilterFieldOperator.EQUAL, 'details.id', '1'),
+            ),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'details.id' ? undefined : leaf),
+        });
+
+        for (const run of [
+            async (options: FiltersValidationOptions) => applyFiltersSchemaValidation(
+                input,
+                schema,
+                undefined,
+                options,
+            ),
+            async (options: FiltersValidationOptions) => applyFiltersSchemaValidationAsync(
+                input,
+                schema,
+                undefined,
+                options,
+            ),
+        ]) {
+            const prefix : string[] = ['query'];
+            Object.freeze(prefix);
+            const collector = new IssueCollector();
+            const options : FiltersValidationOptions = {
+                issueCollector: collector,
+                path: prefix,
+            };
+            Object.freeze(options);
+
+            await run(options);
+
+            expect(collector.issues[0]?.path).toEqual([
+                'query',
+                'orders',
+                'items',
+                'variants',
+                'parts',
+                'details',
+                'id',
+            ]);
+            expect(options.path).toBe(prefix);
+            expect(prefix).toEqual(['query']);
+        }
     });
 
     it('should drop an elemMatch leaf whose interior is fully rejected', () => {

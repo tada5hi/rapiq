@@ -116,6 +116,28 @@ const decoded = codec.decode(req.query, {
 
 Schema-aware encoding validates by piping the output through the schema-bound decoder: a `filters.validate` hook therefore runs once during a schema-aware `encode()` and again when the receiver decodes. Keep validators **idempotent** (re-validating an accepted filter must return it unchanged), or the two sides will disagree about the transported values.
 
+## Reporting what a decode rejected
+
+`formatErrors` normalizes the [trace](/guide/errors#issue-traces) a raised error carries into this codec's response format, with the wire parameter names this package owns (canonical `filters` becomes `filter`, `relations` becomes `include`). The members follow the JSON:API error object, so the output drops straight into an `errors` array:
+
+```typescript
+import { isParseError } from '@rapiq/core';
+import { formatErrors } from '@rapiq/codec-url';
+
+try {
+    const query = codec.decode(req.query, { schema: 'user' });
+    // ...
+} catch (e) {
+    if (!isParseError(e)) {
+        throw e; // not client input: a server bug, and not ours to swallow
+    }
+
+    res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
+}
+```
+
+A trace is a tree of [blemish](https://github.com/tada5hi/blemish) issues, and `formatErrors` renders its **leaves**: what a group stands for is already said by the issues below it, each at the absolute position merging gave it. A decode that raises nothing has no trace: under the default drop policy the query comes back narrowed and silent.
+
 ## Custom codecs
 
 Advanced callers can construct `URLCodec`, register a `URLCodecDefinition` (`{ name, encoder, decoder, detect? }`) and choose whether it becomes the default. The optional `detect(payload)` hook lets a dialect claim untagged payloads structurally: hooks are probed in registration order, and a payload no hook claims decodes with the default dialect. Optional async methods fall back to their synchronous counterparts when omitted.

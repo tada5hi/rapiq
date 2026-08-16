@@ -137,6 +137,27 @@ describe('src/parser/parameter/validate.ts', () => {
                 expect((e as FieldsParseError).message).toContain('items.secret');
             }
         });
+
+        it('should attach the rejection issue to the thrown error, so a catching driver can merge it', () => {
+            const schema = defineFieldsSchema({ validate: () => false });
+
+            expect.assertions(1);
+            try {
+                applyKeySchemaValidation(
+                    [entry(schema, 'secret', 'items.secret')],
+                    undefined,
+                    fieldsOptions(undefined, true),
+                );
+            } catch (e) {
+                expect((e as FieldsParseError).issues).toEqual([
+                    expect.objectContaining({
+                        code: ErrorCode.KEY_VALIDATE_REJECTED,
+                        path: ['items', 'secret'],
+                        meta: { parameter: Parameter.FIELDS },
+                    }),
+                ]);
+            }
+        });
     });
 
     describe('condition verdict', () => {

@@ -552,14 +552,16 @@ describe('src/schema/resolver/*.ts', () => {
             }
         });
 
-        it('should honor a custom error class', () => {
+        it('should throw as the parameter it resolves for', () => {
             const schema = defineFiltersSchema({
                 allowed: ['id'],
                 throwOnFailure: true,
             });
-            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { errors: SortParseError });
+            const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
 
-            expect(() => scope.resolveKey('bar')).toThrow(SortParseError);
+            // the class follows from the parameter, so it is not something a
+            // caller threads through every descent
+            expect(() => scope.resolveKey('bar')).toThrow(FiltersParseError);
         });
     });
 });

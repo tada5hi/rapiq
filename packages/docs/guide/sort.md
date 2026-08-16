@@ -81,4 +81,4 @@ An ordering is not a row set, so there is nothing for an `ICondition` verdict to
 
 ## On violation
 
-Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `SortsParseError` instead.
+Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it fails the parse instead (`SortsParseError` from `parseSorts`, the general `ParseError` from a whole-query parse, each carrying the rejection on its [issue trace](/guide/errors#issue-traces)).

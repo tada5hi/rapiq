@@ -15,7 +15,11 @@
 
 ## Workflow
 
-- After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
+- After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files.
+- `npx nx run @rapiq/<pkg>:build` **swallows a `build:types` failure** and still reports a
+  successful run with a duration. A change that breaks type-checking therefore reads as green.
+  Verify with `cd packages/<pkg> && npx tsc --noEmit -p tsconfig.build.json`, or pass
+  `--verbose` to see the compiler output. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
 - When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url) — they peer-depend on it.
 - User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.md`.
 
@@ -26,6 +30,28 @@
 - **Linting**: `@tada5hi/eslint-config` (flat); locally disabled rules: `class-methods-use-this`, `no-continue`, `no-shadow`, `no-use-before-define`, `no-useless-constructor` (see root `eslint.config.mjs`).
 - Every source file starts with the copyright header block (copy it from a neighboring file).
 - **Prose & Markdown**: do not use em dashes (`—`) or en dashes (`–`) in written text (`README.md`, docs pages, code comments, commit/PR bodies). Reach for a colon when a clause explains or introduces, a semicolon or a full stop between independent clauses, or commas/parentheses for an aside. This keeps the READMEs especially consistent.
+
+## Reach for the Existing Helper
+
+Before writing a type guard, a path manipulation or an inline error string, look in
+`packages/core/src/utils/` and the package barrel. The repo has been bitten repeatedly by
+hand-rolled versions of helpers that already exist, and the hand-rolled version is usually
+subtly weaker (it misses escaped dots, or class identity across duplicated modules).
+
+| Reach for | Instead of | Why the hand-rolled version is worse |
+|---|---|---|
+| `isObject(x)` | `typeof x === 'object' && x !== null` | also excludes arrays |
+| `isFilter` / `isFilters` / `isCondition` | `instanceof Filter` / `Filters` | `instanceof` breaks across two copies of a package |
+| `isBaseError` / `isParseError` | `instanceof ParseError` | same, and a missed catch turns a 400 into a 500 |
+| `toIssuePath(key)` / `pathToArray` (pathtrace) | `key.split('.')` | a segment carrying an escaped dot is not torn in half |
+| `arrayToPath(segments)` (pathtrace) | `segments.join('.')` | re-escapes segments that need it |
+| `parseKey` / `stringifyKey` | ad-hoc `lastIndexOf('.')` splitting | one grammar for `path`/`name`/`group` |
+| `normalizeParameter(p)` | `p === 'sort' ? 'sorts' : p` | one place owns the deprecated alias |
+| `ErrorMessage.*` builders | an inline template string | the thrown message and the recorded issue cannot drift |
+| `ObjectLiteral` | `object`, or an inline `Record<string, any>` | one spelling across the codebase |
+
+The same applies in reverse: a predicate or string helper written twice belongs in `utils/`
+with the others, exported from the barrel.
 
 ## Naming Conventions
 

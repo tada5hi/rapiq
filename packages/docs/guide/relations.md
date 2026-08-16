@@ -90,7 +90,7 @@ The hook runs on the canonical (alias-mapped) relation name against the schema t
 Two rules make the gate hard to bypass:
 
 - **Traversal counts.** The hook also gates relations reached through dotted [filter](/guide/filters), [field](/guide/fields) and [sort](/guide/sort) keys (`filter[items.id]`, `fields[items]`, `sort=items.name`), which the backends would otherwise auto-join. It runs **once per distinct relation** across the whole query, so a join has a single authorization point regardless of which parameter forced it.
-- **Rejection prunes deep.** Rejecting a relation drops every deeper relation reached through it and every dependent key in every parameter, at parse time; the pruned branch never enters the AST. Under [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) the rejection throws a `RelationsParseError` (`ErrorCode.KEY_VALIDATE_REJECTED`) instead.
+- **Rejection prunes deep.** Rejecting a relation drops every deeper relation reached through it and every dependent key in every parameter, at parse time; the pruned branch never enters the AST. Under [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) the rejection fails the parse instead, recorded as a `KEY_VALIDATE_REJECTED` issue for the `relations` parameter on the [trace](/guide/errors#issue-traces) of the raised `inputRejected` error.
 
 One thing pruning never drops: a [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) filter condition. If a filters [`validate` hook](/guide/filters#schema-options) preserves a condition that names a relation this hook rejects, the two hooks contradict each other: pruning the condition returns a result set the policy did not describe (a *wider* one for the usual `and(<leaf>, <scope>)` residual), keeping it joins a relation the gate refused. Parsing therefore throws a `SchemaError` with `ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED` rather than picking one. That is a server misconfiguration, not client input: see [Authorization](/guide/recipes/authorization#scoping-server-conditions).
 
@@ -102,4 +102,4 @@ Parsed relations feed back into the other parameter parsers: fields, filters and
 
 ## On violation
 
-Disallowed or invalid relation input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `RelationsParseError` instead.
+Disallowed or invalid relation input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it fails the parse instead (`RelationsParseError` from `parseRelations`, the general `ParseError` from a whole-query parse, each carrying the rejection on its [issue trace](/guide/errors#issue-traces)).

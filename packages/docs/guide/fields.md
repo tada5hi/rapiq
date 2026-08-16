@@ -112,4 +112,4 @@ A gate also resists composition: a [merge](/guide/merging-queries) collision tha
 
 ## On violation
 
-Disallowed or invalid field input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it throws a `FieldsParseError` instead.
+Disallowed or invalid field input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it fails the parse instead (`FieldsParseError` from `parseFields`, the general `ParseError` from a whole-query parse, each carrying the rejection on its [issue trace](/guide/errors#issue-traces)).

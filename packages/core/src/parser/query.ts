@@ -6,7 +6,7 @@
  */
 
 import { Parameter } from '../constants';
-import { ParseError } from '../errors';
+import { ParseError, isParseError } from '../errors';
 import type {
     IFields,
     IFilters,
@@ -15,7 +15,15 @@ import type {
     ISorts,
     QueryContext,
 } from '../parameter';
-import { Query } from '../parameter';
+import {
+    Fields,
+    Filters,
+    Pagination,
+    Query,
+    Relations,
+    Sorts,
+} from '../parameter';
+import { FilterCompoundOperator } from '../schema';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
@@ -26,6 +34,7 @@ import {
 } from '../utils';
 import { BaseParser } from './base';
 import { applyFiltersIndexPolicy, applySortsIndexPolicy } from './index-policy';
+import type { IIssueCollector } from './issue';
 import { RelationsParseError } from './parameter/relations/error';
 import {
     applyKeySchemaValidation,
@@ -41,6 +50,7 @@ import type {
     IQueryParameterParser,
     ParseParameterOptions,
     ParseQueryOptions,
+    ParseTrace,
     RelationLedger,
 } from './types';
 
@@ -70,7 +80,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD> = {},
     ): Query {
         const output : QueryContext = {};
-        const { data, parameterOptions } = this.prepareQueryContext(input, options);
+        const {
+            data, 
+            parameterOptions, 
+            trace, 
+        } = this.prepareQueryContext(input, options);
+        const issueCollector = trace.collector;
 
         // pooled relation-authorization obligations across every parameter, so
         // the relations validate hook runs once per distinct relation and prunes
@@ -81,46 +96,61 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = this.relationsParser.parseParameter(relationsInput, parameterOptions, ledger);
+            const relations = this.parseOne(issueCollector, Parameter.RELATIONS, new Relations(), () => this.relationsParser
+                .parseParameter(relationsInput, parameterOptions, ledger, issueCollector));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = this.fieldsParser.parseParameter(
+            output.fields = this.parseOne(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
                 this.readParameter(data, Parameter.FIELDS),
                 parameterOptions,
                 ledger,
-            );
+                issueCollector,
+            ));
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = this.filtersParser.parseParameter(
-                this.readParameter(data, Parameter.FILTERS),
-                parameterOptions,
-                ledger,
-            );
+            const empty = new Filters(FilterCompoundOperator.AND, []);
+            output.filters = this.parseOne(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
+                .parseParameter(
+                    this.readParameter(data, Parameter.FILTERS),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
-            output.pagination = this.paginationParser.parseParameter(
-                this.readParameter(data, Parameter.PAGINATION),
-                parameterOptions,
-                ledger,
-            );
+            output.pagination = this.parseOne(issueCollector, Parameter.PAGINATION, new Pagination(), () => this.paginationParser
+                .parseParameter(
+                    this.readParameter(data, Parameter.PAGINATION),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = this.sortParser.parseParameter(
+            output.sorts = this.parseOne(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser.parseParameter(
                 this.readParameter(data, Parameter.SORTS),
                 parameterOptions,
                 ledger,
-            );
+                issueCollector,
+            ));
         }
 
-        const rejected = this.applyRelationValidations(ledger, options);
-        this.pruneByRelations(output, rejected, options);
-        this.applyIndexPolicies(output, options);
+        // the cross-parameter passes belong to the trace like the parameters
+        // do: a rejection they throw (rather than record) must not leave with
+        // an empty trace.
+        this.recordFailure(trace, () => {
+            const rejected = this.applyRelationValidations(ledger, options, issueCollector);
+            this.pruneByRelations(output, rejected, options, issueCollector);
+            this.applyIndexPolicies(output, options, issueCollector);
+        });
+
+        this.finishIssues(trace);
 
         return new Query(output);
     }
@@ -132,55 +162,127 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD> = {},
     ) : Promise<Query> {
         const output : QueryContext = {};
-        const { data, parameterOptions } = this.prepareQueryContext(input, options);
+        const {
+            data, 
+            parameterOptions, 
+            trace, 
+        } = this.prepareQueryContext(input, options);
+        const issueCollector = trace.collector;
 
         const ledger : RelationLedger = [];
 
         if (!this.skipParameter(options, Parameter.RELATIONS)) {
             const relationsInput = this.readParameter(data, Parameter.RELATIONS);
 
-            const relations = await this.relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger);
+            const relations = await this.parseOneAsync(issueCollector, Parameter.RELATIONS, new Relations(), () => this
+                .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger, issueCollector));
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = await this.fieldsParser.parseParameterAsync(
-                this.readParameter(data, Parameter.FIELDS),
-                parameterOptions,
-                ledger,
-            );
+            output.fields = await this.parseOneAsync(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser
+                .parseParameterAsync(
+                    this.readParameter(data, Parameter.FIELDS),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
-            output.filters = await this.filtersParser.parseParameterAsync(
-                this.readParameter(data, Parameter.FILTERS),
-                parameterOptions,
-                ledger,
-            );
+            const empty = new Filters(FilterCompoundOperator.AND, []);
+            output.filters = await this.parseOneAsync(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
+                .parseParameterAsync(
+                    this.readParameter(data, Parameter.FILTERS),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
         }
 
         if (!this.skipParameter(options, Parameter.PAGINATION)) {
-            output.pagination = await this.paginationParser.parseParameterAsync(
-                this.readParameter(data, Parameter.PAGINATION),
-                parameterOptions,
-                ledger,
+            output.pagination = await this.parseOneAsync(
+                issueCollector,
+                Parameter.PAGINATION,
+                new Pagination(),
+                () => this.paginationParser.parseParameterAsync(
+                    this.readParameter(data, Parameter.PAGINATION),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ),
             );
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = await this.sortParser.parseParameterAsync(
-                this.readParameter(data, Parameter.SORTS),
-                parameterOptions,
-                ledger,
-            );
+            output.sorts = await this.parseOneAsync(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser
+                .parseParameterAsync(
+                    this.readParameter(data, Parameter.SORTS),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
         }
 
-        const rejected = await this.applyRelationValidationsAsync(ledger, options);
-        this.pruneByRelations(output, rejected, options);
-        this.applyIndexPolicies(output, options);
+        await this.recordFailureAsync(trace, async () => {
+            const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
+            this.pruneByRelations(output, rejected, options, issueCollector);
+            this.applyIndexPolicies(output, options, issueCollector);
+        });
+
+        this.finishIssues(trace);
 
         return new Query(output);
+    }
+
+    // -----------------------------------------------------
+
+    /**
+     * Run one parameter, keeping a structural failure inside it.
+     *
+     * A malformed expression or an input of the wrong shape aborts the
+     * parameter it was found in (there is no next key to move on to), but the
+     * other four parameters are independent and still parse. The failure is
+     * recorded as an error issue, so the query parse ends on it (or on an
+     * earlier one) exactly as it would have ended on the immediate throw.
+     */
+    protected parseOne<T>(
+        issueCollector: IIssueCollector,
+        parameter: `${Parameter}`,
+        fallback: T,
+        fn: () => T,
+    ) : T {
+        try {
+            return fn();
+        } catch (e) {
+            if (isParseError(e)) {
+                issueCollector.addError(e, parameter);
+
+                return fallback;
+            }
+
+            throw e;
+        }
+    }
+
+    protected async parseOneAsync<T>(
+        issueCollector: IIssueCollector,
+        parameter: `${Parameter}`,
+        fallback: T,
+        fn: () => Promise<T>,
+    ) : Promise<T> {
+        try {
+            return await fn();
+        } catch (e) {
+            if (isParseError(e)) {
+                issueCollector.addError(e, parameter);
+
+                return fallback;
+            }
+
+            throw e;
+        }
     }
 
     // -----------------------------------------------------
@@ -195,9 +297,23 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         input: unknown,
         options: ParseQueryOptions<RECORD>,
-    ) : { data: ObjectLiteral, parameterOptions: ParseParameterOptions<RECORD> } {
+    ) : {
+        data: ObjectLiteral,
+        parameterOptions: ParseParameterOptions<RECORD>,
+        trace: ParseTrace,
+    } {
         const data : ObjectLiteral = isObject(input) ? input : {};
 
+        // one trace for the whole query: the sub-parsers record into it and
+        // defer throwing, so a violation in the first parameter no longer
+        // hides what the other four would have reported. This call owns it,
+        // and raises it once every parameter has been seen.
+        const trace = this.beginIssues();
+
+        // the trace reaches the sub-parsers as a driver argument, never as an
+        // option: a consumer able to supply one would take over the decision
+        // to raise, and a rejection nobody raises is a rejection that became
+        // a silent drop.
         const parameterOptions : ParseParameterOptions<RECORD> = {};
         if (options.schema) {
             parameterOptions.schema = options.schema;
@@ -215,7 +331,11 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             parameterOptions.context = options.context;
         }
 
-        return { data, parameterOptions };
+        return {
+            data, 
+            parameterOptions, 
+            trace, 
+        };
     }
 
     /**
@@ -246,6 +366,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         ledger: RelationLedger,
         options: ParseQueryOptions<RECORD>,
+        issueCollector?: IIssueCollector,
     ) : string[] {
         if (ledger.length === 0 || !options.schema) {
             return [];
@@ -256,6 +377,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return applyKeySchemaValidation(ledger, options.context, {
             throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
+            issueCollector,
         });
     }
 
@@ -264,6 +386,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         ledger: RelationLedger,
         options: ParseQueryOptions<RECORD>,
+        issueCollector?: IIssueCollector,
     ) : Promise<string[]> {
         if (ledger.length === 0 || !options.schema) {
             return [];
@@ -274,6 +397,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         return applyKeySchemaValidationAsync(ledger, options.context, {
             throwOnFailure: options.throwOnFailure ?? schema.relations.throwOnFailure ?? false,
             errors: RelationsParseError,
+            issueCollector,
         });
     }
 
@@ -288,6 +412,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         output: QueryContext,
         rejected: string[],
         options: ParseQueryOptions<RECORD>,
+        issueCollector?: IIssueCollector,
     ) : void {
         if (rejected.length === 0) {
             return;
@@ -310,7 +435,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (output.filters) {
-            output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters);
+            output.filters = pruneFiltersByRelations(output.filters, rejected, schema?.filters, issueCollector);
         }
     }
 
@@ -325,13 +450,16 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     >(
         output: QueryContext,
         options: ParseQueryOptions<RECORD>,
+        issueCollector?: IIssueCollector,
     ) : void {
+        const context = { throwOnFailure: options.throwOnFailure, issueCollector };
+
         if (output.filters) {
-            output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema, { throwOnFailure: options.throwOnFailure });
+            output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema, context);
         }
 
         if (output.sorts) {
-            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema, { throwOnFailure: options.throwOnFailure });
+            output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema, context);
         }
     }
 

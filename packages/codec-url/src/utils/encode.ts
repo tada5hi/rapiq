@@ -100,3 +100,4 @@ export function isSchemaAware(options: ParseQueryOptions | ParseParameterOptions
     return typeof options.schema !== 'undefined' ||
         typeof options.strict !== 'undefined';
 }
+

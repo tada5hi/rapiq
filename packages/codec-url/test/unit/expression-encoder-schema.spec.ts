@@ -8,7 +8,7 @@
 import type { SchemaError } from '@rapiq/core';
 import {
     ErrorCode,
-    FiltersParseError,
+    ParseError,
     defineQuery,
     defineSchema,
     eq,
@@ -42,9 +42,9 @@ describe('encoder (schema-aware)', () => {
     it('should throw for a disallowed filter key (the expression dialect is precise)', () => {
         const query = defineQuery({ filters: eq('secret', 'x') });
 
-        expect(() => encoder.encode(query, { schema: 'user' })).toThrowError(
-            FiltersParseError,
-        );
+        // schema-aware encode validates by piping through the schema-bound
+        // decoder, so it fails the way a parse fails
+        expect(() => encoder.encode(query, { schema: 'user' })).toThrowError(ParseError);
     });
 
     it('should resolve named schemas in per-parameter encodes', () => {

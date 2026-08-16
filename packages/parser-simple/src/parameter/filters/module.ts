@@ -8,10 +8,11 @@
 import {
     BaseParser,
     DEFAULT_ID,
+    ErrorCode,
+    ErrorMessage,
     Filter,
     FilterCompoundOperator,
     Filters,
-    FiltersParseError,
     Parameter,
     RelationsParseError,
     ResolutionScope,
@@ -34,6 +35,7 @@ import type {
     ICondition,
     IFilter,
     IFilters,
+    IIssueCollector,
     ObjectLiteral,
     RelationLedger,
 
@@ -54,17 +56,20 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
-        return applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure },
-        );
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -72,46 +77,66 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const { output, scope } = await this.buildAsync(input, options, ledger);
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
-        return applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure },
-        );
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : IFilters {
-        return this.build(input, options, ledger).output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace({ parameter: Parameter.FILTERS, driver: issueCollector }, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger)).output;
+        return this.withTraceAsync({ parameter: Parameter.FILTERS, driver: issueCollector }, async (collector) =>
+            (await this.buildAsync(input, options, ledger, collector)).output);
     }
 
     protected build<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { output: IFilters, scope: FiltersScope<RECORD> } {
-        const scope = this.scopeFor(options, ledger);
+        issueCollector: IIssueCollector,
+    ) : {
+        output: IFilters, 
+        scope: FiltersScope<RECORD>, 
+    } {
+        const scope = this.scopeFor(options, ledger, issueCollector);
 
-        let items: ICondition[] = this.run(input, scope);
+        const parsed = this.run(input, scope);
+
+        let items: ICondition[] = parsed;
         if (items.length > 0) {
             items = items
-                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context))
+                .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, {
+                    issueCollector,
+                    throwOnFailure: options.throwOnFailure,
+                }))
                 .filter((item): item is ICondition => typeof item !== 'undefined');
         }
 
@@ -119,19 +144,31 @@ export class SimpleFiltersParser extends BaseParser<
             items = buildFiltersDefaults(scope.schema);
         }
 
-        return { output: new Filters(FilterCompoundOperator.AND, items), scope };
+        return {
+            output: new Filters(FilterCompoundOperator.AND, items), 
+            scope, 
+        };
     }
 
     protected async buildAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : Promise<{ output: IFilters, scope: FiltersScope<RECORD> }> {
-        const scope = this.scopeFor(options, ledger);
+        issueCollector: IIssueCollector,
+    ) : Promise<{
+        output: IFilters, 
+        scope: FiltersScope<RECORD>, 
+    }> {
+        const scope = this.scopeFor(options, ledger, issueCollector);
+
+        const parsed = this.run(input, scope);
 
         let items: ICondition[] = [];
-        for (const item of this.run(input, scope)) {
-            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context);
+        for (const item of parsed) {
+            const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, {
+                issueCollector,
+                throwOnFailure: options.throwOnFailure,
+            });
             if (validated) {
                 items.push(validated);
             }
@@ -141,18 +178,23 @@ export class SimpleFiltersParser extends BaseParser<
             items = buildFiltersDefaults(scope.schema);
         }
 
-        return { output: new Filters(FilterCompoundOperator.AND, items), scope };
+        return {
+            output: new Filters(FilterCompoundOperator.AND, items), 
+            scope, 
+        };
     }
 
     protected scopeFor<RECORD extends ObjectLiteral = ObjectLiteral>(
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : FiltersScope<RECORD> {
         return ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
             relations: options.relations,
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
+            issueCollector,
         });
     }
 
@@ -176,22 +218,17 @@ export class SimpleFiltersParser extends BaseParser<
     ) : IFilter[] {
         const { schema } = scope;
 
-        // If it is an empty array nothing is allowed
-        if (
-            !schema.allowedIsUndefined &&
-            schema.allowed.length === 0
-        ) {
-            return [];
-        }
-
         if (!isObject(input)) {
             // absent input is not a failure — schema defaults still apply.
             if (
                 typeof input !== 'undefined' &&
-                input !== null &&
-                scope.throwOnFailure
+                input !== null
             ) {
-                throw FiltersParseError.inputInvalid();
+                scope.refuse({
+                    code: ErrorCode.INPUT_INVALID,
+                    message: ErrorMessage.inputInvalid(),
+                    input,
+                });
             }
 
             return [];
@@ -244,13 +281,21 @@ export class SimpleFiltersParser extends BaseParser<
             const resolvedName = [...resolved.path, resolved.name].join('.');
 
             // the wire grammar owns value decoding, including the
-            // empty-value verdict — the parser only applies the
+            // empty-value verdict; the parser only applies the
             // schema drop-vs-throw policy.
             const decoded = decodeFilterWireValue(data.attributes[key_]);
             if (!decoded.success) {
-                if (scope.throwOnFailure) {
-                    throw FiltersParseError.keyValueInvalid(resolvedName);
-                }
+                // absolute: `resolved.path` is relative to this scope, which
+                // sits at `scope.path` inside a nested relation object.
+                const path = [...scope.path, ...resolved.path, resolved.name];
+
+                scope.refuse({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: ErrorMessage.keyValueInvalid(path.join('.')),
+                    path,
+                    key: key.name,
+                    input: data.attributes[key_],
+                });
 
                 continue;
             }

@@ -21,6 +21,7 @@ import {
 } from '@rapiq/core';
 import { registry } from '../../data/schema';
 import { MongoParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 describe('src/parser', () => {
     let parser : MongoParser;
@@ -125,6 +126,6 @@ describe('src/parser', () => {
     it('should always throw on filter grammar errors in full-query parsing', () => {
         const error = FiltersParseError.operatorUnsupported('$where');
 
-        expect(() => parser.parse({ filters: { $where: 'this.a > 1' } }, { schema: 'user' })).toThrow(error);
+        expectRejected(() => parser.parse({ filters: { $where: 'this.a > 1' } }, { schema: 'user' }), error);
     });
 });

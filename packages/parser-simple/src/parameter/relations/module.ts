@@ -8,6 +8,8 @@
 import {
     BaseParser,
     DEFAULT_ID,
+    ErrorCode,
+    ErrorMessage,
     Parameter,
     Relation,
     Relations,
@@ -17,8 +19,10 @@ import {
     applyKeySchemaValidationAsync,
     isObject,
     parseKey,
+    toIssuePath,
 } from '@rapiq/core';
 import type {
+    IIssueCollector,
     IRelations,
     ObjectLiteral,
     RelationLedger,
@@ -40,12 +44,15 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        return this.withTrace({ parameter: Parameter.RELATIONS }, (issueCollector) => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
-        return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }));
+            return this.prune(output, applyKeySchemaValidation(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issueCollector,
+            }));
+        });
     }
 
     override async parseAsync<
@@ -55,12 +62,15 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
+        return this.withTraceAsync({ parameter: Parameter.RELATIONS }, async (issueCollector) => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
 
-        return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-            throwOnFailure: scope.relationsThrowOnFailure,
-            errors: RelationsParseError,
-        }));
+            return this.prune(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                throwOnFailure: scope.relationsThrowOnFailure,
+                errors: RelationsParseError,
+                issueCollector,
+            }));
+        });
     }
 
     parseParameter<
@@ -69,8 +79,14 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : IRelations {
-        return this.build(input, options, ledger).output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace({ parameter: Parameter.RELATIONS, driver: issueCollector }, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     async parseParameterAsync<
@@ -79,8 +95,14 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : Promise<IRelations> {
-        return this.build(input, options, ledger).output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own, so a violation never degrades into a
+        // silent drop. A structural abort takes the same route out.
+        return this.withTrace({ parameter: Parameter.RELATIONS, driver: issueCollector }, (collector) =>
+            this.build(input, options, ledger, collector).output);
     }
 
     /**
@@ -95,14 +117,22 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         options: RelationsParseOptions<RECORD>,
         ledger: RelationLedger,
-    ) : { output: Relations, scope: RelationsScope<RECORD> } {
+        issueCollector: IIssueCollector,
+    ) : {
+        output: Relations, 
+        scope: RelationsScope<RECORD>, 
+    } {
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
             strict: options.strict,
             obligationSink: ledger,
+            issueCollector,
         });
 
-        return { output: this.parseWithScope(input, scope), scope };
+        return {
+            output: this.parseWithScope(input, scope), 
+            scope, 
+        };
     }
 
     /**
@@ -128,19 +158,9 @@ export class SimpleRelationsParser extends BaseParser<
         input: unknown,
         scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
     ) : Relations {
-        const { schema } = scope;
-
         const output = new Relations();
 
-        // If it is an empty array nothing is allowed
-        if (
-            Array.isArray(schema.allowed) &&
-            schema.allowed.length === 0
-        ) {
-            return output;
-        }
-
-        const normalized = this.includeParents(this.normalize(input, scope.throwOnFailure));
+        const normalized = this.includeParents(this.normalize(input, scope));
         const grouped = this.groupArrayByBasePath(normalized);
 
         const {
@@ -186,7 +206,12 @@ export class SimpleRelationsParser extends BaseParser<
 
     // --------------------------------------------------
 
-    protected normalize(input: unknown, throwOnFailure?: boolean) : string[] {
+    protected normalize<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        scope: ResolutionScope<`${Parameter.RELATIONS}`, RECORD>,
+    ) : string[] {
         const output: string[] = [];
 
         if (
@@ -202,9 +227,11 @@ export class SimpleRelationsParser extends BaseParser<
 
             for (const key of temp) {
                 if (typeof key !== 'string') {
-                    if (throwOnFailure) {
-                        throw RelationsParseError.inputInvalid();
-                    }
+                    scope.refuse({
+                        code: ErrorCode.INPUT_INVALID,
+                        message: ErrorMessage.inputInvalid(),
+                        input: key,
+                    });
 
                     continue;
                 }
@@ -218,11 +245,19 @@ export class SimpleRelationsParser extends BaseParser<
         if (isObject(input)) {
             const keys = Object.keys(input);
             for (const key of keys) {
-                if (typeof input[key] === 'string') {
-                    const path = `${key}.${input[key]}`;
+                const value = input[key];
+                if (typeof value === 'string') {
+                    output.push(`${key}.${value}`);
 
-                    output.push(path);
+                    continue;
                 }
+
+                scope.refuse({
+                    code: ErrorCode.INPUT_INVALID,
+                    message: ErrorMessage.inputInvalid(),
+                    path: [...scope.path, ...toIssuePath(key)],
+                    input: value,
+                });
             }
 
             return output;
@@ -232,9 +267,11 @@ export class SimpleRelationsParser extends BaseParser<
             return [];
         }
 
-        if (throwOnFailure) {
-            throw RelationsParseError.inputInvalid();
-        }
+        scope.refuse({
+            code: ErrorCode.INPUT_INVALID,
+            message: ErrorMessage.inputInvalid(),
+            input,
+        });
 
         return [];
     }

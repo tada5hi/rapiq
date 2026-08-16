@@ -5,9 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { RelationsParseError, defineRelationsSchema, defineSchema } from '@rapiq/core';
+import { 
+    ParseError, 
+    RelationsParseError, 
+    defineRelationsSchema, 
+    defineSchema, 
+} from '@rapiq/core';
 import type { Relations } from '@rapiq/core';
-import { registry } from '../../data';
+import { expectRejected, registry  } from '../../data';
 import { SimpleRelationsParser } from '../../../src';
 
 class RelationsSimpleInterpreter {
@@ -125,12 +130,12 @@ describe('src/relations/index.ts', () => {
 
         const error = RelationsParseError.inputInvalid();
 
-        expect(() => parser.parse(['foo', true], { schema })).toThrow(error.message);
-        expect(() => parser.parse(false, { schema })).toThrow(error);
+        expectRejected(() => parser.parse(['foo', true], { schema }), error);
+        expectRejected(() => parser.parse(false, { schema }), error);
 
         // the relations parameter throws its own error class
-        expect(() => parser.parse(['foo', true], { schema })).toThrow(RelationsParseError);
-        expect(() => parser.parse(false, { schema })).toThrow(RelationsParseError);
+        expect(() => parser.parse(['foo', true], { schema })).toThrow(ParseError);
+        expect(() => parser.parse(false, { schema })).toThrow(ParseError);
     });
 
     it('should throw on non allowed key', async () => {
@@ -140,14 +145,14 @@ describe('src/relations/index.ts', () => {
         });
 
         const error = RelationsParseError.keyNotPermitted('bar');
-        expect(() => parser.parse(['foo', 'bar'], { schema })).toThrow(error);
+        expectRejected(() => parser.parse(['foo', 'bar'], { schema }), error);
     });
 
     it('should throw on invalid key', async () => {
         const schema = defineSchema({ throwOnFailure: true });
 
         const error = RelationsParseError.keyInvalid(',foo');
-        expect(() => parser.parse([',foo'], { schema })).toThrow(error);
+        expectRejected(() => parser.parse([',foo'], { schema }), error);
     });
 
     describe('validate hook on a bare relations sub-schema', () => {
@@ -223,7 +228,7 @@ describe('src/relations/index.ts', () => {
             });
 
             expect(() => bare.parse(['realm'], { schema }))
-                .toThrow(RelationsParseError);
+                .toThrow(ParseError);
         });
     });
 });

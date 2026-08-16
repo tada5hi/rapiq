@@ -8,6 +8,7 @@
 import {
     Filter,
     Filters,
+    ITSELF,
     isCondition,
     isFilter,
     isFilters,
@@ -15,11 +16,50 @@ import {
 } from '../../../parameter';
 import type {
     ICondition,
+    IFilter,
     IFilters,
 } from '../../../parameter';
 import { FilterFieldOperator } from '../../../schema';
 import type { FiltersSchema } from '../../../schema';
-import { SchemaError } from '../../../errors';
+import { toIssuePath } from '../../../utils';
+import { Parameter } from '../../../constants';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    buildIssue,
+} from '../../../errors';
+import type { IssueInput } from '../../../errors';
+import type { IIssueCollector } from '../../issue';
+import { FiltersParseError } from './error';
+
+export type FiltersValidationOptions = {
+    /**
+     * Trace of the enclosing parse.
+     */
+    issueCollector?: IIssueCollector,
+    /**
+     * Call-time failure-policy override, taking precedence over the filters
+     * sub-schema's own setting exactly like everywhere else
+     * (`throwOnFailure ?? schema.throwOnFailure ?? false`). Without it a leaf
+     * rejection would be the one violation a call-time override cannot
+     * govern.
+     *
+     * Deliberately NOT the resolving scope's effective policy: the expression
+     * dialect forces its scope to throw because an expression cannot be
+     * partially reinterpreted, and that says nothing about whether a policy
+     * hook declining a leaf should fail the request.
+     */
+    throwOnFailure?: boolean,
+    /**
+     * Absolute path prefix carried through nested filter values.
+     */
+    path?: string[],
+};
+
+function appendFilterPath(path: string[], field: string) : string[] {
+    return field === ITSELF ? path : [...path, ...toIssuePath(field)];
+}
 
 /**
  * The conditions a parser falls back to when the input carries no
@@ -35,6 +75,43 @@ export function buildFiltersDefaults(schema: FiltersSchema) : ICondition[] {
     }
 
     return [schema.default];
+}
+
+/**
+ * A leaf the schema validator declined.
+ *
+ * The hook is the filters counterpart of the fields/sorts/relations key
+ * validators, so it fails the same way: nothing under a dropping policy (the
+ * leaf is dropped and nothing will be raised), and `KEY_VALIDATE_REJECTED`
+ * under `throwOnFailure`, recorded into the trace when the parse collects one
+ * and thrown (carrying the same issue) where it does not. A hook that means
+ * to drop a leaf silently under a throwing schema returns a replacement
+ * condition instead of `undefined`.
+ */
+function rejectLeaf(
+    leaf: IFilter<string, unknown>,
+    schema: FiltersSchema,
+    options: FiltersValidationOptions,
+) : void {
+    const throwOnFailure = options.throwOnFailure ?? schema.throwOnFailure ?? false;
+    if (!throwOnFailure) {
+        return;
+    }
+
+    const issue : IssueInput = {
+        code: ErrorCode.KEY_VALIDATE_REJECTED,
+        parameter: Parameter.FILTERS,
+        path: appendFilterPath(options.path ?? [], leaf.field),
+        message: ErrorMessage.keyValidateRejected(leaf.field),
+    };
+
+    if (options.issueCollector) {
+        options.issueCollector.add(issue);
+
+        return;
+    }
+
+    throw FiltersParseError.keyValidateRejected(leaf.field, [buildIssue(issue)]);
 }
 
 function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {
@@ -61,16 +138,19 @@ export function applyFiltersSchemaValidation(
     input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
+    options?: FiltersValidationOptions,
 ) : IFilters | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
+    options?: FiltersValidationOptions,
 ) : ICondition | undefined;
 export function applyFiltersSchemaValidation(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
+    options: FiltersValidationOptions = {},
 ) : ICondition | undefined {
     if (!schema.hasValidator()) {
         return input;
@@ -82,7 +162,11 @@ export function applyFiltersSchemaValidation(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = applyFiltersSchemaValidation(input.value, schema, context);
+            const nestedOptions = {
+                ...options,
+                path: appendFilterPath(options.path ?? [], input.field),
+            };
+            const interior = applyFiltersSchemaValidation(input.value, schema, context, nestedOptions);
             if (!interior) {
                 return undefined;
             }
@@ -99,6 +183,8 @@ export function applyFiltersSchemaValidation(
         }
 
         if (!output) {
+            rejectLeaf(leaf, schema, options);
+
             return undefined;
         }
 
@@ -113,7 +199,7 @@ export function applyFiltersSchemaValidation(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = applyFiltersSchemaValidation(child, schema, context);
+        const validated = applyFiltersSchemaValidation(child, schema, context, options);
         if (validated) {
             conditions.push(validated);
         }
@@ -135,16 +221,19 @@ export function applyFiltersSchemaValidationAsync(
     input: IFilters,
     schema: FiltersSchema,
     context?: unknown,
+    options?: FiltersValidationOptions,
 ) : Promise<IFilters | undefined>;
 export function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
+    options?: FiltersValidationOptions,
 ) : Promise<ICondition | undefined>;
 export async function applyFiltersSchemaValidationAsync(
     input: ICondition,
     schema: FiltersSchema,
     context?: unknown,
+    options: FiltersValidationOptions = {},
 ) : Promise<ICondition | undefined> {
     if (!schema.hasValidator()) {
         return input;
@@ -156,7 +245,11 @@ export async function applyFiltersSchemaValidationAsync(
             input.operator === FilterFieldOperator.ELEM_MATCH &&
             isCondition(input.value)
         ) {
-            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context);
+            const nestedOptions = {
+                ...options,
+                path: appendFilterPath(options.path ?? [], input.field),
+            };
+            const interior = await applyFiltersSchemaValidationAsync(input.value, schema, context, nestedOptions);
             if (!interior) {
                 return undefined;
             }
@@ -168,6 +261,8 @@ export async function applyFiltersSchemaValidationAsync(
 
         const output = await schema.validate(leaf, context);
         if (!output) {
+            rejectLeaf(leaf, schema, options);
+
             return undefined;
         }
 
@@ -180,7 +275,7 @@ export async function applyFiltersSchemaValidationAsync(
 
     const conditions : ICondition[] = [];
     for (const child of input.value) {
-        const validated = await applyFiltersSchemaValidationAsync(child, schema, context);
+        const validated = await applyFiltersSchemaValidationAsync(child, schema, context, options);
         if (validated) {
             conditions.push(validated);
         }

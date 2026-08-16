@@ -10,6 +10,7 @@ import type {
     FiltersSchema,
     ICondition,
     IFilters,
+    IIssueCollector,
     ObjectLiteral,
     RelationLedger,
     Scalar,
@@ -27,7 +28,6 @@ import {
     ITSELF,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
-    ParseError,
     RelationsParseError,
     ResolutionScope,
     applyFiltersIndexPolicy,
@@ -38,6 +38,7 @@ import {
     buildFiltersDefaults,
     isFilter,
     isFilters,
+    isParseError,
     pruneFiltersByRelations,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -95,20 +96,24 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
-        const { output, scope } = this.build(input, options, ledger);
-        if (!scope) {
-            return output;
-        }
 
-        return applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure },
-        );
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
+            const { output, scope } = this.build(input, options, ledger, issueCollector);
+            if (!scope) {
+                return output;
+            }
+
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, applyKeySchemaValidation(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     override async parseAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -116,36 +121,49 @@ export class ExpressionFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
-        const { output, scope } = await this.buildAsync(input, options, ledger);
-        if (!scope) {
-            return output;
-        }
 
-        return applyFiltersIndexPolicy(
-            pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
-                throwOnFailure: scope.relationsThrowOnFailure,
-                errors: RelationsParseError,
-            }), scope.schema as FiltersSchema<RECORD>),
-            this.registry,
-            options.schema,
-            { throwOnFailure: options.throwOnFailure },
-        );
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
+            const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
+            if (!scope) {
+                return output;
+            }
+
+            return applyFiltersIndexPolicy(
+                pruneFiltersByRelations(output, await applyKeySchemaValidationAsync(ledger, options.context, {
+                    throwOnFailure: scope.relationsThrowOnFailure,
+                    errors: RelationsParseError,
+                    issueCollector,
+                }), scope.schema as FiltersSchema<RECORD>, issueCollector),
+                this.registry,
+                options.schema,
+                { throwOnFailure: options.throwOnFailure, issueCollector },
+            );
+        });
     }
 
     parseParameter<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : IFilters {
-        return this.build(input, options, ledger).output;
+        // whoever opens a trace raises it: driven by the query orchestrator
+        // this records into the enclosing one and decides nothing, driven
+        // directly it raises its own. The dialect resolves keys under an
+        // always-throwing scope, so the abort route is the usual one here.
+        return this.withTrace({ parameter: Parameter.FILTERS, driver: issueCollector }, (trace) =>
+            this.build(input, options, ledger, trace).output);
     }
+
 
     async parseParameterAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : Promise<IFilters> {
-        return (await this.buildAsync(input, options, ledger)).output;
+        return this.withTraceAsync({ parameter: Parameter.FILTERS, driver: issueCollector }, async (trace) =>
+            (await this.buildAsync(input, options, ledger, trace)).output);
     }
 
     parseExact<RECORD extends ObjectLiteral = ObjectLiteral>(
@@ -154,14 +172,16 @@ export class ExpressionFiltersParser extends BaseParser<
     ) : ICondition {
         // raw exact tree; a standalone caller wanting relation authorization
         // uses parse(). Obligations are discarded, not pooled.
-        return this.parseValidated(input, options, []).result;
+        return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) =>
+            this.parseValidated(input, options, [], issueCollector).result);
     }
 
     async parseExactAsync<RECORD extends ObjectLiteral = ObjectLiteral>(
         input: unknown,
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<ICondition> {
-        return (await this.parseValidatedAsync(input, options, [])).result;
+        return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) =>
+            (await this.parseValidatedAsync(input, options, [], issueCollector)).result);
     }
 
     // ---------------------------------------------------------
@@ -176,12 +196,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : { output: IFilters, scope?: FiltersScope } {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = this.parseValidated(input, options, ledger);
+        const { result, scope } = this.parseValidated(input, options, ledger, issueCollector);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -190,12 +211,13 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : Promise<{ output: IFilters, scope?: FiltersScope }> {
         if (input === undefined || input === null) {
             return { output: this.buildAbsentOutput(options) };
         }
 
-        const { result, scope } = await this.parseValidatedAsync(input, options, ledger);
+        const { result, scope } = await this.parseValidatedAsync(input, options, ledger, issueCollector);
 
         return { output: this.wrapRoot(result), scope };
     }
@@ -209,13 +231,17 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : { result: ICondition, scope?: FiltersScope } {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
             return { result: expr };
         }
 
-        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context);
+        const validated = applyFiltersSchemaValidation(expr, scope.schema, options.context, {
+            issueCollector,
+            throwOnFailure: options.throwOnFailure,
+        });
 
         return {
             result: validated ?? new Filters(
@@ -230,13 +256,19 @@ export class ExpressionFiltersParser extends BaseParser<
         input: unknown,
         options: FiltersParseOptions<RECORD>,
         ledger: RelationLedger,
+        issueCollector?: IIssueCollector,
     ) : Promise<{ result: ICondition, scope?: FiltersScope }> {
         const { expr, scope } = this.parseSource(input, options, ledger);
         if (!scope) {
             return { result: expr };
         }
 
-        const validated = await applyFiltersSchemaValidationAsync(expr, scope.schema, options.context);
+        const validated = await applyFiltersSchemaValidationAsync(
+            expr,
+            scope.schema,
+            options.context,
+            { issueCollector, throwOnFailure: options.throwOnFailure },
+        );
 
         return {
             result: validated ?? new Filters(
@@ -274,7 +306,12 @@ export class ExpressionFiltersParser extends BaseParser<
         if (options.schema || options.strict) {
             scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
                 relations: options.relations,
-                throwOnFailure: true,
+                throwOnFailure: options.throwOnFailure,
+                // the forcing is about KEYS: an expression cannot be partially
+                // reinterpreted. Whether a relations validator declining a
+                // relation fails the request stays the caller's call, as
+                // everywhere else.
+                resolutionThrowOnFailure: true,
                 strict: options.strict,
                 obligationSink: ledger,
             }) as FiltersScope;
@@ -729,7 +766,7 @@ export class ExpressionFiltersParser extends BaseParser<
             // always throwing) falls back to the unbound scope; every
             // other failure (e.g. relations gating) propagates.
             if (
-                !(e instanceof ParseError) ||
+                !isParseError(e) ||
                 e.code !== ErrorCode.KEY_PATH_INVALID
             ) {
                 throw e;

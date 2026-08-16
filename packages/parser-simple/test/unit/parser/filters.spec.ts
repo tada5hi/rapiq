@@ -19,6 +19,7 @@ import {
 } from '@rapiq/core';
 import { SimpleFiltersParser } from '../../../src';
 import { registry } from '../../data/schema';
+import { expectRejected } from '../../data';
 
 describe('src/filter/index.ts', () => {
     let parser : SimpleFiltersParser;
@@ -509,7 +510,7 @@ describe('src/filter/index.ts', () => {
 
         const error = FiltersParseError.inputInvalid();
 
-        expect(() => parseFlat('foo', { schema })).toThrow(error);
+        expectRejected(() => parseFlat('foo', { schema }), error);
     });
 
     it('should throw on invalid key', async () => {
@@ -517,7 +518,7 @@ describe('src/filter/index.ts', () => {
 
         const error = FiltersParseError.keyInvalid('1foo');
 
-        expect(() => parseFlat({ '1foo': 1 }, { schema })).toThrow(error);
+        expectRejected(() => parseFlat({ '1foo': 1 }, { schema }), error);
     });
 
     it('should throw on non allowed relation', async () => {
@@ -533,7 +534,7 @@ describe('src/filter/index.ts', () => {
             relations: new Relations([
                 new Relation('user'),
             ]),
-        })).toThrow(error);
+        }), error);
     });
 
     it('should throw on non allowed key which is not covered by a relation', async () => {
@@ -545,7 +546,7 @@ describe('src/filter/index.ts', () => {
                 new Relation('realm'),
             ]),
             throwOnFailure: true,
-        })).toThrow(error);
+        }), error);
     });
 
     it('should throw on non allowed key', async () => {
@@ -556,6 +557,6 @@ describe('src/filter/index.ts', () => {
 
         const error = FiltersParseError.keyNotPermitted('bar');
 
-        expect(() => parseFlat({ bar: 1 }, { schema })).toThrow(error);
+        expectRejected(() => parseFlat({ bar: 1 }, { schema }), error);
     });
 });

@@ -6,8 +6,8 @@
  */
 
 import type { Parameter } from '../../constants';
-import type { ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
+import type { IIssueCollector } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import type {
@@ -83,15 +83,24 @@ export type ResolutionScopeContext = {
      */
     throwOnFailure?: boolean,
     /**
+     * Failure policy for KEY RESOLUTION alone (allow-list and traversal
+     * verdicts), taking precedence over {@link throwOnFailure} there and
+     * nowhere else.
+     *
+     * For a dialect whose resolution cannot drop: the expression parser
+     * forces it, because an expression cannot be partially reinterpreted.
+     * That says nothing about whether a relations validator declining a
+     * relation should fail the request, which stays the caller's
+     * `throwOnFailure`, the same separation the filters leaf validator makes
+     * with its own override.
+     */
+    resolutionThrowOnFailure?: boolean,
+    /**
      * Strict-mode override: takes precedence over the schema-level setting.
      * Under strict mode a parameter without an explicit allow-list rejects
      * every client key instead of falling back to the syntactic name check.
      */
     strict?: boolean,
-    /**
-     * Error class used when throwing; defaults to the parameter's ParseError subclass.
-     */
-    errors?: typeof ParseError,
     /**
      * Relation-authorization ledger. When present, every relation a resolved key
      * traverses (and a relation targeted directly, e.g. by `$size`/`$elemMatch`)
@@ -100,4 +109,12 @@ export type ResolutionScopeContext = {
      * the dependent keys. Absent: resolution records nothing.
      */
     obligationSink?: PendingKeyValidation[],
+    /**
+     * Trace of the parse this scope resolves for. When present, a failed
+     * resolution records its verdict as an issue and returns the failure
+     * verdict even under `throwOnFailure`; the owning parse call raises the
+     * whole trace once every parameter has been seen. Absent: failures throw
+     * where they are found.
+     */
+    issueCollector?: IIssueCollector,
 };

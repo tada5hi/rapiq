@@ -12,6 +12,7 @@ import {
 } from '@rapiq/core';
 import type { Pagination } from '@rapiq/core';
 import { SimplePaginationParser } from '../../../src';
+import { expectRejected } from '../../data';
 
 class PaginationSimpleInterpreter {
     interpret(input: Pagination): { limit?: number; offset?: number } {
@@ -71,7 +72,7 @@ describe('src/pagination/index.ts', () => {
         const error = PaginationParseError.limitExceeded(50);
         expect(error.code).toBe(ErrorCode.LIMIT_EXCEEDED);
 
-        expect(() => parser.parse({ limit: 100 }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ limit: 100 }, { schema }), error);
     });
 
     it('should not throw on missing limit', async () => {
@@ -91,14 +92,14 @@ describe('src/pagination/index.ts', () => {
         const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.inputInvalid();
-        expect(() => parser.parse(false, { schema })).toThrow(error);
+        expectRejected(() => parser.parse(false, { schema }), error);
     });
 
     it('should throw on invalid limit', async () => {
         const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.keyValueInvalid('limit');
-        expect(() => parser.parse({ limit: false }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ limit: false }, { schema }), error);
     });
 
     it('should throw on invalid offset', async () => {
@@ -106,6 +107,6 @@ describe('src/pagination/index.ts', () => {
 
         const error = PaginationParseError.keyValueInvalid('offset');
 
-        expect(() => parser.parse({ offset: false }, { schema })).toThrow(error);
+        expectRejected(() => parser.parse({ offset: false }, { schema }), error);
     });
 });

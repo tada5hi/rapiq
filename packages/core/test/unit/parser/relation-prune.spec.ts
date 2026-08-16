@@ -14,6 +14,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    IssueCollector,
     Relation,
     Relations,
     Sort,
@@ -406,6 +407,53 @@ describe('src/parser/relation-prune.ts', () => {
             });
 
             expect(() => pruneFiltersByRelations(filters, ['items'], schema))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+        });
+    });
+
+    describe('pruneFiltersByRelations (failed trace)', () => {
+        const eq = (field: string) => new Filter(FilterFieldOperator.EQUAL, field, 'x');
+
+        const failed = () => {
+            const collector = new IssueCollector();
+            collector.add({
+                code: ErrorCode.KEY_VALIDATE_REJECTED,
+                path: ['user'],
+                message: 'rejected',
+            });
+
+            return collector;
+        };
+
+        it('still prunes, so the index policies judge the tree that would execute', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('user.name'), eq('id')]);
+
+            expect(filterFields(pruneFiltersByRelations(filters, ['user'], undefined, failed())))
+                .toEqual(['id']);
+        });
+
+        it('suppresses the preserved-condition refusal, which must not displace the recorded rejection', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [
+                preserve(eq('user.name')),
+                eq('id'),
+            ]);
+
+            expect(filterFields(pruneFiltersByRelations(filters, ['user'], undefined, failed())))
+                .toEqual(['id']);
+        });
+
+        it('suppresses the refusal for a preserved default too', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [eq('user.a')]);
+            const schema = defineFiltersSchema({ default: preserve(eq('user.b')) });
+
+            expect(filterFields(pruneFiltersByRelations(filters, ['user'], schema, failed())))
+                .toEqual(['user.b']);
+        });
+
+        it('keeps refusing while the trace has not failed', () => {
+            const filters = new Filters(FilterCompoundOperator.AND, [preserve(eq('user.name'))]);
+
+            expect(() => pruneFiltersByRelations(filters, ['user'], undefined, new IssueCollector()))
                 .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
         });
     });

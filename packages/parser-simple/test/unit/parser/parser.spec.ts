@@ -12,7 +12,7 @@ import {
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
-    FiltersParseError,
+    ParseError,
     Relation,
     Relations,
     SchemaRegistry,
@@ -390,7 +390,7 @@ describe('src/parser', () => {
 
             const parser = new SimpleParser(registry);
 
-            expect(() => parser.parse({ filters: { name: 'admin' } }, { schema: 'foo' })).toThrow(FiltersParseError);
+            expect(() => parser.parse({ filters: { name: 'admin' } }, { schema: 'foo' })).toThrow(ParseError);
         });
     });
 

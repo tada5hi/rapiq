@@ -105,4 +105,4 @@ Failures fall into two classes:
 
 Absent input, `{}` and an all-dropped document are not failures: the schema's `filters.default` applies, like with the other parsers.
 
-Error codes: malformed documents carry `ErrorCode.SYNTAX_INVALID`, invalid operator values `KEY_VALUE_INVALID`, non-object top-level input `INPUT_INVALID`, known-but-unsupported MongoDB operators (`$where`, `$type`, …) and non-negatable operators under `$not`/`$nor` (`$regex`, `$mod`, `$size`, `$elemMatch`, `$all`) `OPERATOR_UNSUPPORTED`. See [Error Handling](/guide/errors).
+Error codes, as recorded on the [issue trace](/guide/errors#issue-traces) of the `inputRejected` failure a parse raises: malformed documents carry `ErrorCode.SYNTAX_INVALID`, invalid operator values `KEY_VALUE_INVALID`, non-object top-level input `INPUT_INVALID`, known-but-unsupported MongoDB operators (`$where`, `$type`, …) and non-negatable operators under `$not`/`$nor` (`$regex`, `$mod`, `$size`, `$elemMatch`, `$all`) `OPERATOR_UNSUPPORTED`. See [Error Handling](/guide/errors).
