@@ -281,14 +281,18 @@ export class SimpleFiltersParser extends BaseParser<
             const resolvedName = [...resolved.path, resolved.name].join('.');
 
             // the wire grammar owns value decoding, including the
-            // empty-value verdict — the parser only applies the
+            // empty-value verdict; the parser only applies the
             // schema drop-vs-throw policy.
             const decoded = decodeFilterWireValue(data.attributes[key_]);
             if (!decoded.success) {
+                // absolute: `resolved.path` is relative to this scope, which
+                // sits at `scope.path` inside a nested relation object.
+                const path = [...scope.path, ...resolved.path, resolved.name];
+
                 scope.refuse({
                     code: ErrorCode.KEY_VALUE_INVALID,
-                    message: ErrorMessage.keyValueInvalid(resolvedName),
-                    path: [...resolved.path, resolved.name],
+                    message: ErrorMessage.keyValueInvalid(path.join('.')),
+                    path,
                     key: key.name,
                     input: data.attributes[key_],
                 });

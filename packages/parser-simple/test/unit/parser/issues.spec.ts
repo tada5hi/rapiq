@@ -17,8 +17,10 @@ import {
     defineSchema,
     eq,
     extractIssueParameter,
+    isParseError,
     preserve,
 } from '@rapiq/core';
+import { flattenIssueItems } from 'blemish';
 import type { Issue } from 'blemish';
 import { SimpleFieldsParser, SimplePaginationParser, SimpleParser } from '../../../src';
 import { expectRejected } from '../../data';
@@ -87,7 +89,7 @@ const findIssue = (
 ) => issues.find((issue) => extractIssueParameter(issue) === parameter &&
     (typeof code === 'undefined' || issue.code === code));
 
-describe('src/parser — issue traces', () => {
+describe('src/parser: issue traces', () => {
     describe('the raise condition', () => {
         it('should raise nothing while the policy drops', () => {
             const parser = new SimpleParser(buildRegistry());
@@ -129,7 +131,7 @@ describe('src/parser — issue traces', () => {
             const { error } = trace(() => parser.parse(['secret'], { schema: 'user' }));
 
             // the caller asked about one parameter, so saying which one is the
-            // whole truth — and it is the class that parameter always threw
+            // whole truth, and it is the class that parameter always threw
             expect(error).toBeInstanceOf(FieldsParseError);
             expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
         });
@@ -657,6 +659,133 @@ describe('src/parser — issue traces', () => {
 
             expect(parser.parseFilters({ 'items.id': '1' }, { schema: 'user' }).value)
                 .toHaveLength(0);
+        });
+
+        it('should locate an unusable value inside a nested relation object absolutely', () => {
+            const parser = new SimpleParser(buildRegistry(true));
+
+            for (const input of [
+                { filters: { items: { id: '' } } },
+                { filters: { 'items.id': '' } },
+            ]) {
+                const { issues } = trace(() => parser.parse(input, { schema: 'user' }));
+
+                const issue = findIssue(issues, Parameter.FILTERS, ErrorCode.KEY_VALUE_INVALID);
+                expect(issue?.path).toEqual(['items', 'id']);
+                expect(issue?.message).toBe(ErrorMessage.keyValueInvalid('items.id'));
+            }
+        });
+    });
+
+    describe('consequences of a rejected relation', () => {
+        /**
+         * relations reject `items`; the client's own keys are all fine once the
+         * relation's dependents are pruned, so the only rejection the trace may
+         * carry is the relation's.
+         */
+        const buildIndexedRegistry = (options: {
+            relationsThrowOnFailure: boolean,
+            fieldsThrowOnFailure?: boolean,
+            filtersValidate?: (leaf: any) => any,
+        }) => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema<any>({
+                name: 'user',
+                fields: { allowed: ['id'], throwOnFailure: options.fieldsThrowOnFailure },
+                filters: {
+                    allowed: ['id', 'name'],
+                    indexed: true,
+                    validate: options.filtersValidate,
+                },
+                sorts: {
+                    allowed: ['id', 'name'], 
+                    indexed: true, 
+                    throwOnFailure: true, 
+                },
+                relations: {
+                    allowed: ['items'],
+                    validate: () => false,
+                    throwOnFailure: options.relationsThrowOnFailure,
+                },
+                indexes: [['id']],
+                schemaMapping: { items: 'item' },
+            }));
+            registry.add(defineSchema({
+                name: 'item',
+                filters: { allowed: ['id', 'title'] },
+                sorts: { allowed: ['id', 'title'] },
+            }));
+
+            return registry;
+        };
+
+        it('should not report the keys a rejected relation took as index violations', async () => {
+            const parser = new SimpleParser(buildIndexedRegistry({ relationsThrowOnFailure: true }));
+            const input = {
+                filters: { 'items.title': 'x' },
+                sorts: ['items.title', 'id'],
+            };
+
+            for (const { issues } of [
+                trace(() => parser.parse(input, { schema: 'user' })),
+                await traceAsync(() => parser.parseAsync(input, { schema: 'user' })),
+            ]) {
+                expect(flattenIssueItems([...issues]).map((issue) => [extractIssueParameter(issue), issue.code]))
+                    .toEqual([[Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED]]);
+            }
+        });
+
+        it('should prune a relation dropped under its own policy even when another parameter failed', () => {
+            const parser = new SimpleParser(buildIndexedRegistry({
+                relationsThrowOnFailure: false,
+                fieldsThrowOnFailure: true,
+            }));
+
+            // alone, the sort is fine: `items` is dropped, the sort prunes to `id`
+            expect(parser.parse({ sorts: ['items.title', 'id'] }, { schema: 'user' }).sorts.value
+                .map((sort) => sort.name)).toEqual(['id']);
+
+            // a fields rejection must not turn that into a sorts index violation
+            const { issues } = trace(() => parser.parse({
+                fields: ['secret'],
+                sorts: ['items.title', 'id'],
+            }, { schema: 'user' }));
+
+            expect(flattenIssueItems([...issues]).map((issue) => [extractIssueParameter(issue), issue.code]))
+                .toEqual([[Parameter.FIELDS, ErrorCode.KEY_NOT_ALLOWED]]);
+        });
+
+        it('should raise the relation rejection, not a preserved-condition refusal found while pruning', () => {
+            const parser = new SimpleParser(buildIndexedRegistry({
+                relationsThrowOnFailure: true,
+                // a preserved condition over the rejected relation: pruning
+                // would refuse it (SCHEMA_PRESERVED_CONDITION_PRUNED)
+                filtersValidate: (leaf) => (leaf.field === 'items.title' ? preserve(leaf) : leaf),
+            }));
+
+            // unpruned, the tree is a preserved condition the index policy
+            // cannot serve, and refusing THAT would raise a SchemaError with an
+            // empty trace in place of the client rejection
+            const { error, issues } = trace(() => parser.parse({ filters: { 'items.title': 'x' } }, { schema: 'user' }));
+
+            expect(isParseError(error)).toBe(true);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+            expect(flattenIssueItems([...issues]).map((issue) => [extractIssueParameter(issue), issue.code]))
+                .toEqual([[Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED]]);
+        });
+
+        it('should suppress the refusal on a standalone filters parse too', () => {
+            const parser = new SimpleParser(buildIndexedRegistry({
+                relationsThrowOnFailure: true,
+                filtersValidate: (leaf) => (leaf.field === 'items.title' ? preserve(leaf) : leaf),
+            }));
+
+            const { error, issues } = trace(() => parser.parseFilters({ 'items.title': 'x' }, { schema: 'user' }));
+
+            expect(isParseError(error)).toBe(true);
+            expect(error?.code).toBe(ErrorCode.INPUT_REJECTED);
+            expect(flattenIssueItems([...issues]).map((issue) => [extractIssueParameter(issue), issue.code]))
+                .toEqual([[Parameter.RELATIONS, ErrorCode.KEY_VALIDATE_REJECTED]]);
         });
     });
 });

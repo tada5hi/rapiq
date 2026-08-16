@@ -141,9 +141,14 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             ));
         }
 
-        const rejected = this.applyRelationValidations(ledger, options, issueCollector);
-        this.pruneByRelations(output, rejected, options, issueCollector);
-        this.applyIndexPolicies(output, options, issueCollector);
+        // the cross-parameter passes belong to the trace like the parameters
+        // do: a rejection they throw (rather than record) must not leave with
+        // an empty trace.
+        this.recordFailure(trace, () => {
+            const rejected = this.applyRelationValidations(ledger, options, issueCollector);
+            this.pruneByRelations(output, rejected, options, issueCollector);
+            this.applyIndexPolicies(output, options, issueCollector);
+        });
 
         this.finishIssues(trace);
 
@@ -220,9 +225,11 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                 ));
         }
 
-        const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
-        this.pruneByRelations(output, rejected, options, issueCollector);
-        this.applyIndexPolicies(output, options, issueCollector);
+        await this.recordFailureAsync(trace, async () => {
+            const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
+            this.pruneByRelations(output, rejected, options, issueCollector);
+            this.applyIndexPolicies(output, options, issueCollector);
+        });
 
         this.finishIssues(trace);
 
@@ -235,7 +242,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
      * Run one parameter, keeping a structural failure inside it.
      *
      * A malformed expression or an input of the wrong shape aborts the
-     * parameter it was found in — there is no next key to move on to — but the
+     * parameter it was found in (there is no next key to move on to), but the
      * other four parameters are independent and still parse. The failure is
      * recorded as an error issue, so the query parse ends on it (or on an
      * earlier one) exactly as it would have ended on the immediate throw.
@@ -416,15 +423,15 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             undefined;
 
         if (output.relations) {
-            output.relations = pruneRelationsByRelations(output.relations, rejected, issueCollector);
+            output.relations = pruneRelationsByRelations(output.relations, rejected);
         }
 
         if (output.fields) {
-            output.fields = pruneFieldsByRelations(output.fields, rejected, issueCollector);
+            output.fields = pruneFieldsByRelations(output.fields, rejected);
         }
 
         if (output.sorts) {
-            output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort, issueCollector);
+            output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort);
         }
 
         if (output.filters) {

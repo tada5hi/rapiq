@@ -50,7 +50,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
                 issueCollector,
-            }), issueCollector);
+            }));
         });
     }
 
@@ -68,7 +68,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 throwOnFailure: scope.relationsThrowOnFailure,
                 errors: RelationsParseError,
                 issueCollector,
-            }), issueCollector);
+            }));
         });
     }
 
@@ -314,6 +314,15 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                     });
                 }
             }
+        }
+
+        // an all-denied schema (`allowed: []` and `default: []`) contributes
+        // nothing below it, relation sub-trees and their defaults included: an
+        // empty projection is the whole subtree, and the includes decide what
+        // hydrates. The client keys above were still resolved, so a throwing
+        // policy reports each of them rather than short-circuiting silently.
+        if (schema.allDenied) {
+            return new Fields();
         }
 
         const output = fields.execute({

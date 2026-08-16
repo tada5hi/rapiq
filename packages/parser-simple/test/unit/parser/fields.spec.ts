@@ -10,10 +10,12 @@ import type {
     ObjectLiteral,
 } from '@rapiq/core';
 import {
+    ErrorCode,
     FieldsParseError,
     ParseError,
     Relation,
     Relations,
+    SchemaRegistry,
     defineFieldsSchema,
     defineSchema,
 } from '@rapiq/core';
@@ -106,6 +108,35 @@ describe('src/fields/index.ts', () => {
 
         const data = parser.parse(['id'], { schema });
         expect(interpreter.interpret(data)).toEqual([]);
+    });
+
+    it('should contribute nothing below an all-denied schema, relation defaults included', async () => {
+        // `allowed: []` + `default: []` is the whole subtree: an empty
+        // projection, so an include hydrates whole rather than being
+        // narrowed to a child default it never asked for.
+        const lockedRegistry = new SchemaRegistry();
+        lockedRegistry.add(defineSchema<ObjectLiteral>({
+            name: 'user',
+            fields: { allowed: [], default: [] },
+            relations: { allowed: ['items'] },
+            schemaMapping: { items: 'item' },
+        }));
+        lockedRegistry.add(defineSchema<ObjectLiteral>({
+            name: 'item',
+            fields: { default: ['title'] },
+        }));
+
+        const lockedParser = new SimpleFieldsParser(lockedRegistry);
+        const relations = new Relations([new Relation('items')]);
+
+        expect(interpreter.interpret(lockedParser.parse(undefined, { schema: 'user', relations }))).toEqual([]);
+        expect(interpreter.interpret(lockedParser.parse({ items: ['title'] }, { schema: 'user', relations }))).toEqual([]);
+
+        // the client keys are still resolved, so a throwing policy reports them
+        expectRejected(
+            () => lockedParser.parse(['id'], { schema: 'user', throwOnFailure: true }),
+            { code: ErrorCode.KEY_NOT_ALLOWED },
+        );
     });
 
     it('should parse invalid input (with allowed & default)', async () => {
