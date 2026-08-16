@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/tada5hi/rapiq/compare/core-v2.1.0...core-v2.2.0) (2026-08-16)
+
+
+### Features
+
+* call-time throwOnFailure override, mod as a dialect capability, structured feature tag ([#912](https://github.com/tada5hi/rapiq/issues/912)) ([cac568a](https://github.com/tada5hi/rapiq/commit/cac568ab04c25ad4ccce3e509c462e8319f4047a))
+
+
+### Bug Fixes
+
+* **core:** restamp sub-schemas when a schema name is reassigned ([#910](https://github.com/tada5hi/rapiq/issues/910)) ([fe54eb0](https://github.com/tada5hi/rapiq/commit/fe54eb0cce2575fc4abf042e6567cbc9151ffa74))
+
 ## [2.1.0](https://github.com/tada5hi/rapiq/compare/core-v2.0.0...core-v2.1.0) (2026-08-12)
 
 

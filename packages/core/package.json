@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/core",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "The rapiq foundation: typed query AST, defineQuery build layer, schema allow-list system & visitor interfaces.",
     "type": "module",
     "main": "dist/index.mjs",

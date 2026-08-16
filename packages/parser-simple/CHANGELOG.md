@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.2.0](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.1.0...parser-simple-v2.2.0) (2026-08-16)
+
+
+### Features
+
+* call-time throwOnFailure override, mod as a dialect capability, structured feature tag ([#912](https://github.com/tada5hi/rapiq/issues/912)) ([cac568a](https://github.com/tada5hi/rapiq/commit/cac568ab04c25ad4ccce3e509c462e8319f4047a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.1.0 to ^2.2.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.1.0 to ^2.2.0
+
 ## [2.1.0](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.0.0...parser-simple-v2.1.0) (2026-08-12)
 
 

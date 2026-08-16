@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/adapter-drizzle",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "A drizzle adapter for rapiq.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,7 +16,7 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/core": "^2.1.0",
+        "@rapiq/core": "^2.2.0",
         "@types/better-sqlite3": "^7.6.11",
         "@types/pg": "^8.21.0",
         "better-sqlite3": "^12.6.0",
@@ -24,7 +24,7 @@
         "pg": "^8.23.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.1.0"
+        "@rapiq/core": "^2.2.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
