@@ -136,7 +136,7 @@ The code is `INPUT_REJECTED`, and the class says which parse failed:
 | a whole-query `parse()` / `decode()` | `ParseError` |
 | a single-parameter parse (`parseFields`, `SimpleSortsParser.parse`, …) | that parameter's class (`FieldsParseError`, `SortsParseError`, …) |
 
-A single-parameter parse names its parameter because the caller asked about one parameter, so saying which one is the whole truth. A query parse names none: a request can violate policies in four parameters at once, an error advertising one of them would describe a *subset*, and a consumer branching on that class would act on the part it happened to be handed. The sub-parser failures a query parse catches are merged into its trace rather than raised, so nothing is lost by generalizing — `error.issues` still says which parameter each rejection came from.
+A single-parameter parse names its parameter because the caller asked about one parameter, so saying which one is the whole truth. A query parse names none: a request can violate policies in four parameters at once, an error advertising one of them would describe a *subset*, and a consumer branching on that class would act on the part it happened to be handed. The sub-parser failures a query parse catches are merged into its trace rather than raised, so nothing is lost by generalizing: `error.issues` still says which parameter each rejection came from.
 
 Issues are plain data, never `Error` instances: a request may produce many, and only the one error a parse ultimately throws pays for a stack. Every issue is a **failure**: there is no severity, and nothing a parse does without rejecting anything (a substituted default, an entry a rejected relation dragged along) is recorded.
 
@@ -178,7 +178,7 @@ extractIssueParameter(issue); // 'filters' | 'fields' | ... | undefined
 extractIssueKey(issue);       // the raw client spelling, when it differs
 ```
 
-Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children — a site reports where it failed relative to itself and never has to know the whole position. Recursive validator paths stay absolute through nested filter/simple normalization; `ITSELF` adds no segment. `flattenIssueItems` therefore hands you leaves that already know where they sit:
+Every node's `path` is **absolute**, group included, because merging a nested trace into an enclosing one rewrites the children: a site reports where it failed relative to itself and never has to know the whole position. Recursive validator paths stay absolute through nested filter/simple normalization; `ITSELF` adds no segment. `flattenIssueItems` therefore hands you leaves that already know where they sit:
 
 ```typescript
 import { flattenIssueItems } from 'blemish';
@@ -197,29 +197,30 @@ parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' })
 // ParseError, code 'inputRejected', issues: [fields/nope1, filters/nope2]
 ```
 
-`issues` is an ordinary property, so it shows up when you inspect or spread the error. One consequence worth knowing: deep equality reads enumerable properties, so `expect(fn).toThrow(FiltersParseError.keyNotPermitted('x'))` compares the **trace** too. Assert the class, the `code`, or reach into `issues` — not whole errors.
+`issues` is an ordinary property, so it shows up when you inspect or spread the error. One consequence worth knowing: deep equality reads enumerable properties, so `expect(fn).toThrow(FiltersParseError.keyNotPermitted('x'))` compares the **trace** too. Assert the class, the `code`, or reach into `issues`, not whole errors.
 
 Whether a violation is recorded is decided per site by the policy in effect there, so a dropping `fields` block and a throwing `relations` sub-schema coexist in one request: only the latter contributes. A violation takes the policy of the site that found it, which is also what decides what it means: under `throwOnFailure` a limit above `maxLimit` is a rejection, not a clamp.
 
-Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. `MAX_ISSUES` counts leaf violations, including leaves nested in groups. Group shape is preserved while an oversized tail is truncated, and ordinary issue leaves preserve encounter order. If a terminal structural abort arrives at a full trace, only the final retained ordinary leaf is displaced so the trace remains bounded and still records why that parameter stopped parsing. The first retained violation is unchanged and continues to determine first-failure semantics.
+Every rejection is recorded: allow-list and relation-path rejections, `validate` hook rejections (fields, sorts, relations **and** filters), unusable filter values, malformed parameter input, pagination values that don't parse, and [`indexed`](/guide/schemas#indexes) combinations that fail the parse. `MAX_ISSUES` counts leaf violations, including leaves nested in groups. Group shape is preserved while an oversized tail is truncated, and ordinary issue leaves preserve encounter order. If a terminal structural abort arrives at a full trace, only the final retained ordinary leaf is displaced so the trace remains bounded and still records why that parameter stopped parsing. The first retained violation is never displaced.
 
-An issue in one parameter does not suppress another parameter's independent index check: invalid `filters` and `sorts` combinations are both reported. Only a prior failure in the same parameter suppresses its consequence errors. An explicit empty allowlist denies every supplied key through normal validation; under the established drop policy that remains silent and defaults keep their established behavior. Mongo document grammar errors still throw independently of the policy.
+An issue in one parameter does not suppress another parameter's independent index check: invalid `filters` and `sorts` combinations are both reported. Only a prior failure in the same parameter suppresses its consequence errors, and the index checks judge the tree that would execute: the keys a rejected relation drags along are pruned first, so they never surface as index violations of their own. An explicit empty allowlist denies every supplied key through normal validation; under the established drop policy that remains silent and defaults keep their established behavior. Mongo document grammar errors still throw independently of the policy.
 
 Structural failures still end their own parameter: a malformed expression string or a `$`-operator document has no partial reading, so it aborts that parameter and the other four still parse (and still report). **Every** error a parse raises carries its trace, structural aborts included, so `error.issues` is always the thing to render. The abort becomes an issue like any other rejection: only a rapiq parse error is ever caught (a genuine server bug propagates untouched), and everything a client-input failure knows is in its issue.
 
 The public expression parser's `parseExact()` and `parseExactAsync()` calls own and finalize an aggregate `filters` trace too. On failure they raise the aggregate `FiltersParseError` envelope and expose the underlying validation or syntax violations through `error.issues`; callers do not need to handle a raw structural error separately.
 
-A site that fails fast rather than recording — the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted — attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own (blemish's `prefixIssuePath` is that step), so the rejection reports `['secret']` rather than naming its parameter and nothing else.
+A site that fails fast rather than recording (the expression dialect resolves keys under an always-throwing scope, since an expression cannot be partially reinterpreted) attaches the position it failed at to the error it throws. Whoever catches it merges that trace into its own (blemish's `prefixIssuePath` is that step), so the rejection reports `['secret']` rather than naming its parameter and nothing else.
 
-Three consequences worth knowing when you enable `throwOnFailure`:
+Four consequences worth knowing when you enable `throwOnFailure`:
 
 - Branch on `issues`, not on the error class. `catch (e) { if (e instanceof FieldsParseError) }` no longer matches an aggregated parse; `isParseError(e)` and `e.issues` do.
 - `validate` hooks now run for keys that the first throw used to shield.
 - A filters `validate` hook that returns `undefined` now throws `KEY_VALIDATE_REJECTED`, symmetric with the fields/sorts/relations hooks. A hook that means "drop this quietly" returns a replacement condition instead.
+- A `ParseError` (or subclass) thrown from a `validate` hook is caught like a structural abort and becomes an issue on the aggregate, carrying the hook's `code` and `message` at the parameter root; the parse still raises `inputRejected`, whatever the schema's drop policy says. Any other error a hook throws propagates untouched, as a server bug should. Return `undefined` (or a replacement condition) to reject a key with its position on the trace.
 
 ### Formatting a trace for a response
 
-`@rapiq/codec-url` normalizes a trace into its response format, mapping the canonical parameter onto the wire vocabulary — only the transport knows that `filters` reaches the client as `filter`. The members follow the JSON:API error object rapiq's query vocabulary is modelled on, so the output drops straight into an `errors` array:
+`@rapiq/codec-url` normalizes a trace into its response format, mapping the canonical parameter onto the wire vocabulary; only the transport knows that `filters` reaches the client as `filter`. The members follow the JSON:API error object rapiq's query vocabulary is modelled on, so the output drops straight into an `errors` array:
 
 ```typescript
 import { formatErrors } from '@rapiq/codec-url';
@@ -238,7 +239,7 @@ It renders the **leaves**: what a group stands for is already said by the issues
 
 ## Recognizing an error
 
-`instanceof` compares class identity, which two copies of `@rapiq/core` in one process do not share — mixed ESM/bundled builds, or a dual-packaged dependency. On any boundary a foreign copy could reach, prefer the guards:
+`instanceof` compares class identity, which two copies of `@rapiq/core` in one process do not share (mixed ESM/bundled builds, or a dual-packaged dependency). On any boundary a foreign copy could reach, prefer the guards:
 
 ```typescript
 import { isParseError } from '@rapiq/core';
@@ -248,7 +249,7 @@ if (isParseError(e)) {
 }
 ```
 
-`isBaseError` and `isParseError` read the `@instanceof` brand chain every rapiq error carries, so they survive the duplication that `instanceof` does not — and, because [`toJSON`](#crossing-a-boundary) emits the chain, they also recognize an error that arrived as JSON. The brand itself is non-enumerable, so it changes neither deep equality nor what a spread copies. rapiq's own parsers use these guards internally — a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
+`isBaseError` and `isParseError` read the `@instanceof` brand chain every rapiq error carries, so they survive the duplication that `instanceof` does not, and, because [`toJSON`](#crossing-a-boundary) emits the chain, they also recognize an error that arrived as JSON. The brand itself is non-enumerable, so it changes neither deep equality nor what a spread copies. rapiq's own parsers use these guards internally: a foreign `ParseError` slipping past an `instanceof` check would have been rethrown instead of recorded, and the trace would have come back empty.
 
 ## Crossing a boundary
 

@@ -16,7 +16,7 @@ import type { FormatErrorsOptions, FormattedError } from './types';
  * Normalize the trace an error carries into this codec's response format.
  *
  * A trace is a tree: what a group stands for is already said by the leaves
- * below it, so only those are rendered — one error per rejected key, each at
+ * below it, so only those are rendered: one error per rejected key, each at
  * the absolute position merging gave it.
  *
  * ```ts

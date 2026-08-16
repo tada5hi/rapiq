@@ -33,20 +33,12 @@ export type ParseParameterOptions<
 };
 
 /**
- * The pooled relation-authorization ledger the query orchestrator threads
- * through {@link IQueryParameterParser.parseParameter}: each sub-parser appends
- * the relation obligations it traverses, and `BaseQueryParser` evaluates the
- * relations validate hook once per distinct relation across all parameters and
- * prunes the assembled query. An explicit driver argument, never part of the
- * public parse options.
- */
-/**
  * What opening a trace needs to know: which parameter the call parses, and
  * whether an enclosing parse handed one down.
  *
  * An object rather than two positional arguments, because the driver is absent
  * at every entry point and present only when a query parse drives a
- * sub-parser — as positions that reads as a literal `undefined` at half the
+ * sub-parser; as positions that reads as a literal `undefined` at half the
  * call sites, saying nothing.
  */
 export type ParseTraceContext = {
@@ -78,6 +70,14 @@ export type ParseTrace = {
     parameter?: `${Parameter}`,
 };
 
+/**
+ * The pooled relation-authorization ledger the query orchestrator threads
+ * through {@link IQueryParameterParser.parseParameter}: each sub-parser appends
+ * the relation obligations it traverses, and `BaseQueryParser` evaluates the
+ * relations validate hook once per distinct relation across all parameters and
+ * prunes the assembled query. An explicit driver argument, never part of the
+ * public parse options.
+ */
 export type RelationLedger = PendingKeyValidation[];
 
 export type ParseQueryOptions<

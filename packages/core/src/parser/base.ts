@@ -66,8 +66,8 @@ export abstract class BaseParser<
      * one thing every later step needs and the one thing a collector cannot
      * answer about itself. It used to be re-derived by comparing a driver
      * against the collector at each step, which meant passing both everywhere
-     * and made an inverted comparison — a rejection silently degrading into a
-     * drop — a plain argument-order mistake.
+     * and made an inverted comparison (a rejection silently degrading into a
+     * drop) a plain argument-order mistake.
      *
      * It also carries the parameter the call parses, which decides what a
      * failure is raised AS: see {@link raise}. A query parse opens its trace
@@ -100,7 +100,7 @@ export abstract class BaseParser<
      * which one is the whole truth, and it is the class that parameter has
      * always thrown. A query parse names none, because a request can violate
      * policies in four parameters at once and an error advertising one of them
-     * describes a SUBSET — a consumer branching on the class would act on the
+     * describes a SUBSET: a consumer branching on the class would act on the
      * part it happened to be handed. Either way the code is `INPUT_REJECTED`
      * and `error.issues` is what actually went wrong; the sub-parser failures
      * a query parse catches are merged into its trace rather than raised.
@@ -120,7 +120,7 @@ export abstract class BaseParser<
      * other four would have reported. Every other call raises its own, so a
      * rejection can never end up recorded into a trace nobody reads.
      *
-     * A trace nothing raises is discarded — the error a parse throws is the only
+     * A trace nothing raises is discarded: the error a parse throws is the only
      * way it is ever read.
      */
     protected finishIssues(trace: ParseTrace) : void {
@@ -170,8 +170,8 @@ export abstract class BaseParser<
      * shape, a hostile key) aborts by throwing rather than by dropping one
      * key, so without this it would escape the call before anything recorded
      * it: the caller would catch an error with an empty trace, and
-     * `formatErrors(error.issues)` — the documented way to render a
-     * failure — would answer with nothing at all.
+     * `formatErrors(error.issues)`, the documented way to render a
+     * failure, would answer with nothing at all.
      *
      * Recorded, the throw is re-raised through the trace, so the error that
      * leaves is the FIRST violation with the whole trace attached (an earlier

@@ -173,7 +173,7 @@ export class ResolutionScope<
     /**
      * Trace of the parse this scope resolves for; propagated to descendants.
      * Present: {@link fail} records its verdict and lets the parse continue on
-     * the drop path, and the owning parse call raises the first issue at the
+     * the drop path, and the owning parse call raises the whole trace at the
      * end. Absent (a scope built outside a parse): failures throw where they
      * are found, as they always did.
      */
@@ -232,7 +232,7 @@ export class ResolutionScope<
     /**
      * Failure policy governing relation authorization for this scope's record:
      * the call-time override, backed by the relations sub-schema's own
-     * `throwOnFailure` (schema-level intent) — the same
+     * `throwOnFailure` (schema-level intent), the same
      * `throwOnFailure ?? schema.relations.throwOnFailure ?? false` the query
      * pass applies, so standalone and query parses agree.
      *
@@ -377,8 +377,8 @@ export class ResolutionScope<
     }
 
     /**
-     * Report a violation this scope's parameter found on its own — an input of
-     * the wrong shape, an unparseable value, a limit above the maximum —
+     * Report a violation this scope's parameter found on its own (an input of
+     * the wrong shape, an unparseable value, a limit above the maximum)
      * rather than one key resolution decided.
      *
      * Same policy as {@link resolveKey}: nothing at all while the policy
@@ -835,7 +835,7 @@ export class ResolutionScope<
                 this.issueCollector.add(issue);
             } else {
                 // no trace to finish: a scope built outside a parse still fails
-                // where the violation is, exactly as it always did — carrying
+                // where the violation is, exactly as it always did, carrying
                 // that position, so a catch can merge it into its own trace.
                 throw this.raise(code, name, [
                     buildIssue(issue),
@@ -857,7 +857,7 @@ export class ResolutionScope<
 
     /**
      * The error one key-resolution verdict fails with, through the parameter's
-     * own static factories — so class, `code` and message stay what the
+     * own static factories, so class, `code` and message stay what the
      * fail-fast path has always thrown.
      */
     protected raise(

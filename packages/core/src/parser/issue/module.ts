@@ -112,7 +112,7 @@ export class IssueCollector implements IIssueCollector {
      * Whether one is added at all is the caller's decision, made where the
      * failure policy is known: a dropping policy adds nothing, because there
      * is no failure to raise and so nobody to read it. The trace does not
-     * second-guess that — it would mean building an issue in order to bin it,
+     * second-guess that: it would mean building an issue in order to bin it,
      * and a collector that filters is a collector with an opinion.
      */
     add(input: IssueInput) : void {

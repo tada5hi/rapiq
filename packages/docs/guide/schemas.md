@@ -404,18 +404,16 @@ By default, parsers **drop** what the schema doesn't allow: the query still pars
 With `throwOnFailure: true` (top-level or per parameter), parsers **throw** instead: the strict mode for APIs that prefer a `400` over a silently narrowed answer:
 
 ```typescript
-import { FiltersParseError } from '@rapiq/core';
+import { isParseError } from '@rapiq/core';
 
 try {
     parser.parse({ filters: { secret: 'x' } }, { schema: 'user' });
 } catch (e) {
-    if (e instanceof FiltersParseError) {
-        // e.code from ErrorCode, e.message names the offending key
+    if (isParseError(e)) {
+        // e.code === 'inputRejected'; e.issues names the offending key
     }
 }
 ```
-
-Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`. The codes and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
 A throwing parse reports every violation it found rather than only the first: it raises one general `ParseError` (`inputRejected`) whose [`error.issues`](/guide/errors#issue-traces) carries them all.
 
@@ -426,6 +424,8 @@ try {
     e.issues; // both violations, in the order the parse hit them
 }
 ```
+
+Each parameter has its own error class (`FieldsParseError`, `FiltersParseError`, `PaginationParseError`, `RelationsParseError`, `SortsParseError`), all extending `ParseError`: a single-parameter parse (`parseFilters`, `parseSorts`, ...) raises its parameter's class, a whole-query parse the general `ParseError`. The codes, the issue trace and an HTTP-mapping guide live in [Error Handling](/guide/errors).
 
 `throwOnFailure` can also be set per parse call, overriding the schema setting, exactly like [`strict`](#strict-mode). The override reaches the whole-query `parse()`/`parseAsync()`, `URLCodec.decode()`/`decodeAsync()`, and is inherited into relation recursion:
 

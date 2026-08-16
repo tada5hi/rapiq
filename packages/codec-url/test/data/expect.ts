@@ -15,7 +15,7 @@ import { flattenIssueItems } from 'blemish';
  * A parse raises one general `INPUT_REJECTED` error carrying every issue,
  * because a request can violate several policies at once and an error naming
  * one of them would describe a subset. What used to be asserted against the
- * throw is therefore asserted against the trace — the expectation is still
+ * throw is therefore asserted against the trace; the expectation is still
  * written as the error the failing site would throw on its own, which is what
  * a `ResolutionScope` outside a parse still does.
  */

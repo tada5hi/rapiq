@@ -104,7 +104,7 @@ describe('src/errors/base.ts (serialization)', () => {
         const revived = JSON.parse(JSON.stringify(FiltersParseError.inputRejected([issue()])));
 
         // the value is a plain object now, not an Error, and `instanceof`
-        // could never answer this — the serialized chain is what does
+        // could never answer this; the serialized chain is what does
         expect(revived).not.toBeInstanceOf(Error);
         expect(isBaseError(revived)).toBeTruthy();
         expect(isParseError(revived)).toBeTruthy();
@@ -115,7 +115,7 @@ describe('src/errors/base.ts (serialization)', () => {
 
         // deep equality reads enumerable own properties, so two failures of
         // the same kind compare equal only when their traces match. Assert the
-        // class, the code or the trace — not whole errors.
+        // class, the code or the trace, not whole errors.
         expect(new ParseError({ ...options, issues: [issue()] }))
             .not.toEqual(new ParseError({ ...options, issues: [] }));
 

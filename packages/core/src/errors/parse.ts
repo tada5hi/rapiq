@@ -28,7 +28,7 @@ export class ParseError extends BaseError implements IParseError {
 
     /**
      * The failure an aggregated parse raises: every violation it found, on
-     * `issues`. Deliberately NOT the first violation's own class and code —
+     * `issues`. Deliberately NOT the first violation's own class and code:
      * a parse that rejected keys in four parameters would then advertise one
      * of them, and a consumer branching on that would act on a subset of what
      * went wrong. The specific classes stay what a single violation throws

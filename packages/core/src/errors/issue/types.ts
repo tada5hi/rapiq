@@ -16,7 +16,7 @@ import type { ErrorCodeInput } from '../types';
  * an untyped `meta` bag itself.
  *
  * `parameter` and `key` become blemish `meta` keys. Both meet its documented
- * bar for that field — provenance a consumer cannot reconstruct from `path` —
+ * bar for that field (provenance a consumer cannot reconstruct from `path`),
  * and neither is a rendering decision: a `fields` rejection and a `filters`
  * rejection at `['items', 'secret']` are indistinguishable by path, and the
  * path is alias-resolved, so the spelling the client sent is gone from it.
@@ -29,7 +29,7 @@ export type IssueInput = {
      */
     parameter?: `${Parameter}`,
     /**
-     * The raw client key, before alias mapping — recorded when it differs
+     * The raw client key, before alias mapping, recorded when it differs
      * from the canonical path.
      */
     key?: string,

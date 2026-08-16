@@ -20,7 +20,7 @@ import type { IBaseError, IParseError } from './types';
  * than one boolean per level: the markers form a CHAIN under one
  * non-enumerable `@instanceof` key, so a subclass is recognized as its
  * ancestors without marking itself twice, and the chain is serialized by
- * {@link BaseError.toJSON} — `matchesInstanceof` therefore also recognizes an
+ * {@link BaseError.toJSON}, so `matchesInstanceof` also recognizes an
  * error that crossed a boundary as JSON and came back as a plain object.
  *
  * Only the brand utilities are borrowed. rapiq keeps its own `BaseError`,
@@ -36,7 +36,7 @@ export const PARSE_ERROR_MARKER : unique symbol = Symbol.for('@rapiq/core/error/
  * Whether the value is an error this library raised.
  *
  * Prefer it to `instanceof BaseError` on any boundary a foreign copy of the
- * library — or a serialized error — could reach.
+ * library, or a serialized error, could reach.
  */
 export function isBaseError(input: unknown) : input is IBaseError {
     return matchesInstanceof(input, BASE_ERROR_MARKER);

@@ -44,7 +44,7 @@ export class SimplePaginationParser<
         return this.build(input, options);
     }
 
-    // pagination traverses no relations — the ledger is unused.
+    // pagination traverses no relations, so the ledger is unused.
     parseParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(

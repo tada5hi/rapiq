@@ -55,7 +55,7 @@ export interface IParseError extends IBaseError {}
  * `issues` is the point of it: an error that crosses a boundary without its
  * trace has nothing to say on the far side. The `@instanceof` chain rides
  * along so `isBaseError` / `isParseError` still recognize the value once it is
- * a plain object — the guards match the serialized chain, not just a live
+ * a plain object: the guards match the serialized chain, not just a live
  * brand. Issue `expected` and `received` members are omitted at runtime even
  * though blemish's optional members keep this structural type assignable.
  */

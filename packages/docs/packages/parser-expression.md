@@ -62,4 +62,4 @@ There is also a standalone `parseFilters(input, options)` returning just the `Fi
 
 ## Errors
 
-Syntax errors and schema violations throw `FiltersParseError` immediately: the expression parser has **no silent-drop mode** for malformed expressions. Malformed expressions carry `ErrorCode.SYNTAX_INVALID`; schema violations carry the key-related codes (`keyNotAllowed`, `keyPathInvalid`, …). See [Error Handling](/guide/errors).
+Syntax errors and schema violations always fail the parse: the expression parser has **no silent-drop mode** for malformed expressions. The raised error is the aggregated `inputRejected` failure (`FiltersParseError` from `parseFilters`, the general `ParseError` from a whole-query parse), and the [issue trace](/guide/errors#issue-traces) on `error.issues` carries the specific code: `SYNTAX_INVALID` for a malformed expression, the key-related codes (`keyNotAllowed`, `keyPathInvalid`, …) for schema violations. See [Error Handling](/guide/errors).

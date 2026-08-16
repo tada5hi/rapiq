@@ -264,4 +264,4 @@ A leaf rejected by `validate` follows the same drop-vs-throw policy as every oth
 
 ## On violation
 
-Legacy simple and MongoDB field-key failures follow the schema's drop-vs-throw policy. Expression filters are precise: syntax and schema-key violations throw `FiltersParseError`. See [Error Handling](/guide/errors).
+Legacy simple and MongoDB field-key failures follow the schema's drop-vs-throw policy. Expression filters are precise: syntax and schema-key violations always fail the parse, recorded on the [issue trace](/guide/errors#issue-traces) of the raised `inputRejected` error. See [Error Handling](/guide/errors).

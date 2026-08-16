@@ -8,8 +8,8 @@
 /**
  * The message text of every client-input failure, as pure builders.
  *
- * A failure surfaces through two channels — a thrown {@link ParseError} and a
- * plain-data {@link Issue} — and both must read identically: an aggregated
+ * A failure surfaces through two channels, a thrown {@link ParseError} and a
+ * plain-data {@link Issue}, and both must read identically: an aggregated
  * error is rebuilt from its issue, so a divergence here would change a thrown
  * message depending on the failure policy. Building the text without
  * constructing an `Error` also keeps the drop-mode trace free of stack capture.
@@ -47,9 +47,4 @@ export const ErrorMessage = {
         `same parameter. Use ${canonical}.`,
 
     limitExceeded: (limit: number) => `The pagination limit must not exceed the value of ${limit}.`,
-
-    /**
-     * Not a violation: the parameter fell back to its schema default because
-     * nothing the client sent survived.
-     */
 } as const;

@@ -32,7 +32,7 @@ const buildRegistry = () => {
     return registry;
 };
 
-describe('src/parameter/filters — issue traces', () => {
+describe('src/parameter/filters: issue traces', () => {
     it('should report absolute validator paths inside elemMatch through exact entry points', async () => {
         const registry = new SchemaRegistry();
         registry.add(defineSchema({
@@ -135,8 +135,8 @@ describe('src/parameter/filters — issue traces', () => {
     it('should record the failure it fails fast on', () => {
         const parser = new ExpressionParser(buildRegistry());
 
-        // the dialect resolves under an always-throwing scope on purpose —
-        // an expression cannot be partially reinterpreted — so the failure is
+        // the dialect resolves under an always-throwing scope on purpose;
+        // an expression cannot be partially reinterpreted, so the failure is
         // structural. It still lands in the trace on its way out.
         let error : FiltersParseError | undefined;
         try {

@@ -1004,7 +1004,7 @@ export class MongoFiltersParser extends BaseParser<
         } else {
             // $elemMatch on a non-relation field is legal, so a missing
             // related schema is an answer rather than a violation and comes
-            // back as a bare verdict — every other failure was recorded (or
+            // back as a bare verdict; every other failure was recorded (or
             // thrown) by the descent itself and drops the entry.
             const verdict = resolved.scope.descend(resolved.name, { optional: true });
             if (verdict instanceof ResolutionScope) {
@@ -1014,7 +1014,7 @@ export class MongoFiltersParser extends BaseParser<
                 child = verdict;
             } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
                 // relations gating (pathNotPermitted) is a schema-policy
-                // failure for the entry — drop it.
+                // failure for the entry: drop it.
                 return undefined;
             }
         }

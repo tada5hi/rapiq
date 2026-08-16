@@ -11,7 +11,7 @@ import type { IParseError, IssueInput } from '../../errors';
 
 /**
  * The trace of one parse call: it collects what its sites record and serves
- * it back. It does not raise, and it does not build errors — a trace is
+ * it back. It does not raise, and it does not build errors: a trace is
  * evidence, and deciding what to throw from it belongs to the caller that
  * owns the parse.
  *

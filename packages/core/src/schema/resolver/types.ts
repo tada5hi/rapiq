@@ -91,7 +91,7 @@ export type ResolutionScopeContext = {
      * forces it, because an expression cannot be partially reinterpreted.
      * That says nothing about whether a relations validator declining a
      * relation should fail the request, which stays the caller's
-     * `throwOnFailure` — the same separation the filters leaf validator makes
+     * `throwOnFailure`, the same separation the filters leaf validator makes
      * with its own override.
      */
     resolutionThrowOnFailure?: boolean,
@@ -112,9 +112,9 @@ export type ResolutionScopeContext = {
     /**
      * Trace of the parse this scope resolves for. When present, a failed
      * resolution records its verdict as an issue and returns the failure
-     * verdict even under `throwOnFailure` — the owning parse call
-     * raises the first error-severity issue once every parameter has been
-     * seen. Absent: failures throw where they are found.
+     * verdict even under `throwOnFailure`; the owning parse call raises the
+     * whole trace once every parameter has been seen. Absent: failures throw
+     * where they are found.
      */
     issueCollector?: IIssueCollector,
 };

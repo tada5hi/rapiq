@@ -56,7 +56,7 @@ class ExposedMongoFiltersParser extends MongoFiltersParser {
     }
 }
 
-describe('src/parameter/filters — issue traces', () => {
+describe('src/parameter/filters: issue traces', () => {
     it('should retain a contextual structural abort after an earlier rejection', () => {
         const parser = new MongoParser(buildRegistry(true));
         const filters = { secret: 1, id: { $size: -1 } };
