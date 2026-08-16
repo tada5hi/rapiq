@@ -116,7 +116,7 @@ describe('src/errors/issue/module.ts', () => {
 describe('src/parser/issue/module.ts', () => {
     it('should start with nothing to raise', () => {
         // whether a rejection is added at all is the caller's decision, made
-        // where the failure policy is known — a dropping policy adds nothing,
+        // where the failure policy is known: a dropping policy adds nothing,
         // which the parser suites assert end to end
         expect(new IssueCollector().issues).toEqual([]);
         expect(new IssueCollector().failed).toBeFalsy();
@@ -159,7 +159,7 @@ describe('src/parser/issue/module.ts', () => {
         ]);
     });
 
-    it('should keep a caught abort as the cause', () => {
+    it('should reduce a caught abort to its issue', () => {
         const collector = new IssueCollector();
         const origin = FieldsParseError.inputInvalid();
 
@@ -491,6 +491,17 @@ describe('src/errors/base.ts', () => {
     it('should default the issues to an empty list', () => {
         expect(new BaseError('failed').issues).toEqual([]);
         expect(new BaseError({ message: 'failed' }).issues).toEqual([]);
+    });
+
+    it('should default the code to NONE for both constructor forms', () => {
+        // the base substrate would derive a code from the class name for a
+        // bare message, a value outside rapiq's vocabulary
+        expect(new BaseError('failed').code).toBe(ErrorCode.NONE);
+        expect(new BaseError({ message: 'failed' }).code).toBe(ErrorCode.NONE);
+        expect(new ParseError('failed').code).toBe(ErrorCode.NONE);
+        expect(new ParseError().code).toBe(ErrorCode.NONE);
+        expect(new FiltersParseError('failed').code).toBe(ErrorCode.NONE);
+        expect(new BaseError({ message: 'failed', code: ErrorCode.INPUT_INVALID }).code).toBe(ErrorCode.INPUT_INVALID);
     });
 
     it('should pass a cause through to the native property', () => {

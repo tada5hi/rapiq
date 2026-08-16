@@ -29,7 +29,7 @@ function serializeIssue(input: Issue) : Issue {
  * Extends `@ebec/core`'s, the house error substrate, for everything an error
  * base does the same way everywhere: the class name, the stack capture, the
  * `code`, the `cause` passthrough and the brand chain. rapiq adds the one
- * thing that is its own — the trace — and narrows `code` to its vocabulary.
+ * thing that is its own, the trace, and narrows `code` to its vocabulary.
  *
  * What it does NOT take is the group half. `errors: Error[]` stays unset,
  * because everything rapiq aggregates is a client-input rejection, which is
@@ -44,18 +44,23 @@ export class BaseError extends EbecBaseError implements IBaseError {
      * An ordinary enumerable property, so it shows up when the error is
      * inspected or spread. The cost, chosen deliberately: deep equality reads
      * enumerable properties, so two failures of the same kind compare equal
-     * only when their traces match — `toThrow(SomeError.keyNotPermitted('x'))`
+     * only when their traces match: `toThrow(SomeError.keyNotPermitted('x'))`
      * asserts the trace too. Assert the class or the code, or reach into
      * `issues`, rather than comparing whole errors.
      */
     public readonly issues : readonly Issue[];
 
     constructor(input: BaseErrorOptions | string) {
-        super(typeof input === 'string' ?
-            input :
-            { ...input, code: input.code || ErrorCode.NONE });
+        // both forms default the code to NONE: left to the base, a bare
+        // message would get the class name as its code, a value outside
+        // rapiq's vocabulary.
+        const options : BaseErrorOptions = typeof input === 'string' ?
+            { message: input } :
+            input;
 
-        this.issues = typeof input === 'string' ? [] : input.issues ?? [];
+        super({ ...options, code: options.code || ErrorCode.NONE });
+
+        this.issues = options.issues ?? [];
 
         markInstanceof(this, BASE_ERROR_MARKER);
     }
