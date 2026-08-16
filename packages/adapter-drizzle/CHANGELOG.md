@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.2.0](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.1.0...adapter-drizzle-v2.2.0) (2026-08-16)
+
+
+### Miscellaneous Chores
+
+* **adapter-drizzle:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.1.0 to ^2.2.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.1.0 to ^2.2.0
+
 ## [2.1.0](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.0.0...adapter-drizzle-v2.1.0) (2026-08-12)
 
 
