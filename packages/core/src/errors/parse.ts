@@ -99,10 +99,11 @@ export class ParseError extends BaseError implements IParseError {
         });
     }
 
-    static keyValidateRejected(key: string) {
+    static keyValidateRejected(key: string, issues: readonly Issue[] = []) {
         return new this({
             message: ErrorMessage.keyValidateRejected(key),
             code: ErrorCode.KEY_VALIDATE_REJECTED,
+            issues,
         });
     }
 

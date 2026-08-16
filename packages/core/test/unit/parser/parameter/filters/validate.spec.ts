@@ -22,6 +22,7 @@ import {
     preserve,
 } from '../../../../../src';
 import type {
+    FiltersParseError,
     FiltersValidationOptions,
     IFilter,
     Validator,
@@ -191,6 +192,34 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             await run(collector);
             expect(collector.issues[0]?.path).toEqual(['items', 'id']);
             expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.FILTERS);
+        }
+    });
+
+    it('should attach the rejection issue to a standalone throw', () => {
+        const input = new Filter(
+            FilterFieldOperator.ELEM_MATCH,
+            'items',
+            new Filter(FilterFieldOperator.EQUAL, 'id', '1'),
+        );
+        const schema = defineFiltersSchema({
+            throwOnFailure: true,
+            validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
+        });
+
+        // no collector: the site throws where it is, carrying the position a
+        // catching driver could not reconstruct
+        expect.assertions(2);
+        try {
+            applyFiltersSchemaValidation(input, schema);
+        } catch (e) {
+            expect((e as FiltersParseError).code).toBe(ErrorCode.KEY_VALIDATE_REJECTED);
+            expect((e as FiltersParseError).issues).toEqual([
+                expect.objectContaining({
+                    code: ErrorCode.KEY_VALIDATE_REJECTED,
+                    path: ['items', 'id'],
+                    meta: { parameter: Parameter.FILTERS },
+                }),
+            ]);
         }
     });
 

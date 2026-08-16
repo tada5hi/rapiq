@@ -23,7 +23,13 @@ import { FilterFieldOperator } from '../../../schema';
 import type { FiltersSchema } from '../../../schema';
 import { toIssuePath } from '../../../utils';
 import { Parameter } from '../../../constants';
-import { ErrorCode, ErrorMessage, SchemaError } from '../../../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    buildIssue,
+} from '../../../errors';
+import type { IssueInput } from '../../../errors';
 import type { IIssueCollector } from '../../issue';
 import { FiltersParseError } from './error';
 
@@ -75,10 +81,12 @@ export function buildFiltersDefaults(schema: FiltersSchema) : ICondition[] {
  * A leaf the schema validator declined.
  *
  * The hook is the filters counterpart of the fields/sorts/relations key
- * validators, so it fails the same way: an issue always, and
- * `KEY_VALIDATE_REJECTED` under `throwOnFailure`. A hook that means to drop a
- * leaf silently under a throwing schema returns a replacement condition
- * instead of `undefined`.
+ * validators, so it fails the same way: nothing under a dropping policy (the
+ * leaf is dropped and nothing will be raised), and `KEY_VALIDATE_REJECTED`
+ * under `throwOnFailure`, recorded into the trace when the parse collects one
+ * and thrown (carrying the same issue) where it does not. A hook that means
+ * to drop a leaf silently under a throwing schema returns a replacement
+ * condition instead of `undefined`.
  */
 function rejectLeaf(
     leaf: IFilter<string, unknown>,
@@ -90,18 +98,20 @@ function rejectLeaf(
         return;
     }
 
+    const issue : IssueInput = {
+        code: ErrorCode.KEY_VALIDATE_REJECTED,
+        parameter: Parameter.FILTERS,
+        path: appendFilterPath(options.path ?? [], leaf.field),
+        message: ErrorMessage.keyValidateRejected(leaf.field),
+    };
+
     if (options.issueCollector) {
-        options.issueCollector.add({
-            code: ErrorCode.KEY_VALIDATE_REJECTED,
-            parameter: Parameter.FILTERS,
-            path: appendFilterPath(options.path ?? [], leaf.field),
-            message: ErrorMessage.keyValidateRejected(leaf.field),
-        });
+        options.issueCollector.add(issue);
 
         return;
     }
 
-    throw FiltersParseError.keyValidateRejected(leaf.field);
+    throw FiltersParseError.keyValidateRejected(leaf.field, [buildIssue(issue)]);
 }
 
 function isPromiseLike(input: unknown) : input is PromiseLike<unknown> {

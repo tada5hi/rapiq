@@ -7,8 +7,13 @@
 
 import { toIssuePath } from '../../utils';
 import { Parameter } from '../../constants';
-import { ErrorCode, ErrorMessage, SchemaError } from '../../errors';
-import type { ParseError } from '../../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    SchemaError,
+    buildIssue,
+} from '../../errors';
+import type { IssueInput, ParseError } from '../../errors';
 import type { ICondition } from '../../parameter';
 import { isCondition } from '../../parameter';
 import type { IIssueCollector } from '../issue';
@@ -390,7 +395,9 @@ function settle(
 
 /**
  * A hook rejection: recorded into the trace when the parse collects one, and
- * thrown where it is found otherwise (a standalone pass outside a parse).
+ * thrown where it is found otherwise (a standalone pass outside a parse). The
+ * thrown error carries the same issue, so a catching driver can merge the
+ * position rather than synthesize a path-less one.
  */
 function reject(
     entry: PendingKeyValidation,
@@ -401,18 +408,20 @@ function reject(
         return;
     }
 
+    const issue : IssueInput = {
+        code: ErrorCode.KEY_VALIDATE_REJECTED,
+        parameter: entry.schema.parameter,
+        path: toIssuePath(entry.path),
+        message: ErrorMessage.keyValidateRejected(entry.path),
+    };
+
     if (options.issueCollector) {
-        options.issueCollector.add({
-            code: ErrorCode.KEY_VALIDATE_REJECTED,
-            parameter: entry.schema.parameter,
-            path: toIssuePath(entry.path),
-            message: ErrorMessage.keyValidateRejected(entry.path),
-        });
+        options.issueCollector.add(issue);
 
         return;
     }
 
-    throw options.errors.keyValidateRejected(entry.path);
+    throw options.errors.keyValidateRejected(entry.path, [buildIssue(issue)]);
 }
 
 function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {
