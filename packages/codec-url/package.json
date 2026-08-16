@@ -17,6 +17,7 @@
     ],
     "dependencies": {
         "blemish": "^1.0.0",
+        "pathtrace": "^2.2.3",
         "qs": "^6.15.3"
     },
     "devDependencies": {
