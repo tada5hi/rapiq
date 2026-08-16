@@ -25,6 +25,7 @@ Both adapters are **pure serializers**: `execute(query)` returns a plain value (
 import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { isParseError } from '@rapiq/core';
+import { formatErrors } from '@rapiq/codec-url';
 import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';
 import { codec } from '../codec';
 import { prisma } from '../prisma';
@@ -65,7 +66,8 @@ export async function getUsers(req: Request, res: Response) {
         query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
         if (isParseError(e)) {
-            return res.status(400).json({ error: e.message, code: e.code });
+            // every violation of the request, not just the first one
+            return res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
         }
         throw e;
     }
@@ -108,6 +110,7 @@ Drizzle's metadata is a hand-written datamodel in drizzle's own vocabulary (`dat
 // src/routes/users.ts
 import type { Request, Response } from 'express';
 import { isParseError } from '@rapiq/core';
+import { formatErrors } from '@rapiq/codec-url';
 import { DrizzleAdapter, defineMetadata } from '@rapiq/adapter-drizzle';
 import { codec } from '../codec';
 import { db } from '../db';
@@ -142,7 +145,8 @@ export async function getUsers(req: Request, res: Response) {
         query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
         if (isParseError(e)) {
-            return res.status(400).json({ error: e.message, code: e.code });
+            // every violation of the request, not just the first one
+            return res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
         }
         throw e;
     }

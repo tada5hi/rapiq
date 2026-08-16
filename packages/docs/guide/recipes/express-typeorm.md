@@ -66,6 +66,7 @@ The codec is stateless between calls; share one instance across all routes.
 // src/routes/users.ts
 import type { Request, Response } from 'express';
 import { isParseError } from '@rapiq/core';
+import { formatErrors } from '@rapiq/codec-url';
 import { TypeormAdapter } from '@rapiq/adapter-typeorm';
 import { dataSource } from '../data-source';
 import { codec } from '../codec';
@@ -79,7 +80,8 @@ export async function getUsers(req: Request, res: Response) {
         query = codec.decode(req.query, { schema: 'user' });
     } catch (e) {
         if (isParseError(e)) {
-            return res.status(400).json({ error: e.message, code: e.code });
+            // every violation of the request, not just the first one
+            return res.status(400).json({ errors: formatErrors(e.issues, { status: '400' }) });
         }
         throw e;
     }

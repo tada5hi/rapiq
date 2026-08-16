@@ -421,7 +421,9 @@ A throwing parse reports every violation it found rather than only the first: it
 try {
     parser.parse({ fields: ['secret'], filters: { nope: 'x' } }, { schema: 'user' });
 } catch (e) {
-    e.issues; // both violations, in the order the parse hit them
+    if (isParseError(e)) {
+        e.issues; // both violations, in the order the parse hit them
+    }
 }
 ```
 
