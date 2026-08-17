@@ -9,8 +9,8 @@ import {
     flattenIssueItems,
     isIssueGroup,
     prefixIssuePath,
-} from 'blemish';
-import type { Issue, IssueItem } from 'blemish';
+} from '@ebec/core';
+import type { Issue, IssueItem } from '@ebec/core';
 import type { Parameter } from '../../constants';
 import { MAX_ISSUES, buildIssue } from '../../errors';
 import type { IParseError, IssueInput } from '../../errors';

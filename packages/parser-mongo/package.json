@@ -16,6 +16,7 @@
         "dist/"
     ],
     "devDependencies": {
+        "@ebec/core": "^1.3.1",
         "@rapiq/core": "^2.2.0",
         "@rapiq/parser-simple": "^2.2.0"
     },

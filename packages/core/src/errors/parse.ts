@@ -7,12 +7,11 @@
 
 import { isObject } from '../utils';
 import { BaseError } from './base';
-import { markInstanceof } from '@ebec/core';
+import { flattenIssueItems, markInstanceof } from '@ebec/core';
 import { PARSE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
-import { flattenIssueItems } from 'blemish';
-import type { Issue } from 'blemish';
+import type { Issue } from '@ebec/core';
 import type { BaseErrorOptions, IParseError } from './types';
 
 export class ParseError extends BaseError implements IParseError {

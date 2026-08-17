@@ -5,11 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { INSTANCEOF_PROPERTY, markInstanceof } from '@ebec/core';
 import {
+    INSTANCEOF_PROPERTY,
     defineIssueGroup,
     flattenIssueItems,
-} from 'blemish';
+    markInstanceof,
+} from '@ebec/core';
 import {
     BASE_ERROR_MARKER,
     BaseError,

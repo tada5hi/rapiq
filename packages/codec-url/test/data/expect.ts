@@ -6,7 +6,7 @@
  */
 
 import { ErrorCode, ParseError } from '@rapiq/core';
-import { flattenIssueItems } from 'blemish';
+import { flattenIssueItems } from '@ebec/core';
 
 /**
  * Assert that a parse rejected its input, and that the violation `expected`

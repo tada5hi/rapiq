@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { BASE_ERROR_INSTANCE, INSTANCEOF_PROPERTY } from '@ebec/core';
-import { defineIssueGroup } from 'blemish';
+import { BASE_ERROR_INSTANCE, INSTANCEOF_PROPERTY, defineIssueGroup } from '@ebec/core';
 import {
     BASE_ERROR_MARKER,
     BaseError,

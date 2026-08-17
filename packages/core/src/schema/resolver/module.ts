@@ -34,7 +34,7 @@ import type {
     ParameterSchema,
     ResolutionScopeContext,
 } from './types';
-import type { Issue } from 'blemish';
+import type { Issue } from '@ebec/core';
 
 const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FIELDS]: FieldsSchema,
