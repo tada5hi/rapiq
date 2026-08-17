@@ -5,8 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { defineIssueItem } from 'blemish';
-import type { Issue, IssueItem } from 'blemish';
+import { defineIssueItem } from '@ebec/core';
+import type { Issue, IssueItem } from '@ebec/core';
 import type { Parameter } from '../../constants';
 import { normalizeParameter } from '../../utils';
 import type { IssueInput } from './types';
@@ -15,7 +15,7 @@ import type { IssueInput } from './types';
  * Build the issue a rapiq site reports.
  *
  * The parameter is normalized here, at the one point where it is still
- * typed: past this call it lives in blemish's open `meta` bag, where the
+ * typed: past this call it lives in @ebec/core's open `meta` bag, where the
  * deprecated `sort` spelling would survive unnoticed.
  */
 export function buildIssue(input: IssueInput) : IssueItem {

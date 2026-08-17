@@ -6,7 +6,7 @@
  */
 
 import { BaseError as EbecBaseError, markInstanceof } from '@ebec/core';
-import type { Issue } from 'blemish';
+import type { Issue } from '@ebec/core';
 import { BASE_ERROR_MARKER } from './check';
 import { ErrorCode } from './code';
 import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
@@ -48,7 +48,7 @@ export class BaseError extends EbecBaseError implements IBaseError {
      * asserts the trace too. Assert the class or the code, or reach into
      * `issues`, rather than comparing whole errors.
      */
-    public readonly issues : readonly Issue[];
+    public override readonly issues : readonly Issue[];
 
     constructor(input: BaseErrorOptions | string) {
         // both forms default the code to NONE: left to the base, a bare

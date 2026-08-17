@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { Issue } from 'blemish';
+import type { Issue } from '@ebec/core';
 import type { Parameter } from '../../constants';
 import type { IParseError, IssueInput } from '../../errors';
 

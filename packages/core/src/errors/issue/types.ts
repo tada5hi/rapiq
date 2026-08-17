@@ -11,11 +11,11 @@ import type { ErrorCodeInput } from '../types';
 /**
  * What a rapiq site reports when it rejects client input.
  *
- * The stored node is blemish's; this is the shape its producers speak, so a
+ * The stored node is @ebec/core's; this is the shape its producers speak, so a
  * recording site names `parameter` under type control rather than assembling
  * an untyped `meta` bag itself.
  *
- * `parameter` and `key` become blemish `meta` keys. Both meet its documented
+ * `parameter` and `key` become @ebec/core `meta` keys. Both meet its documented
  * bar for that field (provenance a consumer cannot reconstruct from `path`),
  * and neither is a rendering decision: a `fields` rejection and a `filters`
  * rejection at `['items', 'secret']` are indistinguishable by path, and the

@@ -8,7 +8,7 @@
 import {
     defineIssueGroup,
     flattenIssueItems,
-} from 'blemish';
+} from '@ebec/core';
 import {
     ErrorCode,
     FilterCompoundOperator,

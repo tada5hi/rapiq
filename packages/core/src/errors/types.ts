@@ -5,8 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IBaseError as IError } from '@ebec/core';
-import type { Issue } from 'blemish';
+import type { IBaseError as IError, Issue } from '@ebec/core';
 import type { ErrorCode } from './code';
 
 /**
@@ -16,8 +15,8 @@ import type { ErrorCode } from './code';
  * matters because branching on `code` is the documented machine contract. The
  * open half is not slack: a trace can merge issues another library recorded,
  * and a consumer's own error class carries its own code, so a closed union
- * would be describing a world rapiq does not control. Same idiom blemish uses
- * for `IssueItem.code`, so the two agree.
+ * would be describing a world rapiq does not control. Same idiom @ebec/core
+ * uses for `IssueItem.code`, so the two agree.
  */
 export type ErrorCodeInput = `${ErrorCode}` | (string & {});
 
@@ -57,7 +56,7 @@ export interface IParseError extends IBaseError {}
  * along so `isBaseError` / `isParseError` still recognize the value once it is
  * a plain object: the guards match the serialized chain, not just a live
  * brand. Issue `expected` and `received` members are omitted at runtime even
- * though blemish's optional members keep this structural type assignable.
+ * though @ebec/core's optional members keep this structural type assignable.
  */
 export type SerializedError = {
     name: string,

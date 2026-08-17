@@ -20,8 +20,8 @@ import {
     isParseError,
     preserve,
 } from '@rapiq/core';
-import { flattenIssueItems } from 'blemish';
-import type { Issue } from 'blemish';
+import { flattenIssueItems } from '@ebec/core';
+import type { Issue } from '@ebec/core';
 import { SimpleFieldsParser, SimplePaginationParser, SimpleParser } from '../../../src';
 import { expectRejected } from '../../data';
 import type { User } from '../../data';

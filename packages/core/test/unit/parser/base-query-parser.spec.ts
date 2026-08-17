@@ -8,7 +8,7 @@
 // two small sub-parser stubs drive the orchestrator under test.
 /* eslint-disable max-classes-per-file */
 
-import { flattenIssueItems } from 'blemish';
+import { flattenIssueItems } from '@ebec/core';
 import {
     BaseQueryParser,
     ErrorCode,

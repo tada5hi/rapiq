@@ -6,8 +6,8 @@
  */
 
 import { arrayToPath } from 'pathtrace';
-import { flattenIssueItems } from 'blemish';
-import type { Issue } from 'blemish';
+import { flattenIssueItems } from '@ebec/core';
+import type { Issue } from '@ebec/core';
 import { extractIssueParameter } from '@rapiq/core';
 import { PARAMETER_WIRE_NAMES } from './constants';
 import type { FormatErrorsOptions, FormattedError } from './types';

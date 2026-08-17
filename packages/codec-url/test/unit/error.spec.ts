@@ -14,8 +14,8 @@ import {
     defineSchema,
 } from '@rapiq/core';
 import type { IssueInput, ParseError } from '@rapiq/core';
-import { defineIssueGroup } from 'blemish';
-import type { IssueItem } from 'blemish';
+import { defineIssueGroup } from '@ebec/core';
+import type { IssueItem } from '@ebec/core';
 import { URLParameter, createURLCodec, formatErrors } from '../../src';
 
 const issue = (overrides: Partial<IssueInput> = {}) : IssueItem => buildIssue({
