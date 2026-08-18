@@ -24,7 +24,7 @@
         "@rapiq/adapter-sql": "^2.2.0",
         "@swc/core": "^1.15.47",
         "ansis": "^4.2.0",
-        "better-sqlite3": "^12.6.0",
+        "better-sqlite3": "^13.0.3",
         "mysql2": "^3.22.6",
         "pg": "^8.23.0",
         "reflect-metadata": "^0.2.2",
