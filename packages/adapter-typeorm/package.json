@@ -22,20 +22,20 @@
         "@rapiq/core": "^2.2.0",
         "@rapiq/parser-simple": "^2.2.0",
         "@rapiq/adapter-sql": "^2.2.0",
-        "@swc/core": "^1.15.47",
+        "@swc/core": "^1.16.1",
         "ansis": "^4.2.0",
         "better-sqlite3": "^12.6.0",
-        "mysql2": "^3.22.6",
+        "mysql2": "^3.24.3",
         "pg": "^8.23.0",
         "reflect-metadata": "^0.2.2",
-        "typeorm": "^1.1.0",
-        "unplugin-swc": "^1.5.10"
+        "typeorm": "^1.1.1",
+        "unplugin-swc": "^1.5.11"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.2.0",
         "@rapiq/adapter-memory": "^2.2.0",
         "@rapiq/adapter-sql": "^2.2.0",
-        "typeorm": "^1.1.0"
+        "typeorm": "^1.1.1"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
