@@ -19,6 +19,7 @@ import type {
     SchemaRegistry,
 } from '@rapiq/core';
 import {
+    assertQueryNotGrouped,
     buildQueryParameters,
     intersectQueryParameters,
     isSchemaAware,
@@ -54,6 +55,8 @@ export class SimpleURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
+        assertQueryNotGrouped(input);
+
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
@@ -84,6 +87,8 @@ export class SimpleURLEncoder {
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
+        assertQueryNotGrouped(input);
+
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));

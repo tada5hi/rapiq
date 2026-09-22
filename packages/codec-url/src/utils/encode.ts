@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Parameter, normalizeParameter } from '@rapiq/core';
+import { AdapterError, Parameter, normalizeParameter } from '@rapiq/core';
 import type {
     IQuery,
     ParseParameterOptions,
@@ -101,3 +101,20 @@ export function isSchemaAware(options: ParseQueryOptions | ParseParameterOptions
         typeof options.strict !== 'undefined';
 }
 
+
+/**
+ * Refuse a grouped query until the URL dialects carry groups and
+ * aggregates: encoding it without them would silently turn it into a
+ * record query, which the subset law forbids.
+ *
+ * @param input
+ */
+export function assertQueryNotGrouped(input: IQuery) : void {
+    if ((input.groups?.value.length ?? 0) > 0) {
+        throw AdapterError.featureUnsupported(Parameter.GROUPS);
+    }
+
+    if ((input.aggregates?.value.length ?? 0) > 0) {
+        throw AdapterError.featureUnsupported(Parameter.AGGREGATES);
+    }
+}
