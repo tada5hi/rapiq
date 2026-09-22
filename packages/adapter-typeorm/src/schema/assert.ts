@@ -164,10 +164,15 @@ export function assertSchemaMatchesEntity<
 
     // a declared prefix is served by any longer real index, never the
     // other way round.
-    const indexes = schema.indexes.filter((index) => !sequences.some(
-        (sequence) => index.length <= sequence.length &&
-            index.every((key, position) => sequence[position] === key),
-    ));
+    const isServedBy = (
+        index: string[],
+        sequence: string[],
+    ) : boolean => index.length <= sequence.length &&
+        index.every((key, position) => sequence[position] === key);
+
+    const indexes = schema.indexes.filter(
+        (index) => sequences.every((sequence) => !isServedBy(index, sequence)),
+    );
 
     if (indexes.length > 0) {
         throw new SchemaEntityIndexMismatchError({

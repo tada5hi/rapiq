@@ -124,7 +124,8 @@ function buildConditions(
         // a $-prefixed key is never a field name — with one exception:
         // the ITSELF marker addresses the array element inside an
         // elemMatch interior.
-        if (key.startsWith('$') && !(key === ITSELF && insideElemMatch && !prefix)) {
+        const isItselfMarker = key === ITSELF && insideElemMatch && !prefix;
+        if (key.startsWith('$') && !isItselfMarker) {
             throw BuildError.keyInvalid(key);
         }
 

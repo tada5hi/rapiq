@@ -85,7 +85,7 @@ describe('src/parser/parameter/validate.ts', () => {
         });
 
         it('should reject falsy verdicts', () => {
-            const verdicts : any[] = [false, undefined, null, 0, '', Number.NaN];
+            const verdicts : any[] = [false, undefined, null, 0, '', NaN];
 
             for (const verdict of verdicts) {
                 const schema = defineFieldsSchema({ validate: () => verdict });
@@ -215,7 +215,7 @@ describe('src/parser/parameter/validate.ts', () => {
             );
 
             expect(rejected).toEqual([]);
-            expect([...conditions.keys()]).toEqual(['items.realm.secret']);
+            expect(conditions.keys().toArray()).toEqual(['items.realm.secret']);
         });
 
         it('should accept a compound condition', () => {

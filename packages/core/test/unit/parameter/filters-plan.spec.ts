@@ -36,8 +36,8 @@ describe('src/parameter/filters/plan/constants.ts', () => {
             { complementOf?: string }
         >;
 
-        for (const key of Object.keys(table)) {
-            const target = table[key].complementOf;
+        for (const entry of Object.values(table)) {
+            const target = entry.complementOf;
             if (target) {
                 expect(table[target]).toBeDefined();
                 expect(table[target].complementOf).toBeUndefined();
@@ -55,8 +55,7 @@ describe('src/parameter/filters/plan/constants.ts', () => {
             }
         >;
 
-        for (const key of Object.keys(table)) {
-            const entry = table[key];
+        for (const entry of Object.values(table)) {
             expect(!!entry.anchor).toEqual(entry.family === 'anchored');
             expect(!!entry.compare).toEqual(entry.family === 'ordering');
         }

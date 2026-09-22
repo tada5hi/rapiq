@@ -29,7 +29,7 @@ export function isNestedRecordValue(field: string, value: unknown) : boolean {
         !(value instanceof Date) &&
         !isCondition(value) &&
         !isParameterNode(value) &&
-        !Object.keys(value).some((key) => key.substring(0, 1) === '$') &&
+        Object.keys(value).every((key) => key.substring(0, 1) !== '$') &&
         field !== ITSELF
     );
 }

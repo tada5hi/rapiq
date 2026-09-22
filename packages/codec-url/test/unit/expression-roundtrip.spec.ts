@@ -265,7 +265,7 @@ describe('round-trip', () => {
             ['null-looking eq value (would decode to IS NULL)', eq('name', 'null')],
             ['whitespace-padded eq value (would decode trimmed)', eq('name', ' John ')],
             ['value-mutating numeric text (0xFF would decode to 255)', eq('code', '0xFF')],
-            ['NaN value (would decode to the string NaN)', eq('age', Number.NaN)],
+            ['NaN value (would decode to the string NaN)', eq('age', NaN)],
             ['non-integer size value', size('tags', 2.5)],
             ['negative size value', size('tags', -1)],
             ['keyword field segment', eq('null', 'x')],

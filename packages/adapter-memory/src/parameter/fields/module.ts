@@ -77,13 +77,15 @@ function project(node: KeepNode, input: unknown) : unknown {
         const output : Record<string, any> = { ...input };
 
         node.children.forEach((child, segment) => {
-            if (isPropertySet(input, segment)) {
-                const value = project(child, input[segment]);
-                if (typeof value !== 'undefined') {
-                    output[segment] = value;
-                } else {
-                    delete output[segment];
-                }
+            if (!isPropertySet(input, segment)) {
+                return;
+            }
+
+            const value = project(child, input[segment]);
+            if (typeof value !== 'undefined') {
+                output[segment] = value;
+            } else {
+                delete output[segment];
             }
         });
 
@@ -93,11 +95,13 @@ function project(node: KeepNode, input: unknown) : unknown {
     const output : Record<string, any> = {};
 
     node.children.forEach((child, segment) => {
-        if (isPropertySet(input, segment)) {
-            const value = project(child, input[segment]);
-            if (typeof value !== 'undefined') {
-                output[segment] = value;
-            }
+        if (!isPropertySet(input, segment)) {
+            return;
+        }
+
+        const value = project(child, input[segment]);
+        if (typeof value !== 'undefined') {
+            output[segment] = value;
         }
     });
 

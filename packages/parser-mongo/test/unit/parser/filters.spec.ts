@@ -210,7 +210,7 @@ describe('filters/mongo-parser', () => {
             expectParseError(() => parser.parse({ items: { $size: -1 } }), ErrorCode.KEY_VALUE_INVALID);
             expectParseError(() => parser.parse({ items: { $size: 2.5 } }), ErrorCode.KEY_VALUE_INVALID);
             expectParseError(() => parser.parse({ items: { $size: '2' } }), ErrorCode.KEY_VALUE_INVALID);
-            expectParseError(() => parser.parse({ items: { $size: Number.NaN } }), ErrorCode.KEY_VALUE_INVALID);
+            expectParseError(() => parser.parse({ items: { $size: NaN } }), ErrorCode.KEY_VALUE_INVALID);
         });
 
         it('should parse the exists operator', () => {

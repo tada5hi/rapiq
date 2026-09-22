@@ -9,6 +9,10 @@ export default [
             '**/coverage/**',
             '**/*.d.ts',
             '.nx/**',
+            // Local git worktrees carry their own eslint config, which registers a
+            // competing tsconfigRootDir candidate and aborts the whole run.
+            '.claude/**',
+            '.worktrees/**',
             'packages/docs/**',
         ],
     },

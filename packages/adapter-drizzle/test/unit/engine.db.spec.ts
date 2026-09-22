@@ -142,10 +142,12 @@ suite('engine: postgres parity and case contract', () => {
     });
 
     afterAll(async () => {
-        if (pool) {
-            await pool.query('drop table if exists items, users, realms');
-            await pool.end();
+        if (!pool) {
+            return;
         }
+
+        await pool.query('drop table if exists items, users, realms');
+        await pool.end();
     });
 
     const drizzleIds = async (condition: Condition) : Promise<number[]> => {

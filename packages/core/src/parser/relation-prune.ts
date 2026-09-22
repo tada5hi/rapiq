@@ -315,10 +315,10 @@ export function buildSortsDefaults(schema: SortsSchema) : Sorts {
         return output;
     }
 
-    for (const key of Object.keys(schema.default)) {
+    for (const [key, direction] of Object.entries(schema.default)) {
         const details = parseKey(key);
         const name = details.path ? `${details.path}.${details.name}` : details.name;
-        output.value.push(new Sort(name, schema.default[key]));
+        output.value.push(new Sort(name, direction));
     }
 
     return output;

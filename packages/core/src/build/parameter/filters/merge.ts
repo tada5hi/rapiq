@@ -93,9 +93,7 @@ function collectPaths(
         throw BuildError.inputInvalid();
     }
 
-    for (const key of Object.keys(input)) {
-        const value = input[key];
-
+    for (const [key, value] of Object.entries(input)) {
         // skipped rather than recorded, so `{ name: undefined }` states no
         // opinion instead of claiming the field and blanking it. Mirrors the
         // build layer, which lowers such a key to no condition at all.

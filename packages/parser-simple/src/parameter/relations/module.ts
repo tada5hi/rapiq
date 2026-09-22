@@ -145,9 +145,9 @@ export class SimpleRelationsParser extends BaseParser<
         }
 
         return new Relations(relations.value.filter(
-            (relation) => !rejected.some(
-                (name) => relation.name === name ||
-                    relation.name.startsWith(`${name}.`),
+            (relation) => rejected.every(
+                (name) => relation.name !== name &&
+                    !relation.name.startsWith(`${name}.`),
             ),
         ));
     }

@@ -230,12 +230,12 @@ function evaluateScalar(
 
     const results : Verdict[] = [];
 
-    for (const key of Object.keys(filter)) {
+    for (const [key, operand] of Object.entries(filter)) {
         if (key === 'mode') {
             continue;
         }
 
-        results.push(evaluateOperator(key, filter[key], value, insensitive));
+        results.push(evaluateOperator(key, operand, value, insensitive));
     }
 
     return and(results);
@@ -244,9 +244,7 @@ function evaluateScalar(
 function evaluateRelation(value: unknown, filter: Record<string, any>) : Verdict {
     const results : Verdict[] = [];
 
-    for (const key of Object.keys(filter)) {
-        const operand = filter[key];
-
+    for (const [key, operand] of Object.entries(filter)) {
         if (key === 'is' || key === 'isNot') {
             const present = normalize(value) !== null;
 
@@ -278,8 +276,8 @@ function evaluateRelation(value: unknown, filter: Record<string, any>) : Verdict
         }
 
         if (key === 'every') {
-            results.push(!items.some(
-                (item) => not(evaluateWhere(operand, item)) === true,
+            results.push(items.every(
+                (item) => not(evaluateWhere(operand, item)) !== true,
             ));
             continue;
         }
@@ -309,9 +307,7 @@ function evaluateField(value: unknown, filter: unknown) : Verdict {
 export function evaluateWhere(where: Record<string, any>, row: Record<string, any>) : Verdict {
     const results : Verdict[] = [];
 
-    for (const key of Object.keys(where)) {
-        const value = where[key];
-
+    for (const [key, value] of Object.entries(where)) {
         if (key === 'AND') {
             results.push(and(toArray(value).map((item) => evaluateWhere(item, row))));
             continue;

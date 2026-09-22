@@ -141,7 +141,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
             relations: new Relations([new Relation('realm')]),
         }));
 
-        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)]
+        const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray()
             .map((match) => match[1]);
         const duplicates = aliases.filter(
             (alias, index) => aliases.indexOf(alias) !== index,
@@ -176,7 +176,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         expect(selections).toContain(`${alias}.name`);
         expect(selections).not.toContain(alias);
 
-        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)]
+        const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray()
             .map((match) => match[1]);
         const duplicates = aliases.filter(
             (alias, index) => aliases.indexOf(alias) !== index,

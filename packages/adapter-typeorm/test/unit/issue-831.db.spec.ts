@@ -99,7 +99,7 @@ describe('issue #831', () => {
             relations: new Relations([new Relation('role')]),
         }));
 
-        const aliases = [...queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g)].map((m) => m[1]);
+        const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray().map((m) => m[1]);
         const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
         expect(duplicates).toEqual([]);
     });
