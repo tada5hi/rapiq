@@ -265,6 +265,37 @@ describe('src/schema/parameter/call/*.ts', () => {
             name: 'total',
             reason: 'the slot field value realm.id is invalid',
         },
+        {
+            primitives: AGGREGATE_FUNCTION_SLOTS,
+            // parsed JSON carries __proto__ as an own key; a literal would not.
+            input: JSON.parse('{"__proto__": {"fn": "sum", "field": "amount"}}'),
+            name: '__proto__',
+            reason: 'the name is not a valid identifier',
+        },
+        {
+            primitives: AGGREGATE_FUNCTION_SLOTS,
+            input: { constructor: { fn: 'sum', field: 'amount' } },
+            name: 'constructor',
+            reason: 'the name is not a valid identifier',
+        },
+        {
+            primitives: AGGREGATE_FUNCTION_SLOTS,
+            input: { sum: { allowed: ['amount', 'prototype'] } },
+            name: 'sum',
+            reason: 'the slot field value prototype is invalid',
+        },
+        {
+            primitives: AGGREGATE_FUNCTION_SLOTS,
+            input: { total: { fn: 'sum', field: '__proto__' } },
+            name: 'total',
+            reason: 'the slot field value __proto__ is invalid',
+        },
+        {
+            primitives: AGGREGATE_FUNCTION_SLOTS,
+            input: { total: { fn: 'sum', field: ['amount', 'constructor'] } },
+            name: 'total',
+            reason: 'the slot field value constructor is invalid',
+        },
     ];
 
     it.each(cases)('should refuse $name: $reason', ({

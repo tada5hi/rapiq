@@ -310,6 +310,43 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
             expect(extractIssueParameter(items[0]!)).toBe(Parameter.FIELDS);
         });
 
+        it.each([
+            [''],
+            ['  '],
+            [[]],
+            [['']],
+            [['', '']],
+        ])('should treat empty fields input %j as absent', (fields) => {
+            const parsers = buildParsers();
+
+            const query = new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: 'scope', fields }, { groups: true });
+
+            expect(parsers.fields.calls).toHaveLength(0);
+            expect(query.fields).toEqual(new Fields());
+        });
+
+        it('should treat empty fields input as absent asynchronously', async () => {
+            const parsers = buildParsers();
+            const parser = new StubQueryParser(new SchemaRegistry(), parsers);
+
+            await expect(parser.parseAsync({ groups: 'scope', fields: '' }, { groups: true }))
+                .resolves.toBeDefined();
+            await expect(parser.parseAsync({ groups: 'scope', fields: [''] }, { groups: true }))
+                .resolves.toBeDefined();
+            expect(parsers.fields.calls).toHaveLength(0);
+        });
+
+        it('should still reject fields input carrying a non-empty entry', () => {
+            const items = issuesOf(() => new StubQueryParser(new SchemaRegistry(), buildParsers())
+                .parse({ groups: 'scope', fields: ['', 'id'] }, { groups: true }));
+
+            expect(items).toEqual([expect.objectContaining({
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                message: ErrorMessage.featureUnsupported('fields:grouped'),
+            })]);
+        });
+
         it('should parse fields as usual when nothing is grouped', () => {
             const parsers = buildParsers({ groups: [], aggregates: [] });
 

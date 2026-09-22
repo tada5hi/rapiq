@@ -107,6 +107,44 @@ describe('src/parameter/call', () => {
         expect(serializeCallTerm({ name: 'bucket', params: ['createdAt', 'day'] })).toBe('bucket(createdAt,day)');
     });
 
+    describe('linear time on long blank runs', () => {
+        const LENGTH = 100_000;
+
+        function timed(input: string) : { error: ParseError | undefined, ms: number } {
+            const start = performance.now();
+            const error = errorOf(input);
+
+            return { error, ms: performance.now() - start };
+        }
+
+        it.each([
+            ['blanks between two identifiers', `a${' '.repeat(LENGTH)}b`],
+            ['tabs inside an argument list', `f(a${'\t'.repeat(LENGTH)}b)`],
+            ['blank runs around arguments', `f(${' '.repeat(LENGTH)}x ${' '.repeat(LENGTH)}y)`],
+        ])('should reject %s quickly', (_label, input) => {
+            const { error, ms } = timed(input);
+
+            expect(error).toBeInstanceOf(ParseError);
+            expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
+            expect(ms).toBeLessThan(200);
+        });
+
+        it('should accept blank padding quickly', () => {
+            const blanks = ' \t'.repeat(LENGTH);
+            const input = `${blanks}f(${blanks}a${blanks},${blanks}b${blanks})${blanks},${blanks}g${blanks}`;
+
+            const start = performance.now();
+            const output = parseCallTerms(input);
+            const ms = performance.now() - start;
+
+            expect(output).toEqual([
+                { name: 'f', params: ['a', 'b'] },
+                { name: 'g', params: [] },
+            ]);
+            expect(ms).toBeLessThan(200);
+        });
+    });
+
     it('should round trip a serialized term', () => {
         const term = { name: 'total', params: ['amount'] };
 

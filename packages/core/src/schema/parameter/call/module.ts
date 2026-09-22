@@ -15,7 +15,7 @@ import {
 } from '../../../parameter';
 import type { CallSlot, CallSlotName, CallTerm } from '../../../parameter';
 import type { ObjectLiteral } from '../../../types';
-import { isObject, isPropertyNameValid, isPropertySet } from '../../../utils';
+import { isCallIdentifierValid, isObject, isPropertySet } from '../../../utils';
 import type { AggregatesSchema } from '../aggregates';
 import type { GroupsSchema } from '../groups';
 import type {
@@ -32,7 +32,7 @@ function isSlotValueValid(slot: CallSlotName, value: unknown) : boolean {
 
     return slot === 'unit' ?
         isBucketUnit(value) :
-        isPropertyNameValid(value);
+        isCallIdentifierValid(value);
 }
 
 /**
@@ -155,7 +155,7 @@ export function normalizeCallFunctions(
     const names = Object.keys(primitives);
 
     for (const [key, declaration] of Object.entries(input)) {
-        if (!isPropertyNameValid(key)) {
+        if (!isCallIdentifierValid(key)) {
             throw SchemaError.functionInvalid(key, 'the name is not a valid identifier');
         }
 
@@ -213,13 +213,19 @@ function reject(code: `${ErrorCode}`, message: string) : CallResolution {
  * The primitive of that name with every slot open, or undefined. Read
  * as an own property: `constructor` must not find Object's.
  */
+function getPrimitives(
+    parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+) : Record<string, CallSlot[]> {
+    return parameter === Parameter.GROUPS ?
+        GROUP_FUNCTION_SLOTS :
+        AGGREGATE_FUNCTION_SLOTS;
+}
+
 function resolvePrimitive(
     parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
     name: string,
 ) : CallFunctionNormalized | undefined {
-    const primitives : Record<string, CallSlot[]> = parameter === Parameter.GROUPS ?
-        GROUP_FUNCTION_SLOTS :
-        AGGREGATE_FUNCTION_SLOTS;
+    const primitives = getPrimitives(parameter);
     const slots = isPropertySet(primitives, name) ? primitives[name] : undefined;
 
     return slots ? buildBuiltinFunction(name, slots, []) : undefined;
@@ -248,7 +254,7 @@ export function resolveCallTerm(
         return reject(ErrorCode.KEY_PATH_NOT_ALLOWED, ErrorMessage.keyPathNotPermitted(dotted));
     }
 
-    const invalid = identifiers.find((identifier) => !isPropertyNameValid(identifier));
+    const invalid = identifiers.find((identifier) => !isCallIdentifierValid(identifier));
     if (typeof invalid !== 'undefined') {
         return reject(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid(invalid));
     }
@@ -258,6 +264,13 @@ export function resolveCallTerm(
         declaration = isPropertySet(schema.functions, term.name) ?
             schema.functions[term.name] :
             undefined;
+
+        // a declaration lowering to a primitive of the other parameter
+        // comes from a schema of that parameter passed here by mistake,
+        // so it must permit nothing.
+        if (declaration && !isPropertySet(getPrimitives(parameter), declaration.fn)) {
+            declaration = undefined;
+        }
     } else {
         declaration = resolvePrimitive(parameter, term.name);
     }

@@ -18,12 +18,29 @@ const TERM_PATTERN = /^[ \t]*([^\s(),'"]+)[ \t]*(?:\(([^()]*)\)[ \t]*)?$/u;
 
 const ARGUMENT_PATTERN = /^[^\s(),'"]+$/u;
 
+function isBlank(char: string | undefined) : boolean {
+    return char === ' ' || char === '\t';
+}
+
 /**
  * The grammar's only whitespace is space and tab; `String#trim()` would
  * also strip line breaks and unicode spaces the term pattern refuses.
+ * An index scan, not an alternation regex: `/[ \t]+$/g` restarts at every
+ * blank of a long run and turns a crafted query value quadratic.
  */
 function trimBlank(input: string) : string {
-    return input.replace(/^[ \t]+|[ \t]+$/gu, '');
+    let start = 0;
+    let end = input.length;
+
+    while (start < end && isBlank(input[start])) {
+        start++;
+    }
+
+    while (end > start && isBlank(input[end - 1])) {
+        end--;
+    }
+
+    return input.slice(start, end);
 }
 
 function splitTerms(input: string) : string[] {
