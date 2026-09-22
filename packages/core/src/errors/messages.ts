@@ -43,6 +43,8 @@ export const ErrorMessage = {
 
     featureUnsupported: (feature: string) => `The feature ${feature} is not supported.`,
 
+    mergeConflict: (parameter: string) => `Merging would combine two different ${parameter} definitions.`,
+
     keyAmbiguous: (canonical: string, alias: string) => `The keys ${canonical} and ${alias} are two spellings of the ` +
         `same parameter. Use ${canonical}.`,
 
