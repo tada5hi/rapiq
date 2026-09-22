@@ -45,6 +45,7 @@ const DDL = [
         "email" text not null,
         "age" integer not null,
         "address" text,
+        "created_at" timestamp,
         "realm_id" integer references "Realm"("id")
     )`,
     `create table "Item" (
@@ -130,6 +131,7 @@ export async function createDatabase(records: User[]) : Promise<TestDatabase> {
                 email: record.email,
                 age: record.age,
                 address: record.address,
+                created_at: record.created_at,
                 realm_id: record.realm_id,
                 items: {
                     create: record.items.map((item) => ({

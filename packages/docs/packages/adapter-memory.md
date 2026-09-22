@@ -71,6 +71,10 @@ The package aims for **SQL parity**: the same query should select the same recor
 - `exists` means *has a non-null value* (SQL `IS NOT NULL`), not Mongo's "property present".
 - Type mismatches evaluate to `false`, never to an error.
 
+### Date values
+
+A record value that is a `Date` reads a string operand as the instant it denotes, so `gte('created_at', '2026-08-23T00:00:00.000Z')` selects the window it describes rather than nothing. No metadata is needed: a `Date` never crosses the wire, so the pair identifies itself. Two strings stay strings (a column may well hold ISO text), and a number stays incomparable against a `Date`, since this backend infers temporality from the value alone. See [date values](/guide/filters#date-values) for the fleet-wide contract.
+
 ### String matching
 
 `contains`, `startsWith`, `endsWith` (and their negations) are **case-insensitive by default** and treat the filter value as a literal: the compiler escapes it into an anchored regular expression, so metacharacters match themselves. Numbers are matched by their decimal string form; other value types never match. (`@rapiq/adapter-sql` renders the same operators as an escaped `LIKE` pattern rather than a regex; the selected records are the same, the spelling is not.)

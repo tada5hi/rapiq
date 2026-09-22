@@ -88,10 +88,18 @@ function equals(value: unknown, operand: unknown, insensitive: boolean) : boolea
         return value.toLowerCase() === operand.toLowerCase();
     }
 
+    if (value instanceof Date && operand instanceof Date) {
+        return value.getTime() === operand.getTime();
+    }
+
     return value === operand;
 }
 
 function compare(value: any, operand: any) : number | undefined {
+    if (value instanceof Date && operand instanceof Date) {
+        return compare(value.getTime(), operand.getTime());
+    }
+
     if (typeof value === 'string' && typeof operand === 'string') {
         if (value === operand) {
             return 0;

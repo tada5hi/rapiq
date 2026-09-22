@@ -5,10 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { AdapterError } from '@rapiq/core';
+import { AdapterError, toDate } from '@rapiq/core';
 import type { DialectOptions } from '@rapiq/adapter-sql';
 import { FiltersBaseAdapter } from '@rapiq/adapter-sql';
 import type { ColumnType, EntityMetadata, SelectQueryBuilder } from 'typeorm';
+import { DateUtils } from 'typeorm';
 import { resolveQueryDialect } from '../dialect';
 import type { RelationsAdapter } from './relations';
 
@@ -54,6 +55,50 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
     }
 
     return typeof type === 'string' && CASE_FOLDABLE_COLUMN_TYPES.has(type);
+}
+
+/**
+ * How a date operand has to be spelled for the column it addresses.
+ * A column absent from every table is not temporal and binds as-is.
+ */
+const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
+    // a calendar day, no clock
+    'date': 'date',
+
+    // wall clock without an offset: the stored value carries no zone,
+    // so the operand must be spelled in the same zone it was written
+    // in. Binding a `Date` instead is what the pg and mysql drivers
+    // then serialize in the HOST's local zone, shifting the window by
+    // the host's offset on any non-UTC machine.
+    'datetime': 'datetime',
+    'datetime2': 'datetime',
+    'smalldatetime': 'datetime',
+    'timestamp': 'datetime',
+    'timestamp without time zone': 'datetime',
+
+    // zone-aware: the instant itself round-trips
+    'datetimeoffset': 'instant',
+    'timestamptz': 'instant',
+    'timestamp with time zone': 'instant',
+    'timestamp with local time zone': 'instant',
+};
+
+/**
+ * A bare calendar date, the form a date-only column stores and the
+ * form a client sends for one.
+ */
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function resolveDateColumnFormat(type: ColumnType) : 'date' | 'datetime' | 'instant' | undefined {
+    if (type === Date) {
+        return 'datetime';
+    }
+
+    if (typeof type !== 'string') {
+        return undefined;
+    }
+
+    return DATE_COLUMN_FORMATS[type];
 }
 
 /**
@@ -176,13 +221,22 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         return !!this.dialect.likeBracketWildcard;
     }
 
-    override isCaseFoldable(field: string) : boolean {
+    /**
+     * The column a (possibly relation-dotted) property path addresses,
+     * or undefined when the builder carries no entity metadata or the
+     * path resolves to none.
+     */
+    protected resolveColumn(path: string) {
         const { mainAlias } = this.queryBuilder.expressionMap;
         if (!mainAlias || !mainAlias.hasMetadata) {
-            return super.isCaseFoldable(field);
+            return undefined;
         }
 
-        const column = findColumnByPropertyPath(mainAlias.metadata, field);
+        return findColumnByPropertyPath(mainAlias.metadata, path);
+    }
+
+    override isCaseFoldable(field: string) : boolean {
+        const column = this.resolveColumn(field);
         if (!column) {
             return super.isCaseFoldable(field);
         }
@@ -191,18 +245,71 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     /**
+     * Bind a date operand in the form its column stores, so the
+     * comparison happens between two values of the same shape. A wire
+     * value reaches the adapter as whatever a query string can carry,
+     * and the column's transformer runs on read only, so binding it
+     * unchanged compares an ISO string against the driver's own
+     * storage format: on sqlite the two differ on the `' '`/`'T'`
+     * byte, which inverts every range comparison.
+     *
+     * A zone-less column is written in UTC (what typeorm's sqlite
+     * driver does unconditionally, and what a UTC-configured
+     * connection does elsewhere), so that is the zone the operand is
+     * spelled in.
+     */
+    override bindValue(field: string, value: unknown) : unknown {
+        if (value === null || typeof value === 'undefined') {
+            return value;
+        }
+
+        const column = this.resolveColumn(field);
+        if (!column) {
+            return value;
+        }
+
+        const format = resolveDateColumnFormat(column.type);
+        if (!format) {
+            return value;
+        }
+
+        const date = toDate(value);
+        if (!date) {
+            // a malformed date would otherwise reach the driver, which
+            // answers a bad client value with a server error.
+            throw AdapterError.keyValueInvalid(field);
+        }
+
+        if (format === 'instant') {
+            return date.toISOString();
+        }
+
+        if (format === 'date') {
+            // a calendar date needs no conversion at all, and must not
+            // get one: `mixedDateToDateString` reads local calendar
+            // parts unless the column opts into `utc`, so a round trip
+            // through an instant (UTC midnight) lands on the previous
+            // day on any negative-offset host. `toDate` above still
+            // ran, so an impossible day was already refused.
+            if (typeof value === 'string' && CALENDAR_DATE.test(value)) {
+                return value;
+            }
+
+            // an operand that does carry a clock has to pick a day:
+            // mirror `utc`, the option typeorm writes the column with.
+            return DateUtils.mixedDateToDateString(date, { utc: column.utc });
+        }
+
+        return DateUtils.mixedDateToUtcDatetimeString(date);
+    }
+
+    /**
      * WHERE fragments are raw SQL — the SelectQueryBuilder dropped
      * whole-query property-name replacement with typeorm 1.x, so
      * property paths must resolve to their database column names here.
      */
     override resolveFieldName(name: string, relationPath?: string) : string {
-        const { mainAlias } = this.queryBuilder.expressionMap;
-        if (!mainAlias || !mainAlias.hasMetadata) {
-            return super.resolveFieldName(name, relationPath);
-        }
-
-        const path = relationPath ? `${relationPath}.${name}` : name;
-        const column = findColumnByPropertyPath(mainAlias.metadata, path);
+        const column = this.resolveColumn(relationPath ? `${relationPath}.${name}` : name);
         if (!column) {
             return super.resolveFieldName(name, relationPath);
         }

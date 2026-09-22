@@ -19,6 +19,8 @@ const RELATION_KIND = 'object';
 
 const STRING_TYPE = 'String';
 
+const DATE_TYPE = 'DateTime';
+
 /**
  * Answers the adapter's two metadata questions from a prisma
  * datamodel (`Prisma.dmmf.datamodel`) by walking dotted paths
@@ -76,6 +78,15 @@ export class Metadata implements IMetadata {
         }
 
         return field.type === STRING_TYPE;
+    }
+
+    isDate(path: string) : boolean | undefined {
+        const field = this.resolve(path);
+        if (!field || field.kind === RELATION_KIND) {
+            return undefined;
+        }
+
+        return field.type === DATE_TYPE;
     }
 
     isNullable(path: string) : boolean | undefined {

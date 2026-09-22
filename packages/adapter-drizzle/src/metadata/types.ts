@@ -69,6 +69,17 @@ export interface IMetadata {
     isString(path: string): boolean | undefined;
 
     /**
+     * Whether the field addressed by a dotted path holds a date, so a
+     * value that crossed the untyped wire as a string has to be read
+     * back as the instant it denotes before drizzle sees it.
+     *
+     * Optional: an implementation that does not answer leaves date
+     * operands untouched, which is what this adapter did before the
+     * question existed.
+     */
+    isDate?(path: string): boolean | undefined;
+
+    /**
      * Whether the field addressed by a dotted path can hold null.
      *
      * Load-bearing: the null-inclusive complement of a negated

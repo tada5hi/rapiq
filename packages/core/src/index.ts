@@ -20,6 +20,7 @@ export {
     parseKey,
     resolveAliasedKey,
     stringifyKey,
+    toDate,
     toIssuePath,
 } from './utils';
 export type { KeyDetails } from './utils';

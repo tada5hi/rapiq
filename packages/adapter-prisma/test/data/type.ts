@@ -31,6 +31,7 @@ export type User = {
     email: string,
     age: number,
     address: string | null,
+    created_at: Date | null,
     realm_id: number | null,
     realm: Realm | null,
     items: Item[],

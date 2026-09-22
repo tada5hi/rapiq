@@ -254,6 +254,12 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
      * verdict (string condition, field not opted out) — string
      * comparisons then fold on both sides, mirroring the SQL
      * adapter's lower()-wrapped rendering.
+     *
+     * Folding only ever governs a string *value*: anything else falls
+     * through to plain value equality, which is where a date value
+     * reads a string operand as the instant it denotes. The SQL side
+     * reaches the same place through `isCaseFoldable`, which exempts
+     * non-string columns from the fold.
      */
     protected buildValueEqualTest(input: unknown, caseFold: boolean) : ValueTest {
         const condition = normalizeValue(input);
@@ -264,8 +270,11 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
         ) {
             const lowered = condition.toLowerCase();
 
-            return (value) => typeof value === 'string' &&
-                value.toLowerCase() === lowered;
+            return (value) => (
+                typeof value === 'string' ?
+                    value.toLowerCase() === lowered :
+                    isValueEqual(value, condition)
+            );
         }
 
         return (value) => isValueEqual(value, condition);

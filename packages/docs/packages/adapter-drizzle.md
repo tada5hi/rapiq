@@ -38,7 +38,9 @@ The adapter needs four facts about your tables that a `Query` cannot carry, and 
 | can the column hold `null`? | whether a complement carries its `isNull` arm |
 | does it hold strings? | only string columns fold case through `ilike` |
 
-Guessing any of them produces a wrong result set rather than graceful degradation, so the adapter refuses to run without them. The datamodel is a plain object in drizzle's own vocabulary (`dataType` as on a drizzle column, relations keyed the way `defineRelations` keys them); a bare string is shorthand for `{ dataType }`:
+Guessing any of them produces a wrong result set rather than graceful degradation, so the adapter refuses to run without them.
+
+A fifth question, `isDate`, is **optional**: where it answers, a [date operand](/guide/filters#date-values) is bound as a `Date` and an unreadable one is refused; where it does not, operands pass through as they arrived, which is what the adapter did before the question existed. `defineMetadata` answers it for every column whose `dataType` is `date`, so a hand-written `IMetadata` implementation keeps working unchanged. The datamodel is a plain object in drizzle's own vocabulary (`dataType` as on a drizzle column, relations keyed the way `defineRelations` keys them); a bare string is shorthand for `{ dataType }`:
 
 ```typescript
 const metadata = defineMetadata({
@@ -47,6 +49,7 @@ const metadata = defineMetadata({
             id: { dataType: 'number', nullable: false },
             name: 'string',
             address: { dataType: 'string', nullable: true },
+            created_at: { dataType: 'date', nullable: false },
         },
         relations: {
             items: { target: 'items', many: true },
@@ -58,7 +61,7 @@ const metadata = defineMetadata({
 }, 'users');
 ```
 
-An undeclared fact is treated as unknown, never guessed: an unknown nullability keeps the complement's null arm (semantically safe either way), an unknown data type keeps the case fold.
+An undeclared fact is treated as unknown, never guessed: an unknown nullability keeps the complement's null arm (semantically safe either way), an unknown data type keeps the case fold and binds date operands unchanged.
 
 ## Parameter mapping
 

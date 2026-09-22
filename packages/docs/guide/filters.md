@@ -142,6 +142,32 @@ Negated operators (`ne`, `nin`, `notContains`, `notStartsWith`, `notEndsWith`) a
 
 The same complement law governs [`not(...)`](#negation) over whole trees: `not(c)` selects exactly the records `c` does not, on every backend.
 
+## Date values
+
+The wire is untyped: a date crosses it as a string (`filter[created_at]=>=2026-08-23T00:00:00.000Z`), never as a `Date`. Each adapter reads that operand back into the form its backend compares against, so a date column can join a `filters.allowed` list and a time window is an ordinary range filter:
+
+| Adapter | Binds |
+|---|---|
+| `@rapiq/adapter-typeorm` | the column's own storage literal: a UTC wall-clock string for a zone-less `datetime`/`timestamp` column, the ISO instant for a `timestamptz`, `YYYY-MM-DD` for a `date` |
+| `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle` | a `Date` instance |
+| `@rapiq/adapter-memory` | reads the string as an instant whenever the record value is a `Date` |
+
+Accepted operand forms are an ISO-8601 date (`2026-08-23`) or date-time (`2026-08-23T10:16:44.000Z`, a space in place of the `T` is fine too), an epoch timestamp in milliseconds, and a `Date`. The grammar is matched explicitly rather than handed to `new Date()`, which accepts implementation-defined forms (`August 23, 2026` parses, `2026` silently means January 1st) and rolls a day the calendar does not have into the next month, so `2026-02-30` would quietly select March 2nd. A date-time carrying no offset is read as UTC, not in the server's zone, so one query selects the same rows on every machine.
+
+A value that denotes no instant (`filter[created_at]=yesterday`, `2026-02-30`) is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID` instead of reaching the driver, which answers a malformed client value with a server error. Only the bindings that *know* the field is temporal can refuse: `@rapiq/adapter-typeorm` on a date column, and `@rapiq/adapter-prisma`/`@rapiq/adapter-drizzle` on a field their metadata marks as a date. `@rapiq/adapter-memory` has no such declaration and simply leaves the value unequal and incomparable, and `@rapiq/adapter-sql`'s default `bindValue` passes every operand through untouched.
+
+::: warning Zone-less columns are read as UTC
+A `datetime`/`timestamp` column stores no offset, so the operand has to be spelled in the same zone the value was written in, and rapiq spells it in UTC.
+
+Binding a `Date` instead is not an alternative: the Postgres and MySQL drivers serialize one in the **host's** local zone, and a zone-less column discards the offset marker, so the same query would select different rows on different machines.
+
+The consequence is worth knowing: TypeORM's SQLite driver writes such a column in UTC unconditionally, but its Postgres and MySQL drivers hand the driver a `Date`, so on a host whose clock is not UTC they write **local** wall clock. Run the application (or the connection) in UTC, which is what a server normally does, or use a zone-aware column type (`timestamptz`). Rows written by a database default such as `now()` are unaffected.
+:::
+
+Which fields are temporal comes from the adapter's own knowledge of the backend: TypeORM reads the entity metadata, `@rapiq/adapter-prisma` and `@rapiq/adapter-drizzle` ask their `metadata` (a `DateTime` field, or a column whose `dataType` is `date`), and `@rapiq/adapter-memory` sees the record value itself. `@rapiq/adapter-sql` emits placeholders and leaves binding to the caller, so it binds operands unchanged; override `bindValue(field, value)` on its filters adapter to hook in a column-type table of your own.
+
+Only equality and ordering operands are read this way. A `contains`/`startsWith` pattern or a `mod` divisor is not a value of the column's domain and passes through untouched.
+
 ## Case sensitivity
 
 String matching is **case-insensitive by default**, uniformly across every adapter: the same query matches the same records whether it runs on Postgres, MySQL, in memory, or through TypeORM:

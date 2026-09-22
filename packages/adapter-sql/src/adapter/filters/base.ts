@@ -129,6 +129,23 @@ export abstract class FiltersBaseAdapter<
     }
 
     /**
+     * Prepare an operand for binding against the field it is compared
+     * to. The wire is untyped, so a value crosses it in whatever form
+     * a query string can carry; a backend that knows the column's type
+     * overrides this to bind the form that column actually stores
+     * (a date literal rather than the client's ISO string, say), and
+     * refuses an operand it cannot bind with a typed `AdapterError`
+     * instead of letting the driver answer with a server error.
+     *
+     * Only equality and ordering operands pass through here: a LIKE
+     * pattern or a modulo divisor is not compared against the column's
+     * own domain.
+     */
+    bindValue(_field: string, value: unknown) : unknown {
+        return value;
+    }
+
+    /**
      * Resolve a parsed field name to the identifier the database knows.
      * Backends with column metadata override this to map property names
      * to column names (e.g. `realmId` -> `realm_id`); the default is the

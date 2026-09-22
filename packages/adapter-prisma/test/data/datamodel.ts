@@ -38,6 +38,7 @@ export const datamodel : Datamodel = {
                 scalar('email', 'String'),
                 scalar('age', 'Int'),
                 scalar('address', 'String', false),
+                scalar('created_at', 'DateTime', false),
                 scalar('realm_id', 'Int', false),
                 relation('realm', 'Realm', false, false),
                 relation('items', 'Item', true),

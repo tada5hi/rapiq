@@ -8,6 +8,7 @@
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
+import { ErrorMessage } from './messages';
 import type { BaseErrorOptions } from './types';
 
 export type AdapterErrorOptions = BaseErrorOptions & {
@@ -37,6 +38,19 @@ export class AdapterError extends BaseError {
         return new this({
             message: `The filter operator ${operator} is not supported.`,
             code: ErrorCode.OPERATOR_UNSUPPORTED,
+        });
+    }
+
+    /**
+     * An operand the backend cannot bind to the column it addresses,
+     * for example a filter on a date column whose value denotes no
+     * instant. Refusing beats handing it to the driver, which answers
+     * a malformed client value with a server error.
+     */
+    static keyValueInvalid(key: string) {
+        return new this({
+            message: ErrorMessage.keyValueInvalid(key),
+            code: ErrorCode.KEY_VALUE_INVALID,
         });
     }
 

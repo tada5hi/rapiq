@@ -113,6 +113,8 @@ const [sql, params] = filters.getQueryAndParameters();
 
 Values are always bound as parameters, never interpolated into the SQL string.
 
+This package emits fragments and leaves the binding to the caller, so operands pass through as they arrived. Override `bindValue(field, value)` on the filters adapter to prepare an operand for the column it addresses: it receives every equality and ordering operand (patterns and modulo operands are not values of the column's domain and skip it). [@rapiq/adapter-typeorm](/packages/adapter-typeorm#date-columns) overrides it to bind [date values](/guide/filters#date-values) in their column's storage form.
+
 ### Null semantics
 
 A `null` filter value is rewritten to the SQL null predicates instead of being bound as a parameter (which would match nothing):
