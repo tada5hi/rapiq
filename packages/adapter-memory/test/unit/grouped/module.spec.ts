@@ -78,6 +78,12 @@ describe('src/grouped/module.ts', () => {
             });
             expect(() => compileGroupedQuery(grouped([], [aggregate]))).toThrowError(unsupported('aggregates:avg'));
         });
+
+        it('should refuse a sort that names no output key', () => {
+            const query = grouped([column('scope')], [count()], { sorts: new Sorts([new Sort('name', SortDirection.ASC)]) });
+
+            expect(() => compileGroupedQuery(query)).toThrowError(unsupported('sorts:grouped'));
+        });
     });
 
     describe('bare columns', () => {

@@ -76,6 +76,16 @@ describe('src/adapter/grouped/module.ts', () => {
         ]);
     });
 
+    it('should refuse a sort that names no output key instead of rendering it', () => {
+        const query = new Query({
+            groups: new Groups([columnGroup('scope')]),
+            sorts: new Sorts([new Sort('name', 'ASC')]),
+        });
+
+        expect(() => buildGroupedClauses(query, pgFilters(), pg.bucket))
+            .toThrow('The feature sorts:grouped is not supported by the dialect.');
+    });
+
     it('should build an aggregates-only query without group by or order', () => {
         const query = new Query({
             aggregates: new Aggregates([

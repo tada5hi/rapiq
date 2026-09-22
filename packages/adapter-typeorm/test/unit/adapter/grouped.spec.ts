@@ -201,6 +201,19 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         }]);
     });
 
+    it('should refuse a sort that names no output key before touching the builder', () => {
+        const { queryBuilder, adapter } = setup();
+
+        expect(() => adapter.executeGrouped(defineQuery({
+            groups: ['scope'],
+            sorts: new Sorts([new Sort('x) --', SortDirection.ASC)]),
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'sorts:grouped',
+        }));
+        expect(queryBuilder.expressionMap.orderBys).toEqual({});
+    });
+
     it('should refuse a builder that is already grouped', () => {
         const { queryBuilder, adapter } = setup();
 

@@ -14,20 +14,14 @@ import type {
 import {
     AdapterError,
     AggregateFunction,
-    BucketUnit,
     GroupFunction,
+    isBucketUnit,
     isGroupedQuery,
     resolveGroupedSorts,
 } from '@rapiq/core';
 import type { DialectOptions } from '../../dialect';
 import type { IFiltersAdapter } from '../filters';
 import type { GroupedClauses } from './types';
-
-const BUCKET_UNITS : string[] = Object.values(BucketUnit);
-
-function isBucketUnit(input: string | undefined) : input is `${BucketUnit}` {
-    return typeof input === 'string' && BUCKET_UNITS.includes(input);
-}
 
 function buildGroupExpression(
     group: IGroup,

@@ -17,6 +17,7 @@ import {
     BucketUnit,
     GroupFunction,
     Sorts,
+    isBucketUnit,
     isGroupedQuery,
     resolveGroupedSorts,
     toDate,
@@ -31,8 +32,6 @@ type GroupReader = (record: unknown) => unknown;
 type AggregateReducer = (records: unknown[]) => unknown;
 
 type GroupBucket = { values: unknown[], records: unknown[] };
-
-const BUCKET_UNITS : string[] = Object.values(BucketUnit);
 
 /**
  * Truncate a value to the start of its UTC unit and render it as the
@@ -78,7 +77,7 @@ function compileGroup(group: IGroup) : GroupReader {
         const [unit] = lowering.args;
         // hand-built IR only: the resolver admits nothing outside
         // BucketUnit. Same refusal as adapter-sql, which inlines the unit.
-        if (typeof unit !== 'string' || !BUCKET_UNITS.includes(unit)) {
+        if (!isBucketUnit(unit)) {
             throw AdapterError.keyValueInvalid(group.key);
         }
 

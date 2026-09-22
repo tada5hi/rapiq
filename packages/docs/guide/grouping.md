@@ -379,6 +379,7 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups` | a grouped query reached a record entry point, or prisma / drizzle |
 | `groups:empty` | a grouped entry point received a query without groups or aggregates |
 | `fields:grouped` | a hand-built grouped query carries fields |
+| `sorts:grouped` | a hand-built grouped query sorts by a name that is not an [output key](#output-keys) |
 | `groups:unresolved` / `aggregates:unresolved` | a client-built named call that no schema resolved |
 | `groups:<fn>` / `aggregates:<fn>` | a function the adapter does not implement |
 | `groups:bucket` | the SQL dialect has no bucket spelling (`mssql`, `oracle`) |

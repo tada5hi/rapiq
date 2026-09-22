@@ -9,6 +9,7 @@ import type { IQuery } from '../../../src';
 import {
     Aggregate,
     Aggregates,
+    ErrorCode,
     Fields,
     FilterCompoundOperator,
     Filters,
@@ -128,5 +129,18 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
 
     it('should need no order for an aggregates-only query', () => {
         expect(resolveGroupedSorts(new Query({ aggregates: new Aggregates([count]) }))).toEqual([]);
+    });
+
+    it('should refuse a sort that names no output key', () => {
+        const query = new Query({
+            groups: new Groups([scope]),
+            aggregates: new Aggregates([count]),
+            sorts: new Sorts([new Sort('realm.name', SortDirection.ASC)]),
+        });
+
+        expect(() => resolveGroupedSorts(query)).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'sorts:grouped',
+        }));
     });
 });
