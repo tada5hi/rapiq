@@ -12,6 +12,15 @@ export enum Parameter {
     RELATIONS = 'relations',
     SORTS = 'sorts',
     /**
+     * Group keys of an aggregated query. Parsed only when a parse
+     * opts in, unlike the parameters above.
+     */
+    GROUPS = 'groups',
+    /**
+     * Aggregates computed per group. Opt-in like {@link Parameter.GROUPS}.
+     */
+    AGGREGATES = 'aggregates',
+    /**
      * @deprecated use {@link Parameter.SORTS}. The value stays `sort`,
      * so `parameters` masks and `describe()` output keep working.
      * Removed in 3.0.

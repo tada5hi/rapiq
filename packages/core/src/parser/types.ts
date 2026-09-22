@@ -93,6 +93,18 @@ export type ParseQueryOptions<
      */
     sort?: boolean,
     /**
+     * Opt in to the groups parameter. Unlike the flags above the
+     * default is OFF: groups are parsed only when this is `true` or
+     * `groups` is listed in {@link ParseQueryOptions.parameters}, so an
+     * existing endpoint never starts accepting them by accident.
+     */
+    groups?: boolean,
+    /**
+     * Opt in to the aggregates parameter; default off, like
+     * {@link ParseQueryOptions.groups}.
+     */
+    aggregates?: boolean,
+    /**
      * Process only the listed parameters. A parameter that is not
      * listed is neither parsed nor defaulted — the resulting query
      * leaves it empty, exactly as if neither the input nor the schema

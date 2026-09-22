@@ -6,12 +6,18 @@
  */
 
 import type {
+    AggregatesOptions,
+    AggregatesSchema,
+    AggregatesSchemaDescription,
     FieldsOptions,
     FieldsSchema,
     FieldsSchemaDescription,
     FiltersOptions,
     FiltersSchema,
     FiltersSchemaDescription,
+    GroupsOptions,
+    GroupsSchema,
+    GroupsSchemaDescription,
     PaginationOptions,
     PaginationSchema,
     PaginationSchemaDescription,
@@ -175,6 +181,14 @@ export type SchemaOptionsNormalized<
      * {@link IndexesOption}.
      */
     indexes: IndexesOption<RECORD>,
+    /**
+     * What a client may group by. Undeclared permits nothing.
+     */
+    groups: GroupsOptions<RECORD> | GroupsSchema<RECORD>,
+    /**
+     * What a client may aggregate. Undeclared permits nothing.
+     */
+    aggregates: AggregatesOptions<RECORD> | AggregatesSchema<RECORD>,
 };
 
 export type SchemaOptions<
@@ -226,4 +240,10 @@ export type SchemaDescription = {
     pagination?: PaginationSchemaDescription,
     relations?: RelationsSchemaDescription,
     sorts?: SortsSchemaDescription,
+    /**
+     * Unlike the parameters above, a `null` constraint here permits
+     * nothing: groups and aggregates are fail-closed.
+     */
+    groups?: GroupsSchemaDescription,
+    aggregates?: AggregatesSchemaDescription,
 };

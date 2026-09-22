@@ -11,8 +11,10 @@ import type { IIssueCollector } from '../../parser/issue';
 import type { PendingKeyValidation } from '../../parser/parameter/validate';
 import type { ObjectLiteral } from '../../types';
 import type {
+    AggregatesSchema,
     FieldsSchema,
     FiltersSchema,
+    GroupsSchema,
     PaginationSchema,
     RelationsSchema,
     SortsSchema,
@@ -33,7 +35,11 @@ export type ParameterSchema<
                 RelationsSchema<RECORD> :
                 P extends `${Parameter.SORTS}` | `${Parameter.SORT}` ?
                     SortsSchema<RECORD> :
-                    never;
+                    P extends `${Parameter.GROUPS}` ?
+                        GroupsSchema<RECORD> :
+                        P extends `${Parameter.AGGREGATES}` ?
+                            AggregatesSchema<RECORD> :
+                            never;
 
 export type KeyResolutionSuccess<
     P extends `${Parameter}`,

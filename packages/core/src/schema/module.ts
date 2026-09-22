@@ -6,14 +6,18 @@
  */
 
 import {
+    AggregatesSchema,
     FieldsSchema,
     FiltersSchema,
+    GroupsSchema,
     PaginationSchema,
     RelationsSchema,
     SortsSchema,
 
+    defineAggregatesSchema,
     defineFieldsSchema,
     defineFiltersSchema,
+    defineGroupsSchema,
     definePaginationSchema,
     defineRelationsSchema,
     defineSortsSchema,
@@ -42,6 +46,8 @@ const SCHEMA_INPUT_KEYS : string[] = [
     Parameter.RELATIONS,
     Parameter.SORTS,
     Parameter.SORT,
+    Parameter.GROUPS,
+    Parameter.AGGREGATES,
 ];
 
 export class Schema<
@@ -63,6 +69,10 @@ export class Schema<
      * Removed in 3.0.
      */
     public readonly sort: SortsSchema<RECORD, CONTEXT>;
+
+    public readonly groups : GroupsSchema<RECORD>;
+
+    public readonly aggregates : AggregatesSchema<RECORD>;
 
     public readonly indexes : string[][];
 
@@ -118,6 +128,18 @@ export class Schema<
 
         this.sort = this.sorts;
 
+        if (options.groups instanceof GroupsSchema) {
+            this.groups = options.groups;
+        } else {
+            this.groups = defineGroupsSchema(options.groups);
+        }
+
+        if (options.aggregates instanceof AggregatesSchema) {
+            this.aggregates = options.aggregates;
+        } else {
+            this.aggregates = defineAggregatesSchema(options.aggregates);
+        }
+
         if (typeof options.indexes === 'undefined') {
             this.indexes = [];
             this.indexesIsUndefined = true;
@@ -153,6 +175,8 @@ export class Schema<
         this.pagination.name = this.options.name;
         this.relations.name = this.options.name;
         this.sorts.name = this.options.name;
+        this.groups.name = this.options.name;
+        this.aggregates.name = this.options.name;
     }
 
     // ---------------------------------------------------------
@@ -205,6 +229,14 @@ export class Schema<
             output.sorts = this.sorts.describe();
         }
 
+        if (parameters.includes(Parameter.GROUPS)) {
+            output.groups = this.groups.describe();
+        }
+
+        if (parameters.includes(Parameter.AGGREGATES)) {
+            output.aggregates = this.aggregates.describe();
+        }
+
         return output;
     }
 
@@ -216,6 +248,14 @@ export class Schema<
         this.extendSchemaOptions(this.pagination);
         this.extendSchemaOptions(this.relations);
         this.extendSchemaOptions(this.sorts);
+
+        // name only: a groups or aggregates rejection is always fatal and a
+        // bound schema permits nothing it does not declare, so the failure
+        // policy and strict mode have nothing to steer there.
+        if (typeof this.options.name !== 'undefined') {
+            this.groups.name = this.options.name;
+            this.aggregates.name = this.options.name;
+        }
 
         if (!this.indexesIsUndefined) {
             this.filters.setIndexes(this.indexes);

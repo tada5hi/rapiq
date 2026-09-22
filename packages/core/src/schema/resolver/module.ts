@@ -20,8 +20,10 @@ import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
 import { Schema } from '../module';
 import {
+    AggregatesSchema,
     FieldsSchema,
     FiltersSchema,
+    GroupsSchema,
     PaginationSchema,
     RelationsSchema,
     SortsSchema,
@@ -43,6 +45,8 @@ const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.RELATIONS]: RelationsSchema,
     [Parameter.SORTS]: SortsSchema,
     [Parameter.SORT]: SortsSchema,
+    [Parameter.GROUPS]: GroupsSchema,
+    [Parameter.AGGREGATES]: AggregatesSchema,
 } as const;
 
 /**
@@ -740,6 +744,11 @@ export class ResolutionScope<
                     undefined :
                     KeyResolutionErrorCode.KEY_NOT_PERMITTED;
             }
+            case Parameter.GROUPS:
+            case Parameter.AGGREGATES:
+                // resolved term by term through resolveCallTerm, never by key:
+                // refusing here keeps these parameters off the fail-open default.
+                return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
             default:
                 return undefined;
         }
