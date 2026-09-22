@@ -201,6 +201,16 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         throw AdapterError.featureUnsupported('filters:mod');
     }
 
+    override castText(input: string, field?: string) : string {
+        const { mainAlias } = this.queryBuilder.expressionMap;
+        // citext is not case-foldable because its native LIKE already folds.
+        // Casting it to text would silently make matching case-sensitive.
+        if (field && mainAlias?.hasMetadata && findColumnByPropertyPath(mainAlias.metadata, field)?.type === 'citext') {
+            return input;
+        }
+        return this.dialect.castText?.(input) ?? super.castText(input);
+    }
+
     override caseFold(input: string) : string {
         if (this.dialect.caseFold) {
             return this.dialect.caseFold(input);

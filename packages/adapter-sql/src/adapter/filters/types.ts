@@ -39,6 +39,8 @@ export interface IFiltersAdapter extends ISubAdapter {
 
     isLikeBracketWildcard?() : boolean;
 
+    castText?(input: string, field?: string) : string;
+
     isCaseFoldable(field: string) : boolean;
 
     bindValue(field: string, value: unknown) : unknown;

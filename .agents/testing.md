@@ -22,7 +22,13 @@ Vitest sets `NODE_ENV=test` automatically. Nx caches `test` targets — pass `--
 
 ### Unit Tests
 
-The only layer — there are no integration tests and no external infrastructure (no databases, no Docker). Even `@rapiq/adapter-typeorm` is tested against TypeORM's `SelectQueryBuilder` API without a live database.
+Default tests need no external servers. TypeORM tests include live in-memory SQLite queries as well as unconnected query-builder tests.
+
+### Engine Tests
+
+`npm run test:db --workspace=packages/adapter-typeorm` runs `.db.spec.ts` on SQLite by default, or MySQL/PostgreSQL with `DB_TYPE=mysql|postgres` and `DB_DATABASE` plus connection settings. The suite recreates its schema: use a dedicated disposable database.
+
+`npm run test:db --workspace=packages/adapter-prisma` generates fixture clients and runs Prisma against SQLite, or PostgreSQL with `DB_TYPE=postgres`. Anchored literal tests compare actual engine results with `@rapiq/adapter-memory`. The Prisma and TypeORM suites must not share a persistent database concurrently.
 
 Specs typically `describe` the module under test by source path:
 

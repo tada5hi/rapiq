@@ -144,6 +144,57 @@ describe('src/adapter/filters.ts', () => {
             expect(build(endsWith('first_name', 'er'))).toEqual({ first_name: { endsWith: 'er', mode: 'insensitive' } });
         });
 
+        it.each(['postgresql', 'cockroachdb', 'mysql'])('should escape literal LIKE operands on %s', (provider) => {
+            const options = { provider, caseSensitive: true };
+            for (const [operator, buildCondition] of Object.entries({
+                contains,
+                startsWith,
+                endsWith,
+            })) {
+                expect(build(buildCondition('address', String.raw`100%_\end`), options))
+                    .toEqual({ address: { [operator]: String.raw`100\%\_\\end` } });
+                expect(build(not(buildCondition('address', String.raw`100%_\end`)), options))
+                    .toEqual({
+                        OR: [
+                            { address: { not: { [operator]: String.raw`100\%\_\\end` } } },
+                            { address: null },
+                        ],
+                    });
+            }
+        });
+
+        it('should refuse pattern syntax when a custom provider supplies no escaping', () => {
+            const options = { provider: { caseInsensitiveMode: true } };
+            for (const value of ['.*', 'a|b', '^a', '100%', 'a_b', '[ab]', String.raw`a\b`]) {
+                expect(() => build(contains('address', value), options)).toThrowError(
+                    expect.objectContaining({ feature: 'filters:match-literal' }),
+                );
+            }
+            expect(build(contains('address', 'plain'), options))
+                .toEqual({ address: { contains: 'plain', mode: 'insensitive' } });
+        });
+
+        it('should escape SQL Server bracket patterns', () => {
+            expect(build(contains('address', String.raw`100%_[a-z]\end`), { provider: 'sqlserver' }))
+                .toEqual({ address: { contains: String.raw`100[%][_][[]a-z]\end` } });
+        });
+
+        it('should escape MongoDB regex operands without treating percent as a wildcard', () => {
+            expect(build(contains('address', String.raw`100%_[a-z].*\end`), { provider: 'mongodb' }))
+                .toEqual({ address: { contains: String.raw`100%_\[a-z\]\.\*\\end`, mode: 'insensitive' } });
+        });
+
+        it.each([contains, startsWith, endsWith])('should refuse SQLite LIKE wildcards for %s and its complement', (operator) => {
+            for (const value of ['%', '_']) {
+                for (const condition of [operator('address', value), not(operator('address', value))]) {
+                    expect(() => build(condition, { provider: 'sqlite' })).toThrowError(
+                        expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED, feature: 'filters:match-literal' }),
+                    );
+                }
+            }
+            expect(build(operator('address', String.raw`[a]\end`), { provider: 'sqlite' })).toBeDefined();
+        });
+
         it('should keep mode a sibling of not in the negated form', () => {
             expect(build(notContains('address', 'wart'))).toEqual({
                 OR: [

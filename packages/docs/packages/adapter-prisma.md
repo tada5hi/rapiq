@@ -276,6 +276,23 @@ const adapter = new PrismaAdapter({
 adapter.execute(query, { caseSensitive: true });
 ```
 
+## Literal anchored matching
+
+`contains`, `startsWith`, `endsWith` and their negations treat the operand literally. The provider preset escapes it before Prisma adds its anchors:
+
+| Provider | Operand handling |
+|---|---|
+| PostgreSQL, CockroachDB, MySQL | Backslash-escapes `%`, `_` and backslash itself |
+| SQL Server | Uses bracket literals for `%`, `_` and `[` |
+| MongoDB | Escapes regex metacharacters; `%` and `_` remain literal |
+| SQLite | Rejects `%` and `_` with `AdapterError` (`FEATURE_UNSUPPORTED`, feature `filters:match-literal`); other characters remain literal |
+
+SQLite's `LIKE` has no default escape character, and Prisma's filter object cannot add an `ESCAPE` clause. Refusing those operands prevents a literal search from silently widening. Escaping applies with or without `caseSensitive`, including negation and relation filters.
+
+Custom `ProviderOptions` may supply `escapeMatch(input)` to encode a literal operand without anchors. Without it, operands containing SQL wildcards or regex metacharacters fail typed. Prefer extending an exported `PROVIDERS` preset so its escaping survives a case-mode override.
+
+The MySQL preset requires backslash escaping in `LIKE` (the default SQL mode). If your connection enables `NO_BACKSLASH_ESCAPES`, override `escapeMatch` with `PROVIDERS.sqlite.escapeMatch` to refuse wildcard operands and keep backslashes literal. The serializer cannot inspect connection SQL modes.
+
 ## Limitations
 
 Operators without a Prisma equivalent raise a typed `AdapterError` (`FEATURE_UNSUPPORTED`) instead of being approximated:

@@ -18,4 +18,11 @@ export type ProviderOptions = {
      * mysql/mssql dialects.
      */
     caseInsensitiveMode: boolean,
+
+    /**
+     * Escape a literal anchored operand for the connector's pattern language.
+     * Does not add anchors: Prisma adds them for contains/startsWith/endsWith.
+     * Omit to refuse operands carrying SQL or regex pattern characters.
+     */
+    escapeMatch?: (input: string) => string,
 };

@@ -8,6 +8,7 @@
 import type { Condition, Filter, Filters } from '@rapiq/core';
 import {
     AdapterError,
+    ErrorCode,
     FilterCompoundOperator,
     Filters as FiltersNode,
     Pagination,
@@ -16,11 +17,14 @@ import {
     SortDirection,
     Sorts,
     and,
+    contains,
+    endsWith,
     eq,
     gte,
     inArray,
     ne,
     not,
+    startsWith,
 } from '@rapiq/core';
 import { compileFilters } from '@rapiq/adapter-memory';
 import { PrismaAdapter, defineMetadata } from '../../src';
@@ -326,6 +330,36 @@ describe('engine parity (prisma vs memory)', () => {
         } else {
             expect(ids).toEqual(memoryIds(eq('first_name', 'caleb')));
             expect(ids).toEqual([1]);
+        }
+    });
+
+    it('should match anchored literals without widening the result (#940)', async () => {
+        const values = ['100%', '100XYZ', 'a_b', 'aXb', String.raw`a\b`, 'a\\', 'ab', '[a-z].*', 'az', null];
+        const added = values.map((address, index) => ({
+            id: 100 + index,
+            first_name: 'Literal',
+            last_name: `${index}`,
+            email: 'x',
+            age: 1,
+            address,
+        }));
+        await database.client.user.createMany({ data: added });
+        try {
+            for (const value of ['100%', 'a_b', String.raw`a\b`, 'a\\', '[a-z].*']) {
+                for (const operator of [contains, startsWith, endsWith]) {
+                    for (const condition of [operator('address', value), not(operator('address', value))]) {
+                        if (database.provider === 'sqlite' && /[%_]/.test(value)) {
+                            expect(() => build(condition)).toThrowError(expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED, feature: 'filters:match-literal' }));
+                            continue;
+                        }
+                        const expected = [...records, ...added].filter(compileFilters(condition))
+                            .map((row) => row.id).sort((a, b) => a - b);
+                        expect(await engineIds(condition)).toEqual(expected);
+                    }
+                }
+            }
+        } finally {
+            await database.client.user.deleteMany({ where: { id: { in: added.map((row) => row.id) } } });
         }
     });
 

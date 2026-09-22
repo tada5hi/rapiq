@@ -168,6 +168,12 @@ Which fields are temporal comes from the adapter's own knowledge of the backend:
 
 Only equality and ordering operands are read this way. A `contains`/`startsWith` pattern or a `mod` divisor is not a value of the column's domain and passes through untouched.
 
+## Literal text matching
+
+`contains`, `startsWith`, `endsWith` and their negations match literal operands, including `%`, `_`, brackets and backslashes. The adapters escape each backend's pattern syntax. [Prisma with SQLite](/packages/adapter-prisma#literal-anchored-matching) refuses `%` and `_` with a typed `AdapterError` because its filter API cannot express them literally.
+
+Numeric anchored matching uses the column's text representation: `contains('age', '1')` matches `18`. The [TypeORM adapter](/packages/adapter-typeorm) casts known non-string PostgreSQL columns to text for these operators; equality retains numeric comparison. Text formatting for other types remains engine-dependent.
+
 ## Case sensitivity
 
 String matching is **case-insensitive by default**, uniformly across every adapter: the same query matches the same records whether it runs on Postgres, MySQL, in memory, or through TypeORM:

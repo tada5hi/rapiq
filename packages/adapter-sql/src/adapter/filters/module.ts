@@ -73,6 +73,10 @@ export class FiltersAdapter extends FiltersBaseAdapter {
         return this.options.mod(field, divisorPlaceholder, remainderPlaceholder);
     }
 
+    override castText(input: string) : string {
+        return this.options.castText?.(input) ?? super.castText(input);
+    }
+
     override caseFold(input: string) : string {
         if (this.options.caseFold) {
             return this.options.caseFold(input);

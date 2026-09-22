@@ -5,7 +5,10 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { AdapterError, createFilterRegexPattern } from '@rapiq/core';
 import type { ProviderOptions } from './types';
+
+const escapeLike = (input: string) => input.replace(/[\\%_]/g, '\\$&');
 
 /**
  * Datasource providers a prisma schema can declare.
@@ -31,10 +34,22 @@ export enum Provider {
  * divergence.
  */
 export const PROVIDERS : Record<`${Provider}`, ProviderOptions> = {
-    [Provider.POSTGRESQL]: { caseInsensitiveMode: true },
-    [Provider.COCKROACHDB]: { caseInsensitiveMode: true },
-    [Provider.MONGODB]: { caseInsensitiveMode: true },
-    [Provider.MYSQL]: { caseInsensitiveMode: false },
-    [Provider.SQLSERVER]: { caseInsensitiveMode: false },
-    [Provider.SQLITE]: { caseInsensitiveMode: false },
+    [Provider.POSTGRESQL]: { caseInsensitiveMode: true, escapeMatch: escapeLike },
+    [Provider.COCKROACHDB]: { caseInsensitiveMode: true, escapeMatch: escapeLike },
+    [Provider.MONGODB]: { caseInsensitiveMode: true, escapeMatch: createFilterRegexPattern },
+    [Provider.MYSQL]: { caseInsensitiveMode: false, escapeMatch: escapeLike },
+    [Provider.SQLSERVER]: {
+        caseInsensitiveMode: false,
+        escapeMatch: (input) => input.replace(/[%_[]/g, '[$&]'),
+    },
+    [Provider.SQLITE]: {
+        caseInsensitiveMode: false,
+        escapeMatch: (input) => {
+            // SQLite LIKE has no default escape and Prisma exposes no ESCAPE.
+            if (/[%_]/.test(input)) {
+                throw AdapterError.featureUnsupported('filters:match-literal');
+            }
+            return input;
+        },
+    },
 };

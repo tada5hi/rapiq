@@ -247,8 +247,10 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
             this.adapter.caseFoldLike.bind(this.adapter) :
             this.adapter.caseFold.bind(this.adapter);
 
-        const fold = ignoreCase && this.isCaseFoldableField(field);
-        const operand = fold ? caseFoldLike(fieldBuilt) : fieldBuilt;
+        const foldable = this.isCaseFoldableField(field);
+        const fieldText = foldable ? fieldBuilt : this.adapter.castText?.(fieldBuilt, `${this.adapter.getFieldPrefix()}${field}`) ?? fieldBuilt;
+        const fold = ignoreCase && foldable;
+        const operand = fold ? caseFoldLike(fieldText) : fieldText;
         const operandPlaceholder = fold ? caseFoldLike(placeholder) : placeholder;
 
         const condition = `${operand} ${negated ? 'not ' : ''}like ${operandPlaceholder} escape '${LIKE_ESCAPE_CHARACTER}'`;

@@ -12,7 +12,8 @@ export const pg : DialectOptions = {
         const operator = ignoreCase ? '~*' : '~';
         return `${field} ${operator} ${placeholder}`;
     },
-    escapeField: (field: string) => `"${field}"`,
+    escapeField: (field: string) => `"${field.replaceAll('"', '""')}"`,
+    castText: (input) => `${input}::text`,
     paramPlaceholder: (index) => `$${index}`,
     mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
 };

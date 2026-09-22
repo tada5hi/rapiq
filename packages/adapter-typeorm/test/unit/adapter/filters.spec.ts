@@ -62,6 +62,39 @@ describe('src/adapter/filters.ts', () => {
         expect(mysqlParams).toEqual([18]);
     });
 
+    it('should keep quote characters inside filter identifiers (#941)', () => {
+        const condition = new Filter('eq', 'name") is not null or true or ("name', 'zz');
+        for (const source of [sqlite, pg]) {
+            expect(apply(source, condition)).toEqual([
+                'lower("user"."name"") is not null or true or (""name") = lower(:0)',
+                ['zz'],
+            ]);
+        }
+        expect(apply(mysql, new Filter('eq', 'a`b', 'zz')))
+            .toEqual(['`user`.`a``b` = :0', ['zz']]);
+    });
+
+    it('should preserve native citext matching without a text cast', () => {
+        const column = pg.getMetadata(User).findColumnWithPropertyPath('first_name')!;
+        const previous = column.type;
+        column.type = 'citext';
+        try {
+            expect(apply(pg, new Filter('contains', 'first_name', 'aston')))
+                .toEqual(['"user"."first_name" like :0 escape \'!\'', ['%aston%']]);
+        } finally {
+            column.type = previous;
+        }
+    });
+
+    it('should cast numeric LIKE operands on postgres (#942)', () => {
+        expect(apply(pg, new Filter('contains', 'age', '1')))
+            .toEqual(['"user"."age"::text like :0 escape \'!\'', ['%1%']]);
+        expect(apply(pg, new Filter('notContains', 'age', '1')))
+            .toEqual(['("user"."age"::text not like :0 escape \'!\' or "user"."age" is null)', ['%1%']]);
+        expect(apply(pg, new Filter('eq', 'age', '18')))
+            .toEqual(['"user"."age" = :0', ['18']]);
+    });
+
     it('should build mysql regexp conditions', () => {
         const condition = new Filter(FilterFieldOperator.REGEX, 'first_name', /^Aston/);
 
@@ -96,13 +129,11 @@ describe('src/adapter/filters.ts', () => {
     });
 
     it('should skip the fold for a non-string column', () => {
-        // the metadata veto keeps `lower(integer)` out of the query; pg
-        // rejects a like over an integer column either way, but on a
-        // collation-ci engine the unfolded form is a valid query.
+        // Metadata suppresses lower(integer); the pg text cast makes LIKE valid.
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'realm_id', '1');
 
         const [sql, params] = apply(pg, condition);
-        expect(sql).toEqual('"user"."realm_id" like :0 escape \'!\'');
+        expect(sql).toEqual('"user"."realm_id"::text like :0 escape \'!\'');
         expect(params).toEqual(['1%']);
     });
 

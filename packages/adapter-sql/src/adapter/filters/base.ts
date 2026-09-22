@@ -118,6 +118,11 @@ export abstract class FiltersBaseAdapter<
         return false;
     }
 
+    /** Convert a known non-string LIKE operand; default to implicit coercion. */
+    castText(input: string, _field?: string) : string {
+        return input;
+    }
+
     /**
      * Whether equality comparisons on this field may case-fold at all.
      * Backends with column metadata override this to exempt non-string
