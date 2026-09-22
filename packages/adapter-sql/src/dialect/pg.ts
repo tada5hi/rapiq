@@ -7,6 +7,9 @@
 
 import type { DialectOptions } from './types';
 
+// double-quoted parts are literal text in a to_char pattern.
+const BUCKET_FORMAT = 'YYYY-MM-DD"T"HH24:MI:SS".000Z"';
+
 export const pg : DialectOptions = {
     regexp: (field, placeholder, ignoreCase) => {
         const operator = ignoreCase ? '~*' : '~';
@@ -16,4 +19,17 @@ export const pg : DialectOptions = {
     castText: (input) => `${input}::text`,
     paramPlaceholder: (index) => `$${index}`,
     mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
+    // date_trunc on a timestamptz truncates in the session time zone, so
+    // an instant is shifted to UTC wall clock first; a date is widened to
+    // a timestamp so every unit yields a timestamp to format.
+    bucket: (field, unit, kind) => {
+        let input = field;
+        if (kind === 'instant') {
+            input = `${field} at time zone 'UTC'`;
+        } else if (kind === 'date') {
+            input = `${field}::timestamp`;
+        }
+
+        return `to_char(date_trunc('${unit}', ${input}), '${BUCKET_FORMAT}')`;
+    },
 };

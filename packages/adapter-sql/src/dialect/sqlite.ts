@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { BUCKET_FORMATS } from './bucket';
 import { mysql } from './mysql';
 import type { DialectOptions } from './types';
 
@@ -27,4 +28,7 @@ export const sqlite : DialectOptions = {
     // the float-capable semantics of @rapiq/adapter-memory for integers)
     // or set it to undefined for the typed filters:mod refusal.
     mod: mysql.mod,
+    // expects ISO or `YYYY-MM-DD HH:MM:SS` text (what TypeORM writes);
+    // strftime reads a number as a Julian day, not as epoch time.
+    bucket: (field, unit) => `strftime('${BUCKET_FORMATS[unit]}', ${field})`,
 };

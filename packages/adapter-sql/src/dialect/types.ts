@@ -5,6 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { BucketUnit } from '@rapiq/core';
+
+/**
+ * How a temporal column stores its value: `date` a calendar date,
+ * `datetime` a zone-less wall clock read as UTC (#939), `instant` a
+ * zoned timestamp such as a pg `timestamptz`.
+ */
+export type TemporalKind = 'date' | 'datetime' | 'instant';
+
 export type DialectOptions = {
     /**
      * Build a regular-expression condition for the `regex` operator.
@@ -49,6 +58,14 @@ export type DialectOptions = {
     likeBracketWildcard?: boolean,
     /** Convert a known non-string LIKE operand to text; omit for implicit coercion. */
     castText?: (input: string) => string,
+    /**
+     * Truncate a temporal column to the start of a UTC unit and render it
+     * as `YYYY-MM-DDTHH:MM:SS.000Z` text (the `bucket` group function).
+     * The unit comes from the closed `BucketUnit` enum and is inlined,
+     * never bound. Omit when unsupported: a bucket then raises
+     * `groups:bucket` (mssql, oracle).
+     */
+    bucket?: (field: string, unit: `${BucketUnit}`, kind: TemporalKind) => string,
     escapeField: (input: string) => string,
     paramPlaceholder: (index: number) => string,
 };
