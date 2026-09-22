@@ -13,7 +13,7 @@ import type {
     IQueryVisitor,
     ISorts,
 } from '@rapiq/core';
-import { FieldOperator } from '@rapiq/core';
+import { AdapterError, FieldOperator, isGroupedQuery } from '@rapiq/core';
 import type { FieldsVisitorOptions, FiltersVisitorOptions } from './parameter';
 import {
     FieldsVisitor,
@@ -93,6 +93,11 @@ export function compileQuery<T = Record<string, any>>(
     query: IQuery,
     options: QueryVisitorOptions = {},
 ) : CompiledQuery<T> {
+    // a grouped query returns aggregated rows, never records.
+    if (isGroupedQuery(query)) {
+        throw AdapterError.featureUnsupported('groups');
+    }
+
     return query.accept(new QueryVisitor<T>(options));
 }
 
