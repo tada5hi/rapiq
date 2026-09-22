@@ -118,6 +118,13 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
             throw AdapterError.featureUnsupported('groups:empty');
         }
 
+        // a caller's GROUP BY (a per-entity dedupe, say) would silently
+        // turn every group into a per-entity group. Checked before
+        // clear(), so a refused query leaves the builder untouched.
+        if (this.queryBuilder.expressionMap.groupBys.length > 0) {
+            throw AdapterError.featureUnsupported('groups:builder');
+        }
+
         if (options.clear ?? true) {
             this.clear();
         }
@@ -137,6 +144,22 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         // added, and groupBy() drops an onJoin hook's addGroupBy (a
         // per-entity dedupe), so neither can change the grain.
         this.relations.execute();
+
+        // a to-many join repeats each root row per related row, which
+        // inflates count and sum; groups alone only collapse duplicates.
+        // Every join counts, the caller's included. An entity join
+        // (`leftJoin(Entity, alias, condition)`) carries no relation
+        // metadata and cannot be classified.
+        if (query.aggregates && query.aggregates.value.length > 0) {
+            const fanOut = this.queryBuilder.expressionMap.joinAttributes.some(
+                (join) => !!join.relation &&
+                    (join.relation.isOneToMany || join.relation.isManyToMany),
+            );
+
+            if (fanOut) {
+                throw AdapterError.featureUnsupported('aggregates:fan-out');
+            }
+        }
 
         this.queryBuilder.select([]);
         for (const select of clauses.selects) {

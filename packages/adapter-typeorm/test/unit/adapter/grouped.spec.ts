@@ -201,6 +201,66 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         }]);
     });
 
+    it('should refuse a builder that is already grouped', () => {
+        const { queryBuilder, adapter } = setup();
+
+        queryBuilder.groupBy('activity.id');
+
+        expect(() => adapter.executeGrouped(defineQuery({ aggregates: ['count'] })))
+            .toThrowError(expect.objectContaining({
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                feature: 'groups:builder',
+            }));
+        expect(queryBuilder.expressionMap.groupBys).toEqual(['activity.id']);
+    });
+
+    it('should refuse aggregates across a to-many join the caller made', () => {
+        const { queryBuilder, adapter } = setup();
+
+        queryBuilder.leftJoin('activity.tags', 'tag');
+
+        expect(() => adapter.executeGrouped(defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:fan-out',
+        }));
+    });
+
+    it('should refuse aggregates across a to-many relation a filter traverses', () => {
+        const { adapter } = setup();
+
+        expect(() => adapter.executeGrouped(defineQuery({
+            aggregates: [{ name: 'sum', params: ['amount'] }],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:fan-out',
+        }));
+    });
+
+    it('should allow groups alone across a to-many join', () => {
+        const { queryBuilder, adapter } = setup();
+
+        queryBuilder.leftJoin('activity.tags', 'tag');
+
+        adapter.executeGrouped(defineQuery({ groups: ['scope'] }));
+
+        expect(queryBuilder.expressionMap.groupBys).toEqual(['"activity"."scope"']);
+    });
+
+    it('should allow aggregates across a to-one join', () => {
+        const { queryBuilder, adapter } = setup();
+
+        adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        }));
+
+        expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(1);
+    });
+
     describe('postgres column kinds', () => {
         const render = (field: string) => {
             const queryBuilder = pg
