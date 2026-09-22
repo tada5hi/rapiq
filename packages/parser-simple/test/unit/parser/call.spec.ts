@@ -78,6 +78,11 @@ describe('src/parameter/call', () => {
         ['f(\'a\')'],
         ['f("a")'],
         ['a b'],
+        ['f(\na)'],
+        ['f(a\r)'],
+        ['f(a,\u00A0b)'],
+        ['f(\u2028)'],
+        ['\n'],
     ])('should reject %s as a syntax violation', (input) => {
         const error = errorOf(input);
 

@@ -18,6 +18,14 @@ const TERM_PATTERN = /^[ \t]*([^\s(),'"]+)[ \t]*(?:\(([^()]*)\)[ \t]*)?$/u;
 
 const ARGUMENT_PATTERN = /^[^\s(),'"]+$/u;
 
+/**
+ * The grammar's only whitespace is space and tab; `String#trim()` would
+ * also strip line breaks and unicode spaces the term pattern refuses.
+ */
+function trimBlank(input: string) : string {
+    return input.replace(/^[ \t]+|[ \t]+$/gu, '');
+}
+
 function splitTerms(input: string) : string[] {
     const output : string[] = [];
 
@@ -57,12 +65,12 @@ function parseTerm(input: string) : CallTerm {
         throw ParseError.syntaxInvalid('a call term is empty or malformed');
     }
 
-    const list = (match?.[2] ?? '').trim();
+    const list = trimBlank(match?.[2] ?? '');
     if (list === '') {
         return { name, params: [] };
     }
 
-    const params = list.split(',').map((param) => param.trim());
+    const params = list.split(',').map((param) => trimBlank(param));
     if (params.some((param) => !ARGUMENT_PATTERN.test(param))) {
         throw ParseError.syntaxInvalid('a call argument is empty or malformed');
     }
@@ -89,7 +97,7 @@ export function parseCallTerms(input: unknown) : CallTerm[] {
             throw ParseError.inputInvalid();
         }
 
-        if (list.trim() === '') {
+        if (trimBlank(list) === '') {
             continue;
         }
 
