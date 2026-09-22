@@ -71,6 +71,7 @@ export default defineConfig({
                         { text: 'Relations', link: '/guide/relations' },
                         { text: 'Sorts', link: '/guide/sort' },
                         { text: 'Pagination', link: '/guide/pagination' },
+                        { text: 'Grouping & Aggregates', link: '/guide/grouping' },
                     ],
                 },
                 {
