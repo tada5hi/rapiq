@@ -76,7 +76,9 @@ Per-parameter input shapes and the wire operator syntax are documented on the pa
 
 ## Per-parameter parsers
 
-Each parameter also has a standalone parser class (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortsParser`) with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
+Each parameter also has a standalone parser class (`SimpleFieldsParser`, `SimpleFiltersParser`, `SimplePaginationParser`, `SimpleRelationsParser`, `SimpleSortsParser`, `SimpleGroupsParser`, `SimpleAggregatesParser`) with the same `(input, { schema })` signature, returning that parameter's AST node. Useful when only one parameter comes from user input. Every parser exposes `parseAsync()`; `SimpleFiltersParser` also exposes `parseTypedAsync()` alongside `parseTyped()`.
+
+`SimpleGroupsParser` and `SimpleAggregatesParser` are also what the expression and MongoDB-style parsers use: [group and aggregate terms](/guide/grouping#on-the-wire) have one grammar in every dialect. The grammar's two functions are exported: `parseCallTerms(input)` splits `bucket(createdAt,day),scope` into `CallTerm`s (`{ name, params }`), and `serializeCallTerm(term)` writes one back. Inside a whole-query parse both parameters are [opt-in](/guide/grouping#opting-in).
 
 ### Typed filter input
 

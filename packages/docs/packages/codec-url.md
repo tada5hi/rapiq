@@ -85,6 +85,8 @@ The deprecated simple dialect supports flat root-AND filters only. Duplicate sam
 | pagination | `page` | `page[limit]=25&page[offset]=50` |
 | relations | `include` | `include=realm,items` |
 | sorts | `sort` | `sort=name,-age` |
+| groups | `group` | `group=bucket(createdAt,day),scope` ([opt-in on decode](/guide/grouping#opting-in)) |
+| aggregates | `aggregate` | `aggregate=count,sum(amount)` (opt-in on decode) |
 
 When root and relation fieldsets encode together, the root field group is spelled with the reserved `$root` token (exported as `URL_FIELDS_ROOT`): `fields[$root]=id,name&fields[items]=id`. A lone root group keeps the bare form (`fields=id,name`). Decoding accepts `$root` and the legacy `__DEFAULT__` spelling written by early 2.0 betas.
 
