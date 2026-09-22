@@ -19,7 +19,7 @@ export class Group implements IGroup {
 
     constructor(options: GroupOptions) {
         this.name = options.name;
-        this.params = options.params || [];
+        this.params = [...(options.params ?? [])];
         this.lowering = options.lowering;
 
         // a group callee is one dimension: two groups with the same

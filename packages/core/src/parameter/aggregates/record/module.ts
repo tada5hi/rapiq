@@ -19,7 +19,7 @@ export class Aggregate implements IAggregate {
 
     constructor(options: AggregateOptions) {
         this.name = options.name;
-        this.params = options.params || [];
+        this.params = [...(options.params ?? [])];
         this.lowering = options.lowering;
 
         // a query routinely asks one measure of several columns, so the

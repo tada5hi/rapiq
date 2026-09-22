@@ -108,7 +108,10 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
             sorts,
         });
 
-        expect(resolveGroupedSorts(query)).toBe(sorts.value);
+        const output = resolveGroupedSorts(query);
+
+        expect(output).toEqual(sorts.value);
+        expect(output).not.toBe(sorts.value);
     });
 
     it('should order by every group key ascending in declared order', () => {

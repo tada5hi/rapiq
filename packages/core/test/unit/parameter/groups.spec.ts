@@ -53,6 +53,16 @@ describe('src/parameter/groups/**', () => {
         expect(group.lowering).toBeUndefined();
     });
 
+    it('should not share the params array with the caller', () => {
+        const params = ['createdAt', 'day'];
+        const group = new Group({ name: 'bucket', params });
+        const aggregate = new Aggregate({ name: 'sum', params });
+        params.push('hour');
+
+        expect(group.params).toEqual(['createdAt', 'day']);
+        expect(aggregate.params).toEqual(['createdAt', 'day']);
+    });
+
     it('should default to an empty collection', () => {
         expect(new Groups().value).toEqual([]);
     });

@@ -41,7 +41,7 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
  */
 export function resolveGroupedSorts(query: IQuery) : ISort[] {
     if (query.sorts.value.length > 0) {
-        return query.sorts.value;
+        return [...query.sorts.value];
     }
 
     return (query.groups?.value ?? [])
