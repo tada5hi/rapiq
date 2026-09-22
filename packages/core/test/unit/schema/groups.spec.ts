@@ -137,6 +137,14 @@ describe('src/schema/parameter/groups/*.ts', () => {
         expect(error.message).toBe(ErrorMessage.functionInvalid('realm.id', 'the column is not a valid identifier'));
     });
 
+    it.each(['__proto__', 'constructor', 'prototype'])('should refuse the reserved column %s', (column) => {
+        const error = captureError<SchemaError>(() => defineGroupsSchema({ allowed: [column] }));
+
+        expect(error).toBeInstanceOf(SchemaError);
+        expect(error.code).toBe(ErrorCode.KEY_INVALID);
+        expect(error.message).toBe(ErrorMessage.functionInvalid(column, 'the column is not a valid identifier'));
+    });
+
     it('should refuse columns that are not an array', () => {
         const error = captureError<SchemaError>(() => defineGroupsSchema({ allowed: 'status' } as any));
 

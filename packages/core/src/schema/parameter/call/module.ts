@@ -14,7 +14,7 @@ import {
 } from '../../../parameter';
 import type { CallSlot, CallSlotName, CallTerm } from '../../../parameter';
 import type { ObjectLiteral } from '../../../types';
-import { isObject, isPropertyNameValid, isPropertySet } from '../../../utils';
+import { isCallIdentifierValid, isObject, isPropertySet } from '../../../utils';
 import type { AggregatesSchema } from '../aggregates';
 import type { GroupsSchema } from '../groups';
 import type {
@@ -31,7 +31,7 @@ function isSlotValueValid(slot: CallSlotName, value: unknown) : boolean {
 
     return slot === 'unit' ?
         (Object.values(BucketUnit) as string[]).includes(value) :
-        isPropertyNameValid(value);
+        isCallIdentifierValid(value);
 }
 
 /**
@@ -154,7 +154,7 @@ export function normalizeCallFunctions(
     const names = Object.keys(primitives);
 
     for (const [key, declaration] of Object.entries(input)) {
-        if (!isPropertyNameValid(key)) {
+        if (!isCallIdentifierValid(key)) {
             throw SchemaError.functionInvalid(key, 'the name is not a valid identifier');
         }
 
@@ -247,7 +247,7 @@ export function resolveCallTerm(
         return reject(ErrorCode.KEY_PATH_NOT_ALLOWED, ErrorMessage.keyPathNotPermitted(dotted));
     }
 
-    const invalid = identifiers.find((identifier) => !isPropertyNameValid(identifier));
+    const invalid = identifiers.find((identifier) => !isCallIdentifierValid(identifier));
     if (typeof invalid !== 'undefined') {
         return reject(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid(invalid));
     }
