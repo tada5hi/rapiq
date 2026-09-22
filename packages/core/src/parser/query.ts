@@ -31,9 +31,9 @@ import {
     Query,
     Relations,
     Sorts,
+    isGroupedQuery,
 } from '../parameter';
-import { FilterCompoundOperator } from '../schema';
-import type { Schema } from '../schema';
+import { FilterCompoundOperator, Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
     isObject,
@@ -151,13 +151,19 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         this.checkOutputKeys(output, issueCollector);
 
+        const grouped = isGroupedQuery(output);
+
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = this.parseOne(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
-                this.readParameter(data, Parameter.FIELDS),
-                parameterOptions,
-                ledger,
-                issueCollector,
-            ));
+            if (grouped) {
+                this.rejectGroupedFields(data, issueCollector);
+            } else {
+                output.fields = this.parseOne(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
+                    this.readParameter(data, Parameter.FIELDS),
+                    parameterOptions,
+                    ledger,
+                    issueCollector,
+                ));
+            }
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
@@ -182,12 +188,19 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = this.parseOne(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser.parseParameter(
-                this.readParameter(data, Parameter.SORTS),
-                parameterOptions,
-                ledger,
-                issueCollector,
-            ));
+            output.sorts = this.parseOne(issueCollector, Parameter.SORTS, new Sorts(), () => {
+                const sortsInput = this.readParameter(data, Parameter.SORTS);
+                if (grouped) {
+                    return this.sortParser.parseParameter(
+                        sortsInput,
+                        this.buildGroupedSortsOptions(output, options),
+                        ledger,
+                        issueCollector,
+                    );
+                }
+
+                return this.sortParser.parseParameter(sortsInput, parameterOptions, ledger, issueCollector);
+            });
         }
 
         // the cross-parameter passes belong to the trace like the parameters
@@ -261,14 +274,20 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         this.checkOutputKeys(output, issueCollector);
 
+        const grouped = isGroupedQuery(output);
+
         if (!this.skipParameter(options, Parameter.FIELDS)) {
-            output.fields = await this.parseOneAsync(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser
-                .parseParameterAsync(
-                    this.readParameter(data, Parameter.FIELDS),
-                    parameterOptions,
-                    ledger,
-                    issueCollector,
-                ));
+            if (grouped) {
+                this.rejectGroupedFields(data, issueCollector);
+            } else {
+                output.fields = await this.parseOneAsync(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser
+                    .parseParameterAsync(
+                        this.readParameter(data, Parameter.FIELDS),
+                        parameterOptions,
+                        ledger,
+                        issueCollector,
+                    ));
+            }
         }
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
@@ -297,13 +316,19 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         if (!this.skipParameter(options, Parameter.SORTS)) {
-            output.sorts = await this.parseOneAsync(issueCollector, Parameter.SORTS, new Sorts(), () => this.sortParser
-                .parseParameterAsync(
-                    this.readParameter(data, Parameter.SORTS),
-                    parameterOptions,
-                    ledger,
-                    issueCollector,
-                ));
+            output.sorts = await this.parseOneAsync(issueCollector, Parameter.SORTS, new Sorts(), () => {
+                const sortsInput = this.readParameter(data, Parameter.SORTS);
+                if (grouped) {
+                    return this.sortParser.parseParameterAsync(
+                        sortsInput,
+                        this.buildGroupedSortsOptions(output, options),
+                        ledger,
+                        issueCollector,
+                    );
+                }
+
+                return this.sortParser.parseParameterAsync(sortsInput, parameterOptions, ledger, issueCollector);
+            });
         }
 
         await this.recordFailureAsync(trace, async () => {
@@ -511,7 +536,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.fields = pruneFieldsByRelations(output.fields, rejected);
         }
 
-        if (output.sorts) {
+        // grouped sorts name output keys, which no relation reaches, and a
+        // refilled schema default would name a column.
+        if (output.sorts && !isGroupedQuery(output)) {
             output.sorts = pruneSortsByRelations(output.sorts, rejected, schema?.sort);
         }
 
@@ -539,7 +566,8 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.filters = applyFiltersIndexPolicy(output.filters, this.registry, options.schema, context);
         }
 
-        if (output.sorts) {
+        // the index policy speaks about columns, grouped sorts name output keys.
+        if (output.sorts && !isGroupedQuery(output)) {
             output.sorts = applySortsIndexPolicy(output.sorts, this.registry, options.schema, context);
         }
     }
@@ -599,6 +627,76 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                 });
             }
         }
+    }
+
+    /**
+     * A grouped row has no columns to project, so a fields input has
+     * nothing to select. It is rejected rather than dropped: the client
+     * would otherwise read rows without the keys it asked for.
+     */
+    protected rejectGroupedFields(
+        data: ObjectLiteral,
+        issueCollector: IIssueCollector,
+    ) : void {
+        if (typeof this.readParameter(data, Parameter.FIELDS) === 'undefined') {
+            return;
+        }
+
+        issueCollector.add({
+            parameter: Parameter.FIELDS,
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            path: [],
+            message: ErrorMessage.featureUnsupported('fields:grouped'),
+        });
+    }
+
+    /**
+     * The options a grouped sorts parse runs under. A grouped row carries
+     * only output keys, so a sort may name nothing else: a sort on another
+     * column fails in pg ("must appear in GROUP BY") and orders by an
+     * arbitrary row of each group in mysql and sqlite. The empty relations
+     * set blocks every dotted key. Built from the query options, not by
+     * spreading the parameter options, because their schema is typed by
+     * the record and this one is not.
+     */
+    protected buildGroupedSortsOptions<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        output: QueryContext,
+        options: ParseQueryOptions<RECORD>,
+    ) : ParseParameterOptions {
+        return {
+            schema: this.buildGroupedSortsSchema(output, options),
+            relations: new Relations(),
+            strict: options.strict,
+            throwOnFailure: options.throwOnFailure,
+            context: options.context,
+        };
+    }
+
+    /**
+     * An unnamed, unregistered schema whose only allow-list is the output
+     * keys, so no registry lookup can descend from it. The real schema
+     * keeps its sorts failure policy; its sorts default, validate hook and
+     * index policy speak about columns and do not apply.
+     */
+    protected buildGroupedSortsSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        output: QueryContext,
+        options: ParseQueryOptions<RECORD>,
+    ) : Schema {
+        const base = options.schema ? this.registry.getOrFail(options.schema) : undefined;
+
+        return new Schema({
+            throwOnFailure: base?.sorts.throwOnFailure,
+            sorts: {
+                allowed: [
+                    ...(output.groups?.value ?? []).map((item) => item.key),
+                    ...(output.aggregates?.value ?? []).map((item) => item.key),
+                ],
+            },
+        });
     }
 
     // -----------------------------------------------------

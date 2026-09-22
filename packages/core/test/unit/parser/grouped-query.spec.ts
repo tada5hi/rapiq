@@ -25,8 +25,12 @@ import {
     Parameter,
     ParseError,
     Relations,
+    Schema,
     SchemaRegistry,
+    Sort,
+    SortDirection,
     Sorts,
+    defineSchema,
     extractIssueParameter,
 } from '../../../src';
 import type {
@@ -39,6 +43,7 @@ import type {
     IRelations,
     ISort,
     ISorts,
+    ParseParameterOptions,
     PendingKeyValidation,
     RelationLedger,
 } from '../../../src';
@@ -113,18 +118,18 @@ class StubQueryParser extends BaseQueryParser {
 const SCOPE = new Group({
     name: 'scope',
     lowering: {
-        fn: undefined, 
-        field: 'scope', 
-        args: [], 
-    }, 
+        fn: undefined,
+        field: 'scope',
+        args: [],
+    },
 });
 const COUNT = new Aggregate({
     name: 'count',
     lowering: {
-        fn: 'count', 
-        field: undefined, 
-        args: [], 
-    }, 
+        fn: 'count',
+        field: undefined,
+        args: [],
+    },
 });
 
 function buildParsers(input: {
@@ -262,10 +267,10 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
                 groups: [new Group({
                     name: 'count',
                     lowering: {
-                        fn: undefined, 
-                        field: 'count', 
-                        args: [], 
-                    }, 
+                        fn: undefined,
+                        field: 'count',
+                        args: [],
+                    },
                 })],
                 aggregates: [COUNT],
             });
@@ -279,6 +284,151 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
                 message: ErrorMessage.outputKeyDuplicate('count'),
             })]);
             expect(extractIssueParameter(items[0]!)).toBe(Parameter.AGGREGATES);
+        });
+    });
+
+    describe('grouped mode', () => {
+        it('should not parse fields, so no fields default materializes', () => {
+            const parsers = buildParsers();
+
+            const query = new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: 'scope' }, { groups: true });
+
+            expect(parsers.fields.calls).toHaveLength(0);
+            expect(query.fields).toEqual(new Fields());
+        });
+
+        it('should reject client fields', () => {
+            const items = issuesOf(() => new StubQueryParser(new SchemaRegistry(), buildParsers())
+                .parse({ groups: 'scope', fields: ['id'] }, { groups: true }));
+
+            expect(items).toEqual([expect.objectContaining({
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                path: [],
+                message: ErrorMessage.featureUnsupported('fields:grouped'),
+            })]);
+            expect(extractIssueParameter(items[0]!)).toBe(Parameter.FIELDS);
+        });
+
+        it('should parse fields as usual when nothing is grouped', () => {
+            const parsers = buildParsers({ groups: [], aggregates: [] });
+
+            new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: '', fields: ['id'] }, { groups: true });
+
+            expect(parsers.fields.calls.map((call) => call.input)).toEqual([['id']]);
+        });
+
+        it('should parse sorts against the output keys of a bound parse', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'record',
+                throwOnFailure: true,
+                sorts: { allowed: ['id'], default: { id: 'DESC' } },
+            }));
+            const parsers = buildParsers();
+
+            new StubQueryParser(registry, parsers).parse(
+                {
+                    groups: 'scope',
+                    aggregates: 'count',
+                    sorts: '-count',
+                },
+                {
+                    schema: 'record',
+                    groups: true,
+                    aggregates: true,
+                },
+            );
+
+            const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
+            expect(options.schema).toBeInstanceOf(Schema);
+
+            const schema = options.schema as Schema;
+            expect(schema.name).toBeUndefined();
+            expect(schema.sorts.allowed).toEqual(['scope', 'count']);
+            expect(schema.sorts.defaultIsUndefined).toBe(true);
+            expect(schema.sorts.throwOnFailure).toBe(true);
+            expect(options.relations).toEqual(new Relations());
+        });
+
+        it('should bind the output keys in an unbound parse too', () => {
+            const parsers = buildParsers();
+
+            new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: 'scope', sorts: 'age' }, { groups: true });
+
+            const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
+            const schema = options.schema as Schema;
+            // aggregates are not flagged, so only the group key is an output key.
+            expect(schema.sorts.allowed).toEqual(['scope']);
+            expect(schema.sorts.throwOnFailure).toBeUndefined();
+            expect(options.relations).toEqual(new Relations());
+        });
+
+        it('should hand an ungrouped sorts parse the query options unchanged', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({ name: 'record' }));
+            const parsers = buildParsers();
+
+            new StubQueryParser(registry, parsers).parse({ sorts: '-id' }, { schema: 'record' });
+
+            const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
+            expect(options.schema).toBe('record');
+            expect(options.relations).toBeUndefined();
+        });
+
+        it('should not refill grouped sorts with the schema default when pruning', () => {
+            const registry = new SchemaRegistry();
+            const schema = defineSchema({
+                name: 'record',
+                relations: { allowed: ['user'], validate: (name: string) => name !== 'user' },
+                sorts: { default: { id: 'DESC' } },
+            });
+            registry.add(schema);
+
+            const parsers = buildParsers({
+                obligation: {
+                    key: 'user',
+                    path: 'user',
+                    schema: schema.relations,
+                },
+            });
+
+            const query = new StubQueryParser(registry, parsers)
+                .parse({ groups: 'scope' }, { schema: 'record', groups: true });
+
+            expect(query.sorts).toEqual(new Sorts());
+        });
+
+        it('should not judge output keys by the sorts index policy', () => {
+            const registry = new SchemaRegistry();
+            registry.add(defineSchema({
+                name: 'record',
+                indexes: [['id']],
+                sorts: { indexed: true, default: { id: 'DESC' } },
+            }));
+
+            const parsers = buildParsers({ sorts: [new Sort('count', SortDirection.DESC)] });
+
+            const query = new StubQueryParser(registry, parsers)
+                .parse({ groups: 'scope', sorts: '-count' }, { schema: 'record', groups: true });
+
+            expect(query.sorts).toEqual(new Sorts([new Sort('count', SortDirection.DESC)]));
+        });
+
+        it('should apply the same rules asynchronously', async () => {
+            const parsers = buildParsers();
+            const parser = new StubQueryParser(new SchemaRegistry(), parsers);
+
+            await expect(parser.parseAsync({ groups: 'scope', fields: ['id'] }, { groups: true }))
+                .rejects.toBeInstanceOf(ParseError);
+
+            await parser.parseAsync({ groups: 'scope', sorts: '-count' }, { groups: true });
+
+            expect(parsers.fields.calls).toHaveLength(0);
+            const options = parsers.sorts.calls[1]?.options as ParseParameterOptions;
+            expect((options.schema as Schema).sorts.allowed).toEqual(['scope']);
         });
     });
 });
