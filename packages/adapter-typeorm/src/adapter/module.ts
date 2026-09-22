@@ -6,6 +6,7 @@
  */
 
 import type { IQuery } from '@rapiq/core';
+import { AdapterError, isGroupedQuery } from '@rapiq/core';
 import type { ExecuteOptions, IRootAdapter } from '@rapiq/adapter-sql';
 import { QueryVisitor } from '@rapiq/adapter-sql';
 import { RelationsAdapter } from './relations';
@@ -64,6 +65,12 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         query: IQuery,
         options: ExecuteOptions = {},
     ) : TypeormAdapterOutput {
+        // checked before clear(): a refused query leaves the bound
+        // builder exactly as the caller handed it over.
+        if (isGroupedQuery(query)) {
+            throw AdapterError.featureUnsupported('groups');
+        }
+
         if (options.clear ?? true) {
             this.clear();
         }
