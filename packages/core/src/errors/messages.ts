@@ -49,4 +49,10 @@ export const ErrorMessage = {
         `same parameter. Use ${canonical}.`,
 
     limitExceeded: (limit: number) => `The pagination limit must not exceed the value of ${limit}.`,
+
+    callArgumentsInvalid: (name: string) => `The arguments of ${name} are invalid.`,
+
+    outputKeyDuplicate: (key: string) => `The output key ${key} is requested more than once.`,
+
+    functionInvalid: (name: string, reason: string) => `The function ${name} is invalid: ${reason}.`,
 } as const;
