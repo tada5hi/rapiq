@@ -11,6 +11,8 @@ import {
     ErrorMessage,
     Group,
     Groups,
+    Sort,
+    SortDirection,
     defineAggregates,
     defineGroups,
     defineQuery,
@@ -93,6 +95,18 @@ describe('src/build/parameter/{groups,aggregates}/*.ts', () => {
         expect(captureError<BuildError>(() => defineGroups('status' as any)).code).toBe(ErrorCode.INPUT_INVALID);
         expect(captureError<BuildError>(() => defineAggregates([42] as any)).code).toBe(ErrorCode.INPUT_INVALID);
         expect(captureError<BuildError>(() => defineAggregates([{ name: 'sum', params: [1] }] as any)).code)
+            .toBe(ErrorCode.INPUT_INVALID);
+    });
+
+    it('should refuse a built node of another parameter', () => {
+        const aggregates = defineAggregates(['count']);
+        const group = defineGroups(['status']);
+        const sort = new Sort('status', SortDirection.ASC);
+
+        expect(captureError<BuildError>(() => defineGroups(aggregates as any)).code).toBe(ErrorCode.INPUT_INVALID);
+        expect(captureError<BuildError>(() => defineGroups([sort] as any)).code).toBe(ErrorCode.INPUT_INVALID);
+        expect(captureError<BuildError>(() => defineAggregates(group as any)).code).toBe(ErrorCode.INPUT_INVALID);
+        expect(captureError<BuildError>(() => defineAggregates([group.value[0]] as any)).code)
             .toBe(ErrorCode.INPUT_INVALID);
     });
 
