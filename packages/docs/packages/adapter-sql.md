@@ -231,3 +231,41 @@ const output = applyFieldConditions(query.fields, rows);
 ```
 
 `compileFieldConditions(query.fields)` is the single-record form: it compiles the gates once into a reusable `(record) => redacted` function. Skipping this step fails open: consumers receive the gated column unredacted.
+
+## Grouped queries {#grouped-queries}
+
+`execute()` refuses a query carrying [groups or aggregates](/guide/grouping) (`featureUnsupported('groups')`). `executeGrouped(query)` renders it instead and returns the usual fragments plus `groupBy`:
+
+```typescript
+import { Adapter, normalizeGroupedRows, pg } from '@rapiq/adapter-sql';
+
+const adapter = new Adapter({ ...pg, rootAlias: 'event' });
+const fragments = adapter.executeGrouped(query);
+// group=bucket(createdAt,day),scope&aggregate=count
+// {
+//     columns: [
+//         `to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"') as "bucket"`,
+//         '"event"."scope" as "scope"',
+//         'count(*) as "count"',
+//     ],
+//     groupBy: [`to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"')`, '"event"."scope"'],
+//     orderBy: ['"bucket" ASC', '"scope" ASC'],
+//     where, params, limit, offset, relations,
+// }
+
+const rows = normalizeGroupedRows(query, await driver.query(assemble(fragments)));
+```
+
+Assemble `select <columns> from ... where <where> group by <groupBy> order by <orderBy> limit ... offset ...`. Put `groupBy` into `GROUP BY` as returned: it repeats each group expression instead of referencing the alias, which MSSQL and Oracle require. `groupBy` is empty for an aggregates-only query (one row). The bucket unit is inlined from the closed `hour` / `day` / `month` list and never appears in `params`. `normalizeGroupedRows` keeps only the query's output keys and turns `count` and `sum` into numbers with `Number` ([precision note](/guide/grouping#numbers)). There is no group total: `rows.length === limit` means the series may be truncated.
+
+Buckets come from the optional `DialectOptions.bucket(field, unit, kind)` callback. The `pg`, `mysql` and `sqlite` presets define it; `mssql` and `oracle` do not, so a bucket there raises `featureUnsupported('groups:bucket')`. `kind` is a `TemporalKind` (`'date' | 'datetime' | 'instant'`) taken from `filters.temporalKind(field)`, which defaults to `'datetime'` because standalone SQL has no column metadata. A PostgreSQL `timestamptz` column needs an override returning `'instant'`, or its buckets are cut in the session time zone:
+
+```typescript
+const adapter = new Adapter({ ...pg, rootAlias: 'event' });
+adapter.filters.temporalKind = (field) => (field === 'createdAt' ? 'instant' : 'datetime');
+// to_char(date_trunc('day', "event"."createdAt" at time zone 'UTC'), ...)
+```
+
+Returning `undefined` marks a column as not temporal and refuses a bucket on it (`groups:bucket-type`). The MySQL (`TIMESTAMP` needs a UTC session `time_zone`) and SQLite (text dates, not epoch numbers) notes of [Buckets are UTC](/guide/grouping#buckets) apply here as well.
+
+Included relations are never joined for a grouped query; `relations` lists only the paths a filter traverses. **The standalone adapter cannot see relation cardinality**: a filter across a to-many relation joins it, and the join repeats each root row per related row, inflating `count` and `sum`. The caller owns the join (render it as a semi-join or `EXISTS`, or keep to-many paths out of a grouped endpoint's `filters.allowed`). [@rapiq/adapter-typeorm](/packages/adapter-typeorm#grouped-queries) reads the metadata and refuses this case instead (`aggregates:fan-out`).

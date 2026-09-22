@@ -302,6 +302,7 @@ Operators without a Prisma equivalent raise a typed `AdapterError` (`FEATURE_UNS
 - `size`: no array-length filter
 - the `$this` element marker: the element itself is not addressable
 - **sorting by a to-many relation path**: not expressible in Prisma (only `_count` is). The adapter checks `metadata.isToMany(...)` for every relation segment along a dotted sort name and raises `featureUnsupported('sorts:relation')` before building `orderBy`, instead of emitting the sort as written and letting Prisma reject it with a non-rapiq error; ordering by a to-one relation path is unaffected. This matches the typed refusal [@rapiq/adapter-drizzle](/packages/adapter-drizzle) throws for every relation-path sort.
+- **groups and aggregates**: `execute`, `findMany` and `count` refuse a [grouped query](/guide/grouping) with `featureUnsupported('groups')`. Prisma's `groupBy` cannot bucket a date column; run grouped reads through [@rapiq/adapter-sql](/packages/adapter-sql#grouped-queries) or [@rapiq/adapter-typeorm](/packages/adapter-typeorm#grouped-queries).
 
 One further deviation is worth knowing:
 

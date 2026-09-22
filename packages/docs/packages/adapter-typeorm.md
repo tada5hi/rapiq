@@ -240,6 +240,26 @@ try {
 
 A schema without an `indexes` declaration skips the check entirely.
 
+## Grouped queries {#grouped-queries}
+
+`execute()` refuses a query carrying [groups or aggregates](/guide/grouping). `executeGrouped(query)` writes the grouped read into the bound builder and returns the pagination plus a `normalize` function for the raw rows:
+
+```typescript
+const queryBuilder = dataSource.getRepository(Event).createQueryBuilder('event');
+const adapter = new TypeormAdapter({ queryBuilder });
+
+const { pagination, normalize } = adapter.executeGrouped(query);
+const rows = normalize(await queryBuilder.getRawMany());
+// [{ bucket: '2026-09-22T00:00:00.000Z', scope: 'auth', count: 3 }, ...]
+```
+
+- The bucket SQL comes from the [resolved dialect](#dialect-detection), and the column kind from the entity metadata: a `timestamptz` column is bucketed as an instant, a `date` or zone-less `datetime` / `timestamp` column as stored (UTC wall clock). A bucket on a column that is not temporal is refused (`groups:bucket-type`). A MySQL `TIMESTAMP` column needs the session `time_zone` at `'+00:00'`, and SQLite expects text dates (what TypeORM writes), see [Buckets are UTC](/guide/grouping#buckets).
+- Included relations are not joined. A relation a filter traverses is joined and never selected. Joins run before the select list and the `GROUP BY` are rebuilt, so a `GROUP BY` an `onJoin` hook adds is dropped and cannot change the grain.
+- Aggregates over a joined to-many relation would count join rows, so any `OneToMany` / `ManyToMany` join on the builder, including one you added yourself, refuses the query (`aggregates:fan-out`).
+- A builder that already carries a `GROUP BY` is refused (`groups:builder`) before anything is changed.
+- Pagination is applied with `limit` / `offset`, never `take` / `skip`. There is no group total: `rows.length === limit` means the series may be truncated.
+- `normalize` keeps only the output keys and turns `count` and `sum` into numbers (see [Numbers](/guide/grouping#numbers)). The position of the `null` group differs by engine: PostgreSQL sorts it last ascending, MySQL and SQLite first.
+
 ## Applying a single parameter
 
 A `Query` with only some parameters set applies just those: the rest are empty and become no-ops. To apply, say, only the filters of a parsed query:

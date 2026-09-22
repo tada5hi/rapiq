@@ -184,11 +184,34 @@ Records with nothing to hide are passed through **by reference**; only affected 
 - Dotted sort paths traverse to-one objects; to-many paths resolve as absent.
 - An explicit `limit: 0` is a value, not absence: it returns no rows, matching every other backend (TypeORM takes 0 rows; the prisma and drizzle configs return none on a real engine). A negative limit and a non-positive offset are ignored.
 
+## Grouped queries {#grouped-queries}
+
+`compileQuery` / `applyQuery` refuse a query carrying [groups or aggregates](/guide/grouping). The grouped entry points evaluate it in memory with the same answer the SQL adapters give, which makes them the parity oracle for tests:
+
+```typescript
+import { applyGroupedQuery, compileGroupedQuery } from '@rapiq/adapter-memory';
+
+const { data, total, pagination } = applyGroupedQuery(query, events);
+
+const run = compileGroupedQuery(query);
+run(events);
+```
+
+The pipeline is filter, group, aggregate, sort (explicit sorts, otherwise group keys ascending), then paginate; `total` is the number of groups before pagination. Relations are ignored. Semantics:
+
+- a bucket reads the value like a [date operand](#date-values) and truncates it to the UTC hour, day or month (`toISOString()`); a value that is not a date lands in the `null` group;
+- `null` / missing is a group of its own, sorted last ascending like PostgreSQL (MySQL and SQLite sort it first); group keys compare exactly and case-sensitively;
+- `count()` counts records, `count(field)` non-null values; `sum` adds finite numbers and is `null` when there are none;
+- aggregates without groups give exactly one row (over no records: `count` 0, `sum` `null`); groups over no records give no rows.
+
+The same `options` as `compileFilters` (e.g. `{ caseSensitive }`) apply to the filter step.
+
 ## Errors
 
 Compilation throws a typed `AdapterError` for structural problems:
 
 - an unknown filter operator or compound operator → `ErrorCode.OPERATOR_UNSUPPORTED`,
-- a malformed `elemMatch` or `regex` value → `ErrorCode.FEATURE_UNSUPPORTED`.
+- a malformed `elemMatch` or `regex` value → `ErrorCode.FEATURE_UNSUPPORTED`,
+- a grouped query on `compileQuery` / `applyQuery`, or an unresolved or unknown group or aggregate function on the grouped entry points → `ErrorCode.FEATURE_UNSUPPORTED` (feature tags in [Grouping & Aggregates](/guide/grouping#errors)).
 
 Evaluation itself never throws: a guard is `if (!predicate(input)) { ... }`.
