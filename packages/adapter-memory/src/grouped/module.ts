@@ -14,9 +14,12 @@ import type {
 import {
     AdapterError,
     AggregateFunction,
+    BucketUnit,
+    GroupFunction,
     Sorts,
     isGroupedQuery,
     resolveGroupedSorts,
+    toDate,
 } from '@rapiq/core';
 import { resolvePath } from '../helpers';
 import type { QueryVisitorOptions } from '../module';
@@ -29,6 +32,36 @@ type AggregateReducer = (records: unknown[]) => unknown;
 
 type GroupBucket = { values: unknown[], records: unknown[] };
 
+const BUCKET_UNITS : string[] = Object.values(BucketUnit);
+
+/**
+ * Truncate a value to the start of its UTC unit and render it as the
+ * text every adapter returns for a bucket. The value is read with the
+ * filter operand rules (`toDate`): a Date, an ISO string (zone-less
+ * means UTC) or epoch milliseconds; anything else is the null bucket.
+ * UTC setters on a copy, never local ones, so the host zone cannot
+ * move a record into another bucket.
+ */
+function truncateToBucket(value: unknown, unit: string) : string | null {
+    const date = toDate(value);
+    if (!date) {
+        return null;
+    }
+
+    const output = new Date(date.getTime());
+    if (unit === BucketUnit.HOUR) {
+        output.setUTCMinutes(0, 0, 0);
+    } else {
+        output.setUTCHours(0, 0, 0, 0);
+    }
+
+    if (unit === BucketUnit.MONTH) {
+        output.setUTCDate(1);
+    }
+
+    return output.toISOString();
+}
+
 function compileGroup(group: IGroup) : GroupReader {
     const { lowering } = group;
     // every group reads a root column: a bare one or a bucket's.
@@ -39,6 +72,17 @@ function compileGroup(group: IGroup) : GroupReader {
     const { fn, field } = lowering;
     if (typeof fn === 'undefined') {
         return (record) => resolvePath(record, field);
+    }
+
+    if (fn === GroupFunction.BUCKET) {
+        const [unit] = lowering.args;
+        // hand-built IR only: the resolver admits nothing outside
+        // BucketUnit. Same refusal as adapter-sql, which inlines the unit.
+        if (typeof unit !== 'string' || !BUCKET_UNITS.includes(unit)) {
+            throw AdapterError.keyValueInvalid(group.key);
+        }
+
+        return (record) => truncateToBucket(resolvePath(record, field), unit);
     }
 
     throw AdapterError.featureUnsupported(`groups:${fn}`);

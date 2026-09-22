@@ -19,9 +19,15 @@ import {
     SortDirection,
     Sorts,
     eq,
+    inArray,
 } from '@rapiq/core';
 import { applyGroupedQuery, compileGroupedQuery } from '../../../src';
-import { column, count, grouped } from '../../data/calls';
+import {
+    bucket,
+    column,
+    count,
+    grouped,
+} from '../../data/calls';
 import { events } from '../../data/event';
 
 function unsupported(feature: string) {
@@ -170,6 +176,116 @@ describe('src/grouped/module.ts', () => {
                 { scope: 'client', count: 1 },
                 { scope: 'user', count: 3 },
             ]);
+        });
+    });
+
+    describe('bucket', () => {
+        it('should truncate to the UTC hour', () => {
+            expect(applyGroupedQuery(grouped([bucket('createdAt', 'hour')], [count()]), events).data).toEqual([
+                { bucket: '2026-08-31T23:00:00.000Z', count: 1 },
+                { bucket: '2026-09-21T23:00:00.000Z', count: 1 },
+                { bucket: '2026-09-22T00:00:00.000Z', count: 1 },
+                { bucket: '2026-09-22T10:00:00.000Z', count: 2 },
+                { bucket: null, count: 1 },
+            ]);
+        });
+
+        it('should truncate to the UTC day, whatever offset the value carries', () => {
+            expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), events).data).toEqual([
+                { bucket: '2026-08-31T00:00:00.000Z', count: 1 },
+                { bucket: '2026-09-21T00:00:00.000Z', count: 1 },
+                { bucket: '2026-09-22T00:00:00.000Z', count: 3 },
+                { bucket: null, count: 1 },
+            ]);
+        });
+
+        it('should truncate to the UTC month', () => {
+            expect(applyGroupedQuery(grouped([bucket('createdAt', 'month')], [count()]), events).data).toEqual([
+                { bucket: '2026-08-01T00:00:00.000Z', count: 1 },
+                { bucket: '2026-09-01T00:00:00.000Z', count: 4 },
+                { bucket: null, count: 1 },
+            ]);
+        });
+
+        it('should read epoch milliseconds and plain dates, and put a value denoting no instant into the null bucket', () => {
+            const data = [
+                { createdAt: 'yesterday' },
+                { createdAt: '2026-02-30' },
+                { createdAt: Date.UTC(2026, 8, 22, 5) },
+                { createdAt: '2026-09-22' },
+            ];
+
+            expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), data).data).toEqual([
+                { bucket: '2026-09-22T00:00:00.000Z', count: 2 },
+                { bucket: null, count: 2 },
+            ]);
+        });
+
+        it('should answer the issue request with one row per bucket, scope and name', () => {
+            const query = grouped([bucket('createdAt', 'day'), column('scope'), column('name')], [count()], { filters: inArray('realmId', ['r1', null]) });
+
+            expect(applyGroupedQuery(query, events).data).toEqual([
+                {
+                    bucket: '2026-09-21T00:00:00.000Z',
+                    scope: 'user',
+                    name: 'login',
+                    count: 1,
+                },
+                {
+                    bucket: '2026-09-22T00:00:00.000Z',
+                    scope: 'client',
+                    name: 'login',
+                    count: 1,
+                },
+                {
+                    bucket: '2026-09-22T00:00:00.000Z',
+                    scope: 'user',
+                    name: 'login',
+                    count: 1,
+                },
+                {
+                    bucket: '2026-09-22T00:00:00.000Z',
+                    scope: 'user',
+                    name: 'logout',
+                    count: 1,
+                },
+                {
+                    bucket: null,
+                    scope: null,
+                    name: 'login',
+                    count: 1,
+                },
+            ]);
+        });
+
+        it('should key a named bucket by its name', () => {
+            const period = new Group({
+                name: 'period',
+                params: ['month'],
+                lowering: {
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    args: ['month'],
+                },
+            });
+
+            expect(applyGroupedQuery(grouped([period], [count()]), events).data[0])
+                .toEqual({ period: '2026-08-01T00:00:00.000Z', count: 1 });
+        });
+
+        it('should refuse a unit outside the closed set, as adapter-sql does', () => {
+            const week = new Group({
+                name: 'bucket',
+                params: ['createdAt', 'week'],
+                lowering: {
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    args: ['week'],
+                },
+            });
+
+            expect(() => compileGroupedQuery(grouped([week], [])))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
         });
     });
 });
