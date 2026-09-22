@@ -6,16 +6,20 @@
  */
 
 import type {
+    IAggregates,
     ICondition,
     IFields,
+    IGroups,
     IPagination,
     IRelations,
     ISorts,
 } from '../parameter';
 import type { ObjectLiteral } from '../types';
 import type {
+    AggregatesBuildInput,
     FieldsBuildInput,
     FiltersBuildInput,
+    GroupsBuildInput,
     PaginationBuildInput,
     RelationsBuildInput,
     SortsBuildInput,
@@ -43,4 +47,14 @@ export type QueryBuildInput<
      * @deprecated use {@link QueryBuildInput.sorts}. Removed in 3.0.
      */
     sort?: SortsBuildInput<RECORD, DEPTH> | ISorts,
+    /**
+     * Group terms: a bare column, or `{ name, params }` for a call.
+     * Primitives resolve here; a named function travels unresolved
+     * for the server's schema to resolve.
+     */
+    groups?: GroupsBuildInput<RECORD> | IGroups,
+    /**
+     * Aggregate terms, e.g. `['count', { name: 'sum', params: ['amount'] }]`.
+     */
+    aggregates?: AggregatesBuildInput | IAggregates,
 };
