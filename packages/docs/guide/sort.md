@@ -82,3 +82,7 @@ An ordering is not a row set, so there is nothing for an `ICondition` verdict to
 ## On violation
 
 Disallowed or invalid sort input is dropped silently; with [`throwOnFailure`](/guide/schemas#failure-behavior-drop-vs-throw) it fails the parse instead (`SortsParseError` from `parseSorts`, the general `ParseError` from a whole-query parse, each carrying the rejection on its [issue trace](/guide/errors#issue-traces)).
+
+## In a grouped query
+
+When a query carries [groups or aggregates](/guide/grouping#grouped-mode), sorts may name output keys only (`sort=-count`, `sort=bucket`, `sort=sum_amount`); record columns and relation paths are rejected under the usual drop or throw policy. The schema's `default`, `validate` / `validateMany` and `indexed` do not apply. Without a sort, rows are ordered by every group key ascending. Where a `null` group lands differs by engine ([details](/guide/grouping#grouped-mode)).
