@@ -6,6 +6,7 @@
  */
 
 import type { IQuery, IQueryVisitor } from '@rapiq/core';
+import { AdapterError, isGroupedQuery } from '@rapiq/core';
 import { resolveProviderOptions } from '../provider';
 import { buildSelection } from './fields';
 import { mergeConfig } from './merge';
@@ -62,6 +63,12 @@ export class DrizzleAdapter<
         query: IQuery,
         options: ExecuteOptions<CONFIG> = {},
     ) : DrizzleAdapterOutput<CONFIG> {
+        // the relational-queries findMany config has no grouping;
+        // grouped queries are not supported by this adapter.
+        if (isGroupedQuery(query)) {
+            throw AdapterError.featureUnsupported('groups');
+        }
+
         const base = options.base as FindManyConfig | undefined;
 
         const filters = this.renderer.build(
