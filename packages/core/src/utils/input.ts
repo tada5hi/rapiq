@@ -82,3 +82,25 @@ export function resolveAliasedKey(
 
     return undefined;
 }
+
+/**
+ * Whether a parameter input carries no signal: absent, a blank string
+ * (`fields=`), or an array of such entries (`[]`, or `fields[]=` read by
+ * qs as `['']`). An ungrouped parse reads each of these as no entries,
+ * so a policy refusing the parameter outright must not treat them as sent.
+ */
+export function isEmptyParameterInput(input: unknown) : boolean {
+    if (typeof input === 'undefined') {
+        return true;
+    }
+
+    if (typeof input === 'string') {
+        return input.trim() === '';
+    }
+
+    if (Array.isArray(input)) {
+        return input.every((entry) => isEmptyParameterInput(entry));
+    }
+
+    return false;
+}

@@ -36,6 +36,7 @@ import {
 import { FilterCompoundOperator, Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
+    isEmptyParameterInput,
     isObject,
     isPropertySet,
     normalizeParameter,
@@ -638,7 +639,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         data: ObjectLiteral,
         issueCollector: IIssueCollector,
     ) : void {
-        if (typeof this.readParameter(data, Parameter.FIELDS) === 'undefined') {
+        if (isEmptyParameterInput(this.readParameter(data, Parameter.FIELDS))) {
             return;
         }
 

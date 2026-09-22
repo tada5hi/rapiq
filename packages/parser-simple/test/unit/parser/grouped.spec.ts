@@ -338,6 +338,18 @@ describe('src/module.ts: groups and aggregates', () => {
             );
         });
 
+        it.each([[''], [[]], [['']]])('should treat empty fields input %j as absent', (fields) => {
+            const query = parser.parse({ groups: 'scope', fields }, { schema: 'event', ...OPT_IN });
+
+            expect(query.fields).toEqual(new Fields());
+        });
+
+        it('should treat empty fields input as absent asynchronously', async () => {
+            const query = await parser.parseAsync({ groups: 'scope', fields: '' }, { schema: 'event', ...OPT_IN });
+
+            expect(query.fields).toEqual(new Fields());
+        });
+
         it('should accept a sort on any output key', () => {
             const query = parser.parse(
                 {
