@@ -139,26 +139,26 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         query.filters.accept(visitor.filters);
         query.pagination.accept(visitor.pagination);
 
+        // a to-many join repeats each root row per related row, which
+        // inflates count and sum; groups alone only collapse duplicates.
+        // Every join counts, the caller's included. Checked before the
+        // joins below, so a refused query leaves the builder untouched.
+        // An entity join (`leftJoin(Entity, alias, condition)`) carries no
+        // relation metadata and cannot be classified.
+        const aggregated = !!query.aggregates && query.aggregates.value.length > 0;
+        if (aggregated && (this.relations.joinsToMany() || this.hasToManyJoin())) {
+            throw AdapterError.featureUnsupported('aggregates:fan-out');
+        }
+
         // joins run before the select list and the GROUP BY are
         // rebuilt below: select([]) drops the columns a hydrating join
         // added, and groupBy() drops an onJoin hook's addGroupBy (a
         // per-entity dedupe), so neither can change the grain.
         this.relations.execute();
 
-        // a to-many join repeats each root row per related row, which
-        // inflates count and sum; groups alone only collapse duplicates.
-        // Every join counts, the caller's included. An entity join
-        // (`leftJoin(Entity, alias, condition)`) carries no relation
-        // metadata and cannot be classified.
-        if (query.aggregates && query.aggregates.value.length > 0) {
-            const fanOut = this.queryBuilder.expressionMap.joinAttributes.some(
-                (join) => !!join.relation &&
-                    (join.relation.isOneToMany || join.relation.isManyToMany),
-            );
-
-            if (fanOut) {
-                throw AdapterError.featureUnsupported('aggregates:fan-out');
-            }
+        // an onJoin hook may itself have joined a to-many relation.
+        if (aggregated && this.hasToManyJoin()) {
+            throw AdapterError.featureUnsupported('aggregates:fan-out');
         }
 
         this.queryBuilder.select([]);
@@ -196,5 +196,12 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
             },
             normalize: (rows) => normalizeGroupedRows(query, rows),
         };
+    }
+
+    protected hasToManyJoin() : boolean {
+        return this.queryBuilder.expressionMap.joinAttributes.some(
+            (join) => !!join.relation &&
+                (join.relation.isOneToMany || join.relation.isManyToMany),
+        );
     }
 }

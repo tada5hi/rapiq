@@ -229,7 +229,8 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
     });
 
     it('should refuse aggregates across a to-many relation a filter traverses', () => {
-        const { adapter } = setup();
+        const onJoin = vi.fn();
+        const { queryBuilder, adapter } = setup({ onJoin });
 
         expect(() => adapter.executeGrouped(defineQuery({
             aggregates: [{ name: 'sum', params: ['amount'] }],
@@ -238,6 +239,10 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
             code: ErrorCode.FEATURE_UNSUPPORTED,
             feature: 'aggregates:fan-out',
         }));
+
+        // refused before anything is joined: the builder stays as handed over.
+        expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
+        expect(onJoin).not.toHaveBeenCalled();
     });
 
     it('should allow groups alone across a to-many join', () => {
