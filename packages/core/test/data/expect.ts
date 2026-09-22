@@ -6,6 +6,7 @@
  */
 
 import { ErrorCode, ParseError } from '../../src';
+import type { BaseError } from '../../src';
 import { flattenIssueItems } from '@ebec/core';
 
 /**
@@ -49,4 +50,19 @@ export function expectRejected(
     }
 
     expect(items).toContainEqual(expect.objectContaining(matcher));
+}
+
+/**
+ * Run `fn` and return what it threw, failing the test when it returns.
+ * For developer-input errors (schema definitions, build input), which are
+ * thrown directly instead of being collected into a trace.
+ */
+export function captureError<T extends Error = BaseError>(fn: () => unknown) : T {
+    try {
+        fn();
+    } catch (e) {
+        return e as T;
+    }
+
+    return expect.unreachable('the function did not throw');
 }
