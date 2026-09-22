@@ -20,6 +20,7 @@ model User {
     email      String
     age        Int
     address    String?
+    created_at DateTime?
     realm_id   Int?
     realm      Realm?  @relation(fields: [realm_id], references: [id])
     items      Item[]

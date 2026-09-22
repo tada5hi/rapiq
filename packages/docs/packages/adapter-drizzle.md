@@ -29,7 +29,7 @@ Because the adapter produces a value instead of writing into a builder, it is **
 
 ## Table metadata
 
-The adapter needs four facts about your tables that a `Query` cannot carry, and each one changes what a *correct* drizzle filter looks like:
+The adapter needs five facts about your tables that a `Query` cannot carry, and each one changes what a *correct* drizzle filter looks like:
 
 | fact | what it decides |
 |---|---|
@@ -37,6 +37,7 @@ The adapter needs four facts about your tables that a `Query` cannot carry, and 
 | is that relation to-many? | the shape of the empty-collection arm of a complement |
 | can the column hold `null`? | whether a complement carries its `isNull` arm |
 | does it hold strings? | only string columns fold case through `ilike` |
+| does it hold dates? | a date crosses the wire as a string and has to be bound as a `Date` (see [date values](/guide/filters#date-values)) |
 
 Guessing any of them produces a wrong result set rather than graceful degradation, so the adapter refuses to run without them. The datamodel is a plain object in drizzle's own vocabulary (`dataType` as on a drizzle column, relations keyed the way `defineRelations` keys them); a bare string is shorthand for `{ dataType }`:
 
@@ -47,6 +48,7 @@ const metadata = defineMetadata({
             id: { dataType: 'number', nullable: false },
             name: 'string',
             address: { dataType: 'string', nullable: true },
+            created_at: { dataType: 'date', nullable: false },
         },
         relations: {
             items: { target: 'items', many: true },
@@ -58,7 +60,7 @@ const metadata = defineMetadata({
 }, 'users');
 ```
 
-An undeclared fact is treated as unknown, never guessed: an unknown nullability keeps the complement's null arm (semantically safe either way), an unknown data type keeps the case fold.
+An undeclared fact is treated as unknown, never guessed: an unknown nullability keeps the complement's null arm (semantically safe either way), an unknown data type keeps the case fold and binds date operands unchanged.
 
 ## Parameter mapping
 

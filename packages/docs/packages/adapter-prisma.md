@@ -63,7 +63,7 @@ const args = mergeArgs(baseline, produced);
 
 ## Model metadata
 
-The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
+The adapter needs five facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
 
 | fact | what it decides |
 |---|---|
@@ -71,6 +71,7 @@ The adapter needs four facts about your model that a `Query` cannot carry, and e
 | is that relation to-many? | `some`/`none` versus `is`; the wrong one is a validation error |
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
+| does it hold dates? | a date crosses the wire as a string and has to be bound as a `Date` (see [date values](/guide/filters#date-values)) |
 
 Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. On Prisma 6 classic builds the client-bound form above derives all of it; on Prisma 7 the runtime datamodel no longer carries cardinality or nullability, so the binding takes `metadata` alongside the delegate. The fully explicit form takes the same facts by hand:
 
@@ -86,6 +87,7 @@ export const datamodel = {
                 { name: 'id', kind: 'scalar', type: 'Int', isList: false, isRequired: true },
                 { name: 'name', kind: 'scalar', type: 'String', isList: false, isRequired: true },
                 { name: 'email', kind: 'scalar', type: 'String', isList: false, isRequired: true },
+                { name: 'created_at', kind: 'scalar', type: 'DateTime', isList: false, isRequired: true },
                 { name: 'realm', kind: 'object', type: 'Realm', isList: false, isRequired: false },
             ],
         },

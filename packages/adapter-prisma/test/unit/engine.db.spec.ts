@@ -50,6 +50,7 @@ describe('engine parity (prisma vs memory)', () => {
             email: 'caleb.barrows@gmail.com',
             age: 18,
             address: 'Hogwarts',
+            created_at: new Date('2026-08-20T09:00:00.000Z'),
             realm_id: 1,
             realm: {
                 id: 1, 
@@ -75,6 +76,7 @@ describe('engine parity (prisma vs memory)', () => {
             email: 'ashton.nel@gmail.com',
             age: 60,
             address: null,
+            created_at: new Date('2026-08-23T10:16:44.000Z'),
             realm_id: null,
             realm: null,
             items: [],
@@ -86,6 +88,7 @@ describe('engine parity (prisma vs memory)', () => {
             email: 'frodo.baggins@gmail.com',
             age: 33,
             address: 'Mordor',
+            created_at: null,
             realm_id: 2,
             realm: {
                 id: 2, 

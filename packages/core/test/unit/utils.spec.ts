@@ -13,6 +13,7 @@ import {
     parseKey,
     resolveAliasedKey,
     stringifyKey,
+    toDate,
 } from '../../src';
 import { applyMapping } from '../../src/utils';
 
@@ -150,5 +151,34 @@ describe('src/utils/parameter.ts', () => {
     it('should keep the deprecated enum member value stable', () => {
         expect(Parameter.SORT).toBe('sort');
         expect(Parameter.SORTS).toBe('sorts');
+    });
+});
+
+describe('src/utils/date.ts', () => {
+    it('should coerce wire strings to an instant', () => {
+        expect(toDate('2026-08-23T10:16:44.000Z')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+        expect(toDate('2026-08-23')?.toISOString())
+            .toEqual('2026-08-23T00:00:00.000Z');
+    });
+
+    it('should pass a valid date through untouched', () => {
+        const input = new Date('2026-08-23T10:16:44.000Z');
+
+        expect(toDate(input)).toBe(input);
+    });
+
+    it('should read a number as an epoch timestamp in milliseconds', () => {
+        expect(toDate(1787480204000)?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+    });
+
+    it('should reject values which do not denote an instant', () => {
+        expect(toDate('foo')).toBeUndefined();
+        expect(toDate(new Date('foo'))).toBeUndefined();
+        expect(toDate(null)).toBeUndefined();
+        expect(toDate(undefined)).toBeUndefined();
+        expect(toDate(true)).toBeUndefined();
+        expect(toDate({})).toBeUndefined();
     });
 });

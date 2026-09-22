@@ -33,6 +33,8 @@ export interface IFiltersAdapter extends ISubAdapter {
 
     isCaseFoldable(field: string) : boolean;
 
+    bindValue(field: string, value: unknown) : unknown;
+
     merge<
         T extends IFiltersAdapter,
     >(

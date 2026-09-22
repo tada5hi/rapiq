@@ -19,6 +19,7 @@ import {
     ITSELF,
     distributeNegation,
     planCondition,
+    toDate,
 } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
 import type { ProviderOptions } from '../provider';
@@ -624,6 +625,8 @@ export class WhereRenderer {
     }
 
     protected renderCompare(plan: ComparePlan, name: string, absolute: string) : Result {
+        const value = this.bindValue(absolute, plan.value);
+
         if (plan.op !== 'eq') {
             // ordering never carries negation after distribution: its
             // complement became the dual operator or a null check. An
@@ -633,20 +636,20 @@ export class WhereRenderer {
                 throw AdapterError.featureUnsupported('filters:negation');
             }
 
-            return { [name]: { [plan.op]: plan.value } };
+            return { [name]: { [plan.op]: value } };
         }
 
-        const mode = this.buildMode(absolute, plan.caseFold, [plan.value]);
+        const mode = this.buildMode(absolute, plan.caseFold, [value]);
 
         if (plan.negated) {
             return this.orNull(
                 name,
-                { [name]: { not: plan.value, ...mode } },
+                { [name]: { not: value, ...mode } },
                 absolute,
             );
         }
 
-        return { [name]: { equals: plan.value, ...mode } };
+        return { [name]: { equals: value, ...mode } };
     }
 
     /**
@@ -656,16 +659,18 @@ export class WhereRenderer {
      * skip null rows on their own.
      */
     protected renderOneOf(plan: OneOfPlan, name: string, absolute: string) : Result {
+        const values = plan.values.map((value) => this.bindValue(absolute, value));
+
         // no wildcard veto here: `in`/`notIn` are never lowered to
         // ILIKE, so they stay case-insensitive even for values
         // carrying % or _.
         const mode = this.buildMode(
             absolute,
-            plan.caseFold && plan.values.some((value) => typeof value === 'string'),
+            plan.caseFold && values.some((value) => typeof value === 'string'),
         );
 
-        const positive = { [name]: { in: plan.values, ...mode } };
-        const negative = { [name]: { notIn: plan.values, ...mode } };
+        const positive = { [name]: { in: values, ...mode } };
+        const negative = { [name]: { notIn: values, ...mode } };
 
         if (plan.includesNull) {
             if (plan.negated) {
@@ -853,6 +858,33 @@ export class WhereRenderer {
         }
 
         return { mode: 'insensitive' };
+    }
+
+    /**
+     * Read an equality or ordering operand on a date field back as the
+     * instant it denotes. The wire is untyped, so a date reaches the
+     * adapter as an ISO string; prisma wants a `Date`, and a value it
+     * cannot read answers a malformed client value with a server
+     * error, so refuse it here instead.
+     *
+     * Patterns and modulo operands never pass through: they are not
+     * values of the field's own domain.
+     */
+    protected bindValue(absolute: string, value: unknown) : unknown {
+        if (
+            value === null ||
+            typeof value === 'undefined' ||
+            !this.metadata.isDate?.(absolute)
+        ) {
+            return value;
+        }
+
+        const date = toDate(value);
+        if (!date) {
+            throw AdapterError.keyValueInvalid(absolute);
+        }
+
+        return date;
     }
 
     /**

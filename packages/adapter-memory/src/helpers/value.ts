@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { isObject, isPropertySet } from '@rapiq/core';
+import { isObject, isPropertySet, toDate } from '@rapiq/core';
 import { isEqual } from 'smob';
 
 /**
@@ -17,13 +17,41 @@ export function normalizeValue(input: unknown) : unknown {
 }
 
 /**
+ * Read the operand of a date comparison as the instant it denotes.
+ *
+ * A `Date` never crosses the wire, so a record value that *is* a Date
+ * meeting a *string* operand identifies that operand as a serialized
+ * date and nothing else — which is the one thing this backend knows
+ * that the serializing adapters have to ask their metadata for. Only
+ * that asymmetric pair coerces: two strings stay strings (a varchar
+ * column may well hold ISO text), and a number stays incomparable
+ * against a date (unlike the adapters which are *told* the field is
+ * temporal, this one only infers it from the value, so an epoch number
+ * would be a guess). A string denoting no instant is left alone and
+ * falls through to the usual incomparable/unequal verdict.
+ */
+function alignDates(a: unknown, b: unknown) : [unknown, unknown] {
+    if (a instanceof Date) {
+        return typeof b === 'string' ? [a, toDate(b) ?? b] : [a, b];
+    }
+
+    if (b instanceof Date && typeof a === 'string') {
+        return [toDate(a) ?? a, b];
+    }
+
+    return [a, b];
+}
+
+/**
  * Deep value equality after null-unification. `smob`'s `isEqual`
  * covers primitives, `Date` (by time) and structural object/array
  * equality — so an object- or array-valued field is compared by
  * value rather than by reference.
  */
 export function isValueEqual(a: unknown, b: unknown) : boolean {
-    return isEqual(normalizeValue(a), normalizeValue(b));
+    const [left, right] = alignDates(normalizeValue(a), normalizeValue(b));
+
+    return isEqual(left, right);
 }
 
 /**
@@ -32,9 +60,11 @@ export function isValueEqual(a: unknown, b: unknown) : boolean {
  * the pair as incomparable.
  */
 export function compareValues(a: unknown, b: unknown) : number | undefined {
-    const bothDates = a instanceof Date && b instanceof Date;
-    const left = bothDates ? (a as Date).getTime() : a;
-    const right = bothDates ? (b as Date).getTime() : b;
+    const [first, second] = alignDates(a, b);
+
+    const bothDates = first instanceof Date && second instanceof Date;
+    const left = bothDates ? (first as Date).getTime() : first;
+    const right = bothDates ? (second as Date).getTime() : second;
 
     if (typeof left === 'number' && typeof right === 'number') {
         if (Number.isNaN(left) || Number.isNaN(right)) {

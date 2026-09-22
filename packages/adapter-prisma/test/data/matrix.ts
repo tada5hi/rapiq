@@ -66,6 +66,15 @@ export const parityConditions : [string, Condition][] = [
     ['endsWith', endsWith('address', 'arts')],
     ['notEndsWith', notEndsWith('address', 'arts')],
 
+    // dates reach the adapter as the untyped wire strings they
+    // crossed a query string as, never as `Date` instances
+    ['date gte', gte('created_at', '2026-08-23T00:00:00.000Z')],
+    ['date lt', lt('created_at', '2026-08-23T00:00:00.000Z')],
+    ['date eq', eq('created_at', '2026-08-23T10:16:44.000Z')],
+    ['date ne', ne('created_at', '2026-08-23T10:16:44.000Z')],
+    ['date in', inArray('created_at', ['2026-08-20T09:00:00.000Z', '2026-08-23T10:16:44.000Z'])],
+    ['date eq (null)', eq('created_at', null)],
+
     ['to-one eq', eq('realm.name', 'master')],
     ['to-one ne', ne('realm.name', 'master')],
     ['to-one null column', eq('realm.description', null)],

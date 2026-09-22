@@ -79,6 +79,12 @@ Corresponding code in this project:
 - No regex, mod or array-length operator (RAW is the only escape hatch).
 - `defineRelations(schema, (r) => ({...}))` replaces the v1 `relations()` helpers;
   `from`/`to` replace `fields`/`references`; `through` covers many-to-many.
+- A filter operand is handed to the column's `mapToDriverValue` unchanged. Measured on
+  the better-sqlite3 engine (2026-09-22, issue #939): a wire string against
+  `integer('created_at', { mode: 'timestamp' })` throws
+  `value.getTime is not a function`; a `Date` works. Hence `DrizzleAdapter.bindValue()`
+  and the `IMetadata.isDate?()` question (`dataType === 'date'`, drizzle's own column
+  vocabulary).
 
 Sources: https://rqbv2.drizzle-orm-fe.pages.dev/docs/rqb-v2 and
 https://rqbv2.drizzle-orm-fe.pages.dev/docs/relations-v1-v2 (rc docs site).

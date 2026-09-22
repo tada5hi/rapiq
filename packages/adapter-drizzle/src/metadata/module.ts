@@ -16,6 +16,8 @@ import type {
 
 const STRING_TYPE = 'string';
 
+const DATE_TYPE = 'date';
+
 type Resolved =    | { kind: 'column', column: DatamodelColumn } |
     { kind: 'relation', relation: DatamodelRelation };
 
@@ -74,6 +76,19 @@ export class Metadata implements IMetadata {
         }
 
         return resolved.column.dataType === STRING_TYPE;
+    }
+
+    isDate(path: string) : boolean | undefined {
+        const resolved = this.resolve(path);
+        if (!resolved || resolved.kind !== 'column') {
+            return undefined;
+        }
+
+        if (typeof resolved.column.dataType === 'undefined') {
+            return undefined;
+        }
+
+        return resolved.column.dataType === DATE_TYPE;
     }
 
     isNullable(path: string) : boolean | undefined {

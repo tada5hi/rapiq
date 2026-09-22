@@ -47,6 +47,12 @@ export class User {
     @Column()
     email: string;
 
+    @Column({
+        nullable: true,
+        type: Date,
+    })
+    created_at: Date | null;
+
     @Column(() => Profile)
     profile: Profile;
 

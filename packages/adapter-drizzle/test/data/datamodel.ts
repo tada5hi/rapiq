@@ -20,6 +20,7 @@ export const datamodel : Datamodel = {
             email: { dataType: 'string', nullable: false },
             age: { dataType: 'number', nullable: false },
             address: { dataType: 'string', nullable: true },
+            created_at: { dataType: 'date', nullable: true },
             realm_id: { dataType: 'number', nullable: true },
         },
         relations: {

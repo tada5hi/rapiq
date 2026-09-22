@@ -19,6 +19,7 @@ import {
     ITSELF,
     distributeNegation,
     planCondition,
+    toDate,
 } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
 import type { ProviderOptions } from '../provider';
@@ -618,6 +619,8 @@ export class WhereRenderer {
     }
 
     protected renderCompare(plan: ComparePlan, name: string, absolute: string) : Result {
+        const value = this.bindValue(absolute, plan.value);
+
         if (plan.op !== 'eq') {
             // ordering never carries negation after distribution: its
             // complement became the dual operator or a null check. An
@@ -627,26 +630,26 @@ export class WhereRenderer {
                 throw AdapterError.featureUnsupported('filters:negation');
             }
 
-            return { [name]: { [plan.op]: plan.value } };
+            return { [name]: { [plan.op]: value } };
         }
 
         // an insensitive equality lowers to ILIKE with a fully
         // escaped operand: exact comparison, no wildcard semantics
         // (unlike prisma, the operand is built here, so no veto is
         // needed).
-        const fold = this.foldable(absolute, plan.caseFold) && typeof plan.value === 'string';
+        const fold = this.foldable(absolute, plan.caseFold) && typeof value === 'string';
 
         if (plan.negated) {
             const negative = fold ?
-                { [name]: { notIlike: escapeLike(plan.value as string) } } :
-                { [name]: { ne: plan.value } };
+                { [name]: { notIlike: escapeLike(value as string) } } :
+                { [name]: { ne: value } };
 
             return this.orNull(name, negative, absolute);
         }
 
         return fold ?
-            { [name]: { ilike: escapeLike(plan.value as string) } } :
-            { [name]: { eq: plan.value } };
+            { [name]: { ilike: escapeLike(value as string) } } :
+            { [name]: { eq: value } };
     }
 
     /**
@@ -656,8 +659,10 @@ export class WhereRenderer {
      * skip null rows on their own.
      */
     protected renderOneOf(plan: OneOfPlan, name: string, absolute: string) : Result {
+        const values = plan.values.map((value) => this.bindValue(absolute, value));
+
         const fold = this.foldable(absolute, plan.caseFold) &&
-            plan.values.some((value) => typeof value === 'string');
+            values.some((value) => typeof value === 'string');
 
         let positive : Where;
         let negative : Where;
@@ -669,7 +674,7 @@ export class WhereRenderer {
             const strings : string[] = [];
             const others : unknown[] = [];
 
-            for (const value of plan.values) {
+            for (const value of values) {
                 if (typeof value === 'string') {
                     strings.push(value);
                 } else {
@@ -692,8 +697,8 @@ export class WhereRenderer {
             positive = orCombine(positives) as Where;
             negative = andCombine(negatives) as Where;
         } else {
-            positive = { [name]: { in: plan.values } };
-            negative = { [name]: { notIn: plan.values } };
+            positive = { [name]: { in: values } };
+            negative = { [name]: { notIn: values } };
         }
 
         if (plan.includesNull) {
@@ -861,6 +866,34 @@ export class WhereRenderer {
         }
 
         return this.metadata.isString(absolute) !== false;
+    }
+
+    /**
+     * Read an equality or ordering operand on a date column back as
+     * the instant it denotes. The wire is untyped, so a date reaches
+     * the adapter as an ISO string, which drizzle hands straight to
+     * the column's `mapToDriverValue` and fails on
+     * ("value.getTime is not a function"); a value denoting no instant
+     * is refused here rather than answered with a server error.
+     *
+     * Patterns and modulo operands never pass through: they are not
+     * values of the column's own domain.
+     */
+    protected bindValue(absolute: string, value: unknown) : unknown {
+        if (
+            value === null ||
+            typeof value === 'undefined' ||
+            !this.metadata.isDate?.(absolute)
+        ) {
+            return value;
+        }
+
+        const date = toDate(value);
+        if (!date) {
+            throw AdapterError.keyValueInvalid(absolute);
+        }
+
+        return date;
     }
 
     /**

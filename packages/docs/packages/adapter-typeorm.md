@@ -94,6 +94,10 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 [Case-insensitive string equality](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns**: filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { caseSensitive: [...] })`.
 
+## Date columns
+
+The same entity metadata tells the adapter which columns are temporal, and a [date operand](/guide/filters#date-values) is bound in that column's own storage form: a UTC wall-clock literal for a zone-less `datetime`/`timestamp`, the ISO instant for a `timestamptz`, `YYYY-MM-DD` for a `date` (mirroring the column's `utc` option). A `Date` is deliberately never bound: the Postgres and MySQL drivers serialize one in the host's local zone, which a zone-less column then reads as local wall clock, shifting the window by the host's offset. A value that denotes no instant is refused with a typed `AdapterError` rather than handed to the driver.
+
 ## Field visibility gates
 
 A schema's `fields` [validate hook](/guide/schemas#condition-verdicts) may gate a column with a condition, meaning *visible only on rows satisfying it*. The adapter cannot express that: a selection has to stay a bare `alias.property` for entity hydration, so the column is projected for **every** row and the gate has to be enforced on the fetched entities.

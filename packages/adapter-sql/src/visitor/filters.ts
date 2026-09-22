@@ -104,6 +104,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
     compare(plan: ComparePlan): IFiltersAdapter {
         const fold = plan.caseFold && this.isCaseFoldableField(plan.field);
+        const value = this.bindValue(plan.field, plan.value);
 
         if (plan.negated) {
             const field = this.adapter.buildField(plan.field);
@@ -112,7 +113,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
                 `${this.adapter.caseFold(field)} <> ${this.adapter.caseFold(placeholder)}` :
                 `${field} <> ${placeholder}`;
 
-            return this.whereComplement(field, sql, plan.value);
+            return this.whereComplement(field, sql, value);
         }
 
         if (fold) {
@@ -120,11 +121,11 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
             return this.adapter.whereRaw(
                 `${this.adapter.caseFold(field)} = ${this.adapter.caseFold(this.adapter.buildParamPlaceholder())}`,
-                plan.value,
+                value,
             );
         }
 
-        return this.adapter.where(plan.field, COMPARE_SYMBOLS[plan.op], plan.value);
+        return this.adapter.where(plan.field, COMPARE_SYMBOLS[plan.op], value);
     }
 
     /**
@@ -133,7 +134,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
      * the exact complement.
      */
     oneOf(plan: OneOfPlan): IFiltersAdapter {
-        const { values } = plan;
+        const values = plan.values.map((value) => this.bindValue(plan.field, value));
         const field = this.adapter.buildField(plan.field);
         const nullCondition = `${field} is ${plan.negated ? 'not ' : ''}null`;
 
@@ -252,5 +253,15 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
      */
     protected isCaseFoldableField(field: string) : boolean {
         return this.adapter.isCaseFoldable(`${this.adapter.getFieldPrefix()}${field}`);
+    }
+
+    /**
+     * Hand an equality or ordering operand to the adapter so a backend
+     * that knows the column's type can bind it in that column's own
+     * form. Patterns and modulo operands deliberately skip this: they
+     * are not values of the column's domain.
+     */
+    protected bindValue(field: string, value: unknown) : unknown {
+        return this.adapter.bindValue(`${this.adapter.getFieldPrefix()}${field}`, value);
     }
 }

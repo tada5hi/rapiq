@@ -39,8 +39,9 @@ describe('src/schema/module.ts', () => {
                 'first_name', 
                 'last_name', 
                 'email', 
-                'age', 
-                'address', 
+                'age',
+                'address',
+                'created_at',
                 'realm_id',
             ]);
         });
