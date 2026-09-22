@@ -5,6 +5,8 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IAggregates } from './aggregates';
+import { Aggregates } from './aggregates';
 import type { IFields } from './fields';
 import {
     Fields,
@@ -13,6 +15,8 @@ import type { IFilters } from './filters';
 import {
     Filters,
 } from './filters';
+import type { IGroups } from './groups';
+import { Groups } from './groups';
 import type { IPagination } from './pagination';
 import { Pagination } from './pagination';
 import type { IRelations } from './relations';
@@ -35,12 +39,18 @@ export class Query implements IQuery {
 
     readonly sorts : ISorts;
 
+    readonly groups : IGroups;
+
+    readonly aggregates : IAggregates;
+
     constructor(options: QueryContext = {}) {
         this.fields = options.fields || new Fields();
         this.filters = options.filters || new Filters(FilterCompoundOperator.AND, []);
         this.relations = options.relations || new Relations();
         this.pagination = options.pagination || new Pagination();
         this.sorts = options.sorts || new Sorts();
+        this.groups = options.groups || new Groups();
+        this.aggregates = options.aggregates || new Aggregates();
     }
 
     accept<R>(visitor: IQueryVisitor<R>) : R {
