@@ -498,6 +498,26 @@ describe('src/parameter/merge.ts (groups and aggregates)', () => {
             .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
     });
 
+    it('should refuse a merge whose group key equals an aggregate key', () => {
+        const left = new Query({
+            groups: new Groups([new Group({
+                name: 'count',
+                lowering: {
+                    fn: undefined,
+                    field: 'count',
+                    args: [],
+                },
+            })]),
+        });
+        const right = new Query({ aggregates: new Aggregates([count()]) });
+
+        for (const input of [[left, right], [right, left]]) {
+            expect(() => mergeQueries(...input)).toThrowError(MergeError);
+            expect(() => mergeQueries(...input))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+        }
+    });
+
     it('should read an external query without the members as empty', () => {
         const external : IQuery = {
             fields: new Fields(),

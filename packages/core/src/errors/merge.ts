@@ -40,4 +40,15 @@ export class MergeError extends BaseError {
             code: ErrorCode.KEY_AMBIGUOUS,
         });
     }
+
+    /**
+     * The merged groups and aggregates would write the same row key, so
+     * one of the two values would be lost.
+     */
+    static outputKeyDuplicate(key: string) {
+        return new this({
+            message: ErrorMessage.outputKeyDuplicate(key),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
 }

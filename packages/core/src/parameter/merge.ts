@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { MergeError } from '../errors';
 import type { IAggregates } from './aggregates';
 import { Aggregates } from './aggregates';
 import type { IGroups } from './groups';
@@ -18,7 +19,8 @@ import type { IQuery } from './types';
  * limit/offset independently. Filters use {@link IFilters.merge} as an
  * ordered logical AND, retaining every condition. Groups keep the grain
  * of whichever side declares one and throw a typed MergeError when both
- * declare different ones. Aggregates follow the same rule. An absent
+ * declare different ones. Aggregates follow the same rule, and a group
+ * key equal to an aggregate key throws a typed MergeError. An absent
  * member of an external IQuery reads as empty.
  *
  * Immutable: inputs stay untouched, a new {@link Query} is returned.
@@ -48,6 +50,17 @@ export function mergeQueries(...input: IQuery[]) : Query {
         sorts = sorts.merge(query.sorts);
         groups = groups.merge(query.groups ?? new Groups());
         aggregates = aggregates.merge(query.aggregates ?? new Aggregates());
+    }
+
+    // Each side may be sound on its own while the union is not: a group
+    // and an aggregate of one key would write the same row key.
+    const keys = new Set<string>();
+    for (const item of [...groups.value, ...aggregates.value]) {
+        if (keys.has(item.key)) {
+            throw MergeError.outputKeyDuplicate(item.key);
+        }
+
+        keys.add(item.key);
     }
 
     return new Query({
