@@ -703,7 +703,7 @@ export class MongoFiltersParser extends BaseParser<
                     const value = input[operator];
                     if (
                         typeof value !== 'number' ||
-                        !Number.isInteger(value) ||
+                        !Number.isSafeInteger(value) ||
                         value < 0
                     ) {
                         throw FiltersParseError.keyValueInvalid(key);

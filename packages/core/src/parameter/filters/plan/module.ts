@@ -381,7 +381,7 @@ class ConditionLowering {
             }
             case 'cardinality': {
                 const valid = typeof value === 'number' &&
-                    Number.isInteger(value) &&
+                    Number.isSafeInteger(value) &&
                     value >= 0;
 
                 return {

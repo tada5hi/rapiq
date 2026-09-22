@@ -162,7 +162,7 @@ function serializeCondition(node: ICondition, insideElemMatch: boolean) : string
             // fail loudly here instead of emitting an undecodable token.
             if (
                 typeof node.value !== 'number' ||
-                !Number.isInteger(node.value) ||
+                !Number.isSafeInteger(node.value) ||
                 node.value < 0
             ) {
                 throw AdapterError.featureUnsupported('filters:size:value');

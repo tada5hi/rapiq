@@ -666,7 +666,7 @@ export class ExpressionFiltersParser extends BaseParser<
 
         if (
             typeof value !== 'number' ||
-            !Number.isInteger(value) ||
+            !Number.isSafeInteger(value) ||
             value < 0
         ) {
             throw FiltersParseError.keyValueInvalid(field);

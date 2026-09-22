@@ -27,7 +27,7 @@ export class PaginationVisitor implements IPaginationVisitor<RecordSerializer> {
      */
     visitPagination(expr: Pagination): RecordSerializer {
         if (typeof expr.limit !== 'undefined') {
-            if (!Number.isInteger(expr.limit) || expr.limit <= 0) {
+            if (!Number.isSafeInteger(expr.limit) || expr.limit <= 0) {
                 throw AdapterError.featureUnsupported('pagination:limit');
             }
 
@@ -35,7 +35,7 @@ export class PaginationVisitor implements IPaginationVisitor<RecordSerializer> {
         }
 
         if (typeof expr.offset !== 'undefined') {
-            if (!Number.isInteger(expr.offset) || expr.offset < 0) {
+            if (!Number.isSafeInteger(expr.offset) || expr.offset < 0) {
                 throw AdapterError.featureUnsupported('pagination:offset');
             }
 
