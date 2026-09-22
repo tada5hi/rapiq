@@ -9,7 +9,7 @@ import type { Parameter } from '../../../constants';
 import { BuildError, ErrorCode } from '../../../errors';
 import type { CallLowering, CallTerm } from '../../../parameter';
 import { resolveCallTerm } from '../../../schema';
-import { isObject, isPropertyNameValid } from '../../../utils';
+import { isCallIdentifierValid, isObject } from '../../../utils';
 
 type CallNodeOptions = CallTerm & {
     lowering: CallLowering | undefined,
@@ -55,7 +55,7 @@ export function buildCallOptions(
         case ErrorCode.KEY_INVALID:
         case ErrorCode.KEY_PATH_NOT_ALLOWED:
             throw BuildError.keyInvalid(
-                [term.name, ...term.params].find((identifier) => !isPropertyNameValid(identifier)) ??
+                [term.name, ...term.params].find((identifier) => !isCallIdentifierValid(identifier)) ??
                 term.name,
             );
         case ErrorCode.KEY_VALUE_INVALID:

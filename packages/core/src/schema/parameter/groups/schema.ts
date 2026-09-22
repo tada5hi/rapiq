@@ -8,7 +8,7 @@
 import { SchemaError } from '../../../errors';
 import { GROUP_FUNCTION_SLOTS } from '../../../parameter';
 import type { ObjectLiteral } from '../../../types';
-import { assertKnownInputKeys, isPropertyNameValid } from '../../../utils';
+import { assertKnownInputKeys, isCallIdentifierValid } from '../../../utils';
 import { BaseSchema } from '../../base';
 import { describeCallFunctions, normalizeCallFunctions } from '../call';
 import type { CallFunctionNormalized } from '../call';
@@ -47,7 +47,7 @@ export class GroupsSchema<
         this.allowed = [...(options.allowed ?? [])];
 
         for (const column of this.allowed) {
-            if (!isPropertyNameValid(column)) {
+            if (!isCallIdentifierValid(column)) {
                 throw SchemaError.functionInvalid(column, 'the column is not a valid identifier');
             }
         }

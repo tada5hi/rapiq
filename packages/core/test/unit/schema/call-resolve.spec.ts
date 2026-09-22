@@ -109,11 +109,11 @@ const cases : Case[] = [
         expected: no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('status')),
     },
     {
-        title: 'a prototype key',
+        title: 'a reserved prototype key',
         parameter: G,
         bound: true,
         term: { name: 'constructor', params: [] },
-        expected: no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('constructor')),
+        expected: no(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid('constructor')),
     },
     {
         title: 'an undeclared primitive',
@@ -310,8 +310,29 @@ describe('src/schema/parameter/call/module.ts', () => {
             .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('count')));
     });
 
+    it.each(['__proto__', 'constructor', 'prototype'])('should refuse the reserved identifier %s', (name) => {
+        const expected = no(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid(name));
+
+        expect(resolveCallTerm(Parameter.GROUPS, { name, params: [] })).toEqual(expected);
+        expect(resolveCallTerm(Parameter.GROUPS, { name, params: [] }, orderSchema.groups)).toEqual(expected);
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'sum', params: [name] })).toEqual(expected);
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'sum', params: [name] }, orderSchema.aggregates))
+            .toEqual(expected);
+    });
+
     it('should not read columns from a schema of the other parameter', () => {
         expect(resolveCallTerm(Parameter.GROUPS, { name: 'status', params: [] }, orderSchema.aggregates))
             .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('status')));
+    });
+
+    it('should not read functions from a schema of the other parameter', () => {
+        expect(resolveCallTerm(Parameter.GROUPS, { name: 'count', params: [] }, orderSchema.aggregates))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('count')));
+        expect(resolveCallTerm(Parameter.GROUPS, { name: 'revenue', params: [] }, orderSchema.aggregates))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('revenue')));
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'bucket', params: ['createdAt', 'day'] }, orderSchema.groups))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('bucket')));
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'period', params: ['day'] }, orderSchema.groups))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('period')));
     });
 });

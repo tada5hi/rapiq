@@ -84,6 +84,19 @@ describe('src/build/parameter/{groups,aggregates}/*.ts', () => {
         expect(error.message).toBe(ErrorMessage.keyInvalid('realm.name'));
     });
 
+    it.each(['__proto__', 'constructor', 'prototype'])('should refuse the reserved identifier %s', (name) => {
+        for (const run of [
+            () => defineGroups([name]),
+            () => defineAggregates([{ name: 'sum', params: [name] }]),
+        ]) {
+            const error = captureError<BuildError>(run);
+
+            expect(error).toBeInstanceOf(BuildError);
+            expect(error.code).toBe(ErrorCode.KEY_INVALID);
+            expect(error.message).toBe(ErrorMessage.keyInvalid(name));
+        }
+    });
+
     it('should refuse arguments a primitive does not take', () => {
         const error = captureError<BuildError>(() => defineAggregates([{ name: 'sum', params: ['amount', 'fee'] }]));
 
