@@ -170,6 +170,24 @@ describe('src/utils/encode.ts', () => {
             }]);
         });
 
+        it('should not let a false flag drop the grain in the schema pass', async () => {
+            const options = {
+                schema: 'event',
+                groups: false,
+                aggregates: false,
+                stamp: false,
+            };
+            const expected = 'filter=eq(realmId,\'r1\')&group=bucket(createdAt,day),scope,name&aggregate=count';
+
+            expect(decodeURIComponent(aware.encode(issueQuery, options)!)).toEqual(expected);
+            expect(decodeURIComponent((await aware.encodeAsync(issueQuery, options))!)).toEqual(expected);
+            expect(decodeURIComponent(aware.encode(issueQuery, { ...options, schema: undefined })!)).toEqual(expected);
+            expect(decodeURIComponent(aware.encode(issueQuery, {
+                ...options,
+                codec: URL_SIMPLE_CODEC,
+            })!)).toEqual(expected.replace('filter=eq(realmId,\'r1\')', 'filter[realmId]=r1'));
+        });
+
         it('should intersect the caller mask', () => {
             expect(decodeURIComponent(aware.encode(issueQuery, {
                 schema: 'event',

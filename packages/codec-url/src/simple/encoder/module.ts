@@ -22,6 +22,7 @@ import type {
 } from '@rapiq/core';
 import {
     buildQueryParameters,
+    buildSchemaPassOptions,
     intersectQueryParameters,
     isSchemaAware,
     stripFieldConditions,
@@ -70,7 +71,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -98,7 +99,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }

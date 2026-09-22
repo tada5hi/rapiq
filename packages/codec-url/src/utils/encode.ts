@@ -60,6 +60,29 @@ export function buildQueryParameters(input: IQuery) : `${Parameter}`[] {
 }
 
 /**
+ * The decode options of the schema-aware encode pass. The parameter
+ * list (built by {@link buildQueryParameters}) already opts that pass
+ * into groups and aggregates; their boolean flags are dropped, because
+ * the plain pass ignores them and a `false` flag would otherwise
+ * silently turn a grouped query into a record query.
+ *
+ * @param options
+ * @param parameters
+ */
+export function buildSchemaPassOptions(
+    options: ParseQueryOptions,
+    parameters: `${Parameter}`[],
+) : ParseQueryOptions {
+    const {
+        groups: _groups,
+        aggregates: _aggregates,
+        ...rest
+    } = options;
+
+    return { ...rest, parameters };
+}
+
+/**
  * Restrict a parameter list by an optional caller-provided mask
  * ({@link ParseQueryOptions.parameters}).
  *

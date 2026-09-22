@@ -23,6 +23,7 @@ import {
 import { URLParameter } from '../../constants';
 import {
     buildQueryParameters,
+    buildSchemaPassOptions,
     includesParameter,
     intersectQueryParameters,
     isSchemaAware,
@@ -76,7 +77,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -98,7 +99,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
