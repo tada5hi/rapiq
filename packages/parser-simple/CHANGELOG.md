@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.3.0](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.2.0...parser-simple-v2.3.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* **deps:** bump the minorandpatch group across 1 directory with 21 updates ([#933](https://github.com/tada5hi/rapiq/issues/933)) ([9bfc9d0](https://github.com/tada5hi/rapiq/commit/9bfc9d0fe4a9f2146562555d78f1e7e8e9aa5e28))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+
 ## [2.2.0](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.1.0...parser-simple-v2.2.0) (2026-08-16)
 
 

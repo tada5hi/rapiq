@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.3.0](https://github.com/tada5hi/rapiq/compare/core-v2.2.0...core-v2.3.0) (2026-09-22)
+
+
+### Features
+
+* **adapter-sql:** render anchored operators as LIKE on every dialect ([#937](https://github.com/tada5hi/rapiq/issues/937)) ([082e914](https://github.com/tada5hi/rapiq/commit/082e914081c05ea0aaf401eff8ea11fe64b58b00)), closes [#934](https://github.com/tada5hi/rapiq/issues/934)
+
+
+### Bug Fixes
+
+* **deps:** bump the minorandpatch group across 1 directory with 21 updates ([#933](https://github.com/tada5hi/rapiq/issues/933)) ([9bfc9d0](https://github.com/tada5hi/rapiq/commit/9bfc9d0fe4a9f2146562555d78f1e7e8e9aa5e28))
+* read date filter operands as instants in every adapter ([#943](https://github.com/tada5hi/rapiq/issues/943)) ([f38cb26](https://github.com/tada5hi/rapiq/commit/f38cb26696ffa9de1ee1344b06898bb1a11ff5d5))
+* reject unsafe integers in size and pagination guards ([ae7e1ed](https://github.com/tada5hi/rapiq/commit/ae7e1edc79a6a7ccc969ad91b16e1b02e3398857))
+
 ## [2.2.0](https://github.com/tada5hi/rapiq/compare/core-v2.1.0...core-v2.2.0) (2026-08-16)
 
 

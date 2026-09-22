@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.3.0](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.2.0...adapter-memory-v2.3.0) (2026-09-22)
+
+
+### Features
+
+* **adapter-sql:** render anchored operators as LIKE on every dialect ([#937](https://github.com/tada5hi/rapiq/issues/937)) ([082e914](https://github.com/tada5hi/rapiq/commit/082e914081c05ea0aaf401eff8ea11fe64b58b00)), closes [#934](https://github.com/tada5hi/rapiq/issues/934)
+
+
+### Bug Fixes
+
+* read date filter operands as instants in every adapter ([#943](https://github.com/tada5hi/rapiq/issues/943)) ([f38cb26](https://github.com/tada5hi/rapiq/commit/f38cb26696ffa9de1ee1344b06898bb1a11ff5d5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+
 ## [2.2.0](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.1.0...adapter-memory-v2.2.0) (2026-08-16)
 
 
