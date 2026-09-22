@@ -27,6 +27,7 @@ import {
     column,
     count,
     grouped,
+    sum,
 } from '../../data/calls';
 import { events } from '../../data/event';
 
@@ -286,6 +287,107 @@ describe('src/grouped/module.ts', () => {
 
             expect(() => compileGroupedQuery(grouped([week], [])))
                 .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
+        });
+    });
+
+    describe('aggregates', () => {
+        it('should count rows, count non-null values and sum per group', () => {
+            const query = grouped([column('scope')], [count(), count('amount'), sum('amount')]);
+
+            expect(applyGroupedQuery(query, events).data).toEqual([
+                {
+                    scope: 'User',
+                    count: 1,
+                    count_amount: 1,
+                    sum_amount: 1,
+                },
+                {
+                    scope: 'client',
+                    count: 1,
+                    count_amount: 1,
+                    sum_amount: 2.5,
+                },
+                {
+                    scope: 'user',
+                    count: 3,
+                    count_amount: 2,
+                    sum_amount: 15,
+                },
+                {
+                    scope: null,
+                    count: 1,
+                    count_amount: 1,
+                    sum_amount: 7,
+                },
+            ]);
+        });
+
+        it('should sum finite numbers only and answer null when there are none', () => {
+            const data = [
+                { scope: 'a', amount: null },
+                { scope: 'a', amount: '5' },
+                { scope: 'b', amount: NaN },
+            ];
+
+            expect(applyGroupedQuery(grouped([column('scope')], [count('amount'), sum('amount')]), data).data).toEqual([
+                {
+                    scope: 'a',
+                    count_amount: 1,
+                    sum_amount: null,
+                },
+                {
+                    scope: 'b',
+                    count_amount: 1,
+                    sum_amount: null,
+                },
+            ]);
+        });
+
+        it('should answer exactly one row without groups', () => {
+            const query = grouped([], [count(), sum('amount')]);
+
+            expect(applyGroupedQuery(query, events)).toEqual({
+                data: [{ count: 6, sum_amount: 25.5 }],
+                total: 1,
+                pagination: { limit: undefined, offset: undefined },
+            });
+        });
+
+        it('should answer one row without groups even over zero records', () => {
+            const query = grouped([], [count(), sum('amount')], { filters: eq('realmId', 'none') });
+
+            expect(applyGroupedQuery(query, events).data).toEqual([{ count: 0, sum_amount: null }]);
+            expect(applyGroupedQuery(grouped([], [count()]), []).total).toEqual(1);
+        });
+
+        it('should answer zero rows with groups over zero records', () => {
+            expect(applyGroupedQuery(grouped([column('scope')], [count()]), [])).toEqual({
+                data: [],
+                total: 0,
+                pagination: { limit: undefined, offset: undefined },
+            });
+        });
+
+        it('should compose a bucket with every aggregate', () => {
+            const query = grouped([bucket('createdAt', 'month')], [count(), sum('amount')]);
+
+            expect(applyGroupedQuery(query, events).data).toEqual([
+                {
+                    bucket: '2026-08-01T00:00:00.000Z',
+                    count: 1,
+                    sum_amount: 1,
+                },
+                {
+                    bucket: '2026-09-01T00:00:00.000Z',
+                    count: 4,
+                    sum_amount: 17.5,
+                },
+                {
+                    bucket: null,
+                    count: 1,
+                    sum_amount: 7,
+                },
+            ]);
         });
     });
 });

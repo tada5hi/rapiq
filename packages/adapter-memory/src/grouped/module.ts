@@ -95,8 +95,26 @@ function compileAggregate(aggregate: IAggregate) : AggregateReducer {
     }
 
     const { fn, field } = lowering;
-    if (fn === AggregateFunction.COUNT && typeof field === 'undefined') {
-        return (records) => records.length;
+    if (fn === AggregateFunction.COUNT) {
+        if (typeof field === 'undefined') {
+            return (records) => records.length;
+        }
+
+        return (records) => records.filter((record) => resolvePath(record, field) !== null).length;
+    }
+
+    if (fn === AggregateFunction.SUM && typeof field !== 'undefined') {
+        return (records) => {
+            let output : number | null = null;
+            for (const record of records) {
+                const value = resolvePath(record, field);
+                if (typeof value === 'number' && Number.isFinite(value)) {
+                    output = (output ?? 0) + value;
+                }
+            }
+
+            return output;
+        };
     }
 
     throw AdapterError.featureUnsupported(`aggregates:${fn}`);
@@ -139,6 +157,11 @@ export function compileGroupedQuery(
 
     return (data) => {
         const buckets = new Map<string, GroupBucket>();
+        if (groups.length === 0) {
+            // without group keys SQL answers one row, even over zero records.
+            buckets.set(JSON.stringify([]), { values: [], records: [] });
+        }
+
         for (const record of data) {
             if (!predicate(record)) {
                 continue;
