@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { Parameter } from '../constants';
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
@@ -33,7 +34,7 @@ export class MergeError extends BaseError {
      * or a left win would fabricate or discard a grain, so the merge
      * refuses, following the fields visibility-gate rule (#839).
      */
-    static callsConflict(parameter: string) {
+    static callsConflict(parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`) {
         return new this({
             message: ErrorMessage.mergeConflict(parameter),
             code: ErrorCode.KEY_AMBIGUOUS,

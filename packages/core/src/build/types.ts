@@ -6,10 +6,8 @@
  */
 
 import type {
-    IAggregates,
     ICondition,
     IFields,
-    IGroups,
     IPagination,
     IRelations,
     ISorts,
@@ -52,9 +50,9 @@ export type QueryBuildInput<
      * Primitives resolve here; a named function travels unresolved
      * for the server's schema to resolve.
      */
-    groups?: GroupsBuildInput<RECORD> | IGroups,
+    groups?: GroupsBuildInput<RECORD>,
     /**
      * Aggregate terms, e.g. `['count', { name: 'sum', params: ['amount'] }]`.
      */
-    aggregates?: AggregatesBuildInput | IAggregates,
+    aggregates?: AggregatesBuildInput,
 };
