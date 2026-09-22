@@ -324,4 +324,15 @@ describe('src/schema/parameter/call/module.ts', () => {
         expect(resolveCallTerm(Parameter.GROUPS, { name: 'status', params: [] }, orderSchema.aggregates))
             .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('status')));
     });
+
+    it('should not read functions from a schema of the other parameter', () => {
+        expect(resolveCallTerm(Parameter.GROUPS, { name: 'count', params: [] }, orderSchema.aggregates))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('count')));
+        expect(resolveCallTerm(Parameter.GROUPS, { name: 'revenue', params: [] }, orderSchema.aggregates))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('revenue')));
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'bucket', params: ['createdAt', 'day'] }, orderSchema.groups))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('bucket')));
+        expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'period', params: ['day'] }, orderSchema.groups))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('period')));
+    });
 });

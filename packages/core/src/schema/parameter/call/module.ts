@@ -212,13 +212,19 @@ function reject(code: `${ErrorCode}`, message: string) : CallResolution {
  * The primitive of that name with every slot open, or undefined. Read
  * as an own property: `constructor` must not find Object's.
  */
+function getPrimitives(
+    parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+) : Record<string, CallSlot[]> {
+    return parameter === Parameter.GROUPS ?
+        GROUP_FUNCTION_SLOTS :
+        AGGREGATE_FUNCTION_SLOTS;
+}
+
 function resolvePrimitive(
     parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
     name: string,
 ) : CallFunctionNormalized | undefined {
-    const primitives : Record<string, CallSlot[]> = parameter === Parameter.GROUPS ?
-        GROUP_FUNCTION_SLOTS :
-        AGGREGATE_FUNCTION_SLOTS;
+    const primitives = getPrimitives(parameter);
     const slots = isPropertySet(primitives, name) ? primitives[name] : undefined;
 
     return slots ? buildBuiltinFunction(name, slots, []) : undefined;
@@ -257,6 +263,13 @@ export function resolveCallTerm(
         declaration = isPropertySet(schema.functions, term.name) ?
             schema.functions[term.name] :
             undefined;
+
+        // a declaration lowering to a primitive of the other parameter
+        // comes from a schema of that parameter passed here by mistake,
+        // so it must permit nothing.
+        if (declaration && !isPropertySet(getPrimitives(parameter), declaration.fn)) {
+            declaration = undefined;
+        }
     } else {
         declaration = resolvePrimitive(parameter, term.name);
     }
