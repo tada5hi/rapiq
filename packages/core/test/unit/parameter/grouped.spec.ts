@@ -17,10 +17,13 @@ import {
     Pagination,
     Query,
     Relations,
+    Sort,
+    SortDirection,
     Sorts,
     isAggregates,
     isGroupedQuery,
     isGroups,
+    resolveGroupedSorts,
 } from '../../../src';
 
 const scope = new Group({
@@ -83,5 +86,44 @@ describe('src/parameter/check.ts (isGroupedQuery)', () => {
         };
 
         expect(isGroupedQuery(external)).toBe(false);
+    });
+});
+
+describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
+    const bucket = new Group({
+        name: 'bucket',
+        params: ['createdAt', 'day'],
+        lowering: {
+            fn: 'bucket', 
+            field: 'createdAt', 
+            args: ['day'], 
+        },
+    });
+
+    it('should return the explicit sorts when present', () => {
+        const sorts = new Sorts([new Sort('count', SortDirection.DESC)]);
+        const query = new Query({
+            groups: new Groups([bucket, scope]),
+            aggregates: new Aggregates([count]),
+            sorts,
+        });
+
+        expect(resolveGroupedSorts(query)).toBe(sorts.value);
+    });
+
+    it('should order by every group key ascending in declared order', () => {
+        const query = new Query({
+            groups: new Groups([bucket, scope]),
+            aggregates: new Aggregates([count]),
+        });
+
+        expect(resolveGroupedSorts(query).map((sort) => [sort.name, sort.operator])).toEqual([
+            ['bucket', SortDirection.ASC],
+            ['scope', SortDirection.ASC],
+        ]);
+    });
+
+    it('should need no order for an aggregates-only query', () => {
+        expect(resolveGroupedSorts(new Query({ aggregates: new Aggregates([count]) }))).toEqual([]);
     });
 });

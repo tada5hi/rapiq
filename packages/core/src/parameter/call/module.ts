@@ -5,8 +5,12 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { SortDirection } from '../../schema';
 import type { IAggregate } from '../aggregates';
 import type { IGroup } from '../groups';
+import type { ISort } from '../sorts';
+import { Sort } from '../sorts';
+import type { IQuery } from '../types';
 
 function isListEqual(a: readonly string[], b: readonly string[]) : boolean {
     return a.length === b.length && a.every((item, index) => item === b[index]);
@@ -28,4 +32,18 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
     return a.lowering.fn === b.lowering.fn &&
         a.lowering.field === b.lowering.field &&
         isListEqual(a.lowering.args, b.lowering.args);
+}
+
+/**
+ * The ordering every grouped consumer applies: the explicit sorts when
+ * present, otherwise every group key ascending in declared order, and
+ * none for an aggregates-only query (which yields exactly one row).
+ */
+export function resolveGroupedSorts(query: IQuery) : ISort[] {
+    if (query.sorts.value.length > 0) {
+        return query.sorts.value;
+    }
+
+    return (query.groups?.value ?? [])
+        .map((group) => new Sort(group.key, SortDirection.ASC));
 }
