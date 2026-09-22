@@ -6,9 +6,9 @@
  */
 
 import type {
-    ICondition, 
-    IFilter, 
-    IFilters, 
+    ICondition,
+    IFilter,
+    IFilters,
     IQuery,
 } from '../../../src';
 import {
@@ -442,18 +442,18 @@ describe('src/parameter/merge.ts (groups and aggregates)', () => {
     const scope = () => new Group({
         name: 'scope',
         lowering: {
-            fn: undefined, 
-            field: 'scope', 
-            args: [], 
-        }, 
+            fn: undefined,
+            field: 'scope',
+            args: [],
+        },
     });
     const count = () => new Aggregate({
         name: 'count',
         lowering: {
-            fn: 'count', 
-            field: undefined, 
-            args: [], 
-        }, 
+            fn: 'count',
+            field: undefined,
+            args: [],
+        },
     });
 
     it('should carry the grain of the side that declares it', () => {
@@ -486,11 +486,11 @@ describe('src/parameter/merge.ts (groups and aggregates)', () => {
             groups: new Groups([new Group({
                 name: 'name',
                 lowering: {
-                    fn: undefined, 
-                    field: 'name', 
-                    args: [], 
-                }, 
-            })]), 
+                    fn: undefined,
+                    field: 'name',
+                    args: [],
+                },
+            })]),
         });
 
         expect(() => mergeQueries(left, right)).toThrowError(MergeError);

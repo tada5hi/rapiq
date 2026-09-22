@@ -23,10 +23,10 @@ describe('src/schema/parameter/groups/*.ts', () => {
             allowed: ['status'],
             functions: {
                 period: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: ['hour', 'day'], 
-                }, 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: ['hour', 'day'],
+                },
             },
         });
 
@@ -38,15 +38,15 @@ describe('src/schema/parameter/groups/*.ts', () => {
                 fn: 'bucket',
                 slots: [
                     {
-                        name: 'field', 
-                        values: ['createdAt'], 
-                        fixed: true, 
+                        name: 'field',
+                        values: ['createdAt'],
+                        fixed: true,
                         optional: false,
                     },
                     {
-                        name: 'unit', 
-                        values: ['hour', 'day'], 
-                        fixed: false, 
+                        name: 'unit',
+                        values: ['hour', 'day'],
+                        fixed: false,
                         optional: false,
                     },
                 ],
@@ -71,9 +71,9 @@ describe('src/schema/parameter/groups/*.ts', () => {
             functions: {
                 bucket: { allowed: ['createdAt'] },
                 period: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: ['hour', 'day'], 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: ['hour', 'day'],
                 },
             },
         });
@@ -85,23 +85,23 @@ describe('src/schema/parameter/groups/*.ts', () => {
                     fn: 'bucket',
                     params: [
                         {
-                            name: 'field', 
-                            values: ['createdAt'], 
-                            optional: false, 
+                            name: 'field',
+                            values: ['createdAt'],
+                            optional: false,
                         },
                         {
-                            name: 'unit', 
-                            values: ['hour', 'day', 'month'], 
-                            optional: false, 
+                            name: 'unit',
+                            values: ['hour', 'day', 'month'],
+                            optional: false,
                         },
                     ],
                 },
                 period: {
                     fn: 'bucket',
                     params: [{
-                        name: 'unit', 
-                        values: ['hour', 'day'], 
-                        optional: false, 
+                        name: 'unit',
+                        values: ['hour', 'day'],
+                        optional: false,
                     }],
                 },
             },
@@ -142,10 +142,10 @@ describe('src/schema/parameter/groups/*.ts', () => {
             allowed: ['status'],
             functions: {
                 status: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: 'day', 
-                }, 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: 'day',
+                },
             },
         }));
 
@@ -172,18 +172,18 @@ describe('src/schema/parameter/aggregates/*.ts', () => {
                 count: {
                     fn: 'count',
                     params: [{
-                        name: 'field', 
-                        values: ['couponId'], 
-                        optional: true, 
-                    }], 
+                        name: 'field',
+                        values: ['couponId'],
+                        optional: true,
+                    }],
                 },
                 total: {
                     fn: 'sum',
                     params: [{
-                        name: 'field', 
-                        values: ['amount', 'fee'], 
-                        optional: false, 
-                    }], 
+                        name: 'field',
+                        values: ['amount', 'fee'],
+                        optional: false,
+                    }],
                 },
                 revenue: { fn: 'sum', params: [] },
             },

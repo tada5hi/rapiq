@@ -38,9 +38,9 @@ describe('src/schema/**/describe', () => {
                 allowed: ['email'],
             },
             filters: {
-                allowed: ['id', 'name'], 
-                caseSensitive: null, 
-                indexed: false, 
+                allowed: ['id', 'name'],
+                caseSensitive: null,
+                indexed: false,
             },
             pagination: { maxLimit: 50 },
             relations: {
@@ -69,9 +69,9 @@ describe('src/schema/**/describe', () => {
             indexes: null,
             fields: { default: null, allowed: null },
             filters: {
-                allowed: null, 
-                caseSensitive: null, 
-                indexed: false, 
+                allowed: null,
+                caseSensitive: null,
+                indexed: false,
             },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
@@ -97,9 +97,9 @@ describe('src/schema/**/describe', () => {
         expect(output.fields).toEqual({ default: null, allowed: [] });
         expect(output.relations).toEqual({ allowed: [], schemas: {} });
         expect(output.filters).toEqual({
-            allowed: null, 
-            caseSensitive: [], 
-            indexed: false, 
+            allowed: null,
+            caseSensitive: [],
+            indexed: false,
         });
     });
 
@@ -228,14 +228,14 @@ describe('src/schema/**/describe', () => {
                     fn: 'bucket',
                     params: [
                         {
-                            name: 'field', 
-                            values: ['createdAt'], 
-                            optional: false, 
+                            name: 'field',
+                            values: ['createdAt'],
+                            optional: false,
                         },
                         {
-                            name: 'unit', 
-                            values: ['hour', 'day', 'month'], 
-                            optional: false, 
+                            name: 'unit',
+                            values: ['hour', 'day', 'month'],
+                            optional: false,
                         },
                     ],
                 },
@@ -246,11 +246,11 @@ describe('src/schema/**/describe', () => {
                 count: {
                     fn: 'count',
                     params: [{
-                        name: 'field', 
-                        values: [], 
-                        optional: true, 
-                    }], 
-                }, 
+                        name: 'field',
+                        values: [],
+                        optional: true,
+                    }],
+                },
             },
         });
     });
@@ -262,10 +262,10 @@ describe('src/schema/**/describe', () => {
                 allowed: ['status'],
                 functions: {
                     period: {
-                        fn: 'bucket', 
-                        field: 'createdAt', 
-                        unit: ['hour', 'day'], 
-                    }, 
+                        fn: 'bucket',
+                        field: 'createdAt',
+                        unit: ['hour', 'day'],
+                    },
                 },
             },
             aggregates: {
@@ -285,11 +285,11 @@ describe('src/schema/**/describe', () => {
                 period: {
                     fn: 'bucket',
                     params: [{
-                        name: 'unit', 
-                        values: ['hour', 'day'], 
-                        optional: false, 
-                    }], 
-                }, 
+                        name: 'unit',
+                        values: ['hour', 'day'],
+                        optional: false,
+                    }],
+                },
             },
         });
         expect(output.aggregates).toEqual({
@@ -297,18 +297,18 @@ describe('src/schema/**/describe', () => {
                 count: {
                     fn: 'count',
                     params: [{
-                        name: 'field', 
-                        values: ['couponId'], 
-                        optional: true, 
-                    }], 
+                        name: 'field',
+                        values: ['couponId'],
+                        optional: true,
+                    }],
                 },
                 total: {
                     fn: 'sum',
                     params: [{
-                        name: 'field', 
-                        values: ['amount', 'fee'], 
-                        optional: false, 
-                    }], 
+                        name: 'field',
+                        values: ['amount', 'fee'],
+                        optional: false,
+                    }],
                 },
                 revenue: { fn: 'sum', params: [] },
             },

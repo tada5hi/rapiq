@@ -94,9 +94,9 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
         name: 'bucket',
         params: ['createdAt', 'day'],
         lowering: {
-            fn: 'bucket', 
-            field: 'createdAt', 
-            args: ['day'], 
+            fn: 'bucket',
+            field: 'createdAt',
+            args: ['day'],
         },
     });
 

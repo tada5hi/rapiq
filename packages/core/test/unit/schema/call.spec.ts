@@ -36,15 +36,15 @@ describe('src/schema/parameter/call/*.ts', () => {
                 fn: 'bucket',
                 slots: [
                     {
-                        name: 'field', 
-                        values: ['createdAt'], 
-                        fixed: false, 
+                        name: 'field',
+                        values: ['createdAt'],
+                        fixed: false,
                         optional: false,
                     },
                     {
-                        name: 'unit', 
-                        values: ['hour', 'day', 'month'], 
-                        fixed: false, 
+                        name: 'unit',
+                        values: ['hour', 'day', 'month'],
+                        fixed: false,
                         optional: false,
                     },
                 ],
@@ -55,18 +55,18 @@ describe('src/schema/parameter/call/*.ts', () => {
             count: {
                 fn: 'count',
                 slots: [{
-                    name: 'field', 
-                    values: [], 
-                    fixed: false, 
+                    name: 'field',
+                    values: [],
+                    fixed: false,
                     optional: true,
                 }],
             },
             sum: {
                 fn: 'sum',
                 slots: [{
-                    name: 'field', 
-                    values: ['amount'], 
-                    fixed: false, 
+                    name: 'field',
+                    values: ['amount'],
+                    fixed: false,
                     optional: false,
                 }],
             },
@@ -76,24 +76,24 @@ describe('src/schema/parameter/call/*.ts', () => {
     it('should bind a named function: a scalar fixes a slot, an array opens it', () => {
         expect(normalizeCallFunctions(GROUP_FUNCTION_SLOTS, {
             period: {
-                fn: 'bucket', 
-                field: 'createdAt', 
-                unit: ['hour', 'day'], 
-            }, 
+                fn: 'bucket',
+                field: 'createdAt',
+                unit: ['hour', 'day'],
+            },
         })).toEqual({
             period: {
                 fn: 'bucket',
                 slots: [
                     {
-                        name: 'field', 
-                        values: ['createdAt'], 
-                        fixed: true, 
+                        name: 'field',
+                        values: ['createdAt'],
+                        fixed: true,
                         optional: false,
                     },
                     {
-                        name: 'unit', 
-                        values: ['hour', 'day'], 
-                        fixed: false, 
+                        name: 'unit',
+                        values: ['hour', 'day'],
+                        fixed: false,
                         optional: false,
                     },
                 ],
@@ -107,9 +107,9 @@ describe('src/schema/parameter/call/*.ts', () => {
             total: {
                 fn: 'sum',
                 slots: [{
-                    name: 'field', 
-                    values: ['amount', 'fee'], 
-                    fixed: false, 
+                    name: 'field',
+                    values: ['amount', 'fee'],
+                    fixed: false,
                     optional: false,
                 }],
             },
@@ -121,10 +121,10 @@ describe('src/schema/parameter/call/*.ts', () => {
         const unit = ['hour', 'day'];
         const output = normalizeCallFunctions(GROUP_FUNCTION_SLOTS, {
             period: {
-                fn: 'bucket', 
-                field: 'createdAt', 
-                unit, 
-            }, 
+                fn: 'bucket',
+                field: 'createdAt',
+                unit,
+            },
         });
 
         unit.push('month');
@@ -143,18 +143,18 @@ describe('src/schema/parameter/call/*.ts', () => {
             count: {
                 fn: 'count',
                 params: [{
-                    name: 'field', 
-                    values: ['couponId'], 
-                    optional: true, 
-                }], 
+                    name: 'field',
+                    values: ['couponId'],
+                    optional: true,
+                }],
             },
             total: {
                 fn: 'sum',
                 params: [{
-                    name: 'field', 
-                    values: ['amount', 'fee'], 
-                    optional: false, 
-                }], 
+                    name: 'field',
+                    values: ['amount', 'fee'],
+                    optional: false,
+                }],
             },
             revenue: { fn: 'sum', params: [] },
         });
@@ -165,10 +165,10 @@ describe('src/schema/parameter/call/*.ts', () => {
             primitives: GROUP_FUNCTION_SLOTS,
             input: {
                 'per-day': {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: 'day', 
-                }, 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: 'day',
+                },
             },
             name: 'per-day',
             reason: 'the name is not a valid identifier',
@@ -177,10 +177,10 @@ describe('src/schema/parameter/call/*.ts', () => {
             primitives: GROUP_FUNCTION_SLOTS,
             input: {
                 status: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: 'day', 
-                }, 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: 'day',
+                },
             },
             columns: ['status'],
             name: 'status',
@@ -232,9 +232,9 @@ describe('src/schema/parameter/call/*.ts', () => {
             primitives: GROUP_FUNCTION_SLOTS,
             input: {
                 period: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: 'day', 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: 'day',
                     zone: 'UTC',
                 },
             },
@@ -251,10 +251,10 @@ describe('src/schema/parameter/call/*.ts', () => {
             primitives: GROUP_FUNCTION_SLOTS,
             input: {
                 period: {
-                    fn: 'bucket', 
-                    field: 'createdAt', 
-                    unit: 'week', 
-                }, 
+                    fn: 'bucket',
+                    field: 'createdAt',
+                    unit: 'week',
+                },
             },
             name: 'period',
             reason: 'the slot unit value week is invalid',
@@ -268,10 +268,10 @@ describe('src/schema/parameter/call/*.ts', () => {
     ];
 
     it.each(cases)('should refuse $name: $reason', ({
-        primitives, 
-        input, 
-        columns, 
-        name, 
+        primitives,
+        input,
+        columns,
+        name,
         reason,
     }) => {
         const error = captureError<SchemaError>(() => normalizeCallFunctions(primitives, input, columns));

@@ -83,9 +83,9 @@ const orderSchema = defineSchema<Order>({
         functions: {
             bucket: { allowed: ['createdAt'] },
             period: {
-                fn: 'bucket', 
-                field: 'createdAt', 
-                unit: ['hour', 'day'], 
+                fn: 'bucket',
+                field: 'createdAt',
+                unit: ['hour', 'day'],
             },
         },
     },
