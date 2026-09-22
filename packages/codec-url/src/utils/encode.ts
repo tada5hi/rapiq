@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { AdapterError, Parameter, normalizeParameter } from '@rapiq/core';
+import { Parameter, normalizeParameter } from '@rapiq/core';
 import type {
     IQuery,
     ParseParameterOptions,
@@ -16,7 +16,9 @@ import type {
  * Which parameters are present on the input query. The schema-aware
  * encode pass decodes only these (`ParseQueryOptions.parameters`),
  * so validation cannot materialize schema defaults for absent
- * parameters onto the wire.
+ * parameters onto the wire. Listing groups and aggregates is also
+ * what opts that pass into parsing them, which a decode otherwise
+ * leaves off.
  *
  * @param input
  */
@@ -44,6 +46,14 @@ export function buildQueryParameters(input: IQuery) : `${Parameter}`[] {
 
     if (input.sorts.value.length > 0) {
         output.push(Parameter.SORTS);
+    }
+
+    if (input.groups && input.groups.value.length > 0) {
+        output.push(Parameter.GROUPS);
+    }
+
+    if (input.aggregates && input.aggregates.value.length > 0) {
+        output.push(Parameter.AGGREGATES);
     }
 
     return output;
@@ -99,24 +109,4 @@ export function includesParameter(
 export function isSchemaAware(options: ParseQueryOptions | ParseParameterOptions) : boolean {
     return typeof options.schema !== 'undefined' ||
         typeof options.strict !== 'undefined';
-}
-
-
-/**
- * Refuse a grouped query on the encode paths that do not carry groups
- * and aggregates yet (the expression encoder, and the schema pass of the
- * simple encoder, whose decode mask omits both): encoding it without
- * them would silently turn it into a record query, which the subset law
- * forbids.
- *
- * @param input
- */
-export function assertQueryNotGrouped(input: IQuery) : void {
-    if ((input.groups?.value.length ?? 0) > 0) {
-        throw AdapterError.featureUnsupported(Parameter.GROUPS);
-    }
-
-    if ((input.aggregates?.value.length ?? 0) > 0) {
-        throw AdapterError.featureUnsupported(Parameter.AGGREGATES);
-    }
 }

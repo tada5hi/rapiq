@@ -21,7 +21,6 @@ import type {
     SchemaRegistry,
 } from '@rapiq/core';
 import {
-    assertQueryNotGrouped,
     buildQueryParameters,
     intersectQueryParameters,
     isSchemaAware,
@@ -64,11 +63,6 @@ export class SimpleURLEncoder {
             return encoded;
         }
 
-        // the schema pass does not carry groups and aggregates yet: its
-        // decode mask would drop them, so refuse rather than emit a
-        // record query.
-        assertQueryNotGrouped(input);
-
         // decode only parameters present in the input — validation
         // must not materialize schema defaults for absent ones.
         const parameters = intersectQueryParameters(
@@ -98,11 +92,6 @@ export class SimpleURLEncoder {
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
-
-        // the schema pass does not carry groups and aggregates yet: its
-        // decode mask would drop them, so refuse rather than emit a
-        // record query.
-        assertQueryNotGrouped(input);
 
         const parameters = intersectQueryParameters(
             buildQueryParameters(input),

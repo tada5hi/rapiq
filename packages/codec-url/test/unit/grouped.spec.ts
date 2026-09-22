@@ -5,28 +5,15 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { AdapterError, ErrorCode, defineQuery } from '@rapiq/core';
+import { defineQuery } from '@rapiq/core';
 import { URL_SIMPLE_CODEC, createURLCodec } from '../../src';
-
-function capture(fn: () => unknown) : AdapterError {
-    try {
-        fn();
-    } catch (e) {
-        return e as AdapterError;
-    }
-
-    throw new Error('expected a throw');
-}
 
 describe('grouped queries', () => {
     const codec = createURLCodec();
 
-    it('should refuse a schema-aware expression encode instead of dropping groups', () => {
-        const error = capture(() => codec.encode(defineQuery({ groups: ['scope'] }), { strict: true }));
-
-        expect(error).toBeInstanceOf(AdapterError);
-        expect(error.code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
-        expect(error.feature).toBe('groups');
+    it('should keep groups through an unbound schema-aware expression encode', () => {
+        expect(codec.encode(defineQuery({ groups: ['scope'] }), { strict: true, stamp: false }))
+            .toEqual('group=scope');
     });
 
     it('should round-trip groups and aggregates through the simple codec', () => {
@@ -41,19 +28,21 @@ describe('grouped queries', () => {
         expect(decoded!.aggregates!.value.map((item) => item.key)).toEqual(['count']);
     });
 
-    it('should refuse a schema-aware simple encode instead of dropping aggregates', () => {
-        const error = capture(() => codec.encode(defineQuery({ aggregates: ['count'] }), {
+    it('should keep aggregates through an unbound schema-aware simple encode', () => {
+        expect(codec.encode(defineQuery({ aggregates: ['count'] }), {
             codec: URL_SIMPLE_CODEC,
             strict: true,
-        }));
-
-        expect(error.code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
-        expect(error.feature).toBe('aggregates');
+            stamp: false,
+        })).toEqual('aggregate=count');
     });
 
-    it('should refuse asynchronously as well', async () => {
-        await expect(codec.encodeAsync(defineQuery({ groups: ['scope'], aggregates: ['count'] }), { strict: true }))
-            .rejects.toThrow(AdapterError.featureUnsupported('groups').message);
+    it('should keep both through an unbound schema-aware encode asynchronously', async () => {
+        const encoded = await codec.encodeAsync(
+            defineQuery({ groups: ['scope'], aggregates: ['count'] }),
+            { strict: true, stamp: false },
+        );
+
+        expect(encoded).toEqual('group=scope&aggregate=count');
     });
 
     it('should still encode a plain query', () => {
