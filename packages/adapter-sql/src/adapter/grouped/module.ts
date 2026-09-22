@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { IAggregate, IGroup, IQuery } from '@rapiq/core';
+import type {
+    IAggregate,
+    IGroup,
+    IQuery,
+    ObjectLiteral,
+} from '@rapiq/core';
 import {
     AdapterError,
     AggregateFunction,
@@ -125,4 +130,35 @@ export function buildGroupedClauses(
             direction: sort.operator,
         })),
     };
+}
+
+/**
+ * Project driver rows onto the query's output keys, in IR order. Group
+ * values pass through (bucket text, the driver value of a bare column);
+ * every aggregate becomes a number, so pg (bigint and numeric as text),
+ * mysql (DECIMAL as text) and sqlite answer with one JSON type,
+ * identical to @rapiq/adapter-memory. A sum beyond 2^53 or about 15
+ * significant digits loses precision; read the raw rows instead when
+ * exact decimals matter. A sum over no values stays null.
+ */
+export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : ObjectLiteral[] {
+    const groups = query.groups?.value ?? [];
+    const aggregates = query.aggregates?.value ?? [];
+
+    return rows.map((row) => {
+        const output : ObjectLiteral = {};
+
+        for (const group of groups) {
+            output[group.key] = row[group.key];
+        }
+
+        for (const aggregate of aggregates) {
+            const value = row[aggregate.key];
+            output[aggregate.key] = value === null || typeof value === 'undefined' ?
+                null :
+                Number(value);
+        }
+
+        return output;
+    });
 }

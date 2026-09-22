@@ -23,6 +23,7 @@ import {
     RelationsAdapter,
     buildGroupedClauses,
     mssql,
+    normalizeGroupedRows,
     pg,
 } from '../../../src';
 import {
@@ -178,5 +179,87 @@ describe('src/adapter/grouped/module.ts', () => {
 
         expect(() => buildGroupedClauses(query, zonedFilters(), pg.bucket))
             .toThrow('The feature groups:bucket-type is not supported by the dialect.');
+    });
+});
+
+describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
+    const query = new Query({
+        groups: new Groups([bucketGroup('day'), columnGroup('scope')]),
+        aggregates: new Aggregates([countAggregate(), sumAggregate('amount')]),
+    });
+
+    it('should read count and sum as numbers across driver representations', () => {
+        const rows = normalizeGroupedRows(query, [
+            // pg: count(*) is bigint and sum(numeric) a decimal, both as text
+            {
+                bucket: '2026-09-22T00:00:00.000Z', 
+                scope: 'user', 
+                count: '3', 
+                sum_amount: '12.50',
+            },
+            // mysql: count is a number, sum a DECIMAL string
+            {
+                bucket: '2026-09-23T00:00:00.000Z', 
+                scope: 'role', 
+                count: 2, 
+                sum_amount: '7.00',
+            },
+            // sqlite: numbers already
+            {
+                bucket: '2026-09-24T00:00:00.000Z', 
+                scope: null, 
+                count: 1, 
+                sum_amount: 4,
+            },
+        ]);
+
+        expect(rows).toEqual([
+            {
+                bucket: '2026-09-22T00:00:00.000Z', 
+                scope: 'user', 
+                count: 3, 
+                sum_amount: 12.5,
+            },
+            {
+                bucket: '2026-09-23T00:00:00.000Z', 
+                scope: 'role', 
+                count: 2, 
+                sum_amount: 7,
+            },
+            {
+                bucket: '2026-09-24T00:00:00.000Z', 
+                scope: null, 
+                count: 1, 
+                sum_amount: 4,
+            },
+        ]);
+    });
+
+    it('should keep a sum over no values null', () => {
+        const [row] = normalizeGroupedRows(query, [{
+            bucket: '2026-09-22T00:00:00.000Z', 
+            scope: 'user', 
+            count: '0', 
+            sum_amount: null,
+        }]);
+
+        expect(row).toEqual({
+            bucket: '2026-09-22T00:00:00.000Z', 
+            scope: 'user', 
+            count: 0, 
+            sum_amount: null,
+        });
+    });
+
+    it('should copy only the output keys, in IR order', () => {
+        const [row] = normalizeGroupedRows(query, [{
+            sum_amount: 1, 
+            extra: 'x', 
+            count: 1, 
+            scope: 'user', 
+            bucket: '2026-09-22T00:00:00.000Z',
+        }]);
+
+        expect(Object.keys(row)).toEqual(['bucket', 'scope', 'count', 'sum_amount']);
     });
 });
