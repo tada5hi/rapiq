@@ -6,6 +6,10 @@
  */
 
 import type {
+    IAggregate,
+    IAggregateVisitor,
+    IAggregates,
+    IAggregatesVisitor,
     IField,
     IFieldVisitor,
     IFields,
@@ -14,6 +18,10 @@ import type {
     IFilterVisitor,
     IFilters,
     IFiltersVisitor,
+    IGroup,
+    IGroupVisitor,
+    IGroups,
+    IGroupsVisitor,
     IPagination,
     IPaginationVisitor,
     IQuery,
@@ -31,8 +39,10 @@ import { Parameter } from '@rapiq/core';
 import type { ArraySerializer, RecordArraySerializer, RecordSerializer } from '../serializer';
 import { QuerySerializer } from '../serializer';
 import { includesParameter } from '../../../utils';
+import { AggregatesVisitor } from './aggregates';
 import { FieldsVisitor } from './fields';
 import { FiltersVisitor } from './filters';
+import { GroupsVisitor } from './groups';
 import { PaginationVisitor } from './pagination';
 import { RelationsVisitor } from './relations';
 import { SortsVisitor } from './sort';
@@ -47,7 +57,11 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
     IRelationsVisitor<ArraySerializer>,
     IRelationVisitor<ArraySerializer>,
     ISortsVisitor<ArraySerializer>,
-    ISortVisitor<ArraySerializer> {
+    ISortVisitor<ArraySerializer>,
+    IGroupsVisitor<ArraySerializer>,
+    IGroupVisitor<ArraySerializer>,
+    IAggregatesVisitor<ArraySerializer>,
+    IAggregateVisitor<ArraySerializer> {
     protected serializer : QuerySerializer;
 
     protected fields: FieldsVisitor;
@@ -60,6 +74,10 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
     protected sorts : SortsVisitor;
 
+    protected groups : GroupsVisitor;
+
+    protected aggregates : AggregatesVisitor;
+
     constructor() {
         const serializer = new QuerySerializer();
         this.serializer = serializer;
@@ -69,6 +87,8 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
         this.pagination = new PaginationVisitor(serializer.pagination);
         this.relations = new RelationsVisitor(serializer.relations);
         this.sorts = new SortsVisitor(serializer.sorts);
+        this.groups = new GroupsVisitor(serializer.groups);
+        this.aggregates = new AggregatesVisitor(serializer.aggregates);
     }
 
     reset() : void {
@@ -98,6 +118,15 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
         if (!parameters || includesParameter(parameters, Parameter.SORTS)) {
             expr.sorts.accept(this.sorts);
+        }
+
+        // optional on IQuery: an external producer may not carry them.
+        if (expr.groups && (!parameters || parameters.includes(Parameter.GROUPS))) {
+            expr.groups.accept(this.groups);
+        }
+
+        if (expr.aggregates && (!parameters || parameters.includes(Parameter.AGGREGATES))) {
+            expr.aggregates.accept(this.aggregates);
         }
 
         return this.serializer;
@@ -137,5 +166,21 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
     visitSorts(expr: ISorts): ArraySerializer {
         return expr.accept(this.sorts);
+    }
+
+    visitGroup(expr: IGroup): ArraySerializer {
+        return expr.accept(this.groups);
+    }
+
+    visitGroups(expr: IGroups): ArraySerializer {
+        return expr.accept(this.groups);
+    }
+
+    visitAggregate(expr: IAggregate): ArraySerializer {
+        return expr.accept(this.aggregates);
+    }
+
+    visitAggregates(expr: IAggregates): ArraySerializer {
+        return expr.accept(this.aggregates);
     }
 }

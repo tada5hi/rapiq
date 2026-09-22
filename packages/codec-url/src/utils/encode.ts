@@ -103,9 +103,11 @@ export function isSchemaAware(options: ParseQueryOptions | ParseParameterOptions
 
 
 /**
- * Refuse a grouped query until the URL dialects carry groups and
- * aggregates: encoding it without them would silently turn it into a
- * record query, which the subset law forbids.
+ * Refuse a grouped query on the encode paths that do not carry groups
+ * and aggregates yet (the expression encoder, and the schema pass of the
+ * simple encoder, whose decode mask omits both): encoding it without
+ * them would silently turn it into a record query, which the subset law
+ * forbids.
  *
  * @param input
  */

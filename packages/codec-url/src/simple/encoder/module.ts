@@ -6,10 +6,12 @@
  */
 
 import type {
+    IAggregates,
     IField,
     IFields,
     IFilter,
     IFilters,
+    IGroups,
     IPagination,
     IQuery,
     IRelations,
@@ -55,14 +57,17 @@ export class SimpleURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
-        assertQueryNotGrouped(input);
-
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
+
+        // the schema pass does not carry groups and aggregates yet: its
+        // decode mask would drop them, so refuse rather than emit a
+        // record query.
+        assertQueryNotGrouped(input);
 
         // decode only parameters present in the input — validation
         // must not materialize schema defaults for absent ones.
@@ -87,14 +92,17 @@ export class SimpleURLEncoder {
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
-        assertQueryNotGrouped(input);
-
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
+
+        // the schema pass does not carry groups and aggregates yet: its
+        // decode mask would drop them, so refuse rather than emit a
+        // record query.
+        assertQueryNotGrouped(input);
 
         const parameters = intersectQueryParameters(
             buildQueryParameters(input),
@@ -318,6 +326,25 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         return this.runSerializer(this.visitor.visitSorts(decoded));
+    }
+
+    /**
+     * Groups and aggregates encode without a schema pass: they are
+     * validated only together with the query whose grain they define
+     * (fields and sorts depend on them), so only {@link encode} runs one.
+     *
+     * @param input
+     */
+    encodeGroups(input: IGroups) : string | null {
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitGroups(input));
+    }
+
+    encodeAggregates(input: IAggregates) : string | null {
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitAggregates(input));
     }
 
     /**

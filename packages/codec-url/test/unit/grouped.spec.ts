@@ -29,8 +29,23 @@ describe('grouped queries', () => {
         expect(error.feature).toBe('groups');
     });
 
-    it('should refuse to encode aggregates instead of dropping them', () => {
-        const error = capture(() => codec.encode(defineQuery({ aggregates: ['count'] }), { codec: URL_SIMPLE_CODEC }));
+    it('should round-trip groups and aggregates through the simple codec', () => {
+        const encoded = codec.encode(
+            defineQuery({ groups: ['scope'], aggregates: ['count'] }),
+            { codec: URL_SIMPLE_CODEC },
+        );
+
+        const decoded = codec.decode(encoded!, { groups: true, aggregates: true });
+
+        expect(decoded!.groups!.value.map((item) => item.key)).toEqual(['scope']);
+        expect(decoded!.aggregates!.value.map((item) => item.key)).toEqual(['count']);
+    });
+
+    it('should refuse a schema-aware simple encode instead of dropping aggregates', () => {
+        const error = capture(() => codec.encode(defineQuery({ aggregates: ['count'] }), {
+            codec: URL_SIMPLE_CODEC,
+            strict: true,
+        }));
 
         expect(error.code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
         expect(error.feature).toBe('aggregates');
