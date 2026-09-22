@@ -26,3 +26,20 @@ export type User = {
     realm: Realm,
     items: Item[]
 };
+
+export type AuditEvent = {
+    id: string,
+    realmId: string | null,
+    scope: string,
+    name: string,
+    createdAt: Date,
+};
+
+export type Order = {
+    id: string,
+    status: string,
+    couponId: string | null,
+    amount: number,
+    fee: number,
+    createdAt: Date,
+};
