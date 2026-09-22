@@ -28,6 +28,14 @@ export class SimpleGroupsParser extends BaseParser<GroupsParseOptions, IGroups> 
         return this.build(input, options);
     }
 
+    // `async`, not a wrapped return: `build` raises synchronously, so without
+    // it the throw escapes before the promise exists.
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options: GroupsParseOptions<RECORD> = {}) : Promise<IGroups> {
+        return this.build(input, options);
+    }
+
     // groups name root columns only, so the ledger is unused.
     parseParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,

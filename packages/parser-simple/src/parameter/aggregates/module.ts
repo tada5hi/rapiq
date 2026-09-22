@@ -28,6 +28,14 @@ export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, I
         return this.build(input, options);
     }
 
+    // `async`, not a wrapped return: `build` raises synchronously, so without
+    // it the throw escapes before the promise exists.
+    override async parseAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(input: unknown, options: AggregatesParseOptions<RECORD> = {}) : Promise<IAggregates> {
+        return this.build(input, options);
+    }
+
     // aggregates name root columns only, so the ledger is unused.
     parseParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,
