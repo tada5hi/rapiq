@@ -6,7 +6,7 @@
  */
 
 import { AdapterError, toDate } from '@rapiq/core';
-import type { DialectOptions } from '@rapiq/adapter-sql';
+import type { DialectOptions, TemporalKind } from '@rapiq/adapter-sql';
 import { FiltersBaseAdapter } from '@rapiq/adapter-sql';
 import type { ColumnType, EntityMetadata, SelectQueryBuilder } from 'typeorm';
 import { DateUtils } from 'typeorm';
@@ -61,7 +61,7 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
  * How a date operand has to be spelled for the column it addresses.
  * A column absent from every table is not temporal and binds as-is.
  */
-const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
+const DATE_COLUMN_FORMATS : Record<string, TemporalKind> = {
     // a calendar day, no clock
     'date': 'date',
 
@@ -89,7 +89,7 @@ const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
  */
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-function resolveDateColumnFormat(type: ColumnType) : 'date' | 'datetime' | 'instant' | undefined {
+function resolveDateColumnFormat(type: ColumnType) : TemporalKind | undefined {
     if (type === Date) {
         return 'datetime';
     }
@@ -255,6 +255,23 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     /**
+     * How a bucketed column stores time, read from the entity
+     * metadata: a zone-aware column is truncated as an instant in UTC,
+     * a date-only column as a calendar day. A column that is not
+     * temporal answers undefined, which the grouped clauses refuse
+     * typed (`groups:bucket-type`). A builder without metadata, or a
+     * path it cannot resolve, keeps the base default.
+     */
+    override temporalKind(field: string) : TemporalKind | undefined {
+        const column = this.resolveColumn(field);
+        if (!column) {
+            return super.temporalKind(field);
+        }
+
+        return resolveDateColumnFormat(column.type);
+    }
+
+    /**
      * Bind a date operand in the form its column stores, so the
      * comparison happens between two values of the same shape. A wire
      * value reaches the adapter as whatever a query string can carry,
@@ -314,9 +331,11 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     }
 
     /**
-     * WHERE fragments are raw SQL — the SelectQueryBuilder dropped
-     * whole-query property-name replacement with typeorm 1.x, so
-     * property paths must resolve to their database column names here.
+     * WHERE fragments are raw SQL built from escaped identifiers
+     * (`"user"."realm_id"`). typeorm's whole-query property-name
+     * replacement only rewrites an unescaped `alias.property`, so it
+     * never reaches them, and property paths must resolve to their
+     * database column names here.
      */
     override resolveFieldName(name: string, relationPath?: string) : string {
         const column = this.resolveColumn(relationPath ? `${relationPath}.${name}` : name);
