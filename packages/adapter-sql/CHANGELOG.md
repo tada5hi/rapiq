@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.3.0](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.2.0...adapter-sql-v2.3.0) (2026-09-22)
+
+
+### Features
+
+* **adapter-sql:** render anchored operators as LIKE on every dialect ([#937](https://github.com/tada5hi/rapiq/issues/937)) ([082e914](https://github.com/tada5hi/rapiq/commit/082e914081c05ea0aaf401eff8ea11fe64b58b00)), closes [#934](https://github.com/tada5hi/rapiq/issues/934)
+
+
+### Bug Fixes
+
+* preserve literal filter matching across adapters ([#944](https://github.com/tada5hi/rapiq/issues/944)) ([dd09a6e](https://github.com/tada5hi/rapiq/commit/dd09a6efd90c8a74bd4c24e8abc28e43efead406)), closes [#940](https://github.com/tada5hi/rapiq/issues/940) [#941](https://github.com/tada5hi/rapiq/issues/941) [#942](https://github.com/tada5hi/rapiq/issues/942)
+* read date filter operands as instants in every adapter ([#943](https://github.com/tada5hi/rapiq/issues/943)) ([f38cb26](https://github.com/tada5hi/rapiq/commit/f38cb26696ffa9de1ee1344b06898bb1a11ff5d5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.2.0 to ^2.3.0
+    * @rapiq/adapter-memory bumped from ^2.2.0 to ^2.3.0
+
 ## [2.2.0](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.1.0...adapter-sql-v2.2.0) (2026-08-16)
 
 
