@@ -60,35 +60,35 @@ export const FILTER_OPERATOR_SEMANTICS = {
     startsWith: {
         family: 'anchored',
         anchor: { start: true, end: false },
-        foldable: false,
+        foldable: true,
     },
     notStartsWith: {
         family: 'anchored',
         complementOf: 'startsWith',
         anchor: { start: true, end: false },
-        foldable: false,
+        foldable: true,
     },
     endsWith: {
         family: 'anchored',
         anchor: { start: false, end: true },
-        foldable: false,
+        foldable: true,
     },
     notEndsWith: {
         family: 'anchored',
         complementOf: 'endsWith',
         anchor: { start: false, end: true },
-        foldable: false,
+        foldable: true,
     },
     contains: {
         family: 'anchored',
         anchor: { start: false, end: false },
-        foldable: false,
+        foldable: true,
     },
     notContains: {
         family: 'anchored',
         complementOf: 'contains',
         anchor: { start: false, end: false },
-        foldable: false,
+        foldable: true,
     },
     regex: {
         family: 'regex',

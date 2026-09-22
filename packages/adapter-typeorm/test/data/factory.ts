@@ -55,6 +55,14 @@ export function createMysqlDataSourceOptions() : DataSourceOptions {
     };
 }
 
+export function createPostgresDataSourceOptions() : DataSourceOptions {
+    return {
+        type: 'postgres',
+        entities,
+        database: 'test',
+    };
+}
+
 export function createDataSource(options?: DataSourceOptions) : DataSource {
     return new DataSource(options || createDataSourceOptions());
 }

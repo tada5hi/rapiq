@@ -320,7 +320,9 @@ class ConditionLowering {
                     field: input.field,
                     op: 'eq',
                     value,
-                    caseFold: typeof value === 'string' && this.isFoldableField(input.field),
+                    caseFold: semantics.foldable &&
+                        typeof value === 'string' &&
+                        this.isFoldableField(input.field),
                     negated,
                 };
             }
@@ -335,7 +337,7 @@ class ConditionLowering {
                 };
             }
             case 'membership': {
-                return this.lowerMembership(input.field, value, negated);
+                return this.lowerMembership(input.field, value, negated, semantics.foldable);
             }
             case 'anchored': {
                 const anchor = (
@@ -361,7 +363,7 @@ class ConditionLowering {
                     field: input.field,
                     pattern: { mode, text },
                     regexSource: createFilterRegexPattern(text, flag),
-                    ignoreCase: true,
+                    ignoreCase: semantics.foldable && this.isFoldableField(input.field),
                     negated,
                 };
             }
@@ -403,6 +405,7 @@ class ConditionLowering {
         field: string,
         value: unknown,
         negated: boolean,
+        foldable = true,
     ) : ConditionPlan {
         if (!Array.isArray(value) || value.length === 0) {
             return { kind: 'constant', verdict: negated };
@@ -427,7 +430,7 @@ class ConditionLowering {
             field,
             values,
             includesNull: values.length !== normalized.length,
-            caseFold: this.isFoldableField(field),
+            caseFold: foldable && this.isFoldableField(field),
             negated,
         };
     }

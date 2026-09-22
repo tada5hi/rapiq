@@ -9,12 +9,16 @@ import { mysql } from './mysql';
 import type { DialectOptions } from './types';
 
 // no regexp: stock SQLite ships without a REGEXP function (it must be
-// registered by the application), so anchored operators (startsWith,
-// endsWith, contains) fall back to LIKE and the regex operator raises
-// a typed AdapterError.
+// registered by the application), so the regex operator raises a typed
+// AdapterError.
 export const sqlite : DialectOptions = {
     paramPlaceholder: mysql.paramPlaceholder,
     escapeField: mysql.escapeField,
+    // sqlite's LIKE is already case-insensitive for ASCII (as is its
+    // lower()), so folding would only cost the index the pattern
+    // prefix can use. Its `=` is case-sensitive, hence caseFold stays
+    // the lower() default.
+    caseFoldLike: (input) => input,
     // mod() is a SQLite math function: available since 3.35 and only in
     // builds compiled with SQLITE_ENABLE_MATH_FUNCTIONS. Every mainstream
     // Node driver enables it (better-sqlite3, node:sqlite, sqlite3); on an

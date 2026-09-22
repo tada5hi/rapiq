@@ -91,3 +91,57 @@ Public API changes beyond the additive trace:
    the trace itself.
 4. `BaseError` extends `@ebec/core`'s and gained `toJSON`, so `JSON.stringify(error)` emits
    `name`/`message`/`code`/`issues` and the `@instanceof` chain rather than `{ code }` alone.
+
+## Anchored operators render as LIKE (issue #934)
+
+Supersedes the anchored-operator claims in *SQL adapter completion (plan 005)* and
+*Post-review fixes (PR #741 audit)* above: there is no longer a regexp path and a LIKE
+fallback, only LIKE.
+
+1. **`@rapiq/adapter-sql` / `@rapiq/adapter-typeorm`**: `startsWith`/`endsWith`/`contains` (and
+   negations) render as `LIKE` on **every** dialect, not only on the regexp-less ones.
+   `pg`/`mysql`/`oracle` previously emitted `field ~* '^foo'` (or `field regexp ? = 1`) and now
+   emit a pattern bind. `DialectOptions.regexp` serves the `regex` operator alone; omitting it
+   costs that one operator and nothing else.
+2. **The LIKE escape character changed from `\` to `!`** (`LIKE_ESCAPE_CHARACTER`, newly
+   exported). `escapeLikePattern` escapes `!`, `%` and `_`, and takes a second argument for
+   the MSSQL-only `[`, which Oracle would reject after an escape character (ORA-01424). MySQL
+   rejects `escape '\'` (ERROR 1064) under the default sql_mode and `escape '\\'` under
+   NO_BACKSLASH_ESCAPES, so no static backslash spelling parses on both. Consumers asserting
+   on rendered SQL strings must update their expectations.
+3. **`escapeLikePattern` changed its output**, although its signature only gained an optional
+   argument: `'50%'` used to escape to `50\%` and now escapes to `50!%`, and `[` is escaped only
+   when the caller passes `bracketIsWildcard` (mssql). Its output is valid only next to
+   `ESCAPE '!'` (`LIKE_ESCAPE_CHARACTER`). A consumer pairing the helper with its own
+   `ESCAPE '\'` clause now gets a live wildcard where it had a literal, with no type error.
+   `FiltersVisitor.whereLike` likewise gained a 4th parameter (`ignoreCase`): a pre-#934
+   three-parameter override still compiles, never folds, and emits the old escape clause over a
+   pattern escaped for the new one.
+4. **`@rapiq/adapter-typeorm`'s foldable column types changed**: `simple-array`, `simple-json` and
+   `simple-enum` now fold (they are text-backed, and without this an anchored filter on one
+   returned nothing on pg), and `citext` no longer does (its own operators are already
+   case-insensitive, so the fold only discarded the citext index). The latter also changes the
+   rendering of `eq` on a citext column, from `lower(col) = lower($1)` to `col = $1`, with the
+   same result set.
+5. **New optional `DialectOptions.caseFoldLike`**, defaulting to `caseFold`. Only the `sqlite`
+   preset declares it (identity), because sqlite's `LIKE` is already ASCII-case-insensitive
+   while its `=` is not. A custom dialect needs no change.
+6. **`caseSensitive` now reaches the anchored family** on every adapter (sql, typeorm, memory,
+   prisma, drizzle). A match plan's `ignoreCase` comes from `isFoldableField(field)` instead of
+   a hardcoded `true`, so a field listed in `filters.caseSensitive` (or `caseSensitive: true`)
+   makes `contains`/`startsWith`/`endsWith` exact. `guide/filters.md` promised this while only
+   the equality family honoured it. `regex` is unaffected: its case handling is the pattern's
+   own `i` flag. Where a dialect does not fold at all (MySQL/MSSQL for both families,
+   SQLite for `LIKE`), matching stays collation-governed and the opt-out is a no-op there.
+7. **A consumer that evaluates the same condition in memory AND pushes it down can now
+   disagree with itself under `caseSensitive`**: `@rapiq/adapter-memory` honours the opt-out for
+   anchored operators, while MySQL, MSSQL and SQLite cannot (collation). The same asymmetry has
+   always existed for the equality family; it now extends to four more operators, which matters
+   for authorization conditions checked in process and also pushed into the query.
+8. **`FILTER_OPERATOR_SEMANTICS` is exported, so the six `foldable` flips are visible in its
+   literal type**; code asserting on that type may need updating. Every family now consults the
+   flag (previously nothing did), so flipping a row in a fork changes behaviour rather than
+   documenting it.
+9. **MySQL result sets can change**, not only query plans: `utf8mb4_0900_ai_ci` is
+   accent-insensitive for `LIKE` but not for `REGEXP`, so `startsWith('name', 'ä')` now matches
+   `APFEL` there. That matches what `eq` has always done on MySQL.

@@ -53,6 +53,18 @@ export class FiltersAdapter extends FiltersBaseAdapter {
         return this.options.regexp(field, placeholder, ignoreCase);
     }
 
+    override caseFoldLike(input: string) : string {
+        if (this.options.caseFoldLike) {
+            return this.options.caseFoldLike(input);
+        }
+
+        return this.caseFold(input);
+    }
+
+    override isLikeBracketWildcard() : boolean {
+        return !!this.options.likeBracketWildcard;
+    }
+
     override mod(field: string, divisorPlaceholder: string, remainderPlaceholder: string) : string {
         if (!this.options.mod) {
             throw AdapterError.featureUnsupported('filters:mod');

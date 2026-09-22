@@ -44,7 +44,8 @@ export type FiltersOptions<
     default?: ICondition,
     validate?: Validator<CONTEXT>,
     /**
-     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * Field keys whose equality (eq/ne/in/nin) and anchored
+     * (startsWith/endsWith/contains) comparisons stay
      * case-sensitive instead of the case-insensitive default —
      * e.g. identifier or token columns. Keys are resolved names
      * (after mapping), matching the entries of `allowed`.

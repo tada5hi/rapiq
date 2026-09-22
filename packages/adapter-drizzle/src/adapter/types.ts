@@ -35,8 +35,9 @@ export type FindManyConfig = {
 
 export type FiltersAdapterOptions = {
     /**
-     * Field keys whose equality comparisons (eq/ne/in/nin) stay
-     * case-sensitive instead of the case-insensitive default.
+     * Field keys whose comparisons (eq/ne/in/nin and the anchored
+     * operators) stay case-sensitive instead of the case-insensitive
+     * default.
      * Typically forwarded from a schema's `filters.caseSensitive`.
      */
     caseSensitive?: string[] | boolean,
@@ -64,7 +65,8 @@ export type DrizzleAdapterOptions = {
     metadata: IMetadata,
 
     /**
-     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * Field keys whose equality (eq/ne/in/nin) and anchored
+     * (startsWith/endsWith/contains) comparisons stay
      * case-sensitive instead of the case-insensitive default, e.g.
      * identifier or token columns; `true` opts every field out.
      * Typically forwarded from a schema's `filters.caseSensitive`

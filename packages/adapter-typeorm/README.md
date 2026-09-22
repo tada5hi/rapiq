@@ -161,7 +161,7 @@ query.filters.accept(new FiltersVisitor(adapter.filters)); // collect
 adapter.filters.execute();                                 // flush to the builder
 ```
 
-`execute()` also takes per-call options: `{ clear: false }` accumulates several queries onto the same builder, and `{ visitor: { caseSensitive: ['token'] } }` opts specific fields out of the case-insensitive equality default.
+`execute()` also takes per-call options: `{ clear: false }` accumulates several queries onto the same builder, and `{ caseSensitive: ['token'] }` opts specific fields out of the case-insensitive string-matching default (equality and the anchored `contains` / `startsWith` / `endsWith` alike).
 
 Migrating from typeorm-extension's `applyQuery`? The defaults mirror its contract (`leftJoinAndSelect`, returned pagination). See the [migration guide](https://rapiq.tada5hi.net/guide/migration-typeorm-extension). For the complete walkthrough, follow the [end-to-end Express + TypeORM recipe](https://rapiq.tada5hi.net/guide/recipes/express-typeorm).
 

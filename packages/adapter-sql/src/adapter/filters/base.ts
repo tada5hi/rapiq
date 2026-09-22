@@ -82,8 +82,9 @@ export abstract class FiltersBaseAdapter<
     abstract child() : this;
 
     /**
-     * Whether the dialect can build regular-expression conditions.
-     * Anchored operators fall back to LIKE otherwise.
+     * Whether the dialect can build regular-expression conditions,
+     * i.e. whether the `regex` operator is available. The anchored
+     * operators render as LIKE regardless.
      */
     isRegexpSupported() : boolean {
         return true;
@@ -96,6 +97,25 @@ export abstract class FiltersBaseAdapter<
      */
     caseFold(input: string) : string {
         return `lower(${input})`;
+    }
+
+    /**
+     * Fold an expression for a case-insensitive LIKE comparison
+     * (the anchored operators). Defaults to the equality fold;
+     * dialects whose LIKE already compares case-insensitively while
+     * their `=` does not (sqlite) return the input unchanged, which
+     * keeps the pattern prefix index-usable.
+     */
+    caseFoldLike(input: string) : string {
+        return this.caseFold(input);
+    }
+
+    /**
+     * Whether `[` has to be escaped in a LIKE pattern, i.e. whether it
+     * opens a character range in this dialect (MSSQL).
+     */
+    isLikeBracketWildcard() : boolean {
+        return false;
     }
 
     /**
