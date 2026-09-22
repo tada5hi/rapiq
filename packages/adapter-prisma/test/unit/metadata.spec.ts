@@ -64,10 +64,10 @@ describe('src/provider/module.ts', () => {
     const metadata = defineMetadata(datamodel, 'User');
 
     it('should resolve providers and their aliases', () => {
-        expect(resolveProvider('postgresql')).toEqual({ caseInsensitiveMode: true });
-        expect(resolveProvider('postgres')).toEqual({ caseInsensitiveMode: true });
-        expect(resolveProvider('mssql')).toEqual({ caseInsensitiveMode: false });
-        expect(resolveProvider('sqlserver')).toEqual({ caseInsensitiveMode: false });
+        expect(resolveProvider('postgresql')).toMatchObject({ caseInsensitiveMode: true });
+        expect(resolveProvider('postgres')).toMatchObject({ caseInsensitiveMode: true });
+        expect(resolveProvider('mssql')).toMatchObject({ caseInsensitiveMode: false });
+        expect(resolveProvider('sqlserver')).toMatchObject({ caseInsensitiveMode: false });
         expect(resolveProvider('unknown')).toBeUndefined();
     });
 

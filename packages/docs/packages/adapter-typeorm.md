@@ -94,6 +94,8 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 [Case-insensitive string matching](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects, for equality (`lower(col) = lower(:rapiq_1_0)`) and for the anchored operators (`lower(col) like lower(:rapiq_1_0) escape '!'`) alike; parameter names carry a per-application namespace so they cannot collide with caller-owned ones. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns**: filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { caseSensitive: [...] })`, which reaches the anchored operators too.
 
+For anchored matching on a known non-string column, PostgreSQL adds a text cast: `contains('age', '1')` becomes `"user"."age"::text like :rapiq_1_0 escape '!'` and matches `18`, as it does in memory, SQLite and MySQL. Negated matching still includes nulls. String columns, including native `citext`, keep their existing comparison behavior; numeric equality stays uncast.
+
 Which fold applies is per dialect, taken from the resolved preset's `caseFold` / `caseFoldLike`. On a `better-sqlite3` connection, `startsWith('first_name', 'Aston')` renders `"user"."first_name" like :rapiq_1_0 escape '!'` unfolded (SQLite's `LIKE` is already ASCII-case-insensitive) while `eq` still folds; on `mysql` neither folds (the `*_ci` collation does the work); on `postgres` both do.
 
 ## Date columns

@@ -11,9 +11,11 @@ import {
     Query,
     contains,
     endsWith,
+    not,
     notContains,
     startsWith,
 } from '@rapiq/core';
+import { compileFilters } from '@rapiq/adapter-memory';
 import { TypeormAdapter } from '../../src';
 import { User } from '../data/entity/user';
 import { createDataSource } from '../data/factory';
@@ -88,6 +90,17 @@ describe('anchored operators', () => {
 
         return entities.map((entity) => entity.first_name).sort();
     };
+
+    it('should match numeric operands and their complements like memory (#942)', async () => {
+        const records = await dataSource.getRepository(User).find();
+        for (const condition of [contains('age', '1'), startsWith('age', '6'), endsWith('age', '0'), contains('realm_id', '1')]) {
+            for (const filter of [condition, not(condition)]) {
+                const expected = records.filter(compileFilters(filter)).map((record) => record.first_name).sort();
+                expect(await run(filter)).toEqual(expected);
+                expect(await run(filter, { caseSensitive: true })).toEqual(expected);
+            }
+        }
+    });
 
     it('should match a prefix case-insensitively', async () => {
         expect(await run(startsWith('first_name', 'aston'))).toEqual(['ASTONISH', 'Aston']);

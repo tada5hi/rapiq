@@ -166,12 +166,15 @@ type DialectOptions = {
     paramPlaceholder: (index: number) => string,         // pg: $1, mysql: ?
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string, // `regex` operator only
     caseFold?: (input: string) => string,                // default lower(...); mysql/mssql identity
+    castText?: (input: string) => string,                // pg input::text for known non-string LIKE operands
     caseFoldLike?: (input: string) => string,            // default caseFold; sqlite identity
     mod?: (field: string, divisor: string, remainder: string) => string,
 };
 ```
 
 `@rapiq/adapter-typeorm`: `TypeormAdapter` mirrors the SQL adapter but mutates a TypeORM query builder. The builder is bound at construction (`new TypeormAdapter({ queryBuilder: qb })`); `adapter.execute(query)` then walks the query and applies the accumulated state to that builder in a single call. Filters use `andWhere`, preserving application-owned tenant/auth predicates already present on the builder. Relation aliases come from @rapiq/adapter-sql's shared, injective length-prefixed `buildRelationAlias` derivation; fields, filters, sorts and joins must all use that same function.
+
+Built-in SQL `escapeField` callbacks double embedded closing delimiters. TypeORM 1.1.1 already does so in its drivers. Anchored matching uses optional `castText` for fields exempted by metadata from case folding; PostgreSQL casts to text, while native `citext` stays uncast. Standalone SQL cannot infer column types and needs an `isCaseFoldable` override for non-string operands.
 
 `@rapiq/adapter-sql`'s exported base classes — INCLUDING their protected members — are an intended extension surface, consumed by `@rapiq/adapter-typeorm`'s subclasses (typeorm even owns `executed`, declared in sql's types). The two packages version in lockstep through the linked release group, but changes to that surface are semver-relevant for external subclassers.
 
@@ -224,6 +227,7 @@ plan 024, do not re-litigate:
   the same reasoning as `@rapiq/adapter-sql`'s identity `caseFold`), on string-typedness, and on the
   value carrying no `%`/`_` (an insensitive `equals` lowers to `ILIKE`, where those would
   widen an exact comparison).
+- **Anchored literals** use the provider's optional `escapeMatch`: SQL backslash escaping on pg/cockroach/mysql, bracket literals on SQL Server, regex escaping on MongoDB. SQLite refuses `%`/`_` (`filters:match-literal`), since Prisma cannot add `ESCAPE`. Custom options without the hook refuse SQL and regex pattern characters. MySQL's preset assumes default backslash escaping; `NO_BACKSLASH_ESCAPES` needs the SQLite hook instead.
 - **Unsupported by construction**: `regex`, `mod`, `size`, ITSELF, and `elemMatch` on a
   to-one relation raise a typed `AdapterError`, never approximated.
 

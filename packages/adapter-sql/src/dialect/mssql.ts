@@ -12,7 +12,7 @@ export const mssql : DialectOptions = {
     // `[` opens a character range in T-SQL LIKE patterns.
     likeBracketWildcard: true,
     paramPlaceholder: () => '?',
-    escapeField: (field: string) => `[${field}]`,
+    escapeField: (field: string) => `[${field.replaceAll(']', ']]')}]`,
     // sql server's default collations (*_CI_*) already compare `=`
     // case-insensitively; skip lower() so plain indexes stay usable.
     // Override with a lower()-wrapping caseFold when columns use

@@ -16,6 +16,7 @@ type DialectOptions = {
     paramPlaceholder: (index: number) => string, // pg: $1, mysql: ?
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
     caseFold?: (input: string) => string,        // default: lower(input); mysql/mssql: identity
+    castText?: (input: string) => string,        // pg: input::text; otherwise implicit coercion
     caseFoldLike?: (input: string) => string,    // default: caseFold; sqlite: identity
     mod?: (field: string, divisorPlaceholder: string, remainderPlaceholder: string) => string,
     // default: mod(field, divisor) = remainder; mssql: field % divisor = remainder
@@ -111,7 +112,7 @@ const [sql, params] = filters.getQueryAndParameters();
 // params: ['%jo%', 18]
 ```
 
-Values are always bound as parameters, never interpolated into the SQL string.
+Values are always bound as parameters, never interpolated into the SQL string. Built-in dialects quote identifiers and double any closing quote inside them. Custom `escapeField` callbacks must escape embedded delimiters too.
 
 This package emits fragments and leaves the binding to the caller, so operands pass through as they arrived. Override `bindValue(field, value)` on the filters adapter to prepare an operand for the column it addresses: it receives every equality and ordering operand (patterns and modulo operands are not values of the column's domain and skip it). [@rapiq/adapter-typeorm](/packages/adapter-typeorm#date-columns) overrides it to bind [date values](/guide/filters#date-values) in their column's storage form.
 
@@ -137,6 +138,8 @@ Negated operators are **exact complements** of their positive twins: a record th
 | `notContains(field, a)` (also `notStartsWith` / `notEndsWith`) | `(field NOT LIKE ? ESCAPE '!' OR field IS NULL)` |
 
 ### String matching
+
+For a known non-string column, the visitor uses the dialect's optional `castText` callback before `LIKE`. PostgreSQL emits `field::text`, allowing numeric matching such as `contains('age', '1')` on `18`; other presets keep their implicit coercion. The TypeORM adapter supplies column metadata and preserves native `citext` matching. Standalone SQL has no column metadata: a custom filters adapter must override `isCaseFoldable(field)` to identify non-string fields. Equality and explicit `regex` filters are unchanged.
 
 The `contains` / `startsWith` / `endsWith` operators (and their negations) render as `LIKE` on **every** dialect, with the value escaped and wrapped into the matching pattern:
 

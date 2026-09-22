@@ -10,7 +10,7 @@ import type { DialectOptions } from './types';
 export const mysql : DialectOptions = {
     regexp: (field, placeholder) => `${field} regexp ${placeholder} = 1`,
     paramPlaceholder: () => '?',
-    escapeField: (field: string) => `\`${field}\``,
+    escapeField: (field: string) => `\`${field.replaceAll('`', '``')}\``,
     // mysql's default collations (*_ci) already compare `=` case-
     // insensitively; skip lower() so plain indexes stay usable.
     // Override with a lower()-wrapping caseFold when columns use

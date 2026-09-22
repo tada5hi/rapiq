@@ -47,6 +47,8 @@ export type DialectOptions = {
      * anything but `%`, `_` or itself.
      */
     likeBracketWildcard?: boolean,
+    /** Convert a known non-string LIKE operand to text; omit for implicit coercion. */
+    castText?: (input: string) => string,
     escapeField: (input: string) => string,
     paramPlaceholder: (index: number) => string,
 };

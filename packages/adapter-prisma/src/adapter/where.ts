@@ -17,6 +17,7 @@ import type {
 import {
     AdapterError,
     ITSELF,
+    createFilterRegexPattern,
     distributeNegation,
     planCondition,
     toDate,
@@ -701,7 +702,12 @@ export class WhereRenderer {
         }
 
         const operator = MATCH_OPERATORS[plan.pattern.mode];
-        const { text } = plan.pattern;
+        let { text } = plan.pattern;
+        if (this.provider.escapeMatch) {
+            text = this.provider.escapeMatch(text);
+        } else if (LIKE_WILDCARD.test(text) || createFilterRegexPattern(text) !== text) {
+            throw AdapterError.featureUnsupported('filters:match-literal');
+        }
         const mode = this.buildMode(absolute, plan.ignoreCase);
 
         if (plan.negated) {
