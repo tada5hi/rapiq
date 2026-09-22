@@ -153,6 +153,10 @@ compiled.apply(users);    // whole query against a collection
 
 Semantics (null handling, string matching, join-row binding) mirror the SQL adapters; see [@rapiq/adapter-memory](/packages/adapter-memory).
 
+## Grouped queries
+
+A query carrying [groups or aggregates](/guide/grouping) answers rows, not records. The record entry points above refuse it; each adapter has a separate grouped entry point (`executeGrouped` on SQL and TypeORM, `applyGroupedQuery` in memory). Prisma and Drizzle refuse grouped queries. See [Executing grouped queries](/guide/grouping#executing).
+
 ## One adapter instance per request
 
 SQL and TypeORM adapters accumulate per-call state. Construct them **per request**; the shareable, long-lived part is the options object, not the adapter instance:
