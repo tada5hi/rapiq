@@ -31,6 +31,14 @@ export interface IFiltersAdapter extends ISubAdapter {
 
     caseFold(input: string) : string;
 
+    /**
+     * Optional so an adapter predating the LIKE rendering still
+     * satisfies the interface; the visitor falls back to `caseFold`.
+     */
+    caseFoldLike?(input: string) : string;
+
+    isLikeBracketWildcard?() : boolean;
+
     isCaseFoldable(field: string) : boolean;
 
     merge<

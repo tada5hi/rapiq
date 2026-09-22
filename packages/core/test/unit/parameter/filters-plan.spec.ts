@@ -211,6 +211,23 @@ describe('src/parameter/filters/plan/module.ts', () => {
                 regexSource: '5$',
             });
         });
+
+        it('should respect the caseSensitive opt-out', () => {
+            expect(planCondition(
+                new Filter('startsWith', 'path', 'sales/'),
+                { caseSensitive: true },
+            )).toMatchObject({ kind: 'match', ignoreCase: false });
+
+            expect(planCondition(
+                new Filter('contains', 'path', 'sales/'),
+                { caseSensitive: ['path'] },
+            )).toMatchObject({ kind: 'match', ignoreCase: false });
+
+            expect(planCondition(
+                new Filter('contains', 'name', 'sales/'),
+                { caseSensitive: ['path'] },
+            )).toMatchObject({ kind: 'match', ignoreCase: true });
+        });
     });
 
     describe('regex', () => {

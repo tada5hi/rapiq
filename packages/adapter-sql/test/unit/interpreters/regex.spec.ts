@@ -6,6 +6,7 @@
  */
 
 import { AdapterError, Filter } from '@rapiq/core';
+import type { DialectOptions } from '../../../src';
 import {
     FiltersAdapter,
     FiltersVisitor,
@@ -142,7 +143,7 @@ describe('regex', () => {
         }
     });
 
-    it('falls back to LIKE for anchored operators on MSSQL', () => {
+    it('renders anchored operators as LIKE on MSSQL', () => {
         const buildAdapter = () => {
             const adapter = new FiltersAdapter(new RelationsAdapter(), mssql);
             return { adapter, visitor: new FiltersVisitor(adapter) };
@@ -151,50 +152,50 @@ describe('regex', () => {
         let { adapter, visitor } = buildAdapter();
         new Filter('startsWith', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'\\\'', 
+            '[name] like ? escape \'!\'', 
             ['foo%'],
         ]);
 
         ({ adapter, visitor } = buildAdapter());
         new Filter('endsWith', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'\\\'', 
+            '[name] like ? escape \'!\'', 
             ['%foo'],
         ]);
 
         ({ adapter, visitor } = buildAdapter());
         new Filter('contains', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'\\\'', 
+            '[name] like ? escape \'!\'', 
             ['%foo%'],
         ]);
 
         ({ adapter, visitor } = buildAdapter());
         new Filter('notContains', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '([name] not like ? escape \'\\\' or [name] is null)',
+            '([name] not like ? escape \'!\' or [name] is null)',
             ['%foo%'],
         ]);
     });
 
-    it('escapes LIKE wildcards in the fallback pattern', () => {
+    it('escapes LIKE wildcards and the escape character in the pattern', () => {
         const adapter = new FiltersAdapter(new RelationsAdapter(), mssql);
         const visitor = new FiltersVisitor(adapter);
 
         new Filter('contains', 'name', '100%_[a]').accept(visitor);
 
         const [, params] = adapter.getQueryAndParameters();
-        expect(params).toStrictEqual(['%100\\%\\_\\[a]%']);
+        expect(params).toStrictEqual(['%100!%!_![a]%']);
     });
 
-    it('falls back to LIKE for anchored operators on SQLite', () => {
+    it('renders anchored operators as LIKE on SQLite', () => {
         const adapter = new FiltersAdapter(new RelationsAdapter(), sqlite);
         const visitor = new FiltersVisitor(adapter);
 
         new Filter('startsWith', 'name', 'foo').accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
-            '`name` like ? escape \'\\\'',
+            '`name` like ? escape \'!\'',
             ['foo%'],
         ]);
     });
@@ -208,17 +209,16 @@ describe('regex', () => {
         }).toThrow(AdapterError);
     });
 
-    it('generates anchored patterns for anchored operators on regexp dialects', () => {
-        // negations render a plain `not` over the POSITIVE pattern
-        // (null-inclusive via the complement arm) — never a
-        // negative-lookahead pattern.
+    it('renders anchored operators as LIKE on regexp dialects', () => {
+        // negations render a plain `not like` over the POSITIVE
+        // pattern, null-inclusive via the complement arm.
         const cases : [string, string, boolean][] = [
-            ['startsWith', '^foo', false],
-            ['endsWith', 'foo$', false],
-            ['contains', 'foo', false],
-            ['notStartsWith', '^foo', true],
-            ['notEndsWith', 'foo$', true],
-            ['notContains', 'foo', true],
+            ['startsWith', 'foo%', false],
+            ['endsWith', '%foo', false],
+            ['contains', '%foo%', false],
+            ['notStartsWith', 'foo%', true],
+            ['notEndsWith', '%foo', true],
+            ['notContains', '%foo%', true],
         ];
 
         for (const [operator, pattern, negated] of cases) {
@@ -229,9 +229,64 @@ describe('regex', () => {
 
             const [sql, params] = adapter.getQueryAndParameters();
             expect(sql, operator).toEqual(negated ?
-                '(not ("name" ~* $1) or "name" is null)' :
-                '"name" ~* $1');
+                '(lower("name") not like lower($1) escape \'!\' or "name" is null)' :
+                'lower("name") like lower($1) escape \'!\'');
             expect(params, operator).toStrictEqual([pattern]);
+        }
+    });
+
+    it('drops the fold for an anchored operator on a case-sensitive field', () => {
+        const adapter = new FiltersAdapter(new RelationsAdapter(), pg);
+        const visitor = new FiltersVisitor(adapter, { caseSensitive: ['path'] });
+
+        new Filter('startsWith', 'path', 'sales/').accept(visitor);
+
+        // the index-usable form: a plain prefix LIKE over `path`
+        expect(adapter.getQueryAndParameters()).toEqual([
+            '"path" like $1 escape \'!\'',
+            ['sales/%'],
+        ]);
+    });
+
+    it('escapes the escape character in the value', () => {
+        // an unescaped `!` in the pattern would swallow the character
+        // after it, since the emitted clause declares it as the escape
+        const adapter = new FiltersAdapter(new RelationsAdapter(), sqlite);
+
+        new Filter('contains', 'name', 'wow!%').accept(new FiltersVisitor(adapter));
+
+        const [, params] = adapter.getQueryAndParameters();
+        expect(params).toStrictEqual(['%wow!!!%%']);
+    });
+
+    it('escapes a bracket only where it opens a character range', () => {
+        // MSSQL: `[` is a wildcard, so it has to be escaped. Everywhere
+        // else it is an ordinary character, and Oracle rejects an escape
+        // character followed by anything but %, _ or itself (ORA-01424).
+        const render = (dialect: DialectOptions) : unknown[] => {
+            const adapter = new FiltersAdapter(new RelationsAdapter(), dialect);
+            new Filter('contains', 'name', '[draft]').accept(new FiltersVisitor(adapter));
+
+            const [, params] = adapter.getQueryAndParameters();
+
+            return params;
+        };
+
+        expect(render(mssql)).toStrictEqual(['%![draft]%']);
+        expect(render(oracle)).toStrictEqual(['%[draft]%']);
+        expect(render(pg)).toStrictEqual(['%[draft]%']);
+        expect(render(sqlite)).toStrictEqual(['%[draft]%']);
+    });
+
+    it('keeps LIKE unfolded where the dialect LIKE is already case-insensitive', () => {
+        for (const dialect of [sqlite, mysql]) {
+            const adapter = new FiltersAdapter(new RelationsAdapter(), dialect);
+            const visitor = new FiltersVisitor(adapter);
+
+            new Filter('contains', 'name', 'foo').accept(visitor);
+
+            const [sql] = adapter.getQueryAndParameters();
+            expect(sql).toEqual('`name` like ? escape \'!\'');
         }
     });
 });

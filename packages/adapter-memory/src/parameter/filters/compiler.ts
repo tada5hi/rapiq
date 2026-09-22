@@ -139,7 +139,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
                 throw AdapterError.featureUnsupported('filters:regex:value');
             }
         } else {
-            regex = new RegExp(plan.regexSource, 'i');
+            regex = new RegExp(plan.regexSource, plan.ignoreCase ? 'i' : '');
         }
 
         const test = anyValue((value) => {

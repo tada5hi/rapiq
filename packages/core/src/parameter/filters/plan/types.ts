@@ -46,7 +46,9 @@ export type FilterOperatorSemantics = {
 
     /**
      * Whether the operator participates in the case-insensitive
-     * default for string values (equality family + membership).
+     * default for string values (equality family, membership and
+     * the anchored operators). The `regex` operator is excluded:
+     * its case handling comes from the pattern's own `i` flag.
      */
     foldable: boolean,
 };
@@ -142,9 +144,9 @@ export type OneOfPlan = {
 };
 
 /**
- * String matching — the anchored family and the regex operator in
- * one node. Anchored literals keep their text so LIKE-only dialects
- * can derive a wildcard pattern; `regexSource` is always a usable
+ * String matching: the anchored family and the regex operator in
+ * one node. Anchored literals keep their text so a backend can derive
+ * a wildcard pattern from them; `regexSource` is always a usable
  * POSITIVE pattern (metacharacters escaped, anchors applied — never
  * a negative lookahead; negation is the `negated` flag, with the
  * null-inclusive leaf contract).
@@ -245,7 +247,8 @@ export interface IPlanInterpreter<R> {
 
 export type PlanConditionOptions = {
     /**
-     * Field keys whose equality comparisons (eq/ne/in/nin) stay
+     * Field keys whose equality (eq/ne/in/nin) and anchored
+     * (startsWith/endsWith/contains) comparisons stay
      * case-sensitive instead of the case-insensitive default —
      * matched against the full path composed through elemMatch
      * scopes. `true` keeps every comparison case-sensitive.

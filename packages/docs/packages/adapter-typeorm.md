@@ -88,11 +88,13 @@ Pick one:
 
 ## Dialect detection
 
-The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; regex conditions use the matching [dialect preset](/packages/adapter-sql#dialects): on regex-less dialects (SQLite, SQL Server) the `contains` / `startsWith` / `endsWith` operators fall back to `LIKE`, and the `regex` operator throws a typed `AdapterError`. When the connection type has no matching preset, the postgres preset is the documented last-resort default.
+The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; the [dialect preset](/packages/adapter-sql#dialects) supplies the rest. The `contains` / `startsWith` / `endsWith` operators render as `LIKE ... ESCAPE '!'` on every connection type; the preset's `regexp` callback serves the `regex` operator alone, so on regex-less dialects (SQLite, SQL Server) that one operator throws a typed `AdapterError`. When the connection type has no matching preset, the postgres preset is the documented last-resort default.
 
 ## Case folding & column types
 
-[Case-insensitive string equality](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns**: filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { caseSensitive: [...] })`.
+[Case-insensitive string matching](/guide/filters#case-sensitivity) folds through `lower()` on case-sensitive dialects, for equality (`lower(col) = lower(:rapiq_1_0)`) and for the anchored operators (`lower(col) like lower(:rapiq_1_0) escape '!'`) alike; parameter names carry a per-application namespace so they cannot collide with caller-owned ones. The adapter resolves each filtered field against the entity metadata (relation paths included) and folds **only string-typed columns**: filtering an `int` column with an untyped wire string (`filter[age]=18`) renders a plain `=` instead of a `lower(...)` type error, and non-string columns never pay the folding cost. Unresolvable fields keep the folding default; opt fields out explicitly via `execute(query, { caseSensitive: [...] })`, which reaches the anchored operators too.
+
+Which fold applies is per dialect, taken from the resolved preset's `caseFold` / `caseFoldLike`. On a `better-sqlite3` connection, `startsWith('first_name', 'Aston')` renders `"user"."first_name" like :rapiq_1_0 escape '!'` unfolded (SQLite's `LIKE` is already ASCII-case-insensitive) while `eq` still folds; on `mysql` neither folds (the `*_ci` collation does the work); on `postgres` both do.
 
 ## Field visibility gates
 

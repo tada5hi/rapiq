@@ -160,6 +160,8 @@ defineSchema<User>({
 });
 ```
 
+The opt-out covers the equality family **and** the anchored operators: on `pg`, `startsWith('name', 'foo')` renders `{ name: { ilike: 'foo%' } }` by default and `{ name: { like: 'foo%' } }` for an opted-out field.
+
 The declaration is not consumed automatically: the receiving side forwards it to the adapter, mirroring the [shared contract](/guide/filters#case-sensitivity). The adapter takes `caseSensitive` as a top-level constructor option (a field list, or `true` to opt every field out), and `execute` accepts it as a per-call override:
 
 ```typescript

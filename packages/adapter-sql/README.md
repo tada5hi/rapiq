@@ -74,13 +74,13 @@ const filters = new FiltersAdapter(new RelationsAdapter(), pg);
 query.filters.accept(new FiltersVisitor(filters));
 
 const [sql, params] = filters.getQueryAndParameters();
-// sql:    ("name" ~* $1 and "age" >= $2)
-// params: ['jo', 18]
+// sql:    (lower("name") like lower($1) escape '!' and "age" >= $2)
+// params: ['%jo%', 18]
 ```
 
 The package deliberately stops at fragments: composing the final `SELECT`, in particular `FROM` / `JOIN` conditions, is the caller's job, or a backend adapter's (that's exactly what [@rapiq/adapter-typeorm](https://www.npmjs.com/package/@rapiq/adapter-typeorm) does).
 
-**Notable semantics**: `null` filter values render as `IS NULL` / `IS NOT NULL`; empty `IN` lists render as `1 = 0` (never invalid SQL); string-matching operators match literally on every dialect; and `resolveDialect(name)` maps driver/connection type names (`postgres`, `mariadb`, `better-sqlite3`, …) to the matching preset. On dialects without a regexp operator (SQL Server, stock SQLite), `contains` / `startsWith` / `endsWith` fall back to escaped `LIKE`; only the `regex` operator throws a typed `AdapterError`.
+**Notable semantics**: `null` filter values render as `IS NULL` / `IS NOT NULL`; empty `IN` lists render as `1 = 0` (never invalid SQL); the anchored operators match their value literally on every dialect, `regex` alone interprets its input as a pattern; and `resolveDialect(name)` maps driver/connection type names (`postgres`, `mariadb`, `better-sqlite3`, …) to the matching preset. `contains` / `startsWith` / `endsWith` render as `LIKE ... ESCAPE '!'` on every dialect (a prefix `LIKE` is index-usable on MySQL where `REGEXP` is not, and matches what the other backend adapters emit); the `regexp` dialect callback serves the `regex` operator alone, which throws a typed `AdapterError` where the dialect has none (SQL Server, stock SQLite).
 
 ## The rapiq family
 

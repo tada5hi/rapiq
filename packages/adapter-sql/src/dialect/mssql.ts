@@ -7,9 +7,10 @@
 
 import type { DialectOptions } from './types';
 
-// no regexp support: anchored operators (startsWith, endsWith, contains)
-// fall back to LIKE; the regex operator raises a typed AdapterError.
+// no regexp support: the regex operator raises a typed AdapterError.
 export const mssql : DialectOptions = {
+    // `[` opens a character range in T-SQL LIKE patterns.
+    likeBracketWildcard: true,
     paramPlaceholder: () => '?',
     escapeField: (field: string) => `[${field}]`,
     // sql server's default collations (*_CI_*) already compare `=`
