@@ -5,14 +5,22 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaError } from '../../../errors';
-import { BucketUnit } from '../../../parameter';
-import type { CallSlot, CallSlotName } from '../../../parameter';
+import { Parameter } from '../../../constants';
+import { ErrorCode, ErrorMessage, SchemaError } from '../../../errors';
+import {
+    AGGREGATE_FUNCTION_SLOTS,
+    BucketUnit,
+    GROUP_FUNCTION_SLOTS,
+} from '../../../parameter';
+import type { CallSlot, CallSlotName, CallTerm } from '../../../parameter';
 import type { ObjectLiteral } from '../../../types';
-import { isObject, isPropertyNameValid } from '../../../utils';
+import { isObject, isPropertyNameValid, isPropertySet } from '../../../utils';
+import type { AggregatesSchema } from '../aggregates';
+import type { GroupsSchema } from '../groups';
 import type {
     CallFunctionDescription,
     CallFunctionNormalized,
+    CallResolution,
     CallSlotNormalized,
 } from './types';
 
@@ -182,12 +190,135 @@ export function describeCallFunctions(
             params: slots
                 .filter((slot) => !slot.fixed)
                 .map((slot) => ({
-                    name: slot.name, 
-                    values: [...slot.values], 
-                    optional: slot.optional, 
+                    name: slot.name,
+                    values: [...slot.values],
+                    optional: slot.optional,
                 })),
         };
     }
 
     return output;
+}
+
+function reject(code: `${ErrorCode}`, message: string) : CallResolution {
+    return {
+        success: false,
+        code,
+        message,
+    };
+}
+
+/**
+ * The primitive of that name with every slot open, or undefined. Read
+ * as an own property: `constructor` must not find Object's.
+ */
+function resolvePrimitive(
+    parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+    name: string,
+) : CallFunctionNormalized | undefined {
+    const primitives : Record<string, CallSlot[]> = parameter === Parameter.GROUPS ?
+        GROUP_FUNCTION_SLOTS :
+        AGGREGATE_FUNCTION_SLOTS;
+    const slots = isPropertySet(primitives, name) ? primitives[name] : undefined;
+
+    return slots ? buildBuiltinFunction(name, slots, []) : undefined;
+}
+
+/**
+ * Resolve one client term to what an adapter lowers.
+ *
+ * Bound (a schema given): only declared columns and functions resolve,
+ * so a schema without a groups or aggregates block permits nothing.
+ * Unbound (schemaless parse, build layer): the primitives resolve with
+ * any column, a bare term is a group column, and any other callee is a
+ * named function only a schema can resolve (`OPERATOR_UNSUPPORTED`).
+ * The checks run in a fixed order and the first failure wins.
+ * Duplicate output keys are the caller's check.
+ */
+export function resolveCallTerm(
+    parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+    term: CallTerm,
+    schema?: GroupsSchema | AggregatesSchema,
+) : CallResolution {
+    const identifiers = [term.name, ...term.params];
+
+    const dotted = identifiers.find((identifier) => identifier.includes('.'));
+    if (typeof dotted !== 'undefined') {
+        return reject(ErrorCode.KEY_PATH_NOT_ALLOWED, ErrorMessage.keyPathNotPermitted(dotted));
+    }
+
+    const invalid = identifiers.find((identifier) => !isPropertyNameValid(identifier));
+    if (typeof invalid !== 'undefined') {
+        return reject(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid(invalid));
+    }
+
+    let declaration : CallFunctionNormalized | undefined;
+    if (schema) {
+        declaration = isPropertySet(schema.functions, term.name) ?
+            schema.functions[term.name] :
+            undefined;
+    } else {
+        declaration = resolvePrimitive(parameter, term.name);
+    }
+
+    if (!declaration) {
+        if (
+            parameter === Parameter.GROUPS &&
+            term.params.length === 0 &&
+            (!schema || (schema as GroupsSchema).allowed.includes(term.name))
+        ) {
+            return {
+                success: true,
+                lowering: {
+                    fn: undefined,
+                    field: term.name,
+                    args: [],
+                },
+            };
+        }
+
+        return schema ?
+            reject(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted(term.name)) :
+            reject(ErrorCode.OPERATOR_UNSUPPORTED, ErrorMessage.operatorUnsupported(term.name));
+    }
+
+    const open = declaration.slots.filter((slot) => !slot.fixed);
+    const required = open.filter((slot) => !slot.optional);
+    if (term.params.length < required.length || term.params.length > open.length) {
+        return reject(ErrorCode.KEY_VALUE_INVALID, ErrorMessage.callArgumentsInvalid(term.name));
+    }
+
+    const values : Partial<Record<CallSlotName, string>> = {};
+    for (const slot of declaration.slots) {
+        if (slot.fixed) {
+            values[slot.name] = slot.values[0];
+        }
+    }
+
+    for (const [index, slot] of open.entries()) {
+        const param = term.params[index];
+        if (typeof param === 'undefined') {
+            break;
+        }
+
+        // unbound, a field is any valid identifier; bound, one the slot lists.
+        if (slot.name === 'field' && schema && !slot.values.includes(param)) {
+            return reject(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted(param));
+        }
+
+        if (slot.name === 'unit' && !slot.values.includes(param)) {
+            return reject(ErrorCode.KEY_VALUE_INVALID, ErrorMessage.callArgumentsInvalid(term.name));
+        }
+
+        values[slot.name] = param;
+    }
+
+    return {
+        success: true,
+        lowering: {
+            fn: declaration.fn,
+            field: values.field,
+            args: values.unit ? [values.unit] : [],
+        },
+    };
 }

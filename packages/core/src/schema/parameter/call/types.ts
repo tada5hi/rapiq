@@ -8,9 +8,11 @@
 import type {
     AggregateFunction,
     BucketUnit,
+    CallLowering,
     CallSlotName,
     GroupFunction,
 } from '../../../parameter';
+import type { ErrorCode } from '../../../errors';
 import type { ObjectLiteral, SimpleKeys } from '../../../types';
 
 /**
@@ -88,3 +90,14 @@ export type CallFunctionDescription = {
     fn: string,
     params: CallParamDescription[],
 };
+
+/**
+ * The verdict for one client term: what an adapter lowers, or the
+ * issue a parse records (code and message, never a thrown error).
+ */
+export type CallResolution =    | { success: true, lowering: CallLowering } |
+    {
+        success: false,
+        code: `${ErrorCode}`,
+        message: string
+    };
