@@ -171,6 +171,11 @@ alone, so client and server compute the same key and no `as` syntax is needed:
 Groups keep the bare name because two groups with the same callee are two grains of one dimension, a
 real collision; declare a named function per grain if a query needs both.
 
+Keys become SQL column aliases, so they are bound by the engine's identifier limit: 63 bytes on PostgreSQL
+(a longer alias is truncated), 30 on Oracle before 12.2. `normalizeGroupedRows` (and `normalize`) refuse a
+driver row missing an output key with `KEY_VALUE_INVALID` rather than reading it as `null`, so keep column
+and function names short enough that `sum_<column>` fits.
+
 ## Grouped mode {#grouped-mode}
 
 Once a query carries a group or an aggregate, the other parameters change meaning:
@@ -218,6 +223,10 @@ Know your column:
 - **SQLite**: the bucket expects ISO text or `YYYY-MM-DD HH:MM:SS` text, the form TypeORM writes. Epoch
   numbers are not recognized (SQLite reads a number as a Julian day).
 - **`hour` on a `date` column** answers midnight buckets, the same on every backend.
+- **Prefer `bucket(...)` over a bare group on a temporal column.** A bare group returns the driver's value:
+  node-postgres reads a zone-less `timestamp` as a `Date` in the host's time zone, so the same row reads
+  as a different instant on a UTC+2 host than on a UTC one, while the memory adapter returns the stored
+  value unchanged. Bucket text is computed in SQL and does not depend on the host.
 - **MySQL collations**: a `*_ci` collation groups case variants of a bare column (`Login`, `login`) into
   one row. The memory adapter, PostgreSQL and SQLite keep them apart.
 
@@ -233,6 +242,8 @@ with `executeGrouped` and read the driver values yourself instead of calling `no
 `normalize`.
 
 `sum` adds finite numbers only in memory; a column holding text is an application error, not a value.
+The engines disagree on it: the memory adapter skips a numeric string such as `'5'`, while SQLite and
+MySQL coerce text to a number and add it (PostgreSQL refuses `sum` over a text column).
 
 ## Building in code {#building}
 

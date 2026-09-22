@@ -8,6 +8,7 @@
 import {
     Aggregate,
     Aggregates,
+    ErrorCode,
     Field,
     Fields,
     Group,
@@ -259,6 +260,18 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
             count: 0, 
             sum_amount: null,
         });
+    });
+
+    it('should refuse a row missing an output key instead of reading it as null', () => {
+        // pg truncates an alias beyond 63 bytes, so the key never comes back.
+        expect(() => normalizeGroupedRows(query, [{
+            bucket: '2026-09-22T00:00:00.000Z',
+            scope: 'user',
+            count: 1,
+        }])).toThrowError(expect.objectContaining({
+            code: ErrorCode.KEY_VALUE_INVALID,
+            message: 'The value of the key sum_amount is invalid.',
+        }));
     });
 
     it('should copy only the output keys, in IR order', () => {

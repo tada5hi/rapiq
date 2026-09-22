@@ -134,20 +134,33 @@ export function buildGroupedClauses(
  * identical to @rapiq/adapter-memory. A sum beyond 2^53 or about 15
  * significant digits loses precision; read the raw rows instead when
  * exact decimals matter. A sum over no values stays null.
+ *
+ * A row lacking an output key is refused (`KEY_VALUE_INVALID`) rather
+ * than read as null: the engine returned another alias, which happens
+ * when an alias exceeds its identifier limit (63 bytes on pg, which
+ * truncates it; 30 on Oracle before 12.2).
  */
 export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : ObjectLiteral[] {
     const groups = query.groups?.value ?? [];
     const aggregates = query.aggregates?.value ?? [];
 
+    const read = (row: ObjectLiteral, key: string) : unknown => {
+        if (!(key in row)) {
+            throw AdapterError.keyValueInvalid(key);
+        }
+
+        return row[key];
+    };
+
     return rows.map((row) => {
         const output : ObjectLiteral = {};
 
         for (const group of groups) {
-            output[group.key] = row[group.key];
+            output[group.key] = read(row, group.key);
         }
 
         for (const aggregate of aggregates) {
-            const value = row[aggregate.key];
+            const value = read(row, aggregate.key);
             output[aggregate.key] = value === null || typeof value === 'undefined' ?
                 null :
                 Number(value);

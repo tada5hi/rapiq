@@ -201,7 +201,7 @@ The pipeline is filter, group, aggregate, sort (explicit sorts, otherwise group 
 
 - a bucket reads the value like a [date operand](#date-values) and truncates it to the UTC hour, day or month (`toISOString()`); a value that is not a date lands in the `null` group;
 - `null` / missing is a group of its own, sorted last ascending like PostgreSQL (MySQL and SQLite sort it first); group keys compare exactly and case-sensitively;
-- `count()` counts records, `count(field)` non-null values; `sum` adds finite numbers and is `null` when there are none;
+- `count()` counts records, `count(field)` non-null values; `sum` adds finite numbers and is `null` when there are none (a numeric string such as `'5'` is skipped, where SQLite and MySQL would coerce and add it);
 - aggregates without groups give exactly one row (over no records: `count` 0, `sum` `null`); groups over no records give no rows.
 
 The same `options` as `compileFilters` (e.g. `{ caseSensitive }`) apply to the filter step.
