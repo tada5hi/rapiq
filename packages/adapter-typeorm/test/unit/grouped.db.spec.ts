@@ -35,6 +35,7 @@ type Seed = {
 /**
  * 22:59:59 UTC is the next calendar day on a UTC+2 host: a bucket
  * computed in the host's or the session's zone lands one day late.
+ * 2026-08-31 22:30 UTC is September there: the same slip one month late.
  */
 const SEED : Seed[] = [
     {
@@ -70,6 +71,13 @@ const SEED : Seed[] = [
         name: 'ping',
         amount: 0,
         stored: '2026-09-01 11:00:00.000',
+        inMaster: false,
+    },
+    {
+        scope: 'billing',
+        name: 'refund',
+        amount: 3,
+        stored: '2026-08-31 22:30:00.000',
         inMaster: false,
     },
 ];
@@ -229,7 +237,7 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const rows = await run(query);
 
         expect(rows).toEqual([
-            { bucket: '2026-08-01T00:00:00.000Z', count: 3 },
+            { bucket: '2026-08-01T00:00:00.000Z', count: 4 },
             { bucket: '2026-09-01T00:00:00.000Z', count: 2 },
         ]);
         expect(rows).toEqual(oracle(query));
@@ -247,9 +255,9 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const rows = await run(query);
 
         expect(rows).toEqual([{
-            count: 5,
-            sum_amount: 113,
-            count_scope: 4,
+            count: 6,
+            sum_amount: 116,
+            count_scope: 5,
         }]);
         expect(rows).toEqual(oracle(query));
     });
@@ -288,7 +296,7 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const rows = await run(query);
         const expected = [
             { scope: 'auth', count: 3 },
-            { scope: 'billing', count: 1 },
+            { scope: 'billing', count: 2 },
             { scope: null, count: 1 },
         ];
 
@@ -362,6 +370,10 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
 describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (grouped, zone-aware column)', () => {
     const OBSERVED = ['2026-08-20T23:30:00.000Z', '2026-08-21T00:30:00.000Z'];
+    /** zone-less `timestamp` storage literals (UTC wall clock). */
+    const RECORDED = ['2026-08-31 22:30:00', '2026-09-01 00:30:00'];
+    /** `date` storage literals. */
+    const OBSERVED_ON = ['2026-08-31', '2026-09-01'];
 
     let dataSource : DataSource;
 
@@ -374,8 +386,9 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
         await dataSource.synchronize();
 
         await dataSource.query(
-            'insert into "reading" ("observed_at", "value") values ($1, 1), ($2, 2)',
-            OBSERVED,
+            'insert into "reading" ("observed_at", "recorded_at", "observed_on", "value") ' +
+            'values ($1, $3, $5, 1), ($2, $4, $6, 2)',
+            [...OBSERVED, ...RECORDED, ...OBSERVED_ON],
         );
     });
 
@@ -412,6 +425,44 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
                 observed_at,
                 value: index + 1,
             }))).data);
+        } finally {
+            await runner.release();
+        }
+    });
+
+    const records = () => OBSERVED.map((observed_at, index) => ({
+        observed_at,
+        recorded_at: `${RECORDED[index]!.replace(' ', 'T')}Z`,
+        observed_on: OBSERVED_ON[index],
+        value: index + 1,
+    }));
+
+    it.each([
+        ['recorded_at', 'month', ['2026-08-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z']],
+        ['recorded_at', 'day', ['2026-08-31T00:00:00.000Z', '2026-09-01T00:00:00.000Z']],
+        ['observed_on', 'month', ['2026-08-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z']],
+        ['observed_on', 'hour', ['2026-08-31T00:00:00.000Z', '2026-09-01T00:00:00.000Z']],
+    ])('should bucket %s by %s like memory under a Berlin session', async (column, unit, buckets) => {
+        const query = defineQuery({
+            groups: [{ name: 'bucket', params: [column, unit] }],
+            aggregates: ['count'],
+        });
+
+        const runner = dataSource.createQueryRunner();
+        await runner.connect();
+
+        try {
+            await runner.query('set time zone \'Europe/Berlin\'');
+
+            const queryBuilder = dataSource
+                .getRepository(Reading)
+                .createQueryBuilder('reading', runner);
+
+            const output = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
+            const rows = output.normalize(await queryBuilder.getRawMany());
+
+            expect(rows).toEqual(buckets.map((bucket) => ({ bucket, count: 1 })));
+            expect(rows).toEqual(applyGroupedQuery(query, records()).data);
         } finally {
             await runner.release();
         }
