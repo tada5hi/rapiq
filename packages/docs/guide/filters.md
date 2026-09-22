@@ -152,7 +152,9 @@ The wire is untyped: a date crosses it as a string (`filter[created_at]=>=2026-0
 | `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle` | a `Date` instance |
 | `@rapiq/adapter-memory` | reads the string as an instant whenever the record value is a `Date` |
 
-Accepted operand forms are an ISO-8601 string, an epoch timestamp in milliseconds, and a `Date`. A value that denotes no instant (`filter[created_at]=yesterday`) is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID`, rather than reaching the driver, which answers a malformed client value with a server error.
+Accepted operand forms are an ISO-8601 date (`2026-08-23`) or date-time (`2026-08-23T10:16:44.000Z`, a space in place of the `T` is fine too), an epoch timestamp in milliseconds, and a `Date`. The grammar is matched explicitly rather than handed to `new Date()`, which accepts implementation-defined forms (`August 23, 2026` parses, `2026` silently means January 1st) and rolls a day the calendar does not have into the next month, so `2026-02-30` would quietly select March 2nd. A date-time carrying no offset is read as UTC, not in the server's zone, so one query selects the same rows on every machine.
+
+A value that denotes no instant (`filter[created_at]=yesterday`, `2026-02-30`) is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID` instead of reaching the driver, which answers a malformed client value with a server error. Only the bindings that *know* the field is temporal can refuse: `@rapiq/adapter-typeorm` on a date column, and `@rapiq/adapter-prisma`/`@rapiq/adapter-drizzle` on a field their metadata marks as a date. `@rapiq/adapter-memory` has no such declaration and simply leaves the value unequal and incomparable, and `@rapiq/adapter-sql`'s default `bindValue` passes every operand through untouched.
 
 ::: warning Zone-less columns are read as UTC
 A `datetime`/`timestamp` column stores no offset, so the operand has to be spelled in the same zone the value was written in, and rapiq spells it in UTC.

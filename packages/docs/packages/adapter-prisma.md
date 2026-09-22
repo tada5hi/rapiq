@@ -63,7 +63,7 @@ const args = mergeArgs(baseline, produced);
 
 ## Model metadata
 
-The adapter needs five facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
+The adapter needs four facts about your model that a `Query` cannot carry, and each one changes what a *valid* Prisma filter looks like:
 
 | fact | what it decides |
 |---|---|
@@ -71,9 +71,10 @@ The adapter needs five facts about your model that a `Query` cannot carry, and e
 | is that relation to-many? | `some`/`none` versus `is`; the wrong one is a validation error |
 | can the column hold `null`? | a null comparison on a required column is a validation error |
 | does it hold strings? | `mode: 'insensitive'` exists only on string filters |
-| does it hold dates? | a date crosses the wire as a string and has to be bound as a `Date` (see [date values](/guide/filters#date-values)) |
 
-Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them. On Prisma 6 classic builds the client-bound form above derives all of it; on Prisma 7 the runtime datamodel no longer carries cardinality or nullability, so the binding takes `metadata` alongside the delegate. The fully explicit form takes the same facts by hand:
+Guessing any of them produces a runtime validation error rather than graceful degradation, so the adapter refuses to run without them.
+
+A fifth question, `isDate`, is **optional**: where it answers, a [date operand](/guide/filters#date-values) is bound as a `Date` and an unreadable one is refused; where it does not, operands pass through as they arrived, which is what the adapter did before the question existed. `defineMetadata` answers it for every `DateTime` field, so a hand-written `IMetadata` implementation keeps working unchanged. On Prisma 6 classic builds the client-bound form above derives all of it; on Prisma 7 the runtime datamodel no longer carries cardinality or nullability, so the binding takes `metadata` alongside the delegate. The fully explicit form takes the same facts by hand:
 
 ```typescript
 import { PrismaAdapter, defineMetadata } from '@rapiq/adapter-prisma';

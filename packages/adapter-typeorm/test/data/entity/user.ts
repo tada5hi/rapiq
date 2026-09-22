@@ -53,6 +53,12 @@ export class User {
     })
     created_at: Date | null;
 
+    @Column({
+        nullable: true,
+        type: 'date',
+    })
+    birth_date: string | null;
+
     @Column(() => Profile)
     profile: Profile;
 

@@ -96,7 +96,7 @@ The adapter resolves the SQL dialect from the attached query builder's connectio
 
 ## Date columns
 
-The same entity metadata tells the adapter which columns are temporal, and a [date operand](/guide/filters#date-values) is bound in that column's own storage form: a UTC wall-clock literal for a zone-less `datetime`/`timestamp`, the ISO instant for a `timestamptz`, `YYYY-MM-DD` for a `date` (mirroring the column's `utc` option). A `Date` is deliberately never bound: the Postgres and MySQL drivers serialize one in the host's local zone, which a zone-less column then reads as local wall clock, shifting the window by the host's offset. A value that denotes no instant is refused with a typed `AdapterError` rather than handed to the driver.
+The same entity metadata tells the adapter which columns are temporal, and a [date operand](/guide/filters#date-values) is bound in that column's own storage form: a UTC wall-clock literal for a zone-less `datetime`/`timestamp`, the ISO instant for a `timestamptz`, `YYYY-MM-DD` for a `date`. A calendar date filtering a `date` column is bound **verbatim**: converting it to an instant (UTC midnight) and back through local calendar parts would land on the previous day on any negative-offset host. Only an operand that carries a clock has to pick a day, and that one mirrors the column's `utc` option. A `Date` is deliberately never bound: the Postgres and MySQL drivers serialize one in the host's local zone, which a zone-less column then reads as local wall clock, shifting the window by the host's offset. A value that denotes no instant is refused with a typed `AdapterError` rather than handed to the driver.
 
 ## Field visibility gates
 

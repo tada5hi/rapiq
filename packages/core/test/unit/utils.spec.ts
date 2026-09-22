@@ -173,12 +173,77 @@ describe('src/utils/date.ts', () => {
             .toEqual('2026-08-23T10:16:44.000Z');
     });
 
+    it('should read a zone-less date-time as utc', () => {
+        // `new Date()` reads one in the HOST's zone, which would make
+        // the same filter select different rows on different machines.
+        expect(toDate('2026-08-23T10:16:44')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+        expect(toDate('2026-08-23 10:16:44')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+    });
+
+    it('should honour an explicit offset', () => {
+        expect(toDate('2026-08-23T10:16:44Z')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+        expect(toDate('2026-08-23T10:16:44+02:00')?.toISOString())
+            .toEqual('2026-08-23T08:16:44.000Z');
+        expect(toDate('2026-08-23T10:16:44+0200')?.toISOString())
+            .toEqual('2026-08-23T08:16:44.000Z');
+        expect(toDate('2026-08-23T08:16:44-02:00')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.000Z');
+    });
+
+    it('should read fractional seconds', () => {
+        expect(toDate('2026-08-23T10:16:44.123Z')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.123Z');
+        expect(toDate('2026-08-23T10:16:44.1Z')?.toISOString())
+            .toEqual('2026-08-23T10:16:44.100Z');
+    });
+
+    it('should reject a day the calendar does not have', () => {
+        // `new Date('2026-02-30')` rolls over to March 2 instead:
+        // a typo would silently query a different day.
+        expect(toDate('2026-02-30')).toBeUndefined();
+        expect(toDate('2026-02-29')).toBeUndefined();
+        expect(toDate('2026-04-31')).toBeUndefined();
+        expect(toDate('2026-13-01')).toBeUndefined();
+        expect(toDate('2026-00-10')).toBeUndefined();
+        expect(toDate('2026-08-00')).toBeUndefined();
+        expect(toDate('2026-08-32')).toBeUndefined();
+    });
+
+    it('should accept the days the calendar does have', () => {
+        expect(toDate('2026-02-28')?.toISOString()).toEqual('2026-02-28T00:00:00.000Z');
+        expect(toDate('2028-02-29')?.toISOString()).toEqual('2028-02-29T00:00:00.000Z');
+        expect(toDate('2026-12-31T23:59:59.999Z')?.toISOString())
+            .toEqual('2026-12-31T23:59:59.999Z');
+    });
+
+    it('should reject an out-of-range clock', () => {
+        expect(toDate('2026-08-23T24:00:00')).toBeUndefined();
+        expect(toDate('2026-08-23T10:60:00')).toBeUndefined();
+        expect(toDate('2026-08-23T10:16:60')).toBeUndefined();
+    });
+
+    it('should reject forms outside the documented iso grammar', () => {
+        // implementation-defined in `new Date()`, so portable only if
+        // rejected: 'August 23, 2026' parses, and '2026' silently
+        // means January 1st.
+        expect(toDate('August 23, 2026')).toBeUndefined();
+        expect(toDate('2026')).toBeUndefined();
+        expect(toDate('2026-08')).toBeUndefined();
+        expect(toDate('23.08.2026')).toBeUndefined();
+        expect(toDate('2026-08-23T10')).toBeUndefined();
+    });
+
     it('should reject values which do not denote an instant', () => {
         expect(toDate('foo')).toBeUndefined();
+        expect(toDate('')).toBeUndefined();
         expect(toDate(new Date('foo'))).toBeUndefined();
         expect(toDate(null)).toBeUndefined();
         expect(toDate(undefined)).toBeUndefined();
         expect(toDate(true)).toBeUndefined();
         expect(toDate({})).toBeUndefined();
+        expect(toDate(NaN)).toBeUndefined();
     });
 });

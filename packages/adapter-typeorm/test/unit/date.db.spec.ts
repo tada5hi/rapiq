@@ -36,6 +36,15 @@ const STORED : Record<string, string> = {
     Aston: '2026-08-23 10:16:44.000',
 };
 
+/**
+ * A date-only column carries no clock at all, so it is seeded with the
+ * calendar day itself.
+ */
+const BORN : Record<string, string> = {
+    Caleb: '1985-11-02',
+    Aston: '1990-05-17',
+};
+
 describe('src/adapter/filters (date columns)', () => {
     let dataSource : DataSource;
 
@@ -49,9 +58,13 @@ describe('src/adapter/filters (date columns)', () => {
         for (const user of users) {
             await dataSource.createQueryBuilder()
                 .update(User)
-                .set({ created_at: () => ':storedAt' })
+                .set({
+                    created_at: () => ':storedAt',
+                    birth_date: () => ':bornOn',
+                })
                 .where('id = :id', { id: user.id })
                 .setParameter('storedAt', STORED[user.first_name])
+                .setParameter('bornOn', BORN[user.first_name])
                 .execute();
         }
     });
@@ -131,6 +144,53 @@ describe('src/adapter/filters (date columns)', () => {
         const [, parameters] = queryBuilder.getQueryAndParameters();
 
         expect(parameters).toEqual(['2026-08-23 10:16:44.000']);
+    });
+
+    it('should bind a calendar date to a date column verbatim', () => {
+        // a date-only column carries no clock, so converting the
+        // operand to an instant and back through `mixedDateToDateString`
+        // (local calendar parts unless the column opts into `utc`)
+        // lands on the previous day on a negative-offset host. Pinned
+        // to such a zone: on a positive-offset one the round trip
+        // happens to land on the right day and the guard would pass
+        // either way.
+        const timezone = process.env.TZ;
+        process.env.TZ = 'America/New_York';
+
+        try {
+            const queryBuilder = createQueryBuilder(new Filter(
+                FilterFieldOperator.EQUAL,
+                'birth_date',
+                '1990-05-17',
+            ));
+
+            const [, parameters] = queryBuilder.getQueryAndParameters();
+
+            expect(parameters).toEqual(['1990-05-17']);
+        } finally {
+            process.env.TZ = timezone;
+        }
+    });
+
+    it('should still refuse an impossible day on a date column', () => {
+        expect(() => createQueryBuilder(new Filter(
+            FilterFieldOperator.EQUAL,
+            'birth_date',
+            '1990-02-30',
+        ))).toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
+    });
+
+    it('should select by calendar day', async () => {
+        const queryBuilder = createQueryBuilder(new Filter(
+            FilterFieldOperator.EQUAL,
+            'birth_date',
+            '1990-05-17',
+        ));
+
+        const data = await queryBuilder.getMany();
+
+        expect(data.length).toEqual(1);
+        expect(data[0].first_name).toEqual('Aston');
     });
 
     it('should leave a non-date column untouched', () => {

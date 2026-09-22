@@ -74,6 +74,12 @@ const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
     'timestamp with local time zone': 'instant',
 };
 
+/**
+ * A bare calendar date, the form a date-only column stores and the
+ * form a client sends for one.
+ */
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 function resolveDateColumnFormat(type: ColumnType) : 'date' | 'datetime' | 'instant' | undefined {
     if (type === Date) {
         return 'datetime';
@@ -258,9 +264,18 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         if (format === 'date') {
-            // mirrors what typeorm writes: `utc` is the column's own
-            // option, and a mismatch here would compare a UTC day
-            // against a locally spelled one.
+            // a calendar date needs no conversion at all, and must not
+            // get one: `mixedDateToDateString` reads local calendar
+            // parts unless the column opts into `utc`, so a round trip
+            // through an instant (UTC midnight) lands on the previous
+            // day on any negative-offset host. `toDate` above still
+            // ran, so an impossible day was already refused.
+            if (typeof value === 'string' && CALENDAR_DATE.test(value)) {
+                return value;
+            }
+
+            // an operand that does carry a clock has to pick a day:
+            // mirror `utc`, the option typeorm writes the column with.
             return DateUtils.mixedDateToDateString(date, { utc: column.utc });
         }
 
