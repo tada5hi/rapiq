@@ -60,6 +60,14 @@ describe('src/adapter/where.ts', () => {
             expect(config.where).toEqual({ address: { eq: 'Hogwarts' } });
         });
 
+        it('should honor the opt-out for the anchored family', () => {
+            expect(serialize(startsWith('address', 'Hog')).where)
+                .toEqual({ address: { ilike: 'Hog%' } });
+
+            expect(serialize(startsWith('address', 'Hog'), { caseSensitive: ['address'] }).where)
+                .toEqual({ address: { like: 'Hog%' } });
+        });
+
         it('should complement ne with a null arm', () => {
             expect(serialize(ne('address', 'Hogwarts')).where).toEqual({
                 OR: [

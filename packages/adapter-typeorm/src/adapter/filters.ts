@@ -15,9 +15,14 @@ import type { RelationsAdapter } from './relations';
 
 /**
  * Column types whose values are strings and therefore participate in
- * case-insensitive equality folding. Non-string columns never fold —
- * lower() on them is wasted work at best and a type error at worst
- * (e.g. `lower(integer)` on postgres).
+ * case-insensitive folding (the equality family and the anchored
+ * operators). Non-string columns never fold: lower() on them is wasted
+ * work at best and a type error at worst (e.g. `lower(integer)` on
+ * postgres).
+ *
+ * `citext` is deliberately absent although it is a string type: its own
+ * comparison and LIKE operators are already case-insensitive, so folding
+ * it only discards the citext index.
  */
 const CASE_FOLDABLE_COLUMN_TYPES = new Set<string>([
     'varchar', 
@@ -36,8 +41,12 @@ const CASE_FOLDABLE_COLUMN_TYPES = new Set<string>([
     'mediumtext', 
     'longtext', 
     'ntext', 
-    'citext',
     'string',
+    // typeorm stores these as text and hydrates them itself, so a
+    // filter on one compares against the stored string
+    'simple-array',
+    'simple-json',
+    'simple-enum',
 ]);
 
 function isCaseFoldableColumnType(type: ColumnType) : boolean {
@@ -198,6 +207,18 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         return super.caseFold(input);
+    }
+
+    override caseFoldLike(input: string) : string {
+        if (this.dialect.caseFoldLike) {
+            return this.dialect.caseFoldLike(input);
+        }
+
+        return this.caseFold(input);
+    }
+
+    override isLikeBracketWildcard() : boolean {
+        return !!this.dialect.likeBracketWildcard;
     }
 
     /**

@@ -16,16 +16,19 @@ import { TypeormAdapter } from '../../../src';
 import { User } from '../../data/entity/user';
 import {
     createMysqlDataSourceOptions,
+    createPostgresDataSourceOptions,
     createUnconnectedDataSource,
 } from '../../data/factory';
 
 describe('src/adapter/filters.ts', () => {
     let sqlite : DataSource;
     let mysql : DataSource;
+    let pg : DataSource;
 
     beforeAll(async () => {
         sqlite = await createUnconnectedDataSource();
         mysql = await createUnconnectedDataSource(createMysqlDataSourceOptions());
+        pg = await createUnconnectedDataSource(createPostgresDataSourceOptions());
     });
 
     const apply = (
@@ -73,20 +76,42 @@ describe('src/adapter/filters.ts', () => {
         expect(() => apply(sqlite, condition)).toThrow(AdapterError);
     });
 
-    it('should fall back to like for anchored operators on sqlite', () => {
+    it('should render anchored operators as like on sqlite', () => {
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'first_name', 'Aston');
 
         const [sql, params] = apply(sqlite, condition);
-        expect(sql).toEqual('"user"."first_name" like :0 escape \'\\\'');
+        // unfolded: sqlite's like is already case-insensitive
+        expect(sql).toEqual('"user"."first_name" like :0 escape \'!\'');
         expect(params).toEqual(['Aston%']);
     });
 
-    it('should build anchored operators as regexp on mysql', () => {
+    it('should render anchored operators as like on mysql', () => {
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'first_name', 'Aston');
 
         const [sql, params] = apply(mysql, condition);
-        expect(sql).toEqual('`user`.`first_name` regexp :0 = 1');
-        expect(params).toEqual(['^Aston']);
+        // a prefix like is index-usable where `regexp` is not;
+        // unfolded because mysql's default collation is already ci
+        expect(sql).toEqual('`user`.`first_name` like :0 escape \'!\'');
+        expect(params).toEqual(['Aston%']);
+    });
+
+    it('should skip the fold for a non-string column', () => {
+        // the metadata veto keeps `lower(integer)` out of the query; pg
+        // rejects a like over an integer column either way, but on a
+        // collation-ci engine the unfolded form is a valid query.
+        const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'realm_id', '1');
+
+        const [sql, params] = apply(pg, condition);
+        expect(sql).toEqual('"user"."realm_id" like :0 escape \'!\'');
+        expect(params).toEqual(['1%']);
+    });
+
+    it('should fold an anchored operator on a string column on pg', () => {
+        const condition = new Filter(FilterFieldOperator.CONTAINS, 'first_name', 'Aston');
+
+        const [sql, params] = apply(pg, condition);
+        expect(sql).toEqual('lower("user"."first_name") like lower(:0) escape \'!\'');
+        expect(params).toEqual(['%Aston%']);
     });
 
     it('should render null-aware in conditions', () => {

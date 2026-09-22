@@ -77,7 +77,7 @@ A record value that is a `Date` reads a string operand as the instant it denotes
 
 ### String matching
 
-`contains`, `startsWith`, `endsWith` (and their negations) are **case-insensitive** and treat the filter value as a literal: the same anchored regular expression the SQL adapter builds. Numbers are matched by their decimal string form; other value types never match.
+`contains`, `startsWith`, `endsWith` (and their negations) are **case-insensitive by default** and treat the filter value as a literal: the compiler escapes it into an anchored regular expression, so metacharacters match themselves. Numbers are matched by their decimal string form; other value types never match. (`@rapiq/adapter-sql` renders the same operators as an escaped `LIKE` pattern rather than a regex; the selected records are the same, the spelling is not.)
 
 String **equality** (`eq` / `ne` / `in` / `nin`) is [case-insensitive by default](/guide/filters#case-sensitivity) too. Opt fields out via the `caseSensitive` option, mirroring a schema's `filters.caseSensitive` list:
 
@@ -86,13 +86,13 @@ applyQuery(query, users, { caseSensitive: ['id'] });
 compileFilters(eq('id', 'aBc'), { caseSensitive: ['id'] });
 ```
 
-`caseSensitive: true` keeps **every** equality comparison exact (plain string equality, no case folding): for evaluating arbitrary condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies:
+`caseSensitive: true` keeps **every** comparison exact: for evaluating arbitrary condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies:
 
 ```typescript
 compileFilters(condition, { caseSensitive: true });
 ```
 
-The boolean only governs the equality family: `contains`/`startsWith`/`endsWith` stay case-insensitive, exactly like the list form. `caseSensitive: false` equals the default.
+Both forms govern the equality family **and** the anchored operators: an opted-out field compares with plain string equality and compiles its pattern without the `i` flag, so `contains('name', 'ETER')` matches `PETER` but not `Peter`. `caseSensitive: false` equals the default. The `regex` operator is never affected: its case handling comes from the pattern's own `i` flag.
 
 ::: warning Regex patterns run as-is
 The `regex` operator compiles the query's pattern with JavaScript's backtracking `RegExp` engine and evaluates it against every record: a crafted pattern (nested quantifiers) over long field values can burn CPU (ReDoS). Compilation only rejects invalid syntax. The URL dialects cannot carry a regex, but the [mongo dialect](/packages/parser-mongo) accepts `$regex`; when queries originate from untrusted input, gate the operator with the schema's `filters.validate` hook. See the [regex trust model](/guide/filters#regex-trust-model).

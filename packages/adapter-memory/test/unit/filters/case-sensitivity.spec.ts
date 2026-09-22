@@ -117,14 +117,19 @@ describe('filters: equality case sensitivity', () => {
         expect(predicate({ items: [{ name: 'Sword' }] })).toBeFalsy();
     });
 
-    it('should not affect the contains family with caseSensitive true', () => {
-        // contains/startsWith/endsWith stay case-insensitive — the
-        // caseSensitive option only governs the equality family,
-        // matching the per-field list semantics.
-        const predicate = compileFilters(contains('name', 'eter'), { caseSensitive: true });
+    it('should apply caseSensitive to the contains family', () => {
+        // contains/startsWith/endsWith honour the opt-out like the
+        // equality family does, per the documented per-field semantics.
+        const predicate = compileFilters(contains('name', 'ETER'), { caseSensitive: true });
+
+        expect(predicate({ name: 'PETER' })).toBeTruthy();
+        expect(predicate({ name: 'Peter' })).toBeFalsy();
+    });
+
+    it('should apply a per-field caseSensitive list to the contains family', () => {
+        const predicate = compileFilters(contains('name', 'ETER'), { caseSensitive: ['other'] });
 
         expect(predicate({ name: 'Peter' })).toBeTruthy();
-        expect(predicate({ name: 'PETER' })).toBeTruthy();
     });
 
     it('should stay case-insensitive with caseSensitive false', () => {

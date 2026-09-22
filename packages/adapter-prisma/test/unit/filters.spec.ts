@@ -167,6 +167,14 @@ describe('src/adapter/filters.ts', () => {
             expect(build(eq('email', 'a@b.c'), { caseSensitive: ['email'] })).toEqual({ email: { equals: 'a@b.c' } });
         });
 
+        it('should honor the opt-out for the anchored family', () => {
+            expect(build(startsWith('first_name', 'Pe')))
+                .toEqual({ first_name: { startsWith: 'Pe', mode: 'insensitive' } });
+
+            expect(build(startsWith('first_name', 'Pe'), { caseSensitive: ['first_name'] }))
+                .toEqual({ first_name: { startsWith: 'Pe' } });
+        });
+
         it('should keep membership case-insensitive despite a wildcard', () => {
             // measured: `in`/`notIn` are never lowered to ILIKE, so the
             // veto below does not apply to them.

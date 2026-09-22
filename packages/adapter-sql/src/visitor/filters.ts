@@ -25,7 +25,7 @@ import {
     planCondition,
 } from '@rapiq/core';
 import type { IFiltersAdapter } from '../adapter';
-import { escapeLikePattern } from '../helpers';
+import { LIKE_ESCAPE_CHARACTER, escapeLikePattern } from '../helpers';
 import type { VisitorOptions } from './types';
 
 const COMPARE_SYMBOLS : Record<PlanCompareOperator, string> = {
@@ -167,12 +167,19 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         );
     }
 
+    /**
+     * Anchored operators render as LIKE on every dialect: a regex
+     * predicate is not index-usable (measured on mysql: a full scan
+     * where the LIKE range scan reads the matching rows only), and
+     * the LIKE family is what every other backend adapter emits.
+     * `regexp` stays reserved for the `regex` operator.
+     */
     match(plan: MatchPlan): IFiltersAdapter {
-        if (
-            plan.pattern.mode !== 'regex' &&
-            !this.adapter.isRegexpSupported()
-        ) {
-            const escaped = escapeLikePattern(plan.pattern.text);
+        if (plan.pattern.mode !== 'regex') {
+            const escaped = escapeLikePattern(
+                plan.pattern.text,
+                this.adapter.isLikeBracketWildcard?.() ?? false,
+            );
 
             let pattern : string;
             if (plan.pattern.mode === 'starts') {
@@ -183,7 +190,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
                 pattern = `%${escaped}%`;
             }
 
-            return this.whereLike(plan.field, pattern, plan.negated);
+            return this.whereLike(plan.field, pattern, plan.negated, plan.ignoreCase);
         }
 
         const field = this.adapter.buildField(plan.field);
@@ -227,9 +234,24 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
     // -----------------------------------------------------------
 
-    protected whereLike(field: string, pattern: string, negated: boolean) : IFiltersAdapter {
+    protected whereLike(
+        field: string,
+        pattern: string,
+        negated: boolean,
+        ignoreCase = false,
+    ) : IFiltersAdapter {
         const fieldBuilt = this.adapter.buildField(field);
-        const condition = `${fieldBuilt} ${negated ? 'not ' : ''}like ${this.adapter.buildParamPlaceholder()} escape '\\'`;
+        const placeholder = this.adapter.buildParamPlaceholder();
+
+        const caseFoldLike = this.adapter.caseFoldLike ?
+            this.adapter.caseFoldLike.bind(this.adapter) :
+            this.adapter.caseFold.bind(this.adapter);
+
+        const fold = ignoreCase && this.isCaseFoldableField(field);
+        const operand = fold ? caseFoldLike(fieldBuilt) : fieldBuilt;
+        const operandPlaceholder = fold ? caseFoldLike(placeholder) : placeholder;
+
+        const condition = `${operand} ${negated ? 'not ' : ''}like ${operandPlaceholder} escape '${LIKE_ESCAPE_CHARACTER}'`;
         if (negated) {
             return this.whereComplement(fieldBuilt, condition, pattern);
         }

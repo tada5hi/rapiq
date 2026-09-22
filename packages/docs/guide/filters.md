@@ -173,7 +173,7 @@ Only equality and ordering operands are read this way. A `contains`/`startsWith`
 String matching is **case-insensitive by default**, uniformly across every adapter: the same query matches the same records whether it runs on Postgres, MySQL, in memory, or through TypeORM:
 
 - The **equality family** (`eq`, `ne`, `in`, `nin`) compares string values case-insensitively: `eq('name', 'super hero')` matches `Super Hero`. Non-string values (numbers, booleans, dates, `null`) are unaffected.
-- The **anchored operators** (`contains`, `startsWith`, `endsWith` and their negations) match case-insensitively as well.
+- The **anchored operators** (`contains`, `startsWith`, `endsWith` and their negations) match case-insensitively as well, and honour the same opt-out.
 - **Range comparisons** (`lt`/`lte`/`gt`/`gte`) and `sorts` follow the backend's collation; rapiq does not fold string ordering.
 
 Opt out per field with the `caseSensitive` schema option where exactness matters (identifiers, tokens, enum-like codes):
@@ -199,14 +199,37 @@ applyQuery(query, data, { caseSensitive: schema.filters.caseSensitive });
 
 The key is the same on every backend: `@rapiq/adapter-prisma` and `@rapiq/adapter-drizzle` accept `caseSensitive` in their constructor options, and their `execute()` options take a per-call override of the adapter-level setting.
 
-Passing `caseSensitive: true` instead of a list opts **every** field out of the fold at once: for condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies. The collation caveat below applies unchanged: on the MySQL/MSSQL presets equality delegates to the column collation either way, so a `*_ci` collated column still matches case-insensitively.
+Passing `caseSensitive: true` instead of a list opts **every** field out of the fold at once: for condition trees whose field keys aren't known upfront, e.g. caller-supplied authorization policies. The collation caveat below applies unchanged: on the MySQL/MSSQL presets matching delegates to the column collation either way, so a `*_ci` collated column still matches case-insensitively.
 
-Under the hood, `@rapiq/adapter-sql` folds both sides of the comparison (`lower(field) = lower(?)`), and only when the filter value is a string. Dialects whose plain `=` already compares case-insensitively under their default collation (the MySQL and MSSQL presets) skip the folding through the `caseFold` dialect option, so plain indexes stay usable. On folding dialects (Postgres, SQLite, Oracle), add an expression index for hot string filter columns (`CREATE INDEX ON "user" (lower(name))`) or list the column in `caseSensitive`.
+Under the hood, `@rapiq/adapter-sql` folds both sides of the comparison: `lower(field) = lower(?)` for equality (only when the filter value is a string), and `lower(field) like lower(?) escape '!'` for the anchored operators, which render as `LIKE` on every dialect and stringify their value first. Dialects that already compare case-insensitively skip the fold, so plain indexes stay usable: MySQL and MSSQL for both families (their default `*_ci` collations), and SQLite for `LIKE` only (its `LIKE` is ASCII-case-insensitive, its `=` is not).
+
+On folding dialects, index the shape you actually emit. On Postgres the two families need different indexes, because an operator class that serves `=` does not serve a prefix `LIKE` under a non-`C` collation:
+
+```sql
+-- serves lower(name) = lower($1)          (eq / ne / in / nin)
+CREATE INDEX ON "user" (lower(name));
+-- serves lower(path) LIKE lower($1)       (startsWith, folded)
+CREATE INDEX ON "user" (lower(path) text_pattern_ops);
+-- serves path LIKE $1                     (startsWith, path listed in caseSensitive)
+CREATE INDEX ON "user" (path text_pattern_ops);
+```
+
+Measured on Postgres 18.4: a default `en_US.utf8` btree serves none of the `LIKE` forms, and only `startsWith` can use a btree at all. For `contains` and `endsWith` on Postgres, index the folded expression with trigrams:
+
+```sql
+CREATE INDEX ON "user" USING gin (lower(name) gin_trgm_ops);
+```
+
+A `gin (name gin_trgm_ops)` index without the `lower()` does not serve the folded comparison, so a column that relied on one for `contains` needs the index recreated or the column listed in `caseSensitive`.
 
 The TypeORM adapter goes one step further: it resolves each filtered field against the entity metadata and folds **only string-typed columns**. Numeric, date, uuid or enum columns never pay the `lower()` cost, even when the value arrives as an untyped wire string like `filter[age]=18`.
 
-::: warning Collation wins on MySQL/MSSQL
-On the MySQL/MSSQL presets, equality delegates to the column collation: `caseSensitive` cannot force exactness onto a `*_ci` collated column. Use a `*_bin`/`*_cs` collation for such columns, or override `caseFold` with a `lower()`-wrapping implementation.
+::: warning Collation wins on MySQL/MSSQL, and on SQLite for `LIKE`
+On the MySQL/MSSQL presets, matching delegates to the column collation: `caseSensitive` cannot force exactness onto a `*_ci` collated column. The same holds for the anchored operators on SQLite, whose `LIKE` is ASCII-case-insensitive whatever the option says (its `=`, and therefore the equality family, does honour the opt-out). Use a `*_bin`/`*_cs` collation for such columns, or override `caseFold` with a `lower()`-wrapping implementation (`caseFoldLike`, which governs the `LIKE` comparisons, inherits it unless the dialect sets its own).
+
+MySQL's default `utf8mb4_0900_ai_ci` also folds **accents** for `LIKE`: `'APFEL' LIKE 'ä%'` is `1`. So `startsWith('name', 'ä')` matches `APFEL` on MySQL, and does not on Postgres. A `*_as_cs` collation is the fix where that matters.
+
+Where an engine ignores the opt-out, `@rapiq/adapter-memory` does not, so an opted-out anchored filter can return different records in memory than on MySQL or SQLite. Note also that folding a `character(n)` column on Postgres drops its padding, so an `endsWith` on a blank-padded column matches where the unfolded comparison does not.
 :::
 
 ## Schema options

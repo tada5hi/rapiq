@@ -16,6 +16,7 @@ type DialectOptions = {
     paramPlaceholder: (index: number) => string, // pg: $1, mysql: ?
     regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string,
     caseFold?: (input: string) => string,        // default: lower(input); mysql/mssql: identity
+    caseFoldLike?: (input: string) => string,    // default: caseFold; sqlite: identity
     mod?: (field: string, divisorPlaceholder: string, remainderPlaceholder: string) => string,
     // default: mod(field, divisor) = remainder; mssql: field % divisor = remainder
 };
@@ -36,7 +37,7 @@ resolveDialect('mariadb'); // mysql preset
 ```
 
 ::: warning Dialects without regex support
-The `mssql` and `sqlite` presets omit the `regexp` callback: SQL Server has no regex operator, and stock SQLite ships without a `REGEXP` function. On those dialects the `contains` / `startsWith` / `endsWith` filter operators (and their negations) fall back to `LIKE ... ESCAPE '\'` with wildcard escaping; only the `regex` filter operator is unavailable and throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`).
+The `mssql` and `sqlite` presets omit the `regexp` callback: SQL Server has no regex operator, and stock SQLite ships without a `REGEXP` function. The callback serves the `regex` filter operator **only**, so on those two presets that operator throws a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`) and nothing else is affected. The `contains` / `startsWith` / `endsWith` operators render as `LIKE` on every preset, regex-capable or not (see [String matching](#string-matching)).
 :::
 
 No single `mod` spelling works everywhere: `pg`, `mysql`, `sqlite` and `oracle` render `mod(field, divisor) = remainder` (a `MOD()` function or equivalent); `mssql` has no `MOD()` function, so its preset renders `field % divisor = remainder` instead, using SQL Server's modulo operator. A custom dialect that omits the `mod` callback raises a typed `AdapterError` (`ErrorCode.FEATURE_UNSUPPORTED`, feature `filters:mod`) for the `mod` filter operator, exactly like an omitted `regexp`.
@@ -106,8 +107,8 @@ const filters = new FiltersAdapter(new RelationsAdapter(), pg);
 query.filters.accept(new FiltersVisitor(filters));
 
 const [sql, params] = filters.getQueryAndParameters();
-// sql:    ("name" ~* $1 and "age" >= $2)
-// params: ['jo', 18]
+// sql:    (lower("name") like lower($1) escape '!' and "age" >= $2)
+// params: ['%jo%', 18]
 ```
 
 Values are always bound as parameters, never interpolated into the SQL string.
@@ -133,32 +134,75 @@ Negated operators are **exact complements** of their positive twins: a record th
 |---|---|
 | `ne(field, a)` | `(field <> ? OR field IS NULL)` |
 | `nin(field, [a, b])` | `(field NOT IN (...) OR field IS NULL)` |
-| `notContains(field, a)` (also `notStartsWith` / `notEndsWith`) | `(field ~* ? OR field IS NULL)` |
+| `notContains(field, a)` (also `notStartsWith` / `notEndsWith`) | `(field NOT LIKE ? ESCAPE '!' OR field IS NULL)` |
 
 ### String matching
 
-The `contains` / `startsWith` / `endsWith` operators (and their negations) match their value **literally** on every dialect: regex metacharacters are escaped on regex-capable dialects, LIKE wildcards are escaped on the LIKE fallback. Only the `regex` operator interprets its `RegExp` or string value as a pattern. A JavaScript `RegExp` contributes its `source` and `ignoreCase` flag; a string is passed through unchanged so the selected database regex engine owns its syntax and validation.
+The `contains` / `startsWith` / `endsWith` operators (and their negations) render as `LIKE` on **every** dialect, with the value escaped and wrapped into the matching pattern:
 
-The negations match rows whose column is `NULL` (complement law, see above); on the LIKE fallback they render `(field NOT LIKE ? ESCAPE '\' OR field IS NULL)`.
+| Filter | Pattern | SQL (pg) |
+|---|---|---|
+| `startsWith(field, 'foo')` | `foo%` | `lower("field") like lower($1) escape '!'` |
+| `endsWith(field, 'foo')` | `%foo` | `lower("field") like lower($1) escape '!'` |
+| `contains(field, 'foo')` | `%foo%` | `lower("field") like lower($1) escape '!'` |
+| `notContains(field, 'foo')` | `%foo%` | `(lower("field") not like lower($1) escape '!' or "field" is null)` |
+
+Previously the regex-capable presets built an anchored regular expression instead (`field ~* '^foo'`). `LIKE` replaced it because a regex predicate can cost an index: measured on MySQL 9.7.1 over 50k rows with a btree index, `col regexp '^sales/' = 1` examined all 50,000 rows (a covering index scan) where `col like 'sales/%'` examined 50 (a range scan). On Postgres 18.4 the two are equivalent (`col ~ '^sales/'` and `col like 'sales/%'` produce the identical Index Cond on a `text_pattern_ops` index), so nothing is lost there either. `LIKE` is also what every other backend adapter emits, so the rendering is uniform now. The `regexp` dialect callback stays reserved for the `regex` operator alone.
+
+The fold is not free either: `lower()` copies the whole column value per row, where the regex could stop at the anchor, so an unindexed `startsWith` over a wide text column is measurably slower folded than it was as a regex. List such a column in `caseSensitive` when exactness is acceptable.
+
+Only `startsWith` can win a **btree** index that way: `contains` (`%foo%`) and `endsWith` (`%foo`) cannot use one, exactly as they could not under a regex.
+
+::: warning Postgres trigram indexes
+`pg_trgm` is the exception, and the one configuration this change makes slower. A `gin (col gin_trgm_ops)` index serves `col ~* '?'` and `col LIKE '%?%'`, but not `lower(col) LIKE lower('%?%')`: measured on Postgres 18.4 over 100k rows, `contains` went from a 0.9 ms bitmap index scan to a 22 ms sequential scan. Index the folded expression instead, `CREATE INDEX ON "user" USING gin (lower(path) gin_trgm_ops)`, or list the column in `caseSensitive`.
+:::
+
+The value is matched **literally**: `%`, `_` and the escape character itself are escaped into the pattern, so `contains(field, '100%')` binds `'%100!%%'` and matches the literal percent sign. `[` is escaped on the `mssql` preset only, where it opens a character range (`likeBracketWildcard`); escaping it elsewhere would make Oracle raise ORA-01424, since Oracle accepts an escape character only before `%`, `_` or itself. Only the `regex` operator interprets its `RegExp` or string value as a pattern. A JavaScript `RegExp` contributes its `source` and `ignoreCase` flag; a string is passed through unchanged so the selected database regex engine owns its syntax and validation.
+
+The negations match rows whose column is `NULL` (complement law, see above).
+
+::: warning The escape character is `!`, not a backslash
+Every emitted `LIKE` carries `ESCAPE '!'` (exported as `LIKE_ESCAPE_CHARACTER`). A backslash cannot be spelled statically: MySQL rejects `escape '\'` as a syntax error (ERROR 1064) under the default `sql_mode`, and rejects `escape '\\'` under `NO_BACKSLASH_ESCAPES`, so no single backslash spelling parses on both. `!` is never a `LIKE` metacharacter and was measured equivalent on Postgres, MySQL (both `sql_mode`s) and SQLite.
+:::
 
 ### Case sensitivity
 
-String equality (`eq` / `ne` / `in` / `nin`) matches [case-insensitively by default](/guide/filters#case-sensitivity). On dialects whose `=` is case-sensitive, both sides fold through the `caseFold` dialect callback, `lower(field) = lower(?)`:
+String equality (`eq` / `ne` / `in` / `nin`) and the anchored operators (`contains` / `startsWith` / `endsWith` and their negations) match [case-insensitively by default](/guide/filters#case-sensitivity). On dialects whose comparison is case-sensitive, both sides fold through a dialect callback: `caseFold` for equality, `caseFoldLike` for the `LIKE` comparisons.
 
-| Filter | pg / sqlite / oracle | mysql / mssql |
-|---|---|---|
-| `eq(field, 'a')` | `lower(field) = lower(?)` | `field = ?` |
-| `in(field, ['a', 1])` | `lower(field) IN (lower(?), ?)` | `field IN (?, ?)` |
+| Filter | pg / oracle | sqlite | mysql / mssql |
+|---|---|---|---|
+| `eq(field, 'a')` | `lower(field) = lower(?)` | `lower(field) = lower(?)` | `field = ?` |
+| `in(field, ['a', 1])` | `lower(field) IN (lower(?), ?)` | `lower(field) IN (lower(?), ?)` | `field IN (?, ?)` |
+| `startsWith(field, 'a')` | `lower(field) LIKE lower(?) ESCAPE '!'` | `field LIKE ? ESCAPE '!'` | `field LIKE ? ESCAPE '!'` |
 
-The `mysql` and `mssql` presets set `caseFold` to identity: their default collations (`*_ci`) already compare case-insensitively, and skipping `lower()` keeps plain indexes usable. Fields opted out via the top-level `caseSensitive` execute option render unfolded on every dialect (`true` opts every field out):
+The `mysql` and `mssql` presets set `caseFold` to identity: their default collations (`*_ci`) already compare case-insensitively, and skipping `lower()` keeps plain indexes usable. The `sqlite` preset goes one step finer and sets only `caseFoldLike` to identity, because SQLite's `LIKE` is already ASCII-case-insensitive while its `=` is not: folding the `LIKE` would buy nothing semantically (`lower()` is ASCII-only there too) and would cost the prefix optimisation, which needs an index whose collation matches the comparison (`NOCASE` under the default `case_sensitive_like`). `caseFoldLike` defaults to `caseFold` when a dialect omits it.
+
+Fields opted out via the top-level `caseSensitive` execute option render unfolded on every dialect, for both folds (`true` opts every field out). Where the dialect skips a fold anyway, the opt-out has nothing left to switch off: on MySQL and MSSQL for both families, and on SQLite for the anchored operators, matching stays collation-governed.
 
 ```typescript
 adapter.execute(query, { caseSensitive: ['id'] });
 ```
 
-On folding dialects, give hot string filter columns an expression index (`CREATE INDEX ... ON "user" (lower(name))`), or opt them out.
+::: tip Indexing folded columns on Postgres
+The two families need different indexes, because an operator class that serves `=` does not serve a prefix `LIKE` under a non-`C` collation:
 
-Folding only happens for string filter values. Backends with column metadata can exempt whole columns by overriding `isCaseFoldable(field)` on the filters adapter (default: `true`); the [TypeORM adapter](/packages/adapter-typeorm) uses it to fold only string-typed columns.
+```sql
+-- serves lower(name) = lower($1)
+CREATE INDEX ON "user" (lower(name));
+-- serves lower(path) LIKE lower($1) with a literal prefix
+CREATE INDEX ON "user" (lower(path) text_pattern_ops);
+-- serves path LIKE $1 when the column is listed in caseSensitive
+CREATE INDEX ON "user" (path text_pattern_ops);
+```
+
+Measured on Postgres 18.4: a default `en_US.utf8` btree serves none of these forms, and the case-insensitive spellings the adapter does *not* emit (`col ~* '^sales/'`, `col ILIKE 'sales/%'`) both produced a Seq Scan, which is why the fold is expressed as `lower(...)` on both sides instead. Only `startsWith` gains anything either way: `%foo%` and `%foo` patterns are full scans regardless.
+:::
+
+Equality folds only for string filter values; the anchored operators stringify their value first, so their fold is decided by the column alone. Backends with column metadata can exempt whole columns by overriding `isCaseFoldable(field)` on the filters adapter (default: `true`); the [TypeORM adapter](/packages/adapter-typeorm) uses it to fold only string-typed columns, for `LIKE` as well as `=`. A `citext` column is deliberately not folded there: its own operators already compare case-insensitively, and folding would discard its index.
+
+::: warning MySQL folds accents too, and now does so for the anchored operators
+Under `utf8mb4_0900_ai_ci` (the MySQL 8+/9 default), `LIKE` is accent-insensitive as well as case-insensitive, while `REGEXP` is neither: `'APFEL' LIKE 'ä%'` is `1`, but `'APFEL' REGEXP '^ä'` is `0`. Rendering the anchored operators as `LIKE` therefore changes MySQL **result sets**, not only query plans: `startsWith('name', 'ä')` now matches `APFEL` there. This is the same behaviour `eq` has always had on MySQL (the preset's `caseFold` is identity for the same collation reason). Use a `*_as_cs` collation on the column when accent and case exactness matter.
+:::
 
 ### ITSELF (element-level conditions)
 
