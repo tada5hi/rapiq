@@ -243,6 +243,8 @@ The query scheme is based on the [JSON-API](https://jsonapi.org/format/) specifi
 | `relations` | `include` | Include related resources of the primary resource. |
 | `pagination` | `page` | Limit the number of resources returned from the entire collection. |
 | `sorts` | `sort` | Sort the resources according to one or more keys in asc/desc direction. |
+| `groups` | `group` | Group the resources by columns or UTC time buckets (opt-in, [docs](https://rapiq.tada5hi.net/guide/grouping)). |
+| `aggregates` | `aggregate` | Count or sum per group (opt-in). |
 
 ## License
 
