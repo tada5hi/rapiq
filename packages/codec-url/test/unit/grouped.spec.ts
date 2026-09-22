@@ -21,8 +21,8 @@ function capture(fn: () => unknown) : AdapterError {
 describe('grouped queries', () => {
     const codec = createURLCodec();
 
-    it('should refuse to encode groups instead of dropping them', () => {
-        const error = capture(() => codec.encode(defineQuery({ groups: ['scope'] })));
+    it('should refuse a schema-aware expression encode instead of dropping groups', () => {
+        const error = capture(() => codec.encode(defineQuery({ groups: ['scope'] }), { strict: true }));
 
         expect(error).toBeInstanceOf(AdapterError);
         expect(error.code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
@@ -52,7 +52,7 @@ describe('grouped queries', () => {
     });
 
     it('should refuse asynchronously as well', async () => {
-        await expect(codec.encodeAsync(defineQuery({ groups: ['scope'], aggregates: ['count'] })))
+        await expect(codec.encodeAsync(defineQuery({ groups: ['scope'], aggregates: ['count'] }), { strict: true }))
             .rejects.toThrow(AdapterError.featureUnsupported('groups').message);
     });
 
