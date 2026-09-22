@@ -12,11 +12,13 @@ import type { DialectOptions } from '../dialect';
 import type { RelationAliasFn } from '../helpers';
 import type {
     ExecuteOptions,
+    GroupedSqlFragments,
     IRootAdapter,
     SqlFragments,
 } from './types';
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
+import { buildGroupedClauses } from './grouped';
 import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortsAdapter } from './sort';
@@ -43,9 +45,13 @@ export class Adapter implements IRootAdapter<SqlFragments> {
 
     public sorts : SortsAdapter;
 
+    protected readonly options : AdapterOptions;
+
     // -----------------------------------------------------------
 
     constructor(options: AdapterOptions) {
+        this.options = options;
+
         this.relations = new RelationsAdapter({
             join: () => true,
             relationAlias: options.relationAlias,
@@ -123,6 +129,40 @@ export class Adapter implements IRootAdapter<SqlFragments> {
             where,
             params,
             orderBy: this.sorts.getOrderBy(),
+            limit: this.pagination.limit,
+            offset: this.pagination.offset,
+            relations: this.relations.getPaths(),
+        };
+    }
+
+    /**
+     * Walk a grouped query (groups and/or aggregates) into clause
+     * fragments. Relations are joined only as far as a filter traverses
+     * them and are never hydrated: a hydration join of a to-many
+     * relation would multiply every aggregate. A filter across a to-many
+     * relation still joins it; the caller owns the join and may render
+     * it as a semi-join instead.
+     */
+    executeGrouped(query: IQuery, options: ExecuteOptions = {}) : GroupedSqlFragments {
+        if (options.clear ?? true) {
+            this.clear();
+        }
+
+        const clauses = buildGroupedClauses(query, this.filters, this.options.bucket);
+
+        const visitor = new QueryVisitor(this, { caseSensitive: options.caseSensitive });
+        query.filters.accept(visitor.filters);
+        query.pagination.accept(visitor.pagination);
+
+        const [where, params] = this.filters.getQueryAndParameters();
+        const { escapeField } = this.options;
+
+        return {
+            columns: clauses.selects.map((select) => `${select.expression} as ${escapeField(select.key)}`),
+            where,
+            params,
+            groupBy: clauses.groupBy,
+            orderBy: clauses.orderBy.map((item) => `${escapeField(item.key)} ${item.direction}`),
             limit: this.pagination.limit,
             offset: this.pagination.offset,
             relations: this.relations.getPaths(),
