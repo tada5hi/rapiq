@@ -5,6 +5,7 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { ObjectLiteral } from '@rapiq/core';
 import type { RelationsAdapterBaseOptions } from '@rapiq/adapter-sql';
 import type { SelectQueryBuilder } from 'typeorm';
 
@@ -66,4 +67,15 @@ export type TypeormAdapterOutput = {
         limit: number | undefined,
         offset: number | undefined,
     }
+};
+
+export type TypeormGroupedOutput = TypeormAdapterOutput & {
+    /**
+     * Apply to the builder's `getRawMany()` result: keeps only the
+     * query's output keys, in query order, and reads `count` and
+     * `sum` values as numbers (pg and mysql return them as strings).
+     * There is no group total: `rows.length === limit` means the
+     * series may continue on the next page.
+     */
+    normalize: (rows: ObjectLiteral[]) => ObjectLiteral[],
 };

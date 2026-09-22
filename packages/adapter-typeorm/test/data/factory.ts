@@ -7,12 +7,13 @@
 
 import type { DataSourceOptions } from 'typeorm';
 import { DataSource } from 'typeorm';
+import { Activity, ActivityTag } from './entity/activity';
 import { Realm } from './entity/realm';
 import { Role } from './entity/role';
 import { RoleDetail } from './entity/role-detail';
 import { User } from './entity/user';
 
-const entities = [Role, RoleDetail, User, Realm];
+const entities = [Role, RoleDetail, User, Realm, Activity, ActivityTag];
 
 /**
  * DataSource options for the live-database specs. Defaults to an in-memory
