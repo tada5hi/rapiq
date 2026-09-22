@@ -6,6 +6,7 @@
  */
 
 import type { IQuery } from '@rapiq/core';
+import { AdapterError, isGroupedQuery } from '@rapiq/core';
 import { QueryVisitor } from '../visitor';
 import type { DialectOptions } from '../dialect';
 import type { RelationAliasFn } from '../helpers';
@@ -103,6 +104,12 @@ export class Adapter implements IRootAdapter<SqlFragments> {
      * fragments for the caller to assemble.
      */
     execute(query: IQuery, options: ExecuteOptions = {}) : SqlFragments {
+        // a grouped query returns aggregated rows, never records; the
+        // record fragments would silently drop the grain.
+        if (isGroupedQuery(query)) {
+            throw AdapterError.featureUnsupported('groups');
+        }
+
         if (options.clear ?? true) {
             this.clear();
         }
