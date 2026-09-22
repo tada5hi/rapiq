@@ -21,4 +21,6 @@ export const PARAMETER_WIRE_NAMES : Record<`${Parameter}`, `${URLParameter}`> = 
     [Parameter.RELATIONS]: URLParameter.RELATIONS,
     [Parameter.SORTS]: URLParameter.SORT,
     [Parameter.SORT]: URLParameter.SORT,
+    [Parameter.GROUPS]: URLParameter.GROUPS,
+    [Parameter.AGGREGATES]: URLParameter.AGGREGATES,
 };
