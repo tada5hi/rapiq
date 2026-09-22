@@ -137,6 +137,22 @@ describe('src/schema/parameter/groups/*.ts', () => {
         expect(error.message).toBe(ErrorMessage.functionInvalid('realm.id', 'the column is not a valid identifier'));
     });
 
+    it('should refuse columns that are not an array', () => {
+        const error = captureError<SchemaError>(() => defineGroupsSchema({ allowed: 'status' } as any));
+
+        expect(error).toBeInstanceOf(SchemaError);
+        expect(error.code).toBe(ErrorCode.KEY_INVALID);
+        expect(error.message).toBe(ErrorMessage.functionInvalid('allowed', 'allowed is not an array'));
+    });
+
+    it('should not share the declared columns with the caller', () => {
+        const allowed = ['status'];
+        const schema = defineGroupsSchema({ allowed });
+        allowed.push('scope');
+
+        expect(schema.allowed).toEqual(['status']);
+    });
+
     it('should refuse a function shadowing a column', () => {
         const error = captureError<SchemaError>(() => defineGroupsSchema<Order>({
             allowed: ['status'],

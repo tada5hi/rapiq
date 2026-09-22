@@ -265,7 +265,9 @@ export function resolveCallTerm(
         if (
             parameter === Parameter.GROUPS &&
             term.params.length === 0 &&
-            (!schema || (schema as GroupsSchema).allowed.includes(term.name))
+            // read columns only from a groups schema: an aggregates schema
+            // has none, so passed here by mistake it must permit none.
+            (!schema || ('allowed' in schema && schema.allowed.includes(term.name)))
         ) {
             return {
                 success: true,

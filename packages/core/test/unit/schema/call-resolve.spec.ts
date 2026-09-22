@@ -309,4 +309,9 @@ describe('src/schema/parameter/call/module.ts', () => {
         expect(resolveCallTerm(Parameter.AGGREGATES, { name: 'count', params: [] }, schema.aggregates))
             .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('count')));
     });
+
+    it('should not read columns from a schema of the other parameter', () => {
+        expect(resolveCallTerm(Parameter.GROUPS, { name: 'status', params: [] }, orderSchema.aggregates))
+            .toEqual(no(ErrorCode.KEY_NOT_ALLOWED, ErrorMessage.keyNotPermitted('status')));
+    });
 });

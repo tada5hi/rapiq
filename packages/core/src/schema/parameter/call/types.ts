@@ -95,9 +95,11 @@ export type CallFunctionDescription = {
  * The verdict for one client term: what an adapter lowers, or the
  * issue a parse records (code and message, never a thrown error).
  */
-export type CallResolution =    | { success: true, lowering: CallLowering } |
-    {
-        success: false,
-        code: `${ErrorCode}`,
-        message: string
-    };
+export type CallResolution = {
+    success: true,
+    lowering: CallLowering,
+} | {
+    success: false,
+    code: `${ErrorCode}`,
+    message: string,
+};

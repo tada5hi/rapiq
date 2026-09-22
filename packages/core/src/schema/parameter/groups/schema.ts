@@ -39,6 +39,11 @@ export class GroupsSchema<
         );
 
         this.allowedIsUndefined = typeof options.allowed === 'undefined';
+        if (!this.allowedIsUndefined && !Array.isArray(options.allowed)) {
+            // spreading a string would permit each of its characters.
+            throw SchemaError.functionInvalid('allowed', 'allowed is not an array');
+        }
+
         this.allowed = [...(options.allowed ?? [])];
 
         for (const column of this.allowed) {
