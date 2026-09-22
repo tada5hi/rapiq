@@ -6,18 +6,27 @@
  */
 
 import { Parameter } from '../constants';
-import { ParseError, isParseError } from '../errors';
+import {
+    ErrorCode,
+    ErrorMessage,
+    ParseError,
+    isParseError,
+} from '../errors';
 import type {
+    IAggregates,
     IFields,
     IFilters,
+    IGroups,
     IPagination,
     IRelations,
     ISorts,
     QueryContext,
 } from '../parameter';
 import {
+    Aggregates,
     Fields,
     Filters,
+    Groups,
     Pagination,
     Query,
     Relations,
@@ -71,6 +80,16 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
     protected abstract sortParser : IQueryParameterParser<ISorts>;
 
+    /**
+     * Optional, so a dialect written before groups and aggregates existed
+     * keeps compiling. A parse that opts into either parameter against a
+     * dialect without its sub-parser rejects the input instead of ignoring
+     * it: the caller asked for it.
+     */
+    protected groupsParser? : IQueryParameterParser<IGroups>;
+
+    protected aggregatesParser? : IQueryParameterParser<IAggregates>;
+
     // -----------------------------------------------------
 
     parse<
@@ -101,6 +120,36 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
+
+        // before fields and sorts: whether the query is grouped decides how
+        // those two parse.
+        const { groupsParser, aggregatesParser } = this;
+
+        const groupsInput = this.readCallParameter(
+            data,
+            options,
+            Parameter.GROUPS,
+            typeof groupsParser !== 'undefined',
+            issueCollector,
+        );
+        if (groupsParser && typeof groupsInput !== 'undefined') {
+            output.groups = this.parseOne(issueCollector, Parameter.GROUPS, new Groups(), () => groupsParser
+                .parseParameter(groupsInput, parameterOptions, ledger, issueCollector));
+        }
+
+        const aggregatesInput = this.readCallParameter(
+            data,
+            options,
+            Parameter.AGGREGATES,
+            typeof aggregatesParser !== 'undefined',
+            issueCollector,
+        );
+        if (aggregatesParser && typeof aggregatesInput !== 'undefined') {
+            output.aggregates = this.parseOne(issueCollector, Parameter.AGGREGATES, new Aggregates(), () => aggregatesParser
+                .parseParameter(aggregatesInput, parameterOptions, ledger, issueCollector));
+        }
+
+        this.checkOutputKeys(output, issueCollector);
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
             output.fields = this.parseOne(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser.parseParameter(
@@ -179,6 +228,38 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
+
+        const { groupsParser, aggregatesParser } = this;
+
+        const groupsInput = this.readCallParameter(
+            data,
+            options,
+            Parameter.GROUPS,
+            typeof groupsParser !== 'undefined',
+            issueCollector,
+        );
+        if (groupsParser && typeof groupsInput !== 'undefined') {
+            output.groups = await this.parseOneAsync(issueCollector, Parameter.GROUPS, new Groups(), () => groupsParser
+                .parseParameterAsync(groupsInput, parameterOptions, ledger, issueCollector));
+        }
+
+        const aggregatesInput = this.readCallParameter(
+            data,
+            options,
+            Parameter.AGGREGATES,
+            typeof aggregatesParser !== 'undefined',
+            issueCollector,
+        );
+        if (aggregatesParser && typeof aggregatesInput !== 'undefined') {
+            output.aggregates = await this.parseOneAsync(
+                issueCollector,
+                Parameter.AGGREGATES,
+                new Aggregates(),
+                () => aggregatesParser.parseParameterAsync(aggregatesInput, parameterOptions, ledger, issueCollector),
+            );
+        }
+
+        this.checkOutputKeys(output, issueCollector);
 
         if (!this.skipParameter(options, Parameter.FIELDS)) {
             output.fields = await this.parseOneAsync(issueCollector, Parameter.FIELDS, new Fields(), () => this.fieldsParser
@@ -463,6 +544,63 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
     }
 
+    /**
+     * The input of an opt-in call parameter, or undefined when the parse
+     * skips it or the client sent nothing. Without a sub-parser the dialect
+     * cannot honor input the caller opted into, so it is rejected rather
+     * than silently ignored.
+     */
+    protected readCallParameter<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        data: ObjectLiteral,
+        options: ParseQueryOptions<RECORD>,
+        parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+        supported: boolean,
+        issueCollector: IIssueCollector,
+    ) : unknown {
+        if (this.skipParameter(options, parameter)) {
+            return undefined;
+        }
+
+        const input = this.readParameter(data, parameter);
+        if (typeof input === 'undefined' || supported) {
+            return input;
+        }
+
+        issueCollector.add({
+            parameter,
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            path: [],
+            message: ErrorMessage.featureUnsupported(parameter),
+        });
+
+        return undefined;
+    }
+
+    /**
+     * A row carries each output key once, so an aggregate may not reuse a
+     * group's key. Duplicates inside one parameter are the sub-parser's to
+     * report; this is the check across the two.
+     */
+    protected checkOutputKeys(
+        output: QueryContext,
+        issueCollector: IIssueCollector,
+    ) : void {
+        const keys = new Set((output.groups?.value ?? []).map((item) => item.key));
+
+        for (const item of output.aggregates?.value ?? []) {
+            if (keys.has(item.key)) {
+                issueCollector.add({
+                    parameter: Parameter.AGGREGATES,
+                    code: ErrorCode.KEY_AMBIGUOUS,
+                    path: [item.key],
+                    message: ErrorMessage.outputKeyDuplicate(item.key),
+                });
+            }
+        }
+    }
+
     // -----------------------------------------------------
 
     /**
@@ -638,8 +776,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     /**
      * A parameter is skipped when the `parameters` allow-list
      * excludes it or its per-parameter option is `false`. A skipped
-     * parameter is neither parsed nor defaulted — the query leaves
+     * parameter is neither parsed nor defaulted: the query leaves
      * it empty, as if input and schema said nothing about it.
+     *
+     * `groups` and `aggregates` are the exception: they are skipped
+     * unless the caller lists them in `parameters` or flags them `true`,
+     * so an endpoint written before they existed keeps ignoring them.
      */
     protected skipParameter<
         RECORD extends ObjectLiteral = ObjectLiteral,
@@ -647,12 +789,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         options: ParseQueryOptions<RECORD>,
         parameter: `${Parameter}`,
     ) : boolean {
-        if (
-            typeof options.parameters !== 'undefined' &&
-            !options.parameters
+        const listed = typeof options.parameters !== 'undefined' &&
+            options.parameters
                 .map((item) => normalizeParameter(item))
-                .includes(normalizeParameter(parameter))
-        ) {
+                .includes(normalizeParameter(parameter));
+
+        if (typeof options.parameters !== 'undefined' && !listed) {
             return true;
         }
 
@@ -665,6 +807,14 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             ) :
             options[parameter];
 
-        return typeof flag === 'boolean' && !flag;
+        if (typeof flag === 'boolean' && !flag) {
+            return true;
+        }
+
+        if (parameter === Parameter.GROUPS || parameter === Parameter.AGGREGATES) {
+            return !listed && flag !== true;
+        }
+
+        return false;
     }
 }
