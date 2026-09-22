@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { TemporalKind } from '../../dialect';
 import type { ISubAdapter } from '../types';
 
 export interface IFiltersAdapter extends ISubAdapter {
@@ -44,6 +45,13 @@ export interface IFiltersAdapter extends ISubAdapter {
     isCaseFoldable(field: string) : boolean;
 
     bindValue(field: string, value: unknown) : unknown;
+
+    /**
+     * How a column stores a temporal value, read by the `bucket` group
+     * function; `undefined` for a column that is not temporal. Optional
+     * so an implementation predating grouped queries keeps compiling.
+     */
+    temporalKind?(field: string) : TemporalKind | undefined;
 
     merge<
         T extends IFiltersAdapter,

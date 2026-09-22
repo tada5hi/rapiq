@@ -6,6 +6,7 @@
  */
 
 import { AdapterError, ITSELF } from '@rapiq/core';
+import type { TemporalKind } from '../../dialect';
 import { ParamPlaceholderIndexer, parseField } from '../../helpers';
 import type { IRelationsAdapter } from '../relations';
 import type { IFiltersAdapter } from './types';
@@ -148,6 +149,17 @@ export abstract class FiltersBaseAdapter<
      */
     bindValue(_field: string, value: unknown) : unknown {
         return value;
+    }
+
+    /**
+     * How a column stores a temporal value. Standalone SQL has no column
+     * metadata, so every column reads as a zone-less `datetime`. A pg
+     * `timestamptz` column would then bucket in the session time zone:
+     * backends with metadata override this, a standalone caller assigns
+     * `adapter.filters.temporalKind` on the instance for such columns.
+     */
+    temporalKind(_field: string) : TemporalKind | undefined {
+        return 'datetime';
     }
 
     /**
