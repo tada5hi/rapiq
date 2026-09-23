@@ -93,6 +93,11 @@ defineSchema<Event>({
 | `functions.bucket.allowed` | `groups` | Temporal columns `bucket(<column>, hour\|day\|month)` may be called on. |
 | `functions.count.allowed` | `aggregates` | Columns `count(<column>)` may be called on. `count()` (row count) is always available once `count` is declared, so `count: {}` permits exactly `count`. |
 | `functions.sum.allowed` | `aggregates` | Numeric columns `sum(<column>)` may be called on. |
+
+`groups.allowed` covers grouping by a column's raw value only. Bucketing is permitted separately, per
+column, under `functions.bucket.allowed`, so in the example above `createdAt` can be bucketed
+(`group=bucket(createdAt,day)`) but not grouped raw (`group=createdAt` is rejected): a raw timestamp
+would give one group per distinct instant. List a column in both places to permit both.
 | `functions.<name>` | both | A [named function](#named-functions) binding one of the built-ins. |
 | `validate` | both | A per-request [authorization hook](#validate-hooks), run once per resolved term. |
 
