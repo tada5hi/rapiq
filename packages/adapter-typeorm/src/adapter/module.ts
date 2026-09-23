@@ -174,7 +174,12 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         this.filters.execute();
 
         // LIMIT/OFFSET count groups. take/skip would switch typeorm to
-        // its two-query entity pagination as soon as anything is joined.
+        // its two-query entity pagination as soon as anything is joined,
+        // and a caller's own paging would cap the groups: only the
+        // query's pagination applies.
+        this.queryBuilder.take(undefined).skip(undefined);
+        this.queryBuilder.limit(undefined).offset(undefined);
+
         if (typeof this.pagination.limit !== 'undefined') {
             this.queryBuilder.limit(this.pagination.limit);
         }

@@ -357,6 +357,39 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         expect(rows).toEqual(oracle(query));
     });
 
+    it('should ignore a caller take/skip or limit/offset and page groups by the query alone', async () => {
+        const query = defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+            filters: inMaster(),
+        });
+
+        const rows = await run(query, {
+            prepare: (queryBuilder) => {
+                queryBuilder.take(1).skip(1).limit(1).offset(1);
+            },
+        });
+
+        expect(rows).toEqual([
+            { scope: 'auth', count: 3 },
+            { scope: 'billing', count: 1 },
+        ]);
+        expect(rows).toEqual(oracle(query));
+
+        const paged = defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+            filters: inMaster(),
+            pagination: { limit: 1, offset: 1 },
+        });
+
+        expect(await run(paged, {
+            prepare: (queryBuilder) => {
+                queryBuilder.take(5).skip(0);
+            },
+        })).toEqual([{ scope: 'billing', count: 1 }]);
+    });
+
     it('should keep a join hook from regrouping the rows', async () => {
         const query = defineQuery({
             aggregates: ['count'],
