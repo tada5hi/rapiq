@@ -169,8 +169,9 @@ defineSchema<Order>({
 });
 ```
 
-The client passes only the open slots, in the built-in's argument order. A named function hides the
-column name from the wire (`period(day)` never mentions `createdAt`) and narrows the units or columns
+The client passes only the open slots, in the built-in's argument order. A named function keeps the
+column name out of the request (`period(day)` never mentions `createdAt`; the rows are still keyed
+`createdAt`) and narrows the units or columns
 without a separate option. Lowering stays built-in: a named function can only bind `bucket`, `count` or
 `sum`, never custom SQL.
 
@@ -180,11 +181,10 @@ anything but `allowed`, or a group function named like an allowed column (it wou
 
 ## Output keys {#output-keys}
 
-Every group and aggregate becomes one key of each result row. The key is derived from the wire form
-alone, so client and server compute the same key and no `as` syntax is needed:
+Every group and aggregate becomes one key of each result row, so no `as` syntax is needed:
 
-- a bare group column keeps its name, and the built-in `bucket` is keyed by its column (its first
-  argument), since a column is grouped at most once; a named group function keeps its own name;
+- a group is keyed by its column, since a column is grouped at most once: a bare column keeps its name,
+  and `bucket(createdAt,day)` and a named `period(day)` over `createdAt` are both `createdAt`;
 - an aggregate is its function name followed by each argument in camel case: an argument is split on `_`
   and every part gets an upper-case first letter (`sum(total_amount)` is `sumTotalAmount`).
 
@@ -193,7 +193,8 @@ alone, so client and server compute the same key and no `as` syntax is needed:
 | `group=scope,name` | `scope`, `name` |
 | `group=bucket(createdAt,day)` | `createdAt` |
 | `group=bucket(createdAt,day),bucket(updatedAt,day)` | `createdAt`, `updatedAt` |
-| `group=period(day)` (named) | `period` |
+| `group=period(day)` (named, fixed column) | `createdAt` |
+| `group=daily(createdAt),daily(updatedAt)` (named, open column) | `createdAt`, `updatedAt` |
 | `aggregate=count` or `aggregate=count()` | `count` |
 | `aggregate=count(couponId)` | `countCouponId` |
 | `aggregate=sum(amount),sum(total_fee)` | `sumAmount`, `sumTotalFee` |
@@ -209,9 +210,11 @@ A row carries one value per column, so a column is grouped at most once, whateve
 `period(day),bucket(createdAt,hour)` (with `period` declared on `createdAt`) are each rejected with
 `KEY_AMBIGUOUS` ("The column createdAt is grouped more than once."). The comparison uses the resolved
 column, so a named function built client-side without a schema (unresolved) is not compared.
-A named group function is keyed by its own name, so it appears at most once per query even when its
-field slot is open: `daily(createdAt),daily(updatedAt)` is rejected with `KEY_AMBIGUOUS`. Declare one
-named function per column to group by several.
+Such a term does not know its column either: it is keyed by its name (`period`) until the server's parse
+resolves it, and the server's key is the one rows carry.
+
+An argument made only of underscores (`count(_)`) is rejected with `KEY_INVALID`: it would vanish from
+the camel-cased key and read as `count`.
 
 Keys become SQL column aliases, so a very long column name can still exceed the engine's identifier limit
 (63 bytes on PostgreSQL, where a longer alias is truncated). `normalizeGroupedRows` (and `normalize`)

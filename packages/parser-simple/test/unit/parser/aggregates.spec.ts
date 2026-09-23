@@ -119,6 +119,13 @@ describe('src/parameter/aggregates', () => {
         })]);
     });
 
+    it('should reject an underscore-only argument, which would vanish from the key', () => {
+        const error = errorOf(() => parser.parse('count(_)'));
+
+        expect(error).toBeInstanceOf(AggregatesParseError);
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({ code: ErrorCode.KEY_INVALID })]);
+    });
+
     it('should reject an input of the wrong shape', () => {
         const error = errorOf(() => parser.parse(5, { schema: 'event' }));
 

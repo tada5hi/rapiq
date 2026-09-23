@@ -296,7 +296,7 @@ describe('src/grouped/module.ts', () => {
             ]);
         });
 
-        it('should key a named bucket by its name', () => {
+        it('should key a named bucket by its column', () => {
             const period = new Group({
                 name: 'period',
                 params: ['month'],
@@ -308,7 +308,7 @@ describe('src/grouped/module.ts', () => {
             });
 
             expect(applyGroupedQuery(grouped([period], [count()]), events).data[0])
-                .toEqual({ period: '2026-08-01T00:00:00.000Z', count: 1 });
+                .toEqual({ createdAt: '2026-08-01T00:00:00.000Z', count: 1 });
         });
 
         it('should refuse a unit outside the closed set, as adapter-sql does', () => {

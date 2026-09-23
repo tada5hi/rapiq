@@ -13,8 +13,9 @@ export interface IGroupVisitor<R> {
 
 export interface IGroup {
     /**
-     * Output key, the row key and the grouped sort target: the column of
-     * a built-in bucket (`bucket(createdAt,day)` is `createdAt`), else the name.
+     * Output key, the row key and the grouped sort target: the column
+     * (`bucket(createdAt,day)` and a named `period(day)` over it are
+     * `createdAt`); the name while a named term is unresolved.
      */
     readonly key: string;
 

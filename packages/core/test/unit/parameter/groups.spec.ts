@@ -33,7 +33,7 @@ const count : CallLowering = {
 };
 
 describe('src/parameter/groups/**', () => {
-    it('should key a built-in bucket by its column and keep the wire form', () => {
+    it('should key a group by its column and keep the wire form', () => {
         const group = new Group({
             name: 'bucket',
             params: ['createdAt', 'day'],
@@ -48,7 +48,7 @@ describe('src/parameter/groups/**', () => {
             name: 'period',
             params: ['day'],
             lowering: bucketDay,
-        }).key).toEqual('period');
+        }).key).toEqual('createdAt');
     });
 
     it('should default params to none and lowering to unresolved', () => {

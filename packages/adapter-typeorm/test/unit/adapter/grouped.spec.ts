@@ -122,6 +122,22 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         expect(queryBuilder.getSql()).toContain('ORDER BY "count" DESC, "scope" ASC');
     });
 
+    // the alias equals the column's property name; sqlite, pg and mysql resolve
+    // a bare ORDER BY name to the output column first (engine specs cover all three).
+    it('should order a bucket by its output alias, not by the raw column of the same name', () => {
+        const { queryBuilder, adapter } = setup();
+
+        adapter.executeGrouped(defineQuery({
+            groups: [{ name: 'bucket', params: ['createdAt', 'day'] }],
+            aggregates: ['count'],
+        }));
+
+        const sql = queryBuilder.getSql();
+        expect(sql).toContain('"activity"."createdAt") AS "createdAt"');
+        expect(sql).toContain('ORDER BY "createdAt" ASC');
+        expect(sql).not.toContain('ORDER BY "activity"');
+    });
+
     it('should replace caller selects and orderings', () => {
         const { queryBuilder, adapter } = setup();
 

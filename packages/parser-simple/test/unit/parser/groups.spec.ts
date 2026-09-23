@@ -13,6 +13,7 @@ import {
     Groups,
     GroupsParseError,
     Parameter,
+    defineSchema,
 } from '@rapiq/core';
 import { SimpleGroupsParser } from '../../../src';
 import { registry } from '../../data';
@@ -112,11 +113,28 @@ describe('src/parameter/groups', () => {
         ]);
     });
 
-    it('should key a built-in bucket by its column and a named function by its name', () => {
+    it('should key every group by its column', () => {
         expect(parser.parse('bucket(createdAt,day),scope', { schema: 'event' }).value.map((item) => item.key))
             .toEqual(['createdAt', 'scope']);
         expect(parser.parse('period(day),scope', { schema: 'event' }).value.map((item) => item.key))
-            .toEqual(['period', 'scope']);
+            .toEqual(['createdAt', 'scope']);
+    });
+
+    it('should key a named function by the column the client picks, once per column', () => {
+        const schema = defineSchema({
+            groups: {
+                functions: {
+                    daily: {
+                        fn: 'bucket',
+                        field: ['createdAt', 'updatedAt'],
+                        unit: 'day',
+                    },
+                },
+            },
+        });
+
+        expect(parser.parse('daily(createdAt),daily(updatedAt)', { schema }).value.map((item) => item.key))
+            .toEqual(['createdAt', 'updatedAt']);
     });
 
     it.each([

@@ -23,9 +23,12 @@ export class Group implements IGroup {
         this.params = [...(options.params ?? [])];
         this.lowering = options.lowering;
 
-        // a bucket is keyed by its column: bucket(createdAt,day) is
-        // createdAt. A column is grouped at most once, so this is unique.
-        this.key = (this.name === GroupFunction.BUCKET && this.params[0]) || this.name;
+        // a group is keyed by its column: bucket(createdAt,day) and a named
+        // period(day) over createdAt are both createdAt. A column is grouped
+        // at most once, so this is unique. An unresolved named term does not
+        // know its column until a server parse resolves it, and keeps its name.
+        this.key = options.lowering?.field ??
+            ((this.name === GroupFunction.BUCKET && this.params[0]) || this.name);
     }
 
     accept<R>(visitor: IGroupVisitor<R>) : R {

@@ -116,7 +116,7 @@ describe('src/utils/encode.ts', () => {
             });
 
             expect(decoded!.groups!.value.map((item) => [item.key, item.lowering])).toEqual([
-                ['period', {
+                ['createdAt', {
                     fn: 'bucket',
                     field: 'createdAt',
                     args: ['day'],
