@@ -96,27 +96,25 @@ const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_COLUMN_TYPES = new Set<string>(['uuid', 'uniqueidentifier']);
 
 /**
- * The spellings postgres reads as a uuid: optional braces, hyphens
- * anywhere between the 32 hex digits.
+ * Exactly the spellings postgres' `uuid_in` reads: 32 hex digits, a
+ * hyphen optional after any group of four, the whole optionally in
+ * one pair of braces.
  */
-const UUID_INPUT = /^\{?[0-9a-f-]+\}?$/i;
+const UUID_INPUT = /^(?:\{[0-9a-f]{4}(?:-?[0-9a-f]{4}){7}\}|[0-9a-f]{4}(?:-?[0-9a-f]{4}){7})$/i;
 
 /**
- * Spell a uuid operand in the canonical hyphenated form every dialect
- * stores, keeping its case, or undefined when it is no uuid at all.
- * Normalizing (rather than refusing) keeps a braced or hyphen-less
- * operand working on postgres and makes it match on the text columns
- * of sqlite/mysql as well.
+ * Spell a uuid operand in the canonical form postgres outputs and
+ * typeorm generates (hyphenated, lowercase), or undefined when it is
+ * no uuid at all. Normalizing rather than refusing keeps every spelling
+ * postgres accepts working there, and makes it match on sqlite, whose
+ * text column compares case-sensitively (mysql's collation does not).
  */
 function toCanonicalUuid(value: unknown) : string | undefined {
     if (typeof value !== 'string' || !UUID_INPUT.test(value)) {
         return undefined;
     }
 
-    const hex = value.replace(/[{}-]/g, '');
-    if (hex.length !== 32) {
-        return undefined;
-    }
+    const hex = value.replace(/[{}-]/g, '').toLowerCase();
 
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }

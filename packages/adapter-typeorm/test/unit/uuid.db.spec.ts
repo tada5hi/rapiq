@@ -54,8 +54,10 @@ describe('src/adapter/filters (uuid columns)', () => {
         expect(data.map((user) => user.first_name)).toEqual(['Aston']);
     });
 
-    it('should read the braced and hyphen-less spellings postgres accepts', async () => {
-        for (const operand of [`{${ID}}`, ID.replace(/-/g, '')]) {
+    it('should read every spelling postgres accepts, in any case', async () => {
+        const grouped = ID.replace(/-/g, '').replace(/(.{4})(?!$)/g, '$1-');
+
+        for (const operand of [`{${ID}}`, ID.replace(/-/g, ''), grouped, ID.toUpperCase()]) {
             const data = await createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', operand))
                 .getMany();
 
@@ -66,8 +68,11 @@ describe('src/adapter/filters (uuid columns)', () => {
     it('should refuse a non-uuid operand before the query runs', () => {
         expect(() => createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', 'nope')))
             .toThrowError(invalid);
-        expect(() => createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', `${ID}0`)))
-            .toThrowError(invalid);
+        // lengths, braces and hyphens postgres itself rejects (22P02)
+        for (const operand of [`${ID}0`, `{${ID}`, `-${ID}`, ID.replace('-', '--')]) {
+            expect(() => createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', operand)))
+                .toThrowError(invalid);
+        }
         expect(() => createQueryBuilder(new Filter(FilterFieldOperator.NOT_EQUAL, 'external_id', 42)))
             .toThrowError(invalid);
     });

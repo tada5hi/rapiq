@@ -104,7 +104,7 @@ The same entity metadata tells the adapter which columns are temporal, and a [da
 
 ## UUID columns
 
-An equality or ordering operand on a `uuid` (or mssql `uniqueidentifier`) column must be a uuid. The spellings Postgres accepts, braced or without hyphens, are bound in the canonical hyphenated form, so they match on every dialect; anything else, including a number, is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID` before the query runs. Without the check the dialects disagree: Postgres fails the whole query (`22P02`, invalid input syntax for type uuid), while SQLite and MySQL store the column as text and match nothing. `in`/`nin` lists are checked per member (`null` stays legal), and a `contains`/`startsWith`/`endsWith` pattern is not a uuid and passes through untouched.
+An equality or ordering operand on a `uuid` (or mssql `uniqueidentifier`) column must be a uuid. Every spelling Postgres accepts (any case, braced, hyphens after any group of four digits or none at all) is bound in the canonical lowercase hyphenated form Postgres outputs and TypeORM generates, so it matches on every dialect, including SQLite, whose text column compares case-sensitively. Anything else, including a number, is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID` before the query runs. Without the check the dialects disagree: Postgres fails the whole query (`22P02`, invalid input syntax for type uuid), while SQLite and MySQL store the column as text and match nothing. `in`/`nin` lists are checked per member (`null` stays legal), and a `contains`/`startsWith`/`endsWith` pattern is not a uuid and passes through untouched.
 
 ## Field visibility gates
 
