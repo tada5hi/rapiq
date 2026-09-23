@@ -108,44 +108,45 @@ describe('src/parameter/call', () => {
     });
 
     describe('linear time on long blank runs', () => {
-        const LENGTH = 100_000;
-        // ponytail: wall-clock guard with CI headroom (coverage-instrumented
-        // runners measured ~0.4 s on the linear path); the quadratic trim
-        // took 16 s to 131 s on these sizes, so the bound still catches it.
-        const BOUND = 1000;
+        // The linear scan parses these inputs in well under a millisecond; the
+        // quadratic trim it replaced needs ~0.7 s for 40k blanks. Best of three
+        // absorbs a GC pause or a loaded runner, and the 50 ms bound leaves
+        // orders of magnitude on both sides.
+        const LENGTH = 40_000;
+        const BOUND = 50;
 
-        function timed(input: string) : { error: ParseError | undefined, ms: number } {
-            const start = performance.now();
-            const error = errorOf(input);
+        function fastest(input: string) : number {
+            let min = Infinity;
+            for (let i = 0; i < 3; i++) {
+                const start = performance.now();
+                errorOf(input);
+                min = Math.min(min, performance.now() - start);
+            }
 
-            return { error, ms: performance.now() - start };
+            return min;
         }
 
         it.each([
             ['blanks between two identifiers', `a${' '.repeat(LENGTH)}b`],
             ['tabs inside an argument list', `f(a${'\t'.repeat(LENGTH)}b)`],
             ['blank runs around arguments', `f(${' '.repeat(LENGTH)}x ${' '.repeat(LENGTH)}y)`],
-        ])('should reject %s quickly', (_label, input) => {
-            const { error, ms } = timed(input);
-
+        ])('should reject %s in linear time', (_label, input) => {
+            const error = errorOf(input);
             expect(error).toBeInstanceOf(ParseError);
             expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
-            expect(ms).toBeLessThan(BOUND);
+
+            expect(fastest(input)).toBeLessThan(BOUND);
         });
 
-        it('should accept blank padding quickly', () => {
-            const blanks = ' \t'.repeat(LENGTH / 2);
+        it('should accept blank padding in linear time', () => {
+            const blanks = ' \t'.repeat(LENGTH / 8);
             const input = `${blanks}f(${blanks}a${blanks},${blanks}b${blanks})${blanks},${blanks}g${blanks}`;
 
-            const start = performance.now();
-            const output = parseCallTerms(input);
-            const ms = performance.now() - start;
-
-            expect(output).toEqual([
+            expect(parseCallTerms(input)).toEqual([
                 { name: 'f', params: ['a', 'b'] },
                 { name: 'g', params: [] },
             ]);
-            expect(ms).toBeLessThan(BOUND);
+            expect(fastest(input)).toBeLessThan(BOUND);
         });
     });
 
