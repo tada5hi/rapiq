@@ -99,7 +99,7 @@ function compileGroup(group: IGroup) : GroupReader {
         // hand-built IR only: the resolver admits nothing outside
         // BucketUnit. Same refusal as adapter-sql, which inlines the unit.
         if (!isBucketUnit(unit)) {
-            throw AdapterError.keyValueInvalid(group.key);
+            throw AdapterError.keyValueInvalid(`${group.name}(${group.params.join(',')})`);
         }
 
         return (record) => truncateToBucket(resolvePath(record, field), unit);

@@ -11,8 +11,8 @@ Under every rapiq feature sits one data structure: the `Query`, a tree of node o
 | `Relations` | `Relation` | `name` (dot-notation for nested paths) |
 | `Sorts` | `Sort` | `name`, `operator` (`'ASC'` / `'DESC'`) |
 | `Pagination` | *(none)* | `limit`, `offset` |
-| `Groups` | `Group` | `key` (output key), `name` and `params` (wire form), `lowering` (`{ fn, field, args }`, resolved server side; `undefined` for an unresolved named call); see [Grouping & Aggregates](/guide/grouping) |
-| `Aggregates` | `Aggregate` | same members as `Group`; `key` joins name and params with `_` |
+| `Groups` | `Group` | `key` ([output key](/guide/grouping#output-keys): a bare column's name, the built-in bucket's column (`bucket(createdAt,day)` is `createdAt`), or a named function's own name), `name` and `params` (wire form), `lowering` (`{ fn, field, args }`, resolved server side; `undefined` for an unresolved named call); see [Grouping & Aggregates](/guide/grouping) |
+| `Aggregates` | `Aggregate` | same members as `Group`; `key` is the name followed by each param in camel case (`sum(total_amount)` is `sumTotalAmount`) |
 
 `Filters` is the only recursive built-in node: its children are `ICondition` values, including built-in leaf `Filter` conditions, nested `Filters`, or custom structural conditions. That keeps arbitrary `and`/`or` combinations composable without closing the extension set.
 

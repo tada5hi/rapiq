@@ -323,7 +323,10 @@ describe('src/grouped/module.ts', () => {
             });
 
             expect(() => compileGroupedQuery(grouped([week], [])))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
+                .toThrowError(expect.objectContaining({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: 'The value of the key bucket(createdAt,week) is invalid.',
+                }));
         });
     });
 

@@ -59,7 +59,7 @@ Most parser parameters throw subclasses of `ParseError` when `throwOnFailure` is
 | `KEY_INVALID` | syntactically invalid key under an open schema |
 | `KEY_PATH_INVALID` | unresolvable relation path |
 | `KEY_VALUE_INVALID` | malformed value for an operator |
-| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied at once |
+| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied at once; a duplicate group or aggregate [output key](/guide/grouping#output-keys), or two groups of one column (recorded on the issue trace) |
 | `LIMIT_EXCEEDED` | `page[limit]` above the schema's `maxLimit` |
 | `OPERATOR_UNSUPPORTED` | a recognized dialect operator with no AST counterpart (MongoDB-style parser: known operators like `$type` / `$where` / `$text` / `$expr`, or `$not` over a bare `$regex`); a grammar error that throws regardless of the drop policy |
 | `SYNTAX_INVALID` | malformed expression / document grammar |
@@ -79,6 +79,7 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 | `OPERATOR_UNSUPPORTED` | e.g. `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
 | `FEATURE_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `mod` on a dialect without a modulo spelling; `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
 | `KEY_VALUE_INVALID` | an operand the column's type cannot hold, found while binding it: a [date operand](/guide/filters#date-values) that denotes no instant, or a non-uuid operand on a TypeORM `uuid` column. Usually a **400**, see below |
+| `KEY_AMBIGUOUS` | a hand-built grouped query with a duplicate [output key](/guide/grouping#output-keys) or two groups of one column, refused by every grouped entry point (see [Grouping & Aggregates](/guide/grouping#errors)) |
 | `CONDITION_DETACHED` | a condition the built-in consumer cannot lower: either a live custom `ICondition` that needs a compatible custom adapter/visitor, or detached runtime data from a JSON/RPC/cache round trip. Rebuild detached data with the condition helpers; dropping either would silently widen the result set |
 
 The URL encoders throw these too; a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).

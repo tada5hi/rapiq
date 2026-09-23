@@ -209,6 +209,9 @@ A row carries one value per column, so a column is grouped at most once, whateve
 `period(day),bucket(createdAt,hour)` (with `period` declared on `createdAt`) are each rejected with
 `KEY_AMBIGUOUS` ("The column createdAt is grouped more than once."). The comparison uses the resolved
 column, so a named function built client-side without a schema (unresolved) is not compared.
+A named group function is keyed by its own name, so it appears at most once per query even when its
+field slot is open: `daily(createdAt),daily(updatedAt)` is rejected with `KEY_AMBIGUOUS`. Declare one
+named function per column to group by several.
 
 Keys become SQL column aliases, so a very long column name can still exceed the engine's identifier limit
 (63 bytes on PostgreSQL, where a longer alias is truncated). `normalizeGroupedRows` (and `normalize`)

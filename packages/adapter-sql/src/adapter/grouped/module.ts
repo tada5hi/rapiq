@@ -49,7 +49,7 @@ function buildGroupExpression(
     // closed enum may reach the dialect callback.
     const [unit] = lowering.args;
     if (!isBucketUnit(unit)) {
-        throw AdapterError.keyValueInvalid(group.key);
+        throw AdapterError.keyValueInvalid(`${group.name}(${group.params.join(',')})`);
     }
 
     const kind = filters.temporalKind ? filters.temporalKind(lowering.field) : 'datetime';

@@ -108,6 +108,17 @@ describe('src/parameter/aggregates', () => {
         })]);
     });
 
+    it('should reject two spellings of one camel-case key', () => {
+        const error = errorOf(() => parser.parse('sum(total_amount),sum(totalAmount)'));
+
+        expect(error).toBeInstanceOf(AggregatesParseError);
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({
+            code: ErrorCode.KEY_AMBIGUOUS,
+            path: ['sum'],
+            message: ErrorMessage.outputKeyDuplicate('sumTotalAmount'),
+        })]);
+    });
+
     it('should reject an input of the wrong shape', () => {
         const error = errorOf(() => parser.parse(5, { schema: 'event' }));
 
