@@ -33,4 +33,14 @@ export class Reading {
 
     @Column({ type: 'int', default: 0 })
     value: number;
+
+    @Column({ type: 'money', nullable: true })
+    price: string | null;
+
+    @Column({
+        type: 'int',
+        array: true,
+        nullable: true,
+    })
+    counts: number[] | null;
 }

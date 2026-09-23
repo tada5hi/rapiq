@@ -215,7 +215,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.recordFailure(trace, () => {
             const rejected = this.applyRelationValidations(ledger, options, issueCollector);
             this.pruneByRelations(output, rejected, options, issueCollector);
-            this.rejectGroupedRelations(output, issueCollector);
+            this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
         });
 
@@ -341,7 +341,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         await this.recordFailureAsync(trace, async () => {
             const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
             this.pruneByRelations(output, rejected, options, issueCollector);
-            this.rejectGroupedRelations(output, issueCollector);
+            this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
         });
 
@@ -661,22 +661,42 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     /**
      * A grouped row hydrates no relation, so an include only gates the
      * paths a filter traverses. One no filter traverses (client filters or
-     * the schema default, judged after relation pruning) gates nothing and
-     * is rejected like a fields input. A prefix of a traversed path counts
-     * as traversed.
+     * the schema default, judged after relation pruning; a custom condition
+     * is opaque and traverses nothing) gates nothing and is rejected under
+     * the relations failure policy: recorded when throwing, dropped
+     * otherwise, which changes no row. A prefix of a traversed path counts
+     * as traversed. A parse that skips filters cannot tell, so it keeps
+     * every include.
      */
-    protected rejectGroupedRelations(
+    protected rejectGroupedRelations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
         output: QueryContext,
+        options: ParseQueryOptions<RECORD>,
         issueCollector: IIssueCollector,
     ) : void {
-        if (!output.relations || !isGroupedQuery(output)) {
+        if (
+            !output.relations ||
+            !isGroupedQuery(output) ||
+            this.skipParameter(options, Parameter.FILTERS)
+        ) {
             return;
         }
 
         const paths = output.filters ? collectFilterPaths(output.filters) : [];
+        const traversed = (name: string) => paths.some((path) => path === name || path.startsWith(`${name}.`));
+
+        const throwOnFailure = options.throwOnFailure ??
+            (options.schema ? this.registry.getOrFail(options.schema).relations.throwOnFailure : undefined) ??
+            false;
+
+        if (!throwOnFailure) {
+            output.relations = new Relations(output.relations.value.filter((relation) => traversed(relation.name)));
+            return;
+        }
 
         for (const relation of output.relations.value) {
-            if (paths.some((path) => path === relation.name || path.startsWith(`${relation.name}.`))) {
+            if (traversed(relation.name)) {
                 continue;
             }
 

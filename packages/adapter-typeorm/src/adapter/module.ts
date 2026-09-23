@@ -145,12 +145,13 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
         // a to-many join repeats each root row per related row, which
         // inflates count and sum; groups alone only collapse duplicates.
-        // A join the caller made is not ours to rewrite. Checked before
-        // anything is joined, so a refused query leaves the builder
-        // untouched. An entity join (`leftJoin(Entity, alias, condition)`)
-        // carries no relation metadata and cannot be classified.
+        // A join the caller made, or one accumulated here under
+        // `clear: false`, is not ours to rewrite. Checked before anything
+        // is joined, so a refused query leaves the builder untouched. An
+        // entity join (`leftJoin(Entity, alias, condition)`) carries no
+        // relation metadata and cannot be classified.
         const aggregated = !!query.aggregates && query.aggregates.value.length > 0;
-        if (aggregated && this.hasToManyJoin()) {
+        if (aggregated && (this.relations.joinsToMany() || this.hasToManyJoin())) {
             throw AdapterError.featureUnsupported('aggregates:fan-out');
         }
 

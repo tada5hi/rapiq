@@ -188,6 +188,16 @@ describe('src/utils/encode.ts', () => {
             })!)).toEqual(expected.replace('filter=eq(realmId,\'r1\')', 'filter[realmId]=r1'));
         });
 
+        it('should leave an include no filter traverses to the receiving parse', () => {
+            // the pass masks the absent filters, so it cannot tell whether
+            // the schema's filters default traverses the include.
+            expect(decodeURIComponent(aware.encode(defineQuery({
+                groups: ['scope'],
+                aggregates: ['count'],
+                relations: ['realm'],
+            }), { schema: 'event', stamp: false })!)).toEqual('include=realm&group=scope&aggregate=count');
+        });
+
         it('should intersect the caller mask', () => {
             expect(decodeURIComponent(aware.encode(issueQuery, {
                 schema: 'event',

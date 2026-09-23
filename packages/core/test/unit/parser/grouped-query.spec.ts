@@ -469,7 +469,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
             ]));
 
             const items = issuesOf(() => new StubQueryParser(new SchemaRegistry(), parsers)
-                .parse({ groups: 'scope', relations: ['items', 'items.realm', 'user'] }, { groups: true }));
+                .parse({ groups: 'scope', relations: ['items', 'items.realm', 'user'] }, { groups: true, throwOnFailure: true }));
 
             expect(items).toEqual([expect.objectContaining({
                 code: ErrorCode.FEATURE_UNSUPPORTED,
@@ -477,6 +477,34 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
                 message: ErrorMessage.featureUnsupported('relations:grouped'),
             })]);
             expect(extractIssueParameter(items[0]!)).toBe(Parameter.RELATIONS);
+        });
+
+        it('should drop an include no filter traverses under the dropping policy', () => {
+            const parsers = buildParsers();
+            parsers.relations = new StubParameterParser<IRelations>(new Relations([
+                new Relation('realm'),
+                new Relation('user'),
+            ]));
+            parsers.filters = new StubParameterParser<IFilters>(new Filters(FilterCompoundOperator.AND, [
+                eq('realm.name', 'admin'),
+            ]));
+
+            const query = new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: 'scope', relations: ['realm', 'user'] }, { groups: true });
+
+            expect(query.relations.value.map((item) => item.name)).toEqual(['realm']);
+        });
+
+        it('should keep every include when the parse skips filters', () => {
+            const parsers = buildParsers();
+            parsers.relations = new StubParameterParser<IRelations>(new Relations([new Relation('realm')]));
+
+            const query = new StubQueryParser(new SchemaRegistry(), parsers).parse(
+                { groups: 'scope', relations: ['realm'] },
+                { parameters: ['groups', 'relations'], throwOnFailure: true },
+            );
+
+            expect(query.relations.value.map((item) => item.name)).toEqual(['realm']);
         });
 
         it('should apply the same rules asynchronously', async () => {

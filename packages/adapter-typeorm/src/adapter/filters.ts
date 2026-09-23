@@ -60,7 +60,8 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
 /**
  * Column types a `sum` aggregate accepts on every dialect that declares
  * them. Booleans are absent: pg has no `sum(boolean)`, so summing one
- * would pass here and fail inside the database.
+ * would pass here and fail inside the database. So are `money` and
+ * `smallmoney`: pg returns their sum as locale-formatted text.
  */
 const NUMERIC_COLUMN_TYPES = new Set<string>([
     'tinyint',
@@ -87,8 +88,6 @@ const NUMERIC_COLUMN_TYPES = new Set<string>([
     'double',
     'double precision',
     'real',
-    'money',
-    'smallmoney',
 ]);
 
 function isNumericColumnType(type: ColumnType) : boolean {
@@ -355,8 +354,9 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
      * Whether a summed column holds numbers, read from the entity
      * metadata: the grouped clauses refuse any other column typed
      * (`aggregates:sum-type`) instead of letting the database fail
-     * (pg has no `sum(character varying)`). A builder without metadata,
-     * or a path it cannot resolve, keeps the base default.
+     * (pg has no `sum(character varying)`, nor `sum(integer[])`). A
+     * builder without metadata, or a path it cannot resolve, keeps the
+     * base default.
      */
     override isNumeric(field: string) : boolean {
         const column = this.resolveColumn(field);
@@ -364,7 +364,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
             return super.isNumeric(field);
         }
 
-        return isNumericColumnType(column.type);
+        return !column.isArray && isNumericColumnType(column.type);
     }
 
     /**

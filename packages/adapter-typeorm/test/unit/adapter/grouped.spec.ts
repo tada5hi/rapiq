@@ -441,6 +441,24 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         expect(queryBuilder.getParameters()).toEqual(expect.objectContaining(taken));
     });
 
+    it('should refuse aggregates across a to-many join accumulated under clear: false', () => {
+        const { queryBuilder, adapter } = setup();
+
+        new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a')
+            .accept(new FiltersVisitor(adapter.filters));
+        const sql = queryBuilder.getSql();
+
+        expect(() => adapter.executeGrouped(defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+        }), { clear: false })).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:fan-out',
+        }));
+
+        expect(queryBuilder.getSql()).toEqual(sql);
+    });
+
     it('should refuse aggregates across a to-many join a hook adds to the builder', () => {
         const { adapter } = setup({
             onJoin: (_path, _alias, qb) => {
@@ -495,6 +513,17 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
 
             return queryBuilder.getQueryAndParameters();
         };
+
+        it.each(['price', 'counts'])('should refuse a sum over the %s column', (field) => {
+            // pg returns a money sum as formatted text and has no sum(integer[]).
+            const adapter = new TypeormAdapter({ queryBuilder: pg.getRepository(Reading).createQueryBuilder('reading') });
+
+            expect(() => adapter.executeGrouped(defineQuery({ aggregates: [{ name: 'sum', params: [field] }] })))
+                .toThrowError(expect.objectContaining({
+                    code: ErrorCode.FEATURE_UNSUPPORTED,
+                    feature: 'aggregates:sum-type',
+                }));
+        });
 
         it('should truncate a zone-aware column in UTC', () => {
             const [sql] = render('observed_at');

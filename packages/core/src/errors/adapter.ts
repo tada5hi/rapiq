@@ -79,6 +79,19 @@ export class AdapterError extends BaseError {
         });
     }
 
+    /**
+     * A driver row without a number-readable value for an output key: an
+     * alias the engine truncated (63 bytes on pg), or a sum the driver
+     * hydrated as formatted text. A server fault, not client input, so
+     * it carries no client-facing code.
+     */
+    static outputValueUnreadable(key: string) {
+        return new this({
+            message: ErrorMessage.outputValueUnreadable(key),
+            code: ErrorCode.NONE,
+        });
+    }
+
     static featureUnsupported(feature: string) {
         return new this({
             message: `The feature ${feature} is not supported by the dialect.`,

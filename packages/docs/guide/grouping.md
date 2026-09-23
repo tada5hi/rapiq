@@ -204,8 +204,9 @@ keys and accepted, although every hour row then repeats its day.
 
 Keys become SQL column aliases, so they are bound by the engine's identifier limit: 63 bytes on PostgreSQL
 (a longer alias is truncated), 30 on Oracle before 12.2. `normalizeGroupedRows` (and `normalize`) refuse a
-driver row missing an output key with `KEY_VALUE_INVALID` rather than reading it as `null`, so keep column
-and function names short enough that `sum_<column>` and `bucket_<column>_<unit>` fit.
+driver row missing an output key with `AdapterError.outputValueUnreadable` (code `NONE`: a server fault,
+not client input) rather than reading it as `null`, so keep column and function names short enough that
+`sum_<column>` and `bucket_<column>_<unit>` fit.
 
 ## Grouped mode {#grouped-mode}
 
@@ -218,8 +219,11 @@ Once a query carries a group or an aggregate, the other parameters change meanin
 - **Relations** are still parsed, because they gate which relation paths a filter may traverse. They are
   never hydrated into the rows, and the grouped entry points join only the relations a filter traverses.
   An include that no filter traverses, neither a client filter nor the schema's `filters.default`, gates
-  nothing and fails the parse with `FEATURE_UNSUPPORTED` (`relations:grouped`). An include traversed by a
-  deeper path counts: `include=items` with `filter[items.realm.name]=...` is accepted.
+  nothing and follows the [relations policy](/guide/schemas#failure-behavior-drop-vs-throw): it is dropped,
+  which changes no row, or with `throwOnFailure` fails the parse with `FEATURE_UNSUPPORTED`
+  (`relations:grouped`). An include traversed by a deeper path counts: `include=items` with
+  `filter[items.realm.name]=...` is accepted. A custom condition is opaque and traverses nothing, and a
+  parse whose `parameters` skip `filters` keeps every include.
 - **Sorts** may name output keys only: `sort=-count` or `sort=bucket_createdAt_day` are accepted, `sort=age`
   and `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
   `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Every group key the sort does not
@@ -273,14 +277,17 @@ Empty buckets are not returned: see [zero-filling](#zero-fill).
 `count` and `sum` are returned as JavaScript numbers on every adapter (PostgreSQL returns a string for both,
 MySQL a DECIMAL string for `sum`, SQLite a number). Through TypeORM on MySQL, `count` comes back as a
 string too. The SQL and TypeORM adapters convert them with `Number` in `normalizeGroupedRows` and
-`normalize`. A `sum` over no non-null value is `null`. The price is precision: a sum beyond `2^53` (about
-15 significant digits) or an exact decimal such as a money column may round. If you need exact decimals,
+`normalize`. A `sum` over no non-null value is `null`, and a value `Number` cannot read is refused with
+`AdapterError.outputValueUnreadable` rather than returned as `NaN`. The price is precision: a sum beyond
+`2^53` (about 15 significant digits) or an exact decimal may round. If you need exact decimals,
 render the SQL with `executeGrouped` and read the driver values yourself instead of calling
 `normalizeGroupedRows` or `normalize`.
 
 The memory adapter adds JavaScript numbers, so a decimal sum carries float error there:
 `1.1 + 2.2` is `3.3000000000000003`. PostgreSQL and MySQL add a `decimal` column exactly (`3.30`), so
-compare decimal sums from memory and from the database with a tolerance, not with strict equality.
+compare decimal sums from memory and from the database with a tolerance, not with strict equality. The
+drift can also reorder: two groups whose decimal sums tie in the database (`3.30`) may differ in memory
+(`3.3000000000000003` against `3.3`), so sorting or paginating by a decimal sum can place them differently.
 
 The memory adapter reads each value the way the SQL side reads its result, with `Number`: a finite
 number, a `bigint` and a numeric string such as `'1.5'` (the form a TypeORM `decimal` column or a
@@ -290,7 +297,8 @@ in the database.
 
 `sum` over a column that is not numeric is a schema mistake: keep such columns out of
 `functions.sum.allowed`. `@rapiq/adapter-typeorm` reads the entity metadata and refuses it
-(`aggregates:sum-type`) before the query runs; standalone `@rapiq/adapter-sql` has no column types and
+(`aggregates:sum-type`) before the query runs, an array column and a `money` column included (PostgreSQL
+returns a money sum as formatted text); standalone `@rapiq/adapter-sql` has no column types and
 renders it, so the engine answers (PostgreSQL fails, SQLite and MySQL coerce the text to a number).
 
 ## Building in code {#building}
@@ -423,8 +431,8 @@ for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
 
 ## Errors {#errors}
 
-Every rejection below fails the parse, whatever `throwOnFailure` says: a dropped group would silently change
-the grain of every row. The raised error is the general `ParseError` from a whole-query parse, or
+Every rejection below except `relations:grouped` fails the parse, whatever `throwOnFailure` says: a dropped
+group would silently change the grain of every row, while a dropped dead include changes nothing. The raised error is the general `ParseError` from a whole-query parse, or
 `GroupsParseError` / `AggregatesParseError` from a standalone sub-parser, with code `INPUT_REJECTED` and
 each rejection on the [issue trace](/guide/errors#issue-traces).
 
@@ -439,7 +447,7 @@ each rejection on the [issue trace](/guide/errors#issue-traces).
 | `OPERATOR_UNSUPPORTED` | schemaless parse of a name that is neither a built-in nor a bare column |
 | `KEY_AMBIGUOUS` | two terms with the same [output key](#output-keys) |
 | `KEY_VALIDATE_REJECTED` | the schema's [validate hook](#validate-hooks) rejected the term |
-| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query (`fields:grouped`), an include no filter traverses (`relations:grouped`, recorded on `relations`), or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
+| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query (`fields:grouped`), an include no filter traverses (`relations:grouped`, recorded on `relations` under its `throwOnFailure` only, dropped otherwise), or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
 
 Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature` tags:
 
@@ -453,7 +461,7 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups:<fn>` / `aggregates:<fn>` | a function the adapter does not implement |
 | `groups:bucket` | the SQL dialect has no bucket spelling (`mssql`, `oracle`) |
 | `groups:bucket-type` | the bucketed column is not temporal (TypeORM metadata, or a `temporalKind` override returning `undefined`) |
-| `aggregates:sum-type` | the summed column is not numeric (TypeORM metadata, or an `isNumeric` override returning `false`) |
+| `aggregates:sum-type` | the summed column is not numeric (TypeORM metadata: an array or `money` column counts as not numeric, or an `isNumeric` override returning `false`) |
 | `groups:builder` | the TypeORM builder already carries a `GROUP BY` |
 | `aggregates:fan-out` | aggregates over a to-many join already on the builder (yours or an `onJoin` hook's) would count join rows (TypeORM) |
 

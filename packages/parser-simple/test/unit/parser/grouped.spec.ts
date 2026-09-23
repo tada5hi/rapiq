@@ -603,9 +603,10 @@ describe('src/module.ts: groups and aggregates', () => {
 
     describe('includes', () => {
         const unbound = new SimpleParser();
+        const THROW = { ...OPT_IN, throwOnFailure: true };
 
         it('should reject an include no filter traverses', () => {
-            const items = issuesOf(() => unbound.parse({ groups: 'scope', relations: ['realm'] }, OPT_IN));
+            const items = issuesOf(() => unbound.parse({ groups: 'scope', relations: ['realm'] }, THROW));
 
             expect(items).toEqual([expect.objectContaining({
                 code: ErrorCode.FEATURE_UNSUPPORTED,
@@ -613,6 +614,13 @@ describe('src/module.ts: groups and aggregates', () => {
                 message: ErrorMessage.featureUnsupported('relations:grouped'),
                 meta: { parameter: Parameter.RELATIONS },
             })]);
+        });
+
+        it('should drop an include no filter traverses under the dropping policy', async () => {
+            const input = { groups: 'scope', relations: ['realm'] };
+
+            expect(unbound.parse(input, OPT_IN).relations.value).toEqual([]);
+            expect((await unbound.parseAsync(input, OPT_IN)).relations.value).toEqual([]);
         });
 
         it('should accept an include a filter traverses', () => {
@@ -638,7 +646,7 @@ describe('src/module.ts: groups and aggregates', () => {
                 groups: 'scope',
                 relations: ['items', 'items.realm'],
                 filters: { 'items.name': 'x' },
-            }, OPT_IN));
+            }, THROW));
 
             expect(items.map((item) => item.path)).toEqual([['items', 'realm']]);
         });
@@ -656,7 +664,7 @@ describe('src/module.ts: groups and aggregates', () => {
         });
 
         it('should reject asynchronously as well', async () => {
-            await expect(unbound.parseAsync({ groups: 'scope', relations: ['realm'] }, OPT_IN))
+            await expect(unbound.parseAsync({ groups: 'scope', relations: ['realm'] }, THROW))
                 .rejects.toMatchObject({ code: ErrorCode.INPUT_REJECTED });
         });
 

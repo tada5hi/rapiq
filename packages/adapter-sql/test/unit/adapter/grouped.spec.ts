@@ -9,6 +9,7 @@ import {
     Aggregate,
     Aggregates,
     ErrorCode,
+    ErrorMessage,
     Field,
     Fields,
     Group,
@@ -301,8 +302,21 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
             scope: 'user',
             count: 1,
         }])).toThrowError(expect.objectContaining({
-            code: ErrorCode.KEY_VALUE_INVALID,
-            message: 'The value of the key sum_amount is invalid.',
+            code: ErrorCode.NONE,
+            message: ErrorMessage.outputValueUnreadable('sum_amount'),
+        }));
+    });
+
+    it('should refuse an aggregate Number cannot read instead of returning NaN', () => {
+        // node-postgres hydrates a money sum as locale-formatted text.
+        expect(() => normalizeGroupedRows(query, [{
+            bucket_createdAt_day: '2026-09-22T00:00:00.000Z',
+            scope: 'user',
+            count: 1,
+            sum_amount: '$1,236.50',
+        }])).toThrowError(expect.objectContaining({
+            code: ErrorCode.NONE,
+            message: ErrorMessage.outputValueUnreadable('sum_amount'),
         }));
     });
 
@@ -314,8 +328,8 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
 
         expect(() => normalizeGroupedRows(grouped, [{ count: 1 }]))
             .toThrowError(expect.objectContaining({
-                code: ErrorCode.KEY_VALUE_INVALID,
-                message: `The value of the key ${key} is invalid.`,
+                code: ErrorCode.NONE,
+                message: ErrorMessage.outputValueUnreadable(key),
             }));
     });
 
