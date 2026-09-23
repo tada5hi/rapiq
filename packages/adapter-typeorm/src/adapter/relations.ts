@@ -57,6 +57,41 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         return true;
     }
 
+    /**
+     * Whether `execute()` would join a to-many relation (one-to-many or
+     * many-to-many) on any registered path, answered from the metadata
+     * alone, so a caller can refuse before the builder is touched.
+     */
+    joinsToMany() : boolean {
+        const { mainAlias } = this.queryBuilder.expressionMap;
+        if (!mainAlias || !mainAlias.hasMetadata) {
+            return false;
+        }
+
+        for (const entry of this.value) {
+            let { metadata } = mainAlias;
+            let rest : string | undefined = entry.path;
+
+            while (rest) {
+                let segment : string;
+                [segment, rest] = splitFirst(rest);
+
+                const relation = metadata.findRelationWithPropertyPath(segment);
+                if (!relation) {
+                    break;
+                }
+
+                if (relation.isOneToMany || relation.isManyToMany) {
+                    return true;
+                }
+
+                metadata = relation.inverseEntityMetadata;
+            }
+        }
+
+        return false;
+    }
+
     override execute() : void {
         for (const relation of this.value) {
             if (relation.executed) {

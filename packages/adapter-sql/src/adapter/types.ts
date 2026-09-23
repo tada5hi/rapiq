@@ -108,3 +108,17 @@ export type SqlFragments = {
      */
     relations: string[],
 };
+
+/**
+ * Clause fragments of a grouped query (`Adapter.executeGrouped`).
+ * `columns` are the aliased output expressions and `orderBy` targets
+ * those aliases; the caller assembles
+ * `select <columns> from ... where <where> group by <groupBy> order by <orderBy>`.
+ */
+export type GroupedSqlFragments = SqlFragments & {
+    /**
+     * Group expressions repeated verbatim for GROUP BY; [] for an
+     * aggregates-only query, which yields one row.
+     */
+    groupBy: string[],
+};

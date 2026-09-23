@@ -11,6 +11,8 @@ Under every rapiq feature sits one data structure: the `Query`, a tree of node o
 | `Relations` | `Relation` | `name` (dot-notation for nested paths) |
 | `Sorts` | `Sort` | `name`, `operator` (`'ASC'` / `'DESC'`) |
 | `Pagination` | *(none)* | `limit`, `offset` |
+| `Groups` | `Group` | `key` (output key), `name` and `params` (wire form), `lowering` (`{ fn, field, args }`, resolved server side; `undefined` for an unresolved named call); see [Grouping & Aggregates](/guide/grouping) |
+| `Aggregates` | `Aggregate` | same members as `Group`; `key` joins name and params with `_` |
 
 `Filters` is the only recursive built-in node: its children are `ICondition` values, including built-in leaf `Filter` conditions, nested `Filters`, or custom structural conditions. That keeps arbitrary `and`/`or` combinations composable without closing the extension set.
 
@@ -69,7 +71,7 @@ This is how all five adapters consume the query. Three are interpreter-style: [`
 
 ## Type guards
 
-Every node has a matching guard: `isQuery`, `isFields` / `isField`, `isFilters` / `isFilter`, `isRelations` / `isRelation`, `isSorts` / `isSort` and `isPagination`. They identify nodes by their visitor dispatch instead of `instanceof`, so they work across package instances (e.g. a query built by one copy of `@rapiq/core` and inspected by another) and reliably tell structurally identical nodes apart (an empty `Fields` and an empty `Sorts` carry the same members).
+Every node has a matching guard: `isQuery`, `isFields` / `isField`, `isFilters` / `isFilter`, `isRelations` / `isRelation`, `isSorts` / `isSort`, `isGroups` / `isGroup`, `isAggregates` / `isAggregate` and `isPagination`; `isGroupedQuery(query)` tells a grouped query from a record query. They identify nodes by their visitor dispatch instead of `instanceof`, so they work across package instances (e.g. a query built by one copy of `@rapiq/core` and inspected by another) and reliably tell structurally identical nodes apart (an empty `Fields` and an empty `Sorts` carry the same members).
 
 Their typical use is narrowing an SDK surface that accepts either raw build input or an already-built node:
 

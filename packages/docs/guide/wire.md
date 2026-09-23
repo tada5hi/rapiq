@@ -65,6 +65,8 @@ app.delete('/sessions', (req, res) => {
 });
 ```
 
+`groups` and `aggregates` work the other way around: they are decoded **only** when listed (`parameters: ['filters', 'groups', 'aggregates', 'sorts', 'pagination']`) or flagged (`{ groups: true, aggregates: true }`). See [Grouping & Aggregates](/guide/grouping#opting-in).
+
 ## Migration dispatch
 
 The v2 codec follows a read-both/write-expression migration:
@@ -101,6 +103,7 @@ Every wire dialect expresses a subset of the query AST. Inside that subset, `dec
 | `elemMatch` (incl. the `ITSELF` element marker, wire spelling `$this`) | ✗ throws | ✓ |
 | `regex` / `mod` / `exists` | ✗ throws | ✗ throws |
 | [`Field.condition`](/guide/schemas#condition-verdicts) (row-scoped fields) | ✗ throws | ✗ throws |
+| [Groups and aggregates](/guide/grouping#on-the-wire) (`group=bucket(createdAt,day)&aggregate=count`) | ✓ | ✓ |
 
 ## Schema-aware transport
 

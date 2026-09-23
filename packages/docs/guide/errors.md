@@ -7,13 +7,15 @@ Every error rapiq throws extends `BaseError` and carries a machine-readable `cod
 ```txt
 BaseError { code: ErrorCode }
 ├── BuildError            defineQuery / helpers: malformed build input
-├── MergeError            mergeQueries / node merge: discarded field gates
+├── MergeError            mergeQueries / node merge: discarded field gates, conflicting groups
 ├── ParseError            parsers & decoders: invalid client input
 │   ├── FieldsParseError
 │   ├── FiltersParseError
 │   ├── PaginationParseError
 │   ├── RelationsParseError
-│   └── SortsParseError
+│   ├── SortsParseError
+│   ├── GroupsParseError
+│   └── AggregatesParseError
 ├── AdapterError          backends & encoders: query exceeds the target's subset
 ├── CodecError            codec registry: unresolvable dialect
 └── SchemaError           schema registry: misconfigured or unresolvable schema
@@ -33,12 +35,14 @@ BaseError { code: ErrorCode }
 | `KEY_INVALID` | syntactically invalid field key |
 | `KEY_VALUE_INVALID` | value shape doesn't fit the operator |
 | `KEY_UNKNOWN` | unrecognized top-level `defineQuery` input key |
-| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied together |
+| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied together; a duplicate group or aggregate [output key](/guide/grouping#output-keys) |
 | `OPERATOR_UNSUPPORTED` | unknown `$` operator key |
 
 ### Merge time (caller bug)
 
 `MergeError` with `FIELDS_CONDITION_DISCARDED`: a fields merge collision would drop a [row-scoped visibility gate](/guide/fields#row-scoped-fields). Keep the gated query as the receiver instead of merging it underneath an ungated one.
+
+`MergeError` with `KEY_AMBIGUOUS`: two queries carry different non-empty `groups` or `aggregates` (including the same wire form once resolved by a parse and once unresolved from the build layer); merging would fabricate or drop a grain. See [Grouping & Aggregates](/guide/grouping#merging).
 
 Filters have no such code: [`merge()`](/guide/merging-queries#filters-monotonic-conjunction) is total. It composes every predicate with ordered logical AND, so composition narrows instead of failing.
 
@@ -91,7 +95,7 @@ try {
 }
 ```
 
-`error.feature` is `undefined` for every other `AdapterError` factory (`operatorUnsupported`, `conditionDetached`).
+`error.feature` is `undefined` for every other `AdapterError` factory (`operatorUnsupported`, `conditionDetached`). Grouped queries add their own tags (`groups`, `groups:bucket`, `aggregates:fan-out`, ...), listed in [Grouping & Aggregates](/guide/grouping#errors).
 
 ### Codec dispatch
 
@@ -107,6 +111,7 @@ try {
 | `SCHEMA_UNRESOLVABLE` | `registry.getOrFail()` for a name that isn't registered |
 | `KEY_UNKNOWN` | `defineSchema()` with a top-level option key it doesn't recognize |
 | `KEY_AMBIGUOUS` | `defineSchema()` with both `sorts` and its deprecated alias `sort` |
+| `KEY_INVALID` | `defineSchema()` with an invalid `groups` / `aggregates` function declaration (`SchemaError.functionInvalid`), see [named functions](/guide/grouping#named-functions) |
 | `SCHEMA_KEY_VALIDATOR_CONFLICT` | a `fields`/`relations`/`sorts` sub-schema declares both [`validate` and `validateMany`](/guide/schemas#batched-validation-with-validatemany); thrown while the schema is constructed, since there is no sensible precedence between them |
 | `SCHEMA_PRESERVED_CONDITION_PRUNED` | the [relations gate](/guide/relations#validate-hooks) rejected a relation that a [`preserve()`](/guide/merging-queries#preservation-is-for-relation-pruning) filter condition needs; the two validators contradict each other, see [scoping a filterable field](/guide/recipes/authorization#scoping-server-conditions) |
 | `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` | `parse()` (or a synchronous codec method) encountered an async validator (a filter validator or a key validation hook); use the corresponding `Async` method |
@@ -191,7 +196,7 @@ The trace has exactly one channel. A parse that raises nothing discards it, so u
 
 ### The raise condition
 
-Throw mode does not stop at the first violation. The parse records, keeps going across all five parameters, and raises once at the end:
+Throw mode does not stop at the first violation. The parse records, keeps going across every parameter, and raises once at the end:
 
 ```typescript
 parser.parse({ fields: ['nope1'], filters: { nope2: 'x' } }, { schema: 'user' });

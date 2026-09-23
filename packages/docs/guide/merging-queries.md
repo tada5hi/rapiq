@@ -19,6 +19,7 @@ Per-parameter semantics:
 | `fields` / `relations` / `sorts` | keyed left priority |
 | `pagination` | per-property left priority (`limit` and `offset` merge independently) |
 | `filters` | ordered logical AND; every predicate survives |
+| `groups` / `aggregates` | one side only, or identical on both sides; two different definitions throw `MergeError` (`KEY_AMBIGUOUS`), see [Grouping & Aggregates](/guide/grouping#merging) |
 
 For fields, a name collision that would discard a [row-scoped visibility gate](/guide/fields#row-scoped-fields) (`Field.condition`) throws `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) instead of silently un-gating the column.
 

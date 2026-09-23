@@ -187,6 +187,7 @@ Operators without a drizzle filter equivalent raise a typed `AdapterError` (`FEA
 - `size`: no array-length filter
 - `elemMatch` on a scalar array and the `$this` element marker: only to-many *relations* have addressable elements
 - **ordering by a relation path**: the relational API orders the root by its own columns only; an undocumented nested shape could be silently ignored, and loud beats silent
+- **groups and aggregates**: `execute` refuses a [grouped query](/guide/grouping) with `featureUnsupported('groups')`; the relational query API has no grouping.
 
 `exists()` on a to-many relation is constantly true: it asks whether a *value is present*, and a collection is possibly empty, never absent. That matches [@rapiq/adapter-memory](/packages/adapter-memory).
 

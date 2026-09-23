@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { splitBucketFormat } from './bucket';
 import type { DialectOptions } from './types';
 
 export const mysql : DialectOptions = {
@@ -17,4 +18,8 @@ export const mysql : DialectOptions = {
     // *_bin / *_cs collations.
     caseFold: (input) => input,
     mod: (field, divisorPlaceholder, remainderPlaceholder) => `mod(${field}, ${divisorPlaceholder}) = ${remainderPlaceholder}`,
+    // formats the stored value as is: a TIMESTAMP column is converted to
+    // the session time_zone on read, so it buckets in UTC only under a
+    // UTC session.
+    bucket: (field, unit) => `date_format(${field}, concat(${splitBucketFormat(unit).join(', ')}))`,
 };

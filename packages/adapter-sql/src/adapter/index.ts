@@ -7,6 +7,7 @@
 
 export * from './fields';
 export * from './filters';
+export * from './grouped';
 export * from './module';
 export * from './pagination';
 export * from './relations';

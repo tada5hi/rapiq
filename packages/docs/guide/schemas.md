@@ -65,8 +65,10 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `sorts` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
+| `groups` | `allowed` (bare columns), `functions` (built-in `bucket` or [named functions](/guide/grouping#named-functions)); fail-closed, see [Declaring what may be grouped](/guide/grouping#declaring) |
+| `aggregates` | `functions` (built-in `count` / `sum` or named functions); fail-closed |
 
-Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortsSchema`, `definePaginationSchema`), useful when calling a single parameter parser directly.
+Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortsSchema`, `definePaginationSchema`, `defineGroupsSchema`, `defineAggregatesSchema`), useful when calling a single parameter parser directly. `groups` and `aggregates` accept neither `throwOnFailure` nor `strict`: every rejection fails the parse, and a bound schema without their block permits nothing.
 
 ::: tip Empty vs. absent
 `allowed: []` blocks the parameter entirely; **omitting** `allowed` permits everything, unless [strict mode](#strict-mode) is on. Be deliberate about which one you mean.
@@ -105,6 +107,7 @@ Per parameter, "declared" means:
 | `sorts` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
 | `relations` | `allowed` is set |
 | `pagination` | always; `maxLimit` remains the only constraint |
+| `groups` / `aggregates` | not affected: a bound schema is fail-closed for them with or without strict mode |
 
 Schema defaults are unaffected: dropped client input falls back to `default` values exactly as if the parameter had been absent.
 
@@ -368,6 +371,8 @@ userSchema.describe();
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
 //     sorts: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
+//     groups: { allowed: null, functions: null },
+//     aggregates: { functions: null },
 // }
 ```
 
@@ -382,7 +387,10 @@ consumers can rely on a stable structure:
 - within a parameter, a **`null`** constraint was never declared, so the
   fallback semantics apply (syntactic property-name check, or a full
   reject under [strict mode](#strict-mode); `strict` is normalized to
-  its effective default, `false`);
+  its effective default, `false`). `groups` and `aggregates` are the
+  exception: they are fail-closed, so `null` there means nothing is
+  permitted, and only the open argument slots of a function are
+  listed ([details](/guide/grouping#describing));
 - an **empty array** is an explicit "nothing allowed".
 
 Relation capabilities are not expanded inline: `relations.schemas` names

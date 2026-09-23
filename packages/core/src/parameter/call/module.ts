@@ -5,12 +5,24 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import { AdapterError } from '../../errors';
 import { SortDirection } from '../../schema';
 import type { IAggregate } from '../aggregates';
 import type { IGroup } from '../groups';
 import type { ISort } from '../sorts';
 import { Sort } from '../sorts';
 import type { IQuery } from '../types';
+import { BucketUnit } from './constants';
+
+const BUCKET_UNITS : string[] = Object.values(BucketUnit);
+
+/**
+ * Whether the input is one of the closed {@link BucketUnit} values, the
+ * only units an adapter may inline into a statement.
+ */
+export function isBucketUnit(input: unknown) : input is `${BucketUnit}` {
+    return typeof input === 'string' && BUCKET_UNITS.includes(input);
+}
 
 function isListEqual(a: readonly string[], b: readonly string[]) : boolean {
     return a.length === b.length && a.every((item, index) => item === b[index]);
@@ -38,9 +50,23 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
  * The ordering every grouped consumer applies: the explicit sorts when
  * present, otherwise every group key ascending in declared order, and
  * none for an aggregates-only query (which yields exactly one row).
+ *
+ * A grouped row carries only the output keys, so an explicit sort naming
+ * anything else is refused (`sorts:grouped`). The parser never produces
+ * one; a hand-built query could, and a backend would otherwise render
+ * the name raw or ignore it.
  */
 export function resolveGroupedSorts(query: IQuery) : ISort[] {
     if (query.sorts.value.length > 0) {
+        const keys = new Set<string>([
+            ...(query.groups?.value ?? []).map((group) => group.key),
+            ...(query.aggregates?.value ?? []).map((aggregate) => aggregate.key),
+        ]);
+
+        if (query.sorts.value.some((sort) => !keys.has(sort.name))) {
+            throw AdapterError.featureUnsupported('sorts:grouped');
+        }
+
         return [...query.sorts.value];
     }
 

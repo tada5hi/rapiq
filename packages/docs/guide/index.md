@@ -67,7 +67,7 @@ A query passes through four stages, and every rapiq package plays exactly one ro
 
 Because the pieces only meet in the [`Query`](/guide/query-ast), they compose freely: swap the wire dialect without touching the database code, add a new backend without touching the parsers, or skip the wire entirely and evaluate a query in memory.
 
-## The five parameters
+## The parameters
 
 | Parameter | URL key | What it does |
 |---|---|---|
@@ -76,6 +76,8 @@ Because the pieces only meet in the [`Query`](/guide/query-ast), they compose fr
 | [Relations](/guide/relations) | `include` | Load related resources alongside the primary one. |
 | [Sorts](/guide/sort) | `sort` | Order the collection by one or more keys. |
 | [Pagination](/guide/pagination) | `page` | Limit and offset the collection. |
+| [Groups](/guide/grouping) | `group` | Group the collection by columns or UTC time buckets (opt-in). |
+| [Aggregates](/guide/grouping) | `aggregate` | Count or sum each group (opt-in). |
 
 ## The package family
 

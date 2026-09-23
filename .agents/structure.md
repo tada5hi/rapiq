@@ -6,7 +6,7 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 
 | Name                                                      | Type     | Description                                                                 |
 |-----------------------------------------------------------|----------|-----------------------------------------------------------------------------|
-| [@rapiq/core](../packages/core)                           | Library  | Query AST (fields/filters/pagination/relations/sorts), visitor interfaces, schema system + registry, parser base classes, errors |
+| [@rapiq/core](../packages/core)                           | Library  | Query AST (fields/filters/pagination/relations/sorts/groups/aggregates), visitor interfaces, schema system + registry, parser base classes, errors |
 | [@rapiq/parser-simple](../packages/parser-simple)         | Library  | Parses plain object/array input (URL-query-like "simple" dialect) into a `Query` |
 | [@rapiq/parser-expression](../packages/parser-expression) | Library  | Parses a function-call expression language (e.g. `and(eq(name, 'John'), gte(age, '18'))`) into a `Query` |
 | [@rapiq/parser-mongo](../packages/parser-mongo)           | Library  | Parses MongoDB-style filter documents (e.g. `{ age: { $gte: 18 } }`, `$and`/`$or`/`$not`) into a `Query` |
@@ -51,18 +51,21 @@ Changes to `@rapiq/core` affect every other package.
 ```
 packages/core/src/
 ├── parameter/            # Query AST node classes + visitor interfaces
+│   ├── aggregates/       # Aggregates/Aggregate (count/sum measures of a grouped read)
+│   ├── call/             # CallTerm/CallLowering, GroupFunction/AggregateFunction/BucketUnit + slot tables, isCallEqual, resolveGroupedSorts
 │   ├── fields/           # Fields/Field (include/exclude operators)
 │   ├── filters/          # Filters (compound and/or) + Filter (field-op-value condition); CONDITION_MARKER/Condition identity and preserve() pruning wrapper
 │   │   └── helpers/      # typed condition helpers (eq, gte, inArray, and, or, …)
+│   ├── groups/           # Groups/Group (grouped-read dimensions: bare column or bucket call)
 │   ├── pagination/       # Pagination (limit/offset)
 │   ├── relations/        # Relations/Relation
 │   ├── sorts/            # Sorts/Sort (asc/desc)
-│   ├── merge.ts          # mergeQueries: keyed left priority for fields/relations/sorts, per-property pagination, monotonic filter conjunction
+│   ├── merge.ts          # mergeQueries: keyed left priority for fields/relations/sorts, per-property pagination, monotonic filter conjunction, groups/aggregates refuse a conflict
 │   └── module.ts         # Query, IQueryVisitor (queries are built via defineQuery or parsed)
 ├── build/                # typed build layer: defineQuery + per-parameter define* factories
 │   └── parameter/        # Build*Input types + defineFields/defineFilters/… (schema-free, direct-to-AST)
 ├── schema/               # Schema, defineSchema(), per-parameter sub-schemas
-│   ├── parameter/        # FieldsSchema, FiltersSchema, ... + define* factories
+│   ├── parameter/        # FieldsSchema, FiltersSchema, ... + define* factories; call/ normalizes groups/aggregates function declarations (resolveCallTerm)
 │   ├── registry/         # SchemaRegistry (named schemas, cross-schema resolution)
 │   └── resolver/         # ResolutionScope (key/alias/allow-list/relation-path resolution)
 ├── parser/               # BaseParser + per-parameter parse-option types & error classes
@@ -75,6 +78,7 @@ Parser packages mirror core's parameter split:
 ```
 packages/parser-{simple,expression,mongo}/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/   # one parser class per parameter
+├── parameter/{call,groups,aggregates}/   # parser-simple only: call-term grammar + SimpleGroupsParser/SimpleAggregatesParser, reused by the other two dialects
 └── module.ts             # SimpleParser / ExpressionParser / MongoParser composing them
 ```
 
@@ -82,8 +86,8 @@ Backend/codec packages:
 
 ```
 packages/adapter-sql/src/
-├── adapter/              # Adapter + per-parameter sub-adapters (accumulate SQL fragments)
-├── dialect/              # pg, mysql, sqlite, mssql, oracle DialectOptions presets
+├── adapter/              # Adapter + per-parameter sub-adapters (accumulate SQL fragments); grouped/ builds executeGrouped clauses + row normalization
+├── dialect/              # pg, mysql, sqlite, mssql, oracle DialectOptions presets; bucket.ts holds the mysql/sqlite bucket formats
 ├── visitor/              # QueryVisitor walking the AST into the adapter
 └── helpers/
 
@@ -103,6 +107,7 @@ packages/adapter-drizzle/src/
 packages/adapter-memory/src/
 ├── parameter/{fields,filters,pagination,relations,sorts}/  # visitors compiling AST nodes into functions
 ├── query/                # CompiledQuery (matches/apply, pagination echo)
+├── grouped/              # compileGroupedQuery/applyGroupedQuery (group, aggregate, UTC bucket truncation): the grouped parity oracle
 ├── helpers/              # value semantics (normalize/equal/compare/resolve)
 └── module.ts             # QueryVisitor + compileQuery/applyQuery/compile* helpers
 

@@ -11,6 +11,7 @@ import {
     AGGREGATE_FUNCTION_SLOTS,
     BucketUnit,
     GROUP_FUNCTION_SLOTS,
+    isBucketUnit,
 } from '../../../parameter';
 import type { CallSlot, CallSlotName, CallTerm } from '../../../parameter';
 import type { ObjectLiteral } from '../../../types';
@@ -30,7 +31,7 @@ function isSlotValueValid(slot: CallSlotName, value: unknown) : boolean {
     }
 
     return slot === 'unit' ?
-        (Object.values(BucketUnit) as string[]).includes(value) :
+        isBucketUnit(value) :
         isCallIdentifierValid(value);
 }
 
