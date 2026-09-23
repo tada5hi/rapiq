@@ -274,6 +274,19 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
         }));
     });
 
+    it.each(['constructor', 'toString'])('should refuse a row missing the output key %s instead of reading the prototype', (key) => {
+        const grouped = new Query({
+            groups: new Groups([columnGroup(key)]),
+            aggregates: new Aggregates([countAggregate()]),
+        });
+
+        expect(() => normalizeGroupedRows(grouped, [{ count: 1 }]))
+            .toThrowError(expect.objectContaining({
+                code: ErrorCode.KEY_VALUE_INVALID,
+                message: `The value of the key ${key} is invalid.`,
+            }));
+    });
+
     it('should copy only the output keys, in IR order', () => {
         const [row] = normalizeGroupedRows(query, [{
             sum_amount: 1, 

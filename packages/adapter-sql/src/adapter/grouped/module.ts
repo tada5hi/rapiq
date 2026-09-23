@@ -145,7 +145,7 @@ export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : Obj
     const aggregates = query.aggregates?.value ?? [];
 
     const read = (row: ObjectLiteral, key: string) : unknown => {
-        if (!(key in row)) {
+        if (!Object.hasOwn(row, key)) {
             throw AdapterError.keyValueInvalid(key);
         }
 
