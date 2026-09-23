@@ -22,6 +22,10 @@ export class QuerySerializer implements ISerializer<string | null> {
 
     readonly sorts : ArraySerializer;
 
+    readonly groups : ArraySerializer;
+
+    readonly aggregates : ArraySerializer;
+
     constructor() {
         this.fields = new RecordArraySerializer(
             URLParameter.FIELDS,
@@ -38,6 +42,12 @@ export class QuerySerializer implements ISerializer<string | null> {
         this.sorts = new ArraySerializer(
             URLParameter.SORT,
         );
+        this.groups = new ArraySerializer(
+            URLParameter.GROUPS,
+        );
+        this.aggregates = new ArraySerializer(
+            URLParameter.AGGREGATES,
+        );
     }
 
     reset() : void {
@@ -46,15 +56,21 @@ export class QuerySerializer implements ISerializer<string | null> {
         this.pagination.reset();
         this.relations.reset();
         this.sorts.reset();
+        this.groups.reset();
+        this.aggregates.reset();
     }
 
     serialize(): string | null {
+        // groups and aggregates come last, so every query without them
+        // keeps its encoded string byte for byte.
         const normalized = [
             this.fields.serialize(),
             this.filters.serialize(),
             this.pagination.serialize(),
             this.relations.serialize(),
             this.sorts.serialize(),
+            this.groups.serialize(),
+            this.aggregates.serialize(),
         ]
             .filter(Boolean)
             .join('&');

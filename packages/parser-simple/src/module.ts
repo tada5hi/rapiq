@@ -8,8 +8,10 @@
 import type { SchemaRegistry } from '@rapiq/core';
 import { BaseQueryParser } from '@rapiq/core';
 import {
+    SimpleAggregatesParser,
     SimpleFieldsParser,
     SimpleFiltersParser,
+    SimpleGroupsParser,
     SimplePaginationParser,
     SimpleRelationsParser,
     SimpleSortsParser,
@@ -36,5 +38,7 @@ export class SimpleParser extends BaseQueryParser {
         this.paginationParser = new SimplePaginationParser(this.registry);
         this.relationsParser = new SimpleRelationsParser(this.registry);
         this.sortParser = new SimpleSortsParser(this.registry);
+        this.groupsParser = new SimpleGroupsParser(this.registry);
+        this.aggregatesParser = new SimpleAggregatesParser(this.registry);
     }
 }

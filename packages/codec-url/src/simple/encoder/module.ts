@@ -6,10 +6,12 @@
  */
 
 import type {
+    IAggregates,
     IField,
     IFields,
     IFilter,
     IFilters,
+    IGroups,
     IPagination,
     IQuery,
     IRelations,
@@ -19,8 +21,8 @@ import type {
     SchemaRegistry,
 } from '@rapiq/core';
 import {
-    assertQueryNotGrouped,
     buildQueryParameters,
+    buildSchemaPassOptions,
     intersectQueryParameters,
     isSchemaAware,
     stripFieldConditions,
@@ -55,8 +57,6 @@ export class SimpleURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
-        assertQueryNotGrouped(input);
-
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
@@ -71,7 +71,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -87,8 +87,6 @@ export class SimpleURLEncoder {
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
-        assertQueryNotGrouped(input);
-
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
@@ -101,7 +99,7 @@ export class SimpleURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -318,6 +316,25 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         return this.runSerializer(this.visitor.visitSorts(decoded));
+    }
+
+    /**
+     * Groups and aggregates encode without a schema pass: they are
+     * validated only together with the query whose grain they define
+     * (fields and sorts depend on them), so only {@link encode} runs one.
+     *
+     * @param input
+     */
+    encodeGroups(input: IGroups) : string | null {
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitGroups(input));
+    }
+
+    encodeAggregates(input: IAggregates) : string | null {
+        this.visitor.reset();
+
+        return this.runSerializer(this.visitor.visitAggregates(input));
     }
 
     /**

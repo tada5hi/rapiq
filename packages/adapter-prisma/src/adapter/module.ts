@@ -6,7 +6,12 @@
  */
 
 import type { IQuery, IQueryVisitor, ISorts } from '@rapiq/core';
-import { AdapterError, ErrorCode, hasFieldConditions } from '@rapiq/core';
+import {
+    AdapterError,
+    ErrorCode,
+    hasFieldConditions,
+    isGroupedQuery,
+} from '@rapiq/core';
 import type { IMetadata } from '../metadata';
 import { defineMetadata, resolveDelegateClient, resolveModelName } from '../metadata';
 import type { ProviderOptions } from '../provider';
@@ -170,6 +175,13 @@ export class PrismaAdapter<
         query: IQuery,
         options: ExecuteOptions<ARGS> = {},
     ) : PrismaAdapterOutput<ARGS> {
+        // prisma's groupBy is a different call with a different result
+        // shape; grouped queries are not supported by this adapter.
+        // findMany() and count() serialize through here.
+        if (isGroupedQuery(query)) {
+            throw AdapterError.featureUnsupported('groups');
+        }
+
         const base = options.base as Args | undefined;
 
         const filters = this.renderer.build(

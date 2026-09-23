@@ -7,6 +7,7 @@
 
 import type { SchemaRegistry } from '@rapiq/core';
 import { BaseQueryParser } from '@rapiq/core';
+import { SimpleAggregatesParser, SimpleGroupsParser } from '@rapiq/parser-simple';
 import {
     MongoFieldsParser,
     MongoFiltersParser,
@@ -36,5 +37,8 @@ export class MongoParser extends BaseQueryParser {
         this.paginationParser = new MongoPaginationParser(this.registry);
         this.relationsParser = new MongoRelationsParser(this.registry);
         this.sortParser = new MongoSortsParser(this.registry);
+        // one call-term grammar serves every dialect.
+        this.groupsParser = new SimpleGroupsParser(this.registry);
+        this.aggregatesParser = new SimpleAggregatesParser(this.registry);
     }
 }

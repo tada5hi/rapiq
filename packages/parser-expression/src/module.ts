@@ -7,6 +7,7 @@
 
 import type { SchemaRegistry } from '@rapiq/core';
 import { BaseQueryParser } from '@rapiq/core';
+import { SimpleAggregatesParser, SimpleGroupsParser } from '@rapiq/parser-simple';
 import {
     ExpressionFieldsParser,
     ExpressionFiltersParser,
@@ -36,5 +37,8 @@ export class ExpressionParser extends BaseQueryParser {
         this.paginationParser = new ExpressionPaginationParser(this.registry);
         this.relationsParser = new ExpressionRelationsParser(this.registry);
         this.sortParser = new ExpressionSortsParser(this.registry);
+        // one call-term grammar serves every dialect.
+        this.groupsParser = new SimpleGroupsParser(this.registry);
+        this.aggregatesParser = new SimpleAggregatesParser(this.registry);
     }
 }

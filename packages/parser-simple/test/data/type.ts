@@ -52,3 +52,17 @@ export type Entity = {
     child: ChildEntity,
     siblings: ChildEntity[]
 };
+
+// -----------------------------------------------------
+
+export type Event = {
+    id: string,
+    realmId: string | null,
+    scope: string,
+    name: string,
+    amount: number,
+    fee: number,
+    couponId: string | null,
+    createdAt: Date,
+    updatedAt: Date,
+};

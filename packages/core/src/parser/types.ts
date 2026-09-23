@@ -96,7 +96,9 @@ export type ParseQueryOptions<
      * Opt in to the groups parameter. Unlike the flags above the
      * default is OFF: groups are parsed only when this is `true` or
      * `groups` is listed in {@link ParseQueryOptions.parameters}, so an
-     * existing endpoint never starts accepting them by accident.
+     * existing endpoint never starts accepting them by accident. A
+     * `parameters` mask that omits `groups` still skips them, even when
+     * this is `true`; `false` skips them even when they are listed.
      */
     groups?: boolean,
     /**

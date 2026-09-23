@@ -22,8 +22,8 @@ import {
 } from '../../simple/encoder';
 import { URLParameter } from '../../constants';
 import {
-    assertQueryNotGrouped,
     buildQueryParameters,
+    buildSchemaPassOptions,
     includesParameter,
     intersectQueryParameters,
     isSchemaAware,
@@ -36,7 +36,7 @@ import { serializeFiltersExpression } from './filters';
  * URL encoder for the expression dialect: the filter parameter
  * carries a single function-call expression
  * (filter=and(eq(name,'John'),or(...))) — nested compounds are
- * first-class. The other four parameters share the simple
+ * first-class. The other parameters share the simple
  * dialect's wire format.
  */
 export class ExpressionURLEncoder {
@@ -65,8 +65,6 @@ export class ExpressionURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
-        assertQueryNotGrouped(input);
-
         const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
@@ -79,7 +77,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = this.decoder.decode(encoded, { ...options, parameters });
+        const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -91,8 +89,6 @@ export class ExpressionURLEncoder {
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
-        assertQueryNotGrouped(input);
-
         const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
@@ -103,7 +99,7 @@ export class ExpressionURLEncoder {
             options.parameters,
         );
 
-        const decoded = await this.decoder.decodeAsync(encoded, { ...options, parameters });
+        const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
         if (!decoded) {
             return null;
         }
@@ -192,6 +188,14 @@ export class ExpressionURLEncoder {
                 null,
             (!parameters || includesParameter(parameters, Parameter.SORTS)) ?
                 this.simple.encodeSorts(query.sorts) :
+                null,
+            // shared with the simple dialect; last, so every query
+            // without them keeps its encoded string.
+            (query.groups && (!parameters || parameters.includes(Parameter.GROUPS))) ?
+                this.simple.encodeGroups(query.groups) :
+                null,
+            (query.aggregates && (!parameters || parameters.includes(Parameter.AGGREGATES))) ?
+                this.simple.encodeAggregates(query.aggregates) :
                 null,
         ].filter(Boolean);
 

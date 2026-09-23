@@ -6,7 +6,13 @@
  */
 
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
-import type { Item, Realm, User } from './type';
+import type {
+    AuditEvent,
+    Item,
+    Order,
+    Realm,
+    User,
+} from './type';
 
 export const userSchema = defineSchema<User>({
     name: 'user',
@@ -39,3 +45,46 @@ export const registry = new SchemaRegistry();
 registry.add(userSchema);
 registry.add(itemSchema);
 registry.add(realmSchema);
+
+/**
+ * The #938 issue schema: bare columns scope/name, the built-in bucket on
+ * createdAt, the built-in count.
+ */
+export const eventSchema = defineSchema<AuditEvent>({
+    name: 'event',
+    filters: { allowed: ['realmId'] },
+    groups: {
+        allowed: ['scope', 'name'],
+        functions: { bucket: { allowed: ['createdAt'] } },
+    },
+    aggregates: { functions: { count: {} } },
+});
+
+/**
+ * Named functions binding a built-in: period fixes the field and opens
+ * the unit, total opens the field, revenue fixes it.
+ */
+export const orderSchema = defineSchema<Order>({
+    name: 'order',
+    groups: {
+        allowed: ['status'],
+        functions: {
+            period: {
+                fn: 'bucket',
+                field: 'createdAt',
+                unit: ['hour', 'day'],
+            },
+        },
+    },
+    aggregates: {
+        functions: {
+            count: { allowed: ['couponId'] },
+            total: { fn: 'sum', field: ['amount', 'fee'] },
+            revenue: { fn: 'sum', field: 'amount' },
+        },
+    },
+});
+
+export const groupedRegistry = new SchemaRegistry();
+groupedRegistry.add(eventSchema);
+groupedRegistry.add(orderSchema);

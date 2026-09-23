@@ -28,6 +28,9 @@ import { parseQueryString } from '../utils';
 
 /**
  * Wire name → canonical parameter of the shared URL grammar.
+ * `group`/`aggregate` are mapped unconditionally: the parser leaves both
+ * off unless the caller opts in (`parameters` or the `groups`/`aggregates`
+ * flags), so a server that never asked for them is unaffected.
  */
 const URL_PARAMETER_MAP = [
     [URLParameter.FIELDS, Parameter.FIELDS],
@@ -35,6 +38,8 @@ const URL_PARAMETER_MAP = [
     [URLParameter.PAGINATION, Parameter.PAGINATION],
     [URLParameter.RELATIONS, Parameter.RELATIONS],
     [URLParameter.SORT, Parameter.SORTS],
+    [URLParameter.GROUPS, Parameter.GROUPS],
+    [URLParameter.AGGREGATES, Parameter.AGGREGATES],
 ] as const;
 
 /**
