@@ -167,8 +167,11 @@ export function compileGroupedQuery(
             }
 
             const values = groups.map((group) => group.read(record));
-            // JSON keeps 1 and '1' apart and reads a Date as its ISO instant.
-            const identity = JSON.stringify(values);
+            // JSON keeps 1 and '1' apart and reads a Date as its ISO instant;
+            // a bigint, which JSON refuses, is tagged to stay apart too.
+            const identity = JSON.stringify(values, (_key, value) => (
+                typeof value === 'bigint' ? { $bigint: String(value) } : value
+            ));
             let bucket = buckets.get(identity);
             if (!bucket) {
                 bucket = { values, records: [] };

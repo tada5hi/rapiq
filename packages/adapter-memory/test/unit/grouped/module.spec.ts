@@ -140,6 +140,17 @@ describe('src/grouped/module.ts', () => {
                 .toEqual([{ d: new Date(instant), count: 2 }]);
         });
 
+        it('should group bigint values, apart from their string spelling', () => {
+            const { data } = applyGroupedQuery(grouped([column('v')], [count()]), [{ v: 1n }, { v: '1' }, { v: 1n }, { v: 2n }]);
+
+            expect(data).toHaveLength(3);
+            expect(data).toEqual(expect.arrayContaining([
+                { v: 1n, count: 2 },
+                { v: '1', count: 1 },
+                { v: 2n, count: 1 },
+            ]));
+        });
+
         it('should count groups as the total and slice them by pagination', () => {
             const query = grouped([column('scope')], [count()], { pagination: new Pagination(2, 1) });
 
