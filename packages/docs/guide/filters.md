@@ -156,6 +156,8 @@ Accepted operand forms are an ISO-8601 date (`2026-08-23`) or date-time (`2026-0
 
 A value that denotes no instant (`filter[created_at]=yesterday`, `2026-02-30`) is refused with an `AdapterError` carrying `ErrorCode.KEY_VALUE_INVALID` instead of reaching the driver, which answers a malformed client value with a server error. Only the bindings that *know* the field is temporal can refuse: `@rapiq/adapter-typeorm` on a date column, and `@rapiq/adapter-prisma`/`@rapiq/adapter-drizzle` on a field their metadata marks as a date. `@rapiq/adapter-memory` has no such declaration and simply leaves the value unequal and incomparable, and `@rapiq/adapter-sql`'s default `bindValue` passes every operand through untouched.
 
+`@rapiq/adapter-typeorm` refuses the same way on a [`uuid` column](/packages/adapter-typeorm#uuid-columns): an equality, ordering or `in`/`nin` operand that is not a uuid raises `ErrorCode.KEY_VALUE_INVALID` instead of failing the query on Postgres or matching nothing on SQLite and MySQL.
+
 ::: warning Zone-less columns are read as UTC
 A `datetime`/`timestamp` column stores no offset, so the operand has to be spelled in the same zone the value was written in, and rapiq spells it in UTC.
 

@@ -74,6 +74,7 @@ Two dialects are stricter than the drop policy for grammar: **grammar errors alw
 |---|---|
 | `OPERATOR_UNSUPPORTED` | e.g. `regex`/`mod`/`exists`/`elemMatch` on a URL wire |
 | `FEATURE_UNSUPPORTED` | e.g. `regex` on a dialect without regex support; `mod` on a dialect without a modulo spelling; `or(...)` over the simple URL dialect; values that wouldn't survive the wire round trip; a query whose `Field` carries a [validate-hook condition](/guide/schemas#condition-verdicts) |
+| `KEY_VALUE_INVALID` | an operand the column's type cannot hold, found while binding it: a [date operand](/guide/filters#date-values) that denotes no instant, or a non-uuid operand on a TypeORM `uuid` column. The value came from the client, so this one is a **400** |
 | `CONDITION_DETACHED` | a condition the built-in consumer cannot lower: either a live custom `ICondition` that needs a compatible custom adapter/visitor, or detached runtime data from a JSON/RPC/cache round trip. Rebuild detached data with the condition helpers; dropping either would silently widen the result set |
 
 The URL encoders throw these too; a codec never silently changes what a query means. See [What fits on the wire](/guide/wire#what-fits-on-the-wire).
@@ -308,7 +309,7 @@ app.get('/users', async (req, res) => {
 ```
 
 - `ParseError` (with `throwOnFailure`) → **400**: the client broke the contract; inspect `e.issues` for each offending key. The aggregate envelope's `e.message` does not name a specific key.
-- `BuildError` / `MergeError` / `AdapterError` / `SchemaError` on the server → **500**: these mean *your* code produced or forwarded something invalid.
+- `BuildError` / `MergeError` / `AdapterError` / `SchemaError` on the server → **500**: these mean *your* code produced or forwarded something invalid. The exception is an `AdapterError` carrying `KEY_VALUE_INVALID`: a client operand the column's type cannot hold, so it is a **400**.
 - `AdapterError` on the caller (encode) → fix the query or switch wire dialect; it never leaves the caller.
 
 ## Adding failure modes of your own

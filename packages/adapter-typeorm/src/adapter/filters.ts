@@ -89,6 +89,38 @@ const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
  */
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * `uniqueidentifier` is the mssql spelling; typeorm keeps whichever
+ * one the column was declared with.
+ */
+const UUID_COLUMN_TYPES = new Set<string>(['uuid', 'uniqueidentifier']);
+
+/**
+ * The spellings postgres reads as a uuid: optional braces, hyphens
+ * anywhere between the 32 hex digits.
+ */
+const UUID_INPUT = /^\{?[0-9a-f-]+\}?$/i;
+
+/**
+ * Spell a uuid operand in the canonical hyphenated form every dialect
+ * stores, keeping its case, or undefined when it is no uuid at all.
+ * Normalizing (rather than refusing) keeps a braced or hyphen-less
+ * operand working on postgres and makes it match on the text columns
+ * of sqlite/mysql as well.
+ */
+function toCanonicalUuid(value: unknown) : string | undefined {
+    if (typeof value !== 'string' || !UUID_INPUT.test(value)) {
+        return undefined;
+    }
+
+    const hex = value.replace(/[{}-]/g, '');
+    if (hex.length !== 32) {
+        return undefined;
+    }
+
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function resolveDateColumnFormat(type: ColumnType) : 'date' | 'datetime' | 'instant' | undefined {
     if (type === Date) {
         return 'datetime';
@@ -276,6 +308,19 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         const column = this.resolveColumn(field);
         if (!column) {
             return value;
+        }
+
+        if (typeof column.type === 'string' && UUID_COLUMN_TYPES.has(column.type)) {
+            // postgres and mssql fail the whole query on a malformed
+            // uuid, while sqlite and mysql store it as text and match
+            // nothing: refuse it here so every dialect answers with the
+            // same client error.
+            const uuid = toCanonicalUuid(value);
+            if (!uuid) {
+                throw AdapterError.keyValueInvalid(field);
+            }
+
+            return uuid;
         }
 
         const format = resolveDateColumnFormat(column.type);
