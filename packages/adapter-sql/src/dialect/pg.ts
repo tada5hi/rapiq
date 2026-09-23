@@ -7,8 +7,10 @@
 
 import type { DialectOptions } from './types';
 
-// double-quoted parts are literal text in a to_char pattern.
-const BUCKET_FORMAT = 'YYYY-MM-DD"T"HH24:MI:SS".000Z"';
+// double-quoted parts are literal text in a to_char pattern. The colons
+// are quoted as well: typeorm rewrites every `:<name>` of a caller
+// parameter, inside string literals too (`:MI`, `:SS`).
+const BUCKET_FORMAT = 'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"';
 
 export const pg : DialectOptions = {
     regexp: (field, placeholder, ignoreCase) => {
@@ -27,7 +29,8 @@ export const pg : DialectOptions = {
         if (kind === 'instant') {
             input = `${field} at time zone 'UTC'`;
         } else if (kind === 'date') {
-            input = `${field}::timestamp`;
+            // cast(), not `::timestamp`, for the same parameter rewrite.
+            input = `cast(${field} as timestamp)`;
         }
 
         return `to_char(date_trunc('${unit}', ${input}), '${BUCKET_FORMAT}')`;

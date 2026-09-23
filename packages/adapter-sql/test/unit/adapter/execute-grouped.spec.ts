@@ -31,9 +31,9 @@ import {
     sumAggregate,
 } from '../../data/grouped';
 
-const PG_DAY = 'to_char(date_trunc(\'day\', "event"."createdAt"), \'YYYY-MM-DD"T"HH24:MI:SS".000Z"\')';
-const MYSQL_DAY = 'date_format(`event`.`createdAt`, \'%Y-%m-%dT00:00:00.000Z\')';
-const SQLITE_DAY = 'strftime(\'%Y-%m-%dT00:00:00.000Z\', `event`.`createdAt`)';
+const PG_DAY = 'to_char(date_trunc(\'day\', "event"."createdAt"), \'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"\')';
+const MYSQL_DAY = 'date_format(`event`.`createdAt`, concat(\'%Y-%m-%dT00:\', \'00:\', \'00.000Z\'))';
+const SQLITE_DAY = 'strftime(\'%Y-%m-%dT00:\' || \'00:\' || \'00.000Z\', `event`.`createdAt`)';
 
 const presets : [string, DialectOptions, GroupedSqlFragments][] = [
     ['pg', pg, {
@@ -169,7 +169,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         const fragments = adapter.executeGrouped(new Query({ groups: new Groups([bucketGroup('day')]) }));
 
         expect(fragments.groupBy).toEqual([
-            'to_char(date_trunc(\'day\', "event"."createdAt" at time zone \'UTC\'), \'YYYY-MM-DD"T"HH24:MI:SS".000Z"\')',
+            'to_char(date_trunc(\'day\', "event"."createdAt" at time zone \'UTC\'), \'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"\')',
         ]);
     });
 });

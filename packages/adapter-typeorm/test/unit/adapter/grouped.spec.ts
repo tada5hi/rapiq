@@ -23,7 +23,7 @@ import { Activity } from '../../data/entity/activity';
 import { Reading } from '../../data/entity/reading';
 import { createUnconnectedDataSource } from '../../data/factory';
 
-const BUCKET_DAY = 'strftime(\'%Y-%m-%dT00:00:00.000Z\', "activity"."created_at")';
+const BUCKET_DAY = 'strftime(\'%Y-%m-%dT00:\' || \'00:\' || \'00.000Z\', "activity"."created_at")';
 
 describe('src/adapter/module.ts (executeGrouped)', () => {
     let sqlite : DataSource;
@@ -280,10 +280,11 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
     });
 
     describe('postgres column kinds', () => {
-        const render = (field: string) => {
+        const render = (field: string, parameters: Record<string, unknown> = {}) => {
             const queryBuilder = pg
                 .getRepository(Reading)
-                .createQueryBuilder('reading');
+                .createQueryBuilder('reading')
+                .setParameters(parameters);
 
             const adapter = new TypeormAdapter({ queryBuilder });
 
@@ -312,13 +313,20 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         it('should cast a date-only column before truncating', () => {
             const [sql] = render('observed_on');
 
-            expect(sql).toContain('date_trunc(\'day\', "reading"."observed_on"::timestamp)');
+            expect(sql).toContain('date_trunc(\'day\', cast("reading"."observed_on" as timestamp))');
         });
 
-        it('should keep the format colons out of the parameter binding', () => {
-            const [sql, params] = render('observed_at');
+        it.each(['observed_at', 'observed_on'])('should keep the %s bucket out of caller parameters named like its fragments', (field) => {
+            // typeorm rewrites `:<name>` for every parameter key, inside
+            // string literals too.
+            const [sql, params] = render(field, {
+                timestamp: 'x',
+                MI: 'x',
+                SS: 'x',
+            });
 
-            expect(sql).toContain('HH24:MI:SS');
+            expect(sql).toContain('\'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"\'');
+            expect(sql).not.toMatch(/:(timestamp|MI|SS)\b/);
             expect(params).toEqual([1]);
         });
     });

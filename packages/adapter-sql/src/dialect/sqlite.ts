@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { BUCKET_FORMATS } from './bucket';
+import { splitBucketFormat } from './bucket';
 import { mysql } from './mysql';
 import type { DialectOptions } from './types';
 
@@ -30,5 +30,5 @@ export const sqlite : DialectOptions = {
     mod: mysql.mod,
     // expects ISO or `YYYY-MM-DD HH:MM:SS` text (what TypeORM writes);
     // strftime reads a number as a Julian day, not as epoch time.
-    bucket: (field, unit) => `strftime('${BUCKET_FORMATS[unit]}', ${field})`,
+    bucket: (field, unit) => `strftime(${splitBucketFormat(unit).join(' || ')}, ${field})`,
 };

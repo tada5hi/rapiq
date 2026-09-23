@@ -227,6 +227,30 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         expect(rows).toEqual(oracle(query));
     });
 
+    it.each(['hour', 'day', 'month'])('should keep a %s bucket intact beside caller parameters named like its format', async (unit) => {
+        const query = defineQuery({
+            groups: [{ name: 'bucket', params: ['created_at', unit] }],
+            aggregates: ['count'],
+            filters: inMaster(),
+        });
+
+        // typeorm rewrites `:<name>` for every parameter key, inside
+        // string literals too.
+        const rows = await run(query, {
+            prepare: (queryBuilder) => {
+                queryBuilder.where('1 = 1').setParameters({
+                    timestamp: 'x',
+                    MI: 'x',
+                    SS: 'x',
+                    '00': 'x',
+                    '00.000Z': 'x',
+                });
+            },
+        });
+
+        expect(rows).toEqual(oracle(query));
+    });
+
     it('should bucket by month and order by an aggregate', async () => {
         const query = defineQuery({
             groups: [{ name: 'bucket', params: ['created_at', 'month'] }],
@@ -454,9 +478,17 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
         try {
             await runner.query('set time zone \'Europe/Berlin\'');
 
+            // parameters named like the cast and format fragments
+            // must not be substituted into the bucket expression.
             const queryBuilder = dataSource
                 .getRepository(Reading)
-                .createQueryBuilder('reading', runner);
+                .createQueryBuilder('reading', runner)
+                .where('1 = 1')
+                .setParameters({
+                    timestamp: 'x',
+                    MI: 'x',
+                    SS: 'x',
+                });
 
             const output = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
             const rows = output.normalize(await queryBuilder.getRawMany());

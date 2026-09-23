@@ -35,7 +35,7 @@ import {
     sumAggregate,
 } from '../../data/grouped';
 
-const PG_DAY = 'to_char(date_trunc(\'day\', "event"."createdAt"), \'YYYY-MM-DD"T"HH24:MI:SS".000Z"\')';
+const PG_DAY = 'to_char(date_trunc(\'day\', "event"."createdAt"), \'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"\')';
 
 const pgFilters = () => new Adapter({ ...pg, rootAlias: 'event' }).filters;
 
@@ -111,7 +111,7 @@ describe('src/adapter/grouped/module.ts', () => {
         const query = new Query({ groups: new Groups([bucketGroup('hour')]) });
 
         expect(buildGroupedClauses(query, zonedFilters(), pg.bucket).groupBy).toEqual([
-            'to_char(date_trunc(\'hour\', "event"."createdAt" at time zone \'UTC\'), \'YYYY-MM-DD"T"HH24:MI:SS".000Z"\')',
+            'to_char(date_trunc(\'hour\', "event"."createdAt" at time zone \'UTC\'), \'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"\')',
         ]);
     });
 
