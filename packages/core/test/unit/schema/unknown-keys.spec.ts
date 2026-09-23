@@ -43,6 +43,8 @@ describe('src/schema/module.ts', () => {
             pagination: { maxLimit: 20 },
             relations: { allowed: ['realm'] },
             sort: { allowed: ['id'] },
+            groups: { allowed: ['id'] },
+            aggregates: { functions: { count: {} } },
         })).not.toThrow();
     });
 });

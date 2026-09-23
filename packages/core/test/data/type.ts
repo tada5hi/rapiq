@@ -37,6 +37,17 @@ export type Event = {
     created_at: Date,
 };
 
+export type Order = {
+    id: string,
+    status: string,
+    realmId: string,
+    amount: number,
+    fee: number,
+    couponId: string | null,
+    createdAt: Date,
+    realm: Realm,
+};
+
 // -----------------------------------------------------
 
 // A relation target that carries a dynamic-attribute index signature

@@ -12,12 +12,15 @@ import { Query } from '../parameter';
 import type { ObjectLiteral } from '../types';
 import { assertKnownInputKeys, resolveAliasedKey } from '../utils';
 import {
+    defineAggregates,
     defineFields,
     defineFilters,
+    defineGroups,
     definePagination,
     defineRelations,
     defineSorts,
 } from './parameter';
+import { assertCallKeysUnique } from './parameter/call/module';
 import type { QueryBuildInput } from './types';
 
 const BUILD_INPUT_KEYS : string[] = [
@@ -27,6 +30,8 @@ const BUILD_INPUT_KEYS : string[] = [
     Parameter.RELATIONS,
     Parameter.SORTS,
     Parameter.SORT,
+    Parameter.GROUPS,
+    Parameter.AGGREGATES,
 ];
 
 /**
@@ -74,6 +79,21 @@ export function defineQuery(input: QueryBuildInput<ObjectLiteral> = {}) : Query 
     if (typeof sorts !== 'undefined') {
         context.sorts = defineSorts(sorts as NonNullable<QueryBuildInput['sorts']>);
     }
+
+    if (typeof input.groups !== 'undefined') {
+        context.groups = defineGroups(input.groups);
+    }
+
+    if (typeof input.aggregates !== 'undefined') {
+        context.aggregates = defineAggregates(input.aggregates);
+    }
+
+    // groups and aggregates share one row, so their keys must be
+    // distinct across the two parameters as well.
+    assertCallKeysUnique([
+        ...(context.groups?.value ?? []),
+        ...(context.aggregates?.value ?? []),
+    ].map((item) => item.key));
 
     return new Query(context);
 }

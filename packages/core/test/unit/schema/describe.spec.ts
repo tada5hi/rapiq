@@ -9,7 +9,7 @@ import {
     Parameter,
     defineSchema,
 } from '../../../src';
-import type { User } from '../../data/type';
+import type { Order, User } from '../../data/type';
 
 describe('src/schema/**/describe', () => {
     it('should serialize every declared constraint', () => {
@@ -38,9 +38,9 @@ describe('src/schema/**/describe', () => {
                 allowed: ['email'],
             },
             filters: {
-                allowed: ['id', 'name'], 
-                caseSensitive: null, 
-                indexed: false, 
+                allowed: ['id', 'name'],
+                caseSensitive: null,
+                indexed: false,
             },
             pagination: { maxLimit: 50 },
             relations: {
@@ -55,6 +55,8 @@ describe('src/schema/**/describe', () => {
                 default: { name: 'DESC' },
                 indexed: false,
             },
+            groups: { allowed: null, functions: null },
+            aggregates: { functions: null },
         });
     });
 
@@ -67,9 +69,9 @@ describe('src/schema/**/describe', () => {
             indexes: null,
             fields: { default: null, allowed: null },
             filters: {
-                allowed: null, 
-                caseSensitive: null, 
-                indexed: false, 
+                allowed: null,
+                caseSensitive: null,
+                indexed: false,
             },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
@@ -78,6 +80,8 @@ describe('src/schema/**/describe', () => {
                 default: null,
                 indexed: false,
             },
+            groups: { allowed: null, functions: null },
+            aggregates: { functions: null },
         });
     });
 
@@ -93,9 +97,9 @@ describe('src/schema/**/describe', () => {
         expect(output.fields).toEqual({ default: null, allowed: [] });
         expect(output.relations).toEqual({ allowed: [], schemas: {} });
         expect(output.filters).toEqual({
-            allowed: null, 
-            caseSensitive: [], 
-            indexed: false, 
+            allowed: null,
+            caseSensitive: [],
+            indexed: false,
         });
     });
 
@@ -206,5 +210,121 @@ describe('src/schema/**/describe', () => {
         const output = schema.describe();
 
         expect(JSON.parse(JSON.stringify(output))).toEqual(output);
+    });
+
+    it('should describe the built-in group and aggregate forms', () => {
+        const schema = defineSchema<Order>({
+            name: 'order',
+            groups: { allowed: ['status', 'realmId'], functions: { bucket: { allowed: ['createdAt'] } } },
+            aggregates: { functions: { count: {} } },
+        });
+
+        const output = schema.describe();
+
+        expect(output.groups).toEqual({
+            allowed: ['status', 'realmId'],
+            functions: {
+                bucket: {
+                    fn: 'bucket',
+                    params: [
+                        {
+                            name: 'field',
+                            values: ['createdAt'],
+                            optional: false,
+                        },
+                        {
+                            name: 'unit',
+                            values: ['hour', 'day', 'month'],
+                            optional: false,
+                        },
+                    ],
+                },
+            },
+        });
+        expect(output.aggregates).toEqual({
+            functions: {
+                count: {
+                    fn: 'count',
+                    params: [{
+                        name: 'field',
+                        values: [],
+                        optional: true,
+                    }],
+                },
+            },
+        });
+    });
+
+    it('should describe named functions by their open slots', () => {
+        const schema = defineSchema<Order>({
+            name: 'order',
+            groups: {
+                allowed: ['status'],
+                functions: {
+                    period: {
+                        fn: 'bucket',
+                        field: 'createdAt',
+                        unit: ['hour', 'day'],
+                    },
+                },
+            },
+            aggregates: {
+                functions: {
+                    count: { allowed: ['couponId'] },
+                    total: { fn: 'sum', field: ['amount', 'fee'] },
+                    revenue: { fn: 'sum', field: 'amount' },
+                },
+            },
+        });
+
+        const output = schema.describe();
+
+        expect(output.groups).toEqual({
+            allowed: ['status'],
+            functions: {
+                period: {
+                    fn: 'bucket',
+                    params: [{
+                        name: 'unit',
+                        values: ['hour', 'day'],
+                        optional: false,
+                    }],
+                },
+            },
+        });
+        expect(output.aggregates).toEqual({
+            functions: {
+                count: {
+                    fn: 'count',
+                    params: [{
+                        name: 'field',
+                        values: ['couponId'],
+                        optional: true,
+                    }],
+                },
+                total: {
+                    fn: 'sum',
+                    params: [{
+                        name: 'field',
+                        values: ['amount', 'fee'],
+                        optional: false,
+                    }],
+                },
+                revenue: { fn: 'sum', params: [] },
+            },
+        });
+        expect(JSON.parse(JSON.stringify(output))).toEqual(output);
+    });
+
+    it('should restrict the description to groups and aggregates', () => {
+        const output = defineSchema<Order>({}).describe({ parameters: [Parameter.GROUPS, Parameter.AGGREGATES] });
+
+        expect(output).toEqual({
+            name: null,
+            strict: false,
+            indexes: null,
+            groups: { allowed: null, functions: null },
+            aggregates: { functions: null },
+        });
     });
 });

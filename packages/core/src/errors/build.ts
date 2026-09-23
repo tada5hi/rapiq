@@ -8,6 +8,7 @@
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
+import { ErrorMessage } from './messages';
 import type { BaseErrorOptions } from './types';
 
 export class BuildError extends BaseError {
@@ -60,6 +61,17 @@ export class BuildError extends BaseError {
         return new this({
             message: `The keys ${canonical} and ${alias} are two spellings of the ` +
                 `same parameter. Use ${canonical}.`,
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
+    /**
+     * Two built groups or aggregates would write the same row key, so one
+     * of the two values would be lost.
+     */
+    static outputKeyDuplicate(key: string) {
+        return new this({
+            message: ErrorMessage.outputKeyDuplicate(key),
             code: ErrorCode.KEY_AMBIGUOUS,
         });
     }

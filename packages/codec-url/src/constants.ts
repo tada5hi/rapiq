@@ -15,6 +15,8 @@ export enum URLParameter {
     PAGINATION = 'page',
     RELATIONS = 'include',
     SORT = 'sort',
+    GROUPS = 'group',
+    AGGREGATES = 'aggregate',
 }
 
 /**

@@ -7,8 +7,10 @@
 
 import { Parameter } from '../../constants';
 import type { ParseError } from '../../errors';
+import { AggregatesParseError } from '../parameter/aggregates/error';
 import { FieldsParseError } from '../parameter/fields/error';
 import { FiltersParseError } from '../parameter/filters/error';
+import { GroupsParseError } from '../parameter/groups/error';
 import { PaginationParseError } from '../parameter/pagination/error';
 import { RelationsParseError } from '../parameter/relations/error';
 import { SortsParseError } from '../parameter/sort/error';
@@ -30,4 +32,6 @@ export const PARAMETER_ERROR_CLASSES : Record<`${Parameter}`, typeof ParseError>
     [Parameter.RELATIONS]: RelationsParseError,
     [Parameter.SORTS]: SortsParseError,
     [Parameter.SORT]: SortsParseError,
+    [Parameter.GROUPS]: GroupsParseError,
+    [Parameter.AGGREGATES]: AggregatesParseError,
 };

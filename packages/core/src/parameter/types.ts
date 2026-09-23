@@ -5,12 +5,14 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
+import type { IAggregates } from './aggregates';
 import type {
     IFields,
 } from './fields';
 import type {
     IFilters,
 } from './filters';
+import type { IGroups } from './groups';
 import type {
     IRelations,
 } from './relations';
@@ -24,7 +26,9 @@ export type QueryContext = {
     filters?: IFilters,
     relations?: IRelations,
     pagination?: IPagination,
-    sorts?: ISorts
+    sorts?: ISorts,
+    groups?: IGroups,
+    aggregates?: IAggregates,
 };
 
 export interface IQueryVisitor<R> {
@@ -41,6 +45,18 @@ export interface IQuery {
     readonly pagination: IPagination,
 
     readonly sorts: ISorts,
+
+    /**
+     * Grouping keys. Optional so external IQuery producers keep
+     * compiling; absent reads as empty.
+     */
+    readonly groups?: IGroups,
+
+    /**
+     * Aggregates computed per group. Optional so external IQuery
+     * producers keep compiling; absent reads as empty.
+     */
+    readonly aggregates?: IAggregates,
 
     accept<R>(visitor: IQueryVisitor<R>) : R;
 }

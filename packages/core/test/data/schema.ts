@@ -6,7 +6,13 @@
  */
 
 import { SchemaRegistry, defineSchema } from '../../src';
-import type { Item, Realm, User } from './type';
+import type {
+    Item,
+    Order,
+    Realm,
+    User,
+} from './type';
+
 
 const userSchema = defineSchema<User>({
     name: 'user',
@@ -68,6 +74,31 @@ registry.add(userSchema);
 registry.add(itemSchema);
 registry.add(realmSchema);
 
+// Deliberately not registered: grouped resolution never leaves the root
+// schema (root columns only), so the fixture registry stays unchanged.
+const orderSchema = defineSchema<Order>({
+    name: 'order',
+    groups: {
+        allowed: ['status', 'realmId'],
+        functions: {
+            bucket: { allowed: ['createdAt'] },
+            period: {
+                fn: 'bucket',
+                field: 'createdAt',
+                unit: ['hour', 'day'],
+            },
+        },
+    },
+    aggregates: {
+        functions: {
+            count: { allowed: ['couponId'] },
+            total: { fn: 'sum', field: ['amount', 'fee'] },
+            revenue: { fn: 'sum', field: 'amount' },
+        },
+    },
+});
+
 export {
+    orderSchema,
     registry,
 };

@@ -44,6 +44,8 @@ describe('src/error/*.ts', () => {
             Parameter.RELATIONS,
             Parameter.SORTS,
             Parameter.SORT,
+            Parameter.GROUPS,
+            Parameter.AGGREGATES,
         ];
 
         expect(formatErrors(parameters.map((parameter) => issue({ parameter })))
@@ -54,6 +56,8 @@ describe('src/error/*.ts', () => {
             URLParameter.RELATIONS,
             URLParameter.SORT,
             URLParameter.SORT,
+            'group',
+            'aggregate',
         ]);
     });
 

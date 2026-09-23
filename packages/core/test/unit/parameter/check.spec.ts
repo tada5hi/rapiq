@@ -6,12 +6,16 @@
  */
 
 import {
+    Aggregate,
+    Aggregates,
     Field,
     Fields,
     Filter,
     FilterCompoundOperator,
     FilterFieldOperator,
     Filters,
+    Group,
+    Groups,
     Pagination,
     Query,
     Relation,
@@ -19,10 +23,14 @@ import {
     Sort,
     Sorts,
     defineQuery,
+    isAggregate,
+    isAggregates,
     isField,
     isFields,
     isFilter,
     isFilters,
+    isGroup,
+    isGroups,
     isPagination,
     isParameterNode,
     isQuery,
@@ -43,6 +51,10 @@ const guards = {
     relation: isRelation,
     sorts: isSorts,
     sort: isSort,
+    groups: isGroups,
+    group: isGroup,
+    aggregates: isAggregates,
+    aggregate: isAggregate,
 } as const;
 
 const nodes = {
@@ -58,6 +70,10 @@ const nodes = {
     relation: new Relation('realm'),
     sorts: new Sorts([new Sort('name', 'DESC')]),
     sort: new Sort('name', 'DESC'),
+    groups: new Groups([new Group({ name: 'scope' })]),
+    group: new Group({ name: 'scope' }),
+    aggregates: new Aggregates([new Aggregate({ name: 'count' })]),
+    aggregate: new Aggregate({ name: 'count' }),
 } as const;
 
 type NodeKey = keyof typeof nodes;
@@ -91,6 +107,14 @@ describe('src/parameter/**/check.ts', () => {
             expect(isRelations(new Relations())).toBe(true);
             expect(isFields(new Relations())).toBe(false);
             expect(isSorts(new Relations())).toBe(false);
+
+            expect(isGroups(new Groups())).toBe(true);
+            expect(isAggregates(new Groups())).toBe(false);
+            expect(isSorts(new Groups())).toBe(false);
+
+            expect(isAggregates(new Aggregates())).toBe(true);
+            expect(isGroups(new Aggregates())).toBe(false);
+            expect(isFields(new Aggregates())).toBe(false);
         });
 
         it('should recognize a pagination node without limit & offset', () => {

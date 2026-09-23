@@ -6,7 +6,7 @@
  */
 
 import { dispatchesTo } from '../utils';
-import type { IQuery, IQueryVisitor } from './types';
+import type { IQuery, IQueryVisitor, QueryContext } from './types';
 
 /**
  * A `Query` node is identified by its visitor dispatch: accept() of a
@@ -15,4 +15,14 @@ import type { IQuery, IQueryVisitor } from './types';
  */
 export function isQuery(input: unknown) : input is IQuery {
     return dispatchesTo<IQueryVisitor<unknown>>(input, 'visitQuery');
+}
+
+/**
+ * The single branch point of every consumer: a query carrying groups
+ * or aggregates returns aggregated rows, not records. A query with
+ * neither is a plain record query.
+ */
+export function isGroupedQuery(input: Pick<QueryContext, 'groups' | 'aggregates'>) : boolean {
+    return (input.groups?.value.length ?? 0) > 0 ||
+        (input.aggregates?.value.length ?? 0) > 0;
 }

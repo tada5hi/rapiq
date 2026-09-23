@@ -5,16 +5,28 @@
  *  view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition, IFilter, IFilters } from '../../../src';
+import type {
+    ICondition,
+    IFilter,
+    IFilters,
+    IQuery,
+} from '../../../src';
 import {
+    Aggregate,
+    Aggregates,
     Condition,
     ErrorCode,
     Field,
     Fields,
     FilterCompoundOperator,
     Filters,
+    Group,
+    Groups,
     MergeError,
+    Pagination,
     Query,
+    Relations,
+    Sorts,
     and,
     contains,
     defineQuery,
@@ -423,5 +435,105 @@ describe('src/parameter/filters/preserve.ts', () => {
         expect((output.value[0] as IFilters).preserved).toBe(true);
         expect(() => pruneFiltersByRelations(output, ['realm']))
             .toThrowError(expect.objectContaining({ code: ErrorCode.SCHEMA_PRESERVED_CONDITION_PRUNED }));
+    });
+});
+
+describe('src/parameter/merge.ts (groups and aggregates)', () => {
+    const scope = () => new Group({
+        name: 'scope',
+        lowering: {
+            fn: undefined,
+            field: 'scope',
+            args: [],
+        },
+    });
+    const count = () => new Aggregate({
+        name: 'count',
+        lowering: {
+            fn: 'count',
+            field: undefined,
+            args: [],
+        },
+    });
+
+    it('should carry the grain of the side that declares it', () => {
+        const grouped = new Query({
+            groups: new Groups([scope()]),
+            aggregates: new Aggregates([count()]),
+        });
+        const reach = new Query({ filters: new Filters(FilterCompoundOperator.AND, [eq('realm_id', 'a')]) });
+
+        for (const output of [mergeQueries(grouped, reach), mergeQueries(reach, grouped)]) {
+            expect(output.groups.value.map((el) => el.key)).toEqual(['scope']);
+            expect(output.aggregates.value.map((el) => el.key)).toEqual(['count']);
+            expect(conditions(output.filters)).toEqual([['realm_id', 'eq', 'a']]);
+        }
+    });
+
+    it('should keep one grain when both sides declare the same one', () => {
+        const output = mergeQueries(
+            new Query({ groups: new Groups([scope()]), aggregates: new Aggregates([count()]) }),
+            new Query({ groups: new Groups([scope()]), aggregates: new Aggregates([count()]) }),
+        );
+
+        expect(output.groups.value).toHaveLength(1);
+        expect(output.aggregates.value).toHaveLength(1);
+    });
+
+    it('should refuse two different grains', () => {
+        const left = new Query({ groups: new Groups([scope()]) });
+        const right = new Query({
+            groups: new Groups([new Group({
+                name: 'name',
+                lowering: {
+                    fn: undefined,
+                    field: 'name',
+                    args: [],
+                },
+            })]),
+        });
+
+        expect(() => mergeQueries(left, right)).toThrowError(MergeError);
+        expect(() => mergeQueries(left, right))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+    });
+
+    it('should refuse a merge whose group key equals an aggregate key', () => {
+        const left = new Query({
+            groups: new Groups([new Group({
+                name: 'count',
+                lowering: {
+                    fn: undefined,
+                    field: 'count',
+                    args: [],
+                },
+            })]),
+        });
+        const right = new Query({ aggregates: new Aggregates([count()]) });
+
+        for (const input of [[left, right], [right, left]]) {
+            expect(() => mergeQueries(...input)).toThrowError(MergeError);
+            expect(() => mergeQueries(...input))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+        }
+    });
+
+    it('should read an external query without the members as empty', () => {
+        const external : IQuery = {
+            fields: new Fields(),
+            filters: new Filters(FilterCompoundOperator.AND, []),
+            relations: new Relations(),
+            pagination: new Pagination(),
+            sorts: new Sorts(),
+            accept(visitor) {
+                return visitor.visitQuery(this);
+            },
+        };
+
+        expect(mergeQueries(external).groups.value).toEqual([]);
+        expect(mergeQueries(external, new Query({ groups: new Groups([scope()]) }))
+            .groups.value.map((el) => el.key)).toEqual(['scope']);
+        expect(mergeQueries(new Query({ aggregates: new Aggregates([count()]) }), external)
+            .aggregates.value.map((el) => el.key)).toEqual(['count']);
     });
 });

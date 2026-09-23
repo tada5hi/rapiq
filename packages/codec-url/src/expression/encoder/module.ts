@@ -22,6 +22,7 @@ import {
 } from '../../simple/encoder';
 import { URLParameter } from '../../constants';
 import {
+    assertQueryNotGrouped,
     buildQueryParameters,
     includesParameter,
     intersectQueryParameters,
@@ -64,6 +65,8 @@ export class ExpressionURLEncoder {
      * @param options
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
+        assertQueryNotGrouped(input);
+
         const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
@@ -88,6 +91,8 @@ export class ExpressionURLEncoder {
         input: IQuery,
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
+        assertQueryNotGrouped(input);
+
         const encoded = this.encodeParts(input, options.parameters);
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;

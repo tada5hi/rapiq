@@ -8,6 +8,7 @@
 import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
+import { ErrorMessage } from './messages';
 import type { BaseErrorOptions } from './types';
 
 export class SchemaError extends BaseError {
@@ -79,6 +80,17 @@ export class SchemaError extends BaseError {
             message: `The schema keys ${canonical} and ${alias} are two spellings of ` +
                 `the same parameter. Use ${canonical}.`,
             code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
+    /**
+     * A `functions` declaration of the groups or aggregates schema that
+     * cannot be normalized. Thrown at definition time, never for client input.
+     */
+    static functionInvalid(name: string, reason: string) {
+        return new this({
+            message: ErrorMessage.functionInvalid(name, reason),
+            code: ErrorCode.KEY_INVALID,
         });
     }
 }
