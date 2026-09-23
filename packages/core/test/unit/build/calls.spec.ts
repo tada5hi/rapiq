@@ -24,7 +24,7 @@ describe('src/build/parameter/{groups,aggregates}/*.ts', () => {
     it('should resolve primitives and bare columns against the built-in table', () => {
         const groups = defineGroups<Order>([{ name: 'bucket', params: ['createdAt', 'day'] }, 'status']);
 
-        expect(groups.value.map((item) => item.key)).toEqual(['bucket', 'status']);
+        expect(groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'status']);
         expect(groups.value.map((item) => item.lowering)).toEqual([
             {
                 fn: 'bucket',
@@ -123,15 +123,37 @@ describe('src/build/parameter/{groups,aggregates}/*.ts', () => {
             .toBe(ErrorCode.INPUT_INVALID);
     });
 
+    it('should accept two buckets of one or two columns, their keys differ', () => {
+        const groups = defineGroups([
+            { name: 'bucket', params: ['createdAt', 'day'] },
+            { name: 'bucket', params: ['createdAt', 'hour'] },
+            { name: 'bucket', params: ['updatedAt', 'day'] },
+        ]);
+
+        expect(groups.value.map((item) => item.key))
+            .toEqual(['bucket_createdAt_day', 'bucket_createdAt_hour', 'bucket_updatedAt_day']);
+    });
+
+    it('should read a zero-argument group without a schema as a bare column', () => {
+        const groups = defineGroups(['period']);
+
+        expect(groups.value[0]!.key).toBe('period');
+        expect(groups.value[0]!.lowering).toEqual({
+            fn: undefined,
+            field: 'period',
+            args: [],
+        });
+    });
+
     it('should refuse a key requested twice within a parameter', () => {
         const groups = captureError<BuildError>(() => defineGroups([
             { name: 'bucket', params: ['createdAt', 'day'] },
-            { name: 'bucket', params: ['createdAt', 'hour'] },
+            { name: 'bucket', params: ['createdAt', 'day'] },
         ]));
         const aggregates = captureError<BuildError>(() => defineAggregates(['count', { name: 'count' }]));
 
         expect(groups.code).toBe(ErrorCode.KEY_AMBIGUOUS);
-        expect(groups.message).toBe(ErrorMessage.outputKeyDuplicate('bucket'));
+        expect(groups.message).toBe(ErrorMessage.outputKeyDuplicate('bucket_createdAt_day'));
         expect(aggregates.code).toBe(ErrorCode.KEY_AMBIGUOUS);
         expect(aggregates.message).toBe(ErrorMessage.outputKeyDuplicate('count'));
     });
@@ -144,7 +166,7 @@ describe('src/build/module.ts', () => {
             aggregates: ['count'],
         });
 
-        expect(query.groups.value.map((item) => item.key)).toEqual(['bucket', 'status']);
+        expect(query.groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'status']);
         expect(query.aggregates.value.map((item) => item.key)).toEqual(['count']);
     });
 

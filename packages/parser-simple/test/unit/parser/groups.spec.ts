@@ -113,13 +113,19 @@ describe('src/parameter/groups', () => {
     });
 
     it('should reject a key requested twice', () => {
-        const error = errorOf(() => parser.parse('bucket(createdAt,day),bucket(createdAt,hour)', { schema: 'event' }));
+        const error = errorOf(() => parser.parse('bucket(createdAt,day),bucket(createdAt,day)', { schema: 'event' }));
 
         expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({
             code: ErrorCode.KEY_AMBIGUOUS,
             path: ['bucket'],
-            message: ErrorMessage.outputKeyDuplicate('bucket'),
+            message: ErrorMessage.outputKeyDuplicate('bucket_createdAt_day'),
         })]);
+    });
+
+    it('should accept two grains of one bucket, their keys differ', () => {
+        const groups = parser.parse('bucket(createdAt,day),bucket(createdAt,hour)', { schema: 'event' });
+
+        expect(groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'bucket_createdAt_hour']);
     });
 
     it('should turn a grammar violation into an issue of its own class', () => {

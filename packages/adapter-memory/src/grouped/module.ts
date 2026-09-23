@@ -17,8 +17,8 @@ import {
     BucketUnit,
     GroupFunction,
     Sorts,
+    assertGroupedQuery,
     isBucketUnit,
-    isGroupedQuery,
     resolveGroupedSorts,
     toDate,
 } from '@rapiq/core';
@@ -132,13 +132,7 @@ export function compileGroupedQuery(
     query: IQuery,
     options: QueryVisitorOptions = {},
 ) : (data: unknown[]) => ApplyOutput<ObjectLiteral> {
-    if (!isGroupedQuery(query)) {
-        throw AdapterError.featureUnsupported('groups:empty');
-    }
-
-    if (query.fields.value.length > 0) {
-        throw AdapterError.featureUnsupported('fields:grouped');
-    }
+    assertGroupedQuery(query);
 
     const groups = (query.groups?.value ?? []).map((group) => ({
         key: group.key,

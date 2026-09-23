@@ -22,9 +22,9 @@ export class Group implements IGroup {
         this.params = [...(options.params ?? [])];
         this.lowering = options.lowering;
 
-        // a group callee is one dimension: two groups with the same
-        // callee are two grains of it, a real collision.
-        this.key = options.name;
+        // symmetric with aggregates: bucket(createdAt,day) is
+        // bucket_createdAt_day, so buckets of two columns do not collide.
+        this.key = [this.name, ...this.params].join('_');
     }
 
     accept<R>(visitor: IGroupVisitor<R>) : R {

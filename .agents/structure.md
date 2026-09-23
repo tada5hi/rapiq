@@ -52,7 +52,7 @@ Changes to `@rapiq/core` affect every other package.
 packages/core/src/
 ├── parameter/            # Query AST node classes + visitor interfaces
 │   ├── aggregates/       # Aggregates/Aggregate (count/sum measures of a grouped read)
-│   ├── call/             # CallTerm/CallLowering, GroupFunction/AggregateFunction/BucketUnit + slot tables, isCallEqual, resolveGroupedSorts
+│   ├── call/             # CallTerm/CallLowering, GroupFunction/AggregateFunction/BucketUnit + slot tables, isCallEqual, resolveGroupedSorts, assertGroupedQuery
 │   ├── fields/           # Fields/Field (include/exclude operators)
 │   ├── filters/          # Filters (compound and/or) + Filter (field-op-value condition); CONDITION_MARKER/Condition identity and preserve() pruning wrapper
 │   │   └── helpers/      # typed condition helpers (eq, gte, inArray, and, or, …)

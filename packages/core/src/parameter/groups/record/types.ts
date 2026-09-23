@@ -12,7 +12,7 @@ export interface IGroupVisitor<R> {
 }
 
 export interface IGroup {
-    /** Output key: the row key and the grouped sort target. Equals `name`. */
+    /** Output key: `[name, ...params].join('_')`, the row key and the grouped sort target. */
     readonly key: string;
 
     /** Callee or bare column, as written on the wire. */

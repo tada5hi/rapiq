@@ -15,8 +15,8 @@ import {
     AdapterError,
     AggregateFunction,
     GroupFunction,
+    assertGroupedQuery,
     isBucketUnit,
-    isGroupedQuery,
     resolveGroupedSorts,
 } from '@rapiq/core';
 import type { DialectOptions } from '../../dialect';
@@ -98,13 +98,7 @@ export function buildGroupedClauses(
     filters: IFiltersAdapter,
     bucket?: DialectOptions['bucket'],
 ) : GroupedClauses {
-    if (!isGroupedQuery(query)) {
-        throw AdapterError.featureUnsupported('groups:empty');
-    }
-
-    if (query.fields.value.length > 0) {
-        throw AdapterError.featureUnsupported('fields:grouped');
-    }
+    assertGroupedQuery(query);
 
     const groups = (query.groups?.value ?? []).map((group) => ({
         key: group.key,

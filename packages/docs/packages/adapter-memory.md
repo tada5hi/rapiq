@@ -197,7 +197,7 @@ const run = compileGroupedQuery(query);
 run(events);
 ```
 
-The pipeline is filter, group, aggregate, sort (explicit sorts, otherwise group keys ascending), then paginate; `total` is the number of groups before pagination. Relations are ignored. Semantics:
+The pipeline is filter, group, aggregate, sort (explicit sorts, then every group key they do not name ascending), then paginate; `total` is the number of groups before pagination. Relations are ignored. Semantics:
 
 - a bucket reads the value like a [date operand](#date-values) and truncates it to the UTC hour, day or month (`toISOString()`); a value that is not a date lands in the `null` group;
 - `null` / missing is a group of its own, sorted last ascending like PostgreSQL (MySQL and SQLite sort it first); group keys compare exactly and case-sensitively;

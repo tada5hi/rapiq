@@ -254,7 +254,7 @@ const adapter = new TypeormAdapter({ queryBuilder });
 
 const { pagination, normalize } = adapter.executeGrouped(query);
 const rows = normalize(await queryBuilder.getRawMany());
-// [{ bucket: '2026-09-22T00:00:00.000Z', scope: 'auth', count: 3 }, ...]
+// [{ bucket_createdAt_day: '2026-09-22T00:00:00.000Z', scope: 'auth', count: 3 }, ...]
 ```
 
 - The bucket SQL comes from the [resolved dialect](#dialect-detection), and the column kind from the entity metadata: a `timestamptz` column is bucketed as an instant, a `date` or zone-less `datetime` / `timestamp` column as stored (UTC wall clock). A bucket on a column that is not temporal is refused (`groups:bucket-type`). A MySQL `TIMESTAMP` column needs the session `time_zone` at `'+00:00'`, and SQLite expects text dates (what TypeORM writes), see [Buckets are UTC](/guide/grouping#buckets).

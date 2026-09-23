@@ -68,6 +68,17 @@ export class AdapterError extends BaseError {
         });
     }
 
+    /**
+     * A hand-built grouped query whose groups and aggregates write the
+     * same row key, so one of the two values would be lost.
+     */
+    static outputKeyDuplicate(key: string) {
+        return new this({
+            message: ErrorMessage.outputKeyDuplicate(key),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
     static featureUnsupported(feature: string) {
         return new this({
             message: `The feature ${feature} is not supported by the dialect.`,

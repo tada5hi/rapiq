@@ -30,6 +30,12 @@ function isCallBuildInput(input: unknown) : input is { name: string, params?: st
  * is a named function only a schema can resolve, so it travels
  * unresolved (`lowering` undefined) and adapters refuse it until a
  * server parse resolved it.
+ *
+ * Without a schema a zero-argument name cannot be told from a column,
+ * so `defineGroups(['period'])` lowers to the bare column `period`. The
+ * wire form is the same either way: a zero-argument named function
+ * built client-side is only resolved as that function by the server's
+ * parse, never by an adapter fed the built query directly.
  */
 export function buildCallOptions(
     parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,

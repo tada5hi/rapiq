@@ -33,7 +33,7 @@ describe('src/module.ts: groups and aggregates', () => {
         const query = parser.parse(INPUT, OPT_IN);
 
         expect(query).toEqual(new SimpleParser().parse(INPUT, OPT_IN));
-        expect(query.groups.value.map((item) => item.key)).toEqual(['bucket', 'scope']);
+        expect(query.groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'scope']);
         expect(query.aggregates.value.map((item) => item.key)).toEqual(['count', 'sum_amount']);
         expect(query.sorts).toEqual(new Sorts([new Sort('count', SortDirection.DESC)]));
     });

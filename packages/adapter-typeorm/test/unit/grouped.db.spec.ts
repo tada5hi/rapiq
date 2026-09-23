@@ -172,19 +172,19 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([
             {
-                bucket: '2026-08-20T00:00:00.000Z',
+                bucket_created_at_day: '2026-08-20T00:00:00.000Z',
                 scope: 'auth',
                 name: 'login',
                 count: 2,
             },
             {
-                bucket: '2026-08-21T00:00:00.000Z',
+                bucket_created_at_day: '2026-08-21T00:00:00.000Z',
                 scope: 'auth',
                 name: 'logout',
                 count: 1,
             },
             {
-                bucket: '2026-09-01T00:00:00.000Z',
+                bucket_created_at_day: '2026-09-01T00:00:00.000Z',
                 scope: 'billing',
                 name: 'charge',
                 count: 1,
@@ -204,22 +204,22 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([
             {
-                bucket: '2026-08-20T09:00:00.000Z',
+                bucket_created_at_hour: '2026-08-20T09:00:00.000Z',
                 count: 1,
                 sum_amount: 5,
             },
             {
-                bucket: '2026-08-20T22:00:00.000Z',
+                bucket_created_at_hour: '2026-08-20T22:00:00.000Z',
                 count: 1,
                 sum_amount: 7,
             },
             {
-                bucket: '2026-08-21T00:00:00.000Z',
+                bucket_created_at_hour: '2026-08-21T00:00:00.000Z',
                 count: 1,
                 sum_amount: 1,
             },
             {
-                bucket: '2026-09-01T10:00:00.000Z',
+                bucket_created_at_hour: '2026-09-01T10:00:00.000Z',
                 count: 1,
                 sum_amount: 100,
             },
@@ -261,8 +261,8 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const rows = await run(query);
 
         expect(rows).toEqual([
-            { bucket: '2026-08-01T00:00:00.000Z', count: 4 },
-            { bucket: '2026-09-01T00:00:00.000Z', count: 2 },
+            { bucket_created_at_month: '2026-08-01T00:00:00.000Z', count: 4 },
+            { bucket_created_at_month: '2026-09-01T00:00:00.000Z', count: 2 },
         ]);
         expect(rows).toEqual(oracle(query));
     });
@@ -475,8 +475,8 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
             const rows = output.normalize(await queryBuilder.getRawMany());
 
             expect(rows).toEqual([
-                { bucket: '2026-08-20T00:00:00.000Z', count: 1 },
-                { bucket: '2026-08-21T00:00:00.000Z', count: 1 },
+                { bucket_observed_at_day: '2026-08-20T00:00:00.000Z', count: 1 },
+                { bucket_observed_at_day: '2026-08-21T00:00:00.000Z', count: 1 },
             ]);
             expect(rows).toEqual(applyGroupedQuery(query, OBSERVED.map((observed_at, index) => ({
                 observed_at,

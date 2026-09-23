@@ -29,7 +29,7 @@ A typical dashboard request:
 GET /events?filter[realmId]=<id>&group=bucket(createdAt,day),scope,name&aggregate=count
 ```
 
-answers rows shaped `{ bucket: '2026-09-22T00:00:00.000Z', scope, name, count: 3 }`.
+answers rows shaped `{ bucket_createdAt_day: '2026-09-22T00:00:00.000Z', scope, name, count: 3 }`.
 
 The grammar is the same in every parser dialect (simple, expression, MongoDB-style):
 
@@ -149,32 +149,31 @@ anything but `allowed`, or a group function named like an allowed column (it wou
 ## Output keys {#output-keys}
 
 Every group and aggregate becomes one key of each result row. The key is derived from the wire form
-alone, so client and server compute the same key and no `as` syntax is needed:
-
-- a group's key is its name: `scope`, `bucket`, `period`;
-- an aggregate's key is its name joined with its arguments by `_`: `count`, `count_couponId`, `sum_amount`.
+alone, so client and server compute the same key and no `as` syntax is needed: the name joined with its
+arguments by `_`, the same rule for groups and aggregates. A term without arguments keeps its bare name.
 
 | Request | Row keys |
 |---|---|
 | `group=scope,name` | `scope`, `name` |
-| `group=bucket(createdAt,day)` | `bucket` |
-| `group=period(day)` (named) | `period` |
+| `group=bucket(createdAt,day)` | `bucket_createdAt_day` |
+| `group=bucket(createdAt,day),bucket(updatedAt,day)` | `bucket_createdAt_day`, `bucket_updatedAt_day` |
+| `group=period(day)` (named) | `period_day` |
 | `aggregate=count` or `aggregate=count()` | `count` |
 | `aggregate=count(couponId)` | `count_couponId` |
 | `aggregate=sum(amount),sum(fee)` | `sum_amount`, `sum_fee` |
 | `aggregate=total(amount),total(fee)` (named, open column) | `total_amount`, `total_fee` |
 | `aggregate=revenue` (named, fixed column) | `revenue` |
-| `group=bucket(createdAt,day),bucket(createdAt,hour)` | rejected: `KEY_AMBIGUOUS` |
+| `group=scope,scope` | rejected: `KEY_AMBIGUOUS` |
 | `group=count&aggregate=count` | rejected: `KEY_AMBIGUOUS` |
 | `aggregate=count,count()` | rejected: `KEY_AMBIGUOUS` |
 
-Groups keep the bare name because two groups with the same callee are two grains of one dimension, a
-real collision; declare a named function per grain if a query needs both.
+A collision means the same key and nothing else: `bucket(createdAt,day),bucket(createdAt,hour)` is two
+keys and accepted, although every hour row then repeats its day.
 
 Keys become SQL column aliases, so they are bound by the engine's identifier limit: 63 bytes on PostgreSQL
 (a longer alias is truncated), 30 on Oracle before 12.2. `normalizeGroupedRows` (and `normalize`) refuse a
 driver row missing an output key with `KEY_VALUE_INVALID` rather than reading it as `null`, so keep column
-and function names short enough that `sum_<column>` fits.
+and function names short enough that `sum_<column>` and `bucket_<column>_<unit>` fit.
 
 ## Grouped mode {#grouped-mode}
 
@@ -186,10 +185,12 @@ Once a query carries a group or an aggregate, the other parameters change meanin
   schema's `fields.default` is not applied. The row shape is the output keys.
 - **Relations** are still parsed, because they gate which relation paths a filter may traverse. They are
   never hydrated into the rows, and the grouped entry points join only the relations a filter traverses.
-- **Sorts** may name output keys only: `sort=-count` or `sort=bucket` are accepted, `sort=age` and
-  `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
-  `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Without a sort, rows are ordered
-  by every group key ascending, in declared order.
+- **Sorts** may name output keys only: `sort=-count` or `sort=bucket_createdAt_day` are accepted, `sort=age`
+  and `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
+  `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Every group key the sort does not
+  name is appended ascending, in declared order, as a tie-breaker: the group keys identify a row, so the
+  order is total and paging with `offset` over tied values (`sort=-count`) neither repeats nor skips a
+  row. Without a sort, rows are ordered by every group key ascending, in declared order.
 - **Pagination** limits group rows, and `pagination.maxLimit` caps them. A dashboard asking for 744 hourly
   buckets times several scopes can exceed a typical `maxLimit`. The SQL and TypeORM adapters run no
   separate count query, so **`rows.length === limit` is the signal that the series may be truncated**;
@@ -265,7 +266,10 @@ const query = defineQuery({
 A string is a term without arguments; `{ name, params }` is a call. Built-ins and bare group columns are
 resolved on the spot. A call to a name the build layer does not know (`{ name: 'period', params: ['day'] }`,
 or the aggregate `'revenue'`) is kept as an unresolved node: it encodes to `period(day)` for a server that
-declares `period`, but no adapter executes it. `BuildError` reports an invalid identifier (`KEY_INVALID`),
+declares `period`, but no adapter executes it. A group without arguments cannot be told from a column, so
+`groups: ['period']` is read as the bare column `period`: it encodes to `group=period` all the same, but a
+zero-argument named group function is only resolved as that function by the server's parse, never by an
+adapter fed the built query directly. `BuildError` reports an invalid identifier (`KEY_INVALID`),
 bad arguments (`KEY_VALUE_INVALID`) and a duplicate output key (`KEY_AMBIGUOUS`).
 
 `createURLCodec().encode(query)` writes `group=` and `aggregate=` after every other parameter, so the
@@ -305,7 +309,7 @@ const queryBuilder = dataSource.getRepository(Event).createQueryBuilder('event')
 
 const { normalize } = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
 const rows = normalize(await queryBuilder.getRawMany());
-// [{ bucket: '2026-09-22T00:00:00.000Z', scope: 'auth', name: 'login', count: 3 }, ...]
+// [{ bucket_createdAt_day: '2026-09-22T00:00:00.000Z', scope: 'auth', name: 'login', count: 3 }, ...]
 ```
 
 Build a fresh builder per call. `executeGrouped` rewrites the builder in place, and a second call on the
@@ -333,11 +337,11 @@ A bucket without matching rows is absent from the answer. Because every bucket k
 client fills the gaps from a plain `Date` loop:
 
 ```typescript
-const byKey = new Map(rows.map((row) => [row.bucket, row]));
+const byKey = new Map(rows.map((row) => [row.bucket_createdAt_day, row]));
 const series = [];
 for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
     const bucket = new Date(t).toISOString();
-    series.push(byKey.get(bucket) ?? { bucket, count: 0 });
+    series.push(byKey.get(bucket) ?? { bucket_createdAt_day: bucket, count: 0 });
 }
 ```
 
@@ -405,6 +409,11 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups:bucket-type` | the bucketed column is not temporal (TypeORM metadata, or a `temporalKind` override returning `undefined`) |
 | `groups:builder` | the TypeORM builder already carries a `GROUP BY` |
 | `aggregates:fan-out` | aggregates over a joined to-many relation would count join rows (TypeORM) |
+
+A hand-built grouped query whose groups and aggregates repeat an [output key](#output-keys) is refused with
+`AdapterError` code `KEY_AMBIGUOUS` by every grouped entry point. All three refusals, `groups:empty`,
+`fields:grouped` and the duplicate key, come from one core helper, `assertGroupedQuery(query)`, which runs
+before anything is rendered or read.
 
 A hand-built `Group` whose bucket unit is not `hour`, `day` or `month` is refused with `AdapterError` code
 `KEY_VALUE_INVALID` by every adapter: the unit is inlined into SQL, so nothing outside the list may pass.

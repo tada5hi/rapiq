@@ -281,7 +281,7 @@ describe('src/module.ts: groups and aggregates', () => {
         it('should accept primitives and bare columns', () => {
             const query = unbound.parse({ groups: 'bucket(createdAt,hour),scope', aggregates: 'count,sum(amount)' }, OPT_IN);
 
-            expect(query.groups.value.map((item) => item.key)).toEqual(['bucket', 'scope']);
+            expect(query.groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_hour', 'scope']);
             expect(query.aggregates.value.map((item) => item.key)).toEqual(['count', 'sum_amount']);
         });
     });
@@ -353,14 +353,15 @@ describe('src/module.ts: groups and aggregates', () => {
         it('should accept a sort on any output key', () => {
             const query = parser.parse(
                 {
-                    groups: 'scope',
+                    groups: 'bucket(createdAt,day),scope',
                     aggregates: 'count(couponId),total(fee)',
-                    sorts: '-count_couponId,scope,total_fee',
+                    sorts: '-bucket_createdAt_day,-count_couponId,scope,total_fee',
                 },
                 { schema: 'event', ...OPT_IN },
             );
 
             expect(query.sorts).toEqual(new Sorts([
+                new Sort('bucket_createdAt_day', SortDirection.DESC),
                 new Sort('count_couponId', SortDirection.DESC),
                 new Sort('scope', SortDirection.ASC),
                 new Sort('total_fee', SortDirection.ASC),

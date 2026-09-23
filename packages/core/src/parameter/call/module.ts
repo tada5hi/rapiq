@@ -11,6 +11,7 @@ import type { IAggregate } from '../aggregates';
 import type { IGroup } from '../groups';
 import type { ISort } from '../sorts';
 import { Sort } from '../sorts';
+import { isGroupedQuery } from '../check';
 import type { IQuery } from '../types';
 import { BucketUnit } from './constants';
 
@@ -47,9 +48,37 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
 }
 
 /**
- * The ordering every grouped consumer applies: the explicit sorts when
- * present, otherwise every group key ascending in declared order, and
- * none for an aggregates-only query (which yields exactly one row).
+ * The refusals every grouped entry point shares, run before any SQL is
+ * rendered or any record is read: a query without groups or aggregates
+ * (`groups:empty`), one carrying fields (`fields:grouped`) and one
+ * writing a row key twice (`KEY_AMBIGUOUS`). The parser never produces
+ * the last two; a hand-built query could.
+ */
+export function assertGroupedQuery(query: IQuery) : void {
+    if (!isGroupedQuery(query)) {
+        throw AdapterError.featureUnsupported('groups:empty');
+    }
+
+    if (query.fields.value.length > 0) {
+        throw AdapterError.featureUnsupported('fields:grouped');
+    }
+
+    const keys = new Set<string>();
+    for (const item of [...(query.groups?.value ?? []), ...(query.aggregates?.value ?? [])]) {
+        if (keys.has(item.key)) {
+            throw AdapterError.outputKeyDuplicate(item.key);
+        }
+
+        keys.add(item.key);
+    }
+}
+
+/**
+ * The ordering every grouped consumer applies: the explicit sorts, then
+ * every group key they do not name ascending in declared order, and
+ * none for an aggregates-only query (which yields exactly one row). The
+ * group keys identify a row, so the order is total and LIMIT/OFFSET
+ * paging over ties in the explicit sorts is stable.
  *
  * A grouped row carries only the output keys, so an explicit sort naming
  * anything else is refused (`sorts:grouped`). The parser never produces
@@ -57,19 +86,22 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
  * the name raw or ignore it.
  */
 export function resolveGroupedSorts(query: IQuery) : ISort[] {
-    if (query.sorts.value.length > 0) {
-        const keys = new Set<string>([
-            ...(query.groups?.value ?? []).map((group) => group.key),
-            ...(query.aggregates?.value ?? []).map((aggregate) => aggregate.key),
-        ]);
+    const groups = query.groups?.value ?? [];
+    const keys = new Set<string>([
+        ...groups.map((group) => group.key),
+        ...(query.aggregates?.value ?? []).map((aggregate) => aggregate.key),
+    ]);
 
-        if (query.sorts.value.some((sort) => !keys.has(sort.name))) {
-            throw AdapterError.featureUnsupported('sorts:grouped');
-        }
-
-        return [...query.sorts.value];
+    if (query.sorts.value.some((sort) => !keys.has(sort.name))) {
+        throw AdapterError.featureUnsupported('sorts:grouped');
     }
 
-    return (query.groups?.value ?? [])
-        .map((group) => new Sort(group.key, SortDirection.ASC));
+    const named = new Set(query.sorts.value.map((sort) => sort.name));
+
+    return [
+        ...query.sorts.value,
+        ...groups
+            .filter((group) => !named.has(group.key))
+            .map((group) => new Sort(group.key, SortDirection.ASC)),
+    ];
 }

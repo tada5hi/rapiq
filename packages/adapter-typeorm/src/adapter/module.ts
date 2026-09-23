@@ -6,7 +6,7 @@
  */
 
 import type { IQuery } from '@rapiq/core';
-import { AdapterError, isGroupedQuery } from '@rapiq/core';
+import { AdapterError, assertGroupedQuery, isGroupedQuery } from '@rapiq/core';
 import type { ExecuteOptions, IRootAdapter } from '@rapiq/adapter-sql';
 import { QueryVisitor, buildGroupedClauses, normalizeGroupedRows } from '@rapiq/adapter-sql';
 import type { SelectQueryBuilder } from 'typeorm';
@@ -114,9 +114,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         query: IQuery,
         options: ExecuteOptions = {},
     ) : TypeormGroupedOutput {
-        if (!isGroupedQuery(query)) {
-            throw AdapterError.featureUnsupported('groups:empty');
-        }
+        assertGroupedQuery(query);
 
         // a caller's GROUP BY (a per-entity dedupe, say) would silently
         // turn every group into a per-entity group. Checked before

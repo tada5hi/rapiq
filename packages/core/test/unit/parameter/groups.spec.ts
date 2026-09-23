@@ -33,14 +33,14 @@ const count : CallLowering = {
 };
 
 describe('src/parameter/groups/**', () => {
-    it('should key a group by its name and keep the wire form', () => {
+    it('should key a group by its name joined with its params and keep the wire form', () => {
         const group = new Group({
             name: 'bucket',
             params: ['createdAt', 'day'],
             lowering: bucketDay,
         });
 
-        expect(group.key).toEqual('bucket');
+        expect(group.key).toEqual('bucket_createdAt_day');
         expect(group.name).toEqual('bucket');
         expect(group.params).toEqual(['createdAt', 'day']);
         expect(group.lowering).toEqual(bucketDay);
@@ -49,6 +49,7 @@ describe('src/parameter/groups/**', () => {
     it('should default params to none and lowering to unresolved', () => {
         const group = new Group({ name: 'period' });
 
+        expect(group.key).toEqual('period');
         expect(group.params).toEqual([]);
         expect(group.lowering).toBeUndefined();
     });

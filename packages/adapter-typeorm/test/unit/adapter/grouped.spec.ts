@@ -9,11 +9,14 @@ import {
     ErrorCode,
     Filter,
     FilterFieldOperator,
+    Query,
     Relation,
     Relations,
     Sort,
     SortDirection,
     Sorts,
+    defineAggregates,
+    defineGroups,
     defineQuery,
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
@@ -58,6 +61,17 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
             }));
     });
 
+    it('should refuse an output key written twice by a hand-built query', () => {
+        const { queryBuilder, adapter } = setup();
+        const sql = queryBuilder.getSql();
+
+        expect(() => adapter.executeGrouped(new Query({
+            groups: defineGroups(['count']),
+            aggregates: defineAggregates(['count']),
+        }))).toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+        expect(queryBuilder.getSql()).toEqual(sql);
+    });
+
     it('should select, group and order by the output keys', () => {
         const { queryBuilder, adapter } = setup();
 
@@ -70,12 +84,12 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         const { expressionMap } = queryBuilder;
 
         expect(expressionMap.selects).toEqual([
-            { selection: BUCKET_DAY, aliasName: 'bucket' },
+            { selection: BUCKET_DAY, aliasName: 'bucket_created_at_day' },
             { selection: '"activity"."scope"', aliasName: 'scope' },
             { selection: 'count(*)', aliasName: 'count' },
         ]);
         expect(expressionMap.groupBys).toEqual([BUCKET_DAY, '"activity"."scope"']);
-        expect(expressionMap.orderBys).toEqual({ bucket: 'ASC', scope: 'ASC' });
+        expect(expressionMap.orderBys).toEqual({ bucket_created_at_day: 'ASC', scope: 'ASC' });
         expect(output.pagination).toEqual({ limit: 10, offset: 5 });
     });
 
@@ -93,7 +107,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         expect(queryBuilder.expressionMap.skip).toBeUndefined();
     });
 
-    it('should order by an explicit sort on an aggregate key', () => {
+    it('should order by an explicit sort on an aggregate key, then by the group keys', () => {
         const { queryBuilder, adapter } = setup();
 
         adapter.executeGrouped(defineQuery({
@@ -102,8 +116,8 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
             sorts: new Sorts([new Sort('count', SortDirection.DESC)]),
         }));
 
-        expect(queryBuilder.expressionMap.orderBys).toEqual({ count: 'DESC' });
-        expect(queryBuilder.getSql()).toContain('ORDER BY "count" DESC');
+        expect(queryBuilder.expressionMap.orderBys).toEqual({ count: 'DESC', scope: 'ASC' });
+        expect(queryBuilder.getSql()).toContain('ORDER BY "count" DESC, "scope" ASC');
     });
 
     it('should replace caller selects and orderings', () => {
