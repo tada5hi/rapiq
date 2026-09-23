@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/parser-simple",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "description": "Parse plain object/array input (the URL-query-like \"simple\" dialect) into a rapiq query AST.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -17,10 +17,10 @@
     ],
     "devDependencies": {
         "@ebec/core": "^1.3.2",
-        "@rapiq/core": "^2.3.0"
+        "@rapiq/core": "^2.4.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.3.0"
+        "@rapiq/core": "^2.4.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

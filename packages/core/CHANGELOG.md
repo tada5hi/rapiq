@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.4.0](https://github.com/tada5hi/rapiq/compare/core-v2.3.0...core-v2.4.0) (2026-09-23)
+
+
+### Features
+
+* **core:** add groups and aggregates query parameters ([#945](https://github.com/tada5hi/rapiq/issues/945)) ([56c05a2](https://github.com/tada5hi/rapiq/commit/56c05a275c0800d14e01122659b7bc890ccac159))
+* lower groups and aggregates in the memory, sql and typeorm adapters ([#947](https://github.com/tada5hi/rapiq/issues/947)) ([eebb88c](https://github.com/tada5hi/rapiq/commit/eebb88ce9aec2b4110f18f59335c9dce654d15de))
+* parse and transport groups and aggregates ([#946](https://github.com/tada5hi/rapiq/issues/946)) ([f5f2b8f](https://github.com/tada5hi/rapiq/commit/f5f2b8f20a19d93a2eb38faf3a3ca735c180d32e))
+
+
+### Bug Fixes
+
+* harden grouped queries (group keys, paging order, validate hooks, typeorm EXISTS) ([#952](https://github.com/tada5hi/rapiq/issues/952)) ([ab806b3](https://github.com/tada5hi/rapiq/commit/ab806b3aa3c74b56d7b5ce6ea63a7fdb82f82e25))
+
 ## [2.3.0](https://github.com/tada5hi/rapiq/compare/core-v2.2.0...core-v2.3.0) (2026-09-22)
 
 
