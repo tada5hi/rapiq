@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.4.0](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.3.0...adapter-drizzle-v2.4.0) (2026-09-23)
+
+
+### Features
+
+* parse and transport groups and aggregates ([#946](https://github.com/tada5hi/rapiq/issues/946)) ([f5f2b8f](https://github.com/tada5hi/rapiq/commit/f5f2b8f20a19d93a2eb38faf3a3ca735c180d32e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.3.0 to ^2.4.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.3.0 to ^2.4.0
+
 ## [2.3.0](https://github.com/tada5hi/rapiq/compare/adapter-drizzle-v2.2.0...adapter-drizzle-v2.3.0) (2026-09-22)
 
 

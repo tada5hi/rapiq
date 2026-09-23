@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.4.0](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.3.0...adapter-memory-v2.4.0) (2026-09-23)
+
+
+### Features
+
+* lower groups and aggregates in the memory, sql and typeorm adapters ([#947](https://github.com/tada5hi/rapiq/issues/947)) ([eebb88c](https://github.com/tada5hi/rapiq/commit/eebb88ce9aec2b4110f18f59335c9dce654d15de))
+* parse and transport groups and aggregates ([#946](https://github.com/tada5hi/rapiq/issues/946)) ([f5f2b8f](https://github.com/tada5hi/rapiq/commit/f5f2b8f20a19d93a2eb38faf3a3ca735c180d32e))
+
+
+### Bug Fixes
+
+* harden grouped queries (group keys, paging order, validate hooks, typeorm EXISTS) ([#952](https://github.com/tada5hi/rapiq/issues/952)) ([ab806b3](https://github.com/tada5hi/rapiq/commit/ab806b3aa3c74b56d7b5ce6ea63a7fdb82f82e25))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.3.0 to ^2.4.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.3.0 to ^2.4.0
+
 ## [2.3.0](https://github.com/tada5hi/rapiq/compare/adapter-memory-v2.2.0...adapter-memory-v2.3.0) (2026-09-22)
 
 
