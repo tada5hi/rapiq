@@ -15,10 +15,12 @@ import {
     Sort,
     SortDirection,
     Sorts,
+    and,
     defineAggregates,
     defineGroups,
     defineQuery,
 } from '@rapiq/core';
+import { FiltersVisitor } from '@rapiq/adapter-sql';
 import type { DataSource } from 'typeorm';
 import type { RelationsAdapterOptions } from '../../../src';
 import { TypeormAdapter } from '../../../src';
@@ -282,34 +284,177 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
     });
 
     it('should refuse aggregates across a to-many join the caller made', () => {
-        const { queryBuilder, adapter } = setup();
+        const onJoin = vi.fn();
+        const { queryBuilder, adapter } = setup({ onJoin });
 
         queryBuilder.leftJoin('activity.tags', 'tag');
+        const sql = queryBuilder.getSql();
 
         expect(() => adapter.executeGrouped(defineQuery({
             groups: ['scope'],
             aggregates: ['count'],
-        }))).toThrowError(expect.objectContaining({
-            code: ErrorCode.FEATURE_UNSUPPORTED,
-            feature: 'aggregates:fan-out',
-        }));
-    });
-
-    it('should refuse aggregates across a to-many relation a filter traverses', () => {
-        const onJoin = vi.fn();
-        const { queryBuilder, adapter } = setup({ onJoin });
-
-        expect(() => adapter.executeGrouped(defineQuery({
-            aggregates: [{ name: 'sum', params: ['amount'] }],
             filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
         }))).toThrowError(expect.objectContaining({
             code: ErrorCode.FEATURE_UNSUPPORTED,
             feature: 'aggregates:fan-out',
         }));
 
-        // refused before anything is joined: the builder stays as handed over.
-        expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
+        // refused before any subquery or join: the builder stays as handed over.
+        expect(queryBuilder.getSql()).toEqual(sql);
         expect(onJoin).not.toHaveBeenCalled();
+    });
+
+    it('should render a filter across a to-many relation as a correlated EXISTS', () => {
+        const { queryBuilder, adapter } = setup();
+
+        adapter.executeGrouped(defineQuery({
+            groups: ['scope'],
+            aggregates: [{ name: 'sum', params: ['amount'] }],
+            filters: and(
+                new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+                new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+            ),
+        }));
+
+        const [sql, params] = queryBuilder.getQueryAndParameters();
+
+        // nothing is joined on the builder itself: every join row stays
+        // inside the subquery, which reaches the root row by its key.
+        expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
+        expect(sql).toMatch(/^SELECT "activity"\."scope" AS "scope", sum\("activity"\."amount"\) AS "sum_amount" FROM "activity" "activity" WHERE EXISTS \(SELECT 1 FROM "activity" "activity_exists" /);
+        expect(sql).toContain('LEFT JOIN "activity_tag" "r4_tags" ON "r4_tags"."activity_id"="activity_exists"."id"');
+        expect(sql).toContain('LEFT JOIN "realm" "r5_realm" ON "r5_realm"."id"="activity_exists"."realm_id"');
+        expect(sql).toContain('"activity_exists"."id" = "activity"."id"');
+        expect(sql).toContain('lower("r4_tags"."name") = lower(?)');
+        expect(sql).toContain('GROUP BY "activity"."scope"');
+        expect(params).toEqual(['a', 'master']);
+    });
+
+    it('should render groups alone across a to-many relation as a correlated EXISTS too', () => {
+        // a hydrating join inside the subquery selects nothing there either.
+        const { queryBuilder, adapter } = setup({ joinAndSelect: true });
+
+        adapter.executeGrouped(defineQuery({
+            groups: ['scope'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+        }));
+
+        expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
+        expect(queryBuilder.getSql()).toContain('WHERE EXISTS (SELECT 1 FROM "activity" "activity_exists" LEFT JOIN');
+    });
+
+    it('should keep conditions accumulated with clear: false on the builder beside the EXISTS', () => {
+        const { queryBuilder, adapter } = setup();
+
+        new Filter(FilterFieldOperator.EQUAL, 'name', 'login').accept(new FiltersVisitor(adapter.filters));
+
+        adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+        }), { clear: false });
+
+        const [sql, params] = queryBuilder.getQueryAndParameters();
+
+        expect(sql).toMatch(/WHERE lower\("activity"\."name"\) = lower\(\?\) AND EXISTS \(SELECT 1 FROM "activity" "activity_exists" /);
+        expect(params).toEqual(['login', 'a']);
+    });
+
+    it('should run join hooks and soft-delete visibility inside the subquery', () => {
+        const hooked : {
+            path: string,
+            alias: string,
+            withDeleted: boolean,
+        }[] = [];
+        const { queryBuilder, adapter } = setup({
+            onJoin: (path, alias, qb) => {
+                hooked.push({
+                    path,
+                    alias: qb.alias,
+                    withDeleted: qb.expressionMap.withDeleted,
+                });
+                qb.andWhere(`${alias}.name <> :hidden`, { hidden: 'secret' });
+                // a GROUP BY or select a hook adds cannot reach the outer query.
+                qb.addGroupBy(`${qb.alias}.id`).addSelect(`${alias}.id`);
+            },
+        });
+
+        queryBuilder.withDeleted();
+
+        adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+        }));
+
+        expect(hooked).toEqual([{
+            path: 'tags',
+            alias: 'activity_exists',
+            withDeleted: true,
+        }]);
+
+        const [sql, params] = queryBuilder.getQueryAndParameters();
+
+        expect(sql).toMatch(/WHERE EXISTS \(SELECT 1 FROM .* WHERE "r4_tags"\."name" <> \? AND "activity_exists"\."id" = "activity"\."id" AND /);
+        expect(sql).not.toContain('GROUP BY');
+        expect(params).toEqual(['secret', 'a']);
+    });
+
+    // a caller parameter under each of the fifty namespaces an adapter
+    // would draw after the one it holds.
+    const takeNextNamespaces = (adapter: TypeormAdapter) => {
+        const drawn = Number(/rapiq_(\d+)_/.exec(adapter.filters.paramPlaceholder(1))![1]);
+
+        const taken : Record<string, string> = {};
+        for (let i = 1; i <= 50; i++) {
+            taken[`rapiq_${drawn + i}_0`] = 'caller';
+        }
+
+        return taken;
+    };
+
+    it('should never draw a parameter namespace a caller parameter uses', () => {
+        const { queryBuilder, adapter } = setup();
+        const taken = takeNextNamespaces(adapter);
+        queryBuilder.where('1 = 1').setParameters(taken);
+
+        adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'name', 'login'),
+        }));
+
+        expect(queryBuilder.getQueryAndParameters()[1]).toEqual(['login']);
+        expect(queryBuilder.getParameters()).toEqual(expect.objectContaining(taken));
+    });
+
+    it('should never let the subquery draw a parameter namespace a caller parameter uses', () => {
+        const { queryBuilder, adapter } = setup();
+        const taken = takeNextNamespaces(adapter);
+        queryBuilder.where('1 = 1').setParameters(taken);
+
+        // clear: false keeps the namespace drawn before the caller's
+        // parameters, so the subquery is the first to draw after them.
+        adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a'),
+        }), { clear: false });
+
+        expect(queryBuilder.getQueryAndParameters()[1]).toEqual(['a']);
+        expect(queryBuilder.getParameters()).toEqual(expect.objectContaining(taken));
+    });
+
+    it('should refuse aggregates across a to-many join a hook adds to the builder', () => {
+        const { adapter } = setup({
+            onJoin: (_path, _alias, qb) => {
+                qb.leftJoin(`${qb.alias}.tags`, 'hooked');
+            },
+        });
+
+        expect(() => adapter.executeGrouped(defineQuery({
+            aggregates: ['count'],
+            filters: new Filter(FilterFieldOperator.EQUAL, 'realm.name', 'master'),
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:fan-out',
+        }));
     });
 
     it('should allow groups alone across a to-many join', () => {

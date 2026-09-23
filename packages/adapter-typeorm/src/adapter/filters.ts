@@ -176,15 +176,23 @@ function resolveDateColumnFormat(type: ColumnType) : TemporalKind | undefined {
 /**
  * TypeORM parameters are global to the query builder and last-write-wins,
  * so every filter application needs its own namespace: positional names
- * like `:0` would silently rebind a caller-owned `:0` parameter — or, on
- * a re-run, the previous run's clauses.
+ * like `:0` would silently rebind a caller-owned `:0` parameter, or, on
+ * a re-run, the previous run's clauses. A namespace that a parameter
+ * already on the builder starts with is skipped, so a caller's own
+ * `rapiq_*` name is never rebound either.
  */
 let PARAM_NAMESPACE_SEQ = 0;
 
-function nextParamNamespace() : string {
-    PARAM_NAMESPACE_SEQ += 1;
+function nextParamNamespace(queryBuilder: SelectQueryBuilder<any>) : string {
+    const keys = Object.keys(queryBuilder.expressionMap.parameters);
 
-    return `rapiq_${PARAM_NAMESPACE_SEQ}_`;
+    let namespace : string;
+    do {
+        PARAM_NAMESPACE_SEQ += 1;
+        namespace = `rapiq_${PARAM_NAMESPACE_SEQ}_`;
+    } while (keys.some((key) => key.startsWith(namespace)));
+
+    return namespace;
 }
 
 /**
@@ -230,7 +238,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
         this.queryBuilder = queryBuilder;
         this.dialect = resolveQueryDialect(queryBuilder);
-        this.paramNamespace = nextParamNamespace();
+        this.paramNamespace = nextParamNamespace(queryBuilder);
     }
 
     override clear() {
@@ -238,7 +246,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
         // a fresh namespace per run: clauses a previous run left on the
         // builder keep their own bindings instead of being rebound.
-        this.paramNamespace = nextParamNamespace();
+        this.paramNamespace = nextParamNamespace(this.queryBuilder);
     }
 
     rootAlias(): string | undefined {

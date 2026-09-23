@@ -366,11 +366,14 @@ const { data, total, pagination } = applyGroupedQuery(query, events);
 ```
 
 ::: warning Filters across a to-many relation
-A filter on a to-many relation path (`filter[items.name]=...`) joins that relation, and a join repeats
-each root row per related row, which inflates `count` and `sum`. `@rapiq/adapter-typeorm` knows the
-cardinality and refuses aggregates over any to-many join (`aggregates:fan-out`). Standalone
-`@rapiq/adapter-sql` has no relation metadata and cannot tell: it renders the join, and the caller owns
-it (render it as a semi-join, `EXISTS`, or do not allow to-many filter paths on a grouped endpoint).
+A filter on a to-many relation path (`filter[items.name]=...`) selects a record when one of its related
+rows satisfies the whole filter, as in a record read. Joining that relation would repeat each record per
+related row and inflate `count` and `sum`. `@rapiq/adapter-typeorm` knows the cardinality and renders
+such a filter as a correlated `EXISTS` instead, so every record is counted once, as in the memory
+adapter; it still refuses aggregates over a to-many join that is on the builder already, one you or an
+`onJoin` hook added (`aggregates:fan-out`). Standalone `@rapiq/adapter-sql` has no relation metadata and
+cannot tell: it renders the join, and the caller owns it (render it as a semi-join, `EXISTS`, or do not
+allow to-many filter paths on a grouped endpoint).
 :::
 
 ## Zero-filling {#zero-fill}
@@ -452,7 +455,7 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups:bucket-type` | the bucketed column is not temporal (TypeORM metadata, or a `temporalKind` override returning `undefined`) |
 | `aggregates:sum-type` | the summed column is not numeric (TypeORM metadata, or an `isNumeric` override returning `false`) |
 | `groups:builder` | the TypeORM builder already carries a `GROUP BY` |
-| `aggregates:fan-out` | aggregates over a joined to-many relation would count join rows (TypeORM) |
+| `aggregates:fan-out` | aggregates over a to-many join already on the builder (yours or an `onJoin` hook's) would count join rows (TypeORM) |
 
 A hand-built grouped query whose groups and aggregates repeat an [output key](#output-keys) is refused with
 `AdapterError` code `KEY_AMBIGUOUS` by every grouped entry point. All three refusals, `groups:empty`,
