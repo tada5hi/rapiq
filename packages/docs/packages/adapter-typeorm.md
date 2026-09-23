@@ -256,8 +256,8 @@ const rows = normalize(await queryBuilder.getRawMany());
 - The bucket SQL comes from the [resolved dialect](#dialect-detection), and the column kind from the entity metadata: a `timestamptz` column is bucketed as an instant, a `date` or zone-less `datetime` / `timestamp` column as stored (UTC wall clock). A bucket on a column that is not temporal is refused (`groups:bucket-type`). A MySQL `TIMESTAMP` column needs the session `time_zone` at `'+00:00'`, and SQLite expects text dates (what TypeORM writes), see [Buckets are UTC](/guide/grouping#buckets).
 - Included relations are not joined. A relation a filter traverses is joined and never selected. Joins run before the select list and the `GROUP BY` are rebuilt, so a `GROUP BY` an `onJoin` hook adds is dropped and cannot change the grain.
 - Aggregates over a joined to-many relation would count join rows, so any `OneToMany` / `ManyToMany` join on the builder, including one you added yourself, refuses the query (`aggregates:fan-out`).
-- A builder that already carries a `GROUP BY` is refused (`groups:builder`) before anything is changed.
-- Pagination is applied with `limit` / `offset`, never `take` / `skip`. There is no group total: `rows.length === limit` means the series may be truncated.
+- A builder that already carries a `GROUP BY` is refused (`groups:builder`) before anything is changed. That includes a builder a previous `executeGrouped` call with groups has already written to: build a fresh builder per call.
+- Pagination is applied with `limit` / `offset`, never `take` / `skip`. A `take`, `skip`, `limit` or `offset` already set on the builder is cleared, so only the query's pagination applies. There is no group total: `rows.length === limit` means the series may be truncated.
 - `normalize` keeps only the output keys and turns `count` and `sum` into numbers (see [Numbers](/guide/grouping#numbers)). The position of the `null` group differs by engine: PostgreSQL sorts it last ascending, MySQL and SQLite first.
 
 ## Applying a single parameter

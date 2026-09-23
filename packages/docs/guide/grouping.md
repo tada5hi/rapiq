@@ -235,11 +235,16 @@ Empty buckets are not returned: see [zero-filling](#zero-fill).
 ## Numbers {#numbers}
 
 `count` and `sum` are returned as JavaScript numbers on every adapter (PostgreSQL returns a string for both,
-MySQL a DECIMAL string for `sum`, SQLite a number); the SQL and TypeORM adapters convert them with `Number`.
-A `sum` over no non-null value is `null`. The price is precision: a sum beyond `2^53` (about 15 significant
-digits) or an exact decimal such as a money column may round. If you need exact decimals, render the SQL
-with `executeGrouped` and read the driver values yourself instead of calling `normalizeGroupedRows` or
-`normalize`.
+MySQL a DECIMAL string for `sum`, SQLite a number). Through TypeORM on MySQL, `count` comes back as a
+string too. The SQL and TypeORM adapters convert them with `Number` in `normalizeGroupedRows` and
+`normalize`. A `sum` over no non-null value is `null`. The price is precision: a sum beyond `2^53` (about
+15 significant digits) or an exact decimal such as a money column may round. If you need exact decimals,
+render the SQL with `executeGrouped` and read the driver values yourself instead of calling
+`normalizeGroupedRows` or `normalize`.
+
+The memory adapter adds JavaScript numbers, so a decimal sum carries float error there:
+`1.1 + 2.2` is `3.3000000000000003`. PostgreSQL and MySQL add a `decimal` column exactly (`3.30`), so
+compare decimal sums from memory and from the database with a tolerance, not with strict equality.
 
 `sum` adds finite numbers only in memory; a column holding text is an application error, not a value.
 The engines disagree on it: the memory adapter skips a numeric string such as `'5'`, while SQLite and
@@ -302,6 +307,9 @@ const { normalize } = new TypeormAdapter({ queryBuilder }).executeGrouped(query)
 const rows = normalize(await queryBuilder.getRawMany());
 // [{ bucket: '2026-09-22T00:00:00.000Z', scope: 'auth', name: 'login', count: 3 }, ...]
 ```
+
+Build a fresh builder per call. `executeGrouped` rewrites the builder in place, and a second call on the
+same builder finds the first call's `GROUP BY` and is refused (`groups:builder`).
 
 In memory, for tests and guards that must agree with the database:
 
