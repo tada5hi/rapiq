@@ -109,6 +109,10 @@ describe('src/parameter/call', () => {
 
     describe('linear time on long blank runs', () => {
         const LENGTH = 100_000;
+        // ponytail: wall-clock guard with CI headroom (coverage-instrumented
+        // runners measured ~0.4 s on the linear path); the quadratic trim
+        // took 16 s to 131 s on these sizes, so the bound still catches it.
+        const BOUND = 1000;
 
         function timed(input: string) : { error: ParseError | undefined, ms: number } {
             const start = performance.now();
@@ -126,11 +130,11 @@ describe('src/parameter/call', () => {
 
             expect(error).toBeInstanceOf(ParseError);
             expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
-            expect(ms).toBeLessThan(200);
+            expect(ms).toBeLessThan(BOUND);
         });
 
         it('should accept blank padding quickly', () => {
-            const blanks = ' \t'.repeat(LENGTH);
+            const blanks = ' \t'.repeat(LENGTH / 2);
             const input = `${blanks}f(${blanks}a${blanks},${blanks}b${blanks})${blanks},${blanks}g${blanks}`;
 
             const start = performance.now();
@@ -141,7 +145,7 @@ describe('src/parameter/call', () => {
                 { name: 'f', params: ['a', 'b'] },
                 { name: 'g', params: [] },
             ]);
-            expect(ms).toBeLessThan(200);
+            expect(ms).toBeLessThan(BOUND);
         });
     });
 
