@@ -9,6 +9,7 @@ import {
     Aggregate,
     Aggregates,
     ErrorCode,
+    ErrorMessage,
     Field,
     Fields,
     Group,
@@ -43,6 +44,10 @@ class ZonedFiltersAdapter extends FiltersAdapter {
     override temporalKind(field: string) : TemporalKind | undefined {
         return field === 'createdAt' ? 'instant' : undefined;
     }
+
+    override isNumeric(field: string) : boolean {
+        return field === 'amount';
+    }
 }
 
 const zonedFilters = () => new ZonedFiltersAdapter(new RelationsAdapter(), { ...pg, rootAlias: 'event' });
@@ -51,29 +56,31 @@ describe('src/adapter/grouped/module.ts', () => {
     it('should build selects, repeated group expressions and the default group order', () => {
         expect(buildGroupedClauses(buildIssueQuery(), pgFilters(), pg.bucket)).toEqual({
             selects: [
-                { key: 'bucket', expression: PG_DAY },
+                { key: 'createdAt', expression: PG_DAY },
                 { key: 'scope', expression: '"event"."scope"' },
                 { key: 'name', expression: '"event"."name"' },
                 { key: 'count', expression: 'count(*)' },
             ],
             groupBy: [PG_DAY, '"event"."scope"', '"event"."name"'],
             orderBy: [
-                { key: 'bucket', direction: 'ASC' },
+                { key: 'createdAt', direction: 'ASC' },
                 { key: 'scope', direction: 'ASC' },
                 { key: 'name', direction: 'ASC' },
             ],
         });
     });
 
-    it('should order by the explicit sorts when present', () => {
+    it('should order by the explicit sorts, then by the group keys they do not name', () => {
         const query = new Query({
-            groups: new Groups([columnGroup('scope')]),
+            groups: new Groups([bucketGroup('day'), columnGroup('scope')]),
             aggregates: new Aggregates([countAggregate()]),
-            sorts: new Sorts([new Sort('count', 'DESC')]),
+            sorts: new Sorts([new Sort('count', 'DESC'), new Sort('scope', 'DESC')]),
         });
 
         expect(buildGroupedClauses(query, pgFilters(), pg.bucket).orderBy).toEqual([
             { key: 'count', direction: 'DESC' },
+            { key: 'scope', direction: 'DESC' },
+            { key: 'createdAt', direction: 'ASC' },
         ]);
     });
 
@@ -99,8 +106,8 @@ describe('src/adapter/grouped/module.ts', () => {
         expect(buildGroupedClauses(query, pgFilters(), pg.bucket)).toEqual({
             selects: [
                 { key: 'count', expression: 'count(*)' },
-                { key: 'count_couponId', expression: 'count("event"."couponId")' },
-                { key: 'sum_amount', expression: 'sum("event"."amount")' },
+                { key: 'countCouponId', expression: 'count("event"."couponId")' },
+                { key: 'sumAmount', expression: 'sum("event"."amount")' },
             ],
             groupBy: [],
             orderBy: [],
@@ -130,6 +137,16 @@ describe('src/adapter/grouped/module.ts', () => {
             .toThrow('The feature fields:grouped is not supported by the dialect.');
     });
 
+    it('should refuse an output key written twice by a hand-built query', () => {
+        const query = new Query({
+            groups: new Groups([columnGroup('count')]),
+            aggregates: new Aggregates([countAggregate()]),
+        });
+
+        expect(() => buildGroupedClauses(query, pgFilters(), pg.bucket))
+            .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+    });
+
     it('should refuse unresolved terms', () => {
         const groups = new Query({ groups: new Groups([new Group({ name: 'period', params: ['day'] })]) });
         expect(() => buildGroupedClauses(groups, pgFilters(), pg.bucket))
@@ -146,9 +163,9 @@ describe('src/adapter/grouped/module.ts', () => {
                 name: 'week',
                 params: ['createdAt'],
                 lowering: {
-                    fn: 'week', 
-                    field: 'createdAt', 
-                    args: [], 
+                    fn: 'week',
+                    field: 'createdAt',
+                    args: [],
                 },
             })]),
         });
@@ -160,9 +177,9 @@ describe('src/adapter/grouped/module.ts', () => {
                 name: 'avg',
                 params: ['amount'],
                 lowering: {
-                    fn: 'avg', 
-                    field: 'amount', 
-                    args: [], 
+                    fn: 'avg',
+                    field: 'amount',
+                    args: [],
                 },
             })]),
         });
@@ -182,7 +199,7 @@ describe('src/adapter/grouped/module.ts', () => {
         const query = new Query({ groups: new Groups([bucketGroup('day\') or 1=1 --')]) });
 
         expect(() => buildGroupedClauses(query, pgFilters(), pg.bucket))
-            .toThrow('The value of the key bucket is invalid.');
+            .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
     });
 
     it('should refuse a bucket on a column that is not temporal', () => {
@@ -190,6 +207,22 @@ describe('src/adapter/grouped/module.ts', () => {
 
         expect(() => buildGroupedClauses(query, zonedFilters(), pg.bucket))
             .toThrow('The feature groups:bucket-type is not supported by the dialect.');
+    });
+
+    it('should refuse a sum over a column that is not numeric', () => {
+        const query = new Query({ aggregates: new Aggregates([sumAggregate('name')]) });
+
+        expect(() => buildGroupedClauses(query, zonedFilters(), pg.bucket))
+            .toThrow('The feature aggregates:sum-type is not supported by the dialect.');
+        expect(buildGroupedClauses(new Query({ aggregates: new Aggregates([sumAggregate('amount')]) }), zonedFilters(), pg.bucket).selects)
+            .toEqual([{ key: 'sumAmount', expression: 'sum("event"."amount")' }]);
+    });
+
+    it('should sum any column without metadata', () => {
+        const query = new Query({ aggregates: new Aggregates([sumAggregate('name')]) });
+
+        expect(buildGroupedClauses(query, pgFilters(), pg.bucket).selects)
+            .toEqual([{ key: 'sumName', expression: 'sum("event"."name")' }]);
     });
 });
 
@@ -203,74 +236,87 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
         const rows = normalizeGroupedRows(query, [
             // pg: count(*) is bigint and sum(numeric) a decimal, both as text
             {
-                bucket: '2026-09-22T00:00:00.000Z', 
-                scope: 'user', 
-                count: '3', 
-                sum_amount: '12.50',
+                createdAt: '2026-09-22T00:00:00.000Z',
+                scope: 'user',
+                count: '3',
+                sumAmount: '12.50',
             },
             // mysql: count is a number, sum a DECIMAL string
             {
-                bucket: '2026-09-23T00:00:00.000Z', 
-                scope: 'role', 
-                count: 2, 
-                sum_amount: '7.00',
+                createdAt: '2026-09-23T00:00:00.000Z',
+                scope: 'role',
+                count: 2,
+                sumAmount: '7.00',
             },
             // sqlite: numbers already
             {
-                bucket: '2026-09-24T00:00:00.000Z', 
-                scope: null, 
-                count: 1, 
-                sum_amount: 4,
+                createdAt: '2026-09-24T00:00:00.000Z',
+                scope: null,
+                count: 1,
+                sumAmount: 4,
             },
         ]);
 
         expect(rows).toEqual([
             {
-                bucket: '2026-09-22T00:00:00.000Z', 
-                scope: 'user', 
-                count: 3, 
-                sum_amount: 12.5,
+                createdAt: '2026-09-22T00:00:00.000Z',
+                scope: 'user',
+                count: 3,
+                sumAmount: 12.5,
             },
             {
-                bucket: '2026-09-23T00:00:00.000Z', 
-                scope: 'role', 
-                count: 2, 
-                sum_amount: 7,
+                createdAt: '2026-09-23T00:00:00.000Z',
+                scope: 'role',
+                count: 2,
+                sumAmount: 7,
             },
             {
-                bucket: '2026-09-24T00:00:00.000Z', 
-                scope: null, 
-                count: 1, 
-                sum_amount: 4,
+                createdAt: '2026-09-24T00:00:00.000Z',
+                scope: null,
+                count: 1,
+                sumAmount: 4,
             },
         ]);
     });
 
     it('should keep a sum over no values null', () => {
         const [row] = normalizeGroupedRows(query, [{
-            bucket: '2026-09-22T00:00:00.000Z', 
-            scope: 'user', 
-            count: '0', 
-            sum_amount: null,
+            createdAt: '2026-09-22T00:00:00.000Z',
+            scope: 'user',
+            count: '0',
+            sumAmount: null,
         }]);
 
         expect(row).toEqual({
-            bucket: '2026-09-22T00:00:00.000Z', 
-            scope: 'user', 
-            count: 0, 
-            sum_amount: null,
+            createdAt: '2026-09-22T00:00:00.000Z',
+            scope: 'user',
+            count: 0,
+            sumAmount: null,
         });
     });
 
     it('should refuse a row missing an output key instead of reading it as null', () => {
         // pg truncates an alias beyond 63 bytes, so the key never comes back.
         expect(() => normalizeGroupedRows(query, [{
-            bucket: '2026-09-22T00:00:00.000Z',
+            createdAt: '2026-09-22T00:00:00.000Z',
             scope: 'user',
             count: 1,
         }])).toThrowError(expect.objectContaining({
-            code: ErrorCode.KEY_VALUE_INVALID,
-            message: 'The value of the key sum_amount is invalid.',
+            code: ErrorCode.NONE,
+            message: ErrorMessage.outputValueUnreadable('sumAmount'),
+        }));
+    });
+
+    it('should refuse an aggregate Number cannot read instead of returning NaN', () => {
+        // node-postgres hydrates a money sum as locale-formatted text.
+        expect(() => normalizeGroupedRows(query, [{
+            createdAt: '2026-09-22T00:00:00.000Z',
+            scope: 'user',
+            count: 1,
+            sumAmount: '$1,236.50',
+        }])).toThrowError(expect.objectContaining({
+            code: ErrorCode.NONE,
+            message: ErrorMessage.outputValueUnreadable('sumAmount'),
         }));
     });
 
@@ -282,20 +328,20 @@ describe('src/adapter/grouped/module.ts (normalizeGroupedRows)', () => {
 
         expect(() => normalizeGroupedRows(grouped, [{ count: 1 }]))
             .toThrowError(expect.objectContaining({
-                code: ErrorCode.KEY_VALUE_INVALID,
-                message: `The value of the key ${key} is invalid.`,
+                code: ErrorCode.NONE,
+                message: ErrorMessage.outputValueUnreadable(key),
             }));
     });
 
     it('should copy only the output keys, in IR order', () => {
         const [row] = normalizeGroupedRows(query, [{
-            sum_amount: 1, 
-            extra: 'x', 
-            count: 1, 
-            scope: 'user', 
-            bucket: '2026-09-22T00:00:00.000Z',
+            sumAmount: 1,
+            extra: 'x',
+            count: 1,
+            scope: 'user',
+            createdAt: '2026-09-22T00:00:00.000Z',
         }]);
 
-        expect(Object.keys(row)).toEqual(['bucket', 'scope', 'count', 'sum_amount']);
+        expect(Object.keys(row)).toEqual(['createdAt', 'scope', 'count', 'sumAmount']);
     });
 });

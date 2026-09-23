@@ -8,7 +8,7 @@ measures computed per row.
 |---|---|---|
 | URL key | `group` | `aggregate` |
 | AST nodes | `Groups` / `Group { key, name, params, lowering }` | `Aggregates` / `Aggregate { key, name, params, lowering }` |
-| Schema options | `allowed`, `functions` | `functions` |
+| Schema options | `allowed`, `functions`, `validate` | `functions`, `validate` |
 | Built-in functions | `bucket(field, unit)` | `count()`, `count(field)`, `sum(field)` |
 
 A query that carries neither parameter is the same query as before; nothing changes for existing reads.
@@ -29,7 +29,7 @@ A typical dashboard request:
 GET /events?filter[realmId]=<id>&group=bucket(createdAt,day),scope,name&aggregate=count
 ```
 
-answers rows shaped `{ bucket: '2026-09-22T00:00:00.000Z', scope, name, count: 3 }`.
+answers rows shaped `{ createdAt: '2026-09-22T00:00:00.000Z', scope, name, count: 3 }`.
 
 The grammar is the same in every parser dialect (simple, expression, MongoDB-style):
 
@@ -94,6 +94,12 @@ defineSchema<Event>({
 | `functions.count.allowed` | `aggregates` | Columns `count(<column>)` may be called on. `count()` (row count) is always available once `count` is declared, so `count: {}` permits exactly `count`. |
 | `functions.sum.allowed` | `aggregates` | Numeric columns `sum(<column>)` may be called on. |
 | `functions.<name>` | both | A [named function](#named-functions) binding one of the built-ins. |
+| `validate` | both | A per-request [authorization hook](#validate-hooks), run once per resolved term. |
+
+`groups.allowed` covers grouping by a column's raw value only. Bucketing is permitted separately, per
+column, under `functions.bucket.allowed`, so in the example above `createdAt` can be bucketed
+(`group=bucket(createdAt,day)`) but not grouped raw (`group=createdAt` is rejected): a raw timestamp
+would give one group per distinct instant. List a column in both places to permit both.
 
 **Grouping is a disclosure surface of its own.** A group by `actorName` enumerates every distinct value of a
 column that a reader may otherwise only filter by. The allow-list is therefore declared explicitly per
@@ -109,6 +115,37 @@ identifier. Named functions need a schema.
 
 Only root columns can be grouped or aggregated: a dotted key (`realm.name`) is rejected with
 `KEY_PATH_NOT_ALLOWED`. Bucket units are `hour`, `day` and `month`.
+
+### Validate hooks {#validate-hooks}
+
+The allow-lists are static. To decide per request, for example per actor, declare `validate` on either
+block. It follows the contract of the other
+[validate hooks](/guide/schemas#validate-hooks-parse-context): it receives the parse `context`
+(`undefined` when the caller supplied none) and may answer synchronously or with a Promise, which
+requires `parseAsync()` / `decodeAsync()` (the sync paths throw `SchemaError`
+`SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`). Instead of a key name it receives the resolved node,
+`{ key, name, params, lowering }`, once per term that passed the allow-list, in request order:
+
+```typescript
+defineSchema<Event, Actor>({
+    name: 'event',
+    groups: {
+        allowed: ['scope', 'actorName'],
+        // who may enumerate the distinct actors?
+        validate: (group, actor) => group.lowering?.field !== 'actorName' || actor.isAdmin,
+    },
+    aggregates: {
+        functions: { count: {}, sum: { allowed: ['amount'] } },
+        validate: (aggregate, actor) => aggregate.lowering?.fn !== 'sum' || actor.can('revenue_read'),
+    },
+});
+```
+
+Read `lowering` rather than `name` when the decision is about a column: a [named function](#named-functions)
+hides the column from the wire, the lowering always carries it. A falsy answer rejects the term with
+`KEY_VALIDATE_REJECTED`, and like every rejection of these two parameters it fails the parse whatever
+`throwOnFailure` says. A term is not a row set, so an `ICondition` answer counts as a rejection.
+`describe()` does not represent the hook.
 
 ## Named functions {#named-functions}
 
@@ -137,8 +174,9 @@ defineSchema<Order>({
 });
 ```
 
-The client passes only the open slots, in the built-in's argument order. A named function hides the
-column name from the wire (`period(day)` never mentions `createdAt`) and narrows the units or columns
+The client passes only the open slots, in the built-in's argument order. A named function keeps the
+column name out of the request (`period(day)` never mentions `createdAt`; the rows are still keyed
+`createdAt`) and narrows the units or columns
 without a separate option. Lowering stays built-in: a named function can only bind `bucket`, `count` or
 `sum`, never custom SQL.
 
@@ -148,33 +186,45 @@ anything but `allowed`, or a group function named like an allowed column (it wou
 
 ## Output keys {#output-keys}
 
-Every group and aggregate becomes one key of each result row. The key is derived from the wire form
-alone, so client and server compute the same key and no `as` syntax is needed:
+Every group and aggregate becomes one key of each result row, so no `as` syntax is needed:
 
-- a group's key is its name: `scope`, `bucket`, `period`;
-- an aggregate's key is its name joined with its arguments by `_`: `count`, `count_couponId`, `sum_amount`.
+- a group is keyed by its column, since a column is grouped at most once: a bare column keeps its name,
+  and `bucket(createdAt,day)` and a named `period(day)` over `createdAt` are both `createdAt`;
+- an aggregate is its function name followed by each argument in camel case: an argument is split on `_`
+  and every part gets an upper-case first letter (`sum(total_amount)` is `sumTotalAmount`).
 
 | Request | Row keys |
 |---|---|
 | `group=scope,name` | `scope`, `name` |
-| `group=bucket(createdAt,day)` | `bucket` |
-| `group=period(day)` (named) | `period` |
+| `group=bucket(createdAt,day)` | `createdAt` |
+| `group=bucket(createdAt,day),bucket(updatedAt,day)` | `createdAt`, `updatedAt` |
+| `group=period(day)` (named, fixed column) | `createdAt` |
+| `group=daily(createdAt),daily(updatedAt)` (named, open column) | `createdAt`, `updatedAt` |
 | `aggregate=count` or `aggregate=count()` | `count` |
-| `aggregate=count(couponId)` | `count_couponId` |
-| `aggregate=sum(amount),sum(fee)` | `sum_amount`, `sum_fee` |
-| `aggregate=total(amount),total(fee)` (named, open column) | `total_amount`, `total_fee` |
+| `aggregate=count(couponId)` | `countCouponId` |
+| `aggregate=sum(amount),sum(total_fee)` | `sumAmount`, `sumTotalFee` |
+| `aggregate=total(amount),total(fee)` (named, open column) | `totalAmount`, `totalFee` |
 | `aggregate=revenue` (named, fixed column) | `revenue` |
-| `group=bucket(createdAt,day),bucket(createdAt,hour)` | rejected: `KEY_AMBIGUOUS` |
+| `group=scope,scope` | rejected: `KEY_AMBIGUOUS` |
 | `group=count&aggregate=count` | rejected: `KEY_AMBIGUOUS` |
 | `aggregate=count,count()` | rejected: `KEY_AMBIGUOUS` |
+| `aggregate=sum(total_amount),sum(totalAmount)` | rejected: `KEY_AMBIGUOUS` |
 
-Groups keep the bare name because two groups with the same callee are two grains of one dimension, a
-real collision; declare a named function per grain if a query needs both.
+A row carries one value per column, so a column is grouped at most once, whatever the spelling:
+`bucket(createdAt,day),bucket(createdAt,hour)`, `createdAt,bucket(createdAt,day)` and
+`period(day),bucket(createdAt,hour)` (with `period` declared on `createdAt`) are each rejected with
+`KEY_AMBIGUOUS` ("The column createdAt is grouped more than once."). The comparison uses the resolved
+column, so a named function built client-side without a schema (unresolved) is not compared.
+Such a term does not know its column either: it is keyed by its name (`period`) until the server's parse
+resolves it, and the server's key is the one rows carry.
 
-Keys become SQL column aliases, so they are bound by the engine's identifier limit: 63 bytes on PostgreSQL
-(a longer alias is truncated), 30 on Oracle before 12.2. `normalizeGroupedRows` (and `normalize`) refuse a
-driver row missing an output key with `KEY_VALUE_INVALID` rather than reading it as `null`, so keep column
-and function names short enough that `sum_<column>` fits.
+An argument made only of underscores (`count(_)`) is rejected with `KEY_INVALID`: it would vanish from
+the camel-cased key and read as `count`.
+
+Keys become SQL column aliases, so a very long column name can still exceed the engine's identifier limit
+(63 bytes on PostgreSQL, where a longer alias is truncated). `normalizeGroupedRows` (and `normalize`)
+refuse a driver row missing an output key with `AdapterError.outputValueUnreadable` (code `NONE`: a server
+fault, not client input) rather than reading it as `null`.
 
 ## Grouped mode {#grouped-mode}
 
@@ -186,10 +236,18 @@ Once a query carries a group or an aggregate, the other parameters change meanin
   schema's `fields.default` is not applied. The row shape is the output keys.
 - **Relations** are still parsed, because they gate which relation paths a filter may traverse. They are
   never hydrated into the rows, and the grouped entry points join only the relations a filter traverses.
-- **Sorts** may name output keys only: `sort=-count` or `sort=bucket` are accepted, `sort=age` and
-  `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
-  `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Without a sort, rows are ordered
-  by every group key ascending, in declared order.
+  An include that no filter traverses, neither a client filter nor the schema's `filters.default`, gates
+  nothing and follows the [relations policy](/guide/schemas#failure-behavior-drop-vs-throw): it is dropped,
+  which changes no row, or with `throwOnFailure` fails the parse with `FEATURE_UNSUPPORTED`
+  (`relations:grouped`). An include traversed by a deeper path counts: `include=items` with
+  `filter[items.realm.name]=...` is accepted. A custom condition is opaque and traverses nothing, and a
+  parse whose `parameters` skip `filters` keeps every include.
+- **Sorts** may name output keys only: `sort=-count` or `sort=createdAt` are accepted, `sort=age`
+  and `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
+  `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Every group key the sort does not
+  name is appended ascending, in declared order, as a tie-breaker: the group keys identify a row, so the
+  order is total and paging with `offset` over tied values (`sort=-count`) neither repeats nor skips a
+  row. Without a sort, rows are ordered by every group key ascending, in declared order.
 - **Pagination** limits group rows, and `pagination.maxLimit` caps them. A dashboard asking for 744 hourly
   buckets times several scopes can exceed a typical `maxLimit`. The SQL and TypeORM adapters run no
   separate count query, so **`rows.length === limit` is the signal that the series may be truncated**;
@@ -237,18 +295,29 @@ Empty buckets are not returned: see [zero-filling](#zero-fill).
 `count` and `sum` are returned as JavaScript numbers on every adapter (PostgreSQL returns a string for both,
 MySQL a DECIMAL string for `sum`, SQLite a number). Through TypeORM on MySQL, `count` comes back as a
 string too. The SQL and TypeORM adapters convert them with `Number` in `normalizeGroupedRows` and
-`normalize`. A `sum` over no non-null value is `null`. The price is precision: a sum beyond `2^53` (about
-15 significant digits) or an exact decimal such as a money column may round. If you need exact decimals,
+`normalize`. A `sum` over no non-null value is `null`, and a value `Number` cannot read is refused with
+`AdapterError.outputValueUnreadable` rather than returned as `NaN`. The price is precision: a sum beyond
+`2^53` (about 15 significant digits) or an exact decimal may round. If you need exact decimals,
 render the SQL with `executeGrouped` and read the driver values yourself instead of calling
 `normalizeGroupedRows` or `normalize`.
 
 The memory adapter adds JavaScript numbers, so a decimal sum carries float error there:
 `1.1 + 2.2` is `3.3000000000000003`. PostgreSQL and MySQL add a `decimal` column exactly (`3.30`), so
-compare decimal sums from memory and from the database with a tolerance, not with strict equality.
+compare decimal sums from memory and from the database with a tolerance, not with strict equality. The
+drift can also reorder: two groups whose decimal sums tie in the database (`3.30`) may differ in memory
+(`3.3000000000000003` against `3.3`), so sorting or paginating by a decimal sum can place them differently.
 
-`sum` adds finite numbers only in memory; a column holding text is an application error, not a value.
-The engines disagree on it: the memory adapter skips a numeric string such as `'5'`, while SQLite and
-MySQL coerce text to a number and add it (PostgreSQL refuses `sum` over a text column).
+The memory adapter reads each value the way the SQL side reads its result, with `Number`: a finite
+number, a `bigint` and a numeric string such as `'1.5'` (the form a TypeORM `decimal` column or a
+PostgreSQL `bigint` hydrates as) are added, while `null`, a blank or non-numeric string, a boolean or a
+`Date` contributes nothing. Records loaded through a driver therefore sum to the same value in memory and
+in the database.
+
+`sum` over a column that is not numeric is a schema mistake: keep such columns out of
+`functions.sum.allowed`. `@rapiq/adapter-typeorm` reads the entity metadata and refuses it
+(`aggregates:sum-type`) before the query runs, an array column and a `money` column included (PostgreSQL
+returns a money sum as formatted text); standalone `@rapiq/adapter-sql` has no column types and
+renders it, so the engine answers (PostgreSQL fails, SQLite and MySQL coerce the text to a number).
 
 ## Building in code {#building}
 
@@ -265,8 +334,12 @@ const query = defineQuery({
 A string is a term without arguments; `{ name, params }` is a call. Built-ins and bare group columns are
 resolved on the spot. A call to a name the build layer does not know (`{ name: 'period', params: ['day'] }`,
 or the aggregate `'revenue'`) is kept as an unresolved node: it encodes to `period(day)` for a server that
-declares `period`, but no adapter executes it. `BuildError` reports an invalid identifier (`KEY_INVALID`),
-bad arguments (`KEY_VALUE_INVALID`) and a duplicate output key (`KEY_AMBIGUOUS`).
+declares `period`, but no adapter executes it. A group without arguments cannot be told from a column, so
+`groups: ['period']` is read as the bare column `period`: it encodes to `group=period` all the same, but a
+zero-argument named group function is only resolved as that function by the server's parse, never by an
+adapter fed the built query directly. `BuildError` reports an invalid identifier (`KEY_INVALID`),
+bad arguments (`KEY_VALUE_INVALID`), a column grouped twice and a duplicate output key (both
+`KEY_AMBIGUOUS`).
 
 `createURLCodec().encode(query)` writes `group=` and `aggregate=` after every other parameter, so the
 encoding of a query without groups is unchanged. A schema-aware encode validates them like the server
@@ -305,7 +378,7 @@ const queryBuilder = dataSource.getRepository(Event).createQueryBuilder('event')
 
 const { normalize } = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
 const rows = normalize(await queryBuilder.getRawMany());
-// [{ bucket: '2026-09-22T00:00:00.000Z', scope: 'auth', name: 'login', count: 3 }, ...]
+// [{ createdAt: '2026-09-22T00:00:00.000Z', scope: 'auth', name: 'login', count: 3 }, ...]
 ```
 
 Build a fresh builder per call. `executeGrouped` rewrites the builder in place, and a second call on the
@@ -320,11 +393,14 @@ const { data, total, pagination } = applyGroupedQuery(query, events);
 ```
 
 ::: warning Filters across a to-many relation
-A filter on a to-many relation path (`filter[items.name]=...`) joins that relation, and a join repeats
-each root row per related row, which inflates `count` and `sum`. `@rapiq/adapter-typeorm` knows the
-cardinality and refuses aggregates over any to-many join (`aggregates:fan-out`). Standalone
-`@rapiq/adapter-sql` has no relation metadata and cannot tell: it renders the join, and the caller owns
-it (render it as a semi-join, `EXISTS`, or do not allow to-many filter paths on a grouped endpoint).
+A filter on a to-many relation path (`filter[items.name]=...`) selects a record when one of its related
+rows satisfies the whole filter, as in a record read. Joining that relation would repeat each record per
+related row and inflate `count` and `sum`. `@rapiq/adapter-typeorm` knows the cardinality and renders
+such a filter as a correlated `EXISTS` instead, so every record is counted once, as in the memory
+adapter; it still refuses aggregates over a to-many join that is on the builder already, one you or an
+`onJoin` hook added (`aggregates:fan-out`). Standalone `@rapiq/adapter-sql` has no relation metadata and
+cannot tell: it renders the join, and the caller owns it (render it as a semi-join, `EXISTS`, or do not
+allow to-many filter paths on a grouped endpoint).
 :::
 
 ## Zero-filling {#zero-fill}
@@ -333,11 +409,11 @@ A bucket without matching rows is absent from the answer. Because every bucket k
 client fills the gaps from a plain `Date` loop:
 
 ```typescript
-const byKey = new Map(rows.map((row) => [row.bucket, row]));
+const byKey = new Map(rows.map((row) => [row.createdAt, row]));
 const series = [];
 for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
     const bucket = new Date(t).toISOString();
-    series.push(byKey.get(bucket) ?? { bucket, count: 0 });
+    series.push(byKey.get(bucket) ?? { createdAt: bucket, count: 0 });
 }
 ```
 
@@ -374,8 +450,8 @@ for (let t = from.getTime(); t < to.getTime(); t += 24 * 60 * 60 * 1000) {
 
 ## Errors {#errors}
 
-Every rejection below fails the parse, whatever `throwOnFailure` says: a dropped group would silently change
-the grain of every row. The raised error is the general `ParseError` from a whole-query parse, or
+Every rejection below except `relations:grouped` fails the parse, whatever `throwOnFailure` says: a dropped
+group would silently change the grain of every row, while a dropped dead include changes nothing. The raised error is the general `ParseError` from a whole-query parse, or
 `GroupsParseError` / `AggregatesParseError` from a standalone sub-parser, with code `INPUT_REJECTED` and
 each rejection on the [issue trace](/guide/errors#issue-traces).
 
@@ -388,8 +464,9 @@ each rejection on the [issue trace](/guide/errors#issue-traces).
 | `KEY_NOT_ALLOWED` | a column or function the schema does not declare, a column outside an open slot, or a bound schema without the block |
 | `KEY_VALUE_INVALID` | wrong number of arguments, or a unit outside the permitted units |
 | `OPERATOR_UNSUPPORTED` | schemaless parse of a name that is neither a built-in nor a bare column |
-| `KEY_AMBIGUOUS` | two terms with the same [output key](#output-keys) |
-| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query, or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
+| `KEY_AMBIGUOUS` | two terms with the same [output key](#output-keys), or two groups of one column |
+| `KEY_VALIDATE_REJECTED` | the schema's [validate hook](#validate-hooks) rejected the term |
+| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query (`fields:grouped`), an include no filter traverses (`relations:grouped`, recorded on `relations` under its `throwOnFailure` only, dropped otherwise), or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
 
 Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature` tags:
 
@@ -403,8 +480,14 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups:<fn>` / `aggregates:<fn>` | a function the adapter does not implement |
 | `groups:bucket` | the SQL dialect has no bucket spelling (`mssql`, `oracle`) |
 | `groups:bucket-type` | the bucketed column is not temporal (TypeORM metadata, or a `temporalKind` override returning `undefined`) |
+| `aggregates:sum-type` | the summed column is not numeric (TypeORM metadata: an array or `money` column counts as not numeric, or an `isNumeric` override returning `false`) |
 | `groups:builder` | the TypeORM builder already carries a `GROUP BY` |
-| `aggregates:fan-out` | aggregates over a joined to-many relation would count join rows (TypeORM) |
+| `aggregates:fan-out` | aggregates over a to-many join already on the builder (yours or an `onJoin` hook's) would count join rows (TypeORM) |
+
+A hand-built grouped query that groups one column twice, or whose groups and aggregates repeat an
+[output key](#output-keys), is refused with `AdapterError` code `KEY_AMBIGUOUS` by every grouped entry
+point. All four refusals, `groups:empty`, `fields:grouped`, the column grouped twice and the duplicate key,
+come from one core helper, `assertGroupedQuery(query)`, which runs before anything is rendered or read.
 
 A hand-built `Group` whose bucket unit is not `hour`, `day` or `month` is refused with `AdapterError` code
 `KEY_VALUE_INVALID` by every adapter: the unit is inlined into SQL, so nothing outside the list may pass.

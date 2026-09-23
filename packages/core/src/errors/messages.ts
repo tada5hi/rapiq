@@ -54,5 +54,9 @@ export const ErrorMessage = {
 
     outputKeyDuplicate: (key: string) => `The output key ${key} is requested more than once.`,
 
+    groupColumnDuplicate: (column: string) => `The column ${column} is grouped more than once.`,
+
+    outputValueUnreadable: (key: string) => `The driver row carries no readable value for the output key ${key}.`,
+
     functionInvalid: (name: string, reason: string) => `The function ${name} is invalid: ${reason}.`,
 } as const;

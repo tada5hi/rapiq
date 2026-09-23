@@ -46,7 +46,7 @@ describe('src/utils/encode.ts', () => {
             'revenue',
             { name: 'count', params: ['couponId'] },
         ],
-        sorts: ['-total_amount'],
+        sorts: ['-totalAmount'],
     });
 
     describe('buildQueryParameters', () => {
@@ -106,7 +106,7 @@ describe('src/utils/encode.ts', () => {
             const encoded = aware.encode(orderQuery, { schema: 'order' });
 
             expect(decodeURIComponent(encoded!)).toEqual(
-                'codec=url-expression&sort=-total_amount&group=period(day),status' +
+                'codec=url-expression&sort=-totalAmount&group=period(day),status' +
                 '&aggregate=total(amount),total(fee),revenue,count(couponId)',
             );
 
@@ -116,7 +116,7 @@ describe('src/utils/encode.ts', () => {
             });
 
             expect(decoded!.groups!.value.map((item) => [item.key, item.lowering])).toEqual([
-                ['period', {
+                ['createdAt', {
                     fn: 'bucket',
                     field: 'createdAt',
                     args: ['day'],
@@ -128,12 +128,12 @@ describe('src/utils/encode.ts', () => {
                 }],
             ]);
             expect(decoded!.aggregates!.value.map((item) => [item.key, item.lowering])).toEqual([
-                ['total_amount', {
+                ['totalAmount', {
                     fn: 'sum',
                     field: 'amount',
                     args: [],
                 }],
-                ['total_fee', {
+                ['totalFee', {
                     fn: 'sum',
                     field: 'fee',
                     args: [],
@@ -143,13 +143,13 @@ describe('src/utils/encode.ts', () => {
                     field: 'amount',
                     args: [],
                 }],
-                ['count_couponId', {
+                ['countCouponId', {
                     fn: 'count',
                     field: 'couponId',
                     args: [],
                 }],
             ]);
-            expect(decoded!.sorts!.value.map((item) => item.name)).toEqual(['total_amount']);
+            expect(decoded!.sorts!.value.map((item) => item.name)).toEqual(['totalAmount']);
         });
 
         it('should throw what the server would raise for a unit outside the open slot', () => {
@@ -186,6 +186,16 @@ describe('src/utils/encode.ts', () => {
                 ...options,
                 codec: URL_SIMPLE_CODEC,
             })!)).toEqual(expected.replace('filter=eq(realmId,\'r1\')', 'filter[realmId]=r1'));
+        });
+
+        it('should leave an include no filter traverses to the receiving parse', () => {
+            // the pass masks the absent filters, so it cannot tell whether
+            // the schema's filters default traverses the include.
+            expect(decodeURIComponent(aware.encode(defineQuery({
+                groups: ['scope'],
+                aggregates: ['count'],
+                relations: ['realm'],
+            }), { schema: 'event', stamp: false })!)).toEqual('include=realm&group=scope&aggregate=count');
         });
 
         it('should intersect the caller mask', () => {

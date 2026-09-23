@@ -53,6 +53,13 @@ export interface IFiltersAdapter extends ISubAdapter {
      */
     temporalKind?(field: string) : TemporalKind | undefined;
 
+    /**
+     * Whether a column holds numbers, read by the `sum` aggregate
+     * function. Optional so an implementation predating grouped
+     * queries keeps compiling.
+     */
+    isNumeric?(field: string) : boolean;
+
     merge<
         T extends IFiltersAdapter,
     >(

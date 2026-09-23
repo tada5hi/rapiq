@@ -68,6 +68,41 @@ export class AdapterError extends BaseError {
         });
     }
 
+    /**
+     * A hand-built grouped query whose groups and aggregates write the
+     * same row key, so one of the two values would be lost.
+     */
+    static outputKeyDuplicate(key: string) {
+        return new this({
+            message: ErrorMessage.outputKeyDuplicate(key),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
+    /**
+     * A hand-built grouped query grouping one column twice, so each row
+     * would carry two values for it.
+     */
+    static groupColumnDuplicate(column: string) {
+        return new this({
+            message: ErrorMessage.groupColumnDuplicate(column),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
+    /**
+     * A driver row without a number-readable value for an output key: an
+     * alias the engine truncated (63 bytes on pg), or a sum the driver
+     * hydrated as formatted text. A server fault, not client input, so
+     * it carries no client-facing code.
+     */
+    static outputValueUnreadable(key: string) {
+        return new this({
+            message: ErrorMessage.outputValueUnreadable(key),
+            code: ErrorCode.NONE,
+        });
+    }
+
     static featureUnsupported(feature: string) {
         return new this({
             message: `The feature ${feature} is not supported by the dialect.`,

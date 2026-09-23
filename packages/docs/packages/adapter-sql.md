@@ -244,12 +244,12 @@ const fragments = adapter.executeGrouped(query);
 // group=bucket(createdAt,day),scope&aggregate=count
 // {
 //     columns: [
-//         `to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"') as "bucket"`,
+//         `to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"') as "createdAt"`,
 //         '"event"."scope" as "scope"',
 //         'count(*) as "count"',
 //     ],
 //     groupBy: [`to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"')`, '"event"."scope"'],
-//     orderBy: ['"bucket" ASC', '"scope" ASC'],
+//     orderBy: ['"createdAt" ASC', '"scope" ASC'],
 //     where, params, limit, offset, relations,
 // }
 
@@ -266,6 +266,6 @@ adapter.filters.temporalKind = (field) => (field === 'createdAt' ? 'instant' : '
 // to_char(date_trunc('day', "event"."createdAt" at time zone 'UTC'), ...)
 ```
 
-Returning `undefined` marks a column as not temporal and refuses a bucket on it (`groups:bucket-type`). The MySQL (`TIMESTAMP` needs a UTC session `time_zone`) and SQLite (text dates, not epoch numbers) notes of [Buckets are UTC](/guide/grouping#buckets) apply here as well.
+Returning `undefined` marks a column as not temporal and refuses a bucket on it (`groups:bucket-type`). Likewise `filters.isNumeric(field)`, `true` by default, may be overridden to refuse a `sum` on a non-numeric column (`aggregates:sum-type`) instead of letting the engine fail or coerce. The MySQL (`TIMESTAMP` needs a UTC session `time_zone`) and SQLite (text dates, not epoch numbers) notes of [Buckets are UTC](/guide/grouping#buckets) apply here as well.
 
-Included relations are never joined for a grouped query; `relations` lists only the paths a filter traverses. **The standalone adapter cannot see relation cardinality**: a filter across a to-many relation joins it, and the join repeats each root row per related row, inflating `count` and `sum`. The caller owns the join (render it as a semi-join or `EXISTS`, or keep to-many paths out of a grouped endpoint's `filters.allowed`). [@rapiq/adapter-typeorm](/packages/adapter-typeorm#grouped-queries) reads the metadata and refuses this case instead (`aggregates:fan-out`).
+Included relations are never joined for a grouped query; `relations` lists only the paths a filter traverses. **The standalone adapter cannot see relation cardinality**: a filter across a to-many relation joins it, and the join repeats each root row per related row, inflating `count` and `sum`. The caller owns the join (render it as a semi-join or `EXISTS`, or keep to-many paths out of a grouped endpoint's `filters.allowed`). [@rapiq/adapter-typeorm](/packages/adapter-typeorm#grouped-queries) reads the metadata and renders such a filter as a correlated `EXISTS` instead.

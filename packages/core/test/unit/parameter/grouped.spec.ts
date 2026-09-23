@@ -10,6 +10,8 @@ import {
     Aggregate,
     Aggregates,
     ErrorCode,
+    ErrorMessage,
+    Field,
     Fields,
     FilterCompoundOperator,
     Filters,
@@ -21,6 +23,7 @@ import {
     Sort,
     SortDirection,
     Sorts,
+    assertGroupedQuery,
     isAggregates,
     isGroupedQuery,
     isGroups,
@@ -101,18 +104,34 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
         },
     });
 
-    it('should return the explicit sorts when present', () => {
-        const sorts = new Sorts([new Sort('count', SortDirection.DESC)]);
+    it('should append the group keys the explicit sorts do not name as ascending tie-breakers', () => {
         const query = new Query({
             groups: new Groups([bucket, scope]),
             aggregates: new Aggregates([count]),
+            sorts: new Sorts([new Sort('count', SortDirection.DESC)]),
+        });
+
+        expect(resolveGroupedSorts(query).map((sort) => [sort.name, sort.operator])).toEqual([
+            ['count', SortDirection.DESC],
+            ['createdAt', SortDirection.ASC],
+            ['scope', SortDirection.ASC],
+        ]);
+    });
+
+    it('should keep the direction of a group key the explicit sorts name', () => {
+        const sorts = new Sorts([new Sort('scope', SortDirection.DESC)]);
+        const query = new Query({
+            groups: new Groups([bucket, scope]),
             sorts,
         });
 
         const output = resolveGroupedSorts(query);
 
-        expect(output).toEqual(sorts.value);
-        expect(output).not.toBe(sorts.value);
+        expect(output.map((sort) => [sort.name, sort.operator])).toEqual([
+            ['scope', SortDirection.DESC],
+            ['createdAt', SortDirection.ASC],
+        ]);
+        expect(sorts.value).toHaveLength(1);
     });
 
     it('should order by every group key ascending in declared order', () => {
@@ -122,7 +141,7 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
         });
 
         expect(resolveGroupedSorts(query).map((sort) => [sort.name, sort.operator])).toEqual([
-            ['bucket', SortDirection.ASC],
+            ['createdAt', SortDirection.ASC],
             ['scope', SortDirection.ASC],
         ]);
     });
@@ -142,5 +161,89 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
             code: ErrorCode.FEATURE_UNSUPPORTED,
             feature: 'sorts:grouped',
         }));
+    });
+});
+
+describe('src/parameter/call/module.ts (assertGroupedQuery)', () => {
+    it('should accept a query with groups or aggregates', () => {
+        expect(() => assertGroupedQuery(new Query({ groups: new Groups([scope]) }))).not.toThrow();
+        expect(() => assertGroupedQuery(new Query({ aggregates: new Aggregates([count]) }))).not.toThrow();
+    });
+
+    it('should refuse a query without groups or aggregates', () => {
+        expect(() => assertGroupedQuery(new Query())).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'groups:empty',
+        }));
+    });
+
+    it('should refuse a grouped query carrying fields', () => {
+        const query = new Query({
+            groups: new Groups([scope]),
+            fields: new Fields([new Field('name')]),
+        });
+
+        expect(() => assertGroupedQuery(query)).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'fields:grouped',
+        }));
+    });
+
+    it('should refuse an output key written twice, within or across the two parameters', () => {
+        const column = new Group({
+            name: 'count',
+            lowering: {
+                fn: undefined,
+                field: 'count',
+                args: [],
+            },
+        });
+
+        for (const query of [
+            new Query({ groups: new Groups([scope, scope]) }),
+            new Query({ groups: new Groups([column]), aggregates: new Aggregates([count]) }),
+        ]) {
+            expect(() => assertGroupedQuery(query))
+                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+        }
+    });
+
+    const bucket = (field: string, unit = 'day') => new Group({
+        name: 'bucket',
+        params: [field, unit],
+        lowering: {
+            fn: 'bucket',
+            field,
+            args: [unit],
+        },
+    });
+
+    it('should accept buckets of two columns, their keys differ', () => {
+        const query = new Query({ groups: new Groups([bucket('createdAt'), bucket('updatedAt')]) });
+
+        expect(() => assertGroupedQuery(query)).not.toThrow();
+    });
+
+    it('should refuse a column grouped twice, whatever the spelling', () => {
+        const period = new Group({
+            name: 'period',
+            params: ['day'],
+            lowering: {
+                fn: 'bucket',
+                field: 'createdAt',
+                args: ['day'],
+            },
+        });
+
+        for (const groups of [
+            [bucket('createdAt'), bucket('createdAt', 'hour')],
+            [period, bucket('createdAt', 'hour')],
+        ]) {
+            expect(() => assertGroupedQuery(new Query({ groups: new Groups(groups) })))
+                .toThrowError(expect.objectContaining({
+                    code: ErrorCode.KEY_AMBIGUOUS,
+                    message: ErrorMessage.groupColumnDuplicate('createdAt'),
+                }));
+        }
     });
 });

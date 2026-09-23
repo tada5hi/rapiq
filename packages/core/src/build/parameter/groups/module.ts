@@ -11,6 +11,7 @@ import type { IGroup, IGroups } from '../../../parameter';
 import {
     Group,
     Groups,
+    findGroupColumnDuplicate,
     isGroup,
     isGroups,
 } from '../../../parameter';
@@ -48,6 +49,11 @@ export function defineGroups(input: GroupsBuildInput<ObjectLiteral>) : IGroups {
 
         return new Group(buildCallOptions(Parameter.GROUPS, element));
     });
+
+    const column = findGroupColumnDuplicate(output);
+    if (typeof column !== 'undefined') {
+        throw BuildError.groupColumnDuplicate(column);
+    }
 
     assertCallKeysUnique(output.map((item) => item.key));
 

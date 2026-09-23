@@ -15,8 +15,8 @@ import {
     AdapterError,
     AggregateFunction,
     GroupFunction,
+    assertGroupedQuery,
     isBucketUnit,
-    isGroupedQuery,
     resolveGroupedSorts,
 } from '@rapiq/core';
 import type { DialectOptions } from '../../dialect';
@@ -49,7 +49,7 @@ function buildGroupExpression(
     // closed enum may reach the dialect callback.
     const [unit] = lowering.args;
     if (!isBucketUnit(unit)) {
-        throw AdapterError.keyValueInvalid(group.key);
+        throw AdapterError.keyValueInvalid(`${group.name}(${group.params.join(',')})`);
     }
 
     const kind = filters.temporalKind ? filters.temporalKind(lowering.field) : 'datetime';
@@ -80,6 +80,10 @@ function buildAggregateExpression(
                 throw AdapterError.featureUnsupported('aggregates:unresolved');
             }
 
+            if (filters.isNumeric && !filters.isNumeric(lowering.field)) {
+                throw AdapterError.featureUnsupported('aggregates:sum-type');
+            }
+
             return `sum(${filters.buildField(lowering.field)})`;
         }
         default: {
@@ -98,13 +102,7 @@ export function buildGroupedClauses(
     filters: IFiltersAdapter,
     bucket?: DialectOptions['bucket'],
 ) : GroupedClauses {
-    if (!isGroupedQuery(query)) {
-        throw AdapterError.featureUnsupported('groups:empty');
-    }
-
-    if (query.fields.value.length > 0) {
-        throw AdapterError.featureUnsupported('fields:grouped');
-    }
+    assertGroupedQuery(query);
 
     const groups = (query.groups?.value ?? []).map((group) => ({
         key: group.key,
@@ -135,10 +133,12 @@ export function buildGroupedClauses(
  * significant digits loses precision; read the raw rows instead when
  * exact decimals matter. A sum over no values stays null.
  *
- * A row lacking an output key is refused (`KEY_VALUE_INVALID`) rather
- * than read as null: the engine returned another alias, which happens
- * when an alias exceeds its identifier limit (63 bytes on pg, which
- * truncates it; 30 on Oracle before 12.2).
+ * A row lacking an output key is refused
+ * (`AdapterError.outputValueUnreadable`) rather than read as null: the
+ * engine returned another alias, which happens when an alias exceeds
+ * its identifier limit (63 bytes on pg, which truncates it; 30 on
+ * Oracle before 12.2). So is an aggregate `Number` cannot read, such
+ * as a pg `money` sum, which the driver hydrates as formatted text.
  */
 export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : ObjectLiteral[] {
     const groups = query.groups?.value ?? [];
@@ -146,7 +146,7 @@ export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : Obj
 
     const read = (row: ObjectLiteral, key: string) : unknown => {
         if (!Object.hasOwn(row, key)) {
-            throw AdapterError.keyValueInvalid(key);
+            throw AdapterError.outputValueUnreadable(key);
         }
 
         return row[key];
@@ -161,9 +161,14 @@ export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : Obj
 
         for (const aggregate of aggregates) {
             const value = read(row, aggregate.key);
-            output[aggregate.key] = value === null || typeof value === 'undefined' ?
+            const number = value === null || typeof value === 'undefined' ?
                 null :
                 Number(value);
+            if (Number.isNaN(number)) {
+                throw AdapterError.outputValueUnreadable(aggregate.key);
+            }
+
+            output[aggregate.key] = number;
         }
 
         return output;

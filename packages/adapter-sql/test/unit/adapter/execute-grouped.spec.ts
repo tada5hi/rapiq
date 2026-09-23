@@ -38,7 +38,7 @@ const SQLITE_DAY = 'strftime(\'%Y-%m-%dT00:\' || \'00:\' || \'00.000Z\', `event`
 const presets : [string, DialectOptions, GroupedSqlFragments][] = [
     ['pg', pg, {
         columns: [
-            `${PG_DAY} as "bucket"`,
+            `${PG_DAY} as "createdAt"`,
             '"event"."scope" as "scope"',
             '"event"."name" as "name"',
             'count(*) as "count"',
@@ -46,14 +46,14 @@ const presets : [string, DialectOptions, GroupedSqlFragments][] = [
         where: '(lower("event"."realmId") in(lower($1)) or "event"."realmId" is null)',
         params: ['r1'],
         groupBy: [PG_DAY, '"event"."scope"', '"event"."name"'],
-        orderBy: ['"bucket" ASC', '"scope" ASC', '"name" ASC'],
+        orderBy: ['"createdAt" ASC', '"scope" ASC', '"name" ASC'],
         limit: 100,
         offset: 0,
         relations: [],
     }],
     ['mysql', mysql, {
         columns: [
-            `${MYSQL_DAY} as \`bucket\``,
+            `${MYSQL_DAY} as \`createdAt\``,
             '`event`.`scope` as `scope`',
             '`event`.`name` as `name`',
             'count(*) as `count`',
@@ -61,14 +61,14 @@ const presets : [string, DialectOptions, GroupedSqlFragments][] = [
         where: '(`event`.`realmId` in(?) or `event`.`realmId` is null)',
         params: ['r1'],
         groupBy: [MYSQL_DAY, '`event`.`scope`', '`event`.`name`'],
-        orderBy: ['`bucket` ASC', '`scope` ASC', '`name` ASC'],
+        orderBy: ['`createdAt` ASC', '`scope` ASC', '`name` ASC'],
         limit: 100,
         offset: 0,
         relations: [],
     }],
     ['sqlite', sqlite, {
         columns: [
-            `${SQLITE_DAY} as \`bucket\``,
+            `${SQLITE_DAY} as \`createdAt\``,
             '`event`.`scope` as `scope`',
             '`event`.`name` as `name`',
             'count(*) as `count`',
@@ -76,7 +76,7 @@ const presets : [string, DialectOptions, GroupedSqlFragments][] = [
         where: '(lower(`event`.`realmId`) in(lower(?)) or `event`.`realmId` is null)',
         params: ['r1'],
         groupBy: [SQLITE_DAY, '`event`.`scope`', '`event`.`name`'],
-        orderBy: ['`bucket` ASC', '`scope` ASC', '`name` ASC'],
+        orderBy: ['`createdAt` ASC', '`scope` ASC', '`name` ASC'],
         limit: 100,
         offset: 0,
         relations: [],
@@ -134,7 +134,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
 
         const fragments = adapter.executeGrouped(new Query({ aggregates: new Aggregates([countAggregate(), sumAggregate('amount')]) }));
 
-        expect(fragments.columns).toEqual(['count(*) as "count"', 'sum("event"."amount") as "sum_amount"']);
+        expect(fragments.columns).toEqual(['count(*) as "count"', 'sum("event"."amount") as "sumAmount"']);
         expect(fragments.groupBy).toEqual([]);
         expect(fragments.orderBy).toEqual([]);
     });

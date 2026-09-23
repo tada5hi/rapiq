@@ -37,10 +37,10 @@ describe('src/parameter/aggregates', () => {
 
         expect(output.value.map((item) => item.key)).toEqual([
             'count',
-            'count_couponId',
-            'sum_amount',
-            'total_amount',
-            'total_fee',
+            'countCouponId',
+            'sumAmount',
+            'totalAmount',
+            'totalFee',
             'revenue',
         ]);
         expect(output.value.map((item) => item.lowering)).toEqual([
@@ -93,7 +93,7 @@ describe('src/parameter/aggregates', () => {
 
     it('should resolve primitives without a schema', () => {
         expect(parser.parse('count,sum(amount)').value.map((item) => item.key))
-            .toEqual(['count', 'sum_amount']);
+            .toEqual(['count', 'sumAmount']);
     });
 
     it('should reject count and count() together', () => {
@@ -106,6 +106,24 @@ describe('src/parameter/aggregates', () => {
             path: ['count'],
             message: ErrorMessage.outputKeyDuplicate('count'),
         })]);
+    });
+
+    it('should reject two spellings of one camel-case key', () => {
+        const error = errorOf(() => parser.parse('sum(total_amount),sum(totalAmount)'));
+
+        expect(error).toBeInstanceOf(AggregatesParseError);
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({
+            code: ErrorCode.KEY_AMBIGUOUS,
+            path: ['sum'],
+            message: ErrorMessage.outputKeyDuplicate('sumTotalAmount'),
+        })]);
+    });
+
+    it('should reject an underscore-only argument, which would vanish from the key', () => {
+        const error = errorOf(() => parser.parse('count(_)'));
+
+        expect(error).toBeInstanceOf(AggregatesParseError);
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({ code: ErrorCode.KEY_INVALID })]);
     });
 
     it('should reject an input of the wrong shape', () => {

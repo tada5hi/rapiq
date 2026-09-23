@@ -203,6 +203,76 @@ export async function applyKeySchemaValidationAsync(
 }
 
 /**
+ * The slice of a groups or aggregates schema the call validation pass
+ * consumes.
+ */
+export type CallValidatableSchema<NODE> = {
+    hasValidator() : boolean,
+    validate(node: NODE, context: any) : MaybeAsync<KeyValidationVerdict>,
+};
+
+/**
+ * Run a groups or aggregates validate hook once per resolved node, in
+ * order. Returns the accepted nodes and hands each rejected one to
+ * `reject`: these parameters have no drop path, so the caller records it.
+ * A hook answering with a Promise is refused, as behind every `parse()`.
+ */
+export function applyCallSchemaValidation<NODE>(
+    nodes: NODE[],
+    schema: CallValidatableSchema<NODE> | undefined,
+    context: unknown,
+    reject: (node: NODE) => void,
+) : NODE[] {
+    if (!schema?.hasValidator()) {
+        return nodes;
+    }
+
+    return nodes.filter((node) => settleCall(refuseAsync(schema.validate(node, context)), node, reject));
+}
+
+/**
+ * Async counterpart of {@link applyCallSchemaValidation}. Hooks are
+ * awaited sequentially, in node order.
+ */
+export async function applyCallSchemaValidationAsync<NODE>(
+    nodes: NODE[],
+    schema: CallValidatableSchema<NODE> | undefined,
+    context: unknown,
+    reject: (node: NODE) => void,
+) : Promise<NODE[]> {
+    if (!schema?.hasValidator()) {
+        return nodes;
+    }
+
+    const output : NODE[] = [];
+    for (const node of nodes) {
+        if (settleCall(await schema.validate(node, context), node, reject)) {
+            output.push(node);
+        }
+    }
+
+    return output;
+}
+
+/**
+ * A term has no column to gate, so a condition rejects it like a falsy
+ * verdict (the sorts and relations rule).
+ */
+function settleCall<NODE>(
+    verdict: KeyValidationVerdict,
+    node: NODE,
+    reject: (node: NODE) => void,
+) : boolean {
+    if (verdict && !isCondition(verdict)) {
+        return true;
+    }
+
+    reject(node);
+
+    return false;
+}
+
+/**
  * Memoizes one `validateMany` result per batch. The batch unit is
  * (governing schema instance, scope path): a single registered schema
  * can govern two relation positions of the same query (`items.realm`

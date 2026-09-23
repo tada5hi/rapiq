@@ -13,6 +13,7 @@ import {
     Groups,
     GroupsParseError,
     Parameter,
+    defineSchema,
 } from '@rapiq/core';
 import { SimpleGroupsParser } from '../../../src';
 import { registry } from '../../data';
@@ -31,16 +32,16 @@ describe('src/parameter/groups', () => {
     const parser = new SimpleGroupsParser(registry);
 
     it('should resolve built-in calls, named calls and bare columns', () => {
-        expect(parser.parse('bucket(createdAt,day),period(hour),scope', { schema: 'event' })).toEqual(new Groups([
-            new Group({
-                name: 'bucket',
-                params: ['createdAt', 'day'],
-                lowering: {
-                    fn: 'bucket',
-                    field: 'createdAt',
-                    args: ['day'],
-                },
-            }),
+        expect(parser.parse('bucket(createdAt,day),scope', { schema: 'event' }).value[0]).toEqual(new Group({
+            name: 'bucket',
+            params: ['createdAt', 'day'],
+            lowering: {
+                fn: 'bucket',
+                field: 'createdAt',
+                args: ['day'],
+            },
+        }));
+        expect(parser.parse('period(hour),scope', { schema: 'event' })).toEqual(new Groups([
             new Group({
                 name: 'period',
                 params: ['hour'],
@@ -112,14 +113,44 @@ describe('src/parameter/groups', () => {
         ]);
     });
 
-    it('should reject a key requested twice', () => {
-        const error = errorOf(() => parser.parse('bucket(createdAt,day),bucket(createdAt,hour)', { schema: 'event' }));
+    it('should key every group by its column', () => {
+        expect(parser.parse('bucket(createdAt,day),scope', { schema: 'event' }).value.map((item) => item.key))
+            .toEqual(['createdAt', 'scope']);
+        expect(parser.parse('period(day),scope', { schema: 'event' }).value.map((item) => item.key))
+            .toEqual(['createdAt', 'scope']);
+    });
 
-        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({
+    it('should key a named function by the column the client picks, once per column', () => {
+        const schema = defineSchema({
+            groups: {
+                functions: {
+                    daily: {
+                        fn: 'bucket',
+                        field: ['createdAt', 'updatedAt'],
+                        unit: 'day',
+                    },
+                },
+            },
+        });
+
+        expect(parser.parse('daily(createdAt),daily(updatedAt)', { schema }).value.map((item) => item.key))
+            .toEqual(['createdAt', 'updatedAt']);
+    });
+
+    it.each([
+        ['bucket(createdAt,day),bucket(createdAt,hour)', 'event', 'bucket(createdAt,hour)'],
+        ['createdAt,bucket(createdAt,day)', undefined, 'bucket(createdAt,day)'],
+        ['period(day),bucket(createdAt,hour)', 'event', 'bucket(createdAt,hour)'],
+    ])('should reject a column grouped twice: %s', (input, schema, key) => {
+        const error = errorOf(() => parser.parse(input, { schema }));
+
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([{
+            type: 'item',
             code: ErrorCode.KEY_AMBIGUOUS,
             path: ['bucket'],
-            message: ErrorMessage.outputKeyDuplicate('bucket'),
-        })]);
+            message: ErrorMessage.groupColumnDuplicate('createdAt'),
+            meta: { parameter: Parameter.GROUPS, key },
+        }]);
     });
 
     it('should turn a grammar violation into an issue of its own class', () => {

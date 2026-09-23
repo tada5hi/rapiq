@@ -12,7 +12,10 @@ export interface IAggregateVisitor<R> {
 }
 
 export interface IAggregate {
-    /** Output key: `[name, ...params].join('_')`, the row key and the grouped sort target. */
+    /**
+     * Output key, the row key and the grouped sort target: the name
+     * followed by each param in camel case (`sum(total_amount)` is `sumTotalAmount`).
+     */
     readonly key: string;
 
     /** Callee, as written on the wire. */

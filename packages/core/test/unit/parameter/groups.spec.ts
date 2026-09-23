@@ -33,22 +33,28 @@ const count : CallLowering = {
 };
 
 describe('src/parameter/groups/**', () => {
-    it('should key a group by its name and keep the wire form', () => {
+    it('should key a group by its column and keep the wire form', () => {
         const group = new Group({
             name: 'bucket',
             params: ['createdAt', 'day'],
             lowering: bucketDay,
         });
 
-        expect(group.key).toEqual('bucket');
+        expect(group.key).toEqual('createdAt');
         expect(group.name).toEqual('bucket');
         expect(group.params).toEqual(['createdAt', 'day']);
         expect(group.lowering).toEqual(bucketDay);
+        expect(new Group({
+            name: 'period',
+            params: ['day'],
+            lowering: bucketDay,
+        }).key).toEqual('createdAt');
     });
 
     it('should default params to none and lowering to unresolved', () => {
         const group = new Group({ name: 'period' });
 
+        expect(group.key).toEqual('period');
         expect(group.params).toEqual([]);
         expect(group.lowering).toBeUndefined();
     });
@@ -118,11 +124,13 @@ describe('src/parameter/groups/**', () => {
 });
 
 describe('src/parameter/aggregates/**', () => {
-    it('should key an aggregate by its name joined with its params', () => {
+    it('should key an aggregate by its name followed by its params in camel case', () => {
         expect(new Aggregate({ name: 'count', lowering: count }).key).toEqual('count');
-        expect(new Aggregate({ name: 'count', params: ['couponId'] }).key).toEqual('count_couponId');
-        expect(new Aggregate({ name: 'sum', params: ['amount'] }).key).toEqual('sum_amount');
-        expect(new Aggregate({ name: 'total', params: ['fee'] }).key).toEqual('total_fee');
+        expect(new Aggregate({ name: 'count', params: ['couponId'] }).key).toEqual('countCouponId');
+        expect(new Aggregate({ name: 'sum', params: ['amount'] }).key).toEqual('sumAmount');
+        expect(new Aggregate({ name: 'sum', params: ['total_amount'] }).key).toEqual('sumTotalAmount');
+        expect(new Aggregate({ name: 'total', params: ['fee'] }).key).toEqual('totalFee');
+        expect(new Aggregate({ name: 'total' }).key).toEqual('total');
     });
 
     it('should merge by the same rule as groups', () => {

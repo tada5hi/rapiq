@@ -17,10 +17,13 @@ export function isPropertyNameValid(input: string): boolean {
 const CALL_IDENTIFIER_RESERVED = ['__proto__', 'constructor', 'prototype'];
 
 /**
- * A valid property name that is not reserved, for groups and
- * aggregates identifiers only. Other parameters keep
- * {@link isPropertyNameValid}.
+ * A valid property name that is not reserved and carries a letter or
+ * digit, for groups and aggregates identifiers only: an underscore-only
+ * argument would vanish from a camel-cased aggregate key (`count(_)`
+ * would read as `count`). Other parameters keep {@link isPropertyNameValid}.
  */
 export function isCallIdentifierValid(input: string): boolean {
-    return isPropertyNameValid(input) && !CALL_IDENTIFIER_RESERVED.includes(input);
+    return isPropertyNameValid(input) &&
+        /[a-zA-Z0-9]/.test(input) &&
+        !CALL_IDENTIFIER_RESERVED.includes(input);
 }

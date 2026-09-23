@@ -5,20 +5,24 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import type { IGroup } from '../../../parameter';
 import type { ObjectLiteral, SimpleKeys } from '../../../types';
 import type {
     CallBuiltinDeclaration,
     CallFunctionDescription,
+    CallValidator,
     GroupFunctionDeclaration,
 } from '../call';
 
 /**
- * What a client may group by. There is no mapping, default, failure
- * policy or validate hook: named functions are the renaming
- * mechanism, a rejection is always fatal, and a bound schema permits
- * nothing it does not declare.
+ * What a client may group by. There is no mapping, default or failure
+ * policy: named functions are the renaming mechanism, a rejection is
+ * always fatal, and a bound schema permits nothing it does not declare.
  */
-export type GroupsOptions<T extends ObjectLiteral = ObjectLiteral> = {
+export type GroupsOptions<
+    T extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
+> = {
     name?: string,
     /**
      * Root columns the client may group by as written (`group=status`).
@@ -29,6 +33,11 @@ export type GroupsOptions<T extends ObjectLiteral = ObjectLiteral> = {
      * declares a named function binding `bucket`.
      */
     functions?: Record<string, CallBuiltinDeclaration<T> | GroupFunctionDeclaration<T>>,
+    /**
+     * Dynamic per-group gate, run once per resolved group. See
+     * {@link CallValidator}.
+     */
+    validate?: CallValidator<IGroup, CONTEXT>,
 };
 
 /**

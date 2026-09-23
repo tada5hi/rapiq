@@ -5,14 +5,20 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ObjectLiteral, Query } from '@rapiq/core';
+import type { ICondition, ObjectLiteral, Query } from '@rapiq/core';
 import {
+    ErrorCode,
     Filter,
     FilterFieldOperator,
     Sort,
     SortDirection,
     Sorts,
+    and,
     defineQuery,
+    eq,
+    inArray,
+    ne,
+    or,
 } from '@rapiq/core';
 import { applyGroupedQuery } from '@rapiq/adapter-memory';
 import type { DataSource, DataSourceOptions, SelectQueryBuilder } from 'typeorm';
@@ -20,6 +26,7 @@ import type { RelationsAdapterOptions } from '../../src';
 import { TypeormAdapter } from '../../src';
 import { Activity, ActivityTag } from '../data/entity/activity';
 import { Reading } from '../data/entity/reading';
+import { Parcel, Shipment } from '../data/entity/shipment';
 import { createDataSource, createDataSourceOptions } from '../data/factory';
 import { createRealmSeed } from '../data/seeder/realm';
 
@@ -84,6 +91,16 @@ const SEED : Seed[] = [
 
 const toInstant = (stored: string) => `${stored.replace(' ', 'T')}Z`;
 
+/**
+ * Tag names per SEED index. Two tags on the first activity: a join
+ * repeats it once per matching tag, the fan-out that must never reach
+ * count or sum.
+ */
+const TAGS : Record<number, string[]> = {
+    0: ['a', 'b'],
+    3: ['a'],
+};
+
 describe('src/adapter/module.ts (grouped, engine parity)', () => {
     let dataSource : DataSource;
     let masterId : number;
@@ -116,10 +133,11 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
                 .execute();
         }
 
-        await dataSource.getRepository(ActivityTag).save([
-            { name: 'a', activity_id: saved[0]!.id },
-            { name: 'b', activity_id: saved[0]!.id },
-        ]);
+        await dataSource.getRepository(ActivityTag).save(Object.entries(TAGS).flatMap(
+            ([index, names]) => names.map((name) => ({ name, activity_id: saved[Number(index)]!.id })),
+        ));
+
+        const tagsOf = (index: number) => (TAGS[index] ?? []).map((name) => ({ name }));
 
         records = saved.map((activity, index) => ({
             id: activity.id,
@@ -129,6 +147,8 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
             realm_id: SEED[index]!.inMaster ? masterId : null,
             realm: SEED[index]!.inMaster ? { id: masterId, name: master!.name } : null,
             created_at: toInstant(SEED[index]!.stored),
+            // each tag leads back to its activity and that activity's tags.
+            tags: tagsOf(index).map((tag) => ({ ...tag, activity: { tags: tagsOf(index) } })),
         }));
     });
 
@@ -172,19 +192,19 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([
             {
-                bucket: '2026-08-20T00:00:00.000Z',
+                created_at: '2026-08-20T00:00:00.000Z',
                 scope: 'auth',
                 name: 'login',
                 count: 2,
             },
             {
-                bucket: '2026-08-21T00:00:00.000Z',
+                created_at: '2026-08-21T00:00:00.000Z',
                 scope: 'auth',
                 name: 'logout',
                 count: 1,
             },
             {
-                bucket: '2026-09-01T00:00:00.000Z',
+                created_at: '2026-09-01T00:00:00.000Z',
                 scope: 'billing',
                 name: 'charge',
                 count: 1,
@@ -204,24 +224,24 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([
             {
-                bucket: '2026-08-20T09:00:00.000Z',
+                created_at: '2026-08-20T09:00:00.000Z',
                 count: 1,
-                sum_amount: 5,
+                sumAmount: 5,
             },
             {
-                bucket: '2026-08-20T22:00:00.000Z',
+                created_at: '2026-08-20T22:00:00.000Z',
                 count: 1,
-                sum_amount: 7,
+                sumAmount: 7,
             },
             {
-                bucket: '2026-08-21T00:00:00.000Z',
+                created_at: '2026-08-21T00:00:00.000Z',
                 count: 1,
-                sum_amount: 1,
+                sumAmount: 1,
             },
             {
-                bucket: '2026-09-01T10:00:00.000Z',
+                created_at: '2026-09-01T10:00:00.000Z',
                 count: 1,
-                sum_amount: 100,
+                sumAmount: 100,
             },
         ]);
         expect(rows).toEqual(oracle(query));
@@ -261,8 +281,8 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const rows = await run(query);
 
         expect(rows).toEqual([
-            { bucket: '2026-08-01T00:00:00.000Z', count: 4 },
-            { bucket: '2026-09-01T00:00:00.000Z', count: 2 },
+            { created_at: '2026-08-01T00:00:00.000Z', count: 4 },
+            { created_at: '2026-09-01T00:00:00.000Z', count: 2 },
         ]);
         expect(rows).toEqual(oracle(query));
     });
@@ -280,10 +300,47 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([{
             count: 6,
-            sum_amount: 116,
-            count_scope: 5,
+            sumAmount: 116,
+            countScope: 5,
         }]);
         expect(rows).toEqual(oracle(query));
+    });
+
+    it('should sum like memory over records a driver hydrated as numeric strings', async () => {
+        const query = defineQuery({
+            groups: ['scope'],
+            aggregates: [{ name: 'sum', params: ['amount'] }],
+            filters: inMaster(),
+        });
+
+        const rows = await run(query);
+
+        expect(rows).toEqual([
+            { scope: 'auth', sumAmount: 13 },
+            { scope: 'billing', sumAmount: 100 },
+        ]);
+        // a decimal column hydrates as a string on pg and mysql.
+        expect(rows).toEqual(applyGroupedQuery(query, records.map((record) => ({
+            ...record,
+            amount: String(record.amount),
+        }))).data);
+    });
+
+    it('should refuse a sum over a column that is not numeric instead of letting the engine answer', async () => {
+        const queryBuilder = dataSource
+            .getRepository(Activity)
+            .createQueryBuilder('activity');
+        const sql = queryBuilder.getSql();
+
+        // sqlite would answer sum('login') with 0, pg with an error.
+        expect(() => new TypeormAdapter({ queryBuilder }).executeGrouped(defineQuery({
+            groups: ['scope'],
+            aggregates: [{ name: 'sum', params: ['name'] }],
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:sum-type',
+        }));
+        expect(queryBuilder.getSql()).toEqual(sql);
     });
 
     it('should answer aggregates over no rows with zero and null', async () => {
@@ -294,7 +351,7 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         const rows = await run(query);
 
-        expect(rows).toEqual([{ count: 0, sum_amount: null }]);
+        expect(rows).toEqual([{ count: 0, sumAmount: null }]);
         expect(rows).toEqual(oracle(query));
     });
 
@@ -408,6 +465,108 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         expect(rows).toEqual(oracle(query));
     });
 
+    it.each<[string, () => ICondition, ObjectLiteral[]]>([
+        [
+            'a to-many filter that two tags of one activity match',
+            () => inArray('tags.name', ['a', 'b']),
+            [
+                {
+                    scope: 'auth',
+                    count: 1,
+                    sumAmount: 5,
+                },
+                {
+                    scope: 'billing',
+                    count: 1,
+                    sumAmount: 100,
+                },
+            ],
+        ],
+        [
+            'a nested to-many path',
+            () => eq('tags.activity.tags.name', 'b'),
+            [{
+                scope: 'auth',
+                count: 1,
+                sumAmount: 5,
+            }],
+        ],
+        [
+            'a to-many filter or-ed with a root filter',
+            () => or(eq('tags.name', 'a'), eq('scope', 'auth')),
+            [
+                {
+                    scope: 'auth',
+                    count: 3,
+                    sumAmount: 13,
+                },
+                {
+                    scope: 'billing',
+                    count: 1,
+                    sumAmount: 100,
+                },
+            ],
+        ],
+        [
+            'a negated to-many filter, which an activity without tags satisfies',
+            () => and(ne('tags.name', 'a'), inMaster()),
+            [{
+                scope: 'auth',
+                count: 3,
+                sumAmount: 13,
+            }],
+        ],
+    ])('should count and sum every activity once across %s', async (_label, filters, expected) => {
+        const query = defineQuery({
+            groups: ['scope'],
+            aggregates: ['count', { name: 'sum', params: ['amount'] }],
+            filters: filters(),
+        });
+
+        const rows = await run(query);
+
+        expect(rows).toEqual(expected);
+        expect(rows).toEqual(oracle(query));
+
+        // the record path selects the same activities: a root row
+        // qualifies when one of its join rows satisfies the whole tree.
+        const queryBuilder = dataSource
+            .getRepository(Activity)
+            .createQueryBuilder('activity');
+        new TypeormAdapter({ queryBuilder }).execute(defineQuery({ filters: filters() }));
+
+        expect(await queryBuilder.getCount()).toEqual(rows.reduce((total, row) => total + row.count, 0));
+    });
+
+    it('should apply a join hook condition inside the subquery', async () => {
+        const query = defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+            filters: inArray('tags.name', ['a', 'b']),
+        });
+
+        const rows = await run(query, {
+            prepare: (queryBuilder) => {
+                // survives the subquery's parameters being merged in.
+                queryBuilder.where('activity.amount >= :minAmount', { minAmount: 1 });
+            },
+            relations: {
+                onJoin: (path, alias, queryBuilder) => {
+                    if (path === 'tags') {
+                        queryBuilder.andWhere(`${alias}.name = :tagName`, { tagName: 'b' });
+                    }
+                },
+            },
+        });
+
+        expect(rows).toEqual([{ scope: 'auth', count: 1 }]);
+        expect(rows).toEqual(oracle(defineQuery({
+            groups: ['scope'],
+            aggregates: ['count'],
+            filters: and(inArray('tags.name', ['a', 'b']), eq('tags.name', 'b')),
+        })));
+    });
+
     it('should group across a to-many join without duplicating groups', async () => {
         const query = defineQuery({
             groups: ['scope'],
@@ -422,6 +581,80 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
 
         expect(rows).toEqual([{ scope: 'auth' }, { scope: 'billing' }]);
         expect(rows).toEqual(oracle(query));
+    });
+});
+
+describe('src/adapter/module.ts (grouped, composite primary key)', () => {
+    let dataSource : DataSource;
+
+    /**
+     * Two shipments share a region and two share a code: a subquery
+     * correlated on one key column alone lets a shipment borrow the
+     * parcels of another.
+     */
+    const SHIPMENTS = [
+        {
+            region: 'eu',
+            code: 1,
+            weight: 10,
+            parcels: ['fragile', 'fragile'],
+        },
+        {
+            region: 'us',
+            code: 1,
+            weight: 20,
+            parcels: ['plain'],
+        },
+        {
+            region: 'eu',
+            code: 2,
+            weight: 40,
+            parcels: ['plain'],
+        },
+    ];
+
+    beforeAll(async () => {
+        dataSource = createDataSource({
+            ...createDataSourceOptions(),
+            entities: [Shipment, Parcel],
+        } as DataSourceOptions);
+        await dataSource.initialize();
+        await dataSource.synchronize();
+
+        await dataSource.getRepository(Shipment).save(SHIPMENTS.map(({ parcels: _, ...shipment }) => shipment));
+        await dataSource.getRepository(Parcel).save(SHIPMENTS.flatMap((shipment) => shipment.parcels.map((label) => ({
+            label,
+            shipment_region: shipment.region,
+            shipment_code: shipment.code,
+        }))));
+    });
+
+    afterAll(async () => {
+        await dataSource.destroy();
+    });
+
+    it('should correlate on every primary key column', async () => {
+        const query = defineQuery({
+            groups: ['region'],
+            aggregates: ['count', { name: 'sum', params: ['weight'] }],
+            filters: eq('parcels.label', 'fragile'),
+        });
+
+        const queryBuilder = dataSource
+            .getRepository(Shipment)
+            .createQueryBuilder('shipment');
+        const output = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
+        const rows = output.normalize(await queryBuilder.getRawMany());
+
+        expect(rows).toEqual([{
+            region: 'eu',
+            count: 1,
+            sumWeight: 10,
+        }]);
+        expect(rows).toEqual(applyGroupedQuery(query, SHIPMENTS.map((shipment) => ({
+            ...shipment,
+            parcels: shipment.parcels.map((label) => ({ label })),
+        }))).data);
     });
 });
 
@@ -475,8 +708,8 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
             const rows = output.normalize(await queryBuilder.getRawMany());
 
             expect(rows).toEqual([
-                { bucket: '2026-08-20T00:00:00.000Z', count: 1 },
-                { bucket: '2026-08-21T00:00:00.000Z', count: 1 },
+                { observed_at: '2026-08-20T00:00:00.000Z', count: 1 },
+                { observed_at: '2026-08-21T00:00:00.000Z', count: 1 },
             ]);
             expect(rows).toEqual(applyGroupedQuery(query, OBSERVED.map((observed_at, index) => ({
                 observed_at,
@@ -526,7 +759,7 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
             const output = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
             const rows = output.normalize(await queryBuilder.getRawMany());
 
-            expect(rows).toEqual(buckets.map((bucket) => ({ bucket, count: 1 })));
+            expect(rows).toEqual(buckets.map((bucket) => ({ [column]: bucket, count: 1 })));
             expect(rows).toEqual(applyGroupedQuery(query, records()).data);
         } finally {
             await runner.release();

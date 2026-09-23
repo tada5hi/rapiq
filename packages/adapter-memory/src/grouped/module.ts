@@ -17,8 +17,8 @@ import {
     BucketUnit,
     GroupFunction,
     Sorts,
+    assertGroupedQuery,
     isBucketUnit,
-    isGroupedQuery,
     resolveGroupedSorts,
     toDate,
 } from '@rapiq/core';
@@ -61,6 +61,27 @@ function truncateToBucket(value: unknown, unit: string) : string | null {
     return output.toISOString();
 }
 
+/**
+ * Read a value the way `normalizeGroupedRows` (adapter-sql) reads a SQL
+ * sum: with `Number`. A record hydrated by a driver
+ * carries a decimal as a string and a pg bigint as a string or bigint,
+ * so those count; a blank string, which `Number` reads as 0, does not.
+ * Anything else (null, a boolean, a Date, a non-numeric string) is
+ * skipped.
+ */
+function toSummand(value: unknown) : number | undefined {
+    const numeric = typeof value === 'number' ||
+        typeof value === 'bigint' ||
+        (typeof value === 'string' && value.trim().length > 0);
+    if (!numeric) {
+        return undefined;
+    }
+
+    const output = Number(value);
+
+    return Number.isFinite(output) ? output : undefined;
+}
+
 function compileGroup(group: IGroup) : GroupReader {
     const { lowering } = group;
     // every group reads a root column: a bare one or a bucket's.
@@ -78,7 +99,7 @@ function compileGroup(group: IGroup) : GroupReader {
         // hand-built IR only: the resolver admits nothing outside
         // BucketUnit. Same refusal as adapter-sql, which inlines the unit.
         if (!isBucketUnit(unit)) {
-            throw AdapterError.keyValueInvalid(group.key);
+            throw AdapterError.keyValueInvalid(`${group.name}(${group.params.join(',')})`);
         }
 
         return (record) => truncateToBucket(resolvePath(record, field), unit);
@@ -106,8 +127,8 @@ function compileAggregate(aggregate: IAggregate) : AggregateReducer {
         return (records) => {
             let output : number | null = null;
             for (const record of records) {
-                const value = resolvePath(record, field);
-                if (typeof value === 'number' && Number.isFinite(value)) {
+                const value = toSummand(resolvePath(record, field));
+                if (typeof value !== 'undefined') {
                     output = (output ?? 0) + value;
                 }
             }
@@ -132,13 +153,7 @@ export function compileGroupedQuery(
     query: IQuery,
     options: QueryVisitorOptions = {},
 ) : (data: unknown[]) => ApplyOutput<ObjectLiteral> {
-    if (!isGroupedQuery(query)) {
-        throw AdapterError.featureUnsupported('groups:empty');
-    }
-
-    if (query.fields.value.length > 0) {
-        throw AdapterError.featureUnsupported('fields:grouped');
-    }
+    assertGroupedQuery(query);
 
     const groups = (query.groups?.value ?? []).map((group) => ({
         key: group.key,

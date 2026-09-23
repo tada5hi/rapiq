@@ -58,6 +58,47 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
 }
 
 /**
+ * Column types a `sum` aggregate accepts on every dialect that declares
+ * them. Booleans are absent: pg has no `sum(boolean)`, so summing one
+ * would pass here and fail inside the database. So are `money` and
+ * `smallmoney`: pg returns their sum as locale-formatted text.
+ */
+const NUMERIC_COLUMN_TYPES = new Set<string>([
+    'tinyint',
+    'smallint',
+    'mediumint',
+    'int',
+    'int2',
+    'int4',
+    'int8',
+    'int64',
+    'integer',
+    'bigint',
+    'unsigned big int',
+    'dec',
+    'decimal',
+    'smalldecimal',
+    'fixed',
+    'numeric',
+    'number',
+    'float',
+    'float4',
+    'float8',
+    'float64',
+    'double',
+    'double precision',
+    'real',
+]);
+
+function isNumericColumnType(type: ColumnType) : boolean {
+    if (type === Number) {
+        return true;
+    }
+
+    return typeof type === 'string' && NUMERIC_COLUMN_TYPES.has(type);
+}
+
+/**
  * How a date operand has to be spelled for the column it addresses.
  * A column absent from every table is not temporal and binds as-is.
  */
@@ -134,15 +175,23 @@ function resolveDateColumnFormat(type: ColumnType) : TemporalKind | undefined {
 /**
  * TypeORM parameters are global to the query builder and last-write-wins,
  * so every filter application needs its own namespace: positional names
- * like `:0` would silently rebind a caller-owned `:0` parameter — or, on
- * a re-run, the previous run's clauses.
+ * like `:0` would silently rebind a caller-owned `:0` parameter, or, on
+ * a re-run, the previous run's clauses. A namespace that a parameter
+ * already on the builder starts with is skipped, so a caller's own
+ * `rapiq_*` name is never rebound either.
  */
 let PARAM_NAMESPACE_SEQ = 0;
 
-function nextParamNamespace() : string {
-    PARAM_NAMESPACE_SEQ += 1;
+function nextParamNamespace(queryBuilder: SelectQueryBuilder<any>) : string {
+    const keys = Object.keys(queryBuilder.expressionMap.parameters);
 
-    return `rapiq_${PARAM_NAMESPACE_SEQ}_`;
+    let namespace : string;
+    do {
+        PARAM_NAMESPACE_SEQ += 1;
+        namespace = `rapiq_${PARAM_NAMESPACE_SEQ}_`;
+    } while (keys.some((key) => key.startsWith(namespace)));
+
+    return namespace;
 }
 
 /**
@@ -188,7 +237,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
         this.queryBuilder = queryBuilder;
         this.dialect = resolveQueryDialect(queryBuilder);
-        this.paramNamespace = nextParamNamespace();
+        this.paramNamespace = nextParamNamespace(queryBuilder);
     }
 
     override clear() {
@@ -196,7 +245,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
         // a fresh namespace per run: clauses a previous run left on the
         // builder keep their own bindings instead of being rebound.
-        this.paramNamespace = nextParamNamespace();
+        this.paramNamespace = nextParamNamespace(this.queryBuilder);
     }
 
     rootAlias(): string | undefined {
@@ -299,6 +348,23 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         return resolveDateColumnFormat(column.type);
+    }
+
+    /**
+     * Whether a summed column holds numbers, read from the entity
+     * metadata: the grouped clauses refuse any other column typed
+     * (`aggregates:sum-type`) instead of letting the database fail
+     * (pg has no `sum(character varying)`, nor `sum(integer[])`). A
+     * builder without metadata, or a path it cannot resolve, keeps the
+     * base default.
+     */
+    override isNumeric(field: string) : boolean {
+        const column = this.resolveColumn(field);
+        if (!column) {
+            return super.isNumeric(field);
+        }
+
+        return !column.isArray && isNumericColumnType(column.type);
     }
 
     /**

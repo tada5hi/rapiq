@@ -47,6 +47,12 @@ describe('src/grouped/module.ts', () => {
             expect(() => compileGroupedQuery(query)).toThrowError(unsupported('fields:grouped'));
         });
 
+        it('should refuse an output key written twice by a hand-built query', () => {
+            const query = grouped([column('count')], [count()]);
+
+            expect(() => compileGroupedQuery(query)).toThrowError(expect.objectContaining({ code: ErrorCode.KEY_AMBIGUOUS }));
+        });
+
         it('should refuse an unresolved call', () => {
             const group = new Group({ name: 'period', params: ['day'] });
             expect(() => compileGroupedQuery(grouped([group], []))).toThrowError(unsupported('groups:unresolved'));
@@ -161,16 +167,30 @@ describe('src/grouped/module.ts', () => {
             });
         });
 
-        it('should apply explicit sorts over output keys with a stable tie-break', () => {
+        it('should apply explicit sorts over output keys, then break ties by the group keys ascending', () => {
             const query = grouped([column('scope')], [count()], { sorts: new Sorts([new Sort('count', SortDirection.DESC)]) });
 
             expect(applyGroupedQuery(query, events).data).toEqual([
                 { scope: 'user', count: 3 },
+                { scope: 'User', count: 1 },
                 { scope: 'client', count: 1 },
                 { scope: null, count: 1 },
-                { scope: 'User', count: 1 },
             ]);
         });
+
+        it('should page over ties without repeating or skipping a group', () => {
+            const sorts = new Sorts([new Sort('count', SortDirection.DESC)]);
+            const page = (offset: number) => applyGroupedQuery(
+                grouped([column('scope')], [count()], { sorts, pagination: new Pagination(2, offset) }),
+                [...events].reverse(),
+            ).data;
+
+            expect([...page(0), ...page(2)]).toEqual(applyGroupedQuery(
+                grouped([column('scope')], [count()], { sorts }),
+                events,
+            ).data);
+        });
+
 
         it('should filter records before grouping, honouring caseSensitive', () => {
             const query = grouped([column('scope')], [count()], { filters: eq('scope', 'user') });
@@ -200,28 +220,28 @@ describe('src/grouped/module.ts', () => {
     describe('bucket', () => {
         it('should truncate to the UTC hour', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'hour')], [count()]), events).data).toEqual([
-                { bucket: '2026-08-31T23:00:00.000Z', count: 1 },
-                { bucket: '2026-09-21T23:00:00.000Z', count: 1 },
-                { bucket: '2026-09-22T00:00:00.000Z', count: 1 },
-                { bucket: '2026-09-22T10:00:00.000Z', count: 2 },
-                { bucket: null, count: 1 },
+                { createdAt: '2026-08-31T23:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-21T23:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T10:00:00.000Z', count: 2 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
         it('should truncate to the UTC day, whatever offset the value carries', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), events).data).toEqual([
-                { bucket: '2026-08-31T00:00:00.000Z', count: 1 },
-                { bucket: '2026-09-21T00:00:00.000Z', count: 1 },
-                { bucket: '2026-09-22T00:00:00.000Z', count: 3 },
-                { bucket: null, count: 1 },
+                { createdAt: '2026-08-31T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-21T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 3 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
         it('should truncate to the UTC month', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'month')], [count()]), events).data).toEqual([
-                { bucket: '2026-08-01T00:00:00.000Z', count: 1 },
-                { bucket: '2026-09-01T00:00:00.000Z', count: 4 },
-                { bucket: null, count: 1 },
+                { createdAt: '2026-08-01T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-01T00:00:00.000Z', count: 4 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
@@ -234,8 +254,8 @@ describe('src/grouped/module.ts', () => {
             ];
 
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), data).data).toEqual([
-                { bucket: '2026-09-22T00:00:00.000Z', count: 2 },
-                { bucket: null, count: 2 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 2 },
+                { createdAt: null, count: 2 },
             ]);
         });
 
@@ -244,31 +264,31 @@ describe('src/grouped/module.ts', () => {
 
             expect(applyGroupedQuery(query, events).data).toEqual([
                 {
-                    bucket: '2026-09-21T00:00:00.000Z',
+                    createdAt: '2026-09-21T00:00:00.000Z',
                     scope: 'user',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'client',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'user',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'user',
                     name: 'logout',
                     count: 1,
                 },
                 {
-                    bucket: null,
+                    createdAt: null,
                     scope: null,
                     name: 'login',
                     count: 1,
@@ -276,7 +296,7 @@ describe('src/grouped/module.ts', () => {
             ]);
         });
 
-        it('should key a named bucket by its name', () => {
+        it('should key a named bucket by its column', () => {
             const period = new Group({
                 name: 'period',
                 params: ['month'],
@@ -288,7 +308,7 @@ describe('src/grouped/module.ts', () => {
             });
 
             expect(applyGroupedQuery(grouped([period], [count()]), events).data[0])
-                .toEqual({ period: '2026-08-01T00:00:00.000Z', count: 1 });
+                .toEqual({ createdAt: '2026-08-01T00:00:00.000Z', count: 1 });
         });
 
         it('should refuse a unit outside the closed set, as adapter-sql does', () => {
@@ -303,7 +323,10 @@ describe('src/grouped/module.ts', () => {
             });
 
             expect(() => compileGroupedQuery(grouped([week], [])))
-                .toThrowError(expect.objectContaining({ code: ErrorCode.KEY_VALUE_INVALID }));
+                .toThrowError(expect.objectContaining({
+                    code: ErrorCode.KEY_VALUE_INVALID,
+                    message: 'The value of the key bucket(createdAt,week) is invalid.',
+                }));
         });
     });
 
@@ -315,48 +338,65 @@ describe('src/grouped/module.ts', () => {
                 {
                     scope: 'User',
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 1,
+                    countAmount: 1,
+                    sumAmount: 1,
                 },
                 {
                     scope: 'client',
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 2.5,
+                    countAmount: 1,
+                    sumAmount: 2.5,
                 },
                 {
                     scope: 'user',
                     count: 3,
-                    count_amount: 2,
-                    sum_amount: 15,
+                    countAmount: 2,
+                    sumAmount: 15,
                 },
                 {
                     scope: null,
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 7,
+                    countAmount: 1,
+                    sumAmount: 7,
                 },
             ]);
         });
 
-        it('should sum finite numbers only and answer null when there are none', () => {
+        it('should sum numbers, bigints and numeric strings like the SQL row normalization', () => {
             const data = [
-                { scope: 'a', amount: null },
-                { scope: 'a', amount: '5' },
-                { scope: 'b', amount: NaN },
+                // a typeorm decimal column hydrates as a string, a pg
+                // bigint as a string or a bigint.
+                { scope: 'a', amount: 1 },
+                { scope: 'a', amount: '1.5' },
+                { scope: 'a', amount: 2n },
+                { scope: 'a', amount: ' 3 ' },
+                { scope: 'a', amount: '1e1' },
             ];
 
-            expect(applyGroupedQuery(grouped([column('scope')], [count('amount'), sum('amount')]), data).data).toEqual([
-                {
-                    scope: 'a',
-                    count_amount: 1,
-                    sum_amount: null,
-                },
-                {
-                    scope: 'b',
-                    count_amount: 1,
-                    sum_amount: null,
-                },
+            expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
+                { scope: 'a', sumAmount: 17.5 },
+            ]);
+        });
+
+        it('should skip values that read as no finite number and answer null when there are none', () => {
+            const data = [
+                { scope: 'a', amount: null },
+                { scope: 'a', amount: '' },
+                { scope: 'a', amount: '  ' },
+                { scope: 'a', amount: 'abc' },
+                { scope: 'a', amount: 'Infinity' },
+                { scope: 'a', amount: true },
+                { scope: 'a', amount: new Date(0) },
+                { scope: 'b', amount: NaN },
+                { scope: 'b', amount: Infinity },
+                { scope: 'c', amount: 'abc' },
+                { scope: 'c', amount: '4' },
+            ];
+
+            expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
+                { scope: 'a', sumAmount: null },
+                { scope: 'b', sumAmount: null },
+                { scope: 'c', sumAmount: 4 },
             ]);
         });
 
@@ -364,7 +404,7 @@ describe('src/grouped/module.ts', () => {
             const query = grouped([], [count(), sum('amount')]);
 
             expect(applyGroupedQuery(query, events)).toEqual({
-                data: [{ count: 6, sum_amount: 25.5 }],
+                data: [{ count: 6, sumAmount: 25.5 }],
                 total: 1,
                 pagination: { limit: undefined, offset: undefined },
             });
@@ -373,7 +413,7 @@ describe('src/grouped/module.ts', () => {
         it('should answer one row without groups even over zero records', () => {
             const query = grouped([], [count(), sum('amount')], { filters: eq('realmId', 'none') });
 
-            expect(applyGroupedQuery(query, events).data).toEqual([{ count: 0, sum_amount: null }]);
+            expect(applyGroupedQuery(query, events).data).toEqual([{ count: 0, sumAmount: null }]);
             expect(applyGroupedQuery(grouped([], [count()]), []).total).toEqual(1);
         });
 
@@ -390,19 +430,19 @@ describe('src/grouped/module.ts', () => {
 
             expect(applyGroupedQuery(query, events).data).toEqual([
                 {
-                    bucket: '2026-08-01T00:00:00.000Z',
+                    createdAt: '2026-08-01T00:00:00.000Z',
                     count: 1,
-                    sum_amount: 1,
+                    sumAmount: 1,
                 },
                 {
-                    bucket: '2026-09-01T00:00:00.000Z',
+                    createdAt: '2026-09-01T00:00:00.000Z',
                     count: 4,
-                    sum_amount: 17.5,
+                    sumAmount: 17.5,
                 },
                 {
-                    bucket: null,
+                    createdAt: null,
                     count: 1,
-                    sum_amount: 7,
+                    sumAmount: 7,
                 },
             ]);
         });

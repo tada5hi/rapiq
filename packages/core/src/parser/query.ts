@@ -14,6 +14,7 @@ import {
 } from '../errors';
 import type {
     IAggregates,
+    ICondition,
     IFields,
     IFilters,
     IGroups,
@@ -31,9 +32,12 @@ import {
     Query,
     Relations,
     Sorts,
+    isCondition,
+    isFilter,
+    isFilters,
     isGroupedQuery,
 } from '../parameter';
-import { FilterCompoundOperator, Schema } from '../schema';
+import { FilterCompoundOperator, FilterFieldOperator, Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
     isEmptyParameterInput,
@@ -41,6 +45,7 @@ import {
     isPropertySet,
     normalizeParameter,
     resolveAliasedKey,
+    toIssuePath,
 } from '../utils';
 import { BaseParser } from './base';
 import { applyFiltersIndexPolicy, applySortsIndexPolicy } from './index-policy';
@@ -210,6 +215,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         this.recordFailure(trace, () => {
             const rejected = this.applyRelationValidations(ledger, options, issueCollector);
             this.pruneByRelations(output, rejected, options, issueCollector);
+            this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
         });
 
@@ -335,6 +341,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         await this.recordFailureAsync(trace, async () => {
             const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
             this.pruneByRelations(output, rejected, options, issueCollector);
+            this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
         });
 
@@ -652,6 +659,57 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     }
 
     /**
+     * A grouped row hydrates no relation, so an include only gates the
+     * paths a filter traverses. One no filter traverses (client filters or
+     * the schema default, judged after relation pruning; a custom condition
+     * is opaque and traverses nothing) gates nothing and is rejected under
+     * the relations failure policy: recorded when throwing, dropped
+     * otherwise, which changes no row. A prefix of a traversed path counts
+     * as traversed. A parse that skips filters cannot tell, so it keeps
+     * every include.
+     */
+    protected rejectGroupedRelations<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        output: QueryContext,
+        options: ParseQueryOptions<RECORD>,
+        issueCollector: IIssueCollector,
+    ) : void {
+        if (
+            !output.relations ||
+            !isGroupedQuery(output) ||
+            this.skipParameter(options, Parameter.FILTERS)
+        ) {
+            return;
+        }
+
+        const paths = output.filters ? collectFilterPaths(output.filters) : [];
+        const traversed = (name: string) => paths.some((path) => path === name || path.startsWith(`${name}.`));
+
+        const throwOnFailure = options.throwOnFailure ??
+            (options.schema ? this.registry.getOrFail(options.schema).relations.throwOnFailure : undefined) ??
+            false;
+
+        if (!throwOnFailure) {
+            output.relations = new Relations(output.relations.value.filter((relation) => traversed(relation.name)));
+            return;
+        }
+
+        for (const relation of output.relations.value) {
+            if (traversed(relation.name)) {
+                continue;
+            }
+
+            issueCollector.add({
+                parameter: Parameter.RELATIONS,
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                path: toIssuePath(relation.name),
+                message: ErrorMessage.featureUnsupported('relations:grouped'),
+            });
+        }
+    }
+
+    /**
      * The options a grouped sorts parse runs under. A grouped row carries
      * only output keys, so a sort may name nothing else: a sort on another
      * column fails in pg ("must appear in GROUP BY") and orders by an
@@ -916,4 +974,26 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         return false;
     }
+}
+
+/**
+ * The absolute field path of every leaf of a filter tree. An `elemMatch`
+ * interior is addressed relative to its element, so its leaves are
+ * prefixed with the leaf's own path (as in relation pruning).
+ */
+function collectFilterPaths(node: ICondition, prefix = '') : string[] {
+    if (isFilters(node)) {
+        return node.value.flatMap((child) => collectFilterPaths(child, prefix));
+    }
+
+    if (!isFilter(node)) {
+        return [];
+    }
+
+    const path = prefix ? `${prefix}.${node.field}` : node.field;
+    if (node.operator === FilterFieldOperator.ELEM_MATCH && isCondition(node.value)) {
+        return [path, ...collectFilterPaths(node.value, path)];
+    }
+
+    return [path];
 }
