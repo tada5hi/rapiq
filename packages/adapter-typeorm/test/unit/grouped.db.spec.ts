@@ -7,6 +7,7 @@
 
 import type { ObjectLiteral, Query } from '@rapiq/core';
 import {
+    ErrorCode,
     Filter,
     FilterFieldOperator,
     Sort,
@@ -286,6 +287,43 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         expect(rows).toEqual(oracle(query));
     });
 
+    it('should sum like memory over records a driver hydrated as numeric strings', async () => {
+        const query = defineQuery({
+            groups: ['scope'],
+            aggregates: [{ name: 'sum', params: ['amount'] }],
+            filters: inMaster(),
+        });
+
+        const rows = await run(query);
+
+        expect(rows).toEqual([
+            { scope: 'auth', sum_amount: 13 },
+            { scope: 'billing', sum_amount: 100 },
+        ]);
+        // a decimal column hydrates as a string on pg and mysql.
+        expect(rows).toEqual(applyGroupedQuery(query, records.map((record) => ({
+            ...record,
+            amount: String(record.amount),
+        }))).data);
+    });
+
+    it('should refuse a sum over a column that is not numeric instead of letting the engine answer', async () => {
+        const queryBuilder = dataSource
+            .getRepository(Activity)
+            .createQueryBuilder('activity');
+        const sql = queryBuilder.getSql();
+
+        // sqlite would answer sum('login') with 0, pg with an error.
+        expect(() => new TypeormAdapter({ queryBuilder }).executeGrouped(defineQuery({
+            groups: ['scope'],
+            aggregates: [{ name: 'sum', params: ['name'] }],
+        }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:sum-type',
+        }));
+        expect(queryBuilder.getSql()).toEqual(sql);
+    });
+
     it('should answer aggregates over no rows with zero and null', async () => {
         const query = defineQuery({
             aggregates: ['count', { name: 'sum', params: ['amount'] }],
@@ -526,7 +564,7 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
             const output = new TypeormAdapter({ queryBuilder }).executeGrouped(query);
             const rows = output.normalize(await queryBuilder.getRawMany());
 
-            expect(rows).toEqual(buckets.map((bucket) => ({ bucket, count: 1 })));
+            expect(rows).toEqual(buckets.map((bucket) => ({ [`bucket_${column}_${unit}`]: bucket, count: 1 })));
             expect(rows).toEqual(applyGroupedQuery(query, records()).data);
         } finally {
             await runner.release();

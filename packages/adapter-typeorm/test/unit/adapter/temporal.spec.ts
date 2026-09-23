@@ -11,7 +11,7 @@ import { Reading } from '../../data/entity/reading';
 import { User } from '../../data/entity/user';
 import { createUnconnectedDataSource } from '../../data/factory';
 
-describe('src/adapter/filters.ts (temporalKind)', () => {
+describe('src/adapter/filters.ts (temporalKind, isNumeric)', () => {
     let sqlite : DataSource;
     let pg : DataSource;
 
@@ -56,5 +56,21 @@ describe('src/adapter/filters.ts (temporalKind)', () => {
         const adapter = new TypeormAdapter({ queryBuilder });
 
         expect(adapter.filters.temporalKind('at')).toEqual('datetime');
+    });
+
+    it('should read integer columns, a Number-typed primary key included, as numeric', () => {
+        expect(forReading().filters.isNumeric('value')).toBe(true);
+        expect(forReading().filters.isNumeric('id')).toBe(true);
+        expect(forUser().filters.isNumeric('age')).toBe(true);
+    });
+
+    it('should read string and temporal columns as not numeric', () => {
+        expect(forUser().filters.isNumeric('first_name')).toBe(false);
+        expect(forReading().filters.isNumeric('observed_at')).toBe(false);
+        expect(forReading().filters.isNumeric('observed_on')).toBe(false);
+    });
+
+    it('should keep the base default for a path the metadata cannot resolve', () => {
+        expect(forReading().filters.isNumeric('unknown')).toBe(true);
     });
 });

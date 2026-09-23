@@ -193,6 +193,46 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         }));
     });
 
+    it('should refuse a sum over a column that is not numeric before touching the builder', () => {
+        const { queryBuilder, adapter } = setup();
+        const sql = queryBuilder.getSql();
+
+        expect(() => adapter.executeGrouped(defineQuery({ aggregates: [{ name: 'sum', params: ['name'] }] }))).toThrowError(expect.objectContaining({
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+            feature: 'aggregates:sum-type',
+        }));
+        expect(queryBuilder.getSql()).toEqual(sql);
+    });
+
+    it('should sum a numeric column, a Number-typed one included', () => {
+        const { queryBuilder, adapter } = setup();
+
+        adapter.executeGrouped(defineQuery({
+            aggregates: [
+                { name: 'sum', params: ['amount'] },
+                { name: 'sum', params: ['id'] },
+            ],
+        }));
+
+        expect(queryBuilder.expressionMap.selects).toEqual([
+            { selection: 'sum("activity"."amount")', aliasName: 'sum_amount' },
+            { selection: 'sum("activity"."id")', aliasName: 'sum_id' },
+        ]);
+    });
+
+    it('should sum any column without entity metadata', () => {
+        const queryBuilder = sqlite
+            .createQueryBuilder()
+            .select('t.label')
+            .from('some_table', 't');
+
+        new TypeormAdapter({ queryBuilder }).executeGrouped(defineQuery({ aggregates: [{ name: 'sum', params: ['label'] }] }));
+
+        expect(queryBuilder.expressionMap.selects).toEqual([
+            { selection: 'sum("t"."label")', aliasName: 'sum_label' },
+        ]);
+    });
+
     it('should normalize raw rows to the output keys', () => {
         const { adapter } = setup();
 

@@ -43,6 +43,10 @@ class ZonedFiltersAdapter extends FiltersAdapter {
     override temporalKind(field: string) : TemporalKind | undefined {
         return field === 'createdAt' ? 'instant' : undefined;
     }
+
+    override isNumeric(field: string) : boolean {
+        return field === 'amount';
+    }
 }
 
 const zonedFilters = () => new ZonedFiltersAdapter(new RelationsAdapter(), { ...pg, rootAlias: 'event' });
@@ -202,6 +206,22 @@ describe('src/adapter/grouped/module.ts', () => {
 
         expect(() => buildGroupedClauses(query, zonedFilters(), pg.bucket))
             .toThrow('The feature groups:bucket-type is not supported by the dialect.');
+    });
+
+    it('should refuse a sum over a column that is not numeric', () => {
+        const query = new Query({ aggregates: new Aggregates([sumAggregate('name')]) });
+
+        expect(() => buildGroupedClauses(query, zonedFilters(), pg.bucket))
+            .toThrow('The feature aggregates:sum-type is not supported by the dialect.');
+        expect(buildGroupedClauses(new Query({ aggregates: new Aggregates([sumAggregate('amount')]) }), zonedFilters(), pg.bucket).selects)
+            .toEqual([{ key: 'sum_amount', expression: 'sum("event"."amount")' }]);
+    });
+
+    it('should sum any column without metadata', () => {
+        const query = new Query({ aggregates: new Aggregates([sumAggregate('name')]) });
+
+        expect(buildGroupedClauses(query, pgFilters(), pg.bucket).selects)
+            .toEqual([{ key: 'sum_name', expression: 'sum("event"."name")' }]);
     });
 });
 

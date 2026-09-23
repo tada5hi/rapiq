@@ -163,6 +163,16 @@ export abstract class FiltersBaseAdapter<
     }
 
     /**
+     * Whether a column holds numbers. Standalone SQL has no column
+     * metadata, so every column may be summed; backends with metadata
+     * override this so a non-numeric column is refused typed instead of
+     * failing inside the database.
+     */
+    isNumeric(_field: string) : boolean {
+        return true;
+    }
+
+    /**
      * Resolve a parsed field name to the identifier the database knows.
      * Backends with column metadata override this to map property names
      * to column names (e.g. `realmId` -> `realm_id`); the default is the

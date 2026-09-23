@@ -80,6 +80,10 @@ function buildAggregateExpression(
                 throw AdapterError.featureUnsupported('aggregates:unresolved');
             }
 
+            if (filters.isNumeric && !filters.isNumeric(lowering.field)) {
+                throw AdapterError.featureUnsupported('aggregates:sum-type');
+            }
+
             return `sum(${filters.buildField(lowering.field)})`;
         }
         default: {

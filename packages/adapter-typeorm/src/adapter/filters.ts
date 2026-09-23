@@ -58,6 +58,48 @@ function isCaseFoldableColumnType(type: ColumnType) : boolean {
 }
 
 /**
+ * Column types a `sum` aggregate accepts on every dialect that declares
+ * them. Booleans are absent: pg has no `sum(boolean)`, so summing one
+ * would pass here and fail inside the database.
+ */
+const NUMERIC_COLUMN_TYPES = new Set<string>([
+    'tinyint',
+    'smallint',
+    'mediumint',
+    'int',
+    'int2',
+    'int4',
+    'int8',
+    'int64',
+    'integer',
+    'bigint',
+    'unsigned big int',
+    'dec',
+    'decimal',
+    'smalldecimal',
+    'fixed',
+    'numeric',
+    'number',
+    'float',
+    'float4',
+    'float8',
+    'float64',
+    'double',
+    'double precision',
+    'real',
+    'money',
+    'smallmoney',
+]);
+
+function isNumericColumnType(type: ColumnType) : boolean {
+    if (type === Number) {
+        return true;
+    }
+
+    return typeof type === 'string' && NUMERIC_COLUMN_TYPES.has(type);
+}
+
+/**
  * How a date operand has to be spelled for the column it addresses.
  * A column absent from every table is not temporal and binds as-is.
  */
@@ -299,6 +341,22 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         return resolveDateColumnFormat(column.type);
+    }
+
+    /**
+     * Whether a summed column holds numbers, read from the entity
+     * metadata: the grouped clauses refuse any other column typed
+     * (`aggregates:sum-type`) instead of letting the database fail
+     * (pg has no `sum(character varying)`). A builder without metadata,
+     * or a path it cannot resolve, keeps the base default.
+     */
+    override isNumeric(field: string) : boolean {
+        const column = this.resolveColumn(field);
+        if (!column) {
+            return super.isNumeric(field);
+        }
+
+        return isNumericColumnType(column.type);
     }
 
     /**

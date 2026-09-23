@@ -61,6 +61,27 @@ function truncateToBucket(value: unknown, unit: string) : string | null {
     return output.toISOString();
 }
 
+/**
+ * Read a value the way `normalizeGroupedRows` (adapter-sql) reads a SQL
+ * sum: with `Number`. A record hydrated by a driver
+ * carries a decimal as a string and a pg bigint as a string or bigint,
+ * so those count; a blank string, which `Number` reads as 0, does not.
+ * Anything else (null, a boolean, a Date, a non-numeric string) is
+ * skipped.
+ */
+function toSummand(value: unknown) : number | undefined {
+    const numeric = typeof value === 'number' ||
+        typeof value === 'bigint' ||
+        (typeof value === 'string' && value.trim().length > 0);
+    if (!numeric) {
+        return undefined;
+    }
+
+    const output = Number(value);
+
+    return Number.isFinite(output) ? output : undefined;
+}
+
 function compileGroup(group: IGroup) : GroupReader {
     const { lowering } = group;
     // every group reads a root column: a bare one or a bucket's.
@@ -106,8 +127,8 @@ function compileAggregate(aggregate: IAggregate) : AggregateReducer {
         return (records) => {
             let output : number | null = null;
             for (const record of records) {
-                const value = resolvePath(record, field);
-                if (typeof value === 'number' && Number.isFinite(value)) {
+                const value = toSummand(resolvePath(record, field));
+                if (typeof value !== 'undefined') {
                     output = (output ?? 0) + value;
                 }
             }

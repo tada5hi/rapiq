@@ -282,9 +282,16 @@ The memory adapter adds JavaScript numbers, so a decimal sum carries float error
 `1.1 + 2.2` is `3.3000000000000003`. PostgreSQL and MySQL add a `decimal` column exactly (`3.30`), so
 compare decimal sums from memory and from the database with a tolerance, not with strict equality.
 
-`sum` adds finite numbers only in memory; a column holding text is an application error, not a value.
-The engines disagree on it: the memory adapter skips a numeric string such as `'5'`, while SQLite and
-MySQL coerce text to a number and add it (PostgreSQL refuses `sum` over a text column).
+The memory adapter reads each value the way the SQL side reads its result, with `Number`: a finite
+number, a `bigint` and a numeric string such as `'1.5'` (the form a TypeORM `decimal` column or a
+PostgreSQL `bigint` hydrates as) are added, while `null`, a blank or non-numeric string, a boolean or a
+`Date` contributes nothing. Records loaded through a driver therefore sum to the same value in memory and
+in the database.
+
+`sum` over a column that is not numeric is a schema mistake: keep such columns out of
+`functions.sum.allowed`. `@rapiq/adapter-typeorm` reads the entity metadata and refuses it
+(`aggregates:sum-type`) before the query runs; standalone `@rapiq/adapter-sql` has no column types and
+renders it, so the engine answers (PostgreSQL fails, SQLite and MySQL coerce the text to a number).
 
 ## Building in code {#building}
 
@@ -443,6 +450,7 @@ Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature`
 | `groups:<fn>` / `aggregates:<fn>` | a function the adapter does not implement |
 | `groups:bucket` | the SQL dialect has no bucket spelling (`mssql`, `oracle`) |
 | `groups:bucket-type` | the bucketed column is not temporal (TypeORM metadata, or a `temporalKind` override returning `undefined`) |
+| `aggregates:sum-type` | the summed column is not numeric (TypeORM metadata, or an `isNumeric` override returning `false`) |
 | `groups:builder` | the TypeORM builder already carries a `GROUP BY` |
 | `aggregates:fan-out` | aggregates over a joined to-many relation would count join rows (TypeORM) |
 

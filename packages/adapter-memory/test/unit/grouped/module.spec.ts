@@ -359,24 +359,41 @@ describe('src/grouped/module.ts', () => {
             ]);
         });
 
-        it('should sum finite numbers only and answer null when there are none', () => {
+        it('should sum numbers, bigints and numeric strings like the SQL row normalization', () => {
             const data = [
-                { scope: 'a', amount: null },
-                { scope: 'a', amount: '5' },
-                { scope: 'b', amount: NaN },
+                // a typeorm decimal column hydrates as a string, a pg
+                // bigint as a string or a bigint.
+                { scope: 'a', amount: 1 },
+                { scope: 'a', amount: '1.5' },
+                { scope: 'a', amount: 2n },
+                { scope: 'a', amount: ' 3 ' },
+                { scope: 'a', amount: '1e1' },
             ];
 
-            expect(applyGroupedQuery(grouped([column('scope')], [count('amount'), sum('amount')]), data).data).toEqual([
-                {
-                    scope: 'a',
-                    count_amount: 1,
-                    sum_amount: null,
-                },
-                {
-                    scope: 'b',
-                    count_amount: 1,
-                    sum_amount: null,
-                },
+            expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
+                { scope: 'a', sum_amount: 17.5 },
+            ]);
+        });
+
+        it('should skip values that read as no finite number and answer null when there are none', () => {
+            const data = [
+                { scope: 'a', amount: null },
+                { scope: 'a', amount: '' },
+                { scope: 'a', amount: '  ' },
+                { scope: 'a', amount: 'abc' },
+                { scope: 'a', amount: 'Infinity' },
+                { scope: 'a', amount: true },
+                { scope: 'a', amount: new Date(0) },
+                { scope: 'b', amount: NaN },
+                { scope: 'b', amount: Infinity },
+                { scope: 'c', amount: 'abc' },
+                { scope: 'c', amount: '4' },
+            ];
+
+            expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
+                { scope: 'a', sum_amount: null },
+                { scope: 'b', sum_amount: null },
+                { scope: 'c', sum_amount: 4 },
             ]);
         });
 
