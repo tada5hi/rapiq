@@ -65,8 +65,8 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `sorts` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
-| `groups` | `allowed` (bare columns), `functions` (built-in `bucket` or [named functions](/guide/grouping#named-functions)); fail-closed, see [Declaring what may be grouped](/guide/grouping#declaring) |
-| `aggregates` | `functions` (built-in `count` / `sum` or named functions); fail-closed |
+| `groups` | `allowed` (bare columns), `functions` (built-in `bucket` or [named functions](/guide/grouping#named-functions)), `validate` ([per-term hook](/guide/grouping#validate-hooks)); fail-closed, see [Declaring what may be grouped](/guide/grouping#declaring) |
+| `aggregates` | `functions` (built-in `count` / `sum` or named functions), `validate` (per-term hook); fail-closed |
 
 Standalone factories exist for each parameter (`defineFieldsSchema`, `defineFiltersSchema`, `defineRelationsSchema`, `defineSortsSchema`, `definePaginationSchema`, `defineGroupsSchema`, `defineAggregatesSchema`), useful when calling a single parameter parser directly. `groups` and `aggregates` accept neither `throwOnFailure` nor `strict`: every rejection fails the parse, and a bound schema without their block permits nothing.
 
@@ -311,6 +311,8 @@ A gate is server-side state and has no wire form, so a query carrying one cannot
 - **The context is opaque**: typed at the definition site via `defineSchema<RECORD, CONTEXT>` (and `SchemaRegistry<CONTEXT>`), forwarded verbatim from the parse options. Hooks receive `undefined` when the caller supplies none; there is no automatic fail-closed behavior, so a permission hook must guard the context itself and return `false` when it is missing rather than assume an actor is present.
 
 The [filters `validate` hook](/guide/filters#schema-options) participates too: it receives the same context as its second argument. It has its own signature (it inspects, replaces or rejects a parsed `Filter`) and is not part of the key-validation hook pair described above.
+
+The `groups` and `aggregates` blocks accept a `validate` hook as well, with the same context and sync/async contract. It receives the resolved term node instead of a key name, has no `validateMany` form, and a rejection always fails the parse; see [grouping validate hooks](/guide/grouping#validate-hooks).
 
 ## The registry & relations {#the-registry-relations}
 

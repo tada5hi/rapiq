@@ -8,7 +8,7 @@ measures computed per row.
 |---|---|---|
 | URL key | `group` | `aggregate` |
 | AST nodes | `Groups` / `Group { key, name, params, lowering }` | `Aggregates` / `Aggregate { key, name, params, lowering }` |
-| Schema options | `allowed`, `functions` | `functions` |
+| Schema options | `allowed`, `functions`, `validate` | `functions`, `validate` |
 | Built-in functions | `bucket(field, unit)` | `count()`, `count(field)`, `sum(field)` |
 
 A query that carries neither parameter is the same query as before; nothing changes for existing reads.
@@ -94,6 +94,7 @@ defineSchema<Event>({
 | `functions.count.allowed` | `aggregates` | Columns `count(<column>)` may be called on. `count()` (row count) is always available once `count` is declared, so `count: {}` permits exactly `count`. |
 | `functions.sum.allowed` | `aggregates` | Numeric columns `sum(<column>)` may be called on. |
 | `functions.<name>` | both | A [named function](#named-functions) binding one of the built-ins. |
+| `validate` | both | A per-request [authorization hook](#validate-hooks), run once per resolved term. |
 
 **Grouping is a disclosure surface of its own.** A group by `actorName` enumerates every distinct value of a
 column that a reader may otherwise only filter by. The allow-list is therefore declared explicitly per
@@ -109,6 +110,37 @@ identifier. Named functions need a schema.
 
 Only root columns can be grouped or aggregated: a dotted key (`realm.name`) is rejected with
 `KEY_PATH_NOT_ALLOWED`. Bucket units are `hour`, `day` and `month`.
+
+### Validate hooks {#validate-hooks}
+
+The allow-lists are static. To decide per request, for example per actor, declare `validate` on either
+block. It follows the contract of the other
+[validate hooks](/guide/schemas#validate-hooks-parse-context): it receives the parse `context`
+(`undefined` when the caller supplied none) and may answer synchronously or with a Promise, which
+requires `parseAsync()` / `decodeAsync()` (the sync paths throw `SchemaError`
+`SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`). Instead of a key name it receives the resolved node,
+`{ key, name, params, lowering }`, once per term that passed the allow-list, in request order:
+
+```typescript
+defineSchema<Event, Actor>({
+    name: 'event',
+    groups: {
+        allowed: ['scope', 'actorName'],
+        // who may enumerate the distinct actors?
+        validate: (group, actor) => group.lowering?.field !== 'actorName' || actor.isAdmin,
+    },
+    aggregates: {
+        functions: { count: {}, sum: { allowed: ['amount'] } },
+        validate: (aggregate, actor) => aggregate.lowering?.fn !== 'sum' || actor.can('revenue_read'),
+    },
+});
+```
+
+Read `lowering` rather than `name` when the decision is about a column: a [named function](#named-functions)
+hides the column from the wire, the lowering always carries it. A falsy answer rejects the term with
+`KEY_VALIDATE_REJECTED`, and like every rejection of these two parameters it fails the parse whatever
+`throwOnFailure` says. A term is not a row set, so an `ICondition` answer counts as a rejection.
+`describe()` does not represent the hook.
 
 ## Named functions {#named-functions}
 
@@ -185,6 +217,9 @@ Once a query carries a group or an aggregate, the other parameters change meanin
   schema's `fields.default` is not applied. The row shape is the output keys.
 - **Relations** are still parsed, because they gate which relation paths a filter may traverse. They are
   never hydrated into the rows, and the grouped entry points join only the relations a filter traverses.
+  An include that no filter traverses, neither a client filter nor the schema's `filters.default`, gates
+  nothing and fails the parse with `FEATURE_UNSUPPORTED` (`relations:grouped`). An include traversed by a
+  deeper path counts: `include=items` with `filter[items.realm.name]=...` is accepted.
 - **Sorts** may name output keys only: `sort=-count` or `sort=bucket_createdAt_day` are accepted, `sort=age`
   and `sort=realm.name` are rejected under the usual [sorts policy](/guide/sort#on-violation). The schema's
   `sorts.default`, `sorts.validate` and `sorts.indexed` do not apply. Every group key the sort does not
@@ -393,7 +428,8 @@ each rejection on the [issue trace](/guide/errors#issue-traces).
 | `KEY_VALUE_INVALID` | wrong number of arguments, or a unit outside the permitted units |
 | `OPERATOR_UNSUPPORTED` | schemaless parse of a name that is neither a built-in nor a bare column |
 | `KEY_AMBIGUOUS` | two terms with the same [output key](#output-keys) |
-| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query, or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
+| `KEY_VALIDATE_REJECTED` | the schema's [validate hook](#validate-hooks) rejected the term |
+| `FEATURE_UNSUPPORTED` | a client `fields` input in a grouped query (`fields:grouped`), an include no filter traverses (`relations:grouped`, recorded on `relations`), or an opted-in parameter on a custom dialect without a groups / aggregates sub-parser |
 
 Adapters raise `AdapterError` (`FEATURE_UNSUPPORTED`) with these `error.feature` tags:
 

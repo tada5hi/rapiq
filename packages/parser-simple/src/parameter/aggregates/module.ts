@@ -11,15 +11,18 @@ import {
     BaseParser,
     Parameter,
     ResolutionScope,
+    applyCallSchemaValidation,
+    applyCallSchemaValidationAsync,
 } from '@rapiq/core';
 import type {
     AggregatesParseOptions,
+    AggregatesSchema,
     IAggregates,
     IIssueCollector,
     ObjectLiteral,
     RelationLedger,
 } from '@rapiq/core';
-import { buildCallNodes } from '../call/resolve';
+import { buildCallNodes, recordCallRejected } from '../call/resolve';
 
 export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, IAggregates> {
     parse<
@@ -28,12 +31,10 @@ export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, I
         return this.build(input, options);
     }
 
-    // `async`, not a wrapped return: `build` raises synchronously, so without
-    // it the throw escapes before the promise exists.
-    override async parseAsync<
+    override parseAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: AggregatesParseOptions<RECORD> = {}) : Promise<IAggregates> {
-        return this.build(input, options);
+        return this.buildAsync(input, options);
     }
 
     // aggregates name root columns only, so the ledger is unused.
@@ -48,9 +49,7 @@ export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, I
         return this.build(input, options, issueCollector);
     }
 
-    // `async`, not a wrapped return: `build` raises synchronously, so without
-    // it the throw escapes before the promise exists.
-    async parseParameterAsync<
+    parseParameterAsync<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(
         input: unknown,
@@ -58,7 +57,7 @@ export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, I
         _ledger?: RelationLedger,
         issueCollector?: IIssueCollector,
     ) : Promise<IAggregates> {
-        return this.build(input, options, issueCollector);
+        return this.buildAsync(input, options, issueCollector);
     }
 
     /**
@@ -73,21 +72,61 @@ export class SimpleAggregatesParser extends BaseParser<AggregatesParseOptions, I
         driver?: IIssueCollector,
     ) : IAggregates {
         return this.withTrace({ parameter: Parameter.AGGREGATES, driver }, (issueCollector) => {
-            const schema = typeof options.schema === 'undefined' ?
-                undefined :
-                ResolutionScope.for(this.registry, Parameter.AGGREGATES, options.schema).schema;
+            const schema = this.resolveSchema(options);
 
-            return new Aggregates(buildCallNodes(
-                Parameter.AGGREGATES,
-                input,
+            return new Aggregates(applyCallSchemaValidation(
+                this.buildNodes(input, schema, issueCollector),
                 schema,
-                issueCollector,
-                (term, lowering) => new Aggregate({
-                    name: term.name,
-                    params: term.params,
-                    lowering,
-                }),
+                options.context,
+                (node) => recordCallRejected(issueCollector, Parameter.AGGREGATES, node),
             ));
         });
+    }
+
+    protected buildAsync<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        input: unknown,
+        options: AggregatesParseOptions<RECORD>,
+        driver?: IIssueCollector,
+    ) : Promise<IAggregates> {
+        return this.withTraceAsync({ parameter: Parameter.AGGREGATES, driver }, async (issueCollector) => {
+            const schema = this.resolveSchema(options);
+
+            return new Aggregates(await applyCallSchemaValidationAsync(
+                this.buildNodes(input, schema, issueCollector),
+                schema,
+                options.context,
+                (node) => recordCallRejected(issueCollector, Parameter.AGGREGATES, node),
+            ));
+        });
+    }
+
+    protected resolveSchema<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(options: AggregatesParseOptions<RECORD>) : AggregatesSchema | undefined {
+        if (typeof options.schema === 'undefined') {
+            return undefined;
+        }
+
+        return ResolutionScope.for(this.registry, Parameter.AGGREGATES, options.schema).schema;
+    }
+
+    protected buildNodes(
+        input: unknown,
+        schema: AggregatesSchema | undefined,
+        issueCollector: IIssueCollector,
+    ) : Aggregate[] {
+        return buildCallNodes(
+            Parameter.AGGREGATES,
+            input,
+            schema,
+            issueCollector,
+            (term, lowering) => new Aggregate({
+                name: term.name,
+                params: term.params,
+                lowering,
+            }),
+        );
     }
 }

@@ -24,6 +24,7 @@ import {
     Pagination,
     Parameter,
     ParseError,
+    Relation,
     Relations,
     Schema,
     SchemaRegistry,
@@ -31,6 +32,8 @@ import {
     SortDirection,
     Sorts,
     defineSchema,
+    elemMatch,
+    eq,
     extractIssueParameter,
 } from '../../../src';
 import type {
@@ -452,6 +455,28 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
                 .parse({ groups: 'scope', sorts: '-count' }, { schema: 'record', groups: true });
 
             expect(query.sorts).toEqual(new Sorts([new Sort('count', SortDirection.DESC)]));
+        });
+
+        it('should read an elemMatch interior relative to its element', () => {
+            const parsers = buildParsers();
+            parsers.relations = new StubParameterParser<IRelations>(new Relations([
+                new Relation('items'),
+                new Relation('items.realm'),
+                new Relation('user'),
+            ]));
+            parsers.filters = new StubParameterParser<IFilters>(new Filters(FilterCompoundOperator.AND, [
+                elemMatch('items', eq('realm.name', 'admin')),
+            ]));
+
+            const items = issuesOf(() => new StubQueryParser(new SchemaRegistry(), parsers)
+                .parse({ groups: 'scope', relations: ['items', 'items.realm', 'user'] }, { groups: true }));
+
+            expect(items).toEqual([expect.objectContaining({
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                path: ['user'],
+                message: ErrorMessage.featureUnsupported('relations:grouped'),
+            })]);
+            expect(extractIssueParameter(items[0]!)).toBe(Parameter.RELATIONS);
         });
 
         it('should apply the same rules asynchronously', async () => {

@@ -15,4 +15,8 @@ export type GroupsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     schema?: string | Schema<RECORD> | GroupsSchema<RECORD>,
+    /**
+     * Caller-defined context forwarded to the schema validate hook.
+     */
+    context?: unknown,
 };

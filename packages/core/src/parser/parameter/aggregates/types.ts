@@ -15,4 +15,8 @@ export type AggregatesParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
     schema?: string | Schema<RECORD> | AggregatesSchema<RECORD>,
+    /**
+     * Caller-defined context forwarded to the schema validate hook.
+     */
+    context?: unknown,
 };

@@ -9,8 +9,11 @@ import type { ObjectLiteral } from '../../../types';
 import { AggregatesSchema } from './schema';
 import type { AggregatesOptions } from './types';
 
-export function defineAggregatesSchema<T extends ObjectLiteral = ObjectLiteral>(
-    options: AggregatesOptions<T> = {},
-) : AggregatesSchema<T> {
+export function defineAggregatesSchema<
+    T extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
+>(
+    options: AggregatesOptions<T, CONTEXT> = {},
+) : AggregatesSchema<T, CONTEXT> {
     return new AggregatesSchema(options);
 }

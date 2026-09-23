@@ -20,8 +20,15 @@ import {
     Sort,
     SortDirection,
     Sorts,
+    defineSchema,
+    eq,
 } from '@rapiq/core';
-import { SimpleParser } from '../../../src';
+import type {
+    IAggregate,
+    IGroup,
+    SchemaError,
+} from '@rapiq/core';
+import { SimpleGroupsParser, SimpleParser } from '../../../src';
 import { expectRejected, registry } from '../../data';
 
 const OPT_IN = { groups: true, aggregates: true };
@@ -397,6 +404,7 @@ describe('src/module.ts: groups and aggregates', () => {
                 {
                     groups: 'scope',
                     relations: ['realm'],
+                    filters: { 'realm.name': 'admin' },
                     sorts: 'realm.name',
                 },
                 { throwOnFailure: true, ...OPT_IN },
@@ -416,6 +424,244 @@ describe('src/module.ts: groups and aggregates', () => {
                 () => unbound.parse({ groups: 'scope', sorts: 'age' }, { throwOnFailure: true, ...OPT_IN }),
                 { code: ErrorCode.KEY_NOT_ALLOWED, message: ErrorMessage.keyNotPermitted('age') },
             );
+        });
+    });
+
+    describe('validate hooks', () => {
+        type Actor = { permissions: string[] };
+
+        const actor : Actor = { permissions: ['scope', 'count'] };
+
+        const schema = defineSchema<Record<string, any>, Actor>({
+            groups: {
+                allowed: ['scope', 'name'],
+                validate: (group, context) => context.permissions.includes(group.name),
+            },
+            aggregates: {
+                functions: { count: {}, sum: { allowed: ['amount'] } },
+                validate: (aggregate, context) => context.permissions.includes(aggregate.name),
+            },
+        });
+
+        it('should accept the terms the hooks accept', () => {
+            const query = parser.parse({ groups: 'scope', aggregates: 'count' }, {
+                schema,
+                context: actor,
+                ...OPT_IN,
+            });
+
+            expect(query.groups.value.map((item) => item.key)).toEqual(['scope']);
+            expect(query.aggregates.value.map((item) => item.key)).toEqual(['count']);
+        });
+
+        it('should reject what the hooks reject, whatever the failure policy', () => {
+            const items = issuesOf(() => parser.parse({ groups: 'scope,name', aggregates: 'count,sum(amount)' }, {
+                schema,
+                context: actor,
+                throwOnFailure: false,
+                ...OPT_IN,
+            }));
+
+            expect(items).toEqual([
+                expect.objectContaining({
+                    code: ErrorCode.KEY_VALIDATE_REJECTED,
+                    path: ['name'],
+                    message: ErrorMessage.keyValidateRejected('name'),
+                    meta: { parameter: Parameter.GROUPS },
+                }),
+                expect.objectContaining({
+                    code: ErrorCode.KEY_VALIDATE_REJECTED,
+                    path: ['sum'],
+                    message: ErrorMessage.keyValidateRejected('sum(amount)'),
+                    meta: { parameter: Parameter.AGGREGATES, key: 'sum(amount)' },
+                }),
+            ]);
+        });
+
+        it('should hand the hook the resolved node and the parse context', () => {
+            const calls : [IGroup | IAggregate, unknown][] = [];
+            const recording = defineSchema({
+                groups: {
+                    functions: { bucket: { allowed: ['createdAt'] } },
+                    validate: (group, context) => {
+                        calls.push([group, context]);
+                        return true;
+                    },
+                },
+                aggregates: {
+                    functions: { count: {} },
+                    validate: (aggregate, context) => {
+                        calls.push([aggregate, context]);
+                        return true;
+                    },
+                },
+            });
+
+            parser.parse({ groups: 'bucket(createdAt,day)', aggregates: 'count' }, {
+                schema: recording,
+                context: actor,
+                ...OPT_IN,
+            });
+
+            expect(calls).toEqual([
+                [
+                    expect.objectContaining({
+                        key: 'bucket_createdAt_day',
+                        name: 'bucket',
+                        params: ['createdAt', 'day'],
+                        lowering: {
+                            fn: 'bucket',
+                            field: 'createdAt',
+                            args: ['day'],
+                        },
+                    }),
+                    actor,
+                ],
+                [
+                    expect.objectContaining({
+                        key: 'count',
+                        name: 'count',
+                        params: [],
+                        lowering: {
+                            fn: 'count',
+                            field: undefined,
+                            args: [],
+                        },
+                    }),
+                    actor,
+                ],
+            ]);
+        });
+
+        it('should reject a term the hook answers with a condition', () => {
+            const conditional = defineSchema({
+                groups: {
+                    allowed: ['scope'],
+                    validate: () => eq('scope', 'auth'),
+                },
+            });
+
+            expectRejected(
+                () => parser.parse({ groups: 'scope' }, { schema: conditional, ...OPT_IN }),
+                { code: ErrorCode.KEY_VALIDATE_REJECTED },
+            );
+        });
+
+        it('should run from a standalone sub-parser', () => {
+            expectRejected(
+                () => new SimpleGroupsParser().parse('name', { schema: schema.groups, context: actor }),
+                { code: ErrorCode.KEY_VALIDATE_REJECTED, message: ErrorMessage.keyValidateRejected('name') },
+            );
+        });
+
+        it('should refuse an async hook on the sync parse path', () => {
+            const deferred = defineSchema({
+                groups: {
+                    allowed: ['scope'],
+                    validate: async () => true,
+                },
+            });
+
+            expect.assertions(1);
+            try {
+                parser.parse({ groups: 'scope' }, { schema: deferred, ...OPT_IN });
+            } catch (e) {
+                expect((e as SchemaError).code).toEqual(ErrorCode.SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER);
+            }
+        });
+
+        it('should await async hooks sequentially on parseAsync', async () => {
+            const order : string[] = [];
+            const deferred = defineSchema<Record<string, any>, Actor>({
+                groups: {
+                    allowed: ['scope', 'name'],
+                    validate: async (group, context) => {
+                        // the first hook settles last: a parallel pass would record name first.
+                        await new Promise((resolve) => { setTimeout(resolve, group.name === 'scope' ? 10 : 0); });
+                        order.push(group.name);
+                        return context.permissions.includes(group.name);
+                    },
+                },
+            });
+
+            const query = await parser.parseAsync({ groups: 'scope' }, {
+                schema: deferred,
+                context: actor,
+                ...OPT_IN,
+            });
+            expect(query.groups.value.map((item) => item.key)).toEqual(['scope']);
+
+            order.length = 0;
+            await expect(parser.parseAsync({ groups: 'scope,name' }, {
+                schema: deferred,
+                context: actor,
+                ...OPT_IN,
+            })).rejects.toMatchObject({ code: ErrorCode.INPUT_REJECTED });
+            expect(order).toEqual(['scope', 'name']);
+        });
+    });
+
+    describe('includes', () => {
+        const unbound = new SimpleParser();
+
+        it('should reject an include no filter traverses', () => {
+            const items = issuesOf(() => unbound.parse({ groups: 'scope', relations: ['realm'] }, OPT_IN));
+
+            expect(items).toEqual([expect.objectContaining({
+                code: ErrorCode.FEATURE_UNSUPPORTED,
+                path: ['realm'],
+                message: ErrorMessage.featureUnsupported('relations:grouped'),
+                meta: { parameter: Parameter.RELATIONS },
+            })]);
+        });
+
+        it('should accept an include a filter traverses', () => {
+            const query = unbound.parse({
+                groups: 'scope',
+                relations: ['realm'],
+                filters: { 'realm.name': 'admin' },
+            }, OPT_IN);
+
+            expect(query.relations.value.map((item) => item.name)).toEqual(['realm']);
+        });
+
+        it('should count a prefix of a traversed path as traversed', () => {
+            const query = unbound.parse({
+                groups: 'scope',
+                relations: ['items', 'items.realm'],
+                filters: { 'items.realm.name': 'admin' },
+            }, OPT_IN);
+
+            expect(query.relations.value.map((item) => item.name)).toEqual(['items', 'items.realm']);
+
+            const items = issuesOf(() => unbound.parse({
+                groups: 'scope',
+                relations: ['items', 'items.realm'],
+                filters: { 'items.name': 'x' },
+            }, OPT_IN));
+
+            expect(items.map((item) => item.path)).toEqual([['items', 'realm']]);
+        });
+
+        it('should count a relation the schema filters default traverses', async () => {
+            const bound = defineSchema({
+                relations: { allowed: ['realm'] },
+                filters: { default: eq('realm.name', 'admin') },
+                groups: { allowed: ['scope'] },
+            });
+            const input = { groups: 'scope', relations: ['realm'] };
+
+            expect(parser.parse(input, { schema: bound, ...OPT_IN }).relations.value).toHaveLength(1);
+            expect((await parser.parseAsync(input, { schema: bound, ...OPT_IN })).relations.value).toHaveLength(1);
+        });
+
+        it('should reject asynchronously as well', async () => {
+            await expect(unbound.parseAsync({ groups: 'scope', relations: ['realm'] }, OPT_IN))
+                .rejects.toMatchObject({ code: ErrorCode.INPUT_REJECTED });
+        });
+
+        it('should leave a record read with includes untouched', () => {
+            expect(unbound.parse({ relations: ['realm'] }, OPT_IN).relations.value).toHaveLength(1);
         });
     });
 

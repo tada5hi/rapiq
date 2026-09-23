@@ -76,3 +76,23 @@ export function buildCallNodes<NODE extends { key: string }>(
 
     return output;
 }
+
+/**
+ * Record a resolved term the schema validate hook rejected. Like every
+ * rejection of these parameters it fails the parse.
+ */
+export function recordCallRejected(
+    issueCollector: IIssueCollector,
+    parameter: `${Parameter.GROUPS}` | `${Parameter.AGGREGATES}`,
+    node: { name: string, params: readonly string[] },
+) : void {
+    const term = { name: node.name, params: [...node.params] };
+
+    record(
+        issueCollector,
+        parameter,
+        term,
+        ErrorCode.KEY_VALIDATE_REJECTED,
+        ErrorMessage.keyValidateRejected(serializeCallTerm(term)),
+    );
+}

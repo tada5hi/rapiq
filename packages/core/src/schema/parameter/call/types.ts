@@ -13,7 +13,8 @@ import type {
     GroupFunction,
 } from '../../../parameter';
 import type { ErrorCode } from '../../../errors';
-import type { ObjectLiteral, SimpleKeys } from '../../../types';
+import type { MaybeAsync, ObjectLiteral, SimpleKeys } from '../../../types';
+import type { KeyValidationVerdict } from '../../types';
 
 /**
  * One argument slot of a named function. A scalar is fixed by the
@@ -103,3 +104,19 @@ export type CallResolution = {
     code: `${ErrorCode}`,
     message: string,
 };
+
+/**
+ * Dynamic per-term gate of the groups and aggregates parameters, e.g. an
+ * actor permission check. Runs once per resolved term with its node (`key`,
+ * `name`, `params`, `lowering`) and the parse context (`undefined` when the
+ * caller supplied none). Return a truthy value to accept the term; `false` or
+ * `undefined` rejects it, and like every rejection of these parameters that
+ * fails the parse (`ErrorCode.KEY_VALIDATE_REJECTED`) whatever the failure
+ * policy. A term is not a row set, so an `ICondition` answer counts as a
+ * rejection. A Promise requires the `parseAsync()` / `decodeAsync()` entry
+ * points.
+ */
+export type CallValidator<NODE, CONTEXT = any> = (
+    node: NODE,
+    context: CONTEXT,
+) => MaybeAsync<KeyValidationVerdict>;

@@ -7,18 +7,21 @@
 
 import { SchemaError } from '../../../errors';
 import { GROUP_FUNCTION_SLOTS } from '../../../parameter';
-import type { ObjectLiteral } from '../../../types';
+import type { IGroup } from '../../../parameter';
+import type { MaybeAsync, ObjectLiteral } from '../../../types';
+import type { KeyValidationVerdict } from '../../types';
 import { assertKnownInputKeys, isCallIdentifierValid } from '../../../utils';
 import { BaseSchema } from '../../base';
 import { describeCallFunctions, normalizeCallFunctions } from '../call';
 import type { CallFunctionNormalized } from '../call';
 import type { GroupsOptions, GroupsSchemaDescription } from './types';
 
-const GROUPS_INPUT_KEYS = ['name', 'allowed', 'functions'];
+const GROUPS_INPUT_KEYS = ['name', 'allowed', 'functions', 'validate'];
 
 export class GroupsSchema<
     T extends ObjectLiteral = ObjectLiteral,
-> extends BaseSchema<GroupsOptions<T>> {
+    CONTEXT = any,
+> extends BaseSchema<GroupsOptions<T, CONTEXT>> {
     readonly allowed : string[];
 
     readonly allowedIsUndefined : boolean;
@@ -29,7 +32,7 @@ export class GroupsSchema<
 
     // ---------------------------------------------------------
 
-    constructor(options: GroupsOptions<T> = {}) {
+    constructor(options: GroupsOptions<T, CONTEXT> = {}) {
         super(options);
 
         assertKnownInputKeys(
@@ -54,6 +57,24 @@ export class GroupsSchema<
 
         this.functionsIsUndefined = typeof options.functions === 'undefined';
         this.functions = normalizeCallFunctions(GROUP_FUNCTION_SLOTS, options.functions, this.allowed);
+    }
+
+    // ---------------------------------------------------------
+
+    hasValidator() : boolean {
+        return typeof this.options.validate !== 'undefined';
+    }
+
+    /**
+     * Invoke the validate hook for one resolved group; accepts when
+     * the schema declares none.
+     */
+    validate(group: IGroup, context: CONTEXT) : MaybeAsync<KeyValidationVerdict> {
+        if (typeof this.options.validate === 'undefined') {
+            return true;
+        }
+
+        return this.options.validate(group, context);
     }
 
     // ---------------------------------------------------------

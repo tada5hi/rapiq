@@ -65,6 +65,13 @@ describe('src/schema/parameter/groups/*.ts', () => {
         expect(schema.describe()).toEqual({ allowed: null, functions: null });
     });
 
+    it('should accept a validate hook and leave it out of the description', () => {
+        const schema = defineGroupsSchema({ allowed: ['status'], validate: () => false });
+
+        expect(schema.hasValidator()).toBe(true);
+        expect(schema.describe()).toEqual({ allowed: ['status'], functions: null });
+    });
+
     it('should describe the columns and the open slots of each function', () => {
         const schema = defineGroupsSchema<Order>({
             allowed: ['status'],
@@ -220,6 +227,14 @@ describe('src/schema/parameter/aggregates/*.ts', () => {
         expect(schema.functions).toEqual({});
         expect(schema.functionsIsUndefined).toBe(true);
         expect(schema.describe()).toEqual({ functions: null });
+    });
+
+    it('should accept a validate hook and leave it out of the description', () => {
+        const schema = defineAggregatesSchema({ functions: { count: {} }, validate: () => false });
+
+        expect(schema.hasValidator()).toBe(true);
+        expect(defineAggregatesSchema().hasValidator()).toBe(false);
+        expect(schema.describe()).toEqual(defineAggregatesSchema({ functions: { count: {} } }).describe());
     });
 
     it('should refuse the columns option, which aggregates do not have', () => {

@@ -9,8 +9,11 @@ import type { ObjectLiteral } from '../../../types';
 import { GroupsSchema } from './schema';
 import type { GroupsOptions } from './types';
 
-export function defineGroupsSchema<T extends ObjectLiteral = ObjectLiteral>(
-    options: GroupsOptions<T> = {},
-) : GroupsSchema<T> {
+export function defineGroupsSchema<
+    T extends ObjectLiteral = ObjectLiteral,
+    CONTEXT = any,
+>(
+    options: GroupsOptions<T, CONTEXT> = {},
+) : GroupsSchema<T, CONTEXT> {
     return new GroupsSchema(options);
 }

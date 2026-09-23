@@ -184,11 +184,11 @@ export type SchemaOptionsNormalized<
     /**
      * What a client may group by. Undeclared permits nothing.
      */
-    groups: GroupsOptions<RECORD> | GroupsSchema<RECORD>,
+    groups: GroupsOptions<RECORD, CONTEXT> | GroupsSchema<RECORD, CONTEXT>,
     /**
      * What a client may aggregate. Undeclared permits nothing.
      */
-    aggregates: AggregatesOptions<RECORD> | AggregatesSchema<RECORD>,
+    aggregates: AggregatesOptions<RECORD, CONTEXT> | AggregatesSchema<RECORD, CONTEXT>,
 };
 
 export type SchemaOptions<

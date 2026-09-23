@@ -70,9 +70,9 @@ export class Schema<
      */
     public readonly sort: SortsSchema<RECORD, CONTEXT>;
 
-    public readonly groups : GroupsSchema<RECORD>;
+    public readonly groups : GroupsSchema<RECORD, CONTEXT>;
 
-    public readonly aggregates : AggregatesSchema<RECORD>;
+    public readonly aggregates : AggregatesSchema<RECORD, CONTEXT>;
 
     public readonly indexes : string[][];
 
