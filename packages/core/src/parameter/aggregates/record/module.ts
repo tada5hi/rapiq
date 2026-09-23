@@ -23,8 +23,12 @@ export class Aggregate implements IAggregate {
         this.lowering = options.lowering;
 
         // a query routinely asks one measure of several columns, so the
-        // params join the key: sum(amount),sum(fee) is sum_amount, sum_fee.
-        this.key = [this.name, ...this.params].join('_');
+        // params join the key in camel case: sum(amount),sum(total_fee)
+        // is sumAmount, sumTotalFee.
+        this.key = this.name + this.params
+            .flatMap((param) => param.split('_'))
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join('');
     }
 
     accept<R>(visitor: IAggregateVisitor<R>) : R {

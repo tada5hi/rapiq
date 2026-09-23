@@ -6,6 +6,7 @@
  */
 
 import type { CallLowering } from '../../call';
+import { GroupFunction } from '../../call/constants';
 import type { GroupOptions, IGroup, IGroupVisitor } from './types';
 
 export class Group implements IGroup {
@@ -22,9 +23,9 @@ export class Group implements IGroup {
         this.params = [...(options.params ?? [])];
         this.lowering = options.lowering;
 
-        // symmetric with aggregates: bucket(createdAt,day) is
-        // bucket_createdAt_day, so buckets of two columns do not collide.
-        this.key = [this.name, ...this.params].join('_');
+        // a bucket is keyed by its column: bucket(createdAt,day) is
+        // createdAt. A column is grouped at most once, so this is unique.
+        this.key = (this.name === GroupFunction.BUCKET && this.params[0]) || this.name;
     }
 
     accept<R>(visitor: IGroupVisitor<R>) : R {

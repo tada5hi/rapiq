@@ -10,6 +10,7 @@ import {
     Aggregate,
     Aggregates,
     ErrorCode,
+    ErrorMessage,
     Field,
     Fields,
     FilterCompoundOperator,
@@ -112,7 +113,7 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
 
         expect(resolveGroupedSorts(query).map((sort) => [sort.name, sort.operator])).toEqual([
             ['count', SortDirection.DESC],
-            ['bucket_createdAt_day', SortDirection.ASC],
+            ['createdAt', SortDirection.ASC],
             ['scope', SortDirection.ASC],
         ]);
     });
@@ -128,7 +129,7 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
 
         expect(output.map((sort) => [sort.name, sort.operator])).toEqual([
             ['scope', SortDirection.DESC],
-            ['bucket_createdAt_day', SortDirection.ASC],
+            ['createdAt', SortDirection.ASC],
         ]);
         expect(sorts.value).toHaveLength(1);
     });
@@ -140,7 +141,7 @@ describe('src/parameter/call/module.ts (resolveGroupedSorts)', () => {
         });
 
         expect(resolveGroupedSorts(query).map((sort) => [sort.name, sort.operator])).toEqual([
-            ['bucket_createdAt_day', SortDirection.ASC],
+            ['createdAt', SortDirection.ASC],
             ['scope', SortDirection.ASC],
         ]);
     });
@@ -207,19 +208,42 @@ describe('src/parameter/call/module.ts (assertGroupedQuery)', () => {
         }
     });
 
-    it('should accept buckets of two columns, now that their keys differ', () => {
-        const bucket = (field: string) => new Group({
-            name: 'bucket',
-            params: [field, 'day'],
+    const bucket = (field: string, unit = 'day') => new Group({
+        name: 'bucket',
+        params: [field, unit],
+        lowering: {
+            fn: 'bucket',
+            field,
+            args: [unit],
+        },
+    });
+
+    it('should accept buckets of two columns, their keys differ', () => {
+        const query = new Query({ groups: new Groups([bucket('createdAt'), bucket('updatedAt')]) });
+
+        expect(() => assertGroupedQuery(query)).not.toThrow();
+    });
+
+    it('should refuse a column grouped twice, whatever the spelling', () => {
+        const period = new Group({
+            name: 'period',
+            params: ['day'],
             lowering: {
                 fn: 'bucket',
-                field,
+                field: 'createdAt',
                 args: ['day'],
             },
         });
 
-        const query = new Query({ groups: new Groups([bucket('createdAt'), bucket('updatedAt')]) });
-
-        expect(() => assertGroupedQuery(query)).not.toThrow();
+        for (const groups of [
+            [bucket('createdAt'), bucket('createdAt', 'hour')],
+            [period, bucket('createdAt', 'hour')],
+        ]) {
+            expect(() => assertGroupedQuery(new Query({ groups: new Groups(groups) })))
+                .toThrowError(expect.objectContaining({
+                    code: ErrorCode.KEY_AMBIGUOUS,
+                    message: ErrorMessage.groupColumnDuplicate('createdAt'),
+                }));
+        }
     });
 });

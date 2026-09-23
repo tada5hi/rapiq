@@ -64,7 +64,7 @@ describe('src/simple/encoder/visitors/calls.ts', () => {
         const query = defineQuery({
             groups: [{ name: 'bucket', params: ['createdAt', 'hour'] }, 'scope'],
             aggregates: [{ name: 'sum', params: ['amount'] }, { name: 'sum', params: ['fee'] }, 'count'],
-            sorts: ['-sum_amount'],
+            sorts: ['-sumAmount'],
         });
 
         const decoded = decoder.decode(encoder.encode(query)!, { groups: true, aggregates: true });

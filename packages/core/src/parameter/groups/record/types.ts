@@ -12,7 +12,10 @@ export interface IGroupVisitor<R> {
 }
 
 export interface IGroup {
-    /** Output key: `[name, ...params].join('_')`, the row key and the grouped sort target. */
+    /**
+     * Output key, the row key and the grouped sort target: the column of
+     * a built-in bucket (`bucket(createdAt,day)` is `createdAt`), else the name.
+     */
     readonly key: string;
 
     /** Callee or bare column, as written on the wire. */

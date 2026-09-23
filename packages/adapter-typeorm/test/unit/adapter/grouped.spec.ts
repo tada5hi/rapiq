@@ -86,12 +86,12 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         const { expressionMap } = queryBuilder;
 
         expect(expressionMap.selects).toEqual([
-            { selection: BUCKET_DAY, aliasName: 'bucket_created_at_day' },
+            { selection: BUCKET_DAY, aliasName: 'created_at' },
             { selection: '"activity"."scope"', aliasName: 'scope' },
             { selection: 'count(*)', aliasName: 'count' },
         ]);
         expect(expressionMap.groupBys).toEqual([BUCKET_DAY, '"activity"."scope"']);
-        expect(expressionMap.orderBys).toEqual({ bucket_created_at_day: 'ASC', scope: 'ASC' });
+        expect(expressionMap.orderBys).toEqual({ created_at: 'ASC', scope: 'ASC' });
         expect(output.pagination).toEqual({ limit: 10, offset: 5 });
     });
 
@@ -217,8 +217,8 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         }));
 
         expect(queryBuilder.expressionMap.selects).toEqual([
-            { selection: 'sum("activity"."amount")', aliasName: 'sum_amount' },
-            { selection: 'sum("activity"."id")', aliasName: 'sum_id' },
+            { selection: 'sum("activity"."amount")', aliasName: 'sumAmount' },
+            { selection: 'sum("activity"."id")', aliasName: 'sumId' },
         ]);
     });
 
@@ -231,7 +231,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         new TypeormAdapter({ queryBuilder }).executeGrouped(defineQuery({ aggregates: [{ name: 'sum', params: ['label'] }] }));
 
         expect(queryBuilder.expressionMap.selects).toEqual([
-            { selection: 'sum("t"."label")', aliasName: 'sum_label' },
+            { selection: 'sum("t"."label")', aliasName: 'sumLabel' },
         ]);
     });
 
@@ -247,13 +247,13 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
             {
                 scope: 'auth',
                 count: '3',
-                sum_amount: '12',
+                sumAmount: '12',
                 extra: 1,
             },
         ])).toEqual([{
             scope: 'auth',
             count: 3,
-            sum_amount: 12,
+            sumAmount: 12,
         }]);
     });
 
@@ -321,7 +321,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         // nothing is joined on the builder itself: every join row stays
         // inside the subquery, which reaches the root row by its key.
         expect(queryBuilder.expressionMap.joinAttributes).toHaveLength(0);
-        expect(sql).toMatch(/^SELECT "activity"\."scope" AS "scope", sum\("activity"\."amount"\) AS "sum_amount" FROM "activity" "activity" WHERE EXISTS \(SELECT 1 FROM "activity" "activity_exists" /);
+        expect(sql).toMatch(/^SELECT "activity"\."scope" AS "scope", sum\("activity"\."amount"\) AS "sumAmount" FROM "activity" "activity" WHERE EXISTS \(SELECT 1 FROM "activity" "activity_exists" /);
         expect(sql).toContain('LEFT JOIN "activity_tag" "r4_tags" ON "r4_tags"."activity_id"="activity_exists"."id"');
         expect(sql).toContain('LEFT JOIN "realm" "r5_realm" ON "r5_realm"."id"="activity_exists"."realm_id"');
         expect(sql).toContain('"activity_exists"."id" = "activity"."id"');

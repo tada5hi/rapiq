@@ -86,7 +86,7 @@ describe('src/decoder/module.ts', () => {
             ]));
             expect(decoded!.groups).toEqual(ISSUE_GROUPS);
             expect(decoded!.aggregates).toEqual(ISSUE_AGGREGATES);
-            expect(decoded!.groups!.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'scope', 'name']);
+            expect(decoded!.groups!.value.map((item) => item.key)).toEqual(['createdAt', 'scope', 'name']);
             expect(decoded!.aggregates!.value.map((item) => item.key)).toEqual(['count']);
         });
 
@@ -114,7 +114,7 @@ describe('src/decoder/module.ts', () => {
                 groups: true,
             });
 
-            expect(decoded!.groups!.value.map((item) => item.key)).toEqual(['scope', 'bucket_createdAt_day']);
+            expect(decoded!.groups!.value.map((item) => item.key)).toEqual(['scope', 'createdAt']);
         });
 
         it('should report a rejected group against its wire name', () => {

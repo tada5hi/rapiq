@@ -80,6 +80,17 @@ export class AdapterError extends BaseError {
     }
 
     /**
+     * A hand-built grouped query grouping one column twice, so each row
+     * would carry two values for it.
+     */
+    static groupColumnDuplicate(column: string) {
+        return new this({
+            message: ErrorMessage.groupColumnDuplicate(column),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
+
+    /**
      * A driver row without a number-readable value for an output key: an
      * alias the engine truncated (63 bytes on pg), or a sum the driver
      * hydrated as formatted text. A server fault, not client input, so

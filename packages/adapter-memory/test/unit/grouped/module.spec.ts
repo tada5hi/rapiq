@@ -220,28 +220,28 @@ describe('src/grouped/module.ts', () => {
     describe('bucket', () => {
         it('should truncate to the UTC hour', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'hour')], [count()]), events).data).toEqual([
-                { bucket_createdAt_hour: '2026-08-31T23:00:00.000Z', count: 1 },
-                { bucket_createdAt_hour: '2026-09-21T23:00:00.000Z', count: 1 },
-                { bucket_createdAt_hour: '2026-09-22T00:00:00.000Z', count: 1 },
-                { bucket_createdAt_hour: '2026-09-22T10:00:00.000Z', count: 2 },
-                { bucket_createdAt_hour: null, count: 1 },
+                { createdAt: '2026-08-31T23:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-21T23:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T10:00:00.000Z', count: 2 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
         it('should truncate to the UTC day, whatever offset the value carries', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), events).data).toEqual([
-                { bucket_createdAt_day: '2026-08-31T00:00:00.000Z', count: 1 },
-                { bucket_createdAt_day: '2026-09-21T00:00:00.000Z', count: 1 },
-                { bucket_createdAt_day: '2026-09-22T00:00:00.000Z', count: 3 },
-                { bucket_createdAt_day: null, count: 1 },
+                { createdAt: '2026-08-31T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-21T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 3 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
         it('should truncate to the UTC month', () => {
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'month')], [count()]), events).data).toEqual([
-                { bucket_createdAt_month: '2026-08-01T00:00:00.000Z', count: 1 },
-                { bucket_createdAt_month: '2026-09-01T00:00:00.000Z', count: 4 },
-                { bucket_createdAt_month: null, count: 1 },
+                { createdAt: '2026-08-01T00:00:00.000Z', count: 1 },
+                { createdAt: '2026-09-01T00:00:00.000Z', count: 4 },
+                { createdAt: null, count: 1 },
             ]);
         });
 
@@ -254,8 +254,8 @@ describe('src/grouped/module.ts', () => {
             ];
 
             expect(applyGroupedQuery(grouped([bucket('createdAt', 'day')], [count()]), data).data).toEqual([
-                { bucket_createdAt_day: '2026-09-22T00:00:00.000Z', count: 2 },
-                { bucket_createdAt_day: null, count: 2 },
+                { createdAt: '2026-09-22T00:00:00.000Z', count: 2 },
+                { createdAt: null, count: 2 },
             ]);
         });
 
@@ -264,31 +264,31 @@ describe('src/grouped/module.ts', () => {
 
             expect(applyGroupedQuery(query, events).data).toEqual([
                 {
-                    bucket_createdAt_day: '2026-09-21T00:00:00.000Z',
+                    createdAt: '2026-09-21T00:00:00.000Z',
                     scope: 'user',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket_createdAt_day: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'client',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket_createdAt_day: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'user',
                     name: 'login',
                     count: 1,
                 },
                 {
-                    bucket_createdAt_day: '2026-09-22T00:00:00.000Z',
+                    createdAt: '2026-09-22T00:00:00.000Z',
                     scope: 'user',
                     name: 'logout',
                     count: 1,
                 },
                 {
-                    bucket_createdAt_day: null,
+                    createdAt: null,
                     scope: null,
                     name: 'login',
                     count: 1,
@@ -296,7 +296,7 @@ describe('src/grouped/module.ts', () => {
             ]);
         });
 
-        it('should key a named bucket by its name and params', () => {
+        it('should key a named bucket by its name', () => {
             const period = new Group({
                 name: 'period',
                 params: ['month'],
@@ -308,7 +308,7 @@ describe('src/grouped/module.ts', () => {
             });
 
             expect(applyGroupedQuery(grouped([period], [count()]), events).data[0])
-                .toEqual({ period_month: '2026-08-01T00:00:00.000Z', count: 1 });
+                .toEqual({ period: '2026-08-01T00:00:00.000Z', count: 1 });
         });
 
         it('should refuse a unit outside the closed set, as adapter-sql does', () => {
@@ -335,26 +335,26 @@ describe('src/grouped/module.ts', () => {
                 {
                     scope: 'User',
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 1,
+                    countAmount: 1,
+                    sumAmount: 1,
                 },
                 {
                     scope: 'client',
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 2.5,
+                    countAmount: 1,
+                    sumAmount: 2.5,
                 },
                 {
                     scope: 'user',
                     count: 3,
-                    count_amount: 2,
-                    sum_amount: 15,
+                    countAmount: 2,
+                    sumAmount: 15,
                 },
                 {
                     scope: null,
                     count: 1,
-                    count_amount: 1,
-                    sum_amount: 7,
+                    countAmount: 1,
+                    sumAmount: 7,
                 },
             ]);
         });
@@ -371,7 +371,7 @@ describe('src/grouped/module.ts', () => {
             ];
 
             expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
-                { scope: 'a', sum_amount: 17.5 },
+                { scope: 'a', sumAmount: 17.5 },
             ]);
         });
 
@@ -391,9 +391,9 @@ describe('src/grouped/module.ts', () => {
             ];
 
             expect(applyGroupedQuery(grouped([column('scope')], [sum('amount')]), data).data).toEqual([
-                { scope: 'a', sum_amount: null },
-                { scope: 'b', sum_amount: null },
-                { scope: 'c', sum_amount: 4 },
+                { scope: 'a', sumAmount: null },
+                { scope: 'b', sumAmount: null },
+                { scope: 'c', sumAmount: 4 },
             ]);
         });
 
@@ -401,7 +401,7 @@ describe('src/grouped/module.ts', () => {
             const query = grouped([], [count(), sum('amount')]);
 
             expect(applyGroupedQuery(query, events)).toEqual({
-                data: [{ count: 6, sum_amount: 25.5 }],
+                data: [{ count: 6, sumAmount: 25.5 }],
                 total: 1,
                 pagination: { limit: undefined, offset: undefined },
             });
@@ -410,7 +410,7 @@ describe('src/grouped/module.ts', () => {
         it('should answer one row without groups even over zero records', () => {
             const query = grouped([], [count(), sum('amount')], { filters: eq('realmId', 'none') });
 
-            expect(applyGroupedQuery(query, events).data).toEqual([{ count: 0, sum_amount: null }]);
+            expect(applyGroupedQuery(query, events).data).toEqual([{ count: 0, sumAmount: null }]);
             expect(applyGroupedQuery(grouped([], [count()]), []).total).toEqual(1);
         });
 
@@ -427,19 +427,19 @@ describe('src/grouped/module.ts', () => {
 
             expect(applyGroupedQuery(query, events).data).toEqual([
                 {
-                    bucket_createdAt_month: '2026-08-01T00:00:00.000Z',
+                    createdAt: '2026-08-01T00:00:00.000Z',
                     count: 1,
-                    sum_amount: 1,
+                    sumAmount: 1,
                 },
                 {
-                    bucket_createdAt_month: '2026-09-01T00:00:00.000Z',
+                    createdAt: '2026-09-01T00:00:00.000Z',
                     count: 4,
-                    sum_amount: 17.5,
+                    sumAmount: 17.5,
                 },
                 {
-                    bucket_createdAt_month: null,
+                    createdAt: null,
                     count: 1,
-                    sum_amount: 7,
+                    sumAmount: 7,
                 },
             ]);
         });

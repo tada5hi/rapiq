@@ -75,4 +75,15 @@ export class BuildError extends BaseError {
             code: ErrorCode.KEY_AMBIGUOUS,
         });
     }
+
+    /**
+     * Two built groups resolve to one column, so each row would carry
+     * two values for it.
+     */
+    static groupColumnDuplicate(column: string) {
+        return new this({
+            message: ErrorMessage.groupColumnDuplicate(column),
+            code: ErrorCode.KEY_AMBIGUOUS,
+        });
+    }
 }

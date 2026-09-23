@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, ErrorMessage, resolveCallTerm } from '@rapiq/core';
+import {
+    ErrorCode,
+    ErrorMessage,
+    Parameter,
+    resolveCallTerm,
+} from '@rapiq/core';
 import type {
     AggregatesSchema,
     CallLowering,
@@ -14,7 +19,6 @@ import type {
     GroupsSchema,
     IIssueCollector,
     IssueInput,
-    Parameter,
 } from '@rapiq/core';
 import { parseCallTerms, serializeCallTerm } from './module';
 
@@ -56,11 +60,20 @@ export function buildCallNodes<NODE extends { key: string }>(
 ) : NODE[] {
     const output : NODE[] = [];
     const keys = new Set<string>();
+    const columns = new Set<string>();
 
     for (const term of parseCallTerms(input)) {
         const resolution = resolveCallTerm(parameter, term, schema);
         if (!resolution.success) {
             record(issueCollector, parameter, term, resolution.code, resolution.message);
+            continue;
+        }
+
+        // a row carries one value per column, so a column is grouped once
+        // whatever the spelling: createdAt,bucket(createdAt,day) too.
+        const column = parameter === Parameter.GROUPS ? resolution.lowering.field : undefined;
+        if (column && columns.has(column)) {
+            record(issueCollector, parameter, term, ErrorCode.KEY_AMBIGUOUS, ErrorMessage.groupColumnDuplicate(column));
             continue;
         }
 
@@ -71,6 +84,10 @@ export function buildCallNodes<NODE extends { key: string }>(
         }
 
         keys.add(node.key);
+        if (column) {
+            columns.add(column);
+        }
+
         output.push(node);
     }
 

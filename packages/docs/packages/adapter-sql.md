@@ -244,12 +244,12 @@ const fragments = adapter.executeGrouped(query);
 // group=bucket(createdAt,day),scope&aggregate=count
 // {
 //     columns: [
-//         `to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"') as "bucket_createdAt_day"`,
+//         `to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"') as "createdAt"`,
 //         '"event"."scope" as "scope"',
 //         'count(*) as "count"',
 //     ],
 //     groupBy: [`to_char(date_trunc('day', "event"."createdAt"), 'YYYY-MM-DD"T"HH24:MI:SS".000Z"')`, '"event"."scope"'],
-//     orderBy: ['"bucket_createdAt_day" ASC', '"scope" ASC'],
+//     orderBy: ['"createdAt" ASC', '"scope" ASC'],
 //     where, params, limit, offset, relations,
 // }
 

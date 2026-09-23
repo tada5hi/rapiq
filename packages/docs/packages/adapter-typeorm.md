@@ -254,7 +254,7 @@ const adapter = new TypeormAdapter({ queryBuilder });
 
 const { pagination, normalize } = adapter.executeGrouped(query);
 const rows = normalize(await queryBuilder.getRawMany());
-// [{ bucket_createdAt_day: '2026-09-22T00:00:00.000Z', scope: 'auth', count: 3 }, ...]
+// [{ createdAt: '2026-09-22T00:00:00.000Z', scope: 'auth', count: 3 }, ...]
 ```
 
 - The bucket SQL comes from the [resolved dialect](#dialect-detection), and the column kind from the entity metadata: a `timestamptz` column is bucketed as an instant, a `date` or zone-less `datetime` / `timestamp` column as stored (UTC wall clock). A bucket on a column that is not temporal is refused (`groups:bucket-type`), and so is a `sum` on a column whose type is not numeric (`aggregates:sum-type`: an integer, decimal or float type, or a `number`-typed property, is numeric; an array column is not, nor `money`, which PostgreSQL sums to formatted text). A MySQL `TIMESTAMP` column needs the session `time_zone` at `'+00:00'`, and SQLite expects text dates (what TypeORM writes), see [Buckets are UTC](/guide/grouping#buckets).

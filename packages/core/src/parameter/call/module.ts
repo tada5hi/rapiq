@@ -48,11 +48,37 @@ export function isCallEqual(a: IGroup | IAggregate, b: IGroup | IAggregate) : bo
 }
 
 /**
+ * The column two resolved groups share, if any: a row carries one value
+ * per column, whatever the spelling (`createdAt,bucket(createdAt,day)`,
+ * `period(day),bucket(createdAt,hour)`). An unresolved group (lowering
+ * undefined) has no known column and is skipped.
+ */
+export function findGroupColumnDuplicate(groups: readonly IGroup[]) : string | undefined {
+    const columns = new Set<string>();
+
+    for (const group of groups) {
+        const column = group.lowering?.field;
+        if (typeof column === 'undefined') {
+            continue;
+        }
+
+        if (columns.has(column)) {
+            return column;
+        }
+
+        columns.add(column);
+    }
+
+    return undefined;
+}
+
+/**
  * The refusals every grouped entry point shares, run before any SQL is
  * rendered or any record is read: a query without groups or aggregates
- * (`groups:empty`), one carrying fields (`fields:grouped`) and one
- * writing a row key twice (`KEY_AMBIGUOUS`). The parser never produces
- * the last two; a hand-built query could.
+ * (`groups:empty`), one carrying fields (`fields:grouped`), one
+ * grouping a column twice and one writing a row key twice (both
+ * `KEY_AMBIGUOUS`). The parser never produces the last three; a
+ * hand-built query could.
  */
 export function assertGroupedQuery(query: IQuery) : void {
     if (!isGroupedQuery(query)) {
@@ -61,6 +87,11 @@ export function assertGroupedQuery(query: IQuery) : void {
 
     if (query.fields.value.length > 0) {
         throw AdapterError.featureUnsupported('fields:grouped');
+    }
+
+    const column = findGroupColumnDuplicate(query.groups?.value ?? []);
+    if (typeof column !== 'undefined') {
+        throw AdapterError.groupColumnDuplicate(column);
     }
 
     const keys = new Set<string>();

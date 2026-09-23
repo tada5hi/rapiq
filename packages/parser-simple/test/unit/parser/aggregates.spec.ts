@@ -37,10 +37,10 @@ describe('src/parameter/aggregates', () => {
 
         expect(output.value.map((item) => item.key)).toEqual([
             'count',
-            'count_couponId',
-            'sum_amount',
-            'total_amount',
-            'total_fee',
+            'countCouponId',
+            'sumAmount',
+            'totalAmount',
+            'totalFee',
             'revenue',
         ]);
         expect(output.value.map((item) => item.lowering)).toEqual([
@@ -93,7 +93,7 @@ describe('src/parameter/aggregates', () => {
 
     it('should resolve primitives without a schema', () => {
         expect(parser.parse('count,sum(amount)').value.map((item) => item.key))
-            .toEqual(['count', 'sum_amount']);
+            .toEqual(['count', 'sumAmount']);
     });
 
     it('should reject count and count() together', () => {

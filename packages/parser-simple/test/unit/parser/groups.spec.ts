@@ -31,16 +31,16 @@ describe('src/parameter/groups', () => {
     const parser = new SimpleGroupsParser(registry);
 
     it('should resolve built-in calls, named calls and bare columns', () => {
-        expect(parser.parse('bucket(createdAt,day),period(hour),scope', { schema: 'event' })).toEqual(new Groups([
-            new Group({
-                name: 'bucket',
-                params: ['createdAt', 'day'],
-                lowering: {
-                    fn: 'bucket',
-                    field: 'createdAt',
-                    args: ['day'],
-                },
-            }),
+        expect(parser.parse('bucket(createdAt,day),scope', { schema: 'event' }).value[0]).toEqual(new Group({
+            name: 'bucket',
+            params: ['createdAt', 'day'],
+            lowering: {
+                fn: 'bucket',
+                field: 'createdAt',
+                args: ['day'],
+            },
+        }));
+        expect(parser.parse('period(hour),scope', { schema: 'event' })).toEqual(new Groups([
             new Group({
                 name: 'period',
                 params: ['hour'],
@@ -112,20 +112,27 @@ describe('src/parameter/groups', () => {
         ]);
     });
 
-    it('should reject a key requested twice', () => {
-        const error = errorOf(() => parser.parse('bucket(createdAt,day),bucket(createdAt,day)', { schema: 'event' }));
-
-        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([expect.objectContaining({
-            code: ErrorCode.KEY_AMBIGUOUS,
-            path: ['bucket'],
-            message: ErrorMessage.outputKeyDuplicate('bucket_createdAt_day'),
-        })]);
+    it('should key a built-in bucket by its column and a named function by its name', () => {
+        expect(parser.parse('bucket(createdAt,day),scope', { schema: 'event' }).value.map((item) => item.key))
+            .toEqual(['createdAt', 'scope']);
+        expect(parser.parse('period(day),scope', { schema: 'event' }).value.map((item) => item.key))
+            .toEqual(['period', 'scope']);
     });
 
-    it('should accept two grains of one bucket, their keys differ', () => {
-        const groups = parser.parse('bucket(createdAt,day),bucket(createdAt,hour)', { schema: 'event' });
+    it.each([
+        ['bucket(createdAt,day),bucket(createdAt,hour)', 'event', 'bucket(createdAt,hour)'],
+        ['createdAt,bucket(createdAt,day)', undefined, 'bucket(createdAt,day)'],
+        ['period(day),bucket(createdAt,hour)', 'event', 'bucket(createdAt,hour)'],
+    ])('should reject a column grouped twice: %s', (input, schema, key) => {
+        const error = errorOf(() => parser.parse(input, { schema }));
 
-        expect(groups.value.map((item) => item.key)).toEqual(['bucket_createdAt_day', 'bucket_createdAt_hour']);
+        expect(flattenIssueItems([...(error?.issues ?? [])])).toEqual([{
+            type: 'item',
+            code: ErrorCode.KEY_AMBIGUOUS,
+            path: ['bucket'],
+            message: ErrorMessage.groupColumnDuplicate('createdAt'),
+            meta: { parameter: Parameter.GROUPS, key },
+        }]);
     });
 
     it('should turn a grammar violation into an issue of its own class', () => {

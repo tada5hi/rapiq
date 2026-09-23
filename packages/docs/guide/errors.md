@@ -35,7 +35,7 @@ BaseError { code: ErrorCode }
 | `KEY_INVALID` | syntactically invalid field key |
 | `KEY_VALUE_INVALID` | value shape doesn't fit the operator |
 | `KEY_UNKNOWN` | unrecognized top-level `defineQuery` input key |
-| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied together; a duplicate group or aggregate [output key](/guide/grouping#output-keys) |
+| `KEY_AMBIGUOUS` | both `sorts` and its deprecated alias `sort` supplied together; a duplicate group or aggregate [output key](/guide/grouping#output-keys), or two groups of one column |
 | `OPERATOR_UNSUPPORTED` | unknown `$` operator key |
 
 ### Merge time (caller bug)
