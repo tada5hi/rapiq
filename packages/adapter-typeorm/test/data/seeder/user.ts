@@ -25,6 +25,7 @@ export async function createUserSeed(dataSource: DataSource) : Promise<User[]> {
             age: 60,
             email: 'ashton.nel@gmail.com',
             nickName: 'Ash',
+            external_id: '5b1d3c4e-8f2a-4b6c-9d0e-1f2a3b4c5d6e',
         },
     ]);
 }

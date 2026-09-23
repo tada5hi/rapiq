@@ -59,6 +59,12 @@ export class User {
     })
     birth_date: string | null;
 
+    @Column({
+        nullable: true,
+        type: 'uuid',
+    })
+    external_id: string | null;
+
     @Column(() => Profile)
     profile: Profile;
 

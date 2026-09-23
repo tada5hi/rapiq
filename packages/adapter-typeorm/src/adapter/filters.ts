@@ -89,6 +89,36 @@ const DATE_COLUMN_FORMATS : Record<string, 'date' | 'datetime' | 'instant'> = {
  */
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * `uniqueidentifier` is the mssql spelling; typeorm keeps whichever
+ * one the column was declared with.
+ */
+const UUID_COLUMN_TYPES = new Set<string>(['uuid', 'uniqueidentifier']);
+
+/**
+ * Exactly the spellings postgres' `uuid_in` reads: 32 hex digits, a
+ * hyphen optional after any group of four, the whole optionally in
+ * one pair of braces.
+ */
+const UUID_INPUT = /^(?:\{[0-9a-f]{4}(?:-?[0-9a-f]{4}){7}\}|[0-9a-f]{4}(?:-?[0-9a-f]{4}){7})$/i;
+
+/**
+ * Spell a uuid operand in the canonical form postgres outputs and
+ * typeorm generates (hyphenated, lowercase), or undefined when it is
+ * no uuid at all. Normalizing rather than refusing keeps every spelling
+ * postgres accepts working there, and makes it match on sqlite, whose
+ * text column compares case-sensitively (mysql's collation does not).
+ */
+function toCanonicalUuid(value: unknown) : string | undefined {
+    if (typeof value !== 'string' || !UUID_INPUT.test(value)) {
+        return undefined;
+    }
+
+    const hex = value.replace(/[{}-]/g, '').toLowerCase();
+
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function resolveDateColumnFormat(type: ColumnType) : 'date' | 'datetime' | 'instant' | undefined {
     if (type === Date) {
         return 'datetime';
@@ -276,6 +306,19 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         const column = this.resolveColumn(field);
         if (!column) {
             return value;
+        }
+
+        if (typeof column.type === 'string' && UUID_COLUMN_TYPES.has(column.type)) {
+            // postgres and mssql fail the whole query on a malformed
+            // uuid, while sqlite and mysql store it as text and match
+            // nothing: refuse it here so every dialect answers with the
+            // same client error.
+            const uuid = toCanonicalUuid(value);
+            if (!uuid) {
+                throw AdapterError.keyValueInvalid(field);
+            }
+
+            return uuid;
         }
 
         const format = resolveDateColumnFormat(column.type);
