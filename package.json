@@ -17,16 +17,16 @@
         "@tada5hi/eslint-config": "^2.4.0",
         "@tada5hi/tsconfig": "^0.7.2",
         "@types/node": "^26.5.1",
-        "@vitest/coverage-v8": "^4.1.10",
+        "@vitest/coverage-v8": "^5.0.1",
         "eslint": "^10.11.0",
         "eslint-plugin-vue": "^10.11.0",
         "husky": "^9.1.7",
         "nx": "^23.2.1",
         "pkg-pr-new": "^0.0.88",
         "tsdown": "^0.23.0",
-        "typescript": "^6.0.3",
+        "typescript": "^7.0.2",
         "typescript-eslint": "^8.70.0",
-        "vitest": "^4.1.9"
+        "vitest": "^5.0.1"
     },
     "scripts": {
         "build": "npx nx run-many -t build",
