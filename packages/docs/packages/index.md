@@ -16,6 +16,8 @@ rapiq is a family of small packages around one shared data structure: the [`Quer
 | [@rapiq/adapter-prisma](/packages/adapter-prisma) | Serializes a `Query` into a Prisma argument object |
 | [@rapiq/adapter-drizzle](/packages/adapter-drizzle) | Serializes a `Query` into a Drizzle relational query config |
 | [@rapiq/adapter-memory](/packages/adapter-memory) | Evaluates a `Query` against in-memory objects & arrays |
+| [@rapiq/cache](/packages/cache) | Tag-invalidated result cache: tag versions over one logical clock, a memory driver, the driver contract |
+| [@rapiq/cache-redis](/packages/cache-redis) | Redis driver for `@rapiq/cache` (atomic Lua steps over `ioredis`) |
 
 ## Which packages do I need?
 
@@ -59,9 +61,10 @@ Then add per feature:
 
 - MongoDB-style filter documents (e.g. JSON bodies) → [@rapiq/parser-mongo](/packages/parser-mongo)
 - non-URL canonical object input → [@rapiq/parser-simple](/packages/parser-simple) directly
+- caching query results, invalidated by the writes that change them → [@rapiq/cache](/packages/cache), plus [@rapiq/cache-redis](/packages/cache-redis) for a store shared between processes
 
 ## Dependency layers
 
 <PackageLayers />
 
-All packages are ESM-only, ship TypeScript types, and share the same export shape (single entry point).
+All packages are ESM-only, ship TypeScript types, and share the same export shape (single entry point). The one addition is `@rapiq/cache/typeorm`, the TypeORM write side of the cache, kept behind its own entry so the root types never import from the optional `typeorm` peer.

@@ -1,0 +1,82 @@
+{
+    "name": "@rapiq/cache",
+    "version": "2.4.0",
+    "description": "Tag-invalidated result cache for rapiq queries: tag versions over one logical clock, a zero-dependency memory driver and a driver contract for shared stores.",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        },
+        "./typeorm": {
+            "types": "./dist/typeorm.d.mts",
+            "import": "./dist/typeorm.mjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "dependencies": {
+        "@ebec/core": "^1.3.2"
+    },
+    "devDependencies": {
+        "@rapiq/core": "^2.4.0",
+        "@swc/core": "^1.16.2",
+        "better-sqlite3": "^12.6.0",
+        "reflect-metadata": "^0.2.2",
+        "typeorm": "^1.1.1",
+        "unplugin-swc": "^1.6.0"
+    },
+    "peerDependencies": {
+        "@rapiq/core": "^2.4.0",
+        "typeorm": "^1.1.1"
+    },
+    "scripts": {
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "latest"
+    },
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "cache",
+        "caching",
+        "invalidation",
+        "tags",
+        "typescript",
+        "typeorm"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/cache"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme",
+    "peerDependenciesMeta": {
+        "typeorm": {
+            "optional": true
+        }
+    }
+}

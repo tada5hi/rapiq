@@ -68,6 +68,18 @@ jobs:
         name: Test Package
         needs: [build]
         runs-on: ubuntu-latest
+        services:
+            # the @rapiq/cache-redis specs skip without a reachable Redis,
+            # which would publish its three Lua scripts untested.
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+                options: >-
+                    --health-cmd="redis-cli ping"
+                    --health-interval=5s
+                    --health-timeout=5s
+                    --health-retries=10
         steps:
             -   name: Checkout
                 uses: actions/checkout@v7
@@ -84,6 +96,8 @@ jobs:
                 # coverage thresholds must fail HERE (pre-merge) — the release
                 # workflow re-checks them only after release-please has already
                 # created tags, where a failure strands the release unpublished.
+                env:
+                    REDIS_URL: redis://127.0.0.1:6379
                 run: |
                     npm run test:coverage
 

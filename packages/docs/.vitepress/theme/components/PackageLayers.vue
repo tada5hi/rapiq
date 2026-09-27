@@ -30,6 +30,7 @@ const layers: Layer[] = [
             { name: '@rapiq/adapter-prisma', href: '/packages/adapter-prisma', deps: 'core' },
             { name: '@rapiq/adapter-drizzle', href: '/packages/adapter-drizzle', deps: 'core' },
             { name: '@rapiq/adapter-memory', href: '/packages/adapter-memory', deps: 'core' },
+            { name: '@rapiq/cache', href: '/packages/cache', deps: 'core' },
         ],
     },
     {
@@ -38,6 +39,7 @@ const layers: Layer[] = [
             { name: '@rapiq/parser-expression', href: '/packages/parser-expression', deps: 'parser-simple' },
             { name: '@rapiq/parser-mongo', href: '/packages/parser-mongo', deps: 'parser-simple' },
             { name: '@rapiq/adapter-typeorm', href: '/packages/adapter-typeorm', deps: 'sql + typeorm' },
+            { name: '@rapiq/cache-redis', href: '/packages/cache-redis', deps: 'cache + ioredis' },
         ],
     },
     {
