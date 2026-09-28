@@ -48,6 +48,17 @@ export class CacheError extends BaseError {
     }
 
     /**
+     * A `maxTtl` below one millisecond: every entry would lapse at once, and
+     * Redis refuses the `PX 0` the scripts would send, failing every bump.
+     */
+    static maxTtlInvalid(value: number) {
+        return new this({
+            message: `The maxTtl must be a finite number of at least 1 millisecond, got ${value}.`,
+            code: ErrorCode.INPUT_INVALID,
+        });
+    }
+
+    /**
      * A schema without a name has no tags: the name is the vocabulary.
      */
     static schemaNameUndefined() {

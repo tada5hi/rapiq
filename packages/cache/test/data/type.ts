@@ -41,3 +41,8 @@ export type Article = {
     title: string,
     tags?: Tag[],
 };
+
+export type Note = {
+    id: string,
+    realmId: string | null,
+};

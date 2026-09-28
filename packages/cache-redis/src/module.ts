@@ -6,7 +6,7 @@
  */
 
 import type { CacheEntry, ICacheDriver } from '@rapiq/cache';
-import { CACHE_MAX_TTL_DEFAULT } from '@rapiq/cache';
+import { resolveMaxTtl } from '@rapiq/cache';
 import {
     REDIS_CACHE_PREFIX_DEFAULT,
     RedisCacheCommand,
@@ -38,7 +38,7 @@ export class RedisCacheDriver implements ICacheDriver {
     protected client : RedisCacheScriptClient;
 
     constructor(options: RedisCacheDriverOptions) {
-        this.maxTtl = options.maxTtl ?? CACHE_MAX_TTL_DEFAULT;
+        this.maxTtl = resolveMaxTtl(options.maxTtl);
         this.prefix = options.prefix ?? REDIS_CACHE_PREFIX_DEFAULT;
         this.client = RedisCacheDriver.defineCommands(options.client);
     }

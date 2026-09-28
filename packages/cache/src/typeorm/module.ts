@@ -275,6 +275,11 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
                     tags.add(buildScopedTag(dependency.schema, column.child, value));
                 }
+
+                // SET NULL moves the child rows INTO the null scope.
+                if (dependency.setNull) {
+                    tags.add(buildScopedTag(dependency.schema, column.child, null));
+                }
             }
         }
 
@@ -314,6 +319,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                     if (typeof schema !== 'undefined') {
                         output.push({
                             schema,
+                            setNull: relation.onDelete === 'SET NULL',
                             columns: direct ? this.resolveCascadeColumns(schema, relation) : [],
                         });
                     }
@@ -412,6 +418,7 @@ type CascadeColumn = {
 
 type CascadeDependency = {
     schema: string,
+    setNull: boolean,
     columns: CascadeColumn[],
 };
 

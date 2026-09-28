@@ -135,6 +135,18 @@ describe('src/typeorm/module.ts', () => {
         ]));
     });
 
+    it('should bump the null scope of a SET NULL child when its parent is removed', async () => {
+        const realm = await dataSource.getRepository(RealmEntity).findOneByOrFail({ id: 'x' });
+        await dataSource.getRepository(RealmEntity).remove(realm);
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toEqual(expect.arrayContaining([
+            'note',
+            'note:realmId=x',
+            'note:realmId=null',
+        ]));
+    });
+
     it('should bump the collections the database cascades through transitively', async () => {
         await dataSource.getRepository(RoleEntity).save({
             id: 'r1',

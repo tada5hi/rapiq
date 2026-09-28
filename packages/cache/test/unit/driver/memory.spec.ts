@@ -24,6 +24,10 @@ class ChaosMemoryCacheDriver extends MemoryCacheDriver {
     get size() {
         return this.entries.size;
     }
+
+    get tagSize() {
+        return this.tags.size;
+    }
 }
 
 describe('src/driver/memory.ts', () => {
@@ -38,6 +42,44 @@ describe('src/driver/memory.ts', () => {
 
     it('should default maxTtl to one minute', () => {
         expect(new MemoryCacheDriver().maxTtl).toEqual(60_000);
+    });
+
+    it('should refuse a maxTtl below one millisecond', () => {
+        for (const maxTtl of [0, -1, 0.5, NaN, Infinity]) {
+            expect(() => new MemoryCacheDriver({ maxTtl })).toThrow(/maxTtl/);
+        }
+    });
+
+    it('should prune expired tags even while the entry map is full of live entries', async () => {
+        vi.useFakeTimers();
+
+        const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
+
+        // bumped once and never read again, like the record tag of a deleted row.
+        await driver.invalidate(Array.from({ length: 40 }, (_, i) => `role:${i}`));
+        expect(driver.tagSize).toEqual(40);
+
+        // 20 entries still alive when the 40 tags lapse: a budget shared with
+        // the entry scan spends itself on them and never reaches the tags.
+        vi.advanceTimersByTime(5_000);
+        for (let i = 0; i < 20; i++) {
+            await driver.write(`k${i}`, {
+                clock: await driver.clock(), 
+                tags: ['live'], 
+                value: i, 
+            }, 10_000);
+        }
+        expect(driver.tagSize).toEqual(41);
+
+        vi.advanceTimersByTime(5_000);
+        await driver.write('k0', {
+            clock: await driver.clock(), 
+            tags: ['live'], 
+            value: 0, 
+        }, 10_000);
+
+        expect(driver.size).toEqual(20);
+        expect(driver.tagSize).toEqual(41 - 16);
     });
 
     it('should prune expired entries opportunistically on write', async () => {

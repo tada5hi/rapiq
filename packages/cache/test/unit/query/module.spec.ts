@@ -24,7 +24,7 @@ import {
     rememberQuery,
 } from '../../../src';
 import { registry } from '../../data/schema';
-import type { Role, UserRole } from '../../data/type';
+import type { Realm, Role, UserRole } from '../../data/type';
 
 describe('src/query/module.ts', () => {
     describe('isCacheable', () => {
@@ -163,6 +163,25 @@ describe('src/query/module.ts', () => {
                 registry,
                 value: [],
             })).toEqual(['userRole']);
+        });
+
+        it('should not scope a string on a column compared case-insensitively', () => {
+            // `realm.name` leads an index but is not listed under
+            // `filters.caseSensitive`: `Master` matches a row holding `master`,
+            // whose write bumps `realm:name=master`.
+            expect(collectQueryTags({
+                query: defineQuery<Realm>({ filters: { name: 'Master' } }),
+                schema: 'realm',
+                registry,
+                value: [],
+            })).toEqual(['realm']);
+
+            expect(collectQueryTags({
+                query: defineQuery<Realm>({ filters: { id: 'r1' } }),
+                schema: 'realm',
+                registry,
+                value: [],
+            })).toEqual(['realm:id=r1']);
         });
 
         it('should fall back to the collection tag for a filter on a column leading no index', () => {

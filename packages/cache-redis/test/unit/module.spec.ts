@@ -52,6 +52,12 @@ describe.runIf(available)('src/module.ts', () => {
         });
     });
 
+    it('should refuse a maxTtl Redis would reject as PX 0', () => {
+        for (const maxTtl of [0, 0.5, -1]) {
+            expect(() => new RedisCacheDriver({ client, maxTtl })).toThrow(/maxTtl/);
+        }
+    });
+
     it('should default the prefix and maxTtl', () => {
         const defaults = new RedisCacheDriver({ client });
 

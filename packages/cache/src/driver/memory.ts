@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { CACHE_MAX_TTL_DEFAULT, MEMORY_CACHE_PRUNE_BUDGET } from './constants';
+import { MEMORY_CACHE_PRUNE_BUDGET } from './constants';
 import type { CacheEntry, ICacheDriver, MemoryCacheDriverOptions } from './types';
+import { resolveMaxTtl } from './utils';
 
 type MemoryCacheEntry = {
     entry: CacheEntry,
@@ -37,7 +38,7 @@ export class MemoryCacheDriver implements ICacheDriver {
     protected clockValue : number | undefined;
 
     constructor(options: MemoryCacheDriverOptions = {}) {
-        this.maxTtl = options.maxTtl ?? CACHE_MAX_TTL_DEFAULT;
+        this.maxTtl = resolveMaxTtl(options.maxTtl);
         this.entries = new Map();
         this.tags = new Map();
         this.clockValue = undefined;
@@ -90,7 +91,7 @@ export class MemoryCacheDriver implements ICacheDriver {
             const version = this.readTag(tag, now) ?? 0;
             // re-armed on every write, refused or not: the tag has to outlive
             // every entry that may still carry it.
-            this.tags.set(tag, { version, expiresAt: now + this.maxTtl });
+            this.setTag(tag, version, now);
 
             if (version > entry.clock) {
                 refused = true;
@@ -116,7 +117,7 @@ export class MemoryCacheDriver implements ICacheDriver {
         this.clockValue = clock;
 
         for (const tag of tags) {
-            this.tags.set(tag, { version: clock, expiresAt: now + this.maxTtl });
+            this.setTag(tag, clock, now);
         }
     }
 
@@ -142,32 +143,38 @@ export class MemoryCacheDriver implements ICacheDriver {
         return item.version;
     }
 
+    /**
+     * Every tag expires `maxTtl` after it was last set, so deleting before
+     * setting keeps the map in expiry order and the prune can stop at the
+     * first live tag.
+     */
+    protected setTag(tag: string, version: number, now: number) {
+        this.tags.delete(tag);
+        this.tags.set(tag, { version, expiresAt: now + this.maxTtl });
+    }
+
     // ponytail: bounded prune per write; an LRU if the map ever matters
     protected prune(now: number) {
+        // entries carry their own ttl and are in no order: a bounded scan.
         let budget = MEMORY_CACHE_PRUNE_BUDGET;
-
         for (const [key, item] of this.entries) {
-            if (budget === 0) {
-                return;
+            if (budget-- === 0) {
+                break;
             }
-
-            budget--;
 
             if (item.expiresAt <= now) {
                 this.entries.delete(key);
             }
         }
 
+        // tags are in expiry order (see setTag): stop at the first live one.
+        budget = MEMORY_CACHE_PRUNE_BUDGET;
         for (const [tag, item] of this.tags) {
-            if (budget === 0) {
-                return;
+            if (budget-- === 0 || item.expiresAt > now) {
+                break;
             }
 
-            budget--;
-
-            if (item.expiresAt <= now) {
-                this.tags.delete(tag);
-            }
+            this.tags.delete(tag);
         }
     }
 }

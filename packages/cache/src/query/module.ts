@@ -212,18 +212,25 @@ function leadsIndex(schema: Schema, field: string) : boolean {
  * while the writer's row holds a `Date` (no scoped tag at all) or the
  * database's own storage form. Such a conjunct keeps the collection tag.
  */
-function isScopableValue(value: unknown) : value is ScopedTagValue {
+function isScopableValue(value: unknown, caseSensitive: boolean) : value is ScopedTagValue {
     if (!isScopedTagValue(value)) {
         return false;
     }
 
-    return typeof value !== 'string' || typeof toDate(value) === 'undefined';
+    if (typeof value !== 'string') {
+        return true;
+    }
+
+    return caseSensitive && typeof toDate(value) === 'undefined';
 }
 
 /**
  * Rule 1: an `eq` or `in` conjunct on an undotted, index-leading column
  * with scalar value(s) scopes the collection dependency to that column. A
- * date string never scopes (see `isScopableValue`).
+ * date string never scopes (see `isScopableValue`), and neither does a
+ * string on a column the schema does not list under `filters.caseSensitive`:
+ * rapiq compares such a string case-insensitively, so `U1` matches a row
+ * holding `u1` while the writer bumps `u1`.
  */
 function collectScopedTags(schema: Schema, name: string, filters: IFilters) : string[] {
     const output : string[] = [];
@@ -242,8 +249,10 @@ function collectScopedTags(schema: Schema, name: string, filters: IFilters) : st
             continue;
         }
 
+        const caseSensitive = schema.filters.caseSensitive.includes(details.name);
+
         if (conjunct.operator === FilterFieldOperator.EQUAL) {
-            if (isScopableValue(conjunct.value)) {
+            if (isScopableValue(conjunct.value, caseSensitive)) {
                 output.push(buildScopedTag(name, details.name, conjunct.value));
             }
 
@@ -254,7 +263,7 @@ function collectScopedTags(schema: Schema, name: string, filters: IFilters) : st
             conjunct.operator === FilterFieldOperator.IN &&
             Array.isArray(conjunct.value) &&
             conjunct.value.length > 0 &&
-            conjunct.value.every(isScopableValue)
+            conjunct.value.every((value) => isScopableValue(value, caseSensitive))
         ) {
             for (const value of conjunct.value) {
                 output.push(buildScopedTag(name, details.name, value));

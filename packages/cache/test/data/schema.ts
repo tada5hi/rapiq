@@ -8,6 +8,7 @@
 import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import type {
     Article,
+    Note,
     Realm,
     Role,
     Tag,
@@ -20,7 +21,7 @@ import type {
 const realmSchema = defineSchema<Realm>({
     name: 'realm',
     fields: { allowed: ['id', 'name'] },
-    filters: { allowed: ['id', 'name'] },
+    filters: { allowed: ['id', 'name'], caseSensitive: ['id'] },
     sorts: { allowed: ['id', 'name'] },
     indexes: [['id'], ['name']],
 });
@@ -32,7 +33,7 @@ const realmSchema = defineSchema<Realm>({
 const roleSchema = defineSchema<Role>({
     name: 'role',
     fields: { allowed: ['id', 'name', 'realmId'] },
-    filters: { allowed: ['id', 'name', 'realmId'] },
+    filters: { allowed: ['id', 'name', 'realmId'], caseSensitive: ['id', 'realmId'] },
     relations: { allowed: ['realm'] },
     sorts: { allowed: ['id', 'name'] },
     indexes: [['id'], ['realmId']],
@@ -45,7 +46,7 @@ const roleSchema = defineSchema<Role>({
 const userRoleSchema = defineSchema<UserRole>({
     name: 'userRole',
     fields: { allowed: ['id', 'userId', 'roleId'] },
-    filters: { allowed: ['id', 'userId', 'roleId'] },
+    filters: { allowed: ['id', 'userId', 'roleId'], caseSensitive: ['userId', 'roleId'] },
     relations: { allowed: ['user', 'role'] },
     sorts: { allowed: ['id'] },
     indexes: [['userId'], ['roleId']],
@@ -58,7 +59,7 @@ const userRoleSchema = defineSchema<UserRole>({
 const articleSchema = defineSchema<Article>({
     name: 'article',
     fields: { allowed: ['id', 'title'] },
-    filters: { allowed: ['id', 'title'] },
+    filters: { allowed: ['id', 'title'], caseSensitive: ['id'] },
     relations: { allowed: ['tags'] },
     sorts: { allowed: ['id'] },
     indexes: [['id']],
@@ -68,11 +69,23 @@ const articleSchema = defineSchema<Article>({
 const tagSchema = defineSchema<Tag>({
     name: 'tag',
     fields: { allowed: ['id', 'name'] },
-    filters: { allowed: ['id', 'name'] },
+    filters: { allowed: ['id', 'name'], caseSensitive: ['id'] },
     relations: { allowed: ['articles'] },
     sorts: { allowed: ['id'] },
     indexes: [['id']],
     schemaMapping: { articles: 'article' },
+});
+
+/**
+ * A note: SET NULL onto its realm, so a realm removal moves its rows into
+ * the `realmId=null` scope.
+ */
+const noteSchema = defineSchema<Note>({
+    name: 'note',
+    fields: { allowed: ['id', 'realmId'] },
+    filters: { allowed: ['id', 'realmId'], caseSensitive: ['realmId'] },
+    sorts: { allowed: ['id'] },
+    indexes: [['realmId']],
 });
 
 const registry = new SchemaRegistry();
@@ -81,9 +94,11 @@ registry.add(roleSchema);
 registry.add(userRoleSchema);
 registry.add(articleSchema);
 registry.add(tagSchema);
+registry.add(noteSchema);
 
 export {
     articleSchema,
+    noteSchema,
     realmSchema,
     roleSchema,
     tagSchema,
