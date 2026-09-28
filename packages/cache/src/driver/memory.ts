@@ -7,7 +7,7 @@
 
 import { MEMORY_CACHE_PRUNE_BUDGET } from './constants';
 import type { CacheEntry, ICacheDriver, MemoryCacheDriverOptions } from './types';
-import { resolveMaxTtl } from './utils';
+import { clampCacheTtl, isCacheTagWellFormed, resolveMaxTtl } from './utils';
 
 type MemoryCacheEntry = {
     entry: CacheEntry,
@@ -22,7 +22,9 @@ type MemoryCacheTag = {
 /**
  * The in-process driver: two Maps and a number. Every method runs to
  * completion inside one tick, which is what makes each step atomic.
- * Expiry is lazy (checked on read) plus a bounded prune on write.
+ * Expiry is lazy (checked on read) plus a prune on write and invalidate:
+ * a bounded scan of the entries, and every expired tag from the front of
+ * the tag map.
  */
 export class MemoryCacheDriver implements ICacheDriver {
     readonly maxTtl : number;
@@ -78,6 +80,10 @@ export class MemoryCacheDriver implements ICacheDriver {
     }
 
     async write<T>(key: string, entry: CacheEntry<T>, ttl: number) : Promise<boolean> {
+        if (entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+            return false;
+        }
+
         const now = Date.now();
 
         this.prune(now);
@@ -86,9 +92,13 @@ export class MemoryCacheDriver implements ICacheDriver {
             this.clockValue = 0;
         }
 
-        let refused = this.clockValue < entry.clock;
+        const clock = this.clockValue;
+
+        let refused = clock < entry.clock;
         for (const tag of entry.tags) {
-            const version = this.readTag(tag, now) ?? 0;
+            // an absent tag has an unknown history (evicted, or lapsed after
+            // a bump), so it is re-created as bumped now, never as 0.
+            const version = this.readTag(tag, now) ?? clock;
             // re-armed on every write, refused or not: the tag has to outlive
             // every entry that may still carry it.
             this.setTag(tag, version, now);
@@ -104,7 +114,7 @@ export class MemoryCacheDriver implements ICacheDriver {
 
         this.entries.set(key, {
             entry: structuredClone(entry),
-            expiresAt: now + Math.min(ttl, this.maxTtl),
+            expiresAt: now + clampCacheTtl(ttl, this.maxTtl),
         });
 
         return true;
@@ -112,6 +122,8 @@ export class MemoryCacheDriver implements ICacheDriver {
 
     async invalidate(tags: string[]) : Promise<void> {
         const now = Date.now();
+
+        this.prune(now);
 
         const clock = (this.clockValue ?? 0) + 1;
         this.clockValue = clock;
@@ -153,7 +165,7 @@ export class MemoryCacheDriver implements ICacheDriver {
         this.tags.set(tag, { version, expiresAt: now + this.maxTtl });
     }
 
-    // ponytail: bounded prune per write; an LRU if the map ever matters
+    // ponytail: bounded entry scan; an LRU if the entry map ever matters
     protected prune(now: number) {
         // entries carry their own ttl and are in no order: a bounded scan.
         let budget = MEMORY_CACHE_PRUNE_BUDGET;
@@ -167,10 +179,12 @@ export class MemoryCacheDriver implements ICacheDriver {
             }
         }
 
-        // tags are in expiry order (see setTag): stop at the first live one.
-        budget = MEMORY_CACHE_PRUNE_BUDGET;
+        // tags are in expiry order (see setTag): drop every expired one from
+        // the front and stop at the first live one. Unbounded on purpose: a
+        // write inserts one tag per row it carries, and each tag is removed
+        // at most once, so the cost is amortized O(1) per inserted tag.
         for (const [tag, item] of this.tags) {
-            if (budget-- === 0 || item.expiresAt > now) {
+            if (item.expiresAt > now) {
                 break;
             }
 

@@ -7,6 +7,7 @@
 
 import { defineQuery } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
+import { IsNull } from 'typeorm';
 import {
     MemoryCacheDriver,
     TaggedCache,
@@ -15,6 +16,7 @@ import {
 import { CacheInvalidationSubscriber } from '../../../src/typeorm';
 import {
     ArticleEntity,
+    NoteEntity,
     RealmEntity,
     RoleEntity,
     TagEntity,
@@ -23,7 +25,21 @@ import {
 } from '../../data/entity';
 import { createDataSource } from '../../data/factory';
 import { registry } from '../../data/schema';
-import type { Article, Role, UserRole } from '../../data/type';
+import type {
+    Article,
+    Note,
+    Role,
+    UserRole,
+} from '../../data/type';
+
+/**
+ * The `caseSensitive` option each fixture read is executed with: the
+ * lists the fixture schemas declare.
+ */
+const ROLE_CASE_SENSITIVE = ['id', 'realmId'];
+const USER_ROLE_CASE_SENSITIVE = ['userId', 'roleId'];
+const ARTICLE_CASE_SENSITIVE = ['id'];
+const NOTE_CASE_SENSITIVE = ['realmId'];
 
 describe('typeorm end to end', () => {
     let dataSource : DataSource;
@@ -70,6 +86,7 @@ describe('typeorm end to end', () => {
             query,
             schema: 'role',
             registry,
+            caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
             return dataSource.getRepository(RoleEntity).find({ relations: { realm: true } });
@@ -102,6 +119,7 @@ describe('typeorm end to end', () => {
             query,
             schema: 'role',
             registry,
+            caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
             return dataSource.getRepository(RoleEntity).find();
@@ -136,6 +154,7 @@ describe('typeorm end to end', () => {
             query: defineQuery<UserRole>({ filters: { roleId: 'r1' } }),
             schema: 'userRole',
             registry,
+            caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads.byRole++;
             return repository.findBy({ roleId: 'r1' });
@@ -146,6 +165,7 @@ describe('typeorm end to end', () => {
             query: defineQuery<UserRole>({ filters: { userId: 'u1' } }),
             schema: 'userRole',
             registry,
+            caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads.byUser++;
             return repository.findBy({ userId: 'u1' });
@@ -181,6 +201,7 @@ describe('typeorm end to end', () => {
             query: defineQuery<UserRole>({}),
             schema: 'userRole',
             registry,
+            caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
             return dataSource.getRepository(UserRoleEntity).find();
@@ -206,6 +227,7 @@ describe('typeorm end to end', () => {
             query: defineQuery<Article>({ filters: { id: 'a1' }, relations: ['tags'] }),
             schema: 'article',
             registry,
+            caseSensitive: ARTICLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
             return articles.find({ where: { id: 'a1' }, relations: { tags: true } });
@@ -223,6 +245,95 @@ describe('typeorm end to end', () => {
         expect(reads).toEqual(3);
     });
 
+    it('should serve a fresh by-id read after the row was removed as an orphan', async () => {
+        const roles = dataSource.getRepository(RoleEntity);
+        let reads = 0;
+        const read = () => rememberQuery(cache, {
+            key: 'role?filter[id]=r1',
+            query: defineQuery<Role>({ filters: { id: 'r1' } }),
+            schema: 'role',
+            registry,
+            caseSensitive: ROLE_CASE_SENSITIVE,
+        }, async () => {
+            reads++;
+            return roles.findBy({ id: 'r1' });
+        });
+
+        expect(await read()).toHaveLength(1);
+
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+        realm.roles = [];
+        await realms.save(realm);
+
+        expect(await read()).toHaveLength(0);
+        expect(reads).toEqual(2);
+    });
+
+    it('should serve a fresh scoped read after a row was inserted through its relation object', async () => {
+        await dataSource.getRepository(RealmEntity).save({ id: 'y', name: 'tenant' });
+
+        const roles = dataSource.getRepository(RoleEntity);
+        let reads = 0;
+        const read = () => rememberQuery(cache, {
+            key: 'role?filter[realmId]=y',
+            query: defineQuery<Role>({ filters: { realmId: 'y' } }),
+            schema: 'role',
+            registry,
+            caseSensitive: ROLE_CASE_SENSITIVE,
+        }, async () => {
+            reads++;
+            return roles.findBy({ realmId: 'y' });
+        });
+
+        expect(await read()).toHaveLength(0);
+
+        await roles.insert({
+            id: 'r2',
+            name: 'dev',
+            realm: { id: 'y' },
+        });
+
+        expect(await read()).toHaveLength(1);
+        expect(reads).toEqual(2);
+    });
+
+    it('should serve a fresh null-scoped read after its notes were released', async () => {
+        const notes = dataSource.getRepository(NoteEntity);
+        await notes.save([
+            { id: 'n1', realmId: 'x' },
+            { id: 'n2', realmId: 'x' },
+        ]);
+
+        let reads = 0;
+        const read = () => rememberQuery(cache, {
+            key: 'note?filter[realmId]=null',
+            query: defineQuery<Note>({ filters: { realmId: null } }),
+            schema: 'note',
+            registry,
+            caseSensitive: NOTE_CASE_SENSITIVE,
+        }, async () => {
+            reads++;
+            return notes.find({ where: { realmId: IsNull() }, order: { id: 'ASC' } });
+        });
+
+        expect(await read()).toHaveLength(0);
+
+        // an orphan nullify through the parent: no key in the event.
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { notes: true } });
+        realm.notes = realm.notes.filter((note) => note.id !== 'n1');
+        await realms.save(realm);
+
+        expect((await read()).map((note) => note.id)).toEqual(['n1']);
+
+        // a criteria delete of the parent: SET NULL moves n2 there too.
+        await realms.delete({ id: 'x' });
+
+        expect((await read()).map((note) => note.id)).toEqual(['n1', 'n2']);
+        expect(reads).toEqual(3);
+    });
+
     it('should not reach a by-id read through a pk-less update (documented boundary)', async () => {
         const roles = dataSource.getRepository(RoleEntity);
         let reads = 0;
@@ -231,6 +342,7 @@ describe('typeorm end to end', () => {
             query: defineQuery<Role>({ filters: { id: 'r1' } }),
             schema: 'role',
             registry,
+            caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
             return roles.findBy({ id: 'r1' });

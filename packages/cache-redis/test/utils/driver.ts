@@ -6,6 +6,7 @@
  */
 
 import type { CacheEntry } from '@rapiq/cache';
+import { clampCacheTtl, isCacheTagWellFormed } from '@rapiq/cache';
 import { RedisCacheDriver } from '../../src';
 
 /**
@@ -31,13 +32,18 @@ export class VirtualClockRedisCacheDriver extends RedisCacheDriver {
     override async write<T>(key: string, entry: CacheEntry<T>, ttl: number) : Promise<boolean> {
         const accepted = await super.write(key, entry, ttl);
 
+        // a malformed tag refuses the write before the script runs.
+        if (entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+            return accepted;
+        }
+
         // re-armed whether or not the write was accepted, like the script does.
         for (const tag of entry.tags) {
             this.expiries.set(this.tagKey(tag), this.now + this.maxTtl);
         }
 
         if (accepted) {
-            this.expiries.set(this.entryKey(key), this.now + Math.min(ttl, this.maxTtl));
+            this.expiries.set(this.entryKey(key), this.now + clampCacheTtl(ttl, this.maxTtl));
         }
 
         return accepted;

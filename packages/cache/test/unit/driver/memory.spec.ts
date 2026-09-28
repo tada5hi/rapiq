@@ -78,8 +78,55 @@ describe('src/driver/memory.ts', () => {
             value: 0, 
         }, 10_000);
 
+        // every lapsed tag goes, not a budget of them: only `live` remains.
         expect(driver.size).toEqual(20);
-        expect(driver.tagSize).toEqual(41 - 16);
+        expect(driver.tagSize).toEqual(1);
+
+        vi.useRealTimers();
+    });
+
+    it('should keep the tag map bounded while the rows of a list churn', async () => {
+        vi.useFakeTimers();
+
+        // an append-only log paged newest first: every miss caches a page of
+        // 50 ids nobody reads again, one miss per second.
+        const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
+        let id = 0;
+        for (let i = 0; i < 500; i++) {
+            const tags = ['event'];
+            for (let j = 0; j < 50; j++) {
+                tags.push(`event:${id++}`);
+            }
+
+            await driver.write(`page:${i}`, {
+                clock: await driver.clock(),
+                tags,
+                value: i,
+            }, 10_000);
+
+            vi.advanceTimersByTime(1_000);
+        }
+
+        // 10 pages fit into maxTtl: at most their tags are live.
+        expect(driver.tagSize).toBeLessThanOrEqual(10 * 50 + 1);
+
+        vi.useRealTimers();
+    });
+
+    it('should prune expired tags on invalidate as well', async () => {
+        vi.useFakeTimers();
+
+        // an insert-heavy table bumps fresh record tags and is never read.
+        const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
+        for (let i = 0; i < 1_000; i++) {
+            await driver.invalidate(['event', `event:${i}`, `event:actor=${i}`]);
+            vi.advanceTimersByTime(100);
+        }
+
+        // 100 bumps fit into maxTtl, two fresh tags each, plus the shared one.
+        expect(driver.tagSize).toBeLessThanOrEqual(100 * 2 + 1);
+
+        vi.useRealTimers();
     });
 
     it('should prune expired entries opportunistically on write', async () => {

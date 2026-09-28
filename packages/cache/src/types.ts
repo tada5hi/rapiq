@@ -10,12 +10,13 @@ import type { ICacheDriver } from './driver';
 export type TaggedCacheOptions = {
     driver: ICacheDriver,
     /**
-     * Entry ttl in milliseconds. Default: the driver's `maxTtl`.
+     * Entry ttl in milliseconds. Default: the driver's `maxTtl`. Anything
+     * but a finite number of at least 1 throws a `CacheError` here.
      */
     ttl?: number,
     /**
      * Where a driver failure on the read path (`clock`, `read`, `write`)
-     * is reported. Default: dropped. The call falls through to the read
+     * and a throwing `tags` derivation are reported. Default: dropped. The call falls through to the read
      * either way; a cache outage must not take the application down.
      */
     onError?: (error: unknown) => void,
@@ -24,13 +25,16 @@ export type TaggedCacheOptions = {
 export type RememberOptions<T> = {
     /**
      * The tags the value depends on, derived from the value AFTER it was
-     * read (a row's id is only known then). A throw here propagates: it
-     * is the caller's own function, and a derivation that cannot name its
-     * dependencies must not store.
+     * read (a row's id is only known then). A throw here is reported to
+     * `onError` and the value is returned unstored: a derivation that
+     * cannot name its dependencies must not store, but the read already
+     * succeeded and is not thrown away.
      */
     tags: (value: T) => string[],
     /**
      * Per-call ttl in milliseconds, clamped by the driver to its `maxTtl`.
+     * Anything but a finite number of at least 1 makes `remember` throw a
+     * `CacheError` before it reads.
      */
     ttl?: number,
 };

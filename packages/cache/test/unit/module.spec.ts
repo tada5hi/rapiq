@@ -5,8 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { ErrorCode } from '@rapiq/core';
 import type { CacheEntry, ICacheDriver } from '../../src';
-import { MemoryCacheDriver, TaggedCache } from '../../src';
+import {
+    CacheError,
+    MemoryCacheDriver,
+    TaggedCache,
+    isCacheError,
+} from '../../src';
 
 /**
  * A memory driver whose read path can be told to fail, recording every
@@ -195,14 +201,65 @@ describe('src/module.ts', () => {
         expect(await cache.remember('k', read, { tags: () => [] })).toEqual(2);
     });
 
-    it('should propagate a failing tags function instead of caching', async () => {
-        await expect(cache.remember('k', async () => 'v', {
-            tags: () => {
+    it('should report a failing tags function and return the value unstored', async () => {
+        let reads = 0;
+        const options = {
+            tags: () : string[] => {
                 throw new Error('unresolvable');
             },
-        })).rejects.toThrow('unresolvable');
+        };
 
+        // the read succeeded, so the request is answered, never failed
+        // after the database work was done.
+        expect(await cache.remember('k', async () => {
+            reads++;
+            return 'v';
+        }, options)).toEqual('v');
+
+        expect(errors).toHaveLength(1);
+        expect((errors[0] as Error).message).toEqual('unresolvable');
         expect(driver.writes).toEqual([]);
+        expect(await driver.read('k')).toBeNull();
+
+        await cache.remember('k', async () => {
+            reads++;
+            return 'v';
+        }, options);
+        expect(reads).toEqual(2);
+    });
+
+    it.each([NaN, Infinity, 0, -1, 0.5])('should refuse a default ttl of %s at construction', (ttl) => {
+        let error : unknown;
+        try {
+            new TaggedCache({ driver, ttl }).remember('k', async () => 'v', { tags: () => [] });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(isCacheError(error)).toBeTruthy();
+        expect((error as CacheError).code).toEqual(ErrorCode.INPUT_INVALID);
+        expect((error as CacheError).message).toMatch(/entry ttl/);
+    });
+
+    it.each([NaN, Infinity, 0, -1, 0.5])('should refuse a per-call ttl of %s before reading', async (ttl) => {
+        let reads = 0;
+
+        await expect(cache.remember('k', async () => {
+            reads++;
+            return 'v';
+        }, { tags: () => ['role'], ttl })).rejects.toThrow(/entry ttl/);
+
+        expect(reads).toEqual(0);
+        expect(driver.writes).toEqual([]);
+    });
+
+    it('should tell an invalid ttl and an invalid maxTtl apart', () => {
+        const ttl = CacheError.ttlInvalid(NaN);
+        const maxTtl = CacheError.maxTtlInvalid(NaN);
+
+        expect(ttl.message).not.toEqual(maxTtl.message);
+        expect(ttl.message).toMatch(/entry ttl/);
+        expect(maxTtl.message).toMatch(/maxTtl/);
     });
 
     it('should use the driver maxTtl as the default ttl and honour a per-call override', async () => {

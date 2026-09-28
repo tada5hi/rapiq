@@ -24,28 +24,40 @@ export type CacheEntry<T = unknown> = {
  *
  * ```text
  * write(key, entry, ttl):
- *     ttl = min(ttl, maxTtl)
- *     clock <- 0 if absent
- *     for tag in entry.tags: tag <- 0 if absent; tag ttl <- maxTtl
+ *     ttl = maxTtl if ttl is not finite or below 1, else min(ttl, maxTtl)
+ *     any tag not well-formed UTF-16 -> false  (checked before anything is written)
+ *     clock <- seed if absent
+ *     for tag in entry.tags: tag <- clock if absent; tag ttl <- maxTtl
  *     if clock < entry.clock -> false          (the clock was lost and restarted)
  *     if any tag version > entry.clock -> false (a bump landed during the read)
  *     store entry with ttl -> true
  *
  * read(key):
  *     entry absent or expired -> null
- *     clock absent or clock < entry.clock -> null
+ *     clock absent or clock < entry.clock -> null (may delete the entry: none is ever legitimately ahead)
  *     any tag absent -> null                   (eviction or flush is a miss, never "never bumped")
  *     any tag version > entry.clock -> null
  *     -> entry
  *
  * invalidate(tags):
- *     c = clock + 1 (clock <- c)
+ *     c = (clock, or seed if absent) + 1; clock <- c
  *     for tag in tags: tag <- c, ttl maxTtl
  * ```
  *
- * A tag key exists for every live entry and outlives it (`maxTtl` is at
- * least every entry ttl), so an absent tag can only mean eviction and
- * fails closed.
+ * An absent tag has an unknown history: it was evicted, or it lapsed after
+ * a bump. A read fails closed on it, and a write re-creates it at the
+ * CURRENT clock, never at 0, as if it had been bumped just now. Every
+ * entry still carrying it then reads as bumped, and a fill that observed
+ * an older clock is refused. The price: the first fill of a tag the store
+ * has never seen is refused when any bump, of any tag, landed during its
+ * read; the next fill is accepted.
+ *
+ * The seed is what a store answers for a clock it does not hold. The
+ * in-process driver seeds 0 (its clock is never lost). A shared store
+ * seeds a value above anything it can have issued before, the server
+ * time in microseconds for Redis, so a lost clock key restarts ABOVE
+ * every entry and tag written before the loss, and a pre-loss entry can
+ * never read as fresh again once the counter climbs back.
  */
 export interface ICacheDriver {
     /**
@@ -55,7 +67,8 @@ export interface ICacheDriver {
     readonly maxTtl: number;
 
     /**
-     * The current logical clock, 0 when the store holds none.
+     * The current logical clock. A store that holds none answers its seed
+     * (0 for the in-process driver) and may persist it on the way.
      */
     clock(): Promise<number>;
 
@@ -65,7 +78,8 @@ export interface ICacheDriver {
     read<T>(key: string): Promise<CacheEntry<T> | null>;
 
     /**
-     * Store atomically; false when refused. `ttl` in milliseconds.
+     * Store atomically; false when refused. `ttl` in milliseconds; one
+     * that is not finite or below 1 is taken as `maxTtl`.
      */
     write<T>(key: string, entry: CacheEntry<T>, ttl: number): Promise<boolean>;
 

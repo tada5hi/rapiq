@@ -7,7 +7,15 @@
 
 import type { IQuery, Schema, SchemaRegistry } from '@rapiq/core';
 
-export type QueryTagsInput = {
+/**
+ * Which root columns compare case-sensitively: the value handed to the
+ * adapter's `execute(query, { caseSensitive })`, with the same semantics.
+ * `true` means every field, a list names the fields, and anything else
+ * means none.
+ */
+export type QueryCaseSensitive = string[] | boolean;
+
+export type QueryTagsInput<T = unknown> = {
     query: IQuery,
     /**
      * The root schema, or its name in the registry.
@@ -15,26 +23,51 @@ export type QueryTagsInput = {
     schema: Schema | string,
     registry: SchemaRegistry,
     /**
-     * The hydrated result: a row, rows, null or an empty array.
+     * The value the read returned.
      */
-    value: unknown,
+    value: T,
+    /**
+     * The row(s) of `value`: a row, rows, null or an empty array. Default:
+     * the value itself. A tuple (`findAndCount`) or an envelope carries no
+     * record tag unless it is unwrapped here, e.g. `([rows]) => rows` or
+     * `(value) => value.data`.
+     */
+    rows?: (value: T) => unknown,
     /**
      * The primary key property of every row. Default: `id`.
      */
-    key?: string,
+    primaryKey?: string,
+    /**
+     * Exactly the `caseSensitive` option the query is executed with. A
+     * string value scopes only on a column compared case-sensitively.
+     * Default: none, so a string never scopes.
+     */
+    caseSensitive?: QueryCaseSensitive,
 };
 
-export type RememberQueryInput = {
+export type RememberQueryInput<T = unknown> = {
     /**
-     * The cache key. A codec-encoded query plus the schema name is the
-     * natural one; this package does not encode queries itself.
+     * The cache key. It MUST encode every input that selects the result:
+     * the schema name, the executed query (fields included) and every
+     * input outside the query, such as the `:id` path parameter of a by-id
+     * route. A codec-encoded query alone is not enough there.
      */
     key: string,
     query: IQuery,
     schema: Schema | string,
     registry: SchemaRegistry,
     /**
+     * The row(s) of the value the read returned. Default: the value
+     * itself. See {@link QueryTagsInput.rows}.
+     */
+    rows?: (value: T) => unknown,
+    /**
      * The primary key property of every row. Default: `id`.
      */
     primaryKey?: string,
+    /**
+     * Exactly the `caseSensitive` option the query is executed with. See
+     * {@link QueryTagsInput.caseSensitive}.
+     */
+    caseSensitive?: QueryCaseSensitive,
 };

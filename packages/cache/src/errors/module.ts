@@ -59,6 +59,43 @@ export class CacheError extends BaseError {
     }
 
     /**
+     * An entry ttl that is not a finite number of at least one millisecond.
+     * `Number(undefined)` is NaN and slips past `??`, and a NaN ttl would
+     * store an entry that never expires, voiding the `maxTtl` bound.
+     */
+    static ttlInvalid(value: number) {
+        return new this({
+            message: `The entry ttl must be a finite number of at least 1 millisecond, got ${value}.`,
+            code: ErrorCode.INPUT_INVALID,
+        });
+    }
+
+    /**
+     * A client that prefixes every key on its own. The write and invalidate
+     * scripts receive the tag keys prefixed by the client, while the read
+     * script builds them from the stored tag list without that prefix, so
+     * every read would miss.
+     */
+    static clientKeyPrefixUnsupported(keyPrefix: string) {
+        return new this({
+            message: `The Redis client sets the keyPrefix "${keyPrefix}", which the cache scripts cannot honor: pass the namespace as the driver prefix instead.`,
+            code: ErrorCode.FEATURE_UNSUPPORTED,
+        });
+    }
+
+    /**
+     * A cluster client with a prefix that carries no hash tag: the keys of
+     * one store would land in different slots and every script would be
+     * answered with CROSSSLOT.
+     */
+    static prefixHashTagMissing(prefix: string) {
+        return new this({
+            message: `The prefix "${prefix}" carries no hash tag, which a cluster needs so every key of the store shares one slot: use e.g. "{${prefix}}".`,
+            code: ErrorCode.INPUT_INVALID,
+        });
+    }
+
+    /**
      * A schema without a name has no tags: the name is the vocabulary.
      */
     static schemaNameUndefined() {

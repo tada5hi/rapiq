@@ -70,7 +70,8 @@ jobs:
         runs-on: ubuntu-latest
         services:
             # the @rapiq/cache-redis specs skip without a reachable Redis,
-            # which would publish its three Lua scripts untested.
+            # which would publish its Lua scripts untested; REDIS_REQUIRED on
+            # the test step turns that skip into a failure.
             redis:
                 image: redis:7-alpine
                 ports:
@@ -98,6 +99,7 @@ jobs:
                 # created tags, where a failure strands the release unpublished.
                 env:
                     REDIS_URL: redis://127.0.0.1:6379
+                    REDIS_REQUIRED: 1
                 run: |
                     npm run test:coverage
 

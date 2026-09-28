@@ -26,9 +26,20 @@ export function createRedisClient() : Redis {
 }
 
 /**
+ * Whether the environment demands a live Redis. CI sets `REDIS_REQUIRED` on
+ * the test job, so a broken service or a wrong URL fails the suite instead
+ * of skipping it green.
+ */
+export function isRedisRequired() : boolean {
+    const value = process.env.REDIS_REQUIRED;
+    return typeof value === 'string' && value !== '' && value !== '0' && value !== 'false';
+}
+
+/**
  * Whether a Redis answers at `REDIS_URL`. The specs gate on this rather
  * than on an environment flag, the way the TypeORM adapter's engine specs
- * key on the live connection.
+ * key on the live connection. With `REDIS_REQUIRED` set an unreachable
+ * Redis throws, which fails the spec file instead of skipping it.
  */
 export async function isRedisAvailable() : Promise<boolean> {
     const client = createRedisClient();
@@ -40,7 +51,11 @@ export async function isRedisAvailable() : Promise<boolean> {
         await client.ping();
 
         return true;
-    } catch {
+    } catch (e) {
+        if (isRedisRequired()) {
+            throw new Error(`REDIS_REQUIRED is set, but no Redis is reachable at ${REDIS_URL} (db ${REDIS_DB}).`, { cause: e });
+        }
+
         return false;
     } finally {
         client.disconnect();

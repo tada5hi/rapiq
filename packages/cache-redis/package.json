@@ -22,7 +22,7 @@
     },
     "peerDependencies": {
         "@rapiq/cache": "^2.4.0",
-        "ioredis": "^5.11.1"
+        "ioredis": "^5.11.1 || ^6.0.0"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",

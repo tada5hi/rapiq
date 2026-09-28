@@ -6,6 +6,8 @@
  */
 
 import type { ICacheDriver } from './driver';
+import { isCacheTtlValid } from './driver';
+import { CacheError } from './errors';
 import type { ITaggedCache, RememberOptions, TaggedCacheOptions } from './types';
 
 export class TaggedCache implements ITaggedCache {
@@ -18,6 +20,10 @@ export class TaggedCache implements ITaggedCache {
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
+        if (!isCacheTtlValid(this.ttl)) {
+            throw CacheError.ttlInvalid(this.ttl);
+        }
+
         this.onError = options.onError ?? (() => {});
     }
 
@@ -26,6 +32,11 @@ export class TaggedCache implements ITaggedCache {
         read: () => Promise<T>,
         options: RememberOptions<T>,
     ) : Promise<T> {
+        const ttl = options.ttl ?? this.ttl;
+        if (!isCacheTtlValid(ttl)) {
+            throw CacheError.ttlInvalid(ttl);
+        }
+
         let clock : number;
 
         try {
@@ -44,14 +55,18 @@ export class TaggedCache implements ITaggedCache {
         }
 
         const value = await read();
-        const tags = options.tags(value);
 
         try {
+            // derived inside the try: a derivation that cannot name the
+            // dependencies must not store, but the read already succeeded,
+            // so the value is answered uncached rather than thrown away.
+            const tags = options.tags(value);
+
             await this.driver.write(key, {
                 clock,
                 tags,
                 value,
-            }, options.ttl ?? this.ttl);
+            }, ttl);
         } catch (e) {
             this.onError(e);
         }

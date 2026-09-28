@@ -82,10 +82,10 @@ const tagSchema = defineSchema<Tag>({
  */
 const noteSchema = defineSchema<Note>({
     name: 'note',
-    fields: { allowed: ['id', 'realmId'] },
-    filters: { allowed: ['id', 'realmId'], caseSensitive: ['realmId'] },
+    fields: { allowed: ['id', 'realmId', 'publishedAt'] },
+    filters: { allowed: ['id', 'realmId', 'publishedAt'], caseSensitive: ['realmId'] },
     sorts: { allowed: ['id'] },
-    indexes: [['realmId']],
+    indexes: [['realmId'], ['publishedAt']],
 });
 
 const registry = new SchemaRegistry();

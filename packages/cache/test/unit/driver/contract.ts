@@ -61,8 +61,14 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
             value,
         });
 
-        it('should start with a clock of 0', async () => {
-            expect(await driver.clock()).toEqual(0);
+        it('should report a stable clock until something is invalidated', async () => {
+            // the start value is the driver's seed: 0 in process, the server
+            // time for a shared store. Only its steps are part of the contract.
+            const clock = await driver.clock();
+
+            expect(Number.isSafeInteger(clock)).toBeTruthy();
+            expect(clock).toBeGreaterThanOrEqual(0);
+            expect(await driver.clock()).toEqual(clock);
         });
 
         it('should round trip an entry', async () => {
@@ -128,10 +134,12 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
         });
 
         it('should advance the clock on every invalidate', async () => {
+            const start = await driver.clock();
+
             await driver.invalidate(['a']);
             await driver.invalidate(['b']);
 
-            expect(await driver.clock()).toEqual(2);
+            expect(await driver.clock()).toEqual(start + 2);
         });
 
         it.skipIf(!hooks.dropTag)('should answer null after a tag key was evicted', async () => {
@@ -151,21 +159,80 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
             expect(await driver.read('k')).toBeNull();
         });
 
-        it.skipIf(!hooks.dropClock)('should restart a lost clock at 0 and refuse an entry ahead of it', async () => {
+        it.skipIf(!hooks.dropClock)('should refuse a fill observed before the clock was lost', async () => {
             await driver.invalidate(['a']);
             const clock = await driver.clock();
             await hooks.dropClock!(driver);
 
-            expect(await driver.clock()).toEqual(0);
+            // an in-process clock restarts below the fill; a shared store
+            // restarts above it and re-creates the unknown tag at the clock.
             expect(await driver.write('k', entry(clock, ['role'], 'v'), 10_000)).toBeFalsy();
+            expect(await driver.read('k')).toBeNull();
+        });
+
+        it.skipIf(!hooks.dropTag)('should not revive an entry when a write re-creates its evicted tag', async () => {
+            const clock = await driver.clock();
+            expect(await driver.write('old', entry(clock, ['role', 'role:1'], 'old'), 10_000)).toBeTruthy();
+
+            // the row changes and the bump lands, then the bumped tag is
+            // evicted before anyone read the old entry again.
+            await driver.invalidate(['role:1']);
+            await hooks.dropTag!(driver, 'role:1');
+
+            // another query carrying the same tag fills: it re-creates the
+            // tag at the current clock, not as "never bumped".
+            const current = await driver.clock();
+            expect(await driver.write('other', entry(current, ['role', 'role:1'], 'new'), 10_000)).toBeTruthy();
+
+            expect(await driver.read('old')).toBeNull();
+            expect(await driver.read('other')).not.toBeNull();
+        });
+
+        it('should refuse a fill whose tag lapsed after a bump during its read', async () => {
+            const clock = await driver.clock();
+
+            // a slow read: the bump lands, and its tag outlives maxTtl only
+            // until the read finally comes back.
+            await driver.invalidate(['role:1']);
+            await advance(driver.maxTtl);
+
+            expect(await driver.write('k', entry(clock, ['role:1'], 'stale'), 10_000)).toBeFalsy();
+            expect(await driver.read('k')).toBeNull();
+        });
+
+        it('should refuse a tag that is not well-formed UTF-16 without storing anything', async () => {
+            const clock = await driver.clock();
+
+            expect(await driver.write('k', entry(clock, ['role', 'role:name=\ud800'], 'v'), 10_000)).toBeFalsy();
+            expect(await driver.read('k')).toBeNull();
+
+            // a well-formed pair is an ordinary tag.
+            expect(await driver.write('k', entry(clock, ['role:name=\ud83d\ude00'], 'v'), 10_000)).toBeTruthy();
+            expect(await driver.read('k')).not.toBeNull();
+        });
+
+        it.each([NaN, Infinity, -Infinity, 0, -5, 0.5])('should store an entry with ttl %s for maxTtl', async (ttl) => {
+            const clock = await driver.clock();
+            expect(await driver.write('k', entry(clock, ['role'], 'v'), ttl)).toBeTruthy();
+
+            await advance(driver.maxTtl - 1);
+            expect(await driver.read('k')).not.toBeNull();
+
+            // re-arm the shared tag so its lapse cannot stand in for the entry's.
+            await driver.write('other', entry(clock, ['role'], 'v'), 10);
+
+            await advance(1);
+            expect(await driver.read('k')).toBeNull();
         });
 
         it('should leave every bumped tag at the clock after two invalidates', async () => {
+            const start = await driver.clock();
+
             await driver.invalidate(['a']);
             await driver.invalidate(['a', 'b']);
 
             const clock = await driver.clock();
-            expect(clock).toEqual(2);
+            expect(clock).toEqual(start + 2);
 
             // a was bumped by both, b by the last: both sit at the clock, so
             // an entry read one tick before the last bump is refused and one

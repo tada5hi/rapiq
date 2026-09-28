@@ -8,8 +8,12 @@
 import {
     Field,
     Fields,
+    ITSELF,
     Query,
+    SchemaRegistry,
     defineQuery,
+    defineSchema,
+    elemMatch,
     eq,
     inArray,
     or,
@@ -23,8 +27,43 @@ import {
     isCacheable,
     rememberQuery,
 } from '../../../src';
-import { registry } from '../../data/schema';
+import { registry, userRoleSchema } from '../../data/schema';
 import type { Realm, Role, UserRole } from '../../data/type';
+
+/**
+ * A graph for filters applied to a relation itself: `role` reaches `realm`
+ * (to-one) and `permissions` (to-many), `realm` reaches its `owner`, and
+ * `labels` is a scalar array column that maps onto no schema.
+ */
+function buildRelationRegistry() : SchemaRegistry {
+    const output = new SchemaRegistry();
+    output.add(defineSchema({
+        name: 'role',
+        filters: { allowed: ['id', 'realm', 'permissions', 'labels'] },
+        relations: { allowed: ['realm', 'permissions'] },
+        indexes: [['id']],
+        schemaMapping: { permissions: 'permission' },
+    }));
+    output.add(defineSchema({
+        name: 'realm',
+        filters: { allowed: ['id', 'name', 'owner'] },
+        relations: { allowed: ['owner'] },
+        indexes: [['id']],
+        schemaMapping: { owner: 'user' },
+    }));
+    output.add(defineSchema({
+        name: 'permission',
+        filters: { allowed: ['id', 'name'] },
+        indexes: [['id']],
+    }));
+    output.add(defineSchema({
+        name: 'user',
+        filters: { allowed: ['id', 'name'] },
+        indexes: [['id']],
+    }));
+
+    return output;
+}
 
 describe('src/query/module.ts', () => {
     describe('isCacheable', () => {
@@ -115,6 +154,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<UserRole>({ filters: { userId: 'u1' } }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: ['userId'],
                 value: [{
                     id: 'ur1', 
                     userId: 'u1', 
@@ -130,6 +170,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<UserRole>({ filters: inArray('userId', ['u1', 'u2']) }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: ['userId'],
                 value: [],
             });
 
@@ -141,6 +182,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<UserRole>({ filters: { userId: 'u1', roleId: 'r1' } }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: true,
                 value: [],
             });
 
@@ -154,6 +196,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<UserRole>({ filters: { userId: '2026-01-02T03:04:05.000Z' } }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: true,
                 value: [],
             })).toEqual(['userRole']);
 
@@ -161,18 +204,20 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<UserRole>({ filters: inArray('userId', ['u1', '2026-01-02']) }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: true,
                 value: [],
             })).toEqual(['userRole']);
         });
 
         it('should not scope a string on a column compared case-insensitively', () => {
-            // `realm.name` leads an index but is not listed under
-            // `filters.caseSensitive`: `Master` matches a row holding `master`,
-            // whose write bumps `realm:name=master`.
+            // `realm.name` leads an index but the query is not executed
+            // case-sensitively on it: `Master` matches a row holding
+            // `master`, whose write bumps `realm:name=master`.
             expect(collectQueryTags({
                 query: defineQuery<Realm>({ filters: { name: 'Master' } }),
                 schema: 'realm',
                 registry,
+                caseSensitive: ['id'],
                 value: [],
             })).toEqual(['realm']);
 
@@ -180,8 +225,69 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<Realm>({ filters: { id: 'r1' } }),
                 schema: 'realm',
                 registry,
+                caseSensitive: ['id'],
                 value: [],
             })).toEqual(['realm:id=r1']);
+
+            expect(collectQueryTags({
+                query: defineQuery<Realm>({ filters: { name: 'master' } }),
+                schema: 'realm',
+                registry,
+                caseSensitive: true,
+                value: [],
+            })).toEqual(['realm:name=master']);
+        });
+
+        it('should read case sensitivity from the execute option, never from the schema', () => {
+            // `userId` is listed under the schema's `filters.caseSensitive`,
+            // but an adapter executed without the option folds the
+            // comparison: `U1` matches a row holding `u1`.
+            expect(userRoleSchema.filters.caseSensitive).toContain('userId');
+
+            for (const caseSensitive of [undefined, false, [] as string[], ['roleId']]) {
+                expect(collectQueryTags({
+                    query: defineQuery<UserRole>({ filters: { userId: 'U1' } }),
+                    schema: 'userRole',
+                    registry,
+                    caseSensitive,
+                    value: [],
+                })).toEqual(['userRole']);
+            }
+
+            // a number never folds, so it scopes whatever the option says.
+            expect(collectQueryTags({
+                query: defineQuery({ filters: eq('userId', 7) }),
+                schema: 'userRole',
+                registry,
+                value: [],
+            })).toEqual(['userRole:userId=7']);
+        });
+
+        it('should spell a boolean and a number, and a Date and its epoch, alike', () => {
+            const date = new Date('2026-01-02T03:04:05.000Z');
+
+            const tagsOf = (value: unknown) => collectQueryTags({
+                query: defineQuery({ filters: eq('realmId', value) }),
+                schema: 'role',
+                registry,
+                value: [],
+            });
+
+            expect(tagsOf(true)).toEqual(tagsOf(1));
+            expect(tagsOf(false)).toEqual(tagsOf(0));
+            expect(tagsOf(date)).toEqual(tagsOf(date.getTime()));
+            expect(tagsOf(date)).toEqual([`role:realmId=${date.getTime()}`]);
+
+            // an invalid Date has no spelling, and a date string never
+            // scopes, even on a case-sensitive column.
+            expect(tagsOf(new Date(NaN))).toEqual(['role']);
+            expect(collectQueryTags({
+                query: defineQuery({ filters: eq('realmId', date.toISOString()) }),
+                schema: 'role',
+                registry,
+                caseSensitive: true,
+                value: [],
+            })).toEqual(['role']);
         });
 
         it('should fall back to the collection tag for a filter on a column leading no index', () => {
@@ -211,6 +317,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<Role>({ filters: inArray('realmId', ['x', { nested: true } as never]) }),
                 schema: 'role',
                 registry,
+                caseSensitive: true,
                 value: [],
             });
 
@@ -244,11 +351,88 @@ describe('src/query/module.ts', () => {
             })).toEqual(['role', 'realm']);
         });
 
+        it('should refuse an elemMatch on a declared relation whose schema is not registered', () => {
+            // `user` is in userRole's relations.allowed, but no `user` schema exists.
+            let error : unknown;
+            try {
+                collectQueryTags({
+                    query: defineQuery({ filters: elemMatch('user', eq('name', 'x')) }),
+                    schema: 'userRole',
+                    registry,
+                    value: [],
+                });
+            } catch (e) {
+                error = e;
+            }
+
+            expect(isCacheError(error)).toBe(true);
+        });
+
+        it('should add the relation collection tag for an elemMatch on a to-one relation', () => {
+            const relationRegistry = buildRelationRegistry();
+
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('realm', eq('name', 'master')) }),
+                schema: 'role',
+                registry: relationRegistry,
+                value: [{ id: 'r1' }],
+            })).toEqual(['role', 'realm', 'role:r1']);
+        });
+
+        it('should add the relation collection tag for an elemMatch on a to-many relation', () => {
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('permissions', eq('name', 'x')) }),
+                schema: 'role',
+                registry: buildRelationRegistry(),
+                value: [],
+            })).toEqual(['role', 'permission']);
+        });
+
+        it('should resolve the keys of an elemMatch interior against the relation', () => {
+            const relationRegistry = buildRelationRegistry();
+
+            // a dotted interior key walks on from the relation.
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('realm', eq('owner.name', 'admin')) }),
+                schema: 'role',
+                registry: relationRegistry,
+                value: [],
+            })).toEqual(['role', 'realm', 'user']);
+
+            // so does a nested elemMatch, and an ITSELF leaf adds nothing.
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('realm', elemMatch('owner', eq(ITSELF, 'u1'))) }),
+                schema: 'role',
+                registry: relationRegistry,
+                value: [],
+            })).toEqual(['role', 'realm', 'user']);
+        });
+
+        it('should add no relation tag and not throw for an elemMatch on a scalar or JSON array', () => {
+            const relationRegistry = buildRelationRegistry();
+
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('labels', eq(ITSELF, 'a')) }),
+                schema: 'role',
+                registry: relationRegistry,
+                value: [],
+            })).toEqual(['role']);
+
+            // an array of objects: the interior key is a property, no join.
+            expect(collectQueryTags({
+                query: defineQuery({ filters: elemMatch('labels', eq('code', 'a')) }),
+                schema: 'role',
+                registry: relationRegistry,
+                value: [],
+            })).toEqual(['role']);
+        });
+
         it('should not scope on an OR root', () => {
             const tags = collectQueryTags({
                 query: defineQuery<UserRole>({ filters: or(eq('userId', 'u1'), eq('userId', 'u2')) }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: true,
                 value: [],
             });
 
@@ -260,6 +444,7 @@ describe('src/query/module.ts', () => {
                 query: new Query({ filters: preserve(defineQuery<UserRole>({ filters: { userId: 'u1' } }).filters) }),
                 schema: 'userRole',
                 registry,
+                caseSensitive: true,
                 value: [],
             });
 
@@ -271,6 +456,7 @@ describe('src/query/module.ts', () => {
                 query: defineQuery<Role>({ filters: { 'realm.id': 'x' } }),
                 schema: 'role',
                 registry,
+                caseSensitive: true,
                 value: [],
             });
 
@@ -304,6 +490,26 @@ describe('src/query/module.ts', () => {
             expect(tags).toEqual(['userRole', 'role', 'realm', 'userRole:ur1', 'role:r1', 'realm:x']);
         });
 
+        it('should take the record tags from the rows the extractor returns', () => {
+            // a findAndCount tuple
+            expect(collectQueryTags({
+                query: defineQuery<Role>({ relations: ['realm'] }),
+                schema: 'role',
+                registry,
+                value: [[{ id: 'r1', realm: { id: 'x' } }], 1] as [Record<string, any>[], number],
+                rows: ([rows]) => rows,
+            })).toEqual(['role', 'realm', 'role:r1', 'realm:x']);
+
+            // an envelope
+            expect(collectQueryTags({
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                value: { data: [{ id: 'r1' }, { id: 'r2' }], meta: { total: 2 } },
+                rows: (value) => value.data,
+            })).toEqual(['role', 'role:r1', 'role:r2']);
+        });
+
         it('should skip a row without the key property and honour a custom key', () => {
             expect(collectQueryTags({
                 query: defineQuery<Role>({}),
@@ -317,7 +523,7 @@ describe('src/query/module.ts', () => {
                 schema: 'role',
                 registry,
                 value: [{ name: 'admin' }],
-                key: 'name',
+                primaryKey: 'name',
             })).toEqual(['role', 'role:admin']);
         });
 
@@ -396,6 +602,48 @@ describe('src/query/module.ts', () => {
             await rememberQuery(cache, input, read);
             await rememberQuery(cache, input, read);
             expect(reads).toEqual(2);
+        });
+
+        it('should invalidate an elemMatch read through the relation collection tag', async () => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let reads = 0;
+            const input = {
+                key: 'role?filter=elemMatch(realm,eq(name,master))',
+                query: defineQuery({ filters: elemMatch('realm', eq('name', 'master')) }),
+                schema: 'role',
+                registry: buildRelationRegistry(),
+            };
+            const read = async () => {
+                reads++;
+                return [{ id: 'r1' }];
+            };
+
+            await rememberQuery(cache, input, read);
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(1);
+
+            // a realm rename bumps `realm`, which the read depends on.
+            await cache.invalidate(['realm']);
+
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(2);
+        });
+
+        it('should forward the rows extractor and the case sensitivity', async () => {
+            const driver = new MemoryCacheDriver();
+            const cache = new TaggedCache({ driver });
+
+            await rememberQuery(cache, {
+                key: 'userRole?filter[userId]=u1',
+                query: defineQuery<UserRole>({ filters: { userId: 'u1' } }),
+                schema: 'userRole',
+                registry,
+                caseSensitive: ['userId'],
+                rows: ([rows]) => rows,
+            }, async () => [[{ id: 'ur1', userId: 'u1' }], 1] as [Record<string, any>[], number]);
+
+            const hit = await driver.read('userRole?filter[userId]=u1');
+            expect(hit?.tags).toEqual(['userRole:userId=u1', 'userRole:ur1']);
         });
 
         it('should honour a custom primary key', async () => {

@@ -8,6 +8,8 @@
 export type Realm = {
     id: string,
     name: string,
+    roles?: Role[],
+    notes?: Note[],
 };
 
 export type Role = {
@@ -45,4 +47,5 @@ export type Article = {
 export type Note = {
     id: string,
     realmId: string | null,
+    publishedAt?: Date | null,
 };

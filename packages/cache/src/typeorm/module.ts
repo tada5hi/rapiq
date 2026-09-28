@@ -17,6 +17,7 @@ import type {
     RemoveEvent,
     SoftRemoveEvent,
     TransactionCommitEvent,
+    TransactionRollbackEvent,
     UpdateEvent,
 } from 'typeorm';
 import { CacheError } from '../errors';
@@ -71,21 +72,34 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
 
     async afterInsert(event: InsertEvent<ObjectLiteral>) : Promise<void> {
         await this.collect(event.queryRunner, [
-            ...this.buildRowTags(event.metadata, event.entity),
+            ...this.buildRowTags(event.metadata, event.entity, true),
             ...this.buildJunctionTags(event.metadata, event.entityId ?? event.entity),
         ]);
     }
 
     async afterUpdate(event: UpdateEvent<ObjectLiteral>) : Promise<void> {
         // a scoped column may have changed value: bump the old and the new.
-        await this.collect(event.queryRunner, [
+        const tags = [
             ...this.buildRowTags(event.metadata, event.entity),
             ...this.buildRowTags(event.metadata, event.databaseEntity),
-        ]);
+        ];
+
+        // A one-to-many diff written through the parent (an orphan nullify,
+        // a bind without cascade) updates a child TypeORM names by its key
+        // alone, and the event carries no key. The destination is unknown
+        // too, except that an orphan lands in the `null` scope.
+        if (
+            (typeof event.entity === 'undefined' || event.entity === null) &&
+            (typeof event.databaseEntity === 'undefined' || event.databaseEntity === null)
+        ) {
+            tags.push(...this.buildNullScopeTags(event.metadata));
+        }
+
+        await this.collect(event.queryRunner, tags);
     }
 
     async afterRemove(event: RemoveEvent<ObjectLiteral>) : Promise<void> {
-        const row = event.databaseEntity ?? event.entity;
+        const row = event.databaseEntity ?? event.entity ?? this.readIdRow(event.metadata, event.entityId);
 
         await this.collect(event.queryRunner, [
             ...this.buildRowTags(event.metadata, row),
@@ -100,19 +114,26 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      * tags are bumped like on a remove. No cascade tags, since the database
      * cascades nothing on an update. The query-builder form
      * (`Repository.softDelete` / `restore`) hands no entity and yields the
-     * collection tag alone.
+     * collection tag alone. An orphan soft-deleted through its parent
+     * hands the key alone, which is enough for the row's own tags.
      */
     async afterSoftRemove(event: SoftRemoveEvent<ObjectLiteral>) : Promise<void> {
         await this.collect(
             event.queryRunner,
-            this.buildRowTags(event.metadata, event.databaseEntity ?? event.entity),
+            this.buildRowTags(
+                event.metadata,
+                event.databaseEntity ?? event.entity ?? this.readIdRow(event.metadata, event.entityId),
+            ),
         );
     }
 
     async afterRecover(event: RecoverEvent<ObjectLiteral>) : Promise<void> {
         await this.collect(
             event.queryRunner,
-            this.buildRowTags(event.metadata, event.databaseEntity ?? event.entity),
+            this.buildRowTags(
+                event.metadata,
+                event.databaseEntity ?? event.entity ?? this.readIdRow(event.metadata, event.entityId),
+            ),
         );
     }
 
@@ -130,6 +151,20 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         delete event.queryRunner.data[CACHE_INVALIDATION_PENDING_KEY];
 
         await this.invalidate(Array.from(pending as Set<string>));
+    }
+
+    /**
+     * A rolled-back transaction bumps nothing: its tags are dropped once the
+     * outermost transaction ended. A rolled-back savepoint keeps them, so
+     * they are bumped at the outer commit anyway (an extra bump, never a
+     * missed one).
+     */
+    async afterTransactionRollback(event: TransactionRollbackEvent) : Promise<void> {
+        if (event.queryRunner.isTransactionActive) {
+            return;
+        }
+
+        delete event.queryRunner.data[CACHE_INVALIDATION_PENDING_KEY];
     }
 
     // ----------------------------------------------------
@@ -168,9 +203,14 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      * (a rename can move a row into a name-keyed result), the record tag
      * when the row carries its primary key, a scoped tag per index-leading
      * column present on it. A pk-less payload (`Repository.update` hands
-     * its values, `Repository.delete` nothing) yields the collection alone.
+     * its values, `Repository.delete` nothing) yields the collection plus
+     * the scoped values it carries: the new ones, never the old.
      */
-    protected buildRowTags(metadata: EntityMetadata, row: ObjectLiteral | undefined) : string[] {
+    protected buildRowTags(
+        metadata: EntityMetadata,
+        row: ObjectLiteral | undefined,
+        insert = false,
+    ) : string[] {
         const name = this.resolveSchemaName(metadata);
         if (typeof name === 'undefined') {
             return [];
@@ -189,7 +229,14 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         const schema = this.resolveSchema(name);
         if (schema) {
             for (const column of leadingColumns(schema)) {
-                const value = row[column];
+                let value = this.readColumn(metadata, row, column);
+                if (typeof value === 'undefined' && insert) {
+                    // an insert that omits a nullable column without a
+                    // default writes NULL, and the payload does not say so.
+                    value = readInsertDefault(metadata, column);
+                }
+
+                value = canonicalizeDateColumn(metadata, column, value);
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
                     tags.push(buildScopedTag(name, column, value));
                 }
@@ -197,6 +244,78 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         }
 
         return tags;
+    }
+
+    /**
+     * The `null` scoped tag of every nullable index-leading join column:
+     * where a row goes that its parent released.
+     */
+    protected buildNullScopeTags(metadata: EntityMetadata) : string[] {
+        const name = this.resolveSchemaName(metadata);
+        if (typeof name === 'undefined') {
+            return [];
+        }
+
+        const schema = this.resolveSchema(name);
+        if (!schema) {
+            return [];
+        }
+
+        const tags : string[] = [];
+        for (const column of leadingColumns(schema)) {
+            const joinColumn = findJoinColumn(metadata, column);
+            if (joinColumn && joinColumn.column.isNullable) {
+                tags.push(buildScopedTag(name, column, null));
+            }
+        }
+
+        return tags;
+    }
+
+    /**
+     * A column value of the row, or, when the row does not carry it, the
+     * value a relation object carries for its join column: `insert` and a
+     * query-builder `insert` / `update().set()` accept `{ realm: { id } }`
+     * and write `realm_id` without ever setting `realmId`.
+     */
+    protected readColumn(metadata: EntityMetadata, row: ObjectLiteral, property: string) : unknown {
+        const value = row[property];
+        if (typeof value !== 'undefined') {
+            return value;
+        }
+
+        const joinColumn = findJoinColumn(metadata, property);
+        if (!joinColumn) {
+            return undefined;
+        }
+
+        const related = row[joinColumn.relation.propertyName];
+        if (related === null) {
+            return null;
+        }
+
+        if (typeof related !== 'object' || related instanceof Promise) {
+            return undefined;
+        }
+
+        return joinColumn.referenced.getEntityValue(related);
+    }
+
+    /**
+     * The key a hook names a row by when it hands no row (an orphan
+     * removed through its parent), as an object the row helpers can read.
+     */
+    protected readIdRow(metadata: EntityMetadata, id: unknown) : ObjectLiteral | undefined {
+        if (typeof id === 'undefined' || id === null) {
+            return undefined;
+        }
+
+        try {
+            return metadata.ensureEntityIdMap(id);
+        } catch (e) {
+            this.onError(e);
+            return undefined;
+        }
     }
 
     /**
@@ -266,19 +385,20 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         for (const dependency of this.resolveCascades(metadatas, metadata)) {
             tags.add(buildCollectionTag(dependency.schema));
 
-            if (typeof row === 'undefined' || row === null) {
-                continue;
-            }
-
             for (const column of dependency.columns) {
+                // SET NULL moves the child rows INTO the null scope, a value
+                // that needs no key: a criteria delete reaches it too.
+                if (dependency.setNull) {
+                    tags.add(buildScopedTag(dependency.schema, column.child, null));
+                }
+
+                if (typeof row === 'undefined' || row === null) {
+                    continue;
+                }
+
                 const value = row[column.parent];
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
                     tags.add(buildScopedTag(dependency.schema, column.child, value));
-                }
-
-                // SET NULL moves the child rows INTO the null scope.
-                if (dependency.setNull) {
-                    tags.add(buildScopedTag(dependency.schema, column.child, null));
                 }
             }
         }
@@ -421,6 +541,88 @@ type CascadeDependency = {
     setNull: boolean,
     columns: CascadeColumn[],
 };
+
+type ColumnMetadata = RelationMetadata['joinColumns'][number];
+
+type JoinColumn = {
+    relation: RelationMetadata,
+    /**
+     * The join column on the entity.
+     */
+    column: ColumnMetadata,
+    /**
+     * The column it references on the related entity.
+     */
+    referenced: ColumnMetadata,
+};
+
+/**
+ * The owning relation a column property is the join column of.
+ */
+function findColumn(metadata: EntityMetadata, property: string) {
+    return metadata.columns.find((column) => column.propertyName === property);
+}
+
+/**
+ * The value an insert writes for a column its payload omits, when that is
+ * known without asking the database: NULL for a nullable column without a
+ * default or a generation strategy.
+ */
+function readInsertDefault(metadata: EntityMetadata, property: string) : null | undefined {
+    const column = findColumn(metadata, property);
+    if (
+        column &&
+        column.isNullable &&
+        typeof column.default === 'undefined' &&
+        !column.isGenerated &&
+        !column.isCreateDate &&
+        !column.isUpdateDate
+    ) {
+        return null;
+    }
+
+    return undefined;
+}
+
+/**
+ * A date column written as a string (an ISO timestamp, a `YYYY-MM-DD` date)
+ * is spelled like a Date, so a reader filtering on the epoch meets it.
+ */
+function canonicalizeDateColumn(metadata: EntityMetadata, property: string, value: unknown) : unknown {
+    if (typeof value !== 'string') {
+        return value;
+    }
+
+    const column = findColumn(metadata, property);
+    if (!column) {
+        return value;
+    }
+
+    const isDate = column.type === Date ||
+        (typeof column.type === 'string' && /^(date|datetime|timestamp)/i.test(column.type));
+    if (!isDate) {
+        return value;
+    }
+
+    const time = Date.parse(value);
+    return Number.isNaN(time) ? value : new Date(time);
+}
+
+function findJoinColumn(metadata: EntityMetadata, property: string) : JoinColumn | undefined {
+    for (const relation of metadata.relations) {
+        for (const column of relation.joinColumns) {
+            if (column.propertyName === property && column.referencedColumn) {
+                return {
+                    relation,
+                    column,
+                    referenced: column.referencedColumn,
+                };
+            }
+        }
+    }
+
+    return undefined;
+}
 
 function leadingColumns(schema: Schema) : string[] {
     return Array.from(new Set(schema.indexes

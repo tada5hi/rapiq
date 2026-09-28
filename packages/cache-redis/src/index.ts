@@ -5,6 +5,6 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './constants';
+export { REDIS_CACHE_PREFIX_DEFAULT } from './constants';
 export * from './module';
-export * from './types';
+export type { RedisCacheClient, RedisCacheDriverOptions } from './types';

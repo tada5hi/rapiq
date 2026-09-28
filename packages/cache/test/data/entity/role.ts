@@ -26,7 +26,7 @@ export class RoleEntity {
     @Column({ name: 'realm_id', type: 'varchar' })
     realmId!: string;
 
-    @ManyToOne(() => RealmEntity, { onDelete: 'CASCADE' })
+    @ManyToOne(() => RealmEntity, (realm) => realm.roles, { onDelete: 'CASCADE', orphanedRowAction: 'delete' })
     @JoinColumn({ name: 'realm_id' })
     realm!: RealmEntity;
 

@@ -8,6 +8,8 @@
 export const CACHE_MAX_TTL_DEFAULT = 60_000;
 
 /**
- * How many map entries one `write` inspects for expiry.
+ * How many entries one `write` inspects for expiry. Entries carry their
+ * own ttl and sit in no order, so the scan is bounded; tags are kept in
+ * expiry order and every expired one is dropped from the front.
  */
 export const MEMORY_CACHE_PRUNE_BUDGET = 16;

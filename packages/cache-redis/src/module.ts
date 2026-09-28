@@ -6,17 +6,17 @@
  */
 
 import type { CacheEntry, ICacheDriver } from '@rapiq/cache';
-import { resolveMaxTtl } from '@rapiq/cache';
+import {
+    CacheError,
+    clampCacheTtl,
+    isCacheTagWellFormed,
+    resolveMaxTtl,
+} from '@rapiq/cache';
 import {
     REDIS_CACHE_PREFIX_DEFAULT,
-    RedisCacheCommand,
     RedisCacheKeySegment,
 } from './constants';
-import {
-    REDIS_CACHE_INVALIDATE_SCRIPT,
-    REDIS_CACHE_READ_SCRIPT,
-    REDIS_CACHE_WRITE_SCRIPT,
-} from './scripts';
+import { RedisCacheCommand, RedisCacheScript } from './commands';
 import type {
     RedisCacheClient,
     RedisCacheDriverOptions,
@@ -25,8 +25,8 @@ import type {
 } from './types';
 
 /**
- * The shared-store driver: the contract's three steps as three Lua scripts,
- * registered once on the client and executed by `EVALSHA`. An entry is a
+ * The shared-store driver: the contract's steps as Lua scripts, registered
+ * once on the client and executed by `EVALSHA`. An entry is a
  * hash of `clock`, `tags` (JSON) and `value` (JSON), so the read script
  * decodes the tag list and never the value.
  */
@@ -40,25 +40,29 @@ export class RedisCacheDriver implements ICacheDriver {
     constructor(options: RedisCacheDriverOptions) {
         this.maxTtl = resolveMaxTtl(options.maxTtl);
         this.prefix = options.prefix ?? REDIS_CACHE_PREFIX_DEFAULT;
+
+        RedisCacheDriver.assertClient(options.client, this.prefix);
         this.client = RedisCacheDriver.defineCommands(options.client);
     }
 
+    /**
+     * Seeds the clock from the server time when the store holds none, so
+     * a fill observes the value its write will compare against.
+     */
     async clock() : Promise<number> {
-        const value = await this.client.get(this.buildClockKey());
-        if (value === null) {
-            return 0;
-        }
+        const value = await this.run(RedisCacheCommand.CLOCK, 1, this.buildClockKey());
 
         return Number(value);
     }
 
     async read<T>(key: string) : Promise<CacheEntry<T> | null> {
-        const fields = await this.client[RedisCacheCommand.READ](
-            2,
-            this.buildEntryKey(key),
-            this.buildClockKey(),
-            this.buildTagKey(''),
-        );
+        // ioredis encodes a lone surrogate as U+FFFD, so two such keys
+        // would share one entry: such a key is never cached.
+        if (!isCacheTagWellFormed(key)) {
+            return null;
+        }
+
+        const fields = await this.run(RedisCacheCommand.READ, 2, this.buildEntryKey(key), this.buildClockKey(), this.buildTagKey(''));
 
         if (!isEntryFields(fields)) {
             return null;
@@ -72,6 +76,13 @@ export class RedisCacheDriver implements ICacheDriver {
     }
 
     async write<T>(key: string, entry: CacheEntry<T>, ttl: number) : Promise<boolean> {
+        // a lone surrogate survives JSON.stringify as an escape the read
+        // script's cjson refuses, while ioredis encodes the key with U+FFFD:
+        // stored, the entry could never be read back.
+        if (!isCacheTagWellFormed(key) || entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+            return false;
+        }
+
         const maxTtl = toMilliseconds(this.maxTtl);
         const keys = [
             this.buildEntryKey(key),
@@ -79,16 +90,18 @@ export class RedisCacheDriver implements ICacheDriver {
             ...entry.tags.map((tag) => this.buildTagKey(tag)),
         ];
 
-        const accepted = await this.client[RedisCacheCommand.WRITE](
-            keys.length,
+        // JSON has no undefined, so an undefined value is stored as null.
+        const value = JSON.stringify(entry.value) ?? 'null';
+        const args = [
             ...keys,
             entry.clock,
-            Math.min(toMilliseconds(ttl), maxTtl),
+            toMilliseconds(clampCacheTtl(ttl, this.maxTtl)),
             maxTtl,
             JSON.stringify(entry.tags),
-            // JSON has no undefined, so an undefined value is stored as null.
-            JSON.stringify(entry.value) ?? 'null',
-        );
+            value,
+        ];
+
+        const accepted = await this.run(RedisCacheCommand.WRITE, keys.length, ...args);
 
         return accepted === 1;
     }
@@ -99,11 +112,7 @@ export class RedisCacheDriver implements ICacheDriver {
             ...tags.map((tag) => this.buildTagKey(tag)),
         ];
 
-        await this.client[RedisCacheCommand.INVALIDATE](
-            keys.length,
-            ...keys,
-            toMilliseconds(this.maxTtl),
-        );
+        await this.run(RedisCacheCommand.INVALIDATE, keys.length, ...keys, toMilliseconds(this.maxTtl));
     }
 
     async drop(keys: string[]) : Promise<void> {
@@ -111,7 +120,10 @@ export class RedisCacheDriver implements ICacheDriver {
             return;
         }
 
-        await this.client.del(...keys.map((key) => this.buildEntryKey(key)));
+        const wellFormed = keys.filter((key) => isCacheTagWellFormed(key));
+        if (wellFormed.length > 0) {
+            await this.client.del(...wellFormed.map((key) => this.buildEntryKey(key)));
+        }
     }
 
     // ----------------------------------------------------
@@ -131,16 +143,56 @@ export class RedisCacheDriver implements ICacheDriver {
     // ----------------------------------------------------
 
     /**
+     * Refuses the two client setups that would disable the cache silently:
+     * a client `keyPrefix`, which the read script never sees, and a cluster
+     * prefix without a hash tag, whose keys land in different slots and
+     * make every script fail with CROSSSLOT.
+     */
+    protected static assertClient(client: RedisCacheClient, prefix: string) {
+        const { keyPrefix } = client.options;
+        if (keyPrefix) {
+            throw CacheError.clientKeyPrefixUnsupported(keyPrefix);
+        }
+
+        if (client.isCluster && !hasHashTag(prefix)) {
+            throw CacheError.prefixHashTagMissing(prefix);
+        }
+    }
+
+    /**
      * Registering the same name twice with the same source is harmless, so
      * two drivers (two prefixes) may share one client.
      */
+    protected run(name: string, ...args: (string | number)[]) : Promise<unknown> {
+        const script = this.client[name];
+        if (typeof script === 'undefined') {
+            throw new Error(`The cache script ${name} is not registered on the client.`);
+        }
+
+        return script.call(this.client, ...(args as [number, ...(string | number)[]]));
+    }
+
     protected static defineCommands(client: RedisCacheClient) : RedisCacheScriptClient {
-        client.defineCommand(RedisCacheCommand.WRITE, { lua: REDIS_CACHE_WRITE_SCRIPT });
-        client.defineCommand(RedisCacheCommand.READ, { lua: REDIS_CACHE_READ_SCRIPT });
-        client.defineCommand(RedisCacheCommand.INVALIDATE, { lua: REDIS_CACHE_INVALIDATE_SCRIPT });
+        for (const [name, lua] of Object.entries(RedisCacheScript)) {
+            client.defineCommand(name, { lua });
+        }
 
         return client as RedisCacheScriptClient;
     }
+}
+
+/**
+ * Whether the prefix decides the slot of every key built from it: the
+ * first `{` followed by a `}` with at least one character between them.
+ */
+function hasHashTag(prefix: string) : boolean {
+    const start = prefix.indexOf('{');
+    if (start === -1) {
+        return false;
+    }
+
+    const end = prefix.indexOf('}', start + 1);
+    return end > start + 1;
 }
 
 /**

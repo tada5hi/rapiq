@@ -30,7 +30,14 @@ export class NoteEntity {
     })
     realmId!: string | null;
 
-    @ManyToOne(() => RealmEntity, { onDelete: 'SET NULL', nullable: true })
+    @Column({
+        name: 'published_at',
+        type: 'datetime',
+        nullable: true,
+    })
+    publishedAt!: Date | null;
+
+    @ManyToOne(() => RealmEntity, (realm) => realm.notes, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'realm_id' })
     realm!: RealmEntity | null;
 }

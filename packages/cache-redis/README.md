@@ -31,15 +31,18 @@
 Part of [**rapiq**](https://github.com/tada5hi/rapiq). Typed REST queries: *build, transport, validate, execute.*
 This package implements the `ICacheDriver` contract of [`@rapiq/cache`](https://github.com/tada5hi/rapiq/tree/master/packages/cache) on top of Redis, so several application processes share one tag-invalidated result cache.
 
-- 🔒 **Atomic steps**: write, read and invalidate each run as one Lua script (`EVALSHA`, registered once through `client.defineCommand`), so two writers racing a tag bump can never leave a tag below the clock.
+- 🔒 **Atomic steps**: the clock read, write, read and invalidate each run as one Lua script (`EVALSHA`, registered once per client through `client.defineCommand`), so two writers racing a tag bump can never leave a tag below the clock.
+- 🕰️ **A clock that survives its loss**: a missing clock key is seeded from the server time in microseconds, above every value the lost counter issued, so a flushed or deleted clock cannot make an old entry read as fresh.
 - 🏷️ **Same vocabulary**: the tags `@rapiq/cache` derives from a query are the keys this driver versions; nothing is re-derived here.
-- 🧩 **Cluster ready**: every script touches several keys, so a cluster deployment gives the driver a hash-tagged prefix (`{rapiq}`) and every key of one store lands in one slot.
+- 🧩 **Cluster ready**: every script touches several keys, so a cluster deployment gives the driver a hash-tagged prefix (`{rapiq}`) and every key of one store lands in one slot. A cluster prefix without one is refused.
 
 ## Installation
 
 ```sh
 npm install @rapiq/cache @rapiq/cache-redis ioredis
 ```
+
+`ioredis` (`^5.11.1 || ^6.0.0`) is a peer dependency.
 
 ## Usage
 
@@ -50,12 +53,20 @@ import { RedisCacheDriver } from '@rapiq/cache-redis';
 
 const cache = new TaggedCache({
     driver: new RedisCacheDriver({
-        client: new Redis(process.env.REDIS_URL),
+        client: new Redis(process.env.REDIS_URL, {
+            // fail fast: without these, an unreachable Redis stalls every
+            // cached read and every committing write for seconds
+            maxRetriesPerRequest: 1,
+            enableOfflineQueue: false,
+            commandTimeout: 300,
+        }),
         prefix: 'rapiq',      // default
         maxTtl: 60_000,       // default, in milliseconds
     }),
 });
 ```
+
+The fail-fast options matter on BOTH the read path (`TaggedCache`, `rememberQuery`) and the write path (the TypeORM subscriber). `TaggedCache` falls through to the database when the driver fails, but a default `ioredis` client queues and retries instead of failing: measured against an unreachable Redis, a cached read fell through only after about 10.5 s, and `repository.save` took about 10.5 s (up to 32.5 s once the backoff grows) while holding its pooled connection, since the subscriber bumps inside `commitTransaction`. Without them, a Redis outage can take the application down.
 
 ## Keys
 
@@ -63,9 +74,17 @@ const cache = new TaggedCache({
 |---|---|
 | `<prefix>:e:<key>` | one entry: a hash of `clock`, `tags` (JSON) and `value` (JSON), expiring with the entry ttl |
 | `<prefix>:t:<tag>` | one tag version, re-armed to `maxTtl` on every write and invalidate |
-| `<prefix>:c` | the logical clock, never expiring |
+| `<prefix>:c` | the logical clock, never expiring; seeded from `TIME` in microseconds when absent, so a fresh store's clock is about `1.79e15` |
 
-The value is serialized with `JSON.stringify`, so a `Date` inside a cached row comes back as an ISO string. That is a property of the transport and deliberately not hidden: hydrate dates on the way out, or cache the wire shape. Namespace the store through the driver's `prefix`, not through the client's `keyPrefix` option: the read script derives the tag keys from the stored tag list itself, so a client-level prefix would reach the entry and the clock but not the tags.
+The value is serialized with `JSON.stringify`, so a `Date` inside a cached row comes back as an ISO string. That is a property of the transport and deliberately not hidden: hydrate dates on the way out, or cache the wire shape.
+
+The read script deletes an entry it can never serve again: the clock key is absent, the clock is below the entry's clock, or the stored tag list fails to decode or holds a non-string.
+
+Prefer `noeviction` or a `volatile-*` `maxmemory-policy`. The time-seeded clock makes a lost clock safe, but never delete the clock key on its own.
+
+## Refused setups
+
+The driver throws a `CacheError` at construction for a client with its own `keyPrefix` option (the read script builds the tag keys itself and would never see it; namespace the store through the driver's `prefix` instead), and for a `Cluster` client whose prefix has no non-empty `{hash tag}` (so the default `rapiq` is refused on a cluster).
 
 ## Cluster
 

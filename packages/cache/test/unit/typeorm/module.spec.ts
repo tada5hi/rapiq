@@ -9,6 +9,7 @@ import type { DataSource } from 'typeorm';
 import { CacheInvalidationSubscriber } from '../../../src/typeorm';
 import {
     ArticleEntity,
+    NoteEntity,
     RealmEntity,
     RoleEntity,
     TagEntity,
@@ -282,6 +283,149 @@ describe('src/typeorm/module.ts', () => {
         expect(calls).toEqual([['role', 'userRole']]);
     });
 
+    it('should bump the row, id scope and cascades of an orphan removed through its parent', async () => {
+        await dataSource.getRepository(RoleEntity).save({
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
+        });
+        await dataSource.getRepository(UserRoleEntity).save({
+            id: 'ur1',
+            userId: 'u1',
+            roleId: 'r1',
+        });
+        calls = [];
+
+        // `orphanedRowAction: 'delete'`: the hook hands the key alone.
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+        realm.roles = [];
+        await realms.save(realm);
+
+        expect(await dataSource.getRepository(RoleEntity).findOneBy({ id: 'r1' })).toBeNull();
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toEqual(expect.arrayContaining([
+            'role',
+            'role:r1',
+            'role:id=r1',
+            'userRole',
+            'userRole:roleId=r1',
+        ]));
+    });
+
+    it('should bump the row tags of an orphan soft-deleted through its parent', async () => {
+        dataSource.getMetadata(RoleEntity).findRelationWithPropertyPath('realm')!.orphanedRowAction = 'soft-delete';
+
+        await dataSource.getRepository(RoleEntity).save({
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
+        });
+        calls = [];
+
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+        realm.roles = [];
+        await realms.save(realm);
+
+        expect(await dataSource.getRepository(RoleEntity).findOneBy({ id: 'r1' })).toBeNull();
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toEqual(expect.arrayContaining(['role', 'role:r1', 'role:id=r1']));
+    });
+
+    it('should bump the null scope of an orphan nulled through its parent', async () => {
+        await dataSource.getRepository(NoteEntity).save({ id: 'n1', realmId: 'x' });
+        calls = [];
+
+        // the default `orphanedRowAction`: an update naming the note by
+        // its key alone, which the event does not carry.
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { notes: true } });
+        realm.notes = [];
+        await realms.save(realm);
+
+        expect((await dataSource.getRepository(NoteEntity).findOneByOrFail({ id: 'n1' })).realmId).toBeNull();
+        expect(calls).toEqual([['note', 'note:realmId=null']]);
+    });
+
+    it('should bump the scoped tag of a foreign key written through its relation object', async () => {
+        const roles = dataSource.getRepository(RoleEntity);
+
+        await roles.insert({
+            id: 'r1',
+            name: 'admin',
+            realm: { id: 'y' },
+        });
+
+        expect((await roles.findOneByOrFail({ id: 'r1' })).realmId).toEqual('y');
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('role:realmId=y');
+
+        calls = [];
+        await dataSource.createQueryBuilder()
+            .insert()
+            .into(RoleEntity)
+            .values({
+                id: 'r2',
+                name: 'user',
+                realm: { id: 'x' },
+            })
+            .execute();
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('role:realmId=x');
+
+        calls = [];
+        await dataSource.createQueryBuilder()
+            .update(RoleEntity)
+            .set({ realm: { id: 'y' } })
+            .where('id = :id', { id: 'r2' })
+            .execute();
+
+        expect((await roles.findOneByOrFail({ id: 'r2' })).realmId).toEqual('y');
+        expect(calls).toEqual([['role', 'role:realmId=y']]);
+
+        await dataSource.getRepository(NoteEntity).save({ id: 'n1', realmId: 'x' });
+        calls = [];
+        await dataSource.createQueryBuilder()
+            .update(NoteEntity)
+            .set({ realm: null })
+            .where('id = :id', { id: 'n1' })
+            .execute();
+
+        expect(calls).toEqual([['note', 'note:realmId=null']]);
+    });
+
+    it('should bump the null scope of a nullable column an insert omits', async () => {
+        await dataSource.getRepository(NoteEntity).insert({ id: 'n2' });
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('note:realmId=null');
+    });
+
+    it('should spell a date column written as a string like the Date it stores', async () => {
+        await dataSource.getRepository(NoteEntity).insert({
+            id: 'n3',
+            publishedAt: '2026-01-02T03:04:05.000Z' as unknown as Date,
+        });
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain(`note:publishedAt=${Date.parse('2026-01-02T03:04:05.000Z')}`);
+    });
+
+    it('should bump the null scope of a SET NULL child on a criteria delete of its parent', async () => {
+        await dataSource.getRepository(NoteEntity).save({ id: 'n1', realmId: 'x' });
+        calls = [];
+
+        await dataSource.getRepository(RealmEntity).delete({ id: 'x' });
+
+        expect((await dataSource.getRepository(NoteEntity).findOneByOrFail({ id: 'n1' })).realmId).toBeNull();
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('note:realmId=null');
+        // the join column scope needs the key, which the criteria does not hand.
+        expect(calls[0]).not.toContain('note:realmId=x');
+    });
+
     it('should invalidate once after the outermost commit only', async () => {
         await dataSource.transaction(async (manager) => {
             await manager.save(RoleEntity, {
@@ -323,6 +467,24 @@ describe('src/typeorm/module.ts', () => {
         })).rejects.toThrow('abort');
 
         expect(calls).toHaveLength(0);
+    });
+
+    it('should drop the tags of a rolled-back transaction', async () => {
+        await expect(dataSource.transaction(async (manager) => {
+            await manager.save(RoleEntity, {
+                id: 'r1',
+                name: 'admin',
+                realmId: 'x',
+            });
+            throw new Error('abort');
+        })).rejects.toThrow('abort');
+
+        // better-sqlite3 shares one query runner: a leftover set would be
+        // flushed by the next commit on it.
+        await dataSource.getRepository(RealmEntity).save({ id: 'z', name: 'other' });
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.filter((tag) => tag.startsWith('role'))).toEqual([]);
     });
 
     it('should ignore an untracked table', async () => {

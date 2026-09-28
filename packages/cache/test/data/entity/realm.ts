@@ -5,7 +5,14 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import {
+    Column,
+    Entity,
+    OneToMany,
+    PrimaryColumn,
+} from 'typeorm';
+import type { NoteEntity } from './note';
+import type { RoleEntity } from './role';
 
 @Entity({ name: 'realm' })
 export class RealmEntity {
@@ -14,4 +21,20 @@ export class RealmEntity {
 
     @Column({ type: 'varchar' })
     name!: string;
+
+    /**
+     * Saving a realm with a changed list deletes the released roles
+     * (`orphanedRowAction: 'delete'` on the role side).
+     */
+    @OneToMany('RoleEntity', (role: RoleEntity) => role.realm)
+    roles!: RoleEntity[];
+
+    /**
+     * Saving a realm with a changed list nulls `realm_id` on the released
+     * notes (the default `orphanedRowAction`), or binds a listed note that
+     * points elsewhere, both through an update that names the note by its
+     * key alone.
+     */
+    @OneToMany('NoteEntity', (note: NoteEntity) => note.realm)
+    notes!: NoteEntity[];
 }

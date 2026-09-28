@@ -17,21 +17,3 @@ export const RedisCacheKeySegment = {
     CLOCK: 'c',
 } as const;
 
-/**
- * The fields of the entry hash.
- */
-export const RedisCacheEntryField = {
-    CLOCK: 'clock',
-    TAGS: 'tags',
-    VALUE: 'value',
-} as const;
-
-/**
- * The names the scripts are registered under on the client. They carry the
- * package name so a client shared with other code cannot collide with them.
- */
-export const RedisCacheCommand = {
-    WRITE: 'rapiqCacheWrite',
-    READ: 'rapiqCacheRead',
-    INVALIDATE: 'rapiqCacheInvalidate',
-} as const;
