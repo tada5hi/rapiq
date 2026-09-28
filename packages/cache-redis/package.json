@@ -1,0 +1,67 @@
+{
+    "name": "@rapiq/cache-redis",
+    "version": "2.4.0",
+    "description": "Redis driver for @rapiq/cache: the tag-versioned entry, tag and clock steps as atomic Lua scripts over ioredis.",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "devDependencies": {
+        "@rapiq/cache": "^2.4.0",
+        "@rapiq/core": "^2.4.0",
+        "ioredis": "^5.11.1"
+    },
+    "peerDependencies": {
+        "@rapiq/cache": "^2.4.0",
+        "ioredis": "^5.11.1 || ^6.0.0"
+    },
+    "scripts": {
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "latest"
+    },
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "cache",
+        "caching",
+        "invalidation",
+        "redis",
+        "ioredis",
+        "typescript"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/cache-redis"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme"
+}

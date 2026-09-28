@@ -54,6 +54,8 @@ npm install @rapiq/adapter-memory
 | [@rapiq/parser-expression](/packages/parser-expression) | non-URL input contains function-call filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
 | [@rapiq/parser-mongo](/packages/parser-mongo) | you want to accept MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
 | [@rapiq/adapter-memory](/packages/adapter-memory) | you want to evaluate a `Query` against in-memory objects, e.g. authorization guards or mock backends |
+| [@rapiq/cache](/packages/cache) | you want to cache query results and have the writes that change them invalidate the cache |
+| [@rapiq/cache-redis](/packages/cache-redis) | several processes should share that cache through Redis |
 
 Not sure which combination you need? The [package overview](/packages/) walks through the decision.
 

@@ -30,6 +30,8 @@ Default tests need no external servers. TypeORM tests include live in-memory SQL
 
 `npm run test:db --workspace=packages/adapter-prisma` generates fixture clients and runs Prisma against SQLite, or PostgreSQL with `DB_TYPE=postgres`. Anchored literal tests compare actual engine results with `@rapiq/adapter-memory`. The Prisma and TypeORM suites must not share a persistent database concurrently.
 
+`npm run test --workspace=packages/cache-redis` runs against a live Redis at `REDIS_URL` (default `redis://127.0.0.1:6379`). It takes database 15, flushes it before every case and runs its files sequentially, since they share that database. With no Redis answering, every case that needs one skips and says so; only the construction checks that never touch the server still run. Set `REDIS_REQUIRED=1` to make an unreachable Redis FAIL the suite instead (`isRedisAvailable` in `test/utils/redis.ts` throws): CI's `tests` job starts a `redis:7-alpine` service and sets it on the test step, so a broken service or a wrong URL cannot turn the job green. The release workflow does not set it. The same file, `packages/cache/test/unit/driver/contract.ts`, pins the `ICacheDriver` semantics for the memory driver and, through a virtual-clock subclass, for Redis.
+
 Specs typically `describe` the module under test by source path:
 
 ```typescript
