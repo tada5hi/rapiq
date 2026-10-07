@@ -21,7 +21,7 @@
         "@types/pg": "^8.23.1",
         "better-sqlite3": "^13.0.3",
         "drizzle-orm": "1.0.0-rc.4",
-        "pg": "^8.23.0"
+        "pg": "^8.23.1"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.4.0"
