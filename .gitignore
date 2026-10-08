@@ -16,3 +16,7 @@ packages/docs/.temp
 .claude
 .worktrees
 /docs/superpowers/
+target
+*.node
+.venv
+__pycache__

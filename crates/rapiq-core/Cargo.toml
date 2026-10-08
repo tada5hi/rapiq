@@ -1,0 +1,15 @@
+[package]
+name = "rapiq-core"
+description = "Rust port of the rapiq filter IR, expression parser and in-memory evaluator (proof of concept)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+regex = "1.13.1"
+ryu-js = "1.0.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }

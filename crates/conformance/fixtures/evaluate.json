@@ -1,0 +1,5849 @@
+[
+    {
+        "name": "eq: equal scalars",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 19
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: strings",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "Peter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "eq: no coercion across types",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": "18"
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: no boolean/number coercion",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "active",
+            "value": 1
+        },
+        "cases": [
+            {
+                "record": {
+                    "active": true
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: integral and fractional spellings",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "eq: null matches null and missing",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: objects structurally",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "meta",
+            "value": {
+                "a": 1,
+                "b": [
+                    2,
+                    3
+                ]
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "meta": {
+                        "a": 1,
+                        "b": [
+                            2,
+                            3
+                        ]
+                    }
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "meta": {
+                        "b": [
+                            2,
+                            3
+                        ],
+                        "a": 1
+                    }
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "meta": {
+                        "a": 1,
+                        "b": [
+                            3,
+                            2
+                        ]
+                    }
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "meta": {
+                        "a": 1
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: object mismatch",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "meta",
+            "value": {
+                "a": 1
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "meta": {
+                        "a": 2
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: inherited property names",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "toString",
+            "value": "x"
+        },
+        "cases": [
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ne: complement of eq",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 19
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ne: matches null and missing",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "name",
+            "value": "Peter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "ne null: is-not-null",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "age",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "lt: numbers",
+        "filters": {
+            "type": "filter",
+            "operator": "lt",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 17
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "lte: numbers",
+        "filters": {
+            "type": "filter",
+            "operator": "lte",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 19
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "gt: numbers",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 19
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "gte: numbers",
+        "filters": {
+            "type": "filter",
+            "operator": "gte",
+            "field": "age",
+            "value": 18
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "gt: strings",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "name",
+            "value": "a"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "b"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "a"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "gt: strings by UTF-16 code units",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "name",
+            "value": "｡"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "😀"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "｢"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "gt: no comparison across types",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "age",
+            "value": "17"
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "lt: no number/boolean comparison",
+        "filters": {
+            "type": "filter",
+            "operator": "lt",
+            "field": "age",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 0
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "lt: booleans",
+        "filters": {
+            "type": "filter",
+            "operator": "lt",
+            "field": "active",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "active": false
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "gt: booleans",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "active",
+            "value": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "active": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "active": false
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "gt: some array element",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "scores",
+            "value": 10
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        5,
+                        20
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "scores": [
+                        5,
+                        6
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "exists: is-not-null",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "age",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "exists false: is-null",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "age",
+            "value": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "exists: inherited property names",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "constructor",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "exists: an array value exists",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "tags",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": [
+                        "a"
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "exists false: an empty array exists",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "tags",
+            "value": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: divisor and remainder",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": [
+                2,
+                0
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": "18"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: remainder mismatch",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": [
+                2,
+                1
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: negative operand keeps the sign",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": [
+                3,
+                -1
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": -4
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "mod: zero divisor never matches",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": [
+                0,
+                0
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: malformed tuple",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": [
+                2
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: scalar value",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "age",
+            "value": 2
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "mod: some array element",
+        "filters": {
+            "type": "filter",
+            "operator": "mod",
+            "field": "scores",
+            "value": [
+                2,
+                0
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        1,
+                        4
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "scores": [
+                        1,
+                        3
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size: exact length",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "tags",
+            "value": 2
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": [
+                        "a"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "tags": "ab"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size 0",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "tags",
+            "value": 0
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size: the array itself, not its elements",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "matrix",
+            "value": 2
+        },
+        "cases": [
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size: outer length",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "matrix",
+            "value": 1
+        },
+        "cases": [
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "size: negative value",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "tags",
+            "value": -1
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size: fractional value",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "tags",
+            "value": 1.5
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "size: string value",
+        "filters": {
+            "type": "filter",
+            "operator": "size",
+            "field": "tags",
+            "value": "1"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "in: membership",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "id",
+            "value": [
+                1,
+                2
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 3
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "in: empty list matches nothing",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "id",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "nin: empty list matches everything",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "id",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "in: non-array value",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "id",
+            "value": "nope"
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": "nope"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "id": "other"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "in: null element",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "realm_id",
+            "value": [
+                1,
+                null
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm_id": 1
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "realm_id": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "realm_id": 2
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "in: no null element",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "realm_id",
+            "value": [
+                1,
+                2
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm_id": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "nin: complement of in",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "id",
+            "value": [
+                1,
+                2
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 3
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "id": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "nin: null element",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "id",
+            "value": [
+                1,
+                null
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "id": 2
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "in: only null elements",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "id",
+            "value": [
+                null
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": null
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: element membership",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "tags",
+            "value": "a"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq: element absent",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "tags",
+            "value": "c"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ne: not containing",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "tags",
+            "value": "a"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ne: element absent",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "tags",
+            "value": "c"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "in: intersection",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "tags",
+            "value": [
+                "b",
+                "c"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "in: disjoint",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "tags",
+            "value": [
+                "c",
+                "d"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "eq null: array holding null",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "tags",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        null
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: case-insensitive substring",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "eter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": {}
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: folded condition",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "PETER"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "contains: miss",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "x"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "startsWith: anchored",
+        "filters": {
+            "type": "filter",
+            "operator": "startsWith",
+            "field": "name",
+            "value": "pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "startsWith: not anchored elsewhere",
+        "filters": {
+            "type": "filter",
+            "operator": "startsWith",
+            "field": "name",
+            "value": "eter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "endsWith: anchored",
+        "filters": {
+            "type": "filter",
+            "operator": "endsWith",
+            "field": "name",
+            "value": "TER"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "endsWith: not anchored elsewhere",
+        "filters": {
+            "type": "filter",
+            "operator": "endsWith",
+            "field": "name",
+            "value": "Pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: literal, not a pattern",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "a.c"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "abc"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "xa.cx"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "contains: regex metacharacters",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "(a+)*[b]$"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "x(a+)*[b]$y"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "aab"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: numbers stringify",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "age",
+            "value": "8"
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "startsWith: numbers stringify",
+        "filters": {
+            "type": "filter",
+            "operator": "startsWith",
+            "field": "age",
+            "value": "1"
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "contains: number formatting",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "price",
+            "value": ".5"
+        },
+        "cases": [
+            {
+                "record": {
+                    "price": 1.5
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "price": 2
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: exponent formatting",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "n",
+            "value": "e+21"
+        },
+        "cases": [
+            {
+                "record": {
+                    "n": 1e+21
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "notContains: complement",
+        "filters": {
+            "type": "filter",
+            "operator": "notContains",
+            "field": "name",
+            "value": "eter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "notContains: null-inclusive",
+        "filters": {
+            "type": "filter",
+            "operator": "notContains",
+            "field": "name",
+            "value": "x"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "notStartsWith: complement",
+        "filters": {
+            "type": "filter",
+            "operator": "notStartsWith",
+            "field": "name",
+            "value": "Pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "notEndsWith: null-inclusive",
+        "filters": {
+            "type": "filter",
+            "operator": "notEndsWith",
+            "field": "name",
+            "value": "ter"
+        },
+        "cases": [
+            {
+                "record": {},
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "contains: string array elements",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "tags",
+            "value": "oo"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "foo",
+                        "bar"
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "contains: string array miss",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "tags",
+            "value": "zz"
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "foo",
+                        "bar"
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "contains: non-ASCII folding",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "ÜBER"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "über alles"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "regex: string pattern",
+        "filters": {
+            "type": "filter",
+            "operator": "regex",
+            "field": "name",
+            "value": "^Pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "regex: case-sensitive by default",
+        "filters": {
+            "type": "filter",
+            "operator": "regex",
+            "field": "name",
+            "value": "^pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "regex: non-textual values",
+        "filters": {
+            "type": "filter",
+            "operator": "regex",
+            "field": "name",
+            "value": ".*"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "regex: malformed pattern",
+        "filters": {
+            "type": "filter",
+            "operator": "regex",
+            "field": "name",
+            "value": "("
+        },
+        "error": "featureUnsupported"
+    },
+    {
+        "name": "eq: case-insensitive by default",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "super hero"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Super Hero"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "sUpEr HeRo"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "super"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ne: same case rule",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "name",
+            "value": "super hero"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Super Hero"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "other"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "in: case-insensitive members",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "status",
+            "value": [
+                "Active",
+                "Pending"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "status": "active"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "status": "PENDING"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "status": "closed"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "nin: same case rule",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "status",
+            "value": [
+                "Active"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "status": "active"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "status": "closed"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "eq: string null is not null",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "null"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": null
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive list: eq exact",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "id",
+            "value": "aBc"
+        },
+        "options": {
+            "caseSensitive": [
+                "id"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": "aBc"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": "ABC"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive list: in exact",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "id",
+            "value": [
+                "aBc"
+            ]
+        },
+        "options": {
+            "caseSensitive": [
+                "id"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": "aBc"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": "abc"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: eq exact",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "super hero"
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "super hero"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Super Hero"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: ne exact",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "name",
+            "value": "super hero"
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "super hero"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "Super Hero"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: in exact",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "status",
+            "value": [
+                "Active",
+                "Pending"
+            ]
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "status": "Active"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "status": "active"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "status": "PENDING"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: nin exact",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "status",
+            "value": [
+                "Active"
+            ]
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "status": "Active"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "status": "active"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: dotted paths",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "items.name",
+            "value": "sword"
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "name": "sword"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "name": "Sword"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: elemMatch interiors",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "name",
+                "value": "sword"
+            }
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "name": "sword"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "name": "Sword"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive list: elemMatch composed path",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "name",
+                "value": "sword"
+            }
+        },
+        "options": {
+            "caseSensitive": [
+                "items.name"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "name": "Sword"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive true: contains family",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "ETER"
+        },
+        "options": {
+            "caseSensitive": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "PETER"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive list: other field",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "ETER"
+        },
+        "options": {
+            "caseSensitive": [
+                "other"
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter"
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "caseSensitive false: default",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "super hero"
+        },
+        "options": {
+            "caseSensitive": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Super Hero"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "super"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "and",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "Peter"
+                },
+                {
+                    "type": "filter",
+                    "operator": "gte",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 28
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 17
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "Aston",
+                    "age": 28
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "or",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "Peter"
+                },
+                {
+                    "type": "filter",
+                    "operator": "gte",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 17
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Aston",
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Aston",
+                    "age": 17
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "nested compounds",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "Peter"
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "gte",
+                            "field": "age",
+                            "value": 18
+                        }
+                    ]
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "admin",
+                    "value": true
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 20
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Aston",
+                    "age": 20,
+                    "admin": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Aston",
+                    "age": 20
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "empty and: match-all",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "empty or: match-all",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "empty nested compound vanishes",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "id",
+                    "value": 1
+                },
+                {
+                    "type": "filters",
+                    "operator": "or",
+                    "value": []
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 2
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "only empty compounds",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": []
+                },
+                {
+                    "type": "filters",
+                    "operator": "or",
+                    "value": []
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "empty or child vanishes",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "id",
+                    "value": 1
+                },
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": []
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 2
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "nor: exact complement",
+        "filters": {
+            "type": "filters",
+            "operator": "nor",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "id",
+                    "value": 1
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "id",
+                    "value": 2
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "id": 3
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "id": 1
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "id": 2
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "not group",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "Peter"
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "gte",
+                            "field": "age",
+                            "value": 18
+                        }
+                    ]
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 28
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "name": "Peter",
+                    "age": 17
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "not: null-inclusive complement",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "age",
+                    "value": 50
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 60
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "not or: null-inclusive",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "or",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "gt",
+                            "field": "age",
+                            "value": 50
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "Peter"
+                        }
+                    ]
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": null,
+                    "name": null
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 60,
+                    "name": null
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "age": null,
+                    "name": "Peter"
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "double negation cancels",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "not",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "gt",
+                            "field": "age",
+                            "value": 50
+                        }
+                    ]
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "age": 60
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "age": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "age": null
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "not size",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "size",
+                    "field": "items",
+                    "value": 2
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        1,
+                        2
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "items": [
+                        1
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "not elemMatch",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    }
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1
+                        }
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 2
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": []
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "unknown compound operator",
+        "filters": {
+            "type": "filters",
+            "operator": "xor",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "id",
+                    "value": 1
+                }
+            ]
+        },
+        "error": "operatorUnsupported"
+    },
+    {
+        "name": "unknown filter operator",
+        "filters": {
+            "type": "filter",
+            "operator": "like",
+            "field": "name",
+            "value": "Peter"
+        },
+        "error": "operatorUnsupported"
+    },
+    {
+        "name": "binding: some element",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "items.id",
+            "value": 1
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: no element",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "items.id",
+            "value": 3
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: same element for one path",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.id",
+                    "value": 1
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.active",
+                    "value": true
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": true
+                        }
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: or per element combination",
+        "filters": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.id",
+                    "value": 3
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.active",
+                    "value": true
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: independent paths",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.id",
+                    "value": 1
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "realm.name",
+                    "value": "master"
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ],
+                    "realm": {
+                        "name": "master"
+                    }
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: null row for empty or absent arrays",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "items.id",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": []
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: exists false over empty array",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "items.id",
+            "value": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": []
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: ne over empty array",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "items.title",
+            "value": "first"
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": []
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: negation quantified per element",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "items.title",
+            "value": "first"
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "title": "first"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: to-one path",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "realm.name",
+            "value": "master"
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm": {
+                        "id": 1,
+                        "name": "master"
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: to-one miss",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "realm.name",
+            "value": "other"
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm": {
+                        "id": 1,
+                        "name": "master"
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "binding: null to-one",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "realm.name",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm": null
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: nested per parent element",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.id",
+                    "value": 2
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.parts.name",
+                    "value": "nut"
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "parts": [
+                                {
+                                    "id": 10,
+                                    "name": "bolt"
+                                }
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "parts": [
+                                {
+                                    "id": 20,
+                                    "name": "nut"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "binding: nested across parents",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.id",
+                    "value": 2
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.parts.name",
+                    "value": "bolt"
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "parts": [
+                                {
+                                    "id": 10,
+                                    "name": "bolt"
+                                }
+                            ]
+                        },
+                        {
+                            "id": 2,
+                            "parts": [
+                                {
+                                    "id": 20,
+                                    "name": "nut"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: same element",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filters",
+                "operator": "and",
+                "value": [
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 2
+                    },
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "active",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: no single element",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filters",
+                "operator": "and",
+                "value": [
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    },
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "active",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: nested prefixes",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filter",
+                "operator": "elemMatch",
+                "field": "parts",
+                "value": {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "id",
+                            "value": 10
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "bolt"
+                        }
+                    ]
+                }
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "parts": [
+                                {
+                                    "id": 10,
+                                    "name": "bolt"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: nested miss",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filter",
+                "operator": "elemMatch",
+                "field": "parts",
+                "value": {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "id",
+                            "value": 10
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "nut"
+                        }
+                    ]
+                }
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "parts": [
+                                {
+                                    "id": 10,
+                                    "name": "bolt"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: to-one object",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "realm",
+            "value": {
+                "type": "filters",
+                "operator": "and",
+                "value": [
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    },
+                    {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "name",
+                        "value": "master"
+                    }
+                ]
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm": {
+                        "id": 1,
+                        "name": "master"
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: to-one miss",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "realm",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "name",
+                "value": "other"
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "realm": {
+                        "id": 1,
+                        "name": "master"
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: independent scopes",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    }
+                },
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "active",
+                        "value": true
+                    }
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": true
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: independent of dotted siblings",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    }
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.active",
+                    "value": true
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "name": "Peter",
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false,
+                            "title": "first"
+                        },
+                        {
+                            "id": 2,
+                            "active": true,
+                            "title": "second"
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": true
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "id": 1,
+                            "active": false
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: dotted field",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items.tags",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "$this",
+                "value": "x"
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "items": [
+                        {
+                            "tags": [
+                                "y"
+                            ]
+                        },
+                        {
+                            "tags": [
+                                "x"
+                            ]
+                        }
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "items": [
+                        {
+                            "tags": [
+                                "y"
+                            ]
+                        }
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "elemMatch: non-condition value",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "id": 1
+            }
+        },
+        "error": "featureUnsupported"
+    },
+    {
+        "name": "ITSELF: element itself",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filter",
+                "operator": "gt",
+                "field": "$this",
+                "value": 8
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        3,
+                        7,
+                        9
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: no element",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filter",
+                "operator": "gt",
+                "field": "$this",
+                "value": 10
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        3,
+                        7,
+                        9
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: same element",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filters",
+                "operator": "and",
+                "value": [
+                    {
+                        "type": "filter",
+                        "operator": "gt",
+                        "field": "$this",
+                        "value": 5
+                    },
+                    {
+                        "type": "filter",
+                        "operator": "lt",
+                        "field": "$this",
+                        "value": 8
+                    }
+                ]
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        3,
+                        7
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "scores": [
+                        3,
+                        9
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: $all desugar",
+        "filters": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "tags",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "$this",
+                        "value": "a"
+                    }
+                },
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "tags",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "$this",
+                        "value": "b"
+                    }
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "b",
+                        "c"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "tags": [
+                        "a",
+                        "c"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "tags": []
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: missing, scalar or empty sources",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "$this",
+                "value": 5
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": [
+                        5
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "scores": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "scores": 5
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "scores": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: null test never matches the NULL row",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "$this",
+                "value": null
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "scores": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "scores": [
+                        null
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: element-level size",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "matrix",
+            "value": {
+                "type": "filter",
+                "operator": "size",
+                "field": "$this",
+                "value": 2
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2
+                        ]
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1
+                        ],
+                        [
+                            1,
+                            2,
+                            3
+                        ]
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: arrays of arrays",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "matrix",
+            "value": {
+                "type": "filter",
+                "operator": "elemMatch",
+                "field": "$this",
+                "value": {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "$this",
+                    "value": 5
+                }
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            3,
+                            9
+                        ]
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "matrix": [
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            3,
+                            4
+                        ]
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "matrix": [
+                        1,
+                        9
+                    ]
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: case-insensitive elements",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "tags",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "$this",
+                "value": "Chess"
+            }
+        },
+        "cases": [
+            {
+                "record": {
+                    "tags": [
+                        "chess"
+                    ]
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "ITSELF: outside elemMatch",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "$this",
+            "value": 5
+        },
+        "error": "featureUnsupported"
+    },
+    {
+        "name": "ITSELF: elemMatch target outside elemMatch",
+        "filters": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "$this",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "id",
+                "value": 1
+            }
+        },
+        "error": "featureUnsupported"
+    },
+    {
+        "name": "complement law: eq/ne (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "value",
+            "value": "Peter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: eq/ne (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "value",
+            "value": "Peter"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: eq/ne (null) (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "value",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: eq/ne (null) (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "value",
+            "value": null
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "value",
+            "value": [
+                "Peter",
+                18
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "value",
+            "value": [
+                "Peter",
+                18
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (null element) (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "value",
+            "value": [
+                18,
+                null
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (null element) (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "value",
+            "value": [
+                18,
+                null
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (empty) (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "in",
+            "field": "value",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: in/nin (empty) (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "value",
+            "value": []
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: contains/notContains (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "value",
+            "value": "ete"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: contains/notContains (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "notContains",
+            "field": "value",
+            "value": "ete"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: startsWith/notStartsWith (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "startsWith",
+            "field": "value",
+            "value": "Pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: startsWith/notStartsWith (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "notStartsWith",
+            "field": "value",
+            "value": "Pe"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: endsWith/notEndsWith (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "endsWith",
+            "field": "value",
+            "value": "er"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: endsWith/notEndsWith (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "notEndsWith",
+            "field": "value",
+            "value": "er"
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: exists true/false (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "value",
+            "value": true
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    },
+    {
+        "name": "complement law: exists true/false (negative)",
+        "filters": {
+            "type": "filter",
+            "operator": "exists",
+            "field": "value",
+            "value": false
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: gt/not gt (positive)",
+        "filters": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "value",
+            "value": 10
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": false
+            },
+            {
+                "record": {},
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": false
+            }
+        ]
+    },
+    {
+        "name": "complement law: gt/not gt (negative)",
+        "filters": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "value",
+                    "value": 10
+                }
+            ]
+        },
+        "cases": [
+            {
+                "record": {
+                    "value": "Peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": "peter"
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": ""
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": 18
+                },
+                "expected": false
+            },
+            {
+                "record": {
+                    "value": 0
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": null
+                },
+                "expected": true
+            },
+            {
+                "record": {},
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": true
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": [
+                        "a",
+                        "b"
+                    ]
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": []
+                },
+                "expected": true
+            },
+            {
+                "record": {
+                    "value": {
+                        "nested": true
+                    }
+                },
+                "expected": true
+            }
+        ]
+    }
+]

@@ -1,0 +1,11 @@
+{
+    "name": "@rapiq/conformance",
+    "private": true,
+    "type": "module",
+    "description": "Shared conformance fixtures for the Rust port (proof of concept). Not an npm workspace.",
+    "scripts": {
+        "generate": "node --experimental-strip-types scripts/generate.ts",
+        "test": "vitest run --config test/vitest.config.ts",
+        "bench": "node --experimental-strip-types scripts/bench.ts"
+    }
+}

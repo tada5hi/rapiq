@@ -1,0 +1,2254 @@
+[
+    {
+        "input": "eq(name, 'admin')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "admin"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                }
+            ]
+        }
+    },
+    {
+        "input": "lt(age, '18')",
+        "exact": {
+            "type": "filter",
+            "operator": "lt",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "lt",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "lte(age, '18')",
+        "exact": {
+            "type": "filter",
+            "operator": "lte",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "lte",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "gt(age, '18')",
+        "exact": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "gte(age, '18')",
+        "exact": {
+            "type": "filter",
+            "operator": "gte",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gte",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "contains(name, 'Peter')",
+        "exact": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "contains",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "startsWith(name, 'Peter')",
+        "exact": {
+            "type": "filter",
+            "operator": "startsWith",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "startsWith",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "endsWith(name, 'Peter')",
+        "exact": {
+            "type": "filter",
+            "operator": "endsWith",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "endsWith",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "in(name, 'Peter', 'Hans')",
+        "exact": {
+            "type": "filter",
+            "operator": "in",
+            "field": "name",
+            "value": [
+                "Peter",
+                "Hans"
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "name",
+                    "value": [
+                        "Peter",
+                        "Hans"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "nin(name, 'Peter', 'Hans')",
+        "exact": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "name",
+            "value": [
+                "Peter",
+                "Hans"
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "nin",
+                    "field": "name",
+                    "value": [
+                        "Peter",
+                        "Hans"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "in(name)",
+        "exact": {
+            "type": "filter",
+            "operator": "in",
+            "field": "name",
+            "value": []
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "name",
+                    "value": []
+                }
+            ]
+        }
+    },
+    {
+        "input": "in(name, null, 'a')",
+        "exact": {
+            "type": "filter",
+            "operator": "in",
+            "field": "name",
+            "value": [
+                null,
+                "a"
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "name",
+                    "value": [
+                        null,
+                        "a"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, null)",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": null
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": null
+                }
+            ]
+        }
+    },
+    {
+        "input": "size(items,'2')",
+        "exact": {
+            "type": "filter",
+            "operator": "size",
+            "field": "items",
+            "value": 2
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "size",
+                    "field": "items",
+                    "value": 2
+                }
+            ]
+        }
+    },
+    {
+        "input": "size(items,'0')",
+        "exact": {
+            "type": "filter",
+            "operator": "size",
+            "field": "items",
+            "value": 0
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "size",
+                    "field": "items",
+                    "value": 0
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(eq(name, 'admin'))",
+        "exact": {
+            "type": "filter",
+            "operator": "ne",
+            "field": "name",
+            "value": "admin"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "ne",
+                    "field": "name",
+                    "value": "admin"
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(not(eq(name, 'admin')))",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "admin"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(gt(age, '18'))",
+        "exact": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "not",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "gt",
+                            "field": "age",
+                            "value": 18
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(not(gt(age, '18')))",
+        "exact": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(contains(name, 'Peter'))",
+        "exact": {
+            "type": "filter",
+            "operator": "notContains",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "notContains",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(startsWith(name, 'Peter'))",
+        "exact": {
+            "type": "filter",
+            "operator": "notStartsWith",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "notStartsWith",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(endsWith(name, 'Peter'))",
+        "exact": {
+            "type": "filter",
+            "operator": "notEndsWith",
+            "field": "name",
+            "value": "Peter"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "notEndsWith",
+                    "field": "name",
+                    "value": "Peter"
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(in(name, 'Peter', 'Hans'))",
+        "exact": {
+            "type": "filter",
+            "operator": "nin",
+            "field": "name",
+            "value": [
+                "Peter",
+                "Hans"
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "nin",
+                    "field": "name",
+                    "value": [
+                        "Peter",
+                        "Hans"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(nin(name, 'Peter', 'Hans'))",
+        "exact": {
+            "type": "filter",
+            "operator": "in",
+            "field": "name",
+            "value": [
+                "Peter",
+                "Hans"
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "name",
+                    "value": [
+                        "Peter",
+                        "Hans"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(size(items,'2'))",
+        "exact": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "size",
+                    "field": "items",
+                    "value": 2
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "not",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "size",
+                            "field": "items",
+                            "value": 2
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(and(eq(a, '1'), eq(b, '2')))",
+        "exact": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "a",
+                            "value": 1
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "b",
+                            "value": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "not",
+                    "value": [
+                        {
+                            "type": "filters",
+                            "operator": "and",
+                            "value": [
+                                {
+                                    "type": "filter",
+                                    "operator": "eq",
+                                    "field": "a",
+                                    "value": 1
+                                },
+                                {
+                                    "type": "filter",
+                                    "operator": "eq",
+                                    "field": "b",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(not(and(eq(a, '1'), eq(b, '2'))))",
+        "exact": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "a",
+                    "value": 1
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "b",
+                    "value": 2
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "a",
+                    "value": 1
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "b",
+                    "value": 2
+                }
+            ]
+        }
+    },
+    {
+        "input": "and(eq(name, 'admin'), eq(age, '18'))",
+        "exact": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "or(eq(name, 'admin'), eq(name, 'guest'))",
+        "exact": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "guest"
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "admin"
+                },
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "guest"
+                }
+            ]
+        }
+    },
+    {
+        "input": "or(and(eq(name, 'John'), gte(age, '18')), in(status, 'active', 'pending'))",
+        "exact": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "John"
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "gte",
+                            "field": "age",
+                            "value": 18
+                        }
+                    ]
+                },
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "status",
+                    "value": [
+                        "active",
+                        "pending"
+                    ]
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "or",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "John"
+                        },
+                        {
+                            "type": "filter",
+                            "operator": "gte",
+                            "field": "age",
+                            "value": 18
+                        }
+                    ]
+                },
+                {
+                    "type": "filter",
+                    "operator": "in",
+                    "field": "status",
+                    "value": [
+                        "active",
+                        "pending"
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "and(or(eq(name, 'admin')))",
+        "exact": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "or",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "admin"
+                        }
+                    ]
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "or",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "eq",
+                            "field": "name",
+                            "value": "admin"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "elemMatch(items,eq(name,'chess'))",
+        "exact": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "name",
+                "value": "chess"
+            }
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "name",
+                        "value": "chess"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "input": "elemMatch(scores,gt($this,'5'))",
+        "exact": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "scores",
+            "value": {
+                "type": "filter",
+                "operator": "gt",
+                "field": "$this",
+                "value": 5
+            }
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "scores",
+                    "value": {
+                        "type": "filter",
+                        "operator": "gt",
+                        "field": "$this",
+                        "value": 5
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "input": "elemMatch(matrix,elemMatch($this,gt($this,'5')))",
+        "exact": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "matrix",
+            "value": {
+                "type": "filter",
+                "operator": "elemMatch",
+                "field": "$this",
+                "value": {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "$this",
+                    "value": 5
+                }
+            }
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "matrix",
+                    "value": {
+                        "type": "filter",
+                        "operator": "elemMatch",
+                        "field": "$this",
+                        "value": {
+                            "type": "filter",
+                            "operator": "gt",
+                            "field": "$this",
+                            "value": 5
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "input": "elemMatch(matrix,size($this,'2'))",
+        "exact": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "matrix",
+            "value": {
+                "type": "filter",
+                "operator": "size",
+                "field": "$this",
+                "value": 2
+            }
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "matrix",
+                    "value": {
+                        "type": "filter",
+                        "operator": "size",
+                        "field": "$this",
+                        "value": 2
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "input": "not(elemMatch(items,eq(id,'1')))",
+        "exact": {
+            "type": "filters",
+            "operator": "not",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "id",
+                        "value": 1
+                    }
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "not",
+                    "value": [
+                        {
+                            "type": "filter",
+                            "operator": "elemMatch",
+                            "field": "items",
+                            "value": {
+                                "type": "filter",
+                                "operator": "eq",
+                                "field": "id",
+                                "value": 1
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "elemMatch(items.tags,eq($this,'x'))",
+        "exact": {
+            "type": "filter",
+            "operator": "elemMatch",
+            "field": "items.tags",
+            "value": {
+                "type": "filter",
+                "operator": "eq",
+                "field": "$this",
+                "value": "x"
+            }
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "elemMatch",
+                    "field": "items.tags",
+                    "value": {
+                        "type": "filter",
+                        "operator": "eq",
+                        "field": "$this",
+                        "value": "x"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(order, 'asc')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "order",
+            "value": "asc"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "order",
+                    "value": "asc"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(notes, 'foo')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "notes",
+            "value": "foo"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "notes",
+                    "value": "foo"
+                }
+            ]
+        }
+    },
+    {
+        "input": "gt(inventory, '5')",
+        "exact": {
+            "type": "filter",
+            "operator": "gt",
+            "field": "inventory",
+            "value": 5
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "gt",
+                    "field": "inventory",
+                    "value": 5
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(_id, 'value')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "_id",
+            "value": "value"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "_id",
+                    "value": "value"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(first-name, 'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "first-name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "first-name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(items.realm.name, 'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "items.realm.name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "items.realm.name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(toString, 'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "toString",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "toString",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(constructor, 'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "constructor",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "constructor",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(123, 'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "123",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "123",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, ' 18 ')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 18
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 18
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '1.5')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 1.5
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 1.5
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '.5')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 0.5
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 0.5
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '1e3')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 1000
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 1000
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '0x1F')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 31
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 31
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '-0')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 0
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 0
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(age, '00012')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "age",
+            "value": 12
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "age",
+                    "value": 12
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(flag, 'TRUE')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "flag",
+            "value": true
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "flag",
+                    "value": true
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(flag, 'False')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "flag",
+            "value": false
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "flag",
+                    "value": false
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(flag, 'NULL')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "flag",
+            "value": null
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "flag",
+                    "value": null
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, '')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": ""
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": ""
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, '   ')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": ""
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": ""
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, 'it''s')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "it's"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "it's"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, 'a,b')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "a,b"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "a,b"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, '''quoted''')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "'quoted'"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "'quoted'"
+                }
+            ]
+        }
+    },
+    {
+        "input": "contains(title, '2024')",
+        "exact": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "title",
+            "value": "2024"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "contains",
+                    "field": "title",
+                    "value": "2024"
+                }
+            ]
+        }
+    },
+    {
+        "input": "contains(title, '  spaced  ')",
+        "exact": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "title",
+            "value": "  spaced  "
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "contains",
+                    "field": "title",
+                    "value": "  spaced  "
+                }
+            ]
+        }
+    },
+    {
+        "input": "contains(title, 'it''s')",
+        "exact": {
+            "type": "filter",
+            "operator": "contains",
+            "field": "title",
+            "value": "it's"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "contains",
+                    "field": "title",
+                    "value": "it's"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, 'Ünïcödé 🎉')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "Ünïcödé 🎉"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "Ünïcödé 🎉"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name,'x')",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "  eq ( name ,  'x' )  ",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name,\t'x'\n)",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name 'admin')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'admin'",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'admin'))",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, admin)",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'a",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'a'')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(na me, 'x')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'x') eq(a, '1')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "foo(name, 'x')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "and()",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(first-, 'x')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name.,'x')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'x');",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, \"x\")",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "size(items,'2.5')",
+        "error": "keyValueInvalid"
+    },
+    {
+        "input": "size(items,'-1')",
+        "error": "keyValueInvalid"
+    },
+    {
+        "input": "size(items,'abc')",
+        "error": "keyValueInvalid"
+    },
+    {
+        "input": "size(items,null)",
+        "error": "keyValueInvalid"
+    },
+    {
+        "input": "eq($this,'5')",
+        "error": "keyInvalid"
+    },
+    {
+        "input": "elemMatch($this,eq(id,'1'))",
+        "error": "keyInvalid"
+    },
+    {
+        "input": "eq($foo,'5')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq($,'5')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "elemMatch(items,eq($this.name,'x'))",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(not(eq(a, '1')))))))))))))))))))))))))))))))))))))))))",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(eq(a, '1')))))))))))))))))))))))))))))))))",
+        "exact": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filters",
+                            "operator": "and",
+                            "value": [
+                                {
+                                    "type": "filters",
+                                    "operator": "and",
+                                    "value": [
+                                        {
+                                            "type": "filters",
+                                            "operator": "and",
+                                            "value": [
+                                                {
+                                                    "type": "filters",
+                                                    "operator": "and",
+                                                    "value": [
+                                                        {
+                                                            "type": "filters",
+                                                            "operator": "and",
+                                                            "value": [
+                                                                {
+                                                                    "type": "filters",
+                                                                    "operator": "and",
+                                                                    "value": [
+                                                                        {
+                                                                            "type": "filters",
+                                                                            "operator": "and",
+                                                                            "value": [
+                                                                                {
+                                                                                    "type": "filters",
+                                                                                    "operator": "and",
+                                                                                    "value": [
+                                                                                        {
+                                                                                            "type": "filters",
+                                                                                            "operator": "and",
+                                                                                            "value": [
+                                                                                                {
+                                                                                                    "type": "filters",
+                                                                                                    "operator": "and",
+                                                                                                    "value": [
+                                                                                                        {
+                                                                                                            "type": "filters",
+                                                                                                            "operator": "and",
+                                                                                                            "value": [
+                                                                                                                {
+                                                                                                                    "type": "filters",
+                                                                                                                    "operator": "and",
+                                                                                                                    "value": [
+                                                                                                                        {
+                                                                                                                            "type": "filters",
+                                                                                                                            "operator": "and",
+                                                                                                                            "value": [
+                                                                                                                                {
+                                                                                                                                    "type": "filters",
+                                                                                                                                    "operator": "and",
+                                                                                                                                    "value": [
+                                                                                                                                        {
+                                                                                                                                            "type": "filters",
+                                                                                                                                            "operator": "and",
+                                                                                                                                            "value": [
+                                                                                                                                                {
+                                                                                                                                                    "type": "filters",
+                                                                                                                                                    "operator": "and",
+                                                                                                                                                    "value": [
+                                                                                                                                                        {
+                                                                                                                                                            "type": "filters",
+                                                                                                                                                            "operator": "and",
+                                                                                                                                                            "value": [
+                                                                                                                                                                {
+                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                    "value": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                            "value": [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                    "value": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                            "type": "filter",
+                                                                                                                                                                                                                                                                            "operator": "eq",
+                                                                                                                                                                                                                                                                            "field": "a",
+                                                                                                                                                                                                                                                                            "value": 1
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            ]
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                }
+                                                                                                                                                                                            ]
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filters",
+                    "operator": "and",
+                    "value": [
+                        {
+                            "type": "filters",
+                            "operator": "and",
+                            "value": [
+                                {
+                                    "type": "filters",
+                                    "operator": "and",
+                                    "value": [
+                                        {
+                                            "type": "filters",
+                                            "operator": "and",
+                                            "value": [
+                                                {
+                                                    "type": "filters",
+                                                    "operator": "and",
+                                                    "value": [
+                                                        {
+                                                            "type": "filters",
+                                                            "operator": "and",
+                                                            "value": [
+                                                                {
+                                                                    "type": "filters",
+                                                                    "operator": "and",
+                                                                    "value": [
+                                                                        {
+                                                                            "type": "filters",
+                                                                            "operator": "and",
+                                                                            "value": [
+                                                                                {
+                                                                                    "type": "filters",
+                                                                                    "operator": "and",
+                                                                                    "value": [
+                                                                                        {
+                                                                                            "type": "filters",
+                                                                                            "operator": "and",
+                                                                                            "value": [
+                                                                                                {
+                                                                                                    "type": "filters",
+                                                                                                    "operator": "and",
+                                                                                                    "value": [
+                                                                                                        {
+                                                                                                            "type": "filters",
+                                                                                                            "operator": "and",
+                                                                                                            "value": [
+                                                                                                                {
+                                                                                                                    "type": "filters",
+                                                                                                                    "operator": "and",
+                                                                                                                    "value": [
+                                                                                                                        {
+                                                                                                                            "type": "filters",
+                                                                                                                            "operator": "and",
+                                                                                                                            "value": [
+                                                                                                                                {
+                                                                                                                                    "type": "filters",
+                                                                                                                                    "operator": "and",
+                                                                                                                                    "value": [
+                                                                                                                                        {
+                                                                                                                                            "type": "filters",
+                                                                                                                                            "operator": "and",
+                                                                                                                                            "value": [
+                                                                                                                                                {
+                                                                                                                                                    "type": "filters",
+                                                                                                                                                    "operator": "and",
+                                                                                                                                                    "value": [
+                                                                                                                                                        {
+                                                                                                                                                            "type": "filters",
+                                                                                                                                                            "operator": "and",
+                                                                                                                                                            "value": [
+                                                                                                                                                                {
+                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                    "value": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                            "value": [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                    "value": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                            "type": "filters",
+                                                                                                                                                                                                                                                            "operator": "and",
+                                                                                                                                                                                                                                                            "value": [
+                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                    "type": "filters",
+                                                                                                                                                                                                                                                                    "operator": "and",
+                                                                                                                                                                                                                                                                    "value": [
+                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                            "type": "filter",
+                                                                                                                                                                                                                                                                            "operator": "eq",
+                                                                                                                                                                                                                                                                            "field": "a",
+                                                                                                                                                                                                                                                                            "value": 1
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            ]
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                }
+                                                                                                                                                                                            ]
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "input": "and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(and(eq(a, '1'))))))))))))))))))))))))))))))))))",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(name, 'x') ",
+        "exact": {
+            "type": "filter",
+            "operator": "eq",
+            "field": "name",
+            "value": "x"
+        },
+        "parse": {
+            "type": "filters",
+            "operator": "and",
+            "value": [
+                {
+                    "type": "filter",
+                    "operator": "eq",
+                    "field": "name",
+                    "value": "x"
+                }
+            ]
+        }
+    },
+    {
+        "input": "eq(name, 'x')",
+        "error": "syntaxInvalid"
+    },
+    {
+        "input": "eq(näme, 'x')",
+        "error": "syntaxInvalid"
+    }
+]

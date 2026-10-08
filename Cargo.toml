@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rapiq-core",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+authors = ["Peter Placzek <peter.placzek1996@gmail.com>"]
+repository = "https://github.com/tada5hi/rapiq"
+publish = false
+
+[profile.release]
+lto = true
+codegen-units = 1
