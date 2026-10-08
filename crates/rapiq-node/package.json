@@ -1,0 +1,11 @@
+{
+    "name": "@rapiq/rust-node",
+    "private": true,
+    "type": "module",
+    "description": "Node.js binding for rapiq-core (proof of concept). Not an npm workspace.",
+    "main": "index.js",
+    "types": "index.d.ts",
+    "scripts": {
+        "build": "cargo build --release -p rapiq-node && node scripts/copy.js"
+    }
+}
