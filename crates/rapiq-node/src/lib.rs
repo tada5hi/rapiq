@@ -54,9 +54,9 @@ impl Predicate {
         api::test_record(&self.inner, &record).map_err(to_js)
     }
 
-    /// Keep the records (a JSON array) satisfying the predicate.
+    /// Positions of the records (a JSON array) satisfying the predicate.
     #[napi]
-    pub fn filter(&self, records: String) -> Result<String, String> {
-        api::filter_records(&self.inner, &records).map_err(to_js)
+    pub fn filter_indices(&self, records: String) -> Result<Vec<u32>, String> {
+        api::matching_indices(&self.inner, &records).map_err(to_js)
     }
 }

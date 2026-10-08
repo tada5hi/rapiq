@@ -20,3 +20,4 @@ target
 *.node
 .venv
 __pycache__
+*.abi3.so

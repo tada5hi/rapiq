@@ -43,6 +43,8 @@ export function compileFilters(filters, options) {
 
     return {
         test: (record) => predicate.test(JSON.stringify(record)),
-        filter: (records) => JSON.parse(predicate.filter(JSON.stringify(records))),
+        filter: (records) => predicate
+            .filterIndices(JSON.stringify(records))
+            .map((index) => records[index]),
     };
 }

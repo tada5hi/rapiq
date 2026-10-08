@@ -24,7 +24,7 @@ export declare const binding: {
     matches(filters: string, record: string, options?: string): boolean,
     Predicate: new (filters: string, options?: string) => {
         test(record: string): boolean,
-        filter(records: string): string,
+        filterIndices(records: string): number[],
     },
 };
 

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "rapiq"
+description = "Python binding for the rapiq Rust core (proof of concept)."
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Peter Placzek", email = "peter.placzek1996@gmail.com" }]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "rapiq._native"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

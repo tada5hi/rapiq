@@ -65,17 +65,20 @@ pub fn matches(filters: &str, record: &str, options: Option<&str>) -> Result<boo
     Ok(predicate.test(&record))
 }
 
-/// Keep the records (a JSON array) satisfying the predicate, returned
-/// as a JSON array string.
-pub fn filter_records(predicate: &Predicate, records: &str) -> Result<String> {
+/// Positions of the records (a JSON array) satisfying the predicate,
+/// so a binding can hand back its own record objects untouched.
+pub fn matching_indices(predicate: &Predicate, records: &str) -> Result<Vec<u32>> {
     let records: Value = serde_json::from_str(records).map_err(|_| Error::input_invalid())?;
     let Value::Array(items) = records else {
         return Err(Error::input_invalid());
     };
 
-    let kept: Vec<Value> = items.into_iter().filter(|r| predicate.test(r)).collect();
-
-    Ok(Value::Array(kept).to_string())
+    Ok(items
+        .iter()
+        .enumerate()
+        .filter(|(_, record)| predicate.test(record))
+        .map(|(index, _)| index as u32)
+        .collect())
 }
 
 /// Test a record JSON string against a compiled predicate.

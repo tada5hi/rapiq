@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/rapiq-core",
     "crates/rapiq-node",
+    "crates/rapiq-py",
 ]
 
 [workspace.package]
