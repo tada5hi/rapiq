@@ -15,6 +15,7 @@
 //! any operator at construction time: an unknown one is refused by the
 //! lowering (`operatorUnsupported`), not by the decoder.
 
+use serde::ser::{Serialize, SerializeMap, Serializer};
 use serde_json::{Map, Value};
 
 use crate::error::{Error, Result};
@@ -164,8 +165,38 @@ impl Condition {
         Value::Object(object)
     }
 
+    /// Serialize straight from the tree (no intermediate `Value`).
     pub fn to_json_string(&self) -> String {
-        self.to_json().to_string()
+        serde_json::to_string(self).expect("the IR always serializes")
+    }
+}
+
+impl Serialize for Condition {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        match self {
+            Condition::Compound { operator, children } => {
+                let mut map = serializer.serialize_map(Some(3))?;
+                map.serialize_entry("type", TYPE_FILTERS)?;
+                map.serialize_entry("operator", operator)?;
+                map.serialize_entry("value", children)?;
+                map.end()
+            }
+            Condition::Leaf {
+                operator,
+                field,
+                value,
+            } => {
+                let mut map = serializer.serialize_map(Some(4))?;
+                map.serialize_entry("type", TYPE_FILTER)?;
+                map.serialize_entry("operator", operator)?;
+                map.serialize_entry("field", field)?;
+                match value {
+                    LeafValue::Data(data) => map.serialize_entry("value", data)?,
+                    LeafValue::Condition(condition) => map.serialize_entry("value", condition)?,
+                }
+                map.end()
+            }
+        }
     }
 }
 
@@ -174,4 +205,24 @@ fn is_node(value: &Value) -> bool {
         value.get("type").and_then(Value::as_str),
         Some(TYPE_FILTERS | TYPE_FILTER)
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn string_and_value_serializations_agree() {
+        let condition = Condition::compound(
+            "and",
+            vec![
+                Condition::leaf("eq", "name", json!("x")),
+                Condition::elem_match("items", Condition::leaf("in", "kind", json!(["a", null]))),
+            ],
+        );
+
+        let text: Value = serde_json::from_str(&condition.to_json_string()).unwrap();
+        assert_eq!(text, condition.to_json());
+    }
 }

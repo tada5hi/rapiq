@@ -68,6 +68,12 @@ impl EqualTest {
 
     fn test(&self, value: &Value) -> bool {
         if let (Some(folded), Value::String(s)) = (&self.folded, value) {
+            // ASCII fast path: identical to the full Unicode lowering
+            // for ASCII input, without allocating.
+            if s.is_ascii() && folded.is_ascii() {
+                return s.eq_ignore_ascii_case(folded);
+            }
+
             return s.to_lowercase() == *folded;
         }
 
@@ -188,9 +194,25 @@ impl Predicate {
             return true;
         };
 
+        // binding slots live on the stack for the common case.
+        const INLINE: usize = 8;
+        let count = self.slots.len();
+        if count <= INLINE {
+            let mut values = [&NULL; INLINE];
+            let mut elements = [false; INLINE];
+            let mut ctx = Context {
+                values: &mut values[..count],
+                elements: &mut elements[..count],
+            };
+
+            return self.enumerate(root, input, &mut ctx, 0);
+        }
+
+        let mut values = vec![&NULL; count];
+        let mut elements = vec![false; count];
         let mut ctx = Context {
-            values: vec![&NULL; self.slots.len()],
-            elements: vec![false; self.slots.len()],
+            values: &mut values,
+            elements: &mut elements,
         };
 
         self.enumerate(root, input, &mut ctx, 0)
@@ -200,7 +222,7 @@ impl Predicate {
         &self,
         root: &Node,
         input: &'a Value,
-        ctx: &mut Context<'a>,
+        ctx: &mut Context<'a, '_>,
         index: usize,
     ) -> bool {
         if index == self.order.len() {
@@ -242,12 +264,12 @@ impl Predicate {
     }
 }
 
-struct Context<'a> {
-    values: Vec<&'a Value>,
-    elements: Vec<bool>,
+struct Context<'a, 's> {
+    values: &'s mut [&'a Value],
+    elements: &'s mut [bool],
 }
 
-fn evaluate(node: &Node, input: &Value, ctx: &Context<'_>) -> bool {
+fn evaluate(node: &Node, input: &Value, ctx: &Context<'_, '_>) -> bool {
     match node {
         Node::And(children) => children.iter().all(|c| evaluate(c, input, ctx)),
         Node::Or(children) => children.iter().any(|c| evaluate(c, input, ctx)),
