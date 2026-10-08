@@ -2,7 +2,9 @@
 
 A spike for moving rapiq's language-neutral logic into a Rust core with
 bindings for TypeScript, Python and (later) Scala. Findings, measurements
-and the go/no-go recommendation live in [SPIKE.md](SPIKE.md).
+and the go/no-go recommendation live in [SPIKE.md](SPIKE.md); the phased plan
+for building the TypeScript packages on top of the Rust core is
+[MIGRATION.md](MIGRATION.md).
 
 Nothing here is published, and nothing here is part of the npm workspaces
 or the Nx graph: `npm run build`, `npm run test` and `npm run lint` behave
