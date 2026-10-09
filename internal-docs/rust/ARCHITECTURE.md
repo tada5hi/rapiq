@@ -55,7 +55,8 @@ packages/rapiq/node              rapiq (npm): everything (D7)
 ```
 
 State today: only `core` has `rust`, `node/binding` and `python`;
-`binding-support`, the umbrellas and per-package fixtures do not exist yet.
+`binding-support` and the Rust and Python umbrellas exist; the npm umbrella
+(D7) and per-package fixtures do not yet.
 
 ## Names
 

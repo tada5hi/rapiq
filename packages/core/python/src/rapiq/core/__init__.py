@@ -3,7 +3,7 @@
 # For the full copyright and license information,
 # view the LICENSE file that was distributed with this source code.
 
-"""Python binding for the rapiq Rust core (proof of concept).
+"""rapiq.core: the core of rapiq for Python, on the rapiq Rust core.
 
 Filter trees use the serialized IR shared with the TypeScript
 packages::

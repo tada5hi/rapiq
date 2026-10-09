@@ -1,6 +1,6 @@
-//! Python binding for `rapiq-core` (PyO3), compiled as `rapiq._native`.
+//! Python binding for `rapiq-core` (PyO3), compiled as `rapiq.core._native`.
 //!
-//! JSON strings in and out, like the Node binding; the `rapiq` Python
+//! JSON strings in and out, like the Node binding; the `rapiq.core` Python
 //! package wraps this module with dict/list conversion. A failure is a
 //! `RapiqError` whose args are `(code, message)`.
 
@@ -10,7 +10,7 @@ use pyo3::prelude::*;
 use rapiq_binding_support::ErrorPayload;
 use rapiq_core::api;
 
-create_exception!(_native, RapiqError, PyException);
+create_exception!(rapiq.core._native, RapiqError, PyException);
 
 fn to_py(error: rapiq_core::Error) -> PyErr {
     let payload = ErrorPayload::from(error);

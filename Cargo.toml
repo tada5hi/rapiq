@@ -5,6 +5,8 @@ members = [
     "packages/*/node/binding",
     "packages/*/python",
 ]
+# the Python umbrella is metadata only, not a crate
+exclude = ["packages/rapiq/python"]
 
 [workspace.package]
 version = "0.0.0"

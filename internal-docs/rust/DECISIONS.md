@@ -114,8 +114,9 @@ cache by content). Rejected: a shared native library loaded by several
 wheels, or C-level APIs between extension modules (fragile in Python
 packaging).
 
-The existing `packages/core/python` still publishes as distribution `rapiq`
-with import `rapiq`; it is renamed to `rapiq-core` / `rapiq.core` in phase 0.
+Implemented 2026-10-09: `packages/core/python` publishes as `rapiq-core`,
+imported as `rapiq.core`; the umbrella `packages/rapiq/python` is the
+distribution `rapiq`.
 
 ### R12. Releases via trusted publishing (adopted, 2026-10-09)
 

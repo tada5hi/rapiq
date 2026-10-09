@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 import rapiq
+from rapiq import core
 
 FIXTURES = Path(__file__).resolve().parents[4] / "conformance" / "fixtures"
 
@@ -33,14 +34,14 @@ def test_fixture_sets_are_present():
 @pytest.mark.parametrize("case", EXPRESSION_CASES, ids=lambda c: repr(c["input"])[:60])
 def test_expression_parser(case):
     if "error" in case:
-        with pytest.raises(rapiq.RapiqError) as raised:
-            rapiq.parse_expression_filters_exact(case["input"])
+        with pytest.raises(core.RapiqError) as raised:
+            core.parse_expression_filters_exact(case["input"])
 
         assert raised.value.code == case["error"]
         return
 
-    assert rapiq.parse_expression_filters_exact(case["input"]) == case["exact"]
-    assert rapiq.parse_expression_filters(case["input"]) == case["parse"]
+    assert core.parse_expression_filters_exact(case["input"]) == case["exact"]
+    assert core.parse_expression_filters(case["input"]) == case["parse"]
 
 
 @pytest.mark.parametrize("group", EVALUATE_GROUPS, ids=lambda g: g["name"])
@@ -48,19 +49,19 @@ def test_evaluator(group):
     options = group.get("options")
 
     if "error" in group:
-        with pytest.raises(rapiq.RapiqError) as raised:
-            rapiq.compile_filters(group["filters"], options)
+        with pytest.raises(core.RapiqError) as raised:
+            core.compile_filters(group["filters"], options)
 
         assert raised.value.code == group["error"]
         return
 
-    predicate = rapiq.compile_filters(group["filters"], options)
+    predicate = core.compile_filters(group["filters"], options)
     for item in group["cases"]:
         assert predicate.test(item["record"]) is item["expected"], item["record"]
 
 
 def test_filter_keeps_the_record_objects():
-    predicate = rapiq.compile_filters(rapiq.parse_expression_filters("gte(age, '18')"))
+    predicate = core.compile_filters(core.parse_expression_filters("gte(age, '18')"))
     records = [{"age": 17}, {"age": 18}, {"age": 30}]
 
     kept = predicate.filter(records)
@@ -70,11 +71,19 @@ def test_filter_keeps_the_record_objects():
 
 
 def test_absent_input_is_an_empty_group():
-    assert rapiq.parse_expression_filters() == {"type": "filters", "operator": "and", "value": []}
+    assert core.parse_expression_filters() == {"type": "filters", "operator": "and", "value": []}
 
 
 def test_one_shot_matches():
     filters = {"type": "filter", "operator": "eq", "field": "name", "value": "Peter"}
 
-    assert rapiq.matches(filters, {"name": "peter"})
-    assert not rapiq.matches(filters, {"name": "peter"}, {"caseSensitive": True})
+    assert core.matches(filters, {"name": "peter"})
+    assert not core.matches(filters, {"name": "peter"}, {"caseSensitive": True})
+
+
+def test_rapiq_is_a_namespace_package():
+    # the parts (rapiq-core, rapiq-parser-mongo, ...) are separate wheels
+    # sharing the `rapiq.` prefix, so no distribution may own rapiq/__init__.py
+    assert getattr(rapiq, "__file__", None) is None
+    assert core.__name__ == "rapiq.core"
+

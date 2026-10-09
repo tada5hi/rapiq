@@ -33,9 +33,10 @@ conformance/                 fixtures shared by every ecosystem
 internal-docs/               design notes (this file)
 ```
 
-Only `core` has a Rust and a Python part so far; the umbrellas
-(`packages/rapiq/{rust,python,node}`) and the shared binding-support crate are
-planned (see ARCHITECTURE.md). Each package owns its bindings (R7): the
+Only `core` has a Rust and a Python part so far. The umbrellas exist for Rust
+and Python (`packages/rapiq/{rust,python}`; npm waits for D7), and the
+bindings share `packages/binding-support/rust`. Each package owns its
+bindings (R7): the
 napi-rs crate of a package lives inside its npm package, at
 `packages/<package>/node/binding`, and will ship through per-platform npm
 packages (`@rapiq/<package>-<platform>`). Crate names keep the `rapiq-`
@@ -45,7 +46,10 @@ prefix because crates.io has no namespaces; `cargo -p` takes that name.
 |------|-------|------|
 | `packages/core/rust` | `rapiq-core` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
 | `packages/core/node/binding` | `rapiq-core-node` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects; not yet wired into `@rapiq/core` |
-| `packages/core/python` | `rapiq-core-py` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`src/rapiq/__init__.py`, Python's src layout next to the Rust `src/lib.rs`); renamed to distribution `rapiq-core`, import `rapiq.core`, in phase 0 (R11) |
+| `packages/core/python` | `rapiq-core-py` | PyO3 / maturin binding, PyPI distribution `rapiq-core`: native module `rapiq.core._native` plus the `rapiq.core` package (`src/rapiq/core/__init__.py`, Python's src layout next to the Rust `src/lib.rs`; no `src/rapiq/__init__.py`, `rapiq` is a namespace, R11) |
+| `packages/binding-support/rust` | `rapiq-binding-support` | Shared by every binding: mimalloc global allocator, `ErrorPayload` (P4) |
+| `packages/rapiq/rust` | `rapiq` | Umbrella crate: re-exports the parts, selected by features (`core` default) (R10) |
+| `packages/rapiq/python` | | Umbrella distribution `rapiq`: metadata only, depends on `rapiq-core`, extras select parts (R10) |
 | `conformance/` | | Shared fixtures (`fixtures/*.json`), their generator (`scripts/generate.ts`), the TS side of the IR (`src/ir.ts`), the vitest suite running the TS reference and the Rust binding side by side, and the Node benchmark |
 
 ## The IR
@@ -78,10 +82,14 @@ cargo test --workspace
 (cd packages/core/node/binding && npm run build)
 (cd conformance && npx vitest run --config test/vitest.config.ts)
 
-# Python binding: build into a virtualenv, then run the fixtures
+# Python: build the rapiq-core wheel and the umbrella into a virtualenv,
+# install the umbrella like a user would, then run the fixtures
 python -m venv .venv && . .venv/bin/activate
-pip install maturin pytest
-(cd packages/core/python && maturin develop --release && python -m pytest)
+pip install maturin build pytest
+(cd packages/core/python && maturin build --release --out dist)
+(cd packages/rapiq/python && python -m build --outdir dist .)
+pip install --no-index --find-links packages/core/python/dist --find-links packages/rapiq/python/dist rapiq
+(cd packages/core/python && python -m pytest)
 
 # Regenerate the fixtures from the TS reference (re-checks every
 # hand-written verdict against @rapiq/adapter-memory)
@@ -103,39 +111,41 @@ const adults = compileFilters(filters).filter(users); // the caller's own object
 ```
 
 ```python
-import rapiq
+from rapiq import core
 
-filters = rapiq.parse_expression_filters("and(eq(name, 'Peter'), gte(age, '18'))")
-adults = rapiq.compile_filters(filters).filter(users)  # the caller's own objects
+filters = core.parse_expression_filters("and(eq(name, 'Peter'), gte(age, '18'))")
+adults = core.compile_filters(filters).filter(users)  # the caller's own objects
 
 try:
-    rapiq.parse_expression_filters("eq(name")
-except rapiq.RapiqError as error:
+    core.parse_expression_filters("eq(name")
+except core.RapiqError as error:
     error.code  # 'syntaxInvalid', the same ErrorCode value TypeScript uses
 ```
 
 ## CI and releases
 
 - `.github/workflows/rust.yml` runs on every push and pull request: rustfmt,
-  clippy, `cargo test` (unit tests, README doctest, both fixture suites), a
-  crates.io packaging dry run, the Node conformance suite on Linux, macOS and
-  Windows, and the Python suite on CPython 3.9 and 3.13.
+  clippy, `cargo test` (unit tests, README doctests, both fixture suites), a
+  crates.io packaging dry run of every publishable crate, the Node
+  conformance suite on Linux, macOS and Windows, and the Python suite on
+  CPython 3.9 and 3.13 (installed through the umbrella).
 - `.github/workflows/rust-release.yml` is started by hand (Actions, "Rust
   release", choose `crates`, `pypi` or `all`, dry run on by default). It
-  publishes `rapiq-core` to crates.io and abi3 wheels (Linux glibc and musl,
-  x86_64 and aarch64; macOS x86_64 and aarch64; Windows x64) plus an sdist of
-  `rapiq` to PyPI, both via trusted publishing (no stored tokens).
+  publishes `rapiq-core` and `rapiq` to crates.io, and to PyPI the
+  `rapiq-core` abi3 wheels (Linux glibc and musl, x86_64 and aarch64; macOS
+  x86_64 and aarch64; Windows x64) with an sdist plus the umbrella `rapiq`,
+  all via trusted publishing (no stored tokens).
 
 One-time setup before the first non-dry run:
 
-1. crates.io: publish the first `rapiq-core` version by hand
-   (`cargo login`, then `cargo publish -p rapiq-core`; a trusted publisher can
-   only be added to an existing crate), then add this repository and
-   `rust-release.yml` under the crate's "Trusted Publishing" settings, and add
-   the GitHub team as owner (`cargo owner --add github:<org>:<team> rapiq-core`).
-2. PyPI: add a pending trusted publisher for the project `rapiq` (owner
-   `tada5hi`, repository `rapiq`, workflow `rust-release.yml`, environment
-   `pypi`).
+1. crates.io: publish the first version of both crates by hand (`cargo login`,
+   then `cargo publish --workspace`; a trusted publisher can only be added to
+   an existing crate), then add this repository and `rust-release.yml` under
+   each crate's "Trusted Publishing" settings, and add the GitHub team as
+   owner (`cargo owner --add github:<org>:<team> rapiq-core`, same for `rapiq`).
+2. PyPI: add a pending trusted publisher for each project, `rapiq-core` and
+   `rapiq` (owner `tada5hi`, repository `rapiq`, workflow `rust-release.yml`,
+   environment `pypi`).
 3. GitHub: optionally protect the `crates-io` and `pypi` environments with
    required reviewers.
 

@@ -1,0 +1,28 @@
+[package]
+name = "rapiq"
+description = "rapiq (REST API query): the umbrella crate re-exporting the rapiq parts selected by features."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["rest", "api", "query", "filter", "json-api"]
+categories = ["parser-implementations", "web-programming"]
+publish = true
+include = ["src/**/*.rs", "Cargo.toml", "README.md"]
+
+[lints]
+workspace = true
+
+[features]
+default = ["core"]
+# one feature per part; only the selected parts are compiled
+core = ["dep:rapiq-core"]
+
+[dependencies]
+rapiq-core = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

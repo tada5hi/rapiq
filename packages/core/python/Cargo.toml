@@ -1,6 +1,6 @@
 [package]
 name = "rapiq-core-py"
-description = "Python binding (PyO3) for rapiq-core (proof of concept)."
+description = "Python binding (PyO3) of rapiq-core, distributed on PyPI as rapiq-core (import rapiq.core)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

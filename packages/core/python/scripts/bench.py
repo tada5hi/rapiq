@@ -13,8 +13,8 @@ import json
 import statistics
 import time
 
-import rapiq
-from rapiq import _native
+from rapiq import core
+from rapiq.core import _native
 
 EXPRESSION = (
     "and(or(eq(name, 'Peter'), startsWith(email, 'admin@')), gte(age, '18'), "
@@ -39,7 +39,7 @@ def measure(label, iterations, fn):
 def main():
     print(f"\nparse ({len(EXPRESSION)} chars)")
     measure("rust parse() (IR JSON string)", 20_000, lambda: _native.parse_expression_filters(EXPRESSION))
-    measure("rust parse() + json.loads", 20_000, lambda: rapiq.parse_expression_filters(EXPRESSION))
+    measure("rust parse() + json.loads", 20_000, lambda: core.parse_expression_filters(EXPRESSION))
 
     names = ["Peter", "peter", "Hans", "Anna", "admin"]
     kinds = ["book", "game", "tool"]
@@ -59,7 +59,7 @@ def main():
     ]
     text = json.dumps(records)
 
-    predicate = rapiq.compile_filters(rapiq.parse_expression_filters(EXPRESSION))
+    predicate = core.compile_filters(core.parse_expression_filters(EXPRESSION))
     native = predicate._native
 
     print(f"\nfilter {len(records)} records ({len(predicate.filter(records))} match)")

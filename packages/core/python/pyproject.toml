@@ -3,8 +3,8 @@ requires = ["maturin>=1.7,<2"]
 build-backend = "maturin"
 
 [project]
-name = "rapiq"
-description = "rapiq (REST API query) for Python: expression parser and in-memory filter evaluation on the rapiq Rust core."
+name = "rapiq-core"
+description = "Core of rapiq (REST API query) for Python: expression parser and in-memory filter evaluation on the rapiq Rust core. Imported as rapiq.core; install the umbrella `rapiq` for the whole ecosystem."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -28,7 +28,7 @@ test = ["pytest>=8"]
 
 [tool.maturin]
 python-source = "src"
-module-name = "rapiq._native"
+module-name = "rapiq.core._native"
 features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]

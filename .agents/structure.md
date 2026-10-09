@@ -12,9 +12,11 @@ conformance/                 fixtures shared by the TS reference and the Rust po
 internal-docs/rust/          Rust core notes: architecture, decisions, migration plan
 ```
 
-Only `core` has `rust`, `python` and `node/binding` so far. Planned (see
-`internal-docs/rust/ARCHITECTURE.md`): the umbrellas `packages/rapiq/{rust,python,node}`,
-`packages/binding-support/rust`, and per-package `fixtures/`. Every npm package follows the same layout: `src/` (source), `test/` (vitest config + specs), `dist/` (build output, gitignored).
+Only `core` has `rust`, `python` and `node/binding` so far. Also present:
+`packages/binding-support/rust` (shared by the bindings) and the umbrellas
+`packages/rapiq/{rust,python}` (crate and PyPI distribution `rapiq`). Planned
+(see `internal-docs/rust/ARCHITECTURE.md`): `packages/rapiq/node` and
+per-package `fixtures/`. Every npm package follows the same layout: `src/` (source), `test/` (vitest config + specs), `dist/` (build output, gitignored).
 
 ## Packages & Libraries
 

@@ -1,0 +1,37 @@
+# The `rapiq` umbrella for Python: metadata only. It ships no code and in
+# particular no rapiq/__init__.py, because `rapiq` is the namespace the parts
+# (rapiq-core, rapiq-parser-mongo, ...) share. Parts are selected with extras.
+
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rapiq"
+version = "0.0.0"
+description = "rapiq (REST API query) for Python: installs the rapiq parts you select (rapiq.core, ...)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Peter Placzek", email = "peter.placzek1996@gmail.com" }]
+keywords = ["rest", "api", "query", "filter", "json-api"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+# every part needs the core; the versions move in lockstep
+dependencies = ["rapiq-core==0.0.0"]
+
+[project.optional-dependencies]
+# one extra per part (e.g. mongo = ["rapiq-parser-mongo==<version>"]) as the
+# parts gain Python bindings; `all` lists every part
+all = ["rapiq-core==0.0.0"]
+
+[project.urls]
+Homepage = "https://rapiq.tada5hi.net"
+Repository = "https://github.com/tada5hi/rapiq"
+
+[tool.hatch.build.targets.wheel]
+# no package directory: an empty wheel carrying only the dependencies
+bypass-selection = true

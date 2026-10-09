@@ -1,20 +1,23 @@
-# rapiq
+# rapiq-core
 
-Python binding for the Rust core of [rapiq](https://github.com/tada5hi/rapiq)
-(REST API query): parse filter expressions into the shared query IR and
-evaluate them against dicts.
+The core of [rapiq](https://github.com/tada5hi/rapiq) (REST API query) for
+Python, on the rapiq Rust core: parse filter expressions into the shared query
+IR and evaluate them against dicts. Imported as `rapiq.core`.
+
+Install this part alone, or the umbrella `rapiq`, which pulls in the parts
+you select (`pip install rapiq[...]`).
 
 Status: proof of concept. The API is not stable.
 
 ```python
-import rapiq
+from rapiq import core
 
-filters = rapiq.parse_expression_filters("and(eq(name, 'Peter'), gte(age, '18'))")
-adults = rapiq.compile_filters(filters).filter(users)
+filters = core.parse_expression_filters("and(eq(name, 'Peter'), gte(age, '18'))")
+adults = core.compile_filters(filters).filter(users)
 
 try:
-    rapiq.parse_expression_filters("eq(name")
-except rapiq.RapiqError as error:
+    core.parse_expression_filters("eq(name")
+except core.RapiqError as error:
     print(error.code)  # syntaxInvalid
 ```
 

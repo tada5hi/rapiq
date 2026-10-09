@@ -26,6 +26,10 @@ generated from the TS reference before it is deleted.
 
 ### Phase 0: foundations
 
+Progress (2026-10-09): done: workspace hygiene (P6), `binding-support` (P4),
+the Python rename to `rapiq-core` / `rapiq.core` (R11), the Rust and Python
+umbrellas (R10). In progress: the remaining items below.
+
 - IR v1 for all parameters and for schemas. `schema.describe()` already
   serializes the declarative part; extend it with `mapping`, `schemaMapping`,
   defaults and a hook marker per parameter.

@@ -374,6 +374,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rapiq"
+version = "0.0.0"
+dependencies = [
+ "rapiq-core",
+ "serde_json",
+]
+
+[[package]]
 name = "rapiq-binding-support"
 version = "0.0.0"
 dependencies = [
