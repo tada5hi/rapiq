@@ -30,8 +30,14 @@ Progress (2026-10-09): done: workspace hygiene (P6), `binding-support` (P4),
 the Python rename to `rapiq-core` / `rapiq.core` (R11), the Rust and Python
 umbrellas (R10), fixtures per package (P7), `toIR`/`fromIR` with the value
 table in `@rapiq/core` (R13), and the napi binding inside `@rapiq/core`
-(P1, P2, P3, R14). Open: WASM (D2), CI by target (P5), release wiring, IR
-for the parameters beyond filters (lands with the phases that need it).
+(P1, P2, P3, R14), and the WASM binding (D2): napi `wasm32-wasip1` built
+with only what `@rapiq/core` calls (239 KB raw), loaded in browsers by
+`ready()` from the browser entry and used by the generated loader as the
+Node fallback. All ten package suites pass on it in Node
+(`NAPI_RS_FORCE_WASI=true`), and `conformance/scripts/browser.ts` runs
+the public API in Chromium on a non-isolated page. Open: CI by target
+(P5), release wiring, the wasm-bindgen size tracking, IR for the
+parameters beyond filters (lands with the phases that need it).
 
 - IR v1 for all parameters and for schemas. `schema.describe()` already
   serializes the declarative part; extend it with `mapping`, `schemaMapping`,
@@ -80,11 +86,12 @@ binding loaded but not yet used by the TS API.
 
 ### Phase 1: filter semantics
 
-Done 2026-10-09 for Node: `planCondition` and `distributeNegation` run in
-Rust; all ten package test suites pass unchanged; 221 plan fixtures
-(`packages/core/fixtures/plan.json`) pin plans, distributed plans and
-refusals (exact messages) against the former TS implementation. Browsers
-still need the WASM binding (D2) before this can ship.
+Done 2026-10-09: `planCondition` and `distributeNegation` run in Rust; all
+ten package test suites pass unchanged on the native binding and on the
+WASM binding; 221 plan fixtures (`packages/core/fixtures/plan.json`) pin
+plans, distributed plans and refusals (exact messages) against the former
+TS implementation. User-visible addition: browsers `await ready()` before
+the first call that needs Rust (typed `bindingUnavailable` otherwise).
 
 Port: `FILTER_OPERATOR_SEMANTICS`, `planCondition`, `distributeNegation`.
 Kept in TypeScript on purpose: `interpretPlan` (dispatch to TS

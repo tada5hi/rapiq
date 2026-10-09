@@ -83,6 +83,18 @@ cargo test --workspace
 npm run build:binding --workspace=packages/core/node
 (cd conformance && npx vitest run --config test/vitest.config.ts)
 
+# WASM binding (browsers, and the Node fallback for platforms without an
+# addon): build it, then run a package's suite on it in Node. The flag
+# must be `true` (not `1`), and it also switches Nx's own napi binding,
+# so run vitest directly rather than through nx.
+npm run build:binding:wasm --workspace=packages/core/node
+(cd packages/adapter-memory/node && NAPI_RS_FORCE_WASI=true npx vitest --config test/vitest.config.ts --run)
+
+# Browser: bundle a small app on @rapiq/core's browser entry and run it in
+# Chromium on a page without cross-origin isolation
+npm i --no-save playwright-core
+node --experimental-strip-types conformance/scripts/browser.ts
+
 # Python: build the rapiq-core wheel and the umbrella into a virtualenv,
 # install the umbrella like a user would, then run the fixtures
 python -m venv .venv && . .venv/bin/activate

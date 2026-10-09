@@ -9,11 +9,14 @@ import { AdapterError, ErrorCode } from '../errors';
 import type {
     BindingEnvelope,
     BindingErrorPayload,
+    BindingInitializer,
     BindingLoader,
     IBinding,
 } from './types';
 
 let loader : BindingLoader | undefined;
+let initializer : BindingInitializer | undefined;
+let pending : Promise<void> | undefined;
 let binding : IBinding | undefined;
 
 /**
@@ -23,7 +26,53 @@ let binding : IBinding | undefined;
  */
 export function setBindingLoader(input: BindingLoader) : void {
     loader = input;
+    initializer = undefined;
+    pending = undefined;
     binding = undefined;
+}
+
+/**
+ * Register an asynchronous initializer (the browser entry: fetching and
+ * compiling the WASM build cannot be synchronous on a browser main thread).
+ * It runs on {@link ready}; until then a call that needs Rust fails typed.
+ */
+export function setBindingInitializer(input: BindingInitializer) : void {
+    initializer = input;
+    loader = undefined;
+    pending = undefined;
+    binding = undefined;
+}
+
+/**
+ * Resolve once the binding is usable. In browsers this loads the WASM build
+ * and must be awaited before the first call that needs Rust; on Node it
+ * loads the native addon right away. Isomorphic code can always call it.
+ */
+export async function ready() : Promise<void> {
+    if (binding) {
+        return;
+    }
+
+    if (initializer) {
+        const init = initializer;
+        pending ??= init().then(
+            (output) => {
+                binding = output;
+            },
+            (e) => {
+                pending = undefined;
+                throw AdapterError.bindingUnavailable(
+                    e instanceof Error ? e.message : 'the binding failed to initialize.',
+                    e,
+                );
+            },
+        );
+
+        await pending;
+        return;
+    }
+
+    useBinding();
 }
 
 /**
@@ -31,6 +80,8 @@ export function setBindingLoader(input: BindingLoader) : void {
  */
 export function setBinding(input: IBinding) : void {
     loader = () => input;
+    initializer = undefined;
+    pending = undefined;
     binding = input;
 }
 
@@ -40,7 +91,9 @@ export function useBinding() : IBinding {
     }
 
     if (!loader) {
-        throw AdapterError.bindingUnavailable('no binding loader is registered for this environment.');
+        throw AdapterError.bindingUnavailable(initializer ?
+            'await ready() before the first call that needs Rust.' :
+            'no binding loader is registered for this environment.');
     }
 
     try {

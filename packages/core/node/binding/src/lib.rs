@@ -12,11 +12,15 @@
 //!   conformance suite) throw a JS `Error` whose `code` is the rapiq
 //!   `ErrorCode` value.
 
+#[cfg(feature = "conformance")]
 use napi::Result;
 use napi_derive::napi;
-use rapiq_binding_support::{ErrorPayload, envelope};
+#[cfg(feature = "conformance")]
+use rapiq_binding_support::ErrorPayload;
+use rapiq_binding_support::envelope;
 use rapiq_core::api;
 
+#[cfg(feature = "conformance")]
 fn to_js(error: rapiq_core::Error) -> napi::Error<String> {
     let payload = ErrorPayload::from(error);
 
@@ -44,6 +48,7 @@ pub fn operator_semantics() -> String {
 
 /// `ExpressionFiltersParser.parse()` (schemaless): IR JSON of the root
 /// group. An absent input yields an empty AND group.
+#[cfg(feature = "conformance")]
 #[napi]
 pub fn parse_expression_filters(input: Option<String>) -> Result<String, String> {
     api::parse_expression_filters(input.as_deref()).map_err(to_js)
@@ -51,23 +56,27 @@ pub fn parse_expression_filters(input: Option<String>) -> Result<String, String>
 
 /// `ExpressionFiltersParser.parseExact()` (schemaless): IR JSON of the
 /// raw expression tree.
+#[cfg(feature = "conformance")]
 #[napi]
 pub fn parse_expression_filters_exact(input: String) -> Result<String, String> {
     api::parse_expression_filters_exact(&input).map_err(to_js)
 }
 
 /// One-shot evaluation: does the record satisfy the filters?
+#[cfg(feature = "conformance")]
 #[napi]
 pub fn matches(filters: String, record: String, options: Option<String>) -> Result<bool, String> {
     api::matches(&filters, &record, options.as_deref()).map_err(to_js)
 }
 
 /// A filter tree compiled once, evaluated many times.
+#[cfg(feature = "conformance")]
 #[napi]
 pub struct Predicate {
     inner: rapiq_core::Predicate,
 }
 
+#[cfg(feature = "conformance")]
 #[napi]
 impl Predicate {
     #[napi(constructor)]

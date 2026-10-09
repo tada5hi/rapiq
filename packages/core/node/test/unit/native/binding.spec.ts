@@ -14,8 +14,10 @@ import {
     gt,
     inArray,
     planCondition,
+    ready,
     regex,
     setBinding,
+    setBindingInitializer,
     setBindingLoader,
 } from '../../../src';
 import type { IBinding } from '../../../src';
@@ -85,6 +87,57 @@ describe('src/native', () => {
             expect(e).toBeInstanceOf(AdapterError);
             expect((e as AdapterError).code).toBe(ErrorCode.FEATURE_UNSUPPORTED);
             expect((e as AdapterError).feature).toBe('filters:regex:value');
+        }
+    });
+    it('should resolve ready() on Node once the native binding loads', async () => {
+        await expect(ready()).resolves.toBeUndefined();
+        expect(planCondition(eq('a', 1))?.kind).toBe('compare');
+    });
+
+    it('should require ready() for an asynchronous initializer (browser path)', async () => {
+        const binding = useBinding();
+        let calls = 0;
+
+        setBindingInitializer(async () => {
+            calls += 1;
+            return binding;
+        });
+
+        try {
+            expect(() => planCondition(eq('a', 1))).toThrow(/await ready\(\)/);
+
+            // concurrent callers share one initialization
+            await Promise.all([ready(), ready()]);
+            expect(calls).toBe(1);
+            expect(planCondition(eq('a', 1))?.kind).toBe('compare');
+        } finally {
+            setBinding(binding as IBinding);
+        }
+    });
+
+    it('should reject ready() typed when the initializer fails, and allow a retry', async () => {
+        const binding = useBinding();
+        let attempts = 0;
+
+        setBindingInitializer(async () => {
+            attempts += 1;
+            if (attempts === 1) {
+                throw new Error('fetch failed');
+            }
+
+            return binding;
+        });
+
+        try {
+            await expect(ready()).rejects.toMatchObject({
+                code: ErrorCode.BINDING_UNAVAILABLE,
+                message: expect.stringContaining('fetch failed'),
+            });
+
+            await ready();
+            expect(attempts).toBe(2);
+        } finally {
+            setBinding(binding as IBinding);
         }
     });
 });

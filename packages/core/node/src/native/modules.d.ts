@@ -11,3 +11,12 @@
 declare module 'node:module' {
     export function createRequire(path: string | URL): (id: string) => unknown;
 }
+
+// The WASM build of the binding, published by napi-rs as the platform
+// package @rapiq/core-wasm32-wasip1 (D2); the browser entry imports it
+// dynamically. Only the part @rapiq/core calls is declared.
+declare module '@rapiq/core-wasm32-wasip1' {
+    export function planCondition(condition: string, options?: string | null): string;
+    export function distributeNegation(plan: string): string;
+    export function operatorSemantics(): string;
+}

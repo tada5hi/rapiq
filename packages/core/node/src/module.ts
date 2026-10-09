@@ -26,6 +26,11 @@ export {
 } from './utils';
 export type { KeyDetails } from './utils';
 
-export { setBinding, setBindingLoader } from './native';
-export type { BindingLoader, IBinding } from './native';
+export {
+    ready,
+    setBinding,
+    setBindingInitializer,
+    setBindingLoader,
+} from './native';
+export type { BindingInitializer, BindingLoader, IBinding } from './native';
 

@@ -1,0 +1,7 @@
+# build output: the addon of this machine, and the WASM build plus its
+# generated glue (published through the @rapiq/core-<platform> packages)
+*.node
+*.wasm
+*.wasip1*
+browser.js
+index.wasm.d.cts

@@ -195,6 +195,12 @@ wasm-bindgen), D3 `adapter-sql` extension surface, D4 `adapter-memory`
 performance, D5 error messages from Rust, D6 version coupling, D7 npm
 umbrella name.
 
-Working defaults until confirmed (2026-10-09): **D5** error messages come
-from Rust verbatim (pinned byte for byte by the plan fixtures); **D6**
-lockstep versions. D7: no npm umbrella is created until decided.
+Decided 2026-10-09 (maintainer): **D5** error messages come from Rust
+verbatim (pinned byte for byte by the plan fixtures); **D6** npm platform
+packages, crates and Python distributions version in lockstep with the TS
+packages; **D2** both WASM variants: napi `wasm32-wasip1` (no threads,
+deferred loader) ships now as the browser binding and the Node fallback,
+and the wasm-bindgen crate is kept building in CI so the browser payload
+can be re-measured as more Rust is exposed (measured: ~184 KB versus
+~76 KB gzip; napi's threaded variant fails on non-isolated pages). D7: no
+npm umbrella is created until decided. Open: D1, D3, D4, D7.

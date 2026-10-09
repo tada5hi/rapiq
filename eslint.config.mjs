@@ -10,6 +10,9 @@ export default [
             // Rust build output (cargo doc emits JavaScript) and Python envs.
             '**/target/**',
             '**/.venv/**',
+            // napi-rs WASM build output (generated glue, gitignored)
+            'packages/*/node/binding/*.wasip1*',
+            'packages/*/node/binding/browser.js',
             '**/*.d.ts',
             '.nx/**',
             // Local git worktrees carry their own eslint config, which registers a

@@ -14,6 +14,13 @@ crate-type = ["cdylib"]
 [lints]
 workspace = true
 
+[features]
+default = ["conformance"]
+# the proof-of-concept expression parser and evaluator, used by the
+# conformance suite and benchmarks; left out of the WASM build, whose size
+# follows what it exposes (see D2 in internal-docs/rust/MIGRATION.md)
+conformance = []
+
 [dependencies]
 napi = { workspace = true }
 napi-derive = { workspace = true }

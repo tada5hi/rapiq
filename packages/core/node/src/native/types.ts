@@ -24,6 +24,12 @@ export interface IBinding {
 export type BindingLoader = () => IBinding;
 
 /**
+ * Loads the binding asynchronously (the WASM build in browsers); run by
+ * `ready()`.
+ */
+export type BindingInitializer = () => Promise<IBinding>;
+
+/**
  * The error half of a binding envelope: the rapiq `ErrorCode` value, the
  * message, and the argument of the matching TypeScript error factory.
  */

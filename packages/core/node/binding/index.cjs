@@ -562,7 +562,7 @@ function createLoadErrorChain(errors) {
 //
 // NAPI_RS_WASI_FLAVOR selects one exact generated flavor and implies strict
 // WASI loading. It never crosses into another flavor or falls back to native.
-const __napiWasiFlavors = ['wasm32-wasi']
+const __napiWasiFlavors = ['wasm32-wasip1']
 const __napiWasiFlavor = process.env.NAPI_RS_WASI_FLAVOR
 const __napiWasiFlavorRequested =
   typeof __napiWasiFlavor === 'string' && __napiWasiFlavor.length > 0
@@ -631,16 +631,16 @@ if (!nativeBinding || forceWasi) {
     }
     return null
   }
-  if (!wasiBindingLoaded && (!__napiWasiFlavorRequested || __napiWasiFlavor === 'wasm32-wasi')) {
+  if (!wasiBindingLoaded && (!__napiWasiFlavorRequested || __napiWasiFlavor === 'wasm32-wasip1')) {
     let candidateError = null
     let candidateFailed = false
     try {
-      candidateError = __napiWasiResolveCandidate('./rapiq-core.wasi.cjs', false, ['./rapiq-core.wasm32-wasi.debug.wasm', './rapiq-core.wasm32-wasi.wasm'])
+      candidateError = __napiWasiResolveCandidate('./rapiq-core.wasip1.cjs', false, ['./rapiq-core.wasm32-wasip1.debug.wasm', './rapiq-core.wasm32-wasip1.wasm'])
       candidateFailed = candidateError !== null
       if (!candidateFailed) {
-        wasiBinding = require('./rapiq-core.wasi.cjs')
+        wasiBinding = require('./rapiq-core.wasip1.cjs')
         nativeBinding = wasiBinding
-        __napiLoadedBindingTarget = 'wasm32-wasi'
+        __napiLoadedBindingTarget = 'wasm32-wasip1'
         wasiBindingLoaded = true
       }
     } catch (err) {
@@ -652,22 +652,22 @@ if (!nativeBinding || forceWasi) {
       loadErrors.push(candidateError)
     }
   }
-  if (!wasiBindingLoaded && (!__napiWasiFlavorRequested || __napiWasiFlavor === 'wasm32-wasi')) {
+  if (!wasiBindingLoaded && (!__napiWasiFlavorRequested || __napiWasiFlavor === 'wasm32-wasip1')) {
     let candidateError = null
     let candidateFailed = false
     try {
-      candidateError = __napiWasiResolveCandidate('@rapiq/core-wasm32-wasi', true, undefined)
+      candidateError = __napiWasiResolveCandidate('@rapiq/core-wasm32-wasip1', true, undefined)
       candidateFailed = candidateError !== null
       if (!candidateFailed) {
         if (process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          const bindingPackageVersion = require('@rapiq/core-wasm32-wasi/package.json').version
+          const bindingPackageVersion = require('@rapiq/core-wasm32-wasip1/package.json').version
           if (bindingPackageVersion !== '2.4.0') {
             throw new Error(`WASI binding package version mismatch, expected 2.4.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
         }
-        wasiBinding = require('@rapiq/core-wasm32-wasi')
+        wasiBinding = require('@rapiq/core-wasm32-wasip1')
         nativeBinding = wasiBinding
-        __napiLoadedBindingTarget = 'wasm32-wasi'
+        __napiLoadedBindingTarget = 'wasm32-wasip1'
         wasiBindingLoaded = true
       }
     } catch (err) {

@@ -20,6 +20,7 @@
     ],
     "scripts": {
         "build:binding": "napi build --platform --release --manifest-path binding/Cargo.toml --output-dir binding --js index.cjs --dts index.d.cts",
+        "build:binding:wasm": "napi build --platform --release --target wasm32-wasip1 --no-default-features --manifest-path binding/Cargo.toml --output-dir binding --no-js --dts index.wasm.d.cts",
         "build:types": "tsc --noEmit -p tsconfig.build.json",
         "build:js": "tsdown",
         "build": "npm run build:binding && npm run build:types && npm run build:js",
@@ -75,11 +76,16 @@
             "aarch64-unknown-linux-musl",
             "x86_64-apple-darwin",
             "aarch64-apple-darwin",
-            "x86_64-pc-windows-msvc"
+            "x86_64-pc-windows-msvc",
+            "wasm32-wasip1"
         ]
     },
     "devDependencies": {
-        "@napi-rs/cli": "^3.10.8"
+        "@emnapi/core": "2.0.0-alpha.6",
+        "@emnapi/runtime": "2.0.0-alpha.6",
+        "@napi-rs/cli": "^3.10.8",
+        "@napi-rs/wasm-runtime": "^1.2.5",
+        "emnapi": "2.0.0-alpha.6"
     },
     "nx": {
         "targets": {
