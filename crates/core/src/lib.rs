@@ -1,6 +1,4 @@
-//! Rust port of a slice of rapiq (proof of concept): the serialized
-//! filter IR, the expression-dialect filters parser and the in-memory
-//! filter evaluator of `@rapiq/adapter-memory`.
+#![doc = include_str!("../README.md")]
 //!
 //! The FFI boundary is deliberately coarse: bindings exchange JSON
 //! strings, see [`api`].

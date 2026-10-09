@@ -21,7 +21,7 @@ no namespaces, so `cargo -p` takes the prefixed name.
 |------|------|
 | `core/` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
 | `node/` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects |
-| `python/` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`python/rapiq/__init__.py`) |
+| `python/` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`rapiq/__init__.py`) |
 | `conformance/` | Shared fixtures (`fixtures/*.json`), their generator (`scripts/generate.ts`), the TS side of the IR (`src/ir.ts`), the vitest suite running the TS reference and the Rust binding side by side, and the Node benchmark |
 
 ## The IR
@@ -89,3 +89,29 @@ try:
 except rapiq.RapiqError as error:
     error.code  # 'syntaxInvalid', the same ErrorCode value TypeScript uses
 ```
+
+## CI and releases
+
+- `.github/workflows/rust.yml` runs on every push and pull request: rustfmt,
+  clippy, `cargo test` (unit tests, README doctest, both fixture suites), a
+  crates.io packaging dry run, the Node conformance suite on Linux, macOS and
+  Windows, and the Python suite on CPython 3.9 and 3.13.
+- `.github/workflows/rust-release.yml` is started by hand (Actions, "Rust
+  release", choose `crates`, `pypi` or `all`, dry run on by default). It
+  publishes `rapiq-core` to crates.io and abi3 wheels (Linux glibc and musl,
+  x86_64 and aarch64; macOS x86_64 and aarch64; Windows x64) plus an sdist of
+  `rapiq` to PyPI, both via trusted publishing (no stored tokens).
+
+One-time setup before the first non-dry run:
+
+1. crates.io: publish the first `rapiq-core` version by hand
+   (`cargo login`, then `cargo publish -p rapiq-core`; a trusted publisher can
+   only be added to an existing crate), then add this repository and
+   `rust-release.yml` under the crate's "Trusted Publishing" settings, and add
+   the GitHub team as owner (`cargo owner --add github:<org>:<team> rapiq-core`).
+2. PyPI: add a pending trusted publisher for the project `rapiq` (owner
+   `tada5hi`, repository `rapiq`, workflow `rust-release.yml`, environment
+   `pypi`).
+3. GitHub: optionally protect the `crates-io` and `pypi` environments with
+   required reviewers.
+

@@ -1,0 +1,118 @@
+# CI for the Rust core and its bindings (crates/). Runs beside the main CI;
+# the TypeScript packages are built here only because the conformance suite
+# compares the Rust binding against them.
+
+name: Rust
+
+on:
+    push:
+        branches: [develop, master, next, beta, alpha]
+    pull_request:
+        branches: [develop, master, next, beta, alpha]
+
+permissions:
+    contents: read
+
+env:
+    PRIMARY_NODE_VERSION: 22
+    CARGO_TERM_COLOR: always
+
+jobs:
+    core:
+        name: Rust (fmt, clippy, test)
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Rust toolchain
+                uses: dtolnay/rust-toolchain@stable
+                with:
+                    components: rustfmt, clippy
+
+            -   name: Cache
+                uses: Swatinem/rust-cache@v2
+
+            -   name: Format
+                run: cargo fmt --all --check
+
+            -   name: Clippy
+                run: cargo clippy --workspace --all-targets -- -D warnings
+
+            # unit tests, the README doctest and both conformance fixture suites
+            -   name: Test
+                run: cargo test --workspace
+
+            -   name: Package (crates.io dry run)
+                run: cargo publish -p rapiq-core --dry-run
+
+    node:
+        name: Node binding (${{ matrix.os }})
+        needs: [core]
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, macos-latest, windows-latest]
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Install
+                uses: ./.github/actions/install
+                with:
+                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+            -   name: Build
+                uses: ./.github/actions/build
+
+            -   name: Rust toolchain
+                uses: dtolnay/rust-toolchain@stable
+
+            -   name: Cache
+                uses: Swatinem/rust-cache@v2
+
+            -   name: Build binding
+                working-directory: crates/node
+                run: npm run build
+
+            # every fixture against the TypeScript reference and the Rust
+            # binding side by side
+            -   name: Conformance
+                working-directory: crates/conformance
+                run: npx vitest run --config test/vitest.config.ts
+
+    python:
+        name: Python binding (${{ matrix.python }})
+        needs: [core]
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                # abi3: the oldest and the newest supported interpreter
+                python: ['3.9', '3.13']
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version: ${{ matrix.python }}
+
+            -   name: Rust toolchain
+                uses: dtolnay/rust-toolchain@stable
+
+            -   name: Cache
+                uses: Swatinem/rust-cache@v2
+
+            -   name: Build and install wheel
+                working-directory: crates/python
+                run: |
+                    python -m pip install --upgrade pip maturin pytest
+                    maturin build --release --out dist
+                    python -m pip install --no-index --find-links dist rapiq
+
+            -   name: Conformance
+                working-directory: crates/python
+                run: python -m pytest

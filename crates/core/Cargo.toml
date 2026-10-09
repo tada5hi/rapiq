@@ -1,12 +1,19 @@
 [package]
 name = "rapiq-core"
-description = "Rust port of the rapiq filter IR, expression parser and in-memory evaluator (proof of concept)."
+description = "Core of rapiq (REST API query): query IR, expression parser and in-memory filter evaluation."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-publish.workspace = true
+homepage = "https://rapiq.tada5hi.net"
+readme = "README.md"
+keywords = ["rest", "api", "query", "filter", "json-api"]
+categories = ["parser-implementations", "web-programming"]
+# the only crate published to crates.io; the bindings ship through npm and PyPI.
+publish = true
+# the conformance tests and examples read fixtures outside this crate.
+include = ["src/**/*.rs", "Cargo.toml", "README.md"]
 
 [dependencies]
 regex = "1.13.1"

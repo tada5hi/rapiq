@@ -1,0 +1,138 @@
+# Publishes the Rust core to crates.io and the Python binding to PyPI.
+#
+# Manually triggered for now (name reservation and pre-releases); it joins the
+# release-please flow in phase 0 of crates/MIGRATION.md. Both registries use
+# trusted publishing (OIDC), so no API token is stored in the repository:
+#
+# - crates.io: the crate must exist before a trusted publisher can be added,
+#   so the very first `rapiq-core` release is a manual `cargo publish`. Then
+#   add this repository + workflow under the crate's settings,
+#   "Trusted Publishing".
+# - PyPI: add a "pending publisher" for the project `rapiq` (owner tada5hi,
+#   repository rapiq, workflow rust-release.yml, environment pypi) before the
+#   first run; it turns into the project's publisher on first upload.
+
+name: Rust release
+
+on:
+    workflow_dispatch:
+        inputs:
+            target:
+                description: 'What to publish'
+                required: true
+                default: 'all'
+                type: choice
+                options: [all, crates, pypi]
+            dry-run:
+                description: 'Build and verify only, do not upload'
+                required: true
+                default: true
+                type: boolean
+
+permissions:
+    contents: read
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    crates:
+        name: crates.io
+        if: inputs.target == 'all' || inputs.target == 'crates'
+        runs-on: ubuntu-latest
+        environment: crates-io
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Rust toolchain
+                uses: dtolnay/rust-toolchain@stable
+
+            -   name: Test
+                run: cargo test -p rapiq-core
+
+            -   name: Authenticate
+                if: ${{ !inputs.dry-run }}
+                id: auth
+                uses: rust-lang/crates-io-auth-action@v1
+
+            -   name: Publish
+                env:
+                    CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+                run: cargo publish -p rapiq-core ${{ inputs.dry-run && '--dry-run' || '' }}
+
+    wheels:
+        name: Wheel (${{ matrix.platform.name }})
+        if: inputs.target == 'all' || inputs.target == 'pypi'
+        runs-on: ${{ matrix.platform.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                # abi3: one wheel per platform covers CPython 3.9+
+                platform:
+                    -   { name: linux-x86_64, runner: ubuntu-latest, target: x86_64, manylinux: auto }
+                    -   { name: linux-aarch64, runner: ubuntu-latest, target: aarch64, manylinux: auto }
+                    -   { name: musllinux-x86_64, runner: ubuntu-latest, target: x86_64, manylinux: musllinux_1_2 }
+                    -   { name: musllinux-aarch64, runner: ubuntu-latest, target: aarch64, manylinux: musllinux_1_2 }
+                    -   { name: macos-x86_64, runner: macos-latest, target: x86_64, manylinux: auto }
+                    -   { name: macos-aarch64, runner: macos-latest, target: aarch64, manylinux: auto }
+                    -   { name: windows-x86_64, runner: windows-latest, target: x64, manylinux: auto }
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Build
+                uses: PyO3/maturin-action@v1
+                with:
+                    working-directory: crates/python
+                    target: ${{ matrix.platform.target }}
+                    manylinux: ${{ matrix.platform.manylinux }}
+                    args: --release --out dist
+
+            -   name: Upload
+                uses: actions/upload-artifact@v4
+                with:
+                    name: wheel-${{ matrix.platform.name }}
+                    path: crates/python/dist
+
+    sdist:
+        name: Source distribution
+        if: inputs.target == 'all' || inputs.target == 'pypi'
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Build
+                uses: PyO3/maturin-action@v1
+                with:
+                    working-directory: crates/python
+                    command: sdist
+                    args: --out dist
+
+            -   name: Upload
+                uses: actions/upload-artifact@v4
+                with:
+                    name: sdist
+                    path: crates/python/dist
+
+    pypi:
+        name: PyPI
+        needs: [wheels, sdist]
+        if: ${{ !inputs.dry-run }}
+        runs-on: ubuntu-latest
+        environment: pypi
+        permissions:
+            id-token: write
+        steps:
+            -   name: Download
+                uses: actions/download-artifact@v4
+                with:
+                    path: dist
+                    merge-multiple: true
+
+            -   name: Publish
+                uses: pypa/gh-action-pypi-publish@release/v1
