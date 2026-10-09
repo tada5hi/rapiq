@@ -17,4 +17,5 @@ workspace = true
 
 [dependencies]
 pyo3 = { workspace = true, features = ["extension-module"] }
+rapiq-binding-support = { workspace = true }
 rapiq-core = { workspace = true }

@@ -1,0 +1,24 @@
+[package]
+name = "rapiq-binding-support"
+description = "Support shared by every rapiq language binding: global allocator and the error payload of the JSON boundary."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[features]
+default = ["mimalloc"]
+# mimalloc as the global allocator (never on wasm, where the runtime owns memory)
+mimalloc = ["dep:mimalloc"]
+
+[dependencies]
+rapiq-core = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+mimalloc = { workspace = true, optional = true }

@@ -18,7 +18,9 @@ publish = false
 [workspace.dependencies]
 # internal crates (the version is required for publishing dependents)
 rapiq-core = { path = "packages/core/rust", version = "0.0.0" }
+rapiq-binding-support = { path = "packages/binding-support/rust" }
 
+mimalloc = { version = "0.1", default-features = false }
 napi = "3.14.2"
 napi-build = "2.6.0"
 napi-derive = "3.6.12"

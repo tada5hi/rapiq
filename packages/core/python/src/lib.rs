@@ -7,12 +7,15 @@
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
+use rapiq_binding_support::ErrorPayload;
 use rapiq_core::api;
 
 create_exception!(_native, RapiqError, PyException);
 
 fn to_py(error: rapiq_core::Error) -> PyErr {
-    RapiqError::new_err((error.code.as_str(), error.message))
+    let payload = ErrorPayload::from(error);
+
+    RapiqError::new_err((payload.code, payload.message))
 }
 
 /// `ExpressionFiltersParser.parse()` (schemaless): IR JSON of the root

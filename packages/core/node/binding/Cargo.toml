@@ -17,6 +17,7 @@ workspace = true
 [dependencies]
 napi = { workspace = true }
 napi-derive = { workspace = true }
+rapiq-binding-support = { workspace = true }
 rapiq-core = { workspace = true }
 
 [build-dependencies]

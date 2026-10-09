@@ -7,10 +7,13 @@
 
 use napi::Result;
 use napi_derive::napi;
+use rapiq_binding_support::ErrorPayload;
 use rapiq_core::api;
 
 fn to_js(error: rapiq_core::Error) -> napi::Error<String> {
-    napi::Error::new(error.code.as_str().to_string(), error.message)
+    let payload = ErrorPayload::from(error);
+
+    napi::Error::new(payload.code.to_string(), payload.message)
 }
 
 /// `ExpressionFiltersParser.parse()` (schemaless): IR JSON of the root
