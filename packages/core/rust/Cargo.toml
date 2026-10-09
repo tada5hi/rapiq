@@ -15,8 +15,11 @@ publish = true
 # the conformance tests and examples read fixtures outside this crate.
 include = ["src/**/*.rs", "Cargo.toml", "README.md"]
 
+[lints]
+workspace = true
+
 [dependencies]
-regex = "1.13.1"
-ryu-js = "1.0.3"
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = { version = "1.0.151", features = ["preserve_order"] }
+regex = { workspace = true }
+ryu-js = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

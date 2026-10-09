@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use rapiq_core::api;
 use rapiq_core::value::is_value_equal;
-use rapiq_core::{expression, Condition, Predicate};
+use rapiq_core::{Condition, Predicate, expression};
 use serde_json::Value;
 
 fn fixture(name: &str) -> Vec<Value> {

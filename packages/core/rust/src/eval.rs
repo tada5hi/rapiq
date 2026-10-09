@@ -16,7 +16,7 @@ use serde_json::Value;
 use crate::error::{Error, Result};
 use crate::expression::ITSELF;
 use crate::ir::Condition;
-use crate::plan::{plan_condition, CompareOp, MatchPattern, Plan, PlanOptions};
+use crate::plan::{CompareOp, MatchPattern, Plan, PlanOptions, plan_condition};
 use crate::value::{compare_values, is_value_equal, resolve_property, to_text};
 
 static NULL: Value = Value::Null;

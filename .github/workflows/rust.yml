@@ -26,13 +26,10 @@ jobs:
             -   name: Checkout
                 uses: actions/checkout@v7
 
+            # reads rust-toolchain.toml (pinned channel, default profile with
+            # rustfmt and clippy) and caches the cargo registry and target
             -   name: Rust toolchain
-                uses: dtolnay/rust-toolchain@stable
-                with:
-                    components: rustfmt, clippy
-
-            -   name: Cache
-                uses: Swatinem/rust-cache@v2
+                uses: actions-rust-lang/setup-rust-toolchain@v1
 
             -   name: Format
                 run: cargo fmt --all --check
@@ -68,10 +65,7 @@ jobs:
                 uses: ./.github/actions/build
 
             -   name: Rust toolchain
-                uses: dtolnay/rust-toolchain@stable
-
-            -   name: Cache
-                uses: Swatinem/rust-cache@v2
+                uses: actions-rust-lang/setup-rust-toolchain@v1
 
             -   name: Build binding
                 working-directory: packages/core/node/binding
@@ -102,10 +96,7 @@ jobs:
                     python-version: ${{ matrix.python }}
 
             -   name: Rust toolchain
-                uses: dtolnay/rust-toolchain@stable
-
-            -   name: Cache
-                uses: Swatinem/rust-cache@v2
+                uses: actions-rust-lang/setup-rust-toolchain@v1
 
             -   name: Build and install wheel
                 working-directory: packages/core/python

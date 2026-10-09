@@ -98,11 +98,7 @@ fn parse_radix(digits: &str, radix: u32) -> f64 {
         }
     }
 
-    if overflow {
-        approx
-    } else {
-        wide as f64
-    }
+    if overflow { approx } else { wide as f64 }
 }
 
 /// `[+-]? (digits ('.' digits?)? | '.' digits) ([eE] [+-]? digits)?`

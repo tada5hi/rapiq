@@ -1,10 +1,13 @@
 //! Times the Rust core without any binding:
 //! `cargo run --release -p rapiq-core --example profile`.
 
+// a benchmark reports on stdout by design
+#![allow(clippy::print_stdout)]
+
 use std::time::Instant;
 
-use rapiq_core::{expression, PlanOptions, Predicate};
-use serde_json::{json, Value};
+use rapiq_core::{PlanOptions, Predicate, expression};
+use serde_json::{Value, json};
 
 const EXPRESSION: &str = "and(or(eq(name, 'Peter'), startsWith(email, 'admin@')), gte(age, '18'), \
     elemMatch(items, and(eq(active, 'true'), in(kind, 'book', 'game'))), not(contains(tags, 'spam')))";

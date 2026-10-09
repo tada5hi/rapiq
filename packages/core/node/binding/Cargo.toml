@@ -11,10 +11,13 @@ publish.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
+[lints]
+workspace = true
+
 [dependencies]
-napi = "3.14.2"
-napi-derive = "3.6.12"
-rapiq-core = { path = "../../rust" }
+napi = { workspace = true }
+napi-derive = { workspace = true }
+rapiq-core = { workspace = true }
 
 [build-dependencies]
-napi-build = "2.6.0"
+napi-build = { workspace = true }

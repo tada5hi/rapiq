@@ -445,7 +445,7 @@ impl<'a> Parser<'a> {
                 return Err(Error::syntax_invalid(format!(
                     "Token type {} not supported as comparison operator.",
                     other.as_str()
-                )))
+                )));
             }
         };
 
@@ -614,10 +614,10 @@ pub fn parse_filter_scalar(input: &str) -> Value {
     }
 
     let number = js_string_to_number(trimmed);
-    if !number.is_nan() {
-        if let Some(value) = json_number(number) {
-            return value;
-        }
+    if !number.is_nan()
+        && let Some(value) = json_number(number)
+    {
+        return value;
     }
 
     Value::String(trimmed.to_string())
