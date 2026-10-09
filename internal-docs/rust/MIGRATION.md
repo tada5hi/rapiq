@@ -187,6 +187,39 @@ Rust API for both outputs) needs `SharedArrayBuffer`, i.e. cross-origin
 isolated pages, in browsers; a wasm-bindgen build works on any page but is a
 second, thin binding layer. Build both in phase 0 and decide on evidence.
 
+Evidence (measured 2026-10-09, Chromium 1194 via Playwright, page served
+without COOP/COEP, i.e. an ordinary site; `@rapiq/core`'s planning surface:
+`planCondition`, `distributeNegation`, `operatorSemantics`):
+
+| Variant | `.wasm` (gzip) | JS glue (gzip) | Total | On a non-isolated page |
+|---------|----------------|----------------|-------|------------------------|
+| napi `wasm32-wasip1-threads` | 1.37 MB raw for the full binding | emnapi + workers | | fails: `postMessage` of the shared memory throws `DataCloneError: SharedArrayBuffer transfer requires self.crossOriginIsolated` (creating the shared memory itself is allowed) |
+| napi `wasm32-wasip1` (no threads), deferred loader `instantiate(module)` | 99 KB (239 KB raw) | 85 KB (emnapi runtime, 513 KB raw) | ~184 KB | works: plan and typed error envelope |
+| wasm-bindgen (`wasm32-unknown-unknown`, `--target web`) | 74 KB (171 KB raw) | 2 KB | ~76 KB | works: plan and typed error envelope |
+
+Other findings:
+
+- Size follows content, not toolchain: exposing the evaluator and parser too
+  makes both variants about 1.35 MB raw / 465 KB gzip (the `regex` crate
+  dominates). Keep the browser surface to what `@rapiq/core` calls.
+- napi's `wasm32-wasip1` is also the automatic Node fallback of the
+  generated loader (`@rapiq/core-wasm32-wasip1`, for platforms without a
+  native addon), so it is built in any case; using it for browsers too means
+  one WASM artifact and one pipeline. wasm-bindgen means a second binding
+  crate (about 20 lines over `api.rs`) and a second WASM artifact, for a
+  browser payload about 2.4x smaller.
+- napi's WASM build needs `emnapi` 2.x (alpha at the time: `emnapi`,
+  `@emnapi/core`, `@emnapi/runtime` `2.0.0-alpha.6`) and
+  `@napi-rs/wasm-runtime` 1.x; v1 of emnapi fails to link
+  (`emnapi_create_env` not found).
+- Both loaders are asynchronous in browsers (fetch plus compile), which
+  confirms the need for `ready()` (or `setBinding()` with a caller-supplied
+  binding).
+
+Recommendation: `ready()` plus napi `wasm32-wasip1` (deferred loader) for
+browsers, because it is the Node fallback anyway; switch the browser build
+to wasm-bindgen if the ~108 KB gzip difference matters for client bundles.
+
 **D3. `adapter-sql`'s extension surface.** Its exported base classes,
 including protected members, are subclassed by `adapter-typeorm` and
 documented as an external extension point. Options:
