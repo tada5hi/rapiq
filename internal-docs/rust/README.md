@@ -1,10 +1,19 @@
-# Rust core (proof of concept)
+# Rust core and bindings
 
-A spike for moving rapiq's language-neutral logic into a Rust core with
-bindings for TypeScript, Python and (later) Scala. Findings, measurements
-and the go/no-go recommendation live in [SPIKE.md](SPIKE.md); the phased plan
-for building the TypeScript packages on top of the Rust core is
-[MIGRATION.md](MIGRATION.md).
+rapiq is moving its language-neutral logic into a Rust core with bindings for
+TypeScript (Node and browsers), Python and later the JVM. This directory
+holds the notes:
+
+| Document | What |
+|----------|------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Target structure, names, packaging per ecosystem, umbrellas, the binding pattern, the boundary, hooks |
+| [DECISIONS.md](DECISIONS.md) | Dated decision log: settled, adopted, proposed and open, with rejected alternatives |
+| [MIGRATION.md](MIGRATION.md) | The phases, open decisions and risks |
+| [SPIKE.md](SPIKE.md) | The proof of concept: findings and measurements |
+| [SCALA.md](SCALA.md) | JVM binding design note |
+| this file | What exists today and how to build and run it |
+
+External learnings: `.agents/references/rolldown.md`, `.agents/references/node-rs.md`.
 
 The Rust crates and bindings are not published yet, and they are not part of
 the npm workspaces or the Nx graph: `npm run build`, `npm run test` and
@@ -24,18 +33,19 @@ conformance/                 fixtures shared by every ecosystem
 internal-docs/               design notes (this file)
 ```
 
-Only `core` has a Rust and a Python part so far. Each package owns its
-bindings (decided 2026-10-09): the napi-rs crate of a package lives inside its
-npm package, at `packages/<package>/node/binding`, and will ship through
-per-platform npm packages (`@rapiq/<package>-<platform>`). Crate names keep the
-`rapiq-` prefix because crates.io has no namespaces; `cargo -p` takes that
-name.
+Only `core` has a Rust and a Python part so far; the umbrellas
+(`packages/rapiq/{rust,python,node}`) and the shared binding-support crate are
+planned (see ARCHITECTURE.md). Each package owns its bindings (R7): the
+napi-rs crate of a package lives inside its npm package, at
+`packages/<package>/node/binding`, and will ship through per-platform npm
+packages (`@rapiq/<package>-<platform>`). Crate names keep the `rapiq-`
+prefix because crates.io has no namespaces; `cargo -p` takes that name.
 
 | Path | Crate | What |
 |------|-------|------|
 | `packages/core/rust` | `rapiq-core` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
 | `packages/core/node/binding` | `rapiq-core-node` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects; not yet wired into `@rapiq/core` |
-| `packages/core/python` | `rapiq-core-py` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`src/rapiq/__init__.py`, Python's src layout next to the Rust `src/lib.rs`) |
+| `packages/core/python` | `rapiq-core-py` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`src/rapiq/__init__.py`, Python's src layout next to the Rust `src/lib.rs`); renamed to distribution `rapiq-core`, import `rapiq.core`, in phase 0 (R11) |
 | `conformance/` | | Shared fixtures (`fixtures/*.json`), their generator (`scripts/generate.ts`), the TS side of the IR (`src/ir.ts`), the vitest suite running the TS reference and the Rust binding side by side, and the Node benchmark |
 
 ## The IR

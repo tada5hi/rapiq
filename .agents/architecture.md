@@ -319,3 +319,28 @@ An operand denoting no instant raises `AdapterError` with `ErrorCode.KEY_VALUE_I
 - **rapiq does not use, and must not adopt, an error-GROUP mechanism** (ebec's `errors: Error[]` and `isBaseErrorGroup`). Everything rapiq aggregates is a rejection of client input, which is DATA (a code, a path, a message), so the carrier is `Issue[]`. An `Error` per rejection buys a stack pointing into rapiq's own allow-list check for something that is not a bug, and costs an allocation per rejected key. Declaring the group contract without filling it is worse still: ebec-aware tooling would call `isBaseErrorGroup` on a failure carrying twelve rejections, get `false`, and hide them. If ebec is ever adopted, take the brand utilities (`markInstanceof`/`matchesInstanceof`/`serializeInstanceofChain`), never `BaseError` itself.
 - The trace is a driver argument on `parseParameter`, never a parse option: a caller able to supply one could switch off the failure policy and get back a query still carrying what a validate hook rejected. Whoever begins a trace finishes it, structural aborts included (`recordFailure`).
 - Relation pruning always runs, so the index policies judge the tree that would execute (the keys a rejected relation drags along never surface as index violations of their own); only pruning's `SCHEMA_PRESERVED_CONDITION_PRUNED` refusal is suppressed once the trace has failed, so a structural conflict found while cleaning up cannot displace the rejection. A parameter's index policy is skipped only after that same parameter's prior failure, so independent `filters` and `sorts` index violations remain visible. A `ParseError` a validate hook throws is caught like a structural abort and becomes an issue at the parameter root (accepted 2026-08-16).
+
+## Rust core and bindings (in progress)
+
+rapiq is moving its language-neutral logic into a Rust core with bindings per
+ecosystem. Notes live in `internal-docs/rust/`: `ARCHITECTURE.md` (target
+structure, names, packaging, the binding pattern, the JSON boundary, hooks),
+`DECISIONS.md` (dated log), `MIGRATION.md` (phases). Settled, do not
+re-litigate without a new maintainer decision (dates 2026-10-08/09):
+
+- One Rust implementation; the TS packages become façades over it. Only
+  `adapter-typeorm`, `adapter-prisma`, `adapter-drizzle` keep their own code.
+- napi on Node, WASM fallback elsewhere; coarse JSON calls, one per
+  parse/merge/plan/render.
+- Layout `packages/<package>/<ecosystem>` (`node`, `rust`, `python`); folder
+  names without the `rapiq-` prefix, published names with it.
+- Bindings per package (napi crate in `packages/<package>/node/binding`), npm
+  binaries as generated per-platform packages `@rapiq/<package>-<platform>`.
+  Consequence: only JSON crosses between packages.
+- Python: one wheel per part (`rapiq-core`, ...), imports under the `rapiq.`
+  namespace; one umbrella per language at `packages/rapiq/<ecosystem>`
+  (Cargo features, Python extras, npm all-in-one).
+- Each phase deletes the TS it replaces, and ships only when every affected
+  package's existing tests pass unchanged; fixtures are extended before
+  porting, never after.
+

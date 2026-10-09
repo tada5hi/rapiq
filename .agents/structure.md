@@ -9,10 +9,12 @@ packages/<package>/python    PyPI package (PyO3 binding)
 packages/<package>/node/binding   napi-rs crate of the package (not a workspace)
 packages/docs                VitePress documentation site (no ecosystem level)
 conformance/                 fixtures shared by the TS reference and the Rust port
-internal-docs/rust/          Rust core notes: layout, spike findings, migration plan
+internal-docs/rust/          Rust core notes: architecture, decisions, migration plan
 ```
 
-Only `core` has `rust`, `python` and `node/binding` so far. Every npm package follows the same layout: `src/` (source), `test/` (vitest config + specs), `dist/` (build output, gitignored).
+Only `core` has `rust`, `python` and `node/binding` so far. Planned (see
+`internal-docs/rust/ARCHITECTURE.md`): the umbrellas `packages/rapiq/{rust,python,node}`,
+`packages/binding-support/rust`, and per-package `fixtures/`. Every npm package follows the same layout: `src/` (source), `test/` (vitest config + specs), `dist/` (build output, gitignored).
 
 ## Packages & Libraries
 
