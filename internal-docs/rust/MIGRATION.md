@@ -35,9 +35,15 @@ with only what `@rapiq/core` calls (239 KB raw), loaded in browsers by
 `ready()` from the browser entry and used by the generated loader as the
 Node fallback. All ten package suites pass on it in Node
 (`NAPI_RS_FORCE_WASI=true`), and `conformance/scripts/browser.ts` runs
-the public API in Chromium on a non-isolated page. Open: CI by target
-(P5), release wiring, the wasm-bindgen size tracking, IR for the
-parameters beyond filters (lands with the phases that need it).
+the public API in Chromium on a non-isolated page. CI by target (P5) and
+the release wiring (D6) are in place: `rust.yml` builds and tests every
+target (native, musl in Docker, WASM in Node and Chromium, Python) and
+tracks the wasm-bindgen size; `release.yml` calls it and publishes the
+platform packages before the TypeScript packages; crates and PyPI follow
+once trusted publishing is set up (see [README.md](README.md#ci-and-releases)).
+Open: the first manual crates.io publish and the trusted publishers
+(maintainer), the npm umbrella (D7), IR for the parameters beyond filters
+(lands with the phases that need it).
 
 - IR v1 for all parameters and for schemas. `schema.describe()` already
   serializes the declarative part; extend it with `mapping`, `schemaMapping`,

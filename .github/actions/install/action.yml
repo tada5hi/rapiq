@@ -26,10 +26,10 @@ runs:
             with:
                 path: |
                     node_modules
-                    */*/node_modules
-                key: ${{ runner.os }}-install-${{ hashFiles('**/package.json') }}
+                    packages/*/node/node_modules
+                key: ${{ runner.os }}-${{ runner.arch }}-install-${{ hashFiles('**/package.json') }}
                 restore-keys: |
-                    ${{ runner.os }}-install-
+                    ${{ runner.os }}-${{ runner.arch }}-install-
 
         -   name: Install
             shell: bash

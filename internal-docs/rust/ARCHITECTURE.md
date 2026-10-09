@@ -32,7 +32,7 @@ packages/core/node               @rapiq/core: public TS API (classes, visitor
                                  interfaces, defineQuery/defineSchema, error
                                  classes, hook driving); logic delegated to
 packages/core/node/binding         rapiq-core-node ─┐ @rapiq/core-<platform>
-                                                    ┘ @rapiq/core-wasm32-wasi
+                                                    ┘ @rapiq/core-wasm32-wasip1
 packages/core/python             rapiq-core (PyPI), import rapiq.core
 packages/core/jvm                JNI binding (later, see SCALA.md)
 
@@ -65,7 +65,7 @@ the registry has no namespaces (R6).
 
 | Package | npm | crates.io | PyPI | Python import |
 |---------|-----|-----------|------|---------------|
-| core | `@rapiq/core` (+ `@rapiq/core-<platform>`, `@rapiq/core-wasm32-wasi`) | `rapiq-core` | `rapiq-core` | `rapiq.core` |
+| core | `@rapiq/core` (+ `@rapiq/core-<platform>`, `@rapiq/core-wasm32-wasip1`) | `rapiq-core` | `rapiq-core` | `rapiq.core` |
 | parser-mongo | `@rapiq/parser-mongo` (+ platform packages) | `rapiq-parser-mongo` | `rapiq-parser-mongo` | `rapiq.parser_mongo` |
 | adapter-typeorm | `@rapiq/adapter-typeorm` | | | |
 | umbrella | `rapiq` (D7) | `rapiq` | `rapiq` | (namespace only) |
@@ -77,7 +77,7 @@ the registry has no namespaces (R6).
   in its `package.json` (P1). `@napi-rs/cli` builds the addon, generates the
   loader and type declarations (committed, ESM; P2), and at publish time the
   platform packages, which become optional dependencies. The WASM build is
-  published as `@rapiq/<package>-wasm32-wasi` (toolchain: D2).
+  published as `@rapiq/<package>-wasm32-wasip1` (toolchain: D2).
 - **crates.io**: the part crates `rapiq-<package>` and the umbrella `rapiq`
   are published; binding crates are not.
 - **PyPI** (R11): one abi3 wheel per platform per part, plus the umbrella

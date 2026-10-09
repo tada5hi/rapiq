@@ -54,3 +54,38 @@
 | bcrypt's `api.cjs` + `index.js` / `browser-entry.js` | P3 (`src/module.ts`, `src/index.ts`, `src/browser.ts`) | adopt |
 | build per target, test per platform, one publish job | P5 | adopt |
 | lerna independent versions | release-please linked versions | rapiq packages move in lockstep (D6) |
+
+## `@napi-rs/cli` 3.10.8 publish commands (read 2026-10-09)
+
+Source: `node_modules/@napi-rs/cli/dist/cli.js` (`collectArtifactsUnlocked`,
+`prePublish`, `planThreadlessWasiRootFacade`). Used by rapiq's
+`.github/workflows/release.yml`.
+
+- `napi create-npm-dirs --npm-dir npm`: one directory per target with a
+  generated `package.json` (name `<packageName>-<platformArchABI>`, `os`,
+  `cpu`, `libc`, `publishConfig.access` only, no `tag`). The `wasm32-wasip1`
+  package has no `cpu`/`os` and depends on `@napi-rs/wasm-runtime` and the
+  emnapi packages.
+- `napi artifacts --output-dir artifacts --npm-dir npm`: copies every
+  `<binaryName>.<platformArchABI>.node|.wasm` into its npm directory AND into
+  the package root, copies the WASI glue (`*.wasip1.cjs`, `-browser.js`,
+  `-deferred.js` and their declarations) from the artifact directory, writes
+  a root `browser.js`, and requires the loader the WASI metadata names
+  (`--js index.cjs`) beside the artifacts or in the package root. rapiq's
+  loader lives in `binding/`, so the release copies it into `artifacts/`.
+  It tolerates a `*.debug.wasm` beside the artifacts.
+- `napi pre-publish --npm-dir npm --tag-style npm --no-gh-release`: validates
+  each platform package with `npm pack --dry-run`, runs a plain
+  `npm publish` in a staged copy of each (so `NPM_CONFIG_TAG` selects the
+  dist-tag; "cannot publish over the previously published versions" is
+  skipped, so a re-run is safe), and rewrites the root `package.json`:
+  `optionalDependencies` for the native targets only (not the WASM package),
+  plus, for a threadless WASI target, a "root facade" (`./workerd`, `./wasm`,
+  `./wasm.wasm` exports, the `.wasm` copied into the root and added to
+  `files`). There is no switch for the facade. `--dry-run` touches nothing
+  and publishes nothing, so it verifies little; to test the real path, put a
+  stub `npm` that swallows `publish` first in `PATH`.
+
+Differences from rapiq's usage: node-rs commits `browser.js` and the WASI
+glue in the package root; rapiq generates them into `binding/` and keeps
+them out of git, and uploads them from the CI `wasm` job.

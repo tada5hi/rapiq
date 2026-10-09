@@ -1,7 +1,10 @@
-# CI for the Rust crates and their bindings (packages/*/rust, packages/*/python,
-# packages/*/node/binding). Runs beside the main CI;
-# the TypeScript packages are built here only because the conformance suite
-# compares the Rust binding against them.
+# CI for the Rust crates and their bindings (packages/*/rust,
+# packages/*/node/binding, packages/*/python). Runs beside the main CI.
+#
+# Organized by target, not by package (P5 in internal-docs/rust/DECISIONS.md):
+# every platform builds its own addon natively and runs the TypeScript
+# suites and the conformance suite on it; the built bindings are uploaded
+# (`bindings-<target>`) for the release to publish.
 
 name: Rust
 
@@ -10,6 +13,8 @@ on:
         branches: [develop, master, next, beta, alpha]
     pull_request:
         branches: [develop, master, next, beta, alpha]
+    # the release workflow builds the bindings it publishes through this
+    workflow_call:
 
 permissions:
     contents: read
@@ -37,7 +42,7 @@ jobs:
             -   name: Clippy
                 run: cargo clippy --workspace --all-targets -- -D warnings
 
-            # unit tests, the README doctest and both conformance fixture suites
+            # unit tests, README doctests and the fixture suites
             -   name: Test
                 run: cargo test --workspace
 
@@ -45,14 +50,117 @@ jobs:
             -   name: Package (crates.io dry run)
                 run: cargo publish --workspace --dry-run
 
-    node:
-        name: Node binding (${{ matrix.os }})
+    platform:
+        name: Binding ${{ matrix.target }}
         needs: [core]
-        runs-on: ${{ matrix.os }}
+        runs-on: ${{ matrix.runner }}
         strategy:
             fail-fast: false
             matrix:
-                os: [ubuntu-latest, macos-latest, windows-latest]
+                include:
+                    -   { target: x86_64-unknown-linux-gnu, runner: ubuntu-latest }
+                    -   { target: aarch64-unknown-linux-gnu, runner: ubuntu-24.04-arm }
+                    -   { target: aarch64-apple-darwin, runner: macos-latest }
+                    -   { target: x86_64-pc-windows-msvc, runner: windows-latest }
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Install
+                uses: ./.github/actions/install
+                with:
+                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+            # builds every package; @rapiq/core builds its addon natively
+            -   name: Build
+                uses: ./.github/actions/build
+
+            -   name: Test
+                run: npm run test
+
+            # every fixture against the TypeScript reference and the Rust
+            # binding side by side
+            -   name: Conformance
+                working-directory: conformance
+                run: npx vitest run --config test/vitest.config.ts
+
+            -   name: Upload binding
+                uses: actions/upload-artifact@v4
+                with:
+                    name: bindings-${{ matrix.target }}
+                    path: packages/core/node/binding/*.node
+                    if-no-files-found: error
+
+    darwin-x64:
+        name: Binding x86_64-apple-darwin (cross build)
+        needs: [core]
+        runs-on: macos-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Install
+                uses: ./.github/actions/install
+                with:
+                    node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+            -   name: Rust toolchain
+                uses: actions-rust-lang/setup-rust-toolchain@v1
+                with:
+                    target: x86_64-apple-darwin
+
+            # Intel macs: built on the arm64 runner, not executed here
+            -   name: Build binding
+                run: npm run build:binding --workspace=packages/core/node -- --target x86_64-apple-darwin
+
+            -   name: Upload binding
+                uses: actions/upload-artifact@v4
+                with:
+                    name: bindings-x86_64-apple-darwin
+                    path: packages/core/node/binding/*.node
+                    if-no-files-found: error
+
+    musl:
+        name: Binding ${{ matrix.target }}
+        needs: [core]
+        runs-on: ${{ matrix.runner }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -   { target: x86_64-unknown-linux-musl, runner: ubuntu-latest }
+                    -   { target: aarch64-unknown-linux-musl, runner: ubuntu-24.04-arm }
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            # GitHub's JavaScript actions do not run inside Alpine containers,
+            # so the whole musl build and test runs through docker run
+            -   name: Build and test in Alpine
+                run: |
+                    docker run --rm -v "${{ github.workspace }}:/build" -w /build node:22-alpine sh -euc '
+                        apk add --no-cache bash build-base curl git python3
+                        curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+                        . "$HOME/.cargo/env"
+                        rustup toolchain install
+                        npm ci
+                        npm run build
+                        npm run test --workspace=packages/core/node
+                        npm run test --workspace=packages/adapter-memory/node
+                        cd conformance && npx vitest run --config test/vitest.config.ts
+                    '
+
+            -   name: Upload binding
+                uses: actions/upload-artifact@v4
+                with:
+                    name: bindings-${{ matrix.target }}
+                    path: packages/core/node/binding/*.node
+                    if-no-files-found: error
+
+    wasm:
+        name: Binding wasm32-wasip1 (Node fallback and browser)
+        needs: [core]
+        runs-on: ubuntu-latest
         steps:
             -   name: Checkout
                 uses: actions/checkout@v7
@@ -65,18 +173,57 @@ jobs:
             -   name: Build
                 uses: ./.github/actions/build
 
-            -   name: Rust toolchain
-                uses: actions-rust-lang/setup-rust-toolchain@v1
+            -   name: WASM targets
+                run: rustup target add wasm32-wasip1 wasm32-unknown-unknown
 
-            -   name: Build binding
-                working-directory: packages/core/node/binding
-                run: npm run build
+            -   name: Build WASM binding
+                run: npm run build:binding:wasm --workspace=packages/core/node
 
-            # every fixture against the TypeScript reference and the Rust
-            # binding side by side
-            -   name: Conformance
-                working-directory: conformance
-                run: npx vitest run --config test/vitest.config.ts
+            # every package suite on the WASM binding; vitest directly, since
+            # the flag would also switch Nx's own napi binding to WASM
+            -   name: Test on the WASM binding
+                env:
+                    NAPI_RS_FORCE_WASI: 'true'
+                run: |
+                    for package in packages/*/node; do
+                        echo "::group::${package}"
+                        (cd "${package}" && npx vitest --config test/vitest.config.ts --run)
+                        echo "::endgroup::"
+                    done
+
+            # the public API in a real browser, on a page WITHOUT cross-origin
+            # isolation (an ordinary site)
+            -   name: Browser
+                env:
+                    PLAYWRIGHT_CHROMIUM: /usr/bin/google-chrome
+                run: |
+                    npm i --no-save playwright-core
+                    node --experimental-strip-types conformance/scripts/browser.ts
+
+            # D2: the wasm-bindgen build is not shipped, only measured
+            -   name: Size report (napi wasip1 versus wasm-bindgen)
+                run: |
+                    cargo install wasm-bindgen-cli --version 0.2.106 --locked
+                    cargo build --release -p rapiq-core-wasm-bindgen --target wasm32-unknown-unknown
+                    wasm-bindgen --target web --out-dir target/wasm-bindgen \
+                        target/wasm32-unknown-unknown/release/rapiq_core_wasm_bindgen.wasm
+                    size() { echo "$(wc -c < "$1") B raw, $(gzip -9 -c "$1" | wc -c) B gzip"; }
+                    {
+                        echo "### WASM payload of the browser surface"
+                        echo "| Build | .wasm | JS glue |"
+                        echo "|---|---|---|"
+                        echo "| napi wasm32-wasip1 (shipped) | $(size packages/core/node/binding/rapiq-core.wasm32-wasip1.wasm) | $(size packages/core/node/binding/rapiq-core.wasip1-browser.js) (plus emnapi runtime) |"
+                        echo "| wasm-bindgen (measured only) | $(size target/wasm-bindgen/rapiq_core_wasm_bindgen_bg.wasm) | $(size target/wasm-bindgen/rapiq_core_wasm_bindgen.js) |"
+                    } >> "$GITHUB_STEP_SUMMARY"
+
+            -   name: Upload binding
+                uses: actions/upload-artifact@v4
+                with:
+                    name: bindings-wasm32-wasip1
+                    path: |
+                        packages/core/node/binding/rapiq-core.wasm32-wasip1.wasm
+                        packages/core/node/binding/*.wasip1*
+                    if-no-files-found: error
 
     python:
         name: Python binding (${{ matrix.python }})

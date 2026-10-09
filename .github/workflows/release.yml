@@ -22,10 +22,11 @@ defaults:
         shell: bash
 
 jobs:
-    release:
-        name: Release
+    release-please:
+        name: Release Please
         runs-on: ubuntu-latest
-
+        outputs:
+            should_publish: ${{ steps.flags.outputs.should_publish }}
         steps:
             -   uses: googleapis/release-please-action@v5
                 if: github.event_name == 'push'
@@ -42,45 +43,100 @@ jobs:
                         echo "should_publish=${{ steps.release.outputs.releases_created }}" >> "$GITHUB_OUTPUT"
                     fi
 
+    # every native binding and the WASM build, built and tested by the same
+    # matrix CI runs; uploads `bindings-<target>` into this run
+    bindings:
+        name: Bindings
+        needs: [release-please]
+        if: needs.release-please.outputs.should_publish == 'true'
+        permissions:
+            contents: read
+        uses: ./.github/workflows/rust.yml
+
+    publish:
+        name: Publish
+        needs: [release-please, bindings]
+        if: needs.release-please.outputs.should_publish == 'true'
+        runs-on: ubuntu-latest
+        steps:
             -   name: Checkout
-                if: steps.flags.outputs.should_publish == 'true'
                 uses: actions/checkout@v7
                 with:
                     fetch-depth: 0
 
             -   name: Configure Git
-                if: steps.flags.outputs.should_publish == 'true'
                 run: |
                     git config user.name "$GITHUB_ACTOR"
                     git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
             -   name: Install
-                if: steps.flags.outputs.should_publish == 'true'
                 uses: ./.github/actions/install
                 with:
                     node-version: ${{ env.NODE_VERSION }}
+                    registry-url: 'https://registry.npmjs.org'
 
             -   name: Build
-                if: steps.flags.outputs.should_publish == 'true'
                 uses: ./.github/actions/build
 
+            # the committed napi loader embeds the version it checks the
+            # platform packages against, and release-please has just bumped
+            # it; the build above is skipped on a cache hit
+            -   name: Regenerate the napi loader
+                run: npm run build:binding --workspace=packages/core/node
+
             -   name: Lint
-                if: steps.flags.outputs.should_publish == 'true'
                 run: npm run lint
 
             -   name: Test with coverage
-                if: steps.flags.outputs.should_publish == 'true'
                 run: npm run test:coverage
 
             -   name: Upload coverage report
-                if: steps.flags.outputs.should_publish == 'true'
                 uses: codecov/codecov-action@v7.0.0
                 with:
                     token: ${{ secrets.codecov }}
                     directory: ./packages
 
+            -   name: Download bindings
+                uses: actions/download-artifact@v4
+                with:
+                    pattern: bindings-*
+                    path: packages/core/node/artifacts
+                    merge-multiple: true
+
+            # @rapiq/core-<platform> and @rapiq/core-wasm32-wasip1, generated
+            # from the napi block of @rapiq/core and published before it (its
+            # package.json gains them as optionalDependencies), under the same
+            # dist-tag as @rapiq/core. napi artifacts also copies the WASM glue
+            # and expects the loader beside the artifacts; the copies it leaves
+            # in the package root are outside "files" and not published.
+            -   name: Publish platform packages
+                working-directory: packages/core/node
+                env:
+                    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                run: |
+                    cp binding/index.cjs artifacts/
+                    npx napi create-npm-dirs --npm-dir npm
+                    npx napi artifacts --output-dir artifacts --npm-dir npm
+                    NPM_CONFIG_TAG=$(node -p "require('./package.json').publishConfig?.tag ?? 'latest'") \
+                        npx napi pre-publish --npm-dir npm --tag-style npm --no-gh-release
+
             -   name: Publish
-                if: steps.flags.outputs.should_publish == 'true'
                 uses: tada5hi/monoship@v2.2.0
                 with:
                     token: ${{ secrets.NPM_TOKEN }}
+
+    # crates.io (rapiq-core, rapiq) and PyPI (rapiq-core, rapiq), in lockstep
+    # with the npm packages (D6). Off until trusted publishing is set up and
+    # the repository variable RUST_RELEASE is 'true' (see
+    # internal-docs/rust/README.md).
+    rust-release:
+        name: Rust and Python release
+        needs: [release-please, publish]
+        if: needs.release-please.outputs.should_publish == 'true' && vars.RUST_RELEASE == 'true'
+        permissions:
+            contents: read
+            id-token: write
+        uses: ./.github/workflows/rust-release.yml
+        with:
+            target: all
+            dry-run: false

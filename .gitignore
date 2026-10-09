@@ -21,3 +21,7 @@ target
 .venv
 __pycache__
 *.abi3.so
+
+# napi platform packages and downloaded bindings (generated at release)
+packages/*/node/npm
+packages/*/node/artifacts

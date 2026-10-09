@@ -2,23 +2,35 @@
 # rapiq) and the Python distributions to PyPI (rapiq-core wheels and sdist,
 # the umbrella rapiq).
 #
-# Manually triggered for now (name reservation and pre-releases); it joins the
-# release-please flow later in phase 0 of internal-docs/rust/MIGRATION.md.
-# Both registries use trusted publishing (OIDC), so no API token is stored in
-# the repository:
+# Runs by hand (name reservation, pre-releases, dry runs) and as the last
+# step of release.yml once the repository variable RUST_RELEASE is 'true'
+# (lockstep with the npm packages, D6). Both registries use trusted
+# publishing (OIDC), so no API token is stored in the repository. A called
+# workflow runs under its caller, so each registry gets both workflow files
+# as trusted publishers: release.yml and rust-release.yml.
 #
 # - crates.io: a crate must exist before a trusted publisher can be added, so
 #   the very first release of `rapiq-core` and of `rapiq` is a manual
-#   `cargo publish`. Then add this repository + workflow under each crate's
-#   settings, "Trusted Publishing".
-# - PyPI: add a "pending publisher" for each project, `rapiq-core` and `rapiq`
-#   (owner tada5hi, repository rapiq, workflow rust-release.yml, environment
-#   pypi), before the first run; each turns into the project's publisher on
-#   first upload.
+#   `cargo publish`. Then add this repository and both workflows under each
+#   crate's settings, "Trusted Publishing".
+# - PyPI: add "pending publishers" for each project, `rapiq-core` and `rapiq`
+#   (owner tada5hi, repository rapiq, environment pypi; once per workflow)
+#   before the first run; they turn into the project's publishers on first
+#   upload.
 
 name: Rust release
 
 on:
+    # called by the release workflow once trusted publishing is set up
+    # (repository variable RUST_RELEASE=true)
+    workflow_call:
+        inputs:
+            target:
+                type: string
+                default: 'all'
+            dry-run:
+                type: boolean
+                default: true
     workflow_dispatch:
         inputs:
             target:

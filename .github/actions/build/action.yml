@@ -18,7 +18,7 @@ runs:
                 path: |
                     **/dist/**
                     packages/*/node/binding/*.node
-                key: ${{ runner.os }}-build-${{ github.sha }}
+                key: ${{ runner.os }}-${{ runner.arch }}-build-${{ github.sha }}
 
         -   name: Build
             shell: bash
