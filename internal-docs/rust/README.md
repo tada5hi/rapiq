@@ -45,7 +45,7 @@ prefix because crates.io has no namespaces; `cargo -p` takes that name.
 | Path | Crate | What |
 |------|-------|------|
 | `packages/core/rust` | `rapiq-core` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
-| `packages/core/node/binding` | `rapiq-core-node` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects; not yet wired into `@rapiq/core` |
+| `packages/core/node/binding` | `rapiq-core-node` | napi-rs binding (`src/lib.rs`), loaded by `@rapiq/core`; `napi build` writes the committed loader `index.cjs` and declarations `index.d.cts` next to it, plus the gitignored addon `rapiq-core.<platform>.node` |
 | `packages/core/python` | `rapiq-core-py` | PyO3 / maturin binding, PyPI distribution `rapiq-core`: native module `rapiq.core._native` plus the `rapiq.core` package (`src/rapiq/core/__init__.py`, Python's src layout next to the Rust `src/lib.rs`; no `src/rapiq/__init__.py`, `rapiq` is a namespace, R11) |
 | `packages/binding-support/rust` | `rapiq-binding-support` | Shared by every binding: mimalloc global allocator, `ErrorPayload` (P4) |
 | `packages/rapiq/rust` | `rapiq` | Umbrella crate: re-exports the parts, selected by features (`core` default) (R10) |
@@ -70,16 +70,17 @@ conversion per AST node. Filter trees use an explicit `type` discriminant:
 
 ## Running it
 
-Prerequisites: a Rust toolchain, Node 22, Python 3.9+ and a built monorepo
-(`npm ci && npm run build`).
+Prerequisites: a Rust toolchain (`rust-toolchain.toml` pins it), Node 22,
+Python 3.9+ and a built monorepo (`npm ci && npm run build`; building
+`@rapiq/core` also builds its napi addon).
 
 ```bash
 # Rust: unit tests + both fixture suites
 cargo test --workspace
 
-# Node binding: build rapiq.node, then run the fixtures against the TS
-# reference and the Rust binding side by side
-(cd packages/core/node/binding && npm run build)
+# Node binding: (re)build the addon and loader, then run the fixtures
+# against the TS reference and the Rust binding side by side
+npm run build:binding --workspace=packages/core/node
 (cd conformance && npx vitest run --config test/vitest.config.ts)
 
 # Python: build the rapiq-core wheel and the umbrella into a virtualenv,
@@ -91,9 +92,11 @@ pip install maturin build pytest
 pip install --no-index --find-links packages/core/python/dist --find-links packages/rapiq/python/dist rapiq
 (cd packages/core/python && python -m pytest)
 
-# Regenerate the fixtures from the TS reference (re-checks every
-# hand-written verdict against @rapiq/adapter-memory)
-node --experimental-strip-types conformance/scripts/generate.ts
+# Regenerate the fixtures (packages/*/fixtures). The plan fixtures were
+# snapshotted from the TS planCondition before it moved to Rust; with the
+# lowering in Rust, regenerating them only reproduces the Rust output, so
+# extend them with new cases rather than regenerating wholesale.
+TZ=UTC node --experimental-strip-types conformance/scripts/generate.ts
 
 # Benchmarks
 cargo run --release -p rapiq-core --example profile
@@ -103,8 +106,13 @@ python packages/core/python/scripts/bench.py
 
 ## Using the bindings
 
-```js
-import { compileFilters, parseExpressionFilters } from './packages/core/node/binding/index.js';
+From TypeScript the binding is internal: `planCondition` and
+`distributeNegation` of `@rapiq/core` call it. The proof-of-concept
+expression parser and evaluator are reachable through the conformance
+wrapper (`conformance/src/rust.ts`):
+
+```ts
+import { compileFilters, parseExpressionFilters } from './conformance/src/rust';
 
 const filters = parseExpressionFilters("and(eq(name, 'Peter'), gte(age, '18'))");
 const adults = compileFilters(filters).filter(users); // the caller's own objects

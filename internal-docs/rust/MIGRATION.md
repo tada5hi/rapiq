@@ -28,7 +28,10 @@ generated from the TS reference before it is deleted.
 
 Progress (2026-10-09): done: workspace hygiene (P6), `binding-support` (P4),
 the Python rename to `rapiq-core` / `rapiq.core` (R11), the Rust and Python
-umbrellas (R10). In progress: the remaining items below.
+umbrellas (R10), fixtures per package (P7), `toIR`/`fromIR` with the value
+table in `@rapiq/core` (R13), and the napi binding inside `@rapiq/core`
+(P1, P2, P3, R14). Open: WASM (D2), CI by target (P5), release wiring, IR
+for the parameters beyond filters (lands with the phases that need it).
 
 - IR v1 for all parameters and for schemas. `schema.describe()` already
   serializes the declarative part; extend it with `mapping`, `schemaMapping`,
@@ -77,15 +80,26 @@ binding loaded but not yet used by the TS API.
 
 ### Phase 1: filter semantics
 
-Port: `FILTER_OPERATOR_SEMANTICS`, `planCondition`, `distributeNegation`,
-`interpretPlan` dispatch (the support matrix), `Filters.flatten`. The spike
-already covers `planCondition`.
+Done 2026-10-09 for Node: `planCondition` and `distributeNegation` run in
+Rust; all ten package test suites pass unchanged; 221 plan fixtures
+(`packages/core/fixtures/plan.json`) pin plans, distributed plans and
+refusals (exact messages) against the former TS implementation. Browsers
+still need the WASM binding (D2) before this can ship.
+
+Port: `FILTER_OPERATOR_SEMANTICS`, `planCondition`, `distributeNegation`.
+Kept in TypeScript on purpose: `interpretPlan` (dispatch to TS
+interpreters, no semantics of its own), `Filters.flatten` (a structural
+utility of the class), and `FILTER_OPERATOR_SEMANTICS` as a synchronous
+mirror of the Rust table, pinned to it by a test.
 
 TS after: `planCondition(condition, options)` = `fromPlanIR(binding.plan(toIR(condition), options))`;
 `IPlanInterpreter` stays as the TS adapter contract. Consumers: sql, typeorm,
 memory, prisma, drizzle.
 
-Deleted: `packages/core/node/src/parameter/filters/plan/` (about 1,100 lines).
+Deleted: the lowering in `packages/core/node/src/parameter/filters/plan/`
+(about 550 lines of `module.ts` and `distribute.ts`); what remains is the
+binding call, the value encoding (`serialize.ts`), `interpretPlan`, the
+types and the semantics mirror.
 
 ### Phase 2: merge and build
 

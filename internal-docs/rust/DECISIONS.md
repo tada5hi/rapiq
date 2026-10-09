@@ -124,10 +124,35 @@ crates.io and PyPI publish from GitHub Actions through OIDC trusted
 publishing, without stored tokens (`.github/workflows/rust-release.yml`,
 manual until phase 0 moves it into the release-please flow).
 
+### R13. Host value references (adopted, 2026-10-09)
+
+Values JSON cannot carry faithfully (JavaScript `Date`, `RegExp`, `bigint`,
+`NaN`, `-0`, objects) cross the boundary as descriptors
+`{"$rapiq.ref": n, type, text, truthy, number?, source?, flags?, operator?}`
+holding exactly the facts the lowering reads (string conversion,
+truthiness, finite number, regex source/flags, a detached condition's
+operator). Rust echoes them untouched into its output and the host swaps
+the originals back in (`IRValueTable`). The table has two modes: `plain`
+(transport: plain objects stay JSON, `-0` becomes `0`) and `reference`
+(the in-process binding path: every object by reference, so identity and
+nested values survive). Forced by evidence: date operands are a
+documented feature, and `JSON.stringify` throws on `bigint`.
+
+### R14. Envelope for internal binding calls (adopted, 2026-10-09)
+
+Functions `@rapiq/core` calls internally return
+`{"ok":true,"value":...}` or `{"ok":false,"error":{code,message,subject}}`
+instead of throwing, so the TypeScript side rebuilds the exact typed error
+through the same factory (`AdapterError.featureUnsupported(feature)` sets
+`feature`), which a napi exception (code and message only) cannot carry.
+
 ## Proposed (phase 0, from the rolldown and node-rs reviews)
 
 Details and sources: [.agents/references/rolldown.md](../../.agents/references/rolldown.md),
 [.agents/references/node-rs.md](../../.agents/references/node-rs.md).
+
+Status 2026-10-09: P1, P2, P3, P4, P6 and P7 are adopted for `core`
+(see the notes on P2 and P3); P5 is pending.
 
 - **P1. `napi` block in each npm package's `package.json`** (binary name,
   package name `@rapiq/<package>`, targets), driving `napi build`,
@@ -137,9 +162,19 @@ Details and sources: [.agents/references/rolldown.md](../../.agents/references/r
   lets TS contributors type-check without cargo. Generate the ESM loader
   variant (rapiq packages are ESM-only), and keep the loader's check that the
   installed platform package's version matches (rolldown does this).
+  *Refined when adopted*: the CommonJS loader (`binding/index.cjs`, as
+  rolldown commits) is required lazily through `createRequire` on the first
+  call that needs Rust, which keeps `import '@rapiq/core'` free of native
+  loading and keeps `node:module` out of the browser entry. The loader bakes
+  in the package version, so the release flow regenerates it.
 - **P3. Public API as a factory over a binding**, with `src/index.ts` (native
   binding) and `src/browser.ts` (WASM package) selected by an `exports`
   `browser` condition (node-rs bcrypt pattern). Feeds D2.
+  *Adopted at the binding seam*: `src/module.ts` is the shared API,
+  `src/index.ts` (Node) registers the napi loader, `src/browser.ts`
+  (`browser` condition) gets the WASM binding; `setBinding()` lets a host
+  supply one. A call without a binding fails typed
+  (`AdapterError.bindingUnavailable`, `ErrorCode.BINDING_UNAVAILABLE`).
 - **P4. A shared binding-support crate** (`packages/binding-support/rust`):
   mimalloc global allocator (the spike measured the evaluator at 139 ms to
   77 ms with it), the JSON boundary helpers and error conversion, used by
@@ -159,3 +194,7 @@ protocol, D2 WASM in the browser (incl. napi `wasm32-wasip1-threads` versus
 wasm-bindgen), D3 `adapter-sql` extension surface, D4 `adapter-memory`
 performance, D5 error messages from Rust, D6 version coupling, D7 npm
 umbrella name.
+
+Working defaults until confirmed (2026-10-09): **D5** error messages come
+from Rust verbatim (pinned byte for byte by the plan fixtures); **D6**
+lockstep versions. D7: no npm umbrella is created until decided.

@@ -80,5 +80,15 @@
     },
     "devDependencies": {
         "@napi-rs/cli": "^3.10.8"
+    },
+    "nx": {
+        "targets": {
+            "build": {
+                "outputs": [
+                    "{projectRoot}/dist",
+                    "{projectRoot}/binding/*.node"
+                ]
+            }
+        }
     }
 }

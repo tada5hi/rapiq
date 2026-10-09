@@ -343,4 +343,9 @@ re-litigate without a new maintainer decision (dates 2026-10-08/09):
 - Each phase deletes the TS it replaces, and ships only when every affected
   package's existing tests pass unchanged; fixtures are extended before
   porting, never after.
+- Already in Rust (2026-10-09): `planCondition` and `distributeNegation`
+  (`packages/core/rust/src/plan.rs`), reached from `@rapiq/core` through
+  the lazily loaded napi binding (`src/native/`, `binding/index.cjs`).
+  Values cross as host references (`src/ir/`, `IRValueTable`), so plans
+  carry the caller's own objects. Fixtures: `packages/<package>/fixtures/`.
 

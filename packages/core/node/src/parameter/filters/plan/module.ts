@@ -6,54 +6,47 @@
  */
 
 import { AdapterError } from '../../../errors';
-import { isObject } from '../../../utils';
-import type { IFilters } from '../collection';
-import { isFilters } from '../collection';
+import { IRValueTable, toIR } from '../../../ir';
+import { callBinding } from '../../../native';
 import type { ICondition } from '../condition';
 import { ITSELF } from '../constants';
-import type { IFilter } from '../record';
-import { isFilter } from '../record';
-import { FilterRegexFlag, createFilterRegexPattern } from '../regex';
-import { FILTER_OPERATOR_SEMANTICS } from './constants';
+import { decodePlan } from './serialize';
 import type {
     ConditionPlan,
     IPlanInterpreter,
-    MatchPlan,
-    PlanCompareOperator,
     PlanConditionOptions,
 } from './types';
 
 /**
- * A condition-shaped value the built-in lowering cannot classify. This may
- * be a live custom condition or detached transport data. The check is
- * deliberately looser than the build layer's namesake: an `elemMatch`
- * interior is either a condition or nothing at all.
- */
-function isDetachedCondition(input: unknown) : boolean {
-    return isObject(input) && typeof (input as ICondition).operator === 'string';
-}
-
-/**
- * Lower a built-in condition tree into a
- * {@link ConditionPlan} with every semantic policy decision already
- * made: negation twins resolved to `negated` leaf flags, null
- * equality turned into null checks, in/nin decomposed (empty list,
- * null members), the case-fold policy verdict computed, anchored
- * operators derived into positive patterns, value shapes validated
- * and ITSELF placement checked.
+ * Lower a built-in condition tree into a {@link ConditionPlan} with every
+ * semantic policy decision already made: negation twins resolved to
+ * `negated` leaf flags, null equality turned into null checks, in/nin
+ * decomposed (empty list, null members), the case-fold policy verdict
+ * computed, anchored operators derived into positive patterns, value
+ * shapes validated and ITSELF placement checked.
  *
- * Backends interpret the plan via {@link interpretPlan} — they
- * render or compile primitives, they never re-derive operator
- * semantics.
+ * The lowering runs in the Rust core (`rapiq-core`, `plan.rs`); values
+ * cross by reference, so the plan carries the caller's own value objects.
+ * Backends interpret the plan via {@link interpretPlan}: they render or
+ * compile primitives, they never re-derive operator semantics.
  *
- * Returns `null` when the tree is empty (an empty compound
- * vanishes).
+ * Returns `null` when the tree is empty (an empty compound vanishes).
  */
 export function planCondition(
     input: ICondition,
     options: PlanConditionOptions = {},
 ) : ConditionPlan | null {
-    return new ConditionLowering(options).lower(input);
+    const table = new IRValueTable({ objects: 'reference' });
+    const condition = JSON.stringify(toIR(input, table));
+    const serializedOptions = options.caseSensitive === undefined ?
+        undefined :
+        JSON.stringify({ caseSensitive: options.caseSensitive });
+
+    const plan = callBinding<unknown>(
+        (binding) => binding.planCondition(condition, serializedOptions),
+    );
+
+    return decodePlan(plan, table);
 }
 
 /**
@@ -121,436 +114,5 @@ export function interpretPlan<R>(
                 `filters:${(plan as { kind: string }).kind}`,
             );
         }
-    }
-}
-
-// -----------------------------------------------------------
-
-class ConditionLowering {
-    protected caseSensitiveAll : boolean;
-
-    protected caseSensitiveFields : Set<string>;
-
-    protected fieldPrefix : string;
-
-    protected elementDepth : number;
-
-    constructor(options: PlanConditionOptions) {
-        this.caseSensitiveAll = options.caseSensitive === true;
-        this.caseSensitiveFields = new Set(
-            Array.isArray(options.caseSensitive) ? options.caseSensitive : [],
-        );
-        this.fieldPrefix = '';
-        this.elementDepth = 0;
-    }
-
-    // -----------------------------------------------------------
-
-    lower(input: ICondition) : ConditionPlan | null {
-        if (isFilters(input)) {
-            return this.lowerCompound(input);
-        }
-
-        if (isFilter(input)) {
-            return this.lowerLeaf(input);
-        }
-
-        throw AdapterError.conditionDetached(
-            (input as Partial<ICondition>)?.operator,
-        );
-    }
-
-    // -----------------------------------------------------------
-
-    protected lowerCompound(input: IFilters) : ConditionPlan | null {
-        let operator : 'and' | 'or';
-        let negated = false;
-
-        switch (input.operator) {
-            case 'and': {
-                operator = 'and';
-                break;
-            }
-            case 'or': {
-                operator = 'or';
-                break;
-            }
-            // group negation is the exact complement of the group
-            // verdict — the null-inclusive complement law extended
-            // from negated leaf operators to whole trees.
-            case 'nor': {
-                operator = 'or';
-                negated = true;
-                break;
-            }
-            case 'not': {
-                operator = 'and';
-                negated = true;
-                break;
-            }
-            default: {
-                throw AdapterError.operatorUnsupported(input.operator);
-            }
-        }
-
-        const children : ConditionPlan[] = [];
-        for (let i = 0; i < input.value.length; i++) {
-            const child = input.value[i];
-            if (!child) {
-                continue;
-            }
-
-            if (isFilter(child) || isFilters(child)) {
-                const plan = this.lower(child);
-                if (plan) {
-                    children.push(plan);
-                }
-
-                continue;
-            }
-
-            // a child that is not a built-in condition cannot be lowered by
-            // this consumer. Dropping it would silently widen the result set
-            // because a scoping conjunct would simply vanish.
-            throw AdapterError.conditionDetached(
-                (child as Partial<ICondition>)?.operator,
-            );
-        }
-
-        // an empty compound vanishes.
-        if (children.length === 0) {
-            return null;
-        }
-
-        // a single-child negation normalizes onto the child's own
-        // negated form where one exists (not(eq) ≙ ne — identical
-        // plan, identical rendering); only interiors without a
-        // negatable leaf form stay wrapped in a negated compound.
-        const [firstChild] = children;
-        if (negated && children.length === 1 && firstChild) {
-            return this.negatePlan(firstChild);
-        }
-
-        return {
-            kind: 'compound',
-            operator,
-            negated,
-            children,
-        };
-    }
-
-    /**
-     * The exact complement of a plan node. Leaf kinds carrying a
-     * `negated` flag flip it (their negated contract already IS the
-     * null-inclusive complement); a constant flips its verdict; a
-     * compound flips its group negation. Kinds without a negated
-     * form (ordering compare, mod, size, elemMatch) wrap in a
-     * negated single-child compound for the backend to complement.
-     */
-    protected negatePlan(plan: ConditionPlan) : ConditionPlan {
-        switch (plan.kind) {
-            case 'constant': {
-                return { ...plan, verdict: !plan.verdict };
-            }
-            case 'null-check':
-            case 'one-of':
-            case 'match': {
-                return { ...plan, negated: !plan.negated };
-            }
-            case 'compare': {
-                if (plan.op === 'eq') {
-                    return { ...plan, negated: !plan.negated };
-                }
-
-                break;
-            }
-            case 'compound': {
-                return { ...plan, negated: !plan.negated };
-            }
-            default: {
-                break;
-            }
-        }
-
-        return {
-            kind: 'compound',
-            operator: 'and',
-            negated: true,
-            children: [plan],
-        };
-    }
-
-    // -----------------------------------------------------------
-
-    protected lowerLeaf(input: IFilter) : ConditionPlan | null {
-        const semantics = FILTER_OPERATOR_SEMANTICS[
-            input.operator as keyof typeof FILTER_OPERATOR_SEMANTICS
-        ];
-        if (!semantics) {
-            throw AdapterError.operatorUnsupported(input.operator);
-        }
-
-        // the ITSELF marker addresses the element bound by an
-        // enclosing elemMatch scope; outside one it has no referent.
-        if (input.field === ITSELF && this.elementDepth === 0) {
-            throw AdapterError.featureUnsupported('filters:itself');
-        }
-
-        const negated = typeof (
-            semantics as { complementOf?: string }
-        ).complementOf === 'string';
-
-        // a single absent value: unify undefined and null so every
-        // downstream decision only reasons about null.
-        const value = input.value === undefined ? null : input.value;
-
-        switch (semantics.family) {
-            case 'equality': {
-                if (value === null) {
-                    return {
-                        kind: 'null-check', 
-                        field: input.field, 
-                        negated, 
-                        elementwise: true,
-                    };
-                }
-
-                return {
-                    kind: 'compare',
-                    field: input.field,
-                    op: 'eq',
-                    value,
-                    caseFold: semantics.foldable &&
-                        typeof value === 'string' &&
-                        this.isFoldableField(input.field),
-                    negated,
-                };
-            }
-            case 'ordering': {
-                return {
-                    kind: 'compare',
-                    field: input.field,
-                    op: input.operator as PlanCompareOperator,
-                    value,
-                    caseFold: false,
-                    negated: false,
-                };
-            }
-            case 'membership': {
-                return this.lowerMembership(input.field, value, negated, semantics.foldable);
-            }
-            case 'anchored': {
-                const anchor = (
-                    semantics as { anchor?: { start: boolean, end: boolean } }
-                ).anchor || { start: false, end: false };
-                const text = `${value}`;
-
-                let mode : 'starts' | 'ends' | 'contains';
-                let flag : number;
-                if (anchor.start) {
-                    mode = 'starts';
-                    flag = FilterRegexFlag.STARTS_WITH;
-                } else if (anchor.end) {
-                    mode = 'ends';
-                    flag = FilterRegexFlag.ENDS_WITH;
-                } else {
-                    mode = 'contains';
-                    flag = FilterRegexFlag.CONTAINS;
-                }
-
-                return {
-                    kind: 'match',
-                    field: input.field,
-                    pattern: { mode, text },
-                    regexSource: createFilterRegexPattern(text, flag),
-                    ignoreCase: semantics.foldable && this.isFoldableField(input.field),
-                    negated,
-                };
-            }
-            case 'regex': {
-                return this.lowerRegex(input.field, value);
-            }
-            case 'existence': {
-                return {
-                    kind: 'null-check', 
-                    field: input.field, 
-                    negated: !!value, 
-                    elementwise: false,
-                };
-            }
-            case 'arithmetic': {
-                return this.lowerMod(input.field, value);
-            }
-            case 'cardinality': {
-                const valid = typeof value === 'number' &&
-                    Number.isSafeInteger(value) &&
-                    value >= 0;
-
-                return {
-                    kind: 'size',
-                    field: input.field,
-                    count: valid ? value as number : null,
-                };
-            }
-            case 'structural': {
-                return this.lowerElemMatch(input);
-            }
-            default: {
-                throw AdapterError.operatorUnsupported(input.operator);
-            }
-        }
-    }
-
-    protected lowerMembership(
-        field: string,
-        value: unknown,
-        negated: boolean,
-        foldable = true,
-    ) : ConditionPlan {
-        if (!Array.isArray(value) || value.length === 0) {
-            return { kind: 'constant', verdict: negated };
-        }
-
-        const normalized = value.map(
-            (item) => (item === undefined ? null : item),
-        );
-        const values = normalized.filter((item) => item !== null);
-
-        if (values.length === 0) {
-            return {
-                kind: 'null-check', 
-                field, 
-                negated, 
-                elementwise: true,
-            };
-        }
-
-        return {
-            kind: 'one-of',
-            field,
-            values,
-            includesNull: values.length !== normalized.length,
-            caseFold: foldable && this.isFoldableField(field),
-            negated,
-        };
-    }
-
-    protected lowerRegex(field: string, value: unknown) : MatchPlan {
-        if (value instanceof RegExp) {
-            // strip the stateful flags, so repeated test() calls
-            // never depend on lastIndex.
-            const flags = value.flags.replace(/[gy]/g, '');
-
-            return {
-                kind: 'match',
-                field,
-                pattern: {
-                    mode: 'regex', 
-                    source: value.source, 
-                    flags, 
-                },
-                regexSource: value.source,
-                ignoreCase: value.ignoreCase,
-                negated: false,
-            };
-        }
-
-        // a string pattern passes through unvalidated — the
-        // consuming engine (database or RegExp) interprets it.
-        if (typeof value === 'string') {
-            return {
-                kind: 'match',
-                field,
-                pattern: {
-                    mode: 'regex', 
-                    source: value, 
-                    flags: '', 
-                },
-                regexSource: value,
-                ignoreCase: false,
-                negated: false,
-            };
-        }
-
-        throw AdapterError.featureUnsupported('filters:regex:value');
-    }
-
-    protected lowerMod(field: string, value: unknown) : ConditionPlan {
-        if (
-            !Array.isArray(value) ||
-            value.length !== 2 ||
-            typeof value[0] !== 'number' ||
-            !Number.isFinite(value[0]) ||
-            typeof value[1] !== 'number' ||
-            !Number.isFinite(value[1]) ||
-            value[0] === 0
-        ) {
-            // a malformed divisor/remainder pair matches nothing
-            // (mongo parity), on every backend.
-            return { kind: 'constant', verdict: false };
-        }
-
-        return {
-            kind: 'mod', 
-            field, 
-            divisor: value[0], 
-            remainder: value[1],
-        };
-    }
-
-    protected lowerElemMatch(input: IFilter) : ConditionPlan | null {
-        const interior = input.value;
-        if (
-            !isFilter(interior) &&
-            !isFilters(interior as ICondition)
-        ) {
-            // Report a condition-shaped interior through the dedicated
-            // diagnostic, whether it is a live custom condition or detached
-            // transport data. Anything else is an unsupported interior value.
-            if (isDetachedCondition(interior)) {
-                throw AdapterError.conditionDetached(
-                    (interior as Partial<ICondition>).operator,
-                );
-            }
-
-            throw AdapterError.featureUnsupported('filters:elemMatch:value');
-        }
-
-        const oldPrefix = this.fieldPrefix;
-
-        this.fieldPrefix = `${oldPrefix}${input.field}.`;
-        this.elementDepth += 1;
-
-        try {
-            const condition = this.lower(interior as ICondition);
-            if (!condition) {
-                return null;
-            }
-
-            return {
-                kind: 'elem-match', 
-                field: input.field, 
-                condition, 
-            };
-        } finally {
-            this.fieldPrefix = oldPrefix;
-            this.elementDepth -= 1;
-        }
-    }
-
-    // -----------------------------------------------------------
-
-    /**
-     * The settled case policy: equality-family comparisons on the
-     * field fold unless opted out via `caseSensitive` (matched on
-     * the full path composed through elemMatch scopes). Backends
-     * apply only their remaining capability veto.
-     */
-    protected isFoldableField(field: string) : boolean {
-        if (this.caseSensitiveAll) {
-            return false;
-        }
-
-        return !this.caseSensitiveFields.has(`${this.fieldPrefix}${field}`);
     }
 }

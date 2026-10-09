@@ -25,6 +25,7 @@ npm run test --workspace=packages/core/node
 - **Package manager**: npm (workspaces: `packages/*/node`, `packages/docs`)
 - **Build orchestration**: Nx (`build` depends on `^build`; `build`, `lint`, `test` are cached)
 - **Per-package build**: `tsc --noEmit` (type-check, `build:types`) + tsdown (bundle + dts, `build:js`); ESM-only output (`dist/index.mjs` + `dist/index.d.mts`)
+- **Rust**: `@rapiq/core` also builds its napi addon (`build:binding`), so the workspace build needs `cargo` (toolchain pinned in `rust-toolchain.toml`). `planCondition` / `distributeNegation` run in Rust; see `internal-docs/rust/`.
 
 Every package lives in `packages/<package>/<ecosystem>`: `node` is the npm package (TypeScript), `rust` the Rust crate, `python` the PyPI package. `packages/docs` is the VitePress documentation site. Only `@rapiq/core` has Rust and Python parts so far; see [internal-docs/rust/](internal-docs/rust/README.md) for the Rust core, its bindings and the migration plan.
 

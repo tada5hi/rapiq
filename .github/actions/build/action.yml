@@ -4,11 +4,20 @@ description: 'Prepares the repo for a job by running the build'
 runs:
     using: 'composite'
     steps:
+        # @rapiq/core builds its napi binding (rust-toolchain.toml pins the
+        # toolchain); the action also caches the cargo registry and target
+        -   name: Rust toolchain
+            uses: actions-rust-lang/setup-rust-toolchain@v1
+
         -   name: Use cache
             id: 'cache'
             uses: actions/cache@v3
             with:
-                path: '**/dist/**'
+                # the native addons are build output too: a cache hit skips
+                # the build, so they must be restored with dist
+                path: |
+                    **/dist/**
+                    packages/*/node/binding/*.node
                 key: ${{ runner.os }}-build-${{ github.sha }}
 
         -   name: Build

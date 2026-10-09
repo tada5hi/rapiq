@@ -17,6 +17,12 @@ import type { FilterOperatorSemantics } from './types';
  * The {@link planCondition} lowering derives every policy decision
  * from this table. Adding an operator means adding a row (plus a
  * lowering rule when it opens a new family) — not editing backends.
+ *
+ * The lowering runs in the Rust core, whose `OPERATOR_SEMANTICS`
+ * (`packages/core/rust/src/plan.rs`) is the source of truth. This
+ * constant mirrors it for synchronous TypeScript consumers (parsers
+ * derive complement twins from it at import time); a test pins the two
+ * to each other (`test/unit/native/binding.spec.ts`).
  */
 export const FILTER_OPERATOR_SEMANTICS = {
     eq: {
