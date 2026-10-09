@@ -1,7 +1,7 @@
 # Publishes the Rust core to crates.io and the Python binding to PyPI.
 #
 # Manually triggered for now (name reservation and pre-releases); it joins the
-# release-please flow in phase 0 of crates/MIGRATION.md. Both registries use
+# release-please flow in phase 0 of internal-docs/rust/MIGRATION.md. Both registries use
 # trusted publishing (OIDC), so no API token is stored in the repository:
 #
 # - crates.io: the crate must exist before a trusted publisher can be added,
@@ -87,7 +87,7 @@ jobs:
             -   name: Build
                 uses: PyO3/maturin-action@v1
                 with:
-                    working-directory: crates/python
+                    working-directory: packages/core/python
                     target: ${{ matrix.platform.target }}
                     manylinux: ${{ matrix.platform.manylinux }}
                     args: --release --out dist
@@ -96,7 +96,7 @@ jobs:
                 uses: actions/upload-artifact@v4
                 with:
                     name: wheel-${{ matrix.platform.name }}
-                    path: crates/python/dist
+                    path: packages/core/python/dist
 
     sdist:
         name: Source distribution
@@ -109,7 +109,7 @@ jobs:
             -   name: Build
                 uses: PyO3/maturin-action@v1
                 with:
-                    working-directory: crates/python
+                    working-directory: packages/core/python
                     command: sdist
                     args: --out dist
 
@@ -117,7 +117,7 @@ jobs:
                 uses: actions/upload-artifact@v4
                 with:
                     name: sdist
-                    path: crates/python/dist
+                    path: packages/core/python/dist
 
     pypi:
         name: PyPI

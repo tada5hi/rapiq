@@ -7,6 +7,9 @@ export default [
         ignores: [
             '**/dist/**',
             '**/coverage/**',
+            // Rust build output (cargo doc emits JavaScript) and Python envs.
+            '**/target/**',
+            '**/.venv/**',
             '**/*.d.ts',
             '.nx/**',
             // Local git worktrees carry their own eslint config, which registers a

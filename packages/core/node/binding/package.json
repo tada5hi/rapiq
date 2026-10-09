@@ -1,0 +1,11 @@
+{
+    "name": "@rapiq/core-binding",
+    "private": true,
+    "type": "module",
+    "description": "Node.js binding for rapiq-core (proof of concept). Not an npm workspace.",
+    "main": "index.js",
+    "types": "index.d.ts",
+    "scripts": {
+        "build": "cargo build --release -p rapiq-core-node && node scripts/copy.js"
+    }
+}

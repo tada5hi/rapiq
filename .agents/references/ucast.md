@@ -8,7 +8,7 @@ package is the reference implementation for rapiq's mongo parser dialect
 
 ## Condition AST (`@ucast/core`)
 
-| ucast (`packages/core/src/Condition.ts`) | rapiq (`packages/core/src/parameter/filters/`) | Differences |
+| ucast (`packages/core/node/src/Condition.ts`) | rapiq (`packages/core/node/src/parameter/filters/`) | Differences |
 |---|---|---|
 | `FieldCondition { operator, field, value }` | `Filter { operator, field, value }` (`record/module.ts`) | rapiq operator names are unprefixed enum values (`FilterFieldOperator`); ucast strips the `$` via `operatorToConditionName` |
 | `CompoundCondition { operator, value: Condition[] }` | `Filters { operator, value: ICondition[] }` (`collection/module.ts`) | ucast supports arbitrary compound names (`and`, `or`, `nor`, `not`); rapiq only `FilterCompoundOperator.AND/OR` |
@@ -21,11 +21,11 @@ package is the reference implementation for rapiq's mongo parser dialect
 
 | ucast | rapiq | Differences |
 |---|---|---|
-| `ObjectQueryParser.parse()` (`core/src/parsers/ObjectQueryParser.ts`): per top-level key — registered compound/document instruction ⇒ recurse; value `hasOperators()` ⇒ per-`$op` field conditions; otherwise ⇒ `defaultOperatorName` (`$eq`); results merged with `buildAnd` | `MongoFiltersParser` (`packages/parser-mongo/src/parameter/filters/module.ts`) follows the same walk | rapiq resolves/validates every field path against a `Schema` via `ResolutionScope` (allow-lists, aliases, relation traversal, drop-vs-throw); ucast has no schema concept |
+| `ObjectQueryParser.parse()` (`core/src/parsers/ObjectQueryParser.ts`): per top-level key — registered compound/document instruction ⇒ recurse; value `hasOperators()` ⇒ per-`$op` field conditions; otherwise ⇒ `defaultOperatorName` (`$eq`); results merged with `buildAnd` | `MongoFiltersParser` (`packages/parser-mongo/node/src/parameter/filters/module.ts`) follows the same walk | rapiq resolves/validates every field path against a `Schema` via `ResolutionScope` (allow-lists, aliases, relation traversal, drop-vs-throw); ucast has no schema concept |
 | Parsing "instructions" registry: `{ type: 'compound' \| 'field' \| 'document', validate?, parse? }` (`mongo/src/instructions.ts`), extensible by consumers | fixed operator tables in the parser (`$`-name → `FilterFieldOperator` + per-operator value validation) | rapiq's operator set is closed over `FilterFieldOperator` (visitor interfaces are typed per operator), so no user-extensible instruction registry |
 | `hasOperators(value)` (`mongo/src/utils.ts`): object with at least one registered `$`-key | same idea: any own key starting with `$` marks an operator object | ucast checks against registered instructions; mixing operator and plain keys is an error in both |
 | `MongoQueryParser.parse(query, { field })` — parse a field-operator object directly | — | rapiq parses whole filter parameters only |
-| `MongoQuery<T>` recursive input type (`mongo/src/types.ts`) | `MongoFiltersParserInput<RECORD>` (`packages/parser-mongo/src/parameter/filters/types.ts`) | both type field keys/values from the record generic; rapiq keys come from `NestedKeys<T>` (depth-limited) |
+| `MongoQuery<T>` recursive input type (`mongo/src/types.ts`) | `MongoFiltersParserInput<RECORD>` (`packages/parser-mongo/node/src/parameter/filters/types.ts`) | both type field keys/values from the record generic; rapiq keys come from `NestedKeys<T>` (depth-limited) |
 
 ## Operator semantics (`mongo/src/instructions.ts`)
 
@@ -59,7 +59,7 @@ through the operator-semantics table and backends consume it via `IPlanInterpret
 `@ucast/js` is the reference implementation behind `@rapiq/adapter-memory` (plan 014); the maintainer
 explicitly rejected its interpreter-registry shape in favor of the core visitor interfaces.
 
-| ucast (`packages/js/src/`) | rapiq (`packages/adapter-memory/src/`) | Differences |
+| ucast (`packages/js/src/`) | rapiq (`packages/adapter-memory/node/src/`) | Differences |
 |---|---|---|
 | `createJsInterpreter(operators, {get, compare})` → `interpret(condition, object)` | `FiltersVisitor`/`FiltersCompiler` (`parameter/filters/`), `compileFilters(condition)` → `Predicate` | rapiq compiles once to a reusable closure; extension = subclass `FiltersCompiler`, not an options bag |
 | interpreter registry (record of functions, unregistered op throws plain `Error`) | `IPlanInterpreter` handlers over `planCondition` (per-operator `visitFilterX` visitor methods removed pre-GA 2026-08-02) | closed operator set over `FilterFieldOperator` |

@@ -18,7 +18,7 @@
 - After making changes, **build the affected package** (`npx nx run @rapiq/<pkg>:build`) and **run the linter** on changed files.
 - `npx nx run @rapiq/<pkg>:build` **swallows a `build:types` failure** and still reports a
   successful run with a duration. A change that breaks type-checking therefore reads as green.
-  Verify with `cd packages/<pkg> && npx tsc --noEmit -p tsconfig.build.json`, or pass
+  Verify with `cd packages/<pkg>/node && npx tsc --noEmit -p tsconfig.build.json`, or pass
   `--verbose` to see the compiler output. Remember Nx builds dependents from `dist/`, so a stale `@rapiq/core` build breaks downstream type-checking.
 - When changing `@rapiq/core` public API, check all downstream packages (parser-simple, parser-expression, sql, typeorm, codec-url) — they peer-depend on it.
 - User-facing behavior changes should be reflected in `packages/docs/guide/` and, if relevant, the root `README.md`.
@@ -34,7 +34,7 @@
 ## Reach for the Existing Helper
 
 Before writing a type guard, a path manipulation or an inline error string, look in
-`packages/core/src/utils/` and the package barrel. The repo has been bitten repeatedly by
+`packages/core/node/src/utils/` and the package barrel. The repo has been bitten repeatedly by
 hand-rolled versions of helpers that already exist, and the hand-rolled version is usually
 subtly weaker (it misses escaped dots, or class identity across duplicated modules).
 
@@ -91,7 +91,7 @@ No AI-attribution trailers in commits, issues, or PRs (see AGENTS.md).
 ## TypeScript
 
 - Base config from `@tada5hi/tsconfig`. Per package: `tsconfig.json` (src + test, includes `vitest/globals` types — for editor & ESLint) and `tsconfig.build.json` (src-only — used by `build:types`' `tsc --noEmit` and by tsdown).
-- Heavy use of recursive conditional types for typed key paths (`NestedKeys<T>`, depth-limited to avoid infinite recursion) — be careful when touching `packages/core/src/types.ts`; small changes can explode type-check time.
+- Heavy use of recursive conditional types for typed key paths (`NestedKeys<T>`, depth-limited to avoid infinite recursion) — be careful when touching `packages/core/node/src/types.ts`; small changes can explode type-check time.
 - TypeScript 6 at the root.
 
 ## Build Output

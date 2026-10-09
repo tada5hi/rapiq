@@ -52,7 +52,7 @@ Placement rules that follow (settled during plan 006, don't re-litigate):
 
 ### 1. AST + visitor instead of direct translation
 
-Parsed queries are immutable-ish node objects (`Query`, `Filters`, `Filter`, `Fields`, `Field`, `Sorts`, `Sort`, `Relations`, `Relation`, `Pagination`) in `packages/core/src/parameter/`. Every node implements `accept(visitor)` (double dispatch). New backends are added by implementing visitor/adapter interfaces — core never changes.
+Parsed queries are immutable-ish node objects (`Query`, `Filters`, `Filter`, `Fields`, `Field`, `Sorts`, `Sort`, `Relations`, `Relation`, `Pagination`) in `packages/core/node/src/parameter/`. Every node implements `accept(visitor)` (double dispatch). New backends are added by implementing visitor/adapter interfaces — core never changes.
 
 ### 2. Schema as server-side allow-list
 
@@ -60,7 +60,7 @@ A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`
 
 ### 3. Dialects as small option objects, not subclasses
 
-`@rapiq/adapter-sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`, `caseFold`, `caseFoldLike`, `mod`). Presets live in `packages/adapter-sql/src/dialect/`. Regex strings pass through unchanged for the database engine to interpret and validate; JavaScript `RegExp` values contribute their `source` and `ignoreCase` flag.
+`@rapiq/adapter-sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`, `caseFold`, `caseFoldLike`, `mod`). Presets live in `packages/adapter-sql/node/src/dialect/`. Regex strings pass through unchanged for the database engine to interpret and validate; JavaScript `RegExp` values contribute their `source` and `ignoreCase` flag.
 
 `regexp` serves the `regex` operator ONLY (settled 2026-09-22, issue #934). It is not an anchored-operator path and an omitted `regexp` is not a degraded mode: the anchored family renders as LIKE everywhere, so the `mssql`/`sqlite` presets lose exactly one operator by omitting it.
 
@@ -71,7 +71,7 @@ Preset resolution follows one fleet-wide invariant (audited 2026-08-02, do not r
 ### Query AST (core)
 
 ```typescript
-// packages/core/src/parameter/module.ts
+// packages/core/node/src/parameter/module.ts
 class Query implements IQuery {
     readonly fields: IFields;        // Field { name, operator?: FieldOperator.INCLUDE|EXCLUDE }
     readonly filters: IFilters;      // compound node: FilterCompoundOperator.AND|OR|NOT over ICondition[]
@@ -120,7 +120,7 @@ Field paths are typed via recursive generics (`NestedKeys<T>`, depth-limited) so
 
 ### ResolutionScope (core)
 
-`ResolutionScope` (`packages/core/src/schema/resolver/`) is the single owner of key resolution — schema-input normalization, alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware, works from unregistered `Schema` instances too) and the throw-vs-drop failure policy with per-parameter error-class selection. Parsers build one scope per `parse()` call and consume two questions:
+`ResolutionScope` (`packages/core/node/src/schema/resolver/`) is the single owner of key resolution — schema-input normalization, alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware, works from unregistered `Schema` instances too) and the throw-vs-drop failure policy with per-parameter error-class selection. Parsers build one scope per `parse()` call and consume two questions:
 
 ```typescript
 const scope = ResolutionScope.for(registry, Parameter.SORTS, options.schema, {
@@ -137,7 +137,7 @@ Parameter quirks (fields `execute()`, filter value parsing) stay in the parsers,
 
 All parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-parser per parameter:
 
-- **`SimpleParser`** (`packages/parser-simple/src/module.ts`) — plain object input, URL-query-like:
+- **`SimpleParser`** (`packages/parser-simple/node/src/module.ts`) — plain object input, URL-query-like:
   ```typescript
   parser.parse({
       fields: ['id', 'name'],
@@ -147,11 +147,11 @@ All parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-p
       sorts: { name: 'DESC' },
   }, { registry, schema: 'user' });
   ```
-- **`ExpressionParser`** (`packages/parser-expression/src/module.ts`) — function-call filter expressions (values always single-quoted), tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
+- **`ExpressionParser`** (`packages/parser-expression/node/src/module.ts`) — function-call filter expressions (values always single-quoted), tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
   ```
   or(and(eq(name, 'John'), gte(age, '18')), in(status, 'active', 'pending'))
   ```
-- **`MongoParser`** (`packages/parser-mongo/src/module.ts`) — MongoDB-style filter documents with typed values (`$`-operator objects, `$and`/`$or`/`$nor` compounds, De Morgan `$not`/`$nor` negation, `$elemMatch`; six `$contains`-family operators are rapiq extensions). Only `filters` is mongo-flavored — the other four parameters reuse the simple sub-parsers. Two-class failure model: grammar errors (unknown/misplaced `$`-operators, malformed values) always throw `FiltersParseError`; field-key/allow-list failures follow the schema drop-vs-throw policy:
+- **`MongoParser`** (`packages/parser-mongo/node/src/module.ts`) — MongoDB-style filter documents with typed values (`$`-operator objects, `$and`/`$or`/`$nor` compounds, De Morgan `$not`/`$nor` negation, `$elemMatch`; six `$contains`-family operators are rapiq extensions). Only `filters` is mongo-flavored — the other four parameters reuse the simple sub-parsers. Two-class failure model: grammar errors (unknown/misplaced `$`-operators, malformed values) always throw `FiltersParseError`; field-key/allow-list failures follow the schema drop-vs-throw policy:
   ```typescript
   parser.parse({
       filters: { $or: [{ name: 'John' }, { age: { $gte: 18, $lt: 65 } }] },
@@ -271,7 +271,7 @@ leaf-literal table) with drizzle spellings settled by engine measurement (2026-0
 
 - **mysql result sets change**, not only plans: `utf8mb4_0900_ai_ci` is accent-insensitive for LIKE but not for REGEXP (`'APFEL' like 'ä%'` is 1, `'APFEL' regexp '^ä'` is 0). This is what `eq` has always done there, by the same collation reasoning that makes the mysql preset's `caseFold` identity.
 - **`caseFoldLike`** is a separate `DialectOptions` callback defaulting to `caseFold`. Only the sqlite preset declares it (identity): sqlite's LIKE is already ASCII-case-insensitive while its `=` is not, so folding would buy nothing and cost the prefix index. `@rapiq/adapter-typeorm` forwards it from the resolved dialect.
-- **The LIKE escape character is `!`** (`LIKE_ESCAPE_CHARACTER`, `packages/adapter-sql/src/helpers/like.ts`), and `escapeLikePattern` escapes `! % _`, plus `[` when the dialect declares `likeBracketWildcard` (mssql only: Oracle raises ORA-01424 for an escape character before anything but `%`, `_` or itself). Not a backslash: mysql rejects `escape '\'` (ERROR 1064) under the default sql_mode and `escape '\\'` under NO_BACKSLASH_ESCAPES, so no static backslash spelling parses on both. `packages/adapter-typeorm/test/unit/anchored.db.spec.ts` is the live-engine guard (sqlite by default, pg and mysql in `tests-db`); reverting the escape character makes it fail on mysql.
+- **The LIKE escape character is `!`** (`LIKE_ESCAPE_CHARACTER`, `packages/adapter-sql/node/src/helpers/like.ts`), and `escapeLikePattern` escapes `! % _`, plus `[` when the dialect declares `likeBracketWildcard` (mssql only: Oracle raises ORA-01424 for an escape character before anything but `%`, `_` or itself). Not a backslash: mysql rejects `escape '\'` (ERROR 1064) under the default sql_mode and `escape '\\'` under NO_BACKSLASH_ESCAPES, so no static backslash spelling parses on both. `packages/adapter-typeorm/node/test/unit/anchored.db.spec.ts` is the live-engine guard (sqlite by default, pg and mysql in `tests-db`); reverting the escape character makes it fail on mysql.
 - Only `startsWith` can gain an index; `%x%` and `%x` are full scans under LIKE as they were under a regex. On pg, `lower(col) like lower($1)` needs a `lower(col) text_pattern_ops` expression index, and a plain `lower(col)` index (which serves `=`) does not serve it.
 
 **Date operands (settled 2026-09-22, issue #939)**: the wire is untyped, so a date crosses it as a string and every consumer reads it back itself. Coercing centrally (in `planCondition`, say) was measured and rejected: a varchar column may hold ISO text, and comparing that as an instant breaks it, so the coercion must be informed by what the consumer knows about the field. Core contributes only `toDate(value)` and `AdapterError.keyValueInvalid`. `toDate` matches the ISO-8601 grammar with a regex instead of delegating to `new Date()` (measured 2026-09-22: that parser turns `'2026-02-30'` into March 2nd, accepts implementation-defined forms like `'August 23, 2026'`, reads `'2026'` as January 1st, and reads an offset-less date-time in the HOST's zone). A zone-less date-time is therefore read as UTC, the same rule used for a zone-less column, and an impossible calendar day is refused. Epoch-ms numbers and `Date` instances stay accepted. The four consumers differ by what they know:
@@ -303,7 +303,7 @@ An operand denoting no instant raises `AdapterError` with `ErrorCode.KEY_VALUE_I
 
 ## Error Handling
 
-- All errors extend `BaseError` (carries a `code` from `ErrorCode`), in `packages/core/src/errors/`.
+- All errors extend `BaseError` (carries a `code` from `ErrorCode`), in `packages/core/node/src/errors/`.
 - Parsers throw `ParseError` / `FiltersParseError` when `throwOnFailure` is set on the schema; otherwise invalid input is silently dropped.
 - When adding new failure modes, add an `ErrorCode` member and a static factory on the error class rather than throwing raw `Error`.
 - Identity is a `Symbol.for` brand read by `isBaseError` / `isParseError`, never `instanceof`: two copies of the library in one process do not share a class, and a missed catch turns a 400 into a 500.

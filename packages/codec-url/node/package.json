@@ -1,0 +1,71 @@
+{
+    "name": "@rapiq/codec-url",
+    "version": "2.4.0",
+    "description": "A URL query-string codec with expression filters and legacy simple-filter compatibility.",
+    "type": "module",
+    "main": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "dependencies": {
+        "@ebec/core": "^1.3.2",
+        "pathtrace": "^2.2.3",
+        "qs": "^6.16.0"
+    },
+    "devDependencies": {
+        "@rapiq/core": "^2.4.0",
+        "@rapiq/parser-expression": "^2.4.0",
+        "@rapiq/parser-simple": "^2.4.0",
+        "@types/qs": "^6.14.0"
+    },
+    "peerDependencies": {
+        "@rapiq/core": "^2.4.0",
+        "@rapiq/parser-expression": "^2.4.0",
+        "@rapiq/parser-simple": "^2.4.0"
+    },
+    "scripts": {
+        "build:types": "tsc --noEmit -p tsconfig.build.json",
+        "build:js": "tsdown",
+        "build": "npm run build:types && npm run build:js",
+        "test": "vitest --config test/vitest.config.ts --run",
+        "test:coverage": "vitest --config test/vitest.config.ts --run --coverage",
+        "prepublishOnly": "npm run build"
+    },
+    "author": {
+        "name": "Peter Placzek",
+        "email": "contact@tada5hi.net",
+        "url": "https://github.com/tada5hi"
+    },
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "tag": "latest"
+    },
+    "keywords": [
+        "query",
+        "json",
+        "json-api",
+        "api",
+        "rest",
+        "api-utils",
+        "codec",
+        "typescript"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Tada5hi/rapiq.git",
+        "directory": "packages/codec-url/node"
+    },
+    "bugs": {
+        "url": "https://github.com/Tada5hi/rapiq/issues"
+    },
+    "homepage": "https://github.com/Tada5hi/rapiq#readme"
+}

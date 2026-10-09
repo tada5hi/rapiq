@@ -154,7 +154,7 @@ jobs:
 
             -   name: Run tests
                 run: |
-                    npm run test:db --workspace=packages/adapter-typeorm
+                    npm run test:db --workspace=packages/adapter-typeorm/node
 
             # @rapiq/adapter-prisma keeps ALL engine-backed specs here: they need a
             # generated client (`prisma generate`), so the default `tests` job
@@ -165,7 +165,7 @@ jobs:
             # the full parity matrix.
             -   name: Run tests (prisma)
                 run: |
-                    npm run test:db --workspace=packages/adapter-prisma
+                    npm run test:db --workspace=packages/adapter-prisma/node
 
             # @rapiq/adapter-drizzle runs its sqlite engine parity in the default
             # `tests` job (in-memory, codegen-free); this step adds the postgres
@@ -174,7 +174,7 @@ jobs:
             # postgres specs skip themselves.
             -   name: Run tests (drizzle)
                 run: |
-                    npm run test:db --workspace=packages/adapter-drizzle
+                    npm run test:db --workspace=packages/adapter-drizzle/node
 
 #    preview:
 #        name: Preview Package

@@ -4,16 +4,16 @@
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
     "packages": {
-        "packages/core": { "component": "core" },
-        "packages/parser-simple": { "component": "parser-simple" },
-        "packages/parser-expression": { "component": "parser-expression" },
-        "packages/parser-mongo": { "component": "parser-mongo" },
-        "packages/codec-url": { "component": "codec-url" },
-        "packages/adapter-sql": { "component": "adapter-sql" },
-        "packages/adapter-typeorm": { "component": "adapter-typeorm" },
-        "packages/adapter-prisma": { "component": "adapter-prisma" },
-        "packages/adapter-drizzle": { "component": "adapter-drizzle" },
-        "packages/adapter-memory": { "component": "adapter-memory" }
+        "packages/core/node": { "component": "core" },
+        "packages/parser-simple/node": { "component": "parser-simple" },
+        "packages/parser-expression/node": { "component": "parser-expression" },
+        "packages/parser-mongo/node": { "component": "parser-mongo" },
+        "packages/codec-url/node": { "component": "codec-url" },
+        "packages/adapter-sql/node": { "component": "adapter-sql" },
+        "packages/adapter-typeorm/node": { "component": "adapter-typeorm" },
+        "packages/adapter-prisma/node": { "component": "adapter-prisma" },
+        "packages/adapter-drizzle/node": { "component": "adapter-drizzle" },
+        "packages/adapter-memory/node": { "component": "adapter-memory" }
     },
     "plugins": [
         {

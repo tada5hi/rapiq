@@ -194,10 +194,10 @@ export async function getUsers(req: Request, res: Response) {
 
 </details>
 
-No TypeORM? The same query runs through [@rapiq/adapter-prisma](packages/adapter-prisma),
-[@rapiq/adapter-drizzle](packages/adapter-drizzle),
-[@rapiq/adapter-sql](packages/adapter-sql) (parameterized fragments for any driver) or
-[@rapiq/adapter-memory](packages/adapter-memory) (plain arrays). Full walkthrough in the
+No TypeORM? The same query runs through [@rapiq/adapter-prisma](packages/adapter-prisma/node),
+[@rapiq/adapter-drizzle](packages/adapter-drizzle/node),
+[@rapiq/adapter-sql](packages/adapter-sql/node) (parameterized fragments for any driver) or
+[@rapiq/adapter-memory](packages/adapter-memory/node) (plain arrays). Full walkthrough in the
 [docs](https://rapiq.tada5hi.net).
 
 ## Installation
@@ -221,16 +221,16 @@ to match your backend.
 
 | Package | Purpose |
 |---|---|
-| [@rapiq/core](packages/core) | Query AST, typed build layer (`defineQuery`, condition helpers, `mergeQueries`), schema system & registry |
-| [@rapiq/parser-simple](packages/parser-simple) | Parses plain object/array input (the "simple" dialect) into a `Query` |
-| [@rapiq/parser-expression](packages/parser-expression) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
-| [@rapiq/parser-mongo](packages/parser-mongo) | Parses MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
-| [@rapiq/codec-url](packages/codec-url) | URL query-string codec; writes expression filters and reads expression plus legacy simple filters |
-| [@rapiq/adapter-sql](packages/adapter-sql) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
-| [@rapiq/adapter-typeorm](packages/adapter-typeorm) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
-| [@rapiq/adapter-prisma](packages/adapter-prisma) | Serializes a parsed `Query` into a Prisma argument object |
-| [@rapiq/adapter-drizzle](packages/adapter-drizzle) | Serializes a parsed `Query` into a Drizzle relational query config |
-| [@rapiq/adapter-memory](packages/adapter-memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
+| [@rapiq/core](packages/core/node) | Query AST, typed build layer (`defineQuery`, condition helpers, `mergeQueries`), schema system & registry |
+| [@rapiq/parser-simple](packages/parser-simple/node) | Parses plain object/array input (the "simple" dialect) into a `Query` |
+| [@rapiq/parser-expression](packages/parser-expression/node) | Parses filter expressions like `and(eq(name, 'John'), gte(age, '18'))` |
+| [@rapiq/parser-mongo](packages/parser-mongo/node) | Parses MongoDB-style filter documents like `{ age: { $gte: 18 } }` |
+| [@rapiq/codec-url](packages/codec-url/node) | URL query-string codec; writes expression filters and reads expression plus legacy simple filters |
+| [@rapiq/adapter-sql](packages/adapter-sql/node) | Dialect-agnostic SQL adapter (pg, mysql, sqlite, mssql & oracle presets) |
+| [@rapiq/adapter-typeorm](packages/adapter-typeorm/node) | Applies a parsed `Query` to a TypeORM `SelectQueryBuilder` |
+| [@rapiq/adapter-prisma](packages/adapter-prisma/node) | Serializes a parsed `Query` into a Prisma argument object |
+| [@rapiq/adapter-drizzle](packages/adapter-drizzle/node) | Serializes a parsed `Query` into a Drizzle relational query config |
+| [@rapiq/adapter-memory](packages/adapter-memory/node) | Evaluates a parsed `Query` against in-memory objects & arrays |
 
 ## Parameters
 

@@ -18,15 +18,15 @@ npm run lint:fix
 
 # Per package (from repo root)
 npx nx run @rapiq/core:build
-npm run test --workspace=packages/core
+npm run test --workspace=packages/core/node
 ```
 
 - **Node.js**: 22 (CI primary version)
-- **Package manager**: npm (workspaces: `packages/*`)
+- **Package manager**: npm (workspaces: `packages/*/node`, `packages/docs`)
 - **Build orchestration**: Nx (`build` depends on `^build`; `build`, `lint`, `test` are cached)
 - **Per-package build**: `tsc --noEmit` (type-check, `build:types`) + tsdown (bundle + dts, `build:js`); ESM-only output (`dist/index.mjs` + `dist/index.d.mts`)
 
-All publishable packages live in `packages/`; `packages/docs` is the VitePress documentation site.
+Every package lives in `packages/<package>/<ecosystem>`: `node` is the npm package (TypeScript), `rust` the Rust crate, `python` the PyPI package. `packages/docs` is the VitePress documentation site. Only `@rapiq/core` has Rust and Python parts so far; see [internal-docs/rust/](internal-docs/rust/README.md) for the Rust core, its bindings and the migration plan.
 
 ## Documentation
 

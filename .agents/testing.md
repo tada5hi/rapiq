@@ -3,17 +3,17 @@
 ## Setup
 
 - **Runner**: Vitest 4 (native TS via Vite/esbuild, no transform config needed)
-- **Test location**: `packages/<pkg>/test/unit/**/*.spec.ts`
-- **Config**: `packages/<pkg>/test/vitest.config.ts` (one per package; `globals: true`, v8 coverage)
-- **Fixtures**: `packages/<pkg>/test/data/` (shared schemas, record types)
+- **Test location**: `packages/<pkg>/node/test/unit/**/*.spec.ts`
+- **Config**: `packages/<pkg>/node/test/vitest.config.ts` (one per package; `globals: true`, v8 coverage)
+- **Fixtures**: `packages/<pkg>/node/test/data/` (shared schemas, record types)
 
 ## Running Tests
 
 ```bash
 npm run test                                      # all packages via nx run-many
-npm run test --workspace=packages/core            # single package
-npm run test --workspace=packages/core -- -t "filters"   # filter by test name
-npm run test:coverage --workspace=packages/core   # with coverage
+npm run test --workspace=packages/core/node            # single package
+npm run test --workspace=packages/core/node -- -t "filters"   # filter by test name
+npm run test:coverage --workspace=packages/core/node   # with coverage
 ```
 
 Vitest sets `NODE_ENV=test` automatically. Nx caches `test` targets — pass `--skip-nx-cache` to `npx nx run-many -t test` if you suspect stale results.
@@ -26,9 +26,9 @@ Default tests need no external servers. TypeORM tests include live in-memory SQL
 
 ### Engine Tests
 
-`npm run test:db --workspace=packages/adapter-typeorm` runs `.db.spec.ts` on SQLite by default, or MySQL/PostgreSQL with `DB_TYPE=mysql|postgres` and `DB_DATABASE` plus connection settings. The suite recreates its schema: use a dedicated disposable database.
+`npm run test:db --workspace=packages/adapter-typeorm/node` runs `.db.spec.ts` on SQLite by default, or MySQL/PostgreSQL with `DB_TYPE=mysql|postgres` and `DB_DATABASE` plus connection settings. The suite recreates its schema: use a dedicated disposable database.
 
-`npm run test:db --workspace=packages/adapter-prisma` generates fixture clients and runs Prisma against SQLite, or PostgreSQL with `DB_TYPE=postgres`. Anchored literal tests compare actual engine results with `@rapiq/adapter-memory`. The Prisma and TypeORM suites must not share a persistent database concurrently.
+`npm run test:db --workspace=packages/adapter-prisma/node` generates fixture clients and runs Prisma against SQLite, or PostgreSQL with `DB_TYPE=postgres`. Anchored literal tests compare actual engine results with `@rapiq/adapter-memory`. The Prisma and TypeORM suites must not share a persistent database concurrently.
 
 Specs typically `describe` the module under test by source path:
 
@@ -62,6 +62,6 @@ Coverage is reported to Codecov.
 
 ## Writing New Tests
 
-1. Place spec files in `packages/<pkg>/test/unit/` with the `.spec.ts` extension (mirror the `src/` subdirectory you're testing).
+1. Place spec files in `packages/<pkg>/node/test/unit/` with the `.spec.ts` extension (mirror the `src/` subdirectory you're testing).
 2. Reuse or extend the fixtures in `test/data/` rather than defining one-off schemas.
-3. Run `npm run test --workspace=packages/<pkg>` to verify.
+3. Run `npm run test --workspace=packages/<pkg>/node` to verify.

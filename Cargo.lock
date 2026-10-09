@@ -350,7 +350,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rapiq-node"
+name = "rapiq-core-node"
 version = "0.0.0"
 dependencies = [
  "napi",
@@ -360,7 +360,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rapiq-py"
+name = "rapiq-core-py"
 version = "0.0.0"
 dependencies = [
  "pyo3",

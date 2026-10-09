@@ -1,4 +1,5 @@
-# CI for the Rust core and its bindings (crates/). Runs beside the main CI;
+# CI for the Rust crates and their bindings (packages/*/rust, packages/*/python,
+# packages/*/node/binding). Runs beside the main CI;
 # the TypeScript packages are built here only because the conformance suite
 # compares the Rust binding against them.
 
@@ -73,13 +74,13 @@ jobs:
                 uses: Swatinem/rust-cache@v2
 
             -   name: Build binding
-                working-directory: crates/node
+                working-directory: packages/core/node/binding
                 run: npm run build
 
             # every fixture against the TypeScript reference and the Rust
             # binding side by side
             -   name: Conformance
-                working-directory: crates/conformance
+                working-directory: conformance
                 run: npx vitest run --config test/vitest.config.ts
 
     python:
@@ -107,12 +108,12 @@ jobs:
                 uses: Swatinem/rust-cache@v2
 
             -   name: Build and install wheel
-                working-directory: crates/python
+                working-directory: packages/core/python
                 run: |
                     python -m pip install --upgrade pip maturin pytest
                     maturin build --release --out dist
                     python -m pip install --no-index --find-links dist rapiq
 
             -   name: Conformance
-                working-directory: crates/python
+                working-directory: packages/core/python
                 run: python -m pytest

@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/core",
-    "crates/node",
-    "crates/python",
+    "packages/core/rust",
+    "packages/core/node/binding",
+    "packages/core/python",
 ]
 
 [workspace.package]

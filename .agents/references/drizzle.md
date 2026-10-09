@@ -55,8 +55,8 @@ Corresponding code in this project:
 
 | drizzle concept | rapiq counterpart |
 |---|---|
-| column operators | `packages/adapter-drizzle/src/adapter/where.ts` leaf table (planned) |
-| relation filter object | one existential scope from the same-element factoring pass (mirrors `packages/adapter-prisma/src/adapter/where.ts`) |
+| column operators | `packages/adapter-drizzle/node/src/adapter/where.ts` leaf table (planned) |
+| relation filter object | one existential scope from the same-element factoring pass (mirrors `packages/adapter-prisma/node/src/adapter/where.ts`) |
 | `NOT: { rel: true }` | relation absence arm (prisma analogue: `NOT: { rel: { is: {} } }` / `none: {}`) |
 | `isNull` / `isNotNull` | null arms of `@rapiq/core` `distributeNegation` complements |
 | `columns` | fields pick set (`FieldOperator.INCLUDE`/`EXCLUDE`) |
