@@ -406,6 +406,8 @@ impl<'a> Parser<'a> {
                     vec![Condition::Compound { operator, children }],
                 ))
             }
+            // the grammar never produces one; kept total for the type.
+            custom @ Condition::Custom { .. } => Ok(Condition::compound("not", vec![custom])),
         }
     }
 

@@ -8,11 +8,15 @@
 import { readFileSync } from 'node:fs';
 import { flattenIssueItems } from '@ebec/core';
 import { compileFilters as compileReference } from '@rapiq/adapter-memory';
-import { isBaseError, isParseError } from '@rapiq/core';
+import { 
+    fromIR, 
+    isBaseError, 
+    isParseError, 
+    toIR,  
+} from '@rapiq/core';
 import { ExpressionFiltersParser } from '@rapiq/parser-expression';
-import * as rust from '../../packages/core/node/binding/index.js';
-import type { ConditionIR } from '../src/ir';
-import { fromIR, toIR } from '../src/ir';
+import type { ConditionIR } from '@rapiq/core';
+import * as rust from '../src/rust';
 
 type ExpressionCase = {
     input: string,
@@ -30,11 +34,11 @@ type EvaluateGroup = {
 };
 
 function load<T>(name: string) : T[] {
-    return JSON.parse(readFileSync(new URL(`../fixtures/${name}`, import.meta.url), 'utf8'));
+    return JSON.parse(readFileSync(new URL(`../../packages/${name}`, import.meta.url), 'utf8'));
 }
 
-const expressionCases = load<ExpressionCase>('expression.json');
-const evaluateGroups = load<EvaluateGroup>('evaluate.json');
+const expressionCases = load<ExpressionCase>('parser-expression/fixtures/expression.json');
+const evaluateGroups = load<EvaluateGroup>('adapter-memory/fixtures/evaluate.json');
 
 function wire<T>(input: T) : T {
     return JSON.parse(JSON.stringify(input));

@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use crate::eval::Predicate;
 use crate::expression;
 use crate::ir::Condition;
-use crate::plan::{CaseSensitive, PlanOptions};
+use crate::plan::{self, CaseSensitive, Plan, PlanOptions};
 
 /// `ExpressionFiltersParser.parse()` (schemaless) returning the IR as
 /// a JSON string.
@@ -86,4 +86,29 @@ pub fn test_record(predicate: &Predicate, record: &str) -> Result<bool> {
     let record: Value = serde_json::from_str(record).map_err(|_| Error::input_invalid())?;
 
     Ok(predicate.test(&record))
+}
+
+/// `planCondition`: the plan of a condition tree (IR JSON) as
+/// `ConditionPlan` JSON, or `null` for an empty tree.
+pub fn plan_condition(condition: &str, options: Option<&str>) -> Result<String> {
+    let condition = Condition::from_json_str(condition)?;
+    let options = plan_options_from_json(options)?;
+
+    Ok(match plan::plan_condition(&condition, &options)? {
+        Some(plan) => plan.to_json().to_string(),
+        None => "null".to_string(),
+    })
+}
+
+/// `distributeNegation`: `ConditionPlan` JSON in, `ConditionPlan` JSON out.
+pub fn distribute_negation(plan: &str) -> Result<String> {
+    let value: Value = serde_json::from_str(plan).map_err(|_| Error::input_invalid())?;
+    let plan = Plan::from_json(&value)?;
+
+    Ok(plan::distribute_negation(plan)?.to_json().to_string())
+}
+
+/// `FILTER_OPERATOR_SEMANTICS` as JSON.
+pub fn operator_semantics() -> String {
+    plan::operator_semantics_json().to_string()
 }

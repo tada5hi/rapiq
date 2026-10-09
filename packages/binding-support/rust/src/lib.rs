@@ -21,6 +21,9 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 pub struct ErrorPayload {
     pub code: &'static str,
     pub message: String,
+    /// The argument of the matching TypeScript error factory (feature,
+    /// operator, key), when the error has one.
+    pub subject: Option<String>,
 }
 
 impl From<rapiq_core::Error> for ErrorPayload {
@@ -28,7 +31,33 @@ impl From<rapiq_core::Error> for ErrorPayload {
         Self {
             code: error.code.as_str(),
             message: error.message,
+            subject: error.subject,
         }
+    }
+}
+
+impl ErrorPayload {
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "code": self.code,
+            "message": self.message,
+            "subject": self.subject,
+        })
+    }
+}
+
+/// Wrap the result of a JSON-returning API call into the envelope a host
+/// unpacks without exception plumbing: `{"ok":true,"value":<json>}` or
+/// `{"ok":false,"error":{"code","message","subject"}}`. The value is
+/// spliced in as is (it already is JSON), not re-serialized.
+pub fn envelope(result: rapiq_core::Result<String>) -> String {
+    match result {
+        Ok(value) => format!("{{\"ok\":true,\"value\":{value}}}"),
+        Err(error) => serde_json::json!({
+            "ok": false,
+            "error": ErrorPayload::from(error).to_json(),
+        })
+        .to_string(),
     }
 }
 
@@ -48,6 +77,20 @@ mod tests {
 
         assert_eq!(payload.code, "syntaxInvalid");
         assert!(payload.message.starts_with("The input syntax is invalid"));
+    }
+
+    #[test]
+    fn envelope_wraps_values_and_errors() {
+        assert_eq!(
+            envelope(Ok("{\"a\":1}".to_string())),
+            "{\"ok\":true,\"value\":{\"a\":1}}"
+        );
+
+        let error = envelope(Err(rapiq_core::Error::feature_unsupported("filters:mod")));
+        let error: serde_json::Value = serde_json::from_str(&error).unwrap();
+        assert_eq!(error["ok"], false);
+        assert_eq!(error["error"]["code"], "featureUnsupported");
+        assert_eq!(error["error"]["subject"], "filters:mod");
     }
 
     #[test]

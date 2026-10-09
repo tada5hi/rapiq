@@ -9,6 +9,12 @@ export enum ErrorCode {
     NONE = 'none',
 
     /**
+     * The Rust binding a call needs is not available in this environment
+     * (no native addon for the platform, or WASM not initialized yet).
+     */
+    BINDING_UNAVAILABLE = 'bindingUnavailable',
+
+    /**
      * One or more parts of the input were rejected. The code of an aggregated
      * parse failure: what was rejected, and why, is in `error.issues`: a
      * request can violate several policies at once, and naming one of them on

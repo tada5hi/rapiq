@@ -8,15 +8,19 @@
 /**
  * Regenerates the conformance fixtures.
  *
- * - fixtures/expression.json: the schemaless cases of the expression
+ * - packages/parser-expression/fixtures/expression.json: the schemaless cases of the expression
  *   parser's unit specs plus tokenizer edge cases. The expected output
  *   is whatever the TypeScript reference (`@rapiq/parser-expression`)
  *   produces, so the Rust port is held to it exactly.
- * - fixtures/evaluate.json: filter trees with records and expected
+ * - packages/adapter-memory/fixtures/evaluate.json: filter trees with records and expected
  *   verdicts, taken from `@rapiq/adapter-memory`'s filter specs. The
  *   verdicts are written by hand (the conformance suite re-checks them
  *   against the TypeScript reference); the complement-law matrix is
  *   computed from the reference.
+ * - packages/core/fixtures/plan.json: `planCondition` and
+ *   `distributeNegation` output of the TypeScript reference for every
+ *   evaluation tree plus special values (host references) and refusals
+ *   (with the exact messages).
  *
  * Run (after `npm run build`):
  *   node --experimental-strip-types conformance/scripts/generate.ts
@@ -25,10 +29,10 @@
 import { writeFileSync } from 'node:fs';
 import { flattenIssueItems } from '@ebec/core';
 import type { ICondition } from '@rapiq/core';
-import { isParseError } from '@rapiq/core';
+import { isParseError, toIR  } from '@rapiq/core';
 import { ExpressionFiltersParser } from '@rapiq/parser-expression';
-import { toIR } from '../src/ir.ts';
 import { buildEvaluateGroups } from './evaluate.ts';
+import { buildPlanGroups } from './plan.ts';
 
 const INPUTS : string[] = [
     // leaves
@@ -177,12 +181,16 @@ const cases : Case[] = INPUTS.map((input) => {
 });
 
 function write(name: string, data: unknown[]) : void {
-    const target = new URL(`../fixtures/${name}`, import.meta.url);
+    // fixtures live next to the package whose semantics they pin (P7)
+    const target = new URL(`../../packages/${name}`, import.meta.url);
     writeFileSync(target, `${JSON.stringify(data, null, 4)}\n`);
 
     // eslint-disable-next-line no-console
     console.log(`wrote ${data.length} entries to ${target.pathname}`);
 }
 
-write('expression.json', cases);
-write('evaluate.json', buildEvaluateGroups());
+const evaluate = buildEvaluateGroups();
+
+write('parser-expression/fixtures/expression.json', cases);
+write('adapter-memory/fixtures/evaluate.json', evaluate);
+write('core/fixtures/plan.json', buildPlanGroups(evaluate));

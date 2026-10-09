@@ -7,9 +7,87 @@
 
 use std::cmp::Ordering;
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::number::js_number_to_string;
+
+/// Key marking a host value reference.
+///
+/// A host whose values are richer than JSON (JavaScript: `Date`, `RegExp`,
+/// `bigint`, `NaN`, `-0`, class instances) sends such a value as an object
+/// `{ "$rapiq.ref": <id>, "type": ..., "text": ..., "truthy": ... }` and
+/// keeps the original itself. The lowering reads only the facts it needs
+/// from the descriptor and echoes it untouched into the plan, where the
+/// host swaps the original back in. Fields:
+///
+/// - `type`: the host type (`date`, `regexp`, `number`, `bigint`, `object`, ...)
+/// - `text`: the host's string conversion (`String(value)`)
+/// - `truthy`: the host's truthiness (`!!value`)
+/// - `number`: the numeric value when it is finite (only `-0` needs this)
+/// - `source`, `flags`: for `type: "regexp"`
+/// - `operator`: a string `operator` property, if any (detached conditions)
+pub const HOST_REF_KEY: &str = "$rapiq.ref";
+
+/// The descriptor of a host value reference, if `value` is one.
+pub fn host_ref(value: &Value) -> Option<&Map<String, Value>> {
+    value
+        .as_object()
+        .filter(|object| object.contains_key(HOST_REF_KEY))
+}
+
+/// JavaScript truthiness (`!!value`) of a JSON value or host reference.
+pub fn js_truthy(value: &Value) -> bool {
+    if let Some(descriptor) = host_ref(value) {
+        return descriptor
+            .get("truthy")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+    }
+
+    match value {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|n| n != 0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(_) | Value::Object(_) => true,
+    }
+}
+
+/// The finite number a value denotes (`typeof value === 'number' &&
+/// Number.isFinite(value)`), including a host `-0`.
+pub fn js_number(value: &Value) -> Option<f64> {
+    if let Some(descriptor) = host_ref(value) {
+        if descriptor.get("type").and_then(Value::as_str) != Some("number") {
+            return None;
+        }
+
+        return descriptor.get("number").and_then(Value::as_f64);
+    }
+
+    value.as_f64()
+}
+
+/// Source and flags of a host regular expression.
+pub fn js_regexp(value: &Value) -> Option<(&str, &str)> {
+    let descriptor = host_ref(value)?;
+    if descriptor.get("type").and_then(Value::as_str) != Some("regexp") {
+        return None;
+    }
+
+    Some((
+        descriptor.get("source").and_then(Value::as_str)?,
+        descriptor
+            .get("flags")
+            .and_then(Value::as_str)
+            .unwrap_or(""),
+    ))
+}
+
+/// The string `operator` property of an object-shaped value (a detached
+/// condition), for host references and plain JSON objects alike.
+pub fn condition_operator(value: &Value) -> Option<&str> {
+    value.as_object()?.get("operator")?.as_str()
+}
 
 /// Own property of a record-like parent; anything else (null,
 /// scalars, arrays) resolves to the absent value.
@@ -69,6 +147,14 @@ pub fn to_text(value: &Value) -> Option<std::borrow::Cow<'_, str>> {
 
 /// JavaScript string conversion (`` `${value}` ``).
 pub fn js_to_string(value: &Value) -> String {
+    if let Some(descriptor) = host_ref(value) {
+        return descriptor
+            .get("text")
+            .and_then(Value::as_str)
+            .unwrap_or("[object Object]")
+            .to_string();
+    }
+
     match value {
         Value::Null => "null".to_string(),
         Value::Bool(b) => b.to_string(),

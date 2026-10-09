@@ -1,19 +1,45 @@
-//! Node.js binding for `rapiq-core` (napi-rs).
+//! Node.js binding of `rapiq-core` (napi-rs), loaded by `@rapiq/core`.
 //!
-//! The boundary is JSON strings in and out: one serialization per call
-//! instead of one object conversion per IR node. A failure surfaces as
-//! a JS `Error` whose `code` is the rapiq `ErrorCode` value
-//! (`syntaxInvalid`, `featureUnsupported`, ...).
+//! JSON strings in and out: one serialization per call instead of one
+//! object conversion per IR node.
+//!
+//! - The functions `@rapiq/core` calls internally (`planCondition`,
+//!   `distributeNegation`) return an envelope
+//!   (`{"ok":true,"value":...}` / `{"ok":false,"error":{code,message,subject}}`)
+//!   so the TypeScript side can rebuild the exact typed error, including the
+//!   factory argument (`AdapterError.featureUnsupported(feature)`).
+//! - The expression parser and the evaluator (proof of concept, used by the
+//!   conformance suite) throw a JS `Error` whose `code` is the rapiq
+//!   `ErrorCode` value.
 
 use napi::Result;
 use napi_derive::napi;
-use rapiq_binding_support::ErrorPayload;
+use rapiq_binding_support::{ErrorPayload, envelope};
 use rapiq_core::api;
 
 fn to_js(error: rapiq_core::Error) -> napi::Error<String> {
     let payload = ErrorPayload::from(error);
 
     napi::Error::new(payload.code.to_string(), payload.message)
+}
+
+/// `planCondition`: condition IR JSON (values may be host references) to
+/// an envelope around `ConditionPlan` JSON (`null` for an empty tree).
+#[napi]
+pub fn plan_condition(condition: String, options: Option<String>) -> String {
+    envelope(api::plan_condition(&condition, options.as_deref()))
+}
+
+/// `distributeNegation`: envelope around the distributed `ConditionPlan`.
+#[napi]
+pub fn distribute_negation(plan: String) -> String {
+    envelope(api::distribute_negation(&plan))
+}
+
+/// `FILTER_OPERATOR_SEMANTICS` as JSON.
+#[napi]
+pub fn operator_semantics() -> String {
+    api::operator_semantics()
 }
 
 /// `ExpressionFiltersParser.parse()` (schemaless): IR JSON of the root

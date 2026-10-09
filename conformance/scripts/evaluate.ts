@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { ICondition } from '@rapiq/core';
+import type { ConditionIR, ICondition  } from '@rapiq/core';
 import {
     Filter,
     Filters,
@@ -16,6 +16,7 @@ import {
     endsWith,
     eq,
     exists,
+    fromIR,
     gt,
     gte,
     inArray,
@@ -31,12 +32,11 @@ import {
     notStartsWith,
     or,
     regex,
-    size,
-    startsWith,
+    size, 
+    startsWith, 
+    toIR, 
 } from '@rapiq/core';
 import { compileFilters } from '@rapiq/adapter-memory';
-import type { ConditionIR } from '../src/ir.ts';
-import { fromIR, toIR } from '../src/ir.ts';
 
 type Options = { caseSensitive?: boolean | string[] };
 

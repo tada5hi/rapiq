@@ -33,6 +33,10 @@ pub enum Condition {
         field: String,
         value: LeafValue,
     },
+    /// A condition the host cannot express in the IR (a custom
+    /// `ICondition` kind). Opaque: the lowering refuses it as
+    /// `conditionDetached`, exactly like the TypeScript lowering does.
+    Custom { operator: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,6 +49,7 @@ pub enum LeafValue {
 
 pub const TYPE_FILTERS: &str = "filters";
 pub const TYPE_FILTER: &str = "filter";
+pub const TYPE_CUSTOM: &str = "custom";
 
 impl Condition {
     pub fn compound(operator: &str, children: Vec<Condition>) -> Self {
@@ -73,6 +78,7 @@ impl Condition {
     pub fn operator(&self) -> &str {
         match self {
             Condition::Compound { operator, .. } | Condition::Leaf { operator, .. } => operator,
+            Condition::Custom { operator } => operator.as_deref().unwrap_or(""),
         }
     }
 
@@ -128,6 +134,9 @@ impl Condition {
                     value,
                 })
             }
+            Some(TYPE_CUSTOM) => Ok(Condition::Custom {
+                operator: operator.map(str::to_string),
+            }),
             _ => Err(Error::condition_detached(operator)),
         }
     }
@@ -159,6 +168,12 @@ impl Condition {
                         LeafValue::Condition(condition) => condition.to_json(),
                     },
                 );
+            }
+            Condition::Custom { operator } => {
+                object.insert("type".into(), Value::from(TYPE_CUSTOM));
+                if let Some(operator) = operator {
+                    object.insert("operator".into(), Value::from(operator.as_str()));
+                }
             }
         }
 
@@ -196,6 +211,14 @@ impl Serialize for Condition {
                 }
                 map.end()
             }
+            Condition::Custom { operator } => {
+                let mut map = serializer.serialize_map(None)?;
+                map.serialize_entry("type", TYPE_CUSTOM)?;
+                if let Some(operator) = operator {
+                    map.serialize_entry("operator", operator)?;
+                }
+                map.end()
+            }
         }
     }
 }
@@ -203,7 +226,7 @@ impl Serialize for Condition {
 fn is_node(value: &Value) -> bool {
     matches!(
         value.get("type").and_then(Value::as_str),
-        Some(TYPE_FILTERS | TYPE_FILTER)
+        Some(TYPE_FILTERS | TYPE_FILTER | TYPE_CUSTOM)
     )
 }
 

@@ -3,9 +3,9 @@
 # For the full copyright and license information,
 # view the LICENSE file that was distributed with this source code.
 
-"""Runs the shared conformance fixtures (conformance/fixtures)
-against the Python binding. The fixtures are generated from, and
-re-checked against, the TypeScript reference implementation."""
+"""Runs the conformance fixtures (packages/<package>/fixtures) against the
+Python binding. The fixtures are generated from, and re-checked against,
+the TypeScript reference implementation."""
 
 import json
 from pathlib import Path
@@ -15,15 +15,15 @@ import pytest
 import rapiq
 from rapiq import core
 
-FIXTURES = Path(__file__).resolve().parents[4] / "conformance" / "fixtures"
+PACKAGES = Path(__file__).resolve().parents[3]
 
 
 def load(name):
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    return json.loads((PACKAGES / name).read_text(encoding="utf-8"))
 
 
-EXPRESSION_CASES = load("expression.json")
-EVALUATE_GROUPS = load("evaluate.json")
+EXPRESSION_CASES = load("parser-expression/fixtures/expression.json")
+EVALUATE_GROUPS = load("adapter-memory/fixtures/evaluate.json")
 
 
 def test_fixture_sets_are_present():

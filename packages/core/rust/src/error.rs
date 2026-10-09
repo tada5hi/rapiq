@@ -41,6 +41,11 @@ impl fmt::Display for ErrorCode {
 pub struct Error {
     pub code: ErrorCode,
     pub message: String,
+    /// The argument of the TypeScript factory that builds the same error
+    /// (`AdapterError.featureUnsupported(feature)`,
+    /// `operatorUnsupported(operator)`, `conditionDetached(operator?)`,
+    /// `keyInvalid(key)`, ...), so a host can rebuild it exactly.
+    pub subject: Option<String>,
 }
 
 impl Error {
@@ -48,7 +53,13 @@ impl Error {
         Self {
             code,
             message: message.into(),
+            subject: None,
         }
+    }
+
+    fn with_subject(mut self, subject: impl Into<String>) -> Self {
+        self.subject = Some(subject.into());
+        self
     }
 
     pub fn input_invalid() -> Self {
@@ -66,7 +77,7 @@ impl Error {
     }
 
     pub fn key_invalid(key: &str) -> Self {
-        Self::new(ErrorCode::KeyInvalid, format!("The key {key} is invalid."))
+        Self::new(ErrorCode::KeyInvalid, format!("The key {key} is invalid.")).with_subject(key)
     }
 
     pub fn key_value_invalid(key: &str) -> Self {
@@ -74,6 +85,7 @@ impl Error {
             ErrorCode::KeyValueInvalid,
             format!("The value of the key {key} is invalid."),
         )
+        .with_subject(key)
     }
 
     pub fn operator_unsupported(operator: &str) -> Self {
@@ -81,6 +93,7 @@ impl Error {
             ErrorCode::OperatorUnsupported,
             format!("The filter operator {operator} is not supported."),
         )
+        .with_subject(operator)
     }
 
     pub fn feature_unsupported(feature: &str) -> Self {
@@ -88,15 +101,25 @@ impl Error {
             ErrorCode::FeatureUnsupported,
             format!("The feature {feature} is not supported by the dialect."),
         )
+        .with_subject(feature)
     }
 
     pub fn condition_detached(operator: Option<&str>) -> Self {
         let label = operator.map(|op| format!(" ({op})")).unwrap_or_default();
 
-        Self::new(
+        let error = Self::new(
             ErrorCode::ConditionDetached,
-            format!("The condition{label} cannot be lowered by this built-in consumer."),
-        )
+            format!(
+                "The condition{label} cannot be lowered by this built-in consumer. \
+                 A custom condition needs a compatible consumer; detached transport data must be rebuilt \
+                 with the condition helpers (eq, and, or, \u{2026}) before passing it to an adapter."
+            ),
+        );
+
+        match operator {
+            Some(operator) => error.with_subject(operator),
+            None => error,
+        }
     }
 }
 

@@ -17,6 +17,8 @@
 export const ErrorMessage = {
     inputInvalid: () => 'The shape of the input is not valid.',
 
+    bindingUnavailable: (reason: string) => `The rapiq binding is not available: ${reason}`,
+
     inputRejected: (count: number) => (count === 1 ?
         'The input was rejected: 1 violation.' :
         `The input was rejected: ${count} violations.`),

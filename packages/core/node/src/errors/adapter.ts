@@ -34,6 +34,19 @@ export class AdapterError extends BaseError {
         this.feature = isObject(message) ? message.feature : undefined;
     }
 
+    /**
+     * A call needs the Rust binding (filter planning and the rest of the
+     * shared semantics), and none could be loaded: no native addon for the
+     * platform, or the WASM build is not initialized.
+     */
+    static bindingUnavailable(reason: string, cause?: unknown) {
+        return new this({
+            message: ErrorMessage.bindingUnavailable(reason),
+            code: ErrorCode.BINDING_UNAVAILABLE,
+            cause,
+        });
+    }
+
     static operatorUnsupported(operator: string) {
         return new this({
             message: `The filter operator ${operator} is not supported.`,

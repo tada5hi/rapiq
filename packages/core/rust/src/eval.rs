@@ -385,6 +385,7 @@ impl Compiler {
                 pattern,
                 ignore_case,
                 negated,
+                ..
             } => self.leaf(
                 field,
                 Test::Match(build_regex(pattern, *ignore_case)?),

@@ -387,6 +387,7 @@ version = "0.0.0"
 dependencies = [
  "mimalloc",
  "rapiq-core",
+ "serde_json",
 ]
 
 [[package]]

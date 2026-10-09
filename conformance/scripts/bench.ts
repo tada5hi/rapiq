@@ -11,7 +11,7 @@
  * pre-serialized)" is what a caller holding JSON text (an HTTP body, a
  * file) pays; "rust (stringify per call)" includes JSON.stringify.
  *
- * Run (after `npm run build` and building packages/core/node/binding):
+ * Run (after `npm run build`, which also builds the napi binding):
  *   node --experimental-strip-types conformance/scripts/bench.ts
  */
 
@@ -20,8 +20,8 @@
 import { performance } from 'node:perf_hooks';
 import { compileFilters as compileReference } from '@rapiq/adapter-memory';
 import { ExpressionFiltersParser } from '@rapiq/parser-expression';
-import * as rust from '../../packages/core/node/binding/index.js';
-import { toIR } from '../src/ir.ts';
+import { toIR } from '@rapiq/core';
+import * as rust from '../src/rust.ts';
 
 function median(values: number[]) : number {
     const sorted = [...values].sort((a, b) => a - b);
