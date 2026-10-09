@@ -4,7 +4,13 @@
     "bump-minor-pre-major": true,
     "bump-patch-for-minor-pre-major": true,
     "packages": {
-        "packages/core/node": { "component": "core" },
+        "packages/core/node": {
+            "component": "core",
+            "extra-files": [
+                { "type": "generic", "path": "/Cargo.toml" },
+                { "type": "generic", "path": "/packages/rapiq/python/pyproject.toml" }
+            ]
+        },
         "packages/parser-simple/node": { "component": "parser-simple" },
         "packages/parser-expression/node": { "component": "parser-expression" },
         "packages/parser-mongo/node": { "component": "parser-mongo" },

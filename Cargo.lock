@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "rapiq"
-version = "0.0.0"
+version = "2.4.0"
 dependencies = [
  "rapiq-core",
  "serde_json",
@@ -383,7 +383,7 @@ dependencies = [
 
 [[package]]
 name = "rapiq-binding-support"
-version = "0.0.0"
+version = "2.4.0"
 dependencies = [
  "mimalloc",
  "rapiq-core",
@@ -392,7 +392,7 @@ dependencies = [
 
 [[package]]
 name = "rapiq-core"
-version = "0.0.0"
+version = "2.4.0"
 dependencies = [
  "regex",
  "ryu-js",
@@ -402,7 +402,7 @@ dependencies = [
 
 [[package]]
 name = "rapiq-core-node"
-version = "0.0.0"
+version = "2.4.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "rapiq-core-py"
-version = "0.0.0"
+version = "2.4.0"
 dependencies = [
  "pyo3",
  "rapiq-binding-support",

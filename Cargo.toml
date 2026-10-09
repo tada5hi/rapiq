@@ -9,7 +9,8 @@ members = [
 exclude = ["packages/rapiq/python"]
 
 [workspace.package]
-version = "0.0.0"
+# lockstep with the npm packages (D6), bumped by release-please
+version = "2.4.0" # x-release-please-version
 edition = "2024"
 license = "MIT"
 authors = ["Peter Placzek <peter.placzek1996@gmail.com>"]
@@ -19,7 +20,7 @@ publish = false
 
 [workspace.dependencies]
 # internal crates (the version is required for publishing dependents)
-rapiq-core = { path = "packages/core/rust", version = "0.0.0" }
+rapiq-core = { path = "packages/core/rust", version = "2.4.0" } # x-release-please-version
 rapiq-binding-support = { path = "packages/binding-support/rust" }
 
 mimalloc = { version = "0.1", default-features = false }

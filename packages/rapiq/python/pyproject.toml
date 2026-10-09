@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rapiq"
-version = "0.0.0"
+version = "2.4.0" # x-release-please-version
 description = "rapiq (REST API query) for Python: installs the rapiq parts you select (rapiq.core, ...)."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -20,13 +20,17 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
 ]
-# every part needs the core; the versions move in lockstep
-dependencies = ["rapiq-core==0.0.0"]
+# every part needs the core; the versions move in lockstep (D6)
+dependencies = [
+    "rapiq-core==2.4.0", # x-release-please-version
+]
 
 [project.optional-dependencies]
 # one extra per part (e.g. mongo = ["rapiq-parser-mongo==<version>"]) as the
 # parts gain Python bindings; `all` lists every part
-all = ["rapiq-core==0.0.0"]
+all = [
+    "rapiq-core==2.4.0", # x-release-please-version
+]
 
 [project.urls]
 Homepage = "https://rapiq.tada5hi.net"
