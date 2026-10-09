@@ -13,11 +13,15 @@ this directory).
 
 ## Layout
 
+Directories are named after their role; the crate (package) names keep the
+`rapiq-` prefix (`rapiq-core`, `rapiq-node`, `rapiq-py`) because crates.io has
+no namespaces, so `cargo -p` takes the prefixed name.
+
 | Path | What |
 |------|------|
-| `rapiq-core/` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
-| `rapiq-node/` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects |
-| `rapiq-py/` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`python/rapiq/__init__.py`) |
+| `core/` | The Rust port: filter IR (`ir.rs`), schemaless expression filters parser (`expression.rs`), `planCondition` lowering (`plan.rs`), adapter-memory value semantics (`value.rs`) and filter evaluator with join-row binding (`eval.rs`), plus the JSON-string surface every binding wraps (`api.rs`) |
+| `node/` | napi-rs binding (`src/lib.rs`) plus a thin ESM wrapper (`index.js`, `index.d.ts`) that takes and returns plain objects |
+| `python/` | PyO3 / maturin binding: native module `rapiq._native` plus the `rapiq` package (`python/rapiq/__init__.py`) |
 | `conformance/` | Shared fixtures (`fixtures/*.json`), their generator (`scripts/generate.ts`), the TS side of the IR (`src/ir.ts`), the vitest suite running the TS reference and the Rust binding side by side, and the Node benchmark |
 
 ## The IR
@@ -47,13 +51,13 @@ cargo test --workspace
 
 # Node binding: build rapiq.node, then run the fixtures against the TS
 # reference and the Rust binding side by side
-(cd crates/rapiq-node && npm run build)
+(cd crates/node && npm run build)
 (cd crates/conformance && npx vitest run --config test/vitest.config.ts)
 
 # Python binding: build into a virtualenv, then run the fixtures
 python -m venv .venv && . .venv/bin/activate
 pip install maturin pytest
-(cd crates/rapiq-py && maturin develop --release && pytest)
+(cd crates/python && maturin develop --release && pytest)
 
 # Regenerate the fixtures from the TS reference (re-checks every
 # hand-written verdict against @rapiq/adapter-memory)
@@ -62,13 +66,13 @@ node --experimental-strip-types crates/conformance/scripts/generate.ts
 # Benchmarks
 cargo run --release -p rapiq-core --example profile
 node --experimental-strip-types crates/conformance/scripts/bench.ts
-python crates/rapiq-py/scripts/bench.py
+python crates/python/scripts/bench.py
 ```
 
 ## Using the bindings
 
 ```js
-import { compileFilters, parseExpressionFilters } from './crates/rapiq-node/index.js';
+import { compileFilters, parseExpressionFilters } from './crates/node/index.js';
 
 const filters = parseExpressionFilters("and(eq(name, 'Peter'), gte(age, '18'))");
 const adults = compileFilters(filters).filter(users); // the caller's own objects

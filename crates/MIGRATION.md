@@ -18,14 +18,14 @@ Background and measurements: [SPIKE.md](SPIKE.md).
 ## Target architecture
 
 ```
-crates/rapiq-core            Rust: IR, schema resolution, parsers, merge,
+crates/core                  Rust: IR, schema resolution, parsers, merge,
                              filter semantics, codec, SQL rendering,
                              in-memory evaluation, issue traces
-crates/rapiq-node            napi-rs binding        ┐
-crates/rapiq-wasm            wasm-bindgen binding   ├─ @rapiq/native (npm)
+crates/node                  napi-rs binding        ┐
+crates/wasm                  wasm-bindgen binding   ├─ @rapiq/native (npm)
                                                     ┘  loader picks one
-crates/rapiq-py              PyO3 binding           ── rapiq (PyPI)
-crates/rapiq-jvm             JNI binding            ── Maven (later)
+crates/python                PyO3 binding           ── rapiq (PyPI)
+crates/jvm                   JNI binding            ── Maven (later)
 
 packages/core                public TS API: classes (Query, Filter, ...),
                              visitor interfaces, defineQuery/defineSchema,
@@ -100,7 +100,7 @@ generated from the TS reference before it is deleted.
 - Fixture generator covering every package's spec inputs, snapshotting the
   TS reference: the safety net for every later phase.
 - `@rapiq/native`: loader, napi prebuilds via `@napi-rs/cli` (linux x64 and
-  arm64 gnu and musl, macOS x64 and arm64, windows x64), `crates/rapiq-wasm`
+  arm64 gnu and musl, macOS x64 and arm64, windows x64), `crates/wasm`
   via wasm-bindgen, platform packages as optional dependencies.
 - CI: Rust job (fmt, clippy, test), napi build matrix, WASM build with a size
   budget, the conformance suite against both napi and WASM.

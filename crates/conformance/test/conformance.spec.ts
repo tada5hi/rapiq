@@ -10,7 +10,7 @@ import { flattenIssueItems } from '@ebec/core';
 import { compileFilters as compileReference } from '@rapiq/adapter-memory';
 import { isBaseError, isParseError } from '@rapiq/core';
 import { ExpressionFiltersParser } from '@rapiq/parser-expression';
-import * as rust from '../../rapiq-node/index.js';
+import * as rust from '../../node/index.js';
 import type { ConditionIR } from '../src/ir';
 import { fromIR, toIR } from '../src/ir';
 

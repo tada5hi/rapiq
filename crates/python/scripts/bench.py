@@ -6,7 +6,7 @@
 """Throughput of the Python binding (no Python reference exists to
 compare against). Run after `maturin develop --release`:
 
-    python crates/rapiq-py/scripts/bench.py
+    python crates/python/scripts/bench.py
 """
 
 import json

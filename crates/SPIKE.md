@@ -25,9 +25,9 @@ Layout and run instructions: [README.md](README.md). Scala: [SCALA.md](SCALA.md)
 
 | Piece | Lines (approx.) | Notes |
 |-------|-----------------|-------|
-| `rapiq-core` | 2,450 Rust (incl. unit tests) | IR, parser, lowering, value semantics, evaluator, JSON API |
-| `rapiq-node` | 55 Rust + 55 JS | napi-rs; errors carry the rapiq `ErrorCode` as `code` |
-| `rapiq-py` | 80 Rust + 110 Python | PyO3 abi3 (one wheel per platform for CPython 3.9+); `filter` releases the GIL |
+| `crates/core` | 2,450 Rust (incl. unit tests) | IR, parser, lowering, value semantics, evaluator, JSON API |
+| `crates/node` | 55 Rust + 55 JS | napi-rs; errors carry the rapiq `ErrorCode` as `code` |
+| `crates/python` | 80 Rust + 110 Python | PyO3 abi3 (one wheel per platform for CPython 3.9+); `filter` releases the GIL |
 | `conformance` | 1,200 TS + fixtures | generator, IR helpers, side-by-side suite, benchmark |
 
 The IR is JSON with an explicit `type` discriminant. The TS side

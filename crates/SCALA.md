@@ -6,7 +6,7 @@ application can consume `rapiq-core` and recommends one.
 ## What has to cross the boundary
 
 Exactly what the Node and Python bindings already move: the functions in
-`rapiq-core/src/api.rs`, JSON strings in and out, plus one opaque handle (a
+`crates/core/src/api.rs`, JSON strings in and out, plus one opaque handle (a
 compiled `Predicate`). That narrow surface is what makes every option below
 tractable. Hand-written Scala types for the IR (a sealed `Condition` ADT with
 a JSON codec) live on the Scala side, the same way `index.d.ts` and the
