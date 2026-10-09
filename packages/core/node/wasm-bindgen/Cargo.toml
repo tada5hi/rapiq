@@ -1,0 +1,20 @@
+[package]
+name = "rapiq-core-wasm-bindgen"
+description = "wasm-bindgen build of rapiq-core's browser surface, kept to track its size against the napi wasm32-wasip1 build (D2); not shipped."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rapiq-binding-support = { workspace = true }
+rapiq-core = { workspace = true }
+wasm-bindgen = { workspace = true }

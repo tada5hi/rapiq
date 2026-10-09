@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "packages/*/rust",
     "packages/*/node/binding",
+    "packages/*/node/wasm-bindgen",
     "packages/*/python",
 ]
 # the Python umbrella is metadata only, not a crate
@@ -30,6 +31,8 @@ napi-derive = "3.6.12"
 pyo3 = { version = "0.29.3", features = ["abi3-py39"] }
 regex = "1.13.1"
 ryu-js = "1.0.3"
+# must equal the wasm-bindgen CLI version used to post-process the build
+wasm-bindgen = "=0.2.106"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.151", features = ["preserve_order"] }
 
