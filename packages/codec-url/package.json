@@ -18,7 +18,7 @@
     "dependencies": {
         "@ebec/core": "^1.3.2",
         "pathtrace": "^2.2.3",
-        "qs": "^6.16.0"
+        "qs": "^6.16.1"
     },
     "devDependencies": {
         "@rapiq/core": "^2.4.0",
