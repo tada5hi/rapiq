@@ -24,15 +24,15 @@
     },
     "devDependencies": {
         "@rapiq/core": "^2.4.0",
-        "@swc/core": "^1.16.2",
+        "@swc/core": "^1.16.20",
         "better-sqlite3": "^12.6.0",
         "reflect-metadata": "^0.2.2",
-        "typeorm": "^1.1.1",
+        "typeorm": "^1.1.2",
         "unplugin-swc": "^1.6.0"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.4.0",
-        "typeorm": "^1.1.1"
+        "typeorm": "^1.1.2"
     },
     "scripts": {
         "build:types": "tsc --noEmit -p tsconfig.build.json",
