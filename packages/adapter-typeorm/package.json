@@ -24,12 +24,12 @@
         "@rapiq/adapter-sql": "^2.4.0",
         "@swc/core": "^1.16.2",
         "ansis": "^4.4.0",
-        "better-sqlite3": "^12.6.0",
+        "better-sqlite3": "^13.0.3",
         "mysql2": "^3.24.4",
         "pg": "^8.23.0",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^1.1.1",
-        "unplugin-swc": "^1.6.0"
+        "unplugin-swc": "^2.0.0"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.4.0",
