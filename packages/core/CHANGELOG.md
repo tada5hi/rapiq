@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/core-v2.4.0...core-v2.0.0) (2026-10-28)
+
+
+### Miscellaneous Chores
+
+* **core:** Synchronize rapiq versions
+
 ## [2.4.0](https://github.com/tada5hi/rapiq/compare/core-v2.3.0...core-v2.4.0) (2026-09-23)
 
 
