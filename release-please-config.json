@@ -13,7 +13,9 @@
         "packages/adapter-typeorm": { "component": "adapter-typeorm" },
         "packages/adapter-prisma": { "component": "adapter-prisma" },
         "packages/adapter-drizzle": { "component": "adapter-drizzle" },
-        "packages/adapter-memory": { "component": "adapter-memory" }
+        "packages/adapter-memory": { "component": "adapter-memory" },
+        "packages/cache": { "component": "cache" },
+        "packages/cache-redis": { "component": "cache-redis" }
     },
     "plugins": [
         {
@@ -34,7 +36,9 @@
                 "adapter-typeorm",
                 "adapter-prisma",
                 "adapter-drizzle",
-                "adapter-memory"
+                "adapter-memory",
+                "cache",
+                "cache-redis"
             ]
         }
     ],

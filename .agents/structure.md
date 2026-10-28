@@ -16,6 +16,8 @@ npm-workspaces monorepo (`packages/*`) orchestrated by Nx. Every publishable pac
 | [@rapiq/adapter-prisma](../packages/adapter-prisma)                       | Library  | Adapter serializing a parsed `Query` into a Prisma `findMany` args object (pure value, no prisma dependency) |
 | [@rapiq/adapter-drizzle](../packages/adapter-drizzle)                     | Library  | Adapter serializing a parsed `Query` into a drizzle relational-queries v2 `findMany` config (pure value, no drizzle dependency) |
 | [@rapiq/adapter-memory](../packages/adapter-memory)                       | Library  | Evaluates a parsed `Query` against in-memory objects/arrays: visitors compile the AST into plain functions (predicate/comparator/projector/slicer) |
+| [@rapiq/cache](../packages/cache)                         | Library  | Tag-invalidated result cache: `TaggedCache` over an `ICacheDriver` (tag versions on one logical clock), `MemoryCacheDriver`, query tag derivation (`collectQueryTags`, `isCacheable`, `rememberQuery`), the TypeORM write side (`CacheInvalidationSubscriber`, behind the `@rapiq/cache/typeorm` subpath; `typeorm` as an optional type-only peer), the shared driver contract suite |
+| [@rapiq/cache-redis](../packages/cache-redis)             | Library  | Redis `ICacheDriver` for `@rapiq/cache` over `ioredis`: `RedisCacheDriver`, the write/read/invalidate steps as three Lua scripts registered through `defineCommand`; an entry is a hash (`clock`, `tags`, `value` as JSON) so the read script decodes the tag list and never the value; keys `<prefix>:e:`, `<prefix>:t:`, `<prefix>:c`; the spec suite is `describe.runIf`-gated on a live Redis at `REDIS_URL` (db 15) and runs its files sequentially, since they share that database |
 | [@rapiq/docs](../packages/docs)                           | Docs app | VitePress documentation site (rapiq.tada5hi.net); private, not published    |
 
 ## Package Dependency Layers
@@ -32,6 +34,7 @@ Layer 1 (depend on core):
   @rapiq/adapter-memory
   @rapiq/adapter-prisma
   @rapiq/adapter-drizzle
+  @rapiq/cache               (core; @ebec/core for the error brand; typeorm as an optional type-only peer)
 
 Layer 2:
   @rapiq/parser-expression   (core + parser-simple)
@@ -40,6 +43,9 @@ Layer 2:
 
 Layer 3:
   @rapiq/codec-url           (core + parser-simple + parser-expression)
+
+Layer 2, outside the query pipeline:
+  @rapiq/cache-redis         (cache + ioredis peer)
 ```
 
 Changes to `@rapiq/core` affect every other package.
@@ -111,6 +117,20 @@ packages/adapter-memory/src/
 ├── helpers/              # value semantics (normalize/equal/compare/resolve)
 └── module.ts             # QueryVisitor + compileQuery/applyQuery/compile* helpers
 
+packages/cache/src/
+├── tag.ts                # the tag vocabulary: buildCollectionTag / buildRecordTag / buildScopedTag (shared by readers and writers)
+├── driver/               # ICacheDriver + CacheEntry contract, MemoryCacheDriver (Maps + clock, lazy expiry, bounded prune)
+├── errors/               # CacheError (extends core BaseError, own instanceof brand) + isCacheError
+├── query/                # isCacheable (no Field.condition), collectQueryTags (root scope, relation collections, record tags), rememberQuery
+├── typeorm/              # CacheInvalidationSubscriber (subpath `@rapiq/cache/typeorm`): row tags per insert/update/remove/soft remove/recover, cascade children, bump at the outermost commit (typeorm types only)
+└── module.ts             # TaggedCache: remember (clock before read, fall through on driver failure), invalidate, drop
+
+packages/cache-redis/src/
+├── constants.ts          # default prefix, key segments (e/t/c), entry hash fields, the defineCommand names
+├── scripts.ts            # the three Lua sources (write: KEYS entry+clock+tags; read: KEYS entry+clock, tag keys from ARGV prefix; invalidate: KEYS clock+tags)
+├── module.ts             # RedisCacheDriver: defineCommand once per client, JSON values, ttl clamped to maxTtl, drop = DEL
+└── types.ts              # RedisCacheClient (Redis | Cluster), RedisCacheDriverOptions, the script-augmented client type
+
 packages/codec-url/src/
 ├── module.ts             # public URLCodec façade + custom dialect registration (detect hooks)
 ├── factory.ts            # createURLCodec (bundles both; expression default; structural detects)
@@ -140,6 +160,8 @@ All packages share the same export shape — single entry point, ESM-only build:
 
 Public API is controlled via the barrel `src/index.ts` of each package; anything not re-exported there is internal.
 
+The one deviation is `@rapiq/cache`, which adds a second entry, `@rapiq/cache/typeorm` (`src/typeorm/index.ts` -> `dist/typeorm.mjs` + `dist/typeorm.d.mts`), so the types of its optional `typeorm` peer never leak into the root `index.d.mts`.
+
 ## Separation of Concerns
 
 - **AST & type definitions** → `@rapiq/core` (`parameter/`)
@@ -148,3 +170,4 @@ Public API is controlled via the barrel `src/index.ts` of each package; anything
 - **Turning the AST into URL transport format** → `@rapiq/codec-url` (expression-default encode; deprecated explicit simple encode)
 - **Turning the AST into backend queries** → `@rapiq/adapter-sql`, `@rapiq/adapter-typeorm`, `@rapiq/adapter-prisma`, `@rapiq/adapter-drizzle`
 - **Evaluating the AST against in-memory data** → `@rapiq/adapter-memory` (predicates/comparators/projectors compiled from the AST)
+- **Caching a result and knowing when it went stale** → `@rapiq/cache` (tags derived from the AST + schema, versioned by a driver), `@rapiq/cache-redis` (the shared-store driver)

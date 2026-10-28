@@ -231,6 +231,8 @@ to match your backend.
 | [@rapiq/adapter-prisma](packages/adapter-prisma) | Serializes a parsed `Query` into a Prisma argument object |
 | [@rapiq/adapter-drizzle](packages/adapter-drizzle) | Serializes a parsed `Query` into a Drizzle relational query config |
 | [@rapiq/adapter-memory](packages/adapter-memory) | Evaluates a parsed `Query` against in-memory objects & arrays |
+| [@rapiq/cache](packages/cache) | Tag-invalidated result cache for query results, with a memory driver |
+| [@rapiq/cache-redis](packages/cache-redis) | Redis driver for `@rapiq/cache` |
 
 ## Parameters
 

@@ -118,6 +118,28 @@ const packages: PackageCard[] = [
             'Perfect for authorization checks & tests',
         ],
     },
+    {
+        name: '@rapiq/cache',
+        accent: 'var(--rq-color-primary)',
+        href: '/packages/cache',
+        summary: 'Caches a query result and knows when it went stale: tags derived from the Query, versioned on one clock.',
+        bullets: [
+            'Collection, record and scoped tags from the AST + schema',
+            'Race-safe: clock read before, re-checked at store',
+            'Memory driver built in; TypeORM write side included',
+        ],
+    },
+    {
+        name: '@rapiq/cache-redis',
+        accent: 'var(--rq-color-accent)',
+        href: '/packages/cache-redis',
+        summary: 'The shared-store driver: write, read and invalidate as atomic Lua scripts over ioredis.',
+        bullets: [
+            'One cache for every application process',
+            'Same ICacheDriver contract, same test suite',
+            'Cluster ready with a hash-tagged prefix',
+        ],
+    },
 ];
 </script>
 

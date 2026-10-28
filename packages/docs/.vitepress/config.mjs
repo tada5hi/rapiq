@@ -83,6 +83,13 @@ export default defineConfig({
                     ],
                 },
                 {
+                    text: 'Caching',
+                    items: [
+                        { text: 'Caching Query Results', link: '/guide/cache' },
+                        { text: 'Caching with Redis', link: '/guide/cache-redis' },
+                    ],
+                },
+                {
                     text: 'Recipes',
                     items: [
                         { text: 'Overview', link: '/guide/recipes/' },
@@ -133,6 +140,13 @@ export default defineConfig({
                         { text: '@rapiq/adapter-prisma', link: '/packages/adapter-prisma' },
                         { text: '@rapiq/adapter-drizzle', link: '/packages/adapter-drizzle' },
                         { text: '@rapiq/adapter-memory', link: '/packages/adapter-memory' },
+                    ],
+                },
+                {
+                    text: 'Caching',
+                    items: [
+                        { text: '@rapiq/cache', link: '/packages/cache' },
+                        { text: '@rapiq/cache-redis', link: '/packages/cache-redis' },
                     ],
                 },
             ],

@@ -89,6 +89,7 @@ Install only what each side of your application needs; `@rapiq/core` is the shar
 | **Parse input** | [@rapiq/parser-simple](/packages/parser-simple) · [@rapiq/parser-expression](/packages/parser-expression) · [@rapiq/parser-mongo](/packages/parser-mongo) |
 | **Cross the wire** | [@rapiq/codec-url](/packages/codec-url) |
 | **Execute** | [@rapiq/adapter-typeorm](/packages/adapter-typeorm) · [@rapiq/adapter-sql](/packages/adapter-sql) · [@rapiq/adapter-prisma](/packages/adapter-prisma) · [@rapiq/adapter-drizzle](/packages/adapter-drizzle) · [@rapiq/adapter-memory](/packages/adapter-memory) |
+| **Cache** | [@rapiq/cache](/packages/cache) · [@rapiq/cache-redis](/packages/cache-redis) |
 
 See the [package overview](/packages/) for the full map and a "which packages do I need?" guide.
 
