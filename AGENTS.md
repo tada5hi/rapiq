@@ -21,7 +21,7 @@ npx nx run @rapiq/core:build
 npm run test --workspace=packages/core
 ```
 
-- **Node.js**: 22 (CI primary version)
+- **Development Node.js**: 24.11+ on the 24.x line, or 26+ (CI runs on 24). Published runtime requirements are declared in each package manifest.
 - **Package manager**: npm (workspaces: `packages/*`)
 - **Build orchestration**: Nx (`build` depends on `^build`; `build`, `lint`, `test` are cached)
 - **Per-package build**: `tsc --noEmit` (type-check, `build:types`) + tsdown (bundle + dts, `build:js`); ESM-only output (`dist/index.mjs` + `dist/index.d.mts`)
