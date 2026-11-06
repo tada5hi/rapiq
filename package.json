@@ -35,5 +35,8 @@
         "lint": "eslint",
         "lint:fix": "eslint --fix",
         "prepare": "husky"
+    },
+    "overrides": {
+        "undici": "7.30.1"
     }
 }
