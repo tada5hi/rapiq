@@ -56,7 +56,7 @@ Tests should assert *expected* behavior based on the documented query semantics 
 
 GitHub Actions (`.github/workflows/main.yml`) on pushes/PRs to `develop`, `master`, `next`, `beta`, `alpha`:
 
-1. **install** (Node 22, shared composite action `.github/actions/install`)
+1. **install** (the contributor Node version in AGENTS.md, shared composite action `.github/actions/install`)
 2. **build** (`.github/actions/build`, Nx dependency-ordered)
 3. **test** and **lint** as separate jobs (after build)
 

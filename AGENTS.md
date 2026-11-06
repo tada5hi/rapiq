@@ -1,5 +1,3 @@
-<!-- NOTE: Keep this file and all corresponding files in the .agents directory updated as the project evolves. When making architectural changes, adding new patterns, or discovering important conventions, update the relevant sections. -->
-
 # rapiq — Agent Guide
 
 Rapiq (**R**est **Api** **Q**uery) is a TypeScript library to build an efficient interface between client- & server-side applications. It defines a scheme for the request query (fields, filters, relations, pagination, sort — based on the [JSON-API](https://jsonapi.org/format/) spec), but **not** for the response. This repository is the **v2 monorepo**: the former single `rapiq` package is split into focused, composable `@rapiq/*` packages (core AST + schema, parsers, codecs, SQL/TypeORM adapters).
@@ -45,6 +43,15 @@ Note: the root `README.md` documents v2; v1 lives on the `v1` branch.
 - **[Architecture](.agents/architecture.md)** — Query AST, visitor pattern, schema system, parser dialects, and backend adapters
 - **[Testing](.agents/testing.md)** — vitest setup, per-package configs, and test data conventions
 - **[Conventions](.agents/conventions.md)** — Linting, file organization, commit format, and release process
+
+### Writing agent docs
+
+Keep the guides factual and focused on contracts a future change could silently break.
+
+- Update an existing line when an invariant or cross-cutting rule changes. Put defect stories and verification details in the PR, and user-facing changes in the documentation site or release notes.
+- Keep subsystem detail in `.agents/topics/` and link it from the relevant guide; do not import topic files into `CLAUDE.md`.
+- Describe current behavior and cite issues or PRs, rather than local plan files or a running history of completed work.
+- `npm run lint` enforces the shared config's agent-doc size, import-budget and history checks. Preserve the critical contracts when splitting a guide.
 
 ## Commits, Issues & Pull Requests
 
