@@ -47,6 +47,7 @@ type Row = {
 
 const buildRegistry = () => {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Row>({
         name: 'row',
         indexes: [['realm_id', 'created_at'], ['email']],
@@ -83,6 +84,7 @@ describe('src/parser/index-policy.ts', () => {
         const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);
 
         const applied = applyFiltersIndexPolicy(output, registry, 'row');
+
         expect(applied).not.toBe(output);
         expect(applied.value).toEqual([eq('flag', true)]);
     });
@@ -137,11 +139,13 @@ describe('src/parser/index-policy.ts', () => {
 
     it('should throw on violation when no default exists to fall back to', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<Row>({
             name: 'row',
             indexes: [['realm_id']],
             filters: { indexed: true },
         }));
+
         const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);
 
         try {
@@ -155,10 +159,12 @@ describe('src/parser/index-policy.ts', () => {
 
     it('should no-op without the indexed opt-in', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<Row>({
             name: 'row',
             indexes: [['realm_id']],
         }));
+
         const output = new Filters(FilterCompoundOperator.AND, [eq('flag', true)]);
 
         expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
@@ -171,10 +177,12 @@ describe('src/parser/index-policy.ts', () => {
             new Sort('realm_id', SortDirection.DESC),
             new Sort('created_at', SortDirection.ASC),
         ]);
+
         expect(applySortsIndexPolicy(ok, registry, 'row')).toBe(ok);
 
         const bad = new Sorts([new Sort('created_at', SortDirection.ASC)]);
         const applied = applySortsIndexPolicy(bad, registry, 'row');
+
         expect(applied).not.toBe(bad);
         expect(applied.value.map((sort) => [sort.name, sort.operator]))
             .toEqual([['created_at', SortDirection.DESC]]);
@@ -205,6 +213,7 @@ describe('src/parser/index-policy.ts', () => {
     it('should apply both index policies despite failures in other parameters', () => {
         const registry = buildRegistry();
         const collector = new IssueCollector();
+
         collector.add({
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.FIELDS,
@@ -234,6 +243,7 @@ describe('src/parser/index-policy.ts', () => {
     it('should suppress only a filter consequence for a filter failure', () => {
         const registry = buildRegistry();
         const collector = new IssueCollector();
+
         collector.add({
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.FILTERS,
@@ -254,6 +264,7 @@ describe('src/parser/index-policy.ts', () => {
     it('should suppress only a sort consequence for a sort failure', () => {
         const registry = buildRegistry();
         const collector = new IssueCollector();
+
         collector.add({
             code: ErrorCode.KEY_NOT_ALLOWED,
             parameter: Parameter.SORTS,
@@ -274,6 +285,7 @@ describe('src/parser/index-policy.ts', () => {
     it('should find a same-parameter failure inside an issue group', () => {
         const registry = buildRegistry();
         const collector = new IssueCollector();
+
         collector.merge([defineIssueGroup({
             path: [],
             message: 'The filter input is invalid.',

@@ -56,6 +56,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
+
         return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
@@ -77,6 +78,7 @@ export class SimpleFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
+
         return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
@@ -123,14 +125,15 @@ export class SimpleFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : {
-        output: IFilters, 
-        scope: FiltersScope<RECORD>, 
+        output: IFilters,
+        scope: FiltersScope<RECORD>,
     } {
         const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
 
         let items: ICondition[] = parsed;
+
         if (items.length > 0) {
             items = items
                 .map((item) => applyFiltersSchemaValidation(item, scope.schema, options.context, {
@@ -145,8 +148,8 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         return {
-            output: new Filters(FilterCompoundOperator.AND, items), 
-            scope, 
+            output: new Filters(FilterCompoundOperator.AND, items),
+            scope,
         };
     }
 
@@ -156,19 +159,21 @@ export class SimpleFiltersParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : Promise<{
-        output: IFilters, 
-        scope: FiltersScope<RECORD>, 
+        output: IFilters,
+        scope: FiltersScope<RECORD>,
     }> {
         const scope = this.scopeFor(options, ledger, issueCollector);
 
         const parsed = this.run(input, scope);
 
         let items: ICondition[] = [];
+
         for (const item of parsed) {
             const validated = await applyFiltersSchemaValidationAsync(item, scope.schema, options.context, {
                 issueCollector,
                 throwOnFailure: options.throwOnFailure,
             });
+
             if (validated) {
                 items.push(validated);
             }
@@ -179,8 +184,8 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         return {
-            output: new Filters(FilterCompoundOperator.AND, items), 
-            scope, 
+            output: new Filters(FilterCompoundOperator.AND, items),
+            scope,
         };
     }
 
@@ -235,6 +240,7 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         const { length } = Object.keys(input);
+
         if (length === 0) {
             return [];
         }
@@ -242,6 +248,7 @@ export class SimpleFiltersParser extends BaseParser<
         const normalized = this.groupObject(this.expandObject(input));
 
         const named = schema.name ? normalized.relations[schema.name] : undefined;
+
         if (schema.name && named) {
             normalized.attributes = {
                 ...(normalized.attributes || {}),
@@ -270,10 +277,12 @@ export class SimpleFiltersParser extends BaseParser<
         const output : IFilter[] = [];
 
         let keys = Object.keys(data.attributes);
+
         for (const key_ of keys) {
             const key = parseKey(key_);
 
             const resolved = scope.resolveKey(key.name);
+
             if (!resolved.success) {
                 continue;
             }
@@ -284,6 +293,7 @@ export class SimpleFiltersParser extends BaseParser<
             // empty-value verdict; the parser only applies the
             // schema drop-vs-throw policy.
             const decoded = decodeFilterWireValue(data.attributes[key_]);
+
             if (!decoded.success) {
                 // absolute: `resolved.path` is relative to this scope, which
                 // sits at `scope.path` inside a nested relation object.
@@ -312,13 +322,16 @@ export class SimpleFiltersParser extends BaseParser<
         }
 
         keys = Object.keys(data.relations);
+
         for (const key of keys) {
             const child = scope.descend(key);
+
             if (!(child instanceof ResolutionScope)) {
                 continue;
             }
 
             const relationData = data.relations[key];
+
             if (relationData === undefined) {
                 continue;
             }

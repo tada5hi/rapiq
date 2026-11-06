@@ -323,11 +323,13 @@ describe('cross-backend operator parity', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
         const userRepository = dataSource.getRepository(User);
+
         aston.role = admin;
         aston.realm = master;
 
@@ -347,6 +349,7 @@ describe('cross-backend operator parity', () => {
             new Filters(FilterCompoundOperator.AND, [condition]);
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ filters: filters as Filters }));
 
         const data = await queryBuilder.getMany();

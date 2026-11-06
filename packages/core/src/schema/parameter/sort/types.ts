@@ -11,6 +11,8 @@ import type {
 import type { SortDirection } from './constants';
 import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
 
+
+
 export type SortsOptionDefault<T extends Record<string, any>> = {
     [K in SimpleKeys<T>]?: `${SortDirection}`
 };
@@ -59,3 +61,24 @@ export type SortsSchemaDescription = {
     default: Record<string, `${SortDirection}`> | null,
     indexed: boolean,
 };
+
+/**
+ * @deprecated use {@link SortsOptions}. Removed in 3.0.
+ */
+export type SortOptions<
+    T extends Record<string, any> = Record<string, any>,
+    CONTEXT = any,
+> = SortsOptions<T, CONTEXT>;
+
+/**
+ * @deprecated use {@link SortsOptionDefault}. Removed in 3.0.
+ */
+export type SortOptionDefault<T extends Record<string, any>> = SortsOptionDefault<T>;
+
+/**
+ * @deprecated use {@link SortsSchemaDescription}. Removed in 3.0.
+ */
+export type SortSchemaDescription = SortsSchemaDescription;
+
+// eslint-disable-next-line @tada5hi/no-reexport-shims -- Preserve the merged public value and type alias.
+export type { SortSchema } from './deprecated';

@@ -8,7 +8,7 @@
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../schema';
 import type { NestedKeys, ObjectLiteral } from '../../../types';
 import { Filters } from '../collection';
-import type { ICondition } from '../condition';
+import type { ICondition } from '../types';
 import { Filter } from '../record';
 
 /**

@@ -262,6 +262,7 @@ describe('src/adapter/where.ts', () => {
     describe('expansion limit', () => {
         it('should fail typed instead of downgrading a huge mixed tree', () => {
             const conditions : Condition[] = [];
+
             for (let i = 0; i < 7; i++) {
                 conditions.push(or(eq('items.title', `title-${i}`), eq('age', i)));
             }
@@ -273,9 +274,11 @@ describe('src/adapter/where.ts', () => {
     describe('dialect presets', () => {
         it('should fall back to like on sqlite and mysql', () => {
             const sqlite = serialize(contains('address', 'wart'), { provider: 'sqlite' });
+
             expect(sqlite.where).toEqual({ address: { like: '%wart%' } });
 
             const mysql = serialize(eq('address', 'Hogwarts'), { provider: 'mysql' });
+
             expect(mysql.where).toEqual({ address: { eq: 'Hogwarts' } });
         });
 

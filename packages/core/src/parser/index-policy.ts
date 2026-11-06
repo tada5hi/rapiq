@@ -69,15 +69,19 @@ function indexesResolverFor(scope: ResolutionScope<any, any>) : IndexesResolver 
 
     return (path) => {
         const cached = cache.get(path);
+
         if (typeof cached !== 'undefined') {
             return cached;
         }
 
         let target = scope;
+
         if (path !== '') {
             const child = scope.descend(path);
+
             if (!(child instanceof ResolutionScope)) {
                 cache.set(path, null);
+
                 return null;
             }
 
@@ -86,6 +90,7 @@ function indexesResolverFor(scope: ResolutionScope<any, any>) : IndexesResolver 
 
         const schema = target.schema as { indexes: string[][], indexesIsUndefined: boolean };
         const value = schema.indexesIsUndefined ? null : schema.indexes;
+
         cache.set(path, value);
 
         return value;
@@ -160,6 +165,7 @@ function hasPreservedCondition(node: ICondition) : boolean {
 
 function isFiltersDefaults(output: IFilters, schema: FiltersSchema) : boolean {
     const defaults = buildFiltersDefaults(schema);
+
     if (defaults.length === 0 || output.value.length !== defaults.length) {
         return false;
     }
@@ -198,13 +204,16 @@ function collectClientSortKeys(
         const path = details.path ?? '';
 
         let defaults = cache.get(path);
+
         if (typeof defaults === 'undefined') {
             defaults = null;
 
             if (path !== '') {
                 const child = scope.descend(path);
+
                 if (child instanceof ResolutionScope) {
                     const childSchema = child.schema as SortsSchema;
+
                     if (!childSchema.defaultIsUndefined) {
                         defaults = childSchema.default;
                     }
@@ -243,6 +252,7 @@ export function applyFiltersIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema, { throwOnFailure: context.throwOnFailure });
 
     const filtersSchema = scope.schema as FiltersSchema<RECORD>;
+
     if (
         !filtersSchema.indexed ||
         isFiltersDefaults(output, filtersSchema) ||
@@ -259,6 +269,7 @@ export function applyFiltersIndexPolicy<
         indexesResolverFor(scope),
         filtersSchema.indexed,
     );
+
     if (result.ok) {
         return output;
     }
@@ -318,6 +329,7 @@ export function applySortsIndexPolicy<
     const scope = ResolutionScope.for(registry, Parameter.SORTS, schema, { throwOnFailure: context.throwOnFailure });
 
     const sortSchema = scope.schema as SortsSchema<RECORD>;
+
     if (
         !sortSchema.indexed ||
         output.value.length === 0 ||
@@ -329,11 +341,13 @@ export function applySortsIndexPolicy<
     }
 
     const names = collectClientSortKeys(output, scope);
+
     if (names.length === 0) {
         return output;
     }
 
     const result = checkSortKeysIndexed(names, indexesResolverFor(scope));
+
     if (result.ok) {
         return output;
     }

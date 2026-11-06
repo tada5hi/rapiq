@@ -7,4 +7,5 @@
 
 export * from './module';
 export * from './normalize';
+export type { DatamodelInput, ModelInput } from './types';
 export * from './types';

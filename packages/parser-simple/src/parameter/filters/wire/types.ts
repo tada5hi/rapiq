@@ -119,3 +119,22 @@ export type FilterWireValueInput<V> = V extends string | number ?
     V extends boolean ?
         V | null | `${Negation}null` :
         never;
+
+export type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ?
+    true :
+    false;
+
+export type ExpectTrue<T extends true> = T;
+
+export /** The pre-derivation hand-written union (prefix forms only). */
+type LegacySpelling<V extends string | number> =    V | `!${V}` | `!~${V}` | `~${V}` | `<${V}` | `<=${V}` | `>${V}` | `>=${V}`;
+
+export /** Runtime-accepted spellings the hand-written union had dropped. */
+type AddedSpelling<V extends string | number> =    `${V}~` | `!${V}~` | `~${V}~` | `!~${V}~`;
+
+export type FilterWireTypeChecks = [
+    ExpectTrue<Equals<FilterWireSpelling<'x'>, LegacySpelling<'x'> | AddedSpelling<'x'>>>,
+    ExpectTrue<Equals<NegatableWireOperator, 'eq' | 'contains' | 'startsWith' | 'endsWith'>>,
+    ExpectTrue<Equals<Extract<FilterWireValueInput<5>, number>, 5>>,
+    ExpectTrue<Equals<FilterWireValueInput<boolean>, boolean | null | '!null'>>,
+];

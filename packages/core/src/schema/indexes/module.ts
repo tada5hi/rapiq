@@ -40,6 +40,7 @@ function leafTarget(field: string) : { path: string, name: string } {
 function leafAnchors(leaf: IFilter, resolve: IndexesResolver) : boolean {
     const { path, name } = leafTarget(leaf.field);
     const indexes = resolve(path);
+
     if (!indexes) {
         return false;
     }
@@ -123,9 +124,11 @@ function checkGroup(
         // group coverage first: cheap, and a failure short-circuits
         // the compound recursion.
         const groups = new Map<string, string[]>();
+
         for (const leaf of leaves) {
             const { path, name } = leafTarget(leaf.field);
             const group = groups.get(path);
+
             if (group) {
                 group.push(name);
             } else {
@@ -146,54 +149,62 @@ function checkGroup(
 
         const verdicts = compounds.map((child) => checkNode(child, resolve, mode));
         const failed = verdicts.find((verdict) => !verdict.pass);
+
         if (failed) {
             return failed;
         }
 
         const checkable = leaves.length > 0 ||
             verdicts.some((verdict) => !verdict.skipped);
+
         if (!checkable) {
             return {
-                pass: true, 
-                anchors: false, 
-                skipped: true, 
+                pass: true,
+                anchors: false,
+                skipped: true,
             };
         }
 
         return {
-            pass: true, 
-            anchors: true, 
-            skipped: false, 
+            pass: true,
+            anchors: true,
+            skipped: false,
         };
     }
 
     // anchor mode: a leaf anchor settles the verdict without recursing
     // into compound conjuncts, which are residual once the group is
     // anchored.
-    if (leaves.some((leaf) => leafAnchors(leaf, resolve))) {
+    const matchesLeaves = leaves.some((leaf) => leafAnchors(leaf, resolve));
+
+    if (matchesLeaves) {
         return {
-            pass: true, 
-            anchors: true, 
-            skipped: false, 
+            pass: true,
+            anchors: true,
+            skipped: false,
         };
     }
 
     const verdicts = compounds.map((child) => checkNode(child, resolve, mode));
-    if (verdicts.some((verdict) => verdict.anchors)) {
+
+    const matchesVerdicts = verdicts.some((verdict) => verdict.anchors);
+
+    if (matchesVerdicts) {
         return {
-            pass: true, 
-            anchors: true, 
-            skipped: false, 
+            pass: true,
+            anchors: true,
+            skipped: false,
         };
     }
 
     const checkable = leaves.length > 0 ||
         verdicts.some((verdict) => !verdict.skipped);
+
     if (!checkable) {
         return {
-            pass: true, 
-            anchors: false, 
-            skipped: true, 
+            pass: true,
+            anchors: false,
+            skipped: true,
         };
     }
 
@@ -219,8 +230,10 @@ function checkNode(
     if (isFilters(node)) {
         if (node.operator === FilterCompoundOperator.OR) {
             let skipped = true;
+
             for (const child of node.value) {
                 const verdict = checkNode(child, resolve, mode);
+
                 if (!verdict.pass) {
                     return verdict;
                 }
@@ -229,9 +242,9 @@ function checkNode(
             }
 
             return {
-                pass: true, 
-                anchors: !skipped, 
-                skipped, 
+                pass: true,
+                anchors: !skipped,
+                skipped,
             };
         }
 
@@ -240,6 +253,7 @@ function checkNode(
         // children recurse as compound conjuncts.
         const leaves : IFilter[] = [];
         const compounds : ICondition[] = [];
+
         collectConjunction(node.value, leaves, compounds);
 
         return checkGroup(leaves, compounds, resolve, mode);
@@ -248,9 +262,9 @@ function checkNode(
     // Custom condition kinds only enter through server-authored
     // validate replacements: they neither anchor nor violate.
     return {
-        pass: true, 
-        anchors: false, 
-        skipped: true, 
+        pass: true,
+        anchors: false,
+        skipped: true,
     };
 }
 
@@ -265,6 +279,7 @@ export function checkConditionIndexed(
     mode: IndexedMode,
 ) : IndexCheckResult {
     const verdict = checkNode(condition, resolve, mode);
+
     if (verdict.pass) {
         return { ok: true };
     }
@@ -289,25 +304,31 @@ export function checkSortKeysIndexed(
     const { path } = (targets[0] as { path: string });
 
     const violation : IndexCheckResult = {
-        ok: false, 
-        path, 
-        keys: names, 
+        ok: false,
+        path,
+        keys: names,
     };
 
-    if (targets.some((target) => target.path !== path)) {
+    const matchesTargets = targets.some((target) => target.path !== path);
+
+    if (matchesTargets) {
         return violation;
     }
 
     const indexes = resolve(path);
+
     if (!indexes) {
         return violation;
     }
 
     const keys = targets.map((target) => target.name);
+
     for (const index of indexes) {
+        const matchesKeys = keys.length <= index.length &&
+            keys.every((key, i) => index[i] === key);
+
         if (
-            keys.length <= index.length &&
-            keys.every((key, i) => index[i] === key)
+            matchesKeys
         ) {
             return { ok: true };
         }

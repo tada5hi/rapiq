@@ -6,6 +6,7 @@
  */
 
 export * from './adapter';
+export type { AdapterErrorOptions } from './types';
 export * from './base';
 export * from './build';
 export * from './check';

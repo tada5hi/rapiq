@@ -29,6 +29,7 @@ function buildGroupExpression(
     bucket: DialectOptions['bucket'],
 ) : string {
     const { lowering } = group;
+
     if (!lowering || !lowering.field) {
         throw AdapterError.featureUnsupported('groups:unresolved');
     }
@@ -48,11 +49,13 @@ function buildGroupExpression(
     // the unit is inlined into the statement, never bound, so only the
     // closed enum may reach the dialect callback.
     const [unit] = lowering.args;
+
     if (!isBucketUnit(unit)) {
         throw AdapterError.keyValueInvalid(`${group.name}(${group.params.join(',')})`);
     }
 
     const kind = filters.temporalKind ? filters.temporalKind(lowering.field) : 'datetime';
+
     if (!kind) {
         throw AdapterError.featureUnsupported('groups:bucket-type');
     }
@@ -65,6 +68,7 @@ function buildAggregateExpression(
     filters: IFiltersAdapter,
 ) : string {
     const { lowering } = aggregate;
+
     if (!lowering) {
         throw AdapterError.featureUnsupported('aggregates:unresolved');
     }
@@ -164,6 +168,7 @@ export function normalizeGroupedRows(query: IQuery, rows: ObjectLiteral[]) : Obj
             const number = value === null || typeof value === 'undefined' ?
                 null :
                 Number(value);
+
             if (Number.isNaN(number)) {
                 throw AdapterError.outputValueUnreadable(aggregate.key);
             }

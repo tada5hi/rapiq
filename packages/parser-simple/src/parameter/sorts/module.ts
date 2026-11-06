@@ -1,3 +1,4 @@
+import type { SortsScope } from './types';
 /*
  * Copyright (c) 2021-2025.
  * Author Peter Placzek (tada5hi)
@@ -35,13 +36,12 @@ import type {
     SortsSchema,
 } from '@rapiq/core';
 
-type SortsScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORTS}`, RECORD>;
-
 export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
     parse<
         RECORD extends ObjectLiteral = ObjectLiteral,
     >(input: unknown, options: SortsParseOptions<RECORD> = {}) : Sorts {
         const ledger : RelationLedger = [];
+
         return this.withTrace({ parameter: Parameter.SORTS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
@@ -65,6 +65,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         options: SortsParseOptions<RECORD> = {},
     ) : Promise<ISorts> {
         const ledger : RelationLedger = [];
+
         return this.withTraceAsync({ parameter: Parameter.SORTS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
@@ -117,8 +118,8 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : {
-        output: Sorts, 
-        scope: SortsScope<RECORD>, 
+        output: Sorts,
+        scope: SortsScope<RECORD>,
     } {
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
@@ -142,8 +143,8 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : Promise<{
-        output: Sorts, 
-        scope: SortsScope<RECORD>, 
+        output: Sorts,
+        scope: SortsScope<RECORD>,
     }> {
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
@@ -196,8 +197,10 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
 
         const normalized = this.normalize(input, scope);
         const grouped = this.groupObjectByBasePath(normalized);
+
         if (schema.name) {
             const named = grouped[schema.name];
+
             if (named) {
                 grouped[DEFAULT_ID] = named;
                 delete grouped[schema.name];
@@ -213,10 +216,12 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
 
         if (data) {
             const keys = Object.keys(data);
+
             for (const key_ of keys) {
                 const key = parseKey(key_);
 
                 const resolved = scope.resolveKey(key.name);
+
                 if (!resolved.success) {
                     continue;
                 }
@@ -241,8 +246,10 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
         }
 
         const keys = Object.keys(relationsData);
+
         for (const key of keys) {
             const child = scope.descend(key);
+
             if (!(child instanceof ResolutionScope)) {
                 continue;
             }
@@ -281,6 +288,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
                 const fieldDetails = parseKey(key_);
 
                 let key : string;
+
                 if (fieldDetails.path) {
                     key = `${fieldDetails.path}.${fieldDetails.name}`;
                 } else {
@@ -317,6 +325,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
             Array.isArray(input)
         ) {
             let temp: unknown[];
+
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
@@ -347,10 +356,13 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
 
         if (isObject(input)) {
             const keys = Object.keys(input);
+
             for (const key of keys) {
                 const value = input[key];
+
                 if (typeof value === 'string') {
                     const lowered = value.toLowerCase();
+
                     if (lowered === 'desc' || lowered === 'asc') {
                         output[key] = lowered === 'desc' ?
                             SortDirection.DESC :
@@ -364,6 +376,7 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
 
                 for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
+
                     if (tempKey === DEFAULT_ID) {
                         nextKey = key;
                     } else {
@@ -397,7 +410,5 @@ export class SimpleSortsParser extends BaseParser<SortsParseOptions, ISorts> {
  */
 export const SimpleSortParser = SimpleSortsParser;
 
-/**
- * @deprecated use {@link SimpleSortsParser}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type SimpleSortParser = SimpleSortsParser;

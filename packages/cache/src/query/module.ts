@@ -31,8 +31,7 @@ import {
     buildScopedTag,
     isScopedTagValue,
 } from '../tag';
-import type { ScopedTagValue } from '../tag';
-import type { ITaggedCache } from '../types';
+import type { ITaggedCache, ScopedTagValue  } from '../types';
 import type { QueryCaseSensitive, QueryTagsInput, RememberQueryInput } from './types';
 
 /**
@@ -66,6 +65,7 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
 
     // 1. the root collection dependency
     const scoped = collectScopedTags(schema, name, input.query.filters, input.caseSensitive);
+
     if (scoped.length > 0) {
         for (const tag of scoped) {
             tags.add(tag);
@@ -76,12 +76,14 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
 
     // 2. relation collection dependencies
     const paths = new Map<string, Schema[]>();
+
     for (const path of collectRelationPaths(input.registry, schema, input.query)) {
         if (paths.has(path)) {
             continue;
         }
 
         const chain = resolveRelationChain(input.registry, schema, path);
+
         paths.set(path, chain);
 
         for (const target of chain) {
@@ -91,8 +93,10 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
 
     // 3. record dependencies
     const rows = toRows(input.rows ? input.rows(input.value) : input.value);
+
     for (const row of rows) {
         const id = readId(row, key);
+
         if (typeof id !== 'undefined') {
             tags.add(buildRecordTag(name, id));
         }
@@ -104,8 +108,10 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
         const segments = toIssuePath(relation.name);
 
         let reached : Record<string, any>[] = rows;
+
         for (const [index, target] of chain.entries()) {
             const segment = segments[index];
+
             if (typeof segment === 'undefined') {
                 break;
             }
@@ -113,8 +119,10 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
             reached = reached.flatMap((row) => toRows(row[segment]));
 
             const targetName = resolveSchemaName(target);
+
             for (const row of reached) {
                 const id = readId(row, key);
+
                 if (typeof id !== 'undefined') {
                     tags.add(buildRecordTag(targetName, id));
                 }
@@ -155,6 +163,7 @@ export async function rememberQuery<T>(
 
 function resolveRootSchema(registry: SchemaRegistry, input: Schema | string) : Schema {
     const schema = registry.get(input);
+
     if (typeof schema === 'undefined') {
         throw CacheError.schemaUnresolvable(typeof input === 'string' ? input : String(input.name));
     }
@@ -177,8 +186,10 @@ function resolveRelationChain(registry: SchemaRegistry, root: Schema, path: stri
     const chain : Schema[] = [];
 
     let current = root;
+
     for (const segment of toIssuePath(path)) {
         const next = registry.get(current.mapSchema(segment));
+
         if (typeof next === 'undefined') {
             throw CacheError.relationUnresolvable(resolveSchemaName(current), segment);
         }
@@ -261,11 +272,8 @@ function collectScopedTags(
         }
 
         const details = parseKey(conjunct.field);
-        if (details.path) {
-            continue;
-        }
 
-        if (!leadsIndex(schema, details.name)) {
+        if (details.path || !leadsIndex(schema, details.name)) {
             continue;
         }
 
@@ -279,11 +287,13 @@ function collectScopedTags(
             continue;
         }
 
-        if (
-            conjunct.operator === FilterFieldOperator.IN &&
+        const matchesValue = conjunct.operator === FilterFieldOperator.IN &&
             Array.isArray(conjunct.value) &&
             conjunct.value.length > 0 &&
-            conjunct.value.every((value) => isScopableValue(value, caseSensitive))
+            conjunct.value.every((value) => isScopableValue(value, caseSensitive));
+
+        if (
+            matchesValue
         ) {
             for (const value of conjunct.value) {
                 output.push(buildScopedTag(name, details.name, value));
@@ -321,6 +331,7 @@ function collectRelationPaths(registry: SchemaRegistry, root: Schema, query: IQu
 
 function pushKeyPath(output: string[], key: string) {
     const { path } = parseKey(key);
+
     if (path) {
         output.push(path);
     }
@@ -367,6 +378,7 @@ function collectFilterPaths(
     }
 
     const key = prefix ? `${prefix}.${condition.field}` : condition.field;
+
     pushKeyPath(output, key);
 
     if (!isRelationPath(registry, root, key)) {
@@ -391,19 +403,23 @@ function collectFilterPaths(
 function assertNoUnregisteredRelation(registry: SchemaRegistry, root: Schema, key: string) {
     const segments = toIssuePath(key);
     const last = segments.pop();
+
     if (typeof last === 'undefined') {
         return;
     }
 
     let current : Schema | undefined = root;
+
     for (const segment of segments) {
         current = registry.get(current.mapSchema(segment));
+
         if (typeof current === 'undefined') {
             return;
         }
     }
 
     const { allowed } = current.relations;
+
     if (Array.isArray(allowed) && (allowed as string[]).includes(last)) {
         throw CacheError.relationUnresolvable(resolveSchemaName(current), last);
     }
@@ -415,8 +431,10 @@ function assertNoUnregisteredRelation(registry: SchemaRegistry, root: Schema, ke
  */
 function isRelationPath(registry: SchemaRegistry, root: Schema, key: string) : boolean {
     let current = root;
+
     for (const segment of toIssuePath(key)) {
         const next = registry.get(current.mapSchema(segment));
+
         if (typeof next === 'undefined') {
             return false;
         }
@@ -441,6 +459,7 @@ function toRows(value: unknown) : Record<string, any>[] {
 
 function readId(row: Record<string, any>, key: string) : string | number | undefined {
     const value = row[key];
+
     if (typeof value === 'string' || typeof value === 'number') {
         return value;
     }

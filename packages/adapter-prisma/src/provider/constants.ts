@@ -49,6 +49,7 @@ export const PROVIDERS : Record<`${Provider}`, ProviderOptions> = {
             if (/[%_]/.test(input)) {
                 throw AdapterError.featureUnsupported('filters:match-literal');
             }
+
             return input;
         },
     },

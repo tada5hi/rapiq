@@ -79,7 +79,9 @@ export class RedisCacheDriver implements ICacheDriver {
         // a lone surrogate survives JSON.stringify as an escape the read
         // script's cjson refuses, while ioredis encodes the key with U+FFFD:
         // stored, the entry could never be read back.
-        if (!isCacheTagWellFormed(key) || entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+        const matchesTags = !isCacheTagWellFormed(key) || entry.tags.some((tag) => !isCacheTagWellFormed(tag));
+
+        if (matchesTags) {
             return false;
         }
 
@@ -121,6 +123,7 @@ export class RedisCacheDriver implements ICacheDriver {
         }
 
         const wellFormed = keys.filter((key) => isCacheTagWellFormed(key));
+
         if (wellFormed.length > 0) {
             await this.client.del(...wellFormed.map((key) => this.buildEntryKey(key)));
         }
@@ -150,6 +153,7 @@ export class RedisCacheDriver implements ICacheDriver {
      */
     protected static assertClient(client: RedisCacheClient, prefix: string) {
         const { keyPrefix } = client.options;
+
         if (keyPrefix) {
             throw CacheError.clientKeyPrefixUnsupported(keyPrefix);
         }
@@ -165,6 +169,7 @@ export class RedisCacheDriver implements ICacheDriver {
      */
     protected run(name: string, ...args: (string | number)[]) : Promise<unknown> {
         const script = this.client[name];
+
         if (typeof script === 'undefined') {
             throw new Error(`The cache script ${name} is not registered on the client.`);
         }
@@ -187,11 +192,13 @@ export class RedisCacheDriver implements ICacheDriver {
  */
 function hasHashTag(prefix: string) : boolean {
     const start = prefix.indexOf('{');
+
     if (start === -1) {
         return false;
     }
 
     const end = prefix.indexOf('}', start + 1);
+
     return end > start + 1;
 }
 

@@ -1,3 +1,4 @@
+import type { ISortsAdapter } from './types';
 /*
  * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
@@ -8,7 +9,6 @@
 import type { SortDirection } from '@rapiq/core';
 import { parseField } from '../../helpers';
 import type { RelationsBaseAdapter } from '../relations';
-import type { ISortsAdapter } from './types';
 
 export abstract class SortsBaseAdapter implements ISortsAdapter {
     protected relations: RelationsBaseAdapter;
@@ -72,6 +72,7 @@ export abstract class SortsBaseAdapter implements ISortsAdapter {
 
         for (const key_ of keys) {
             const key = key_ as string;
+
             output.push(`${key} ${this.value[key]}`);
         }
 
@@ -85,6 +86,7 @@ export abstract class SortsBaseAdapter implements ISortsAdapter {
             (path) => this.relations.buildAlias(path),
             (path) => this.relations.isRelationPath(path),
         );
+
         if (output.relation) {
             this.relations.add(output.relation);
         }
@@ -104,7 +106,5 @@ export abstract class SortsBaseAdapter implements ISortsAdapter {
  */
 export const SortBaseAdapter = SortsBaseAdapter;
 
-/**
- * @deprecated use {@link SortsBaseAdapter}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type SortBaseAdapter = SortsBaseAdapter;

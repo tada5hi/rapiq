@@ -102,6 +102,7 @@ describe('src/adapter/module.ts', () => {
         const adapter = new Adapter(pg);
 
         const fragments = adapter.execute(buildQuery());
+
         expect(fragments.columns).toEqual(['"id"', '"name"', '"r5_realm"."name"']);
         expect(fragments.where).toEqual('("age" >= $1 and (lower("r5_realm"."id") in(lower($2)) or "r5_realm"."id" is null))');
     });
@@ -221,6 +222,7 @@ describe('src/adapter/module.ts', () => {
         const adapter = new Adapter(pg);
 
         adapter.execute(buildQuery());
+
         const fragments = adapter.execute(buildQuery(), { clear: false });
 
         // append-style sub-adapters stack instead of resetting:

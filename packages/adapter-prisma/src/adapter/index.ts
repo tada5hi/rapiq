@@ -6,6 +6,7 @@
  */
 
 export * from './fields';
+export type { SelectionNode, Selection } from './types';
 export * from './merge';
 export * from './module';
 export * from './relations';

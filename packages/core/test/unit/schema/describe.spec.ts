@@ -139,6 +139,7 @@ describe('src/schema/**/describe', () => {
         const schema = defineSchema<User>({ filters: { allowed: ['id'], caseSensitive: ['id'] } });
 
         const output = schema.describe();
+
         output.filters!.caseSensitive!.push('mutated');
 
         expect(schema.filters.caseSensitive).toEqual(['id']);

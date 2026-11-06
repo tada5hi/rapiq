@@ -61,6 +61,7 @@ const relations = defineRelations({
 
 function createDeepEngine() {
     const client = new Database(':memory:');
+
     client.exec(`
         create table realms (id integer primary key, name text);
         create table owners (id integer primary key, name text, realm_id integer);
@@ -103,9 +104,9 @@ const itemRecords = [
         },
     },
     {
-        id: 102, 
-        title: 'c', 
-        user: null, 
+        id: 102,
+        title: 'c',
+        user: null,
     },
     {
         id: 103,
@@ -136,24 +137,24 @@ const itemRecords = [
 
 const parentRecords = [
     {
-        id: 1000, 
-        label: 'p-two', 
-        items: [itemRecords[0], itemRecords[3]], 
+        id: 1000,
+        label: 'p-two',
+        items: [itemRecords[0], itemRecords[3]],
     },
     {
-        id: 1001, 
-        label: 'p-empty', 
-        items: [], 
+        id: 1001,
+        label: 'p-empty',
+        items: [],
     },
     {
-        id: 1002, 
-        label: 'p-b', 
-        items: [itemRecords[1]], 
+        id: 1002,
+        label: 'p-b',
+        items: [itemRecords[1]],
     },
     {
-        id: 1003, 
-        label: 'p-c', 
-        items: [itemRecords[2]], 
+        id: 1003,
+        label: 'p-c',
+        items: [itemRecords[2]],
     },
     {
         id: 1004,

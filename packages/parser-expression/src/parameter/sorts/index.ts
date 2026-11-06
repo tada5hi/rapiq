@@ -6,3 +6,4 @@
  */
 
 export * from './module';
+export { ExpressionSortParser } from './module';

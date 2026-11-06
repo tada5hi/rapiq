@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-promise-try -- Keep compatibility with the published Node.js runtime requirement. */
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -35,6 +36,7 @@ const buildRegistry = () => {
 describe('src/parameter/filters: issue traces', () => {
     it('should report absolute validator paths inside elemMatch through exact entry points', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'row',
             filters: {
@@ -43,6 +45,7 @@ describe('src/parameter/filters: issue traces', () => {
                 validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
             },
         }));
+
         const parser = new ExpressionFiltersParser(registry);
 
         for (const run of [
@@ -54,6 +57,7 @@ describe('src/parameter/filters: issue traces', () => {
                 expect.fail('expected the validator rejection');
             } catch (error) {
                 const parsed = error as FiltersParseError;
+
                 expect(parsed.issues[0]?.path).toEqual(['items', 'id']);
                 expect(extractIssueParameter(parsed.issues[0]!)).toBe(Parameter.FILTERS);
             }
@@ -62,6 +66,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should not add an ITSELF segment to an exact elemMatch validator path', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'row',
             filters: {
@@ -70,6 +75,7 @@ describe('src/parameter/filters: issue traces', () => {
                 validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
             },
         }));
+
         const parser = new ExpressionFiltersParser(registry);
 
         for (const run of [
@@ -97,6 +103,7 @@ describe('src/parameter/filters: issue traces', () => {
                 expect.fail('expected a syntax rejection');
             } catch (error) {
                 const parsed = error as FiltersParseError;
+
                 expect(parsed.code).toBe(ErrorCode.INPUT_REJECTED);
                 expect(parsed.issues).toHaveLength(1);
                 expect(parsed.issues[0]?.code).toBe(ErrorCode.SYNTAX_INVALID);
@@ -108,6 +115,7 @@ describe('src/parameter/filters: issue traces', () => {
     it('should propagate non-parse errors from parseExact unchanged', async () => {
         const failure = new Error('Validator rejected.');
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<Row>({
             name: 'row',
             filters: {
@@ -117,6 +125,7 @@ describe('src/parameter/filters: issue traces', () => {
                 },
             },
         }));
+
         const parser = new ExpressionFiltersParser(registry);
 
         for (const run of [
@@ -139,6 +148,7 @@ describe('src/parameter/filters: issue traces', () => {
         // an expression cannot be partially reinterpreted, so the failure is
         // structural. It still lands in the trace on its way out.
         let error : FiltersParseError | undefined;
+
         try {
             parser.parseFilters("eq(secret, 'x')", { schema: 'row' });
         } catch (e) {
@@ -162,6 +172,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExpressionParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parseFilters("eq(secret, 'x')", { schema: 'row' });
         } catch (e) {
@@ -178,6 +189,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExpressionParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({
                 filters: 'not-an-expression(',
@@ -201,6 +213,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExpressionParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ filters: 'not-an-expression(' }, { schema: 'row' });
         } catch (e) {
@@ -216,6 +229,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should not let its always-throwing scope govern the leaf validator', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<Row>({
             name: 'row',
             filters: {
@@ -240,6 +254,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExpressionFiltersParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parseParameter("eq(secret, 'x')", { schema: 'row' }, []);
         } catch (e) {
@@ -258,6 +273,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExpressionParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ fields: ['secret'], sorts: ['secret'] }, { schema: 'row', throwOnFailure: true });
         } catch (e) {

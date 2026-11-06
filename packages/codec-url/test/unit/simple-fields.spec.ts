@@ -53,6 +53,7 @@ describe('fields', () => {
         ]);
 
         const encoded = encoder.encodeFields(value);
+
         // fields[$root]=+id,-name&fields[realm]=-name
         expect(encoded).toEqual('fields%5B%24root%5D=%2Bid%2C-name&fields%5Brealm%5D=-name');
 
@@ -61,6 +62,7 @@ describe('fields', () => {
         // so an opt-in include flattens to a plain field and an exclusion
         // with no default set to subtract from drops.
         const decoded = decoder.decodeFields(encoded!);
+
         expect(decoded).toEqual(new Fields([
             new Field('id'),
         ]));

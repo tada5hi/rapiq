@@ -7,10 +7,10 @@
 
 import { Filter } from '@rapiq/core';
 import {
-    FiltersAdapter, 
-    type FiltersContainerOptions, 
-    FiltersVisitor, 
-    RelationsAdapter, 
+    FiltersAdapter,
+    type FiltersContainerOptions,
+    FiltersVisitor,
+    RelationsAdapter,
     pg,
 } from '../../../src';
 
@@ -22,6 +22,7 @@ describe('exists', () => {
 
     beforeEach(() => {
         const relationsAdapter = new RelationsAdapter();
+
         adapter = new FiltersAdapter(
             relationsAdapter,
             options,
@@ -32,6 +33,7 @@ describe('exists', () => {
 
     it('generates query with `is not null` operator when value equals `true`', () => {
         const condition = new Filter('exists', 'address', true);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -42,6 +44,7 @@ describe('exists', () => {
 
     it('generates query with `is null` operator when value equals `false`', () => {
         const condition = new Filter('exists', 'address', false);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();

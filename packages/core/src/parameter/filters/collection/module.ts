@@ -7,7 +7,7 @@
 
 import { FilterCompoundOperator } from '../../../schema';
 import { Condition } from '../condition';
-import type { ConditionOptions, ICondition } from '../condition';
+import type { ConditionOptions, ICondition } from '../types';
 import type { IFilters, IFiltersVisitor } from './types';
 import { isFilters } from './check';
 

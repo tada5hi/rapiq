@@ -35,10 +35,10 @@ describe('src/schema/module.ts', () => {
             const schema = defineSchemaWithModel<User>(datamodel, 'User', { fields: { allowed: 'inherit' } });
 
             expect(schema.fields.allowed).toEqual([
-                'id', 
-                'first_name', 
-                'last_name', 
-                'email', 
+                'id',
+                'first_name',
+                'last_name',
+                'email',
                 'age',
                 'address',
                 'created_at',
@@ -95,6 +95,7 @@ describe('src/schema/module.ts', () => {
 
         it('should keep a hand-written schema over the derived one', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 filters: { allowed: ['first_name'] },
@@ -108,6 +109,7 @@ describe('src/schema/module.ts', () => {
 
         it('should reject options for an already registered schema', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({ name: 'user' }));
 
             expect(() => defineSchemaRegistryWithDatamodel(datamodel, {
@@ -151,9 +153,9 @@ describe('src/schema/assert.ts', () => {
             expect(error.code).toEqual(ErrorCode.SCHEMA_ENTITY_MISMATCH);
             expect(error.model).toEqual('User');
             expect([...error.keys].sort()).toEqual([
-                'firstName', 
-                'identifier', 
-                'profile', 
+                'firstName',
+                'identifier',
+                'profile',
                 'renamed.name',
             ]);
         }

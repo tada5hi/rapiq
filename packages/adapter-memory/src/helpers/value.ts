@@ -134,6 +134,7 @@ export function resolvePath(input: unknown, path: string) : unknown {
     const segments = path.split('.');
 
     let current : unknown = input;
+
     for (const segment of segments) {
         current = resolveProperty(current, segment as string);
     }

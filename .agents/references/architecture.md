@@ -1,0 +1,321 @@
+# Architecture
+
+## Overview
+
+Rapiq is a **query-language abstraction pipeline**: raw client input is parsed into a typed AST (`Query`), validated/constrained against a `Schema`, and consumed by backend adapters via the **visitor pattern**.
+
+```
+Client side                          Server side
+-----------                          -----------
+defineQuery(BuildInput) / condition helpers (eq, and, or, …)
+        │
+        ▼
+createURLCodec().encode (@rapiq/codec-url)
+        │  query string
+        ▼ ─────────────────────────► URLCodec.decode / SimpleParser / ExpressionParser
+                                            │   (validated against Schema + SchemaRegistry)
+                                            ▼
+                                     Query (AST: Fields, Filters, Pagination, Relations, Sorts)
+                                            │  accept(visitor)
+                                            ▼
+                                     QueryVisitor → Adapter (@rapiq/adapter-sql, @rapiq/adapter-typeorm)
+                                            │
+                                            ▼
+                                     SQL fragments / mutated SelectQueryBuilder
+```
+
+## Layering Principles (IR-centric)
+
+The `Query` AST is an **intermediate representation (IR)**. Every package plays exactly one role around it:
+
+1. **Define & interact**: client-side construction (plan 012). `defineQuery<RECORD>(QueryBuildInput)` plus per-parameter `define*` fragment factories desugar typed input (scalars to `eq`, bare arrays to `in` with `null` legal, `$`-operator objects, condition-helper trees) straight to the AST, with no schema or parsing. Condition helpers (`parameter/filters/helpers/`, one per `FilterFieldOperator`; `in` to `inArray` since `in` is reserved) build `Filter`/`Filters` nodes directly. `ICondition` is the open structural filter extension contract. A live condition is identified by `CONDITION_MARKER`, supplied by extending `Condition` or by a structural implementation carrying the marker with its `operator` and `value`; detached `{ operator, value }` data is not an `ICondition` until rehydrated. Visitor dispatch is intentionally not required; built-in `Filter` / `Filters` retain specialized visitors and are identified through that dispatch rather than member names, while custom kinds may define their own visitor contract. Helpers and injection accept `ICondition` directly; custom kinds remain opaque to built-in flatten/merge logic and require a consumer that understands them. Queries compose immutably via `mergeQueries`: fields, relations and sorts use keyed left priority; pagination uses per-property left priority; filters use monotonic ordered logical conjunction, so every predicate survives. `and()` / `or()` build explicit condition trees, and complete queries are never OR-composed. `preserve()` is a separate built-in pruning-policy wrapper, not a composition rule: it keeps a condition subtree atomic for relation pruning and carries custom conditions through its wrapper. `$and`/`$or` object keys stay reserved for the mongo parser dialect (`@rapiq/parser-mongo`). `QueryBuilder` was removed; `defineQuery` replaces it.
+2. **Parse to IR**: parsers transform a dialect, such as simple object shapes or expression strings, into the IR and validate it against a `Schema`. The `filters.validate` hook runs on every resolved/coerced leaf and may synchronously or asynchronously accept it, replace it with any `ICondition` (leaf or compound, issue #840). A per-leaf policy residual is `and(<leaf>, preserve(<scope>))`: preserve the residual, not the client-containing group, so only a residual that itself needs a rejected relation raises `SCHEMA_PRESERVED_CONDITION_PRUNED`. Preservation is independent from filter merge and condition identity. The simple URL dialect throws its usual typed `FEATURE_UNSUPPORTED` when encoding compounds. `parse()` keeps a strictly synchronous return type and throws `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER` on a Promise/thenable; `parseAsync()` awaits validators sequentially in tree order. Defaults apply if validation removes every leaf. Parsers are **transport-agnostic**: they read only the canonical `Parameter` keys (`fields`, `filters`, `pagination`, `relations`, `sorts`) and know nothing about how the input crossed a process boundary.
+
+Issue traces are bounded by flattened leaves while preserving blemish group shape. Parser-owned structural aborts are priority tail entries, recursive sites carry absolute paths, and filter/sort index policies consult only issues from their own parameter (and always judge the relation-pruned tree). `received` remains live diagnostic data but is redacted by `BaseError.toJSON()`. `new BaseError('message')` and the option form both default `code` to `ErrorCode.NONE`.
+3. **Consume the IR** — either interpret/walk it directly (`@rapiq/adapter-sql`, `@rapiq/adapter-typeorm` via visitors; `@rapiq/adapter-prisma`/`@rapiq/adapter-drizzle` serialize it into plain args/config objects; `@rapiq/adapter-memory` compiles it into plain functions to evaluate in-memory objects/arrays), or…
+4. **Transport the IR between application boundaries via a codec** — `@rapiq/codec-url` owns the complete HTTP URL wire format. The public `URLCodec` façade accepts a raw query string or a pre-parsed query object (Express `req.query`), maps wire names (`URLParameter`: `filter`, `page`, `include`, …) to canonical parameters and delegates to internal expression/simple strategies. Encoding writes stamped expression filters by default. Decoding dispatches stamped payloads and recognizes untagged expression strings or legacy simple bracket filters, so v2 follows a read-both/write-expression migration. App2 then works with the same IR.
+
+Codec rules settled during plan 007 (2026-07):
+
+- **Subset law**: each dialect expresses only a subset of the IR — within it `decode(encode(q)) ≍ q` *modulo scalar type normalization* (the wire is untyped: `'5'` → `5`, `'true'` → `true`); outside it `encode` throws typed `FEATURE_UNSUPPORTED`/`OPERATOR_UNSUPPORTED` instead of silently changing semantics. The simple encoder enforces this pointwise: every emitted wire token is re-parsed and must decode back to the operator it came from.
+- **Codec identity is in-band**: `URLCodec.encode()` stamps a reserved `codec` parameter (`{ stamp: false }` omits it for non-rapiq receivers). Decoding prioritizes that stamp (an empty `codec=` counts as absent); without one, registered dialects are probed via their `detect(payload)` hooks in registration order — the bundled setup selects expression for a non-empty string `filter` (or a repeated parameter of such strings, which then fails loudly) and legacy simple for any other defined `filter`, including a zero-signal empty `filter=` (dropped, tolerant). Expression is the default writer; explicit simple encoding via deprecated `URL_SIMPLE_CODEC` exists for the v2 migration. An unregistered stamped name throws typed `CodecError`, never a silent mis-decode. `URL_EXPRESSION_CODEC` and `URL_SIMPLE_CODEC` remain available for negotiation.
+- **Schema-aware encode** validates by piping the plain-encoded output through the schema-bound decoder and re-encoding — parser-exact semantics by construction (drop by default, schema `throwOnFailure` opts into throwing); parameters absent from the input query are masked so schema defaults don't materialize onto the wire. The URL codecs and registry mirror the parser split with `encodeAsync()` / `decodeAsync()`; registry codec async hooks are optional so sync-only third-party codecs remain compatible.
+- The shared filter-value wire grammar (`parseFilterScalar`/`parseFilterValue`/`parseFilterWireValue`/`serializeFilterValue`) lives in `@rapiq/parser-simple` (`parameter/filters/value.ts`) — the single source for scalar coercion and operator-marker parsing used by both parsers and the simple codec.
+
+Placement rules that follow (settled during plan 006, don't re-litigate):
+
+- Wire/transport naming never goes into `@rapiq/core` or the parser packages. Raw `req.query` handling is `createURLCodec(registry).decode(req.query, { schema })`, **not** a parser concern.
+- No cross-package re-exports — a constant lives in exactly one package; consumers import it from there.
+- New transports (e.g. a future header- or body-based codec) get their own codec package encoding/decoding the same IR; parsers and adapters stay untouched.
+
+## Core Design Decisions
+
+### 1. AST + visitor instead of direct translation
+
+Parsed queries are immutable-ish node objects (`Query`, `Filters`, `Filter`, `Fields`, `Field`, `Sorts`, `Sort`, `Relations`, `Relation`, `Pagination`) in `packages/core/src/parameter/`. Every node implements `accept(visitor)` (double dispatch). New backends are added by implementing visitor/adapter interfaces — core never changes.
+
+### 2. Schema as server-side allow-list
+
+A `Schema<RECORD>` declares what a client *may* request per parameter (`allowed`, `default`, `mapping`, `schemaMapping`). Parsers consult it during parsing and either drop or throw on disallowed input (`throwOnFailure`). The `SchemaRegistry` stores schemas by name so relation traversal (`schemaMapping: { items: 'item' }`) resolves nested records; `registry.getAll()` enumerates the registered set (registration order, snapshot array of the live instances) so a server can sweep its whole queryable surface. Values-only by design (settled 2026-08-12, issue #904): names are derivable from the elements, and `[Symbol.iterator]` stays available as an additive one-line delegation if iterable interop is ever wanted, so do not re-litigate pairs vs values or add Map vocabulary (`values`/`keys`/`entries`/`size`) here. `schema.describe({ parameters? })` serializes the declared constraints into a JSON-safe, shape-NORMALIZED `SchemaDescription` (each sub-schema contributes its own `describe()`; the relation→schema target map is composed on `Schema` via `mapSchema`) — every covered parameter carries every constraint key: `null` = never declared, `[]` = explicitly nothing, `strict` normalized to effective `false`; dynamic validate hooks and the filters `default` condition are deliberately not represented.
+
+### 3. Dialects as small option objects, not subclasses
+
+`@rapiq/adapter-sql` is database-agnostic; per-database behavior is injected via `DialectOptions` callbacks (`escapeField`, `paramPlaceholder`, `regexp`, `caseFold`, `caseFoldLike`, `mod`). Presets live in `packages/adapter-sql/src/dialect/`. Regex strings pass through unchanged for the database engine to interpret and validate; JavaScript `RegExp` values contribute their `source` and `ignoreCase` flag.
+
+`regexp` serves the `regex` operator ONLY (settled 2026-09-22, issue #934). It is not an anchored-operator path and an omitted `regexp` is not a degraded mode: the anchored family renders as LIKE everywhere, so the `mssql`/`sqlite` presets lose exactly one operator by omitting it.
+
+Preset resolution follows one fleet-wide invariant (audited 2026-08-02, do not re-flag): **user-supplied names throw typed everywhere; derived facts fall back documented**. prisma/drizzle validate a user-supplied provider name (a typo must throw, it would break every case-insensitive filter), while typeorm's `resolveQueryDialect` derives the dialect from the query builder's driver — the user supplied nothing, an exotic driver must still work, and the pg last-resort default is documented.
+
+## Key Abstractions
+
+### Query AST (core)
+
+```typescript
+// packages/core/src/parameter/module.ts
+class Query implements IQuery {
+    readonly fields: IFields;        // Field { name, operator?: FieldOperator.INCLUDE|EXCLUDE }
+    readonly filters: IFilters;      // compound node: FilterCompoundOperator.AND|OR|NOT over ICondition[]
+    readonly pagination: IPagination;// { limit, offset }
+    readonly relations: IRelations;  // Relation { name }
+    readonly sorts: ISorts;          // Sort { name, operator: SortDirection.ASC|DESC }
+    readonly groups: IGroups;        // Group { key, name, params, lowering?: { fn, field, args } } (optional on IQuery)
+    readonly aggregates: IAggregates;// Aggregate, same members; key = name + camel-cased params (sum(total_amount) -> sumTotalAmount)
+}
+```
+
+Filters form an extensible tree: `Filters` (and/or/not compound, children are `ICondition[]` — built-in nested `Filters`, leaf `Filter`, or custom structural conditions) and `Filter` (built-in leaf condition `{ field, operator, value }`, operators from `FilterFieldOperator`: `EQUAL`, `LT(E)`, `GT(E)`, `IN`, `CONTAINS`, `STARTS_WITH`, `REGEX`, …).
+
+**Negation semantics (settled 2026-07-21, issue #811)**: `not(condition)` (builder + `FilterCompoundOperator.NOT`) is the **exact null-inclusive complement** — it matches exactly the rows/bindings its interior does not, the leaf complement law extended to whole trees, identical across memory/sql/typeorm (pinned by the typeorm parity + complement suites). `planCondition` normalizes a single-child `not` onto the child plan's own negated form (`not(eq)` ≙ `ne`; constants flip verdict; double negation cancels); only interiors without a negated leaf form (ordering compares, mod, size, elemMatch, multi-child groups) stay a `CompoundPlan` with `negated: true`, which SQL renders two-valued via `case when (…) then 1 else 0 end = 0` (a bare `not (…)` would drop null-bearing rows per three-valued logic). The expression dialect parses/serializes `not(…)` first-class (single twin-able leaves normalize to their twin on decode); the legacy simple dialect throws typed. `Filters.flatten()` never hoists through NOT (not associative). Do not re-litigate: group negation is NOT SQL-three-valued, and `nor` stays an internal lowering alias (not public API, no wire form).
+
+### Visitor interfaces (core)
+
+Every backend implements per-node visitors; specialized visitor methods exist for the built-in filter node kinds:
+
+```typescript
+interface IFiltersVisitor<R> { visitFilters(filters: IFilters): R }
+interface IFilterVisitor<R> { visitFilter(filter: IFilter<string, unknown>): R }
+```
+
+Built-in `Filter` / `Filters` use their specialized visitors; `ICondition` does not impose visitor dispatch on custom kinds. A custom condition can add its own visitor contract when its consumer needs one. The **built-in filters contract of record** is `ICondition → planCondition`: bundled adapters consume the operator-semantics plan, interpreter-style via `interpretPlan` (sql/typeorm/memory) or serializer-style via `distributeNegation` + a pure renderer (prisma/drizzle). Per-operator customization happens by overriding `IPlanInterpreter` handlers (semantics pre-resolved by core), never by branching on operator names in a visitor: the legacy per-operator `IFilterVisitor` methods were removed at the pre-GA API freeze (2026-08-02). A custom condition requires a consumer that understands its specialized semantics.
+
+### Schema definition (core)
+
+```typescript
+import { SchemaRegistry, defineSchema } from '@rapiq/core';
+
+const userSchema = defineSchema<User>({
+    name: 'user',
+    fields: { allowed: ['id', 'name', 'email', 'age'] },
+    filters: { allowed: ['id', 'name', 'email'] },
+    relations: { allowed: ['realm', 'items'], mapping: { abc: 'items' } },
+    sorts: { allowed: ['id', 'name'], default: { name: 'DESC' } },
+    schemaMapping: { items: 'item' },   // relation name -> registered schema name
+});
+
+const registry = new SchemaRegistry();
+registry.add(userSchema);
+```
+
+Field paths are typed via recursive generics (`NestedKeys<T>`, depth-limited) so `allowed`/`default` keys are checked against the record type.
+
+### ResolutionScope (core)
+
+`ResolutionScope` (`packages/core/src/schema/resolver/`) is the single owner of key resolution — schema-input normalization, alias mapping, allow-list verdicts, relation traversal through the registry (`schemaMapping`-aware, works from unregistered `Schema` instances too) and the throw-vs-drop failure policy with per-parameter error-class selection. Parsers build one scope per `parse()` call and consume two questions:
+
+```typescript
+const scope = ResolutionScope.for(registry, Parameter.SORTS, options.schema, {
+    relations: options.relations,           // parsed relations gate relation segments
+    throwOnFailure: options.throwOnFailure, // context override, inherited by child scopes
+});
+scope.resolveKey('items.title'); // KeyResolution: { ok, name, path, scope } | { ok: false, code, input, segment }
+scope.descend('items');          // child ResolutionScope bound to the related schema, or a failure verdict
+```
+
+Parameter quirks (fields `execute()`, filter value parsing) stay in the parsers, reached via the `scope.schema` escape hatch. Scopes created without any schema input are *unbound* and impose no traversal constraints (required for schemaless codec round-trips).
+
+### Parsers (dialects of input)
+
+All parsers extend `BaseParser<OPTIONS, OUTPUT>` from core and compose one sub-parser per parameter:
+
+- **`SimpleParser`** (`packages/parser-simple/src/module.ts`) — plain object input, URL-query-like:
+  ```typescript
+  parser.parse({
+      fields: ['id', 'name'],
+      filters: { name: 'John', age: '>=18' },
+      pagination: { limit: 10, offset: 0 },
+      relations: ['realm', 'items'],
+      sorts: { name: 'DESC' },
+  }, { registry, schema: 'user' });
+  ```
+- **`ExpressionParser`** (`packages/parser-expression/src/module.ts`) — function-call filter expressions (values always single-quoted), tokenizer + recursive-descent parser producing the same `Filters`/`Filter` AST:
+  ```
+  or(and(eq(name, 'John'), gte(age, '18')), in(status, 'active', 'pending'))
+  ```
+- **`MongoParser`** (`packages/parser-mongo/src/module.ts`) — MongoDB-style filter documents with typed values (`$`-operator objects, `$and`/`$or`/`$nor` compounds, De Morgan `$not`/`$nor` negation, `$elemMatch`; six `$contains`-family operators are rapiq extensions). Only `filters` is mongo-flavored — the other four parameters reuse the simple sub-parsers. Two-class failure model: grammar errors (unknown/misplaced `$`-operators, malformed values) always throw `FiltersParseError`; field-key/allow-list failures follow the schema drop-vs-throw policy:
+  ```typescript
+  parser.parse({
+      filters: { $or: [{ name: 'John' }, { age: { $gte: 18, $lt: 65 } }] },
+  }, { schema: 'user' });
+  ```
+
+### Backend adapters
+
+`@rapiq/adapter-sql`: `QueryVisitor` (`src/visitor/module.ts`) walks the AST and delegates to per-parameter sub-visitors, which accumulate SQL fragments into an `Adapter` (`src/adapter/module.ts`, implements `IRootAdapter`). Dialect behavior comes from `DialectOptions`:
+
+```typescript
+type DialectOptions = {
+    escapeField: (input: string) => string,              // mysql: `` `field` ``
+    paramPlaceholder: (index: number) => string,         // pg: $1, mysql: ?
+    regexp?: (field: string, placeholder: string, ignoreCase: boolean) => string, // `regex` operator only
+    caseFold?: (input: string) => string,                // default lower(...); mysql/mssql identity
+    castText?: (input: string) => string,                // pg input::text for known non-string LIKE operands
+    caseFoldLike?: (input: string) => string,            // default caseFold; sqlite identity
+    mod?: (field: string, divisor: string, remainder: string) => string,
+};
+```
+
+`@rapiq/adapter-typeorm`: `TypeormAdapter` mirrors the SQL adapter but mutates a TypeORM query builder. The builder is bound at construction (`new TypeormAdapter({ queryBuilder: qb })`); `adapter.execute(query)` then walks the query and applies the accumulated state to that builder in a single call. Filters use `andWhere`, preserving application-owned tenant/auth predicates already present on the builder. Relation aliases come from @rapiq/adapter-sql's shared, injective length-prefixed `buildRelationAlias` derivation; fields, filters, sorts and joins must all use that same function.
+
+Built-in SQL `escapeField` callbacks double embedded closing delimiters. TypeORM 1.1.1 already does so in its drivers. Anchored matching uses optional `castText` for fields exempted by metadata from case folding; PostgreSQL casts to text, while native `citext` stays uncast. Standalone SQL cannot infer column types and needs an `isCaseFoldable` override for non-string operands.
+
+`@rapiq/adapter-sql`'s exported base classes — INCLUDING their protected members — are an intended extension surface, consumed by `@rapiq/adapter-typeorm`'s subclasses (typeorm even owns `executed`, declared in sql's types). The two packages version in lockstep through the linked release group, but changes to that surface are semver-relevant for external subclassers.
+
+`@rapiq/adapter-prisma`: pure IR **serializer**. `PrismaAdapter.execute(query)` is stateless (one
+instance per app, not per request; composition happens BEFORE serialization via
+`mergeQueries`/`filters.and()`, so there is no accumulation API) and returns a plain
+`findMany` args object (`{ where, select | include, orderBy, take, skip }`) plus the applied
+pagination; `@prisma/client` is not a dependency (model facts come through the local
+`IMetadata` interface, fed by `defineMetadata(...)`; prisma 7 prunes every runtime
+datamodel to names and kinds, `Prisma.dmmf` included, so on v7 the datamodel is
+hand-written and pruned input is rejected typed). The `where` is
+produced by a pipeline of pure passes: `planCondition` then core's `distributeNegation`
+then quantifier factoring then a leaf-literal table (`adapter/where.ts`). Settled during
+plan 024, do not re-litigate:
+
+- **Negation is eliminated before rendering.** Prisma's `not`/`NOT` are three-valued and
+  drop null rows, so the renderer consumes `distributeNegation` (in CORE, next to the
+  semantics table, because complement selection is operator semantics, not rendering) and
+  only ever sees leaves in final form. The settled contract behind the transform: group
+  negation is the two-valued complement PER BINDING with the quantifier outermost (sql
+  wraps CASE per join row, memory negates per binding context), so De Morgan applies and
+  negation commutes through `elemMatch`: `not(elemMatch(c))` selects records with an
+  element FAILING c, not records without a matching element. The null arm of a complement
+  is dropped only when metadata proves the column non-nullable; a null check on a
+  *relation* renders as a presence test (`{ rel: { is: {} } }` and its `NOT`, both
+  two-valued), and `exists()` on a to-many is constantly true (a collection is never
+  absent).
+- **Same-element binding holds.** Conditions sharing a to-many path inside a conjunction
+  are factored into ONE `some` scope, reproducing the per-join-row semantics of sql/typeorm
+  and memory's shared binding; `∃` distributes over OR so disjunctions need none; mixed
+  root/relation trees are expanded distributively first (capped at 64 conjuncts, typed
+  error beyond: loud beats a silent semantic downgrade). Every quantifier (and to-one hop)
+  gains a `{ none: {} }`/absence arm exactly when its interior evaluates true at the
+  all-null binding an empty collection contributes: ONE rule replaces all previous ad-hoc
+  null-arm cases.
+- **`metadata` and `provider` are required options.** The four metadata questions
+  (`isRelation` / `isToMany` / `isNullable` / `isString`) each change what a *valid* prisma
+  filter looks like, so a wrong guess is a runtime validation error, never graceful
+  degradation. Do not re-add fallbacks: an earlier cut had them and every one was an
+  unverified assumption sold as a "documented limitation".
+- **The parity gate is a real engine**, not a model: `@prisma/client` is a devDependency and
+  `npm run test:db` (CI's `tests-db` job, where ALL engine specs live so the default job
+  stays codegen-free) replays the matrix through a query engine: SQLite by default,
+  PostgreSQL under `DB_TYPE=postgres`: cross-checked against `@rapiq/adapter-memory`. Findings that
+  came from measurement, not reasoning: `exists()` on a to-many relation is constantly true
+  (a collection is never *absent*), and the `%`/`_` case-fold veto belongs on the equality
+  family ONLY: `equals` lowers to ILIKE and wildcards, `in`/`notIn` never do.
+- **Case folding** is `mode: 'insensitive'`, gated on a per-connector preset
+  (`provider/`: postgres/cockroach/mongo only; mysql/sqlserver are already collation-CI,
+  the same reasoning as `@rapiq/adapter-sql`'s identity `caseFold`), on string-typedness, and on the
+  value carrying no `%`/`_` (an insensitive `equals` lowers to `ILIKE`, where those would
+  widen an exact comparison).
+- **Anchored literals** use the provider's optional `escapeMatch`: SQL backslash escaping on pg/cockroach/mysql, bracket literals on SQL Server, regex escaping on MongoDB. SQLite refuses `%`/`_` (`filters:match-literal`), since Prisma cannot add `ESCAPE`. Custom options without the hook refuse SQL and regex pattern characters. MySQL's preset assumes default backslash escaping; `NO_BACKSLASH_ESCAPES` needs the SQLite hook instead.
+- **Unsupported by construction**: `regex`, `mod`, `size`, ITSELF, and `elemMatch` on a
+  to-one relation raise a typed `AdapterError`, never approximated.
+
+`@rapiq/adapter-drizzle`: second pure IR **serializer** (plan 026), targeting drizzle-orm v1's
+relational-queries v2 object config (`{ where, columns, with, orderBy, limit, offset }` for
+`db.query.<table>.findMany()`); `drizzle-orm` is a devDependency only. Reuses the settled
+prisma pipeline (`planCondition` → core `distributeNegation` → same-element factoring →
+leaf-literal table) with drizzle spellings settled by engine measurement (2026-08-02):
+
+- A relation-filter object is ONE correlated `EXISTS` scope, so same-path conjuncts factor
+  into a single nested object; presence is `{ rel: true }`, absence `NOT: { rel: true }`
+  (the only emitted `NOT`: EXISTS is two-valued). `isNull`/`isNotNull` exist in the object
+  language, so complement null arms need no CASE analogue.
+- An empty `OR: []` group is STRIPPED by drizzle (matches everything), so an impossible
+  root is expressed as `limit: 0`, never `{ OR: [] }` (prisma's trick would silently
+  invert there).
+- Case folding has no `mode` flag: the pg preset lowers the foldable families to
+  `ilike`/`notIlike` with adapter-escaped operands (no wildcard veto needed — unlike
+  prisma, the adapter builds the pattern), `in` decomposes into per-string `ilike` arms;
+  mysql is collation-CI, sqlite `LIKE`-only (eq stays exact, documented). sqlite has no
+  default LIKE escape and the filter object no `ESCAPE` clause, so an anchored operand
+  carrying `%`/`_` fails typed there (`likeEscape` preset flag).
+- `metadata` + `provider` required (carried prisma rule); metadata is a hand-written
+  drizzle-vocabulary datamodel (`defineMetadata`), derivation from live
+  `defineRelations` handles is a follow-up. Relation-path `orderBy` is typed-unsupported
+  (undocumented in RQBv2; silent ignore beats nothing loud). The sqlite engine parity
+  matrix runs IN THE DEFAULT suite (in-memory better-sqlite3, no codegen); `test:db`
+  replays it on postgres where `ilike` exists.
+
+`@rapiq/adapter-memory`: compile-once functional visitors — the core visitor interfaces implemented with `R = compiled function` (`IFiltersVisitor<Predicate>`, `ISortsVisitor<Comparator>`, `IFieldsVisitor<Projector>`, `IPaginationVisitor<Slicer>`, `IQueryVisitor<CompiledQuery>`): `compileFilters(condition)` → `(input) => boolean`, `applyQuery(query, data)` → `{ data, total, pagination }`. The semantics contract (SQL parity for positive operators, complement law for negations — `ne`/`nin`/`not*` match null/missing —, same-element join-row binding for dotted paths over arrays) is settled in `.agents/plans/014-memory.md`; do not re-litigate decisions recorded there.
+
+**Include projection (revised 2026-07-27, issue #847)**: a per-relation fieldset governs the projection of an explicitly included relation, uniform across typeorm/memory/prisma. Direct field picks (any IR field entries owned by that exact relation path — client-sent OR materialized from the child schema's `fields.default`/`allowed`) narrow the include to the fieldset; only a pick-free include hydrates the whole subtree (#824 behavior, retained for schemas without a `fields` block and schemaless parsing). Picks belonging to a deeper relation never narrow the traversed prefix, gate-operand columns (#830) and excluded entries never count as picks, and typeorm's `hydrationMode: 'key'` takes precedence. Narrowing is uniform across the hydration triggers: `joinAndSelect: true` widens WHICH relations hydrate (every joined one), never how much of a fieldset-carrying one is selected (settled via AskUserQuestion 2026-07-27). Mechanically: the fields adapters flag the owning relation (`projected` on the relation entry / pick-veto on `keepAll`/`whole`), and typeorm renders a narrowed include on the `'key'` baseline — plain `leftJoin`, the fieldset's per-column selects, plus the guarded primary-key select. The pk is deliberate, not an artifact: TypeORM detects join presence through selected columns, so a fieldset that is all-NULL on a row would otherwise hydrate the relation as `null` (a real join miss and an all-NULL fieldset would be indistinguishable); memory/prisma need no pk and don't add one. The #831 dedup then only ever drops operand columns behind pick-free full joins, and `@rapiq/adapter-prisma` force-projects gate operands itself (select-only entries exempt from the narrowing veto) since its whole-include no longer covers them.
+
+**Field visibility gates (settled 2026-07-25, issue #830)**: a `fields` `validate`/`validateMany` hook may answer with an `ICondition`, which rides on the `Field` node as `Field.condition` and means *this column is visible only on rows satisfying it*: it gates the VALUE of one column, never the row set, at the root and under any relation path. This is a deliberate backend divergence from the SQL-parity premise: `@rapiq/adapter-memory` honours the condition while projecting (`FieldsVisitor`, key omitted on failing records), whereas `@rapiq/adapter-sql`/`@rapiq/adapter-typeorm` cannot (a selection must stay a bare `alias.property` for entity hydration), so they project the column unconditionally and the gate is enforced post-fetch via memory's exported `applyFieldConditions`/`compileFieldConditions`; fail-open if a consumer skips it. `sorts`/`relations` have no column to gate, so a condition verdict there is a rejection (relation-scoped row narrowing stays RFC #810). A gate also cannot be merged away (issue #839): `Fields.merge()`/`mergeQueries` throw a typed `MergeError` (`ErrorCode.FIELDS_CONDITION_DISCARDED`) on a name collision that would discard a `Field.condition` (the identical condition instance surviving on the winner is tolerated). Filters express the same protection as a carried-through conjunct rather than a refusal (#875): a filter can be and-ed in, a field is either gated or not.
+
+**Case semantics (settled 2026-07-14, opt-out completed 2026-09-22 via issue #934)**: string matching is case-insensitive by default and uniform across backends: the anchored operators (`contains`/`startsWith`/`endsWith`) *and* the equality family (`eq`/`ne`/`in`/`nin`). `regex` is excluded from the fold entirely; its case handling is the pattern's own `i` flag, and `FILTER_OPERATOR_SEMANTICS.regex.foldable` stays `false` while the six anchored entries are `true`. `@rapiq/adapter-sql` folds both comparison sides through the `caseFold` dialect callback (default `lower(...)`; the mysql/mssql presets use identity because their default `*_ci` collations already compare case-insensitively and skipping `lower()` keeps plain indexes usable). Per-field opt-out: `filters.caseSensitive` on the schema, forwarded as the top-level `caseSensitive` option on every adapter surface (execute options on sql/typeorm, compile/apply options on memory, constructor options on prisma/drizzle; key unified at the 2026-08-02 pre-GA freeze). The opt-out reaches the anchored family because `planCondition` derives a match plan's `ignoreCase` from `isFoldableField(field)` rather than hardcoding `true`; before #934 `guide/filters.md` promised it, `adapter-memory.md` documented the opposite, and the code did neither consistently. Folding is further gated on the value being a string and on `IFiltersAdapter.isCaseFoldable(field)` (default true): `@rapiq/adapter-typeorm` overrides it via entity metadata so only string-typed columns fold (an int column filtered with a wire string `'18'` renders plain `=`, avoiding `lower(integer)` errors on pg). Range comparisons and sort ordering stay collation-governed. Do not re-litigate: `eq` stays typed/exact for non-strings, and no `ilike`-style extra operators.
+
+**Anchored rendering (settled 2026-09-22, issue #934)**: `contains`/`startsWith`/`endsWith` (and negations) render as LIKE on EVERY sql dialect, never as a regex. Measured, do not re-derive: mysql 9.7.1, 50k rows, btree index, `col regexp '^sales/' = 1` examined 50,000 rows against 50 for `col like 'sales/%'`; on pg 18.4 a case-SENSITIVE `col ~ '^sales/'` and `col like 'sales/%'` produce the identical Index Cond on a `text_pattern_ops` index, while the `~*` that was actually emitted seq-scans, so pg gains rather than regresses. The one pg configuration that loses is a `gin (col gin_trgm_ops)` index, which serves `~*` and a bare LIKE but not the folded one (measured 0.9 ms to 22 ms on 100k rows): index `lower(col) gin_trgm_ops` instead. Consequences that are accepted, not bugs:
+
+- **mysql result sets change**, not only plans: `utf8mb4_0900_ai_ci` is accent-insensitive for LIKE but not for REGEXP (`'APFEL' like 'ä%'` is 1, `'APFEL' regexp '^ä'` is 0). This is what `eq` has always done there, by the same collation reasoning that makes the mysql preset's `caseFold` identity.
+- **`caseFoldLike`** is a separate `DialectOptions` callback defaulting to `caseFold`. Only the sqlite preset declares it (identity): sqlite's LIKE is already ASCII-case-insensitive while its `=` is not, so folding would buy nothing and cost the prefix index. `@rapiq/adapter-typeorm` forwards it from the resolved dialect.
+- **The LIKE escape character is `!`** (`LIKE_ESCAPE_CHARACTER`, `packages/adapter-sql/src/helpers/like.ts`), and `escapeLikePattern` escapes `! % _`, plus `[` when the dialect declares `likeBracketWildcard` (mssql only: Oracle raises ORA-01424 for an escape character before anything but `%`, `_` or itself). Not a backslash: mysql rejects `escape '\'` (ERROR 1064) under the default sql_mode and `escape '\\'` under NO_BACKSLASH_ESCAPES, so no static backslash spelling parses on both. `packages/adapter-typeorm/test/unit/anchored.db.spec.ts` is the live-engine guard (sqlite by default, pg and mysql in `tests-db`); reverting the escape character makes it fail on mysql.
+- Only `startsWith` can gain an index; `%x%` and `%x` are full scans under LIKE as they were under a regex. On pg, `lower(col) like lower($1)` needs a `lower(col) text_pattern_ops` expression index, and a plain `lower(col)` index (which serves `=`) does not serve it.
+
+**Date operands (settled 2026-09-22, issue #939)**: the wire is untyped, so a date crosses it as a string and every consumer reads it back itself. Coercing centrally (in `planCondition`, say) was measured and rejected: a varchar column may hold ISO text, and comparing that as an instant breaks it, so the coercion must be informed by what the consumer knows about the field. Core contributes only `toDate(value)` and `AdapterError.keyValueInvalid`. `toDate` matches the ISO-8601 grammar with a regex instead of delegating to `new Date()` (measured 2026-09-22: that parser turns `'2026-02-30'` into March 2nd, accepts implementation-defined forms like `'August 23, 2026'`, reads `'2026'` as January 1st, and reads an offset-less date-time in the HOST's zone). A zone-less date-time is therefore read as UTC, the same rule used for a zone-less column, and an impossible calendar day is refused. Epoch-ms numbers and `Date` instances stay accepted. The four consumers differ by what they know:
+
+- `@rapiq/adapter-typeorm` reads the entity metadata and binds the column's **storage form** via typeorm's own `DateUtils`: UTC wall clock for a zone-less `datetime`/`timestamp`, ISO for `timestamptz`, `YYYY-MM-DD` for `date`. A bare calendar date on a `date` column is bound VERBATIM (measured under `TZ=America/New_York`: the instant round trip through `mixedDateToDateString`, which reads local parts unless `column.utc`, binds the previous day and selects nothing); only a clock-carrying operand mirrors `column.utc`. Binding a `Date` is NOT an alternative and must not be re-proposed: pg/mysql serialize one in the HOST's local zone and a zone-less column discards the offset marker, so the same query would select different rows on different machines. Known ceiling, measured against pg 16 from a UTC+2 host: typeorm's OWN pg/mysql write path stores local wall clock there (only its sqlite driver writes UTC unconditionally), so a `save()`-written row on a non-UTC host is off by the host offset. UTC is still the answer because it is deterministic and is what a server running in UTC produces; `date.db.spec.ts` seeds the storage literal directly so it measures rapiq's contract rather than that quirk. Add a binding-zone option only if someone needs one, not speculatively.
+- `@rapiq/adapter-prisma` / `@rapiq/adapter-drizzle` bind a `Date`, gated on a new **optional** `IMetadata.isDate?(path)` (prisma: field `type === 'DateTime'`; drizzle: `dataType === 'date'`). Optional so an existing hand-written implementation keeps compiling and keeps today's behavior. Measured on the drizzle sqlite engine: a wire string reaches `mapToDriverValue` and throws `value.getTime is not a function`.
+- `@rapiq/adapter-memory` needs no metadata: it sees the record value, and a `Date` never crosses the wire, so a `Date`-meets-*string* pair identifies itself. Only that asymmetric pair coerces. A number stays incomparable against a `Date` (measured: coercing it broke the settled "mixed-type field is incomparable, input order preserved" sort semantics), and two strings stay strings.
+- `@rapiq/adapter-sql` binds nothing: the caller owns the parameters. The extension point is `IFiltersAdapter.bindValue(field, value)` (identity default), called by `FiltersVisitor` for **equality and ordering operands only** — a LIKE pattern or a mod divisor is not a value of the column's domain and must not be routed through it.
+
+An operand denoting no instant raises `AdapterError` with `ErrorCode.KEY_VALUE_INVALID` at bind time (the issue proposed decode time; the schema is backend-agnostic and does not know a field is temporal, so the adapter is the first place that can tell).
+
+`@rapiq/codec-url`: the public `URLCodec` façade hides two internal strategies. The expression strategy serializes nested filters into a single function-call expression and reuses the simple strategy's visitors/serializers for fields, pagination, relations and sorts. The legacy simple strategy emits bracket filters (`filter[name]=...`). Both decode with `qs` and delegate to their matching parser. `createURLCodec()` registers both strategies with expression as the default writer.
+
+**Aggregation (settled 2026-09-22, issue #938)**: two optional parameters, `groups` (wire `group`) and `aggregates` (wire `aggregate`), turn a collection read into grouped rows (`GET /events?group=bucket(createdAt,day),scope,name&aggregate=count` answers `{ createdAt, scope, name, count }`). User guide: `packages/docs/guide/grouping.md`; plan: local `.agents/plans/035-aggregation.md`. Settled, do not re-litigate:
+
+- **Opt-in parsing.** `skipParameter` skips both unless they are listed in `parameters` or flagged `true` (a `parameters` mask that omits them wins over the flag, `false` wins over the list), so a server that never asks ignores `group=` exactly as it ignored any unknown key. codec-url maps the wire names unconditionally; that is safe only because of this rule. The schema-aware encode pass opts in through its parameter mask and drops the boolean flags. A dialect without the optional `groupsParser` / `aggregatesParser` slot rejects opted-in input (`FEATURE_UNSUPPORTED`) instead of ignoring it.
+- **Fail-closed schema.** A bound schema without the block permits nothing, so `describe()`'s `null` means nothing permitted here (the opposite of every other parameter). Never derived from `filters.allowed`: a group enumerates the distinct values of a column, a disclosure surface of its own. `throwOnFailure`/`strict` are neither accepted by these sub-schemas nor inherited into them; every rejection is recorded on the issue collector unconditionally and fails the parse (a dropped group changes every row's grain). Schemaless parsing accepts the built-ins and bare columns; named functions need a schema. Both sub-schemas take a per-request `validate(node, context)` hook (added 2026-09-23) that mirrors the sorts/relations hook contract (sync or Promise, `parse()` refuses a thenable with `SCHEMA_VALIDATOR_ASYNC_REQUIRES_ASYNC_PARSER`, `parseAsync()` awaits in term order, an `ICondition` answer rejects) but receives the resolved node (`key`, `name`, `params`, `lowering`) once per term that passed resolution; a rejection is recorded as `KEY_VALIDATE_REJECTED` and, like every rejection here, fails the parse. No `validateMany`, and `describe()` does not represent it. The driver is core's `applyCallSchemaValidation[Async]`; parser-simple records the issue.
+- **Vocabulary.** Built-in primitives `bucket(field, unit)` (`hour`/`day`/`month`), `count()`, `count(field)`, `sum(field)`, allow-listed per column (`functions.<primitive>.allowed`). Named functions bind a primitive Cube-style: a scalar slot is fixed by the schema, an array slot is open to the client (`period: { fn: 'bucket', field: 'createdAt', unit: ['hour','day'] }` is wire `period(day)`); declaration mistakes throw `SchemaError.functionInvalid` (`KEY_INVALID`) at define time. Lowering is built-in only; `lowering.fn` stays an open string and adapters refuse an unknown fn typed. Root columns only. Deferred, one semantics row plus one SQL line each: `min`/`max`/`avg`, `week`. No HAVING. Quote characters are reserved in the grammar for a later time-zone argument.
+- **Node shape and output keys.** `name` + `params` are the wire form (re-encoding reproduces `period(day)`), `lowering` the resolved `{ fn, field, args }` (undefined for a client-built named call: transport only, adapters refuse `groups:unresolved`), `key` the output key (maintainer decision 2026-09-23, replacing an interim `[name, ...params].join('_')`): a group is its column (`lowering.field`: a bare column is its name, `bucket(createdAt,day)` and a named `period(day)` over `createdAt` are `createdAt`, so an open-column named function `daily(createdAt),daily(updatedAt)` gives two keys; an unresolved named term falls back to `bucket`'s first param or its name until the server resolves it), and an aggregate is its name followed by each param in camel case, a param split on `_` with every part's first letter upper-cased (`count`, `countAmount`, `sumTotalAmount`, a named `total()` is `total`). No `as` syntax and no naming-strategy option. A key seen twice, within or across the two parameters, is `KEY_AMBIGUOUS` (parse, build, merge, and every grouped entry point). One group per column: two resolved groups with one `lowering.field` are `KEY_AMBIGUOUS` whatever the spelling (`bucket(createdAt,day),bucket(createdAt,hour)`, `createdAt,bucket(createdAt,day)`, `period(day),bucket(createdAt,hour)`), message `ErrorMessage.groupColumnDuplicate` ("The column createdAt is grouped more than once."), checked by the groups parse (parser-simple `buildCallNodes`, before the key check), `defineGroups` and `assertGroupedQuery` through core's `findGroupColumnDuplicate`; an unresolved group has no known column and is skipped. This is what keeps a group's column key unique. An underscore-only call identifier (`count(_)`) is `KEY_INVALID` (`isCallIdentifierValid`): it would vanish from the camel-cased key. A zero-argument group built without a schema (`defineGroups(['period'])`) is read as a bare column, the only schemaless reading; its wire form is the same, so a zero-argument named function built client-side is only resolved by the server's parse.
+- **Grouped mode is driver-owned.** Fields are refused (`FEATURE_UNSUPPORTED`, `fields.default` not applied); relations are parsed (they gate filter traversal) and never hydrated, and an include no filter traverses is rejected under the relations failure policy (revised 2026-09-23: it was silently dead input; recorded as `FEATURE_UNSUPPORTED`, `relations:grouped`, under `throwOnFailure`, otherwise dropped, which changes no row, so a drop-mode schema-aware encode never throws on it). "Traverses" is read off the final filter tree after relation pruning, client filters and `filters.default` alike (`elemMatch` interiors prefixed by their leaf; a custom condition is opaque and traverses nothing, as for the adapters' joins), and a prefix of a traversed path counts, so a schemaless parse is judged the same way (the relation ledger is empty there and does not say which parameter traversed); a `parameters` mask that skips `filters` cannot judge and keeps every include; sorts are parsed against a synthetic unnamed schema allowing only output keys with an empty relations context, so the real schema's `sorts.default`/`validate`/`indexed` do not apply (relation pruning and the sorts index policy skip grouped sorts); `resolveGroupedSorts` appends every group key the explicit sorts do not name, ASC in declared order, as tie-breakers (revised 2026-09-23: the group keys identify a row, so the order is total and LIMIT/OFFSET paging over ties is stable on pg/mysql), which without explicit sorts is every group key ASC; `pagination.maxLimit` caps group rows.
+- **NULL-group ordering is documented, not normalized** (maintainer call 2026-09-22): pg and memory sort the `null` group last ascending, mysql and sqlite first. The typeorm parity spec compares membership only for that case. Do not add a `NULLS LAST` emulation without a new maintainer decision.
+- **Separate entry points.** `applyGroupedQuery`/`compileGroupedQuery` (memory, the parity oracle), `Adapter.executeGrouped` (sql, fragments plus `groupBy`, rows through `normalizeGroupedRows`), `TypeormAdapter.executeGrouped` (returns `normalize`). Every record entry point refuses a grouped query (`groups`); every grouped entry point runs core's `assertGroupedQuery` first, which refuses a query without groups or aggregates (`groups:empty`), a hand-built one carrying fields (`fields:grouped`), one grouping a column twice (`AdapterError.groupColumnDuplicate`) and one repeating an output key (`AdapterError.outputKeyDuplicate`, both `KEY_AMBIGUOUS`). typeorm runs it before its `groups:builder` check and `clear()`. prisma and drizzle refuse permanently in v1; mssql and oracle have no `DialectOptions.bucket` (`groups:bucket`).
+- **Buckets are UTC ISO text rendered in SQL** (`YYYY-MM-DDTHH:MM:SS.000Z`), because a driver `Date` is host-zoned (the #939 determinism rule). The unit is inlined from the closed enum, never bound, and re-checked by every adapter (`KEY_VALUE_INVALID` for a hand-built unit); `GROUP BY` repeats the expression, never the alias. The column kind comes from the optional `IFiltersAdapter.temporalKind` (base default `'datetime'`; typeorm reads metadata and answers `undefined` for a non-temporal column, refused as `groups:bucket-type`). Documented, not refused: standalone pg `timestamptz` needs an `'instant'` override (assigned on `adapter.filters`, since the root `Adapter` has no injection option), mysql `TIMESTAMP` needs the session `time_zone` at UTC, sqlite expects text, not epoch numbers (strftime reads a number as a Julian day), `hour` on a `date` column is midnight, mysql `*_ci` collations merge case variants of a bare group column.
+- **Numbers.** `count` and `sum` are normalized with `Number` (one JSON type across pg strings, mysql DECIMAL strings and sqlite numbers, identical to memory); precision beyond 2^53 or on exact decimals is the documented price, the raw driver rows are the escape hatch. A sum over no values is `null`; a row missing an output key (an alias the engine truncated) or an aggregate `Number` cannot read (a pg `money` sum is formatted text) is refused with `AdapterError.outputValueUnreadable` (code `NONE`, a server fault), never read as `null` or `NaN`. Memory's `sum` reads each value with the same `Number` rule (revised 2026-09-23): finite numbers, bigints and non-blank numeric strings add, since a driver hydrates a decimal as a string and a pg bigint as a string or bigint; anything else is skipped. It adds floats, so a decimal sum drifts from pg/mysql's exact one and a tie there may order differently in memory (documented, not normalized). A `sum` over a non-numeric column is refused typed by the optional `IFiltersAdapter.isNumeric` (base default `true`; typeorm reads metadata: integer, decimal and float types or `Number`, never boolean because pg has no `sum(boolean)`, never money because pg sums it to formatted text, never an array column) as `aggregates:sum-type`, the `groups:bucket-type` pattern.
+- **No group total.** sql/typeorm never run a count query; `rows.length === limit` signals truncation. memory's `total` is the group count before slicing.
+- **Merge refuses.** `Groups.merge`/`Aggregates.merge`: one empty side yields the other, identical sides keep the receiver, anything else throws `MergeError.callsConflict` (`KEY_AMBIGUOUS`): a union or a left win would fabricate or drop a grain (the #839 rule). Identity is `isCallEqual`, which compares the lowering too, so a parse-resolved term and the same wire form built unresolved are a conflict, not a match. Filters stay a conjunction, so an appended reach condition composes.
+- **Fan-out.** A join of a to-many relation multiplies `count`/`sum`. typeorm renders a grouped query's filters as ONE correlated `EXISTS` whenever they traverse a to-many relation (revised 2026-09-23, it refused them as `aggregates:fan-out`): a sub builder over the root entity (alias `<alias>_exists`, `withDeleted` carried over) takes the whole filter tree, its joins and the `onJoin` hooks with the same relations options, is correlated on every primary key column after the joins (a hook's `where()` cannot drop it), and reaches the builder through `andWhereExists`, so a root row qualifies when one join row satisfies the whole tree, the memory and record-path semantics. A join already on the builder is not reused inside the subquery (a condition on a relation belongs in `onJoin`). One rule for groups and aggregates alike; a tree without to-many traversal keeps the plain joins (to-one does not fan out). The tree is visited into the sub builder first and into the adapter only when it stays plain, so state accumulated under `clear: false` stays on the builder beside the `EXISTS`. The sub builder is seeded with the outer parameters, and every typeorm `FiltersAdapter` skips a `rapiq_<n>_` namespace a parameter on its builder already starts with, so neither the subquery's nor the builder's own placeholders can rebind a caller parameter. A to-many join already on the builder, the caller's or one an `onJoin` hook adds for a to-one filter join, is not ours to rewrite and still refuses aggregates (`aggregates:fan-out`). Standalone adapter-sql has no cardinality and only documents it (the caller owns the join).
+- **TypeORM ordering is load-bearing.** Refuse a builder that already has `groupBys` (`groups:builder`, before `clear()` so the builder stays untouched); join only the relations a filter traverses (includes are never joined, in adapter-sql either; a to-many traversal moves every filter join into the `EXISTS`) and never select them; run the joins before rebuilding the select list and the `GROUP BY` (so an `onJoin` hook's `addGroupBy` is dropped); paginate with `limit`/`offset`, never `take`/`skip`.
+
+## Error Handling
+
+- All errors extend `BaseError` (carries a `code` from `ErrorCode`), in `packages/core/src/errors/`.
+- Parsers throw `ParseError` / `FiltersParseError` when `throwOnFailure` is set on the schema; otherwise invalid input is silently dropped.
+- When adding new failure modes, add an `ErrorCode` member and a static factory on the error class rather than throwing raw `Error`.
+- Identity is a `Symbol.for` brand read by `isBaseError` / `isParseError`, never `instanceof`: two copies of the library in one process do not share a class, and a missed catch turns a 400 into a 500.
+
+**Issue traces (settled 2026-08-14, issue #896)**: a parse records what it rejects into an `IssueCollector` and raises ONE general failure at the end, so one request reports every parameter instead of only the one that failed first. Settled, do not re-litigate:
+
+- **The raised error is the only channel.** A parse that raises nothing discards its trace; `throwOnFailure` is what makes rejections inspectable. There is no drop-mode sink.
+- **Every issue is a failure.** No `severity`, and under a dropping policy a site records NOTHING (the recording sites decide; `IssueCollector.add` has no policy). Notices for substituted defaults or entries a rejected relation dragged along were removed with it.
+- **The shape is `blemish`'s** (`IssueItem` | `IssueGroup`, discriminated by `type`, nesting IS the tree): rapiq keeps its own single `ErrorCode` vocabulary and does not fork an `IssueCode` or add `meta`/`data` until a producer needs them. `path` is ABSOLUTE on every node because a parent rewrites children when merging (`prefixIssuePath`), which is what makes a path-less issue impossible to construct; consumers read leaves through `flattenIssueItems`.
+- **The class says which parse failed, the code is always `INPUT_REJECTED`.** A single-parameter parse raises its parameter's class (the trace carries the parameter it was opened for); a query parse raises the general `ParseError`, because a request can violate policies in four parameters at once and naming one describes a SUBSET, which a consumer branching on the class would act on. Sub-parser failures inside a query parse are merged into its trace, never raised. Never the first violation's own code. Nothing is ever rebuilt through a consumer's class either, so a custom constructor is never called with options it did not agree to.
+- A site that CANNOT record (a scope built outside a parse; the expression dialect, whose `resolutionThrowOnFailure` forces throwing key resolution because an expression cannot be partially reinterpreted) attaches its issue to the error it throws, and the catching driver merges that trace rather than synthesizing one from the parameter name. A caught abort becomes an issue like any other rejection and the error object is dropped: only branded parse errors are ever caught (a server bug propagates untouched), so everything a caught failure knows is already in its issue.
+- **`BaseError` extends `@ebec/core`'s**, the house error substrate: class name, stack capture, `code`, `cause` and the `@instanceof` brand chain come from there, and `toJSON` is `super.toJSON()` plus `issues`. So `isBaseError` / `isParseError` (and ebec's own guard) recognize a rapiq error that crossed a boundary as JSON, which `instanceof` cannot. Consequence measured and accepted: the enumerable shape is `['code', 'cause', 'errors', 'issues']`. `issues` is deliberately an ORDINARY property (maintainer call 2026-08-14, knowing the trade): it is visible on inspection, and the price is that deep equality compares traces, so `toThrow(<error instance>)` asserts the trace too: assert the class, the code, or the trace itself.
+- **rapiq does not use, and must not adopt, an error-GROUP mechanism** (ebec's `errors: Error[]` and `isBaseErrorGroup`). Everything rapiq aggregates is a rejection of client input, which is DATA (a code, a path, a message), so the carrier is `Issue[]`. An `Error` per rejection buys a stack pointing into rapiq's own allow-list check for something that is not a bug, and costs an allocation per rejected key. Declaring the group contract without filling it is worse still: ebec-aware tooling would call `isBaseErrorGroup` on a failure carrying twelve rejections, get `false`, and hide them. If ebec is ever adopted, take the brand utilities (`markInstanceof`/`matchesInstanceof`/`serializeInstanceofChain`), never `BaseError` itself.
+- The trace is a driver argument on `parseParameter`, never a parse option: a caller able to supply one could switch off the failure policy and get back a query still carrying what a validate hook rejected. Whoever begins a trace finishes it, structural aborts included (`recordFailure`).
+- Relation pruning always runs, so the index policies judge the tree that would execute (the keys a rejected relation drags along never surface as index violations of their own); only pruning's `SCHEMA_PRESERVED_CONDITION_PRUNED` refusal is suppressed once the trace has failed, so a structural conflict found while cleaning up cannot displace the rejection. A parameter's index policy is skipped only after that same parameter's prior failure, so independent `filters` and `sorts` index violations remain visible. A `ParseError` a validate hook throws is caught like a structural abort and becomes an issue at the parameter root (accepted 2026-08-16).

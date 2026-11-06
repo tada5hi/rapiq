@@ -81,6 +81,7 @@ export class SortsSchema<
         if (typeof input === 'undefined') {
             this.indexes = [];
             this.indexesIsUndefined = true;
+
             return;
         }
 
@@ -95,6 +96,7 @@ export class SortsSchema<
             this.default = {};
             this.defaultKeys = [];
             this.defaultIsUndefined = true;
+
             return;
         }
 
@@ -108,15 +110,18 @@ export class SortsSchema<
             if (typeof this.options.default !== 'undefined') {
                 const flatten = this.options.default;
                 const allowed = Object.keys(flatten);
+
                 if (allowed.length > 0) {
                     this.allowed = allowed;
                     this.allowedIsUndefined = false;
+
                     return;
                 }
             }
 
             this.allowed = [];
             this.allowedIsUndefined = true;
+
             return;
         }
 

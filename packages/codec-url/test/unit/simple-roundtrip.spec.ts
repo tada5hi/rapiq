@@ -84,9 +84,11 @@ describe('round-trip', () => {
 
     const roundTrip = (query: IQuery) : IQuery => {
         const encoded = encoder.encode(query);
+
         expect(encoded).toBeTypeOf('string');
 
         const decoded = decoder.decode(encoded!);
+
         expect(decoded).toBeDefined();
 
         return decoded!;

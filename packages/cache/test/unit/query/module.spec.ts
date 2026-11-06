@@ -37,6 +37,7 @@ import type { Realm, Role, UserRole } from '../../data/type';
  */
 function buildRelationRegistry() : SchemaRegistry {
     const output = new SchemaRegistry();
+
     output.add(defineSchema({
         name: 'role',
         filters: { allowed: ['id', 'realm', 'permissions', 'labels'] },
@@ -101,16 +102,16 @@ describe('src/query/module.ts', () => {
                 registry,
                 value: [
                     {
-                        id: 'r1', 
-                        name: 'admin', 
-                        realmId: 'x', 
-                        realm: { id: 'x', name: 'master' }, 
+                        id: 'r1',
+                        name: 'admin',
+                        realmId: 'x',
+                        realm: { id: 'x', name: 'master' },
                     },
                     {
-                        id: 'r2', 
-                        name: 'user', 
-                        realmId: 'x', 
-                        realm: { id: 'x', name: 'master' }, 
+                        id: 'r2',
+                        name: 'user',
+                        realmId: 'x',
+                        realm: { id: 'x', name: 'master' },
                     },
                 ],
             });
@@ -156,9 +157,9 @@ describe('src/query/module.ts', () => {
                 registry,
                 caseSensitive: ['userId'],
                 value: [{
-                    id: 'ur1', 
-                    userId: 'u1', 
-                    roleId: 'r1', 
+                    id: 'ur1',
+                    userId: 'u1',
+                    roleId: 'r1',
                 }],
             });
 
@@ -354,6 +355,7 @@ describe('src/query/module.ts', () => {
         it('should refuse an elemMatch on a declared relation whose schema is not registered', () => {
             // `user` is in userRole's relations.allowed, but no `user` schema exists.
             let error : unknown;
+
             try {
                 collectQueryTags({
                     query: defineQuery({ filters: elemMatch('user', eq('name', 'x')) }),
@@ -469,10 +471,10 @@ describe('src/query/module.ts', () => {
                 schema: 'userRole',
                 registry,
                 value: {
-                    id: 'ur1', 
-                    userId: 'u1', 
-                    roleId: 'r1', 
-                    role: [{ id: 'r1' }, { id: 'r2' }], 
+                    id: 'ur1',
+                    userId: 'u1',
+                    roleId: 'r1',
+                    role: [{ id: 'r1' }, { id: 'r2' }],
                 },
             });
 
@@ -529,6 +531,7 @@ describe('src/query/module.ts', () => {
 
         it('should throw a CacheError for a relation the registry cannot resolve', () => {
             let error : unknown;
+
             try {
                 collectQueryTags({
                     query: defineQuery<UserRole>({ relations: ['user'] }),
@@ -559,13 +562,14 @@ describe('src/query/module.ts', () => {
             const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
             let reads = 0;
             const rows = [{
-                id: 'r1', 
-                name: 'admin', 
-                realmId: 'x', 
-                realm: { id: 'x', name: 'master' }, 
+                id: 'r1',
+                name: 'admin',
+                realmId: 'x',
+                realm: { id: 'x', name: 'master' },
             }];
             const read = async () => {
                 reads++;
+
                 return rows;
             };
             const input = {
@@ -590,6 +594,7 @@ describe('src/query/module.ts', () => {
             let reads = 0;
             const read = async () => {
                 reads++;
+
                 return [];
             };
             const input = {
@@ -615,6 +620,7 @@ describe('src/query/module.ts', () => {
             };
             const read = async () => {
                 reads++;
+
                 return [{ id: 'r1' }];
             };
 
@@ -643,6 +649,7 @@ describe('src/query/module.ts', () => {
             }, async () => [[{ id: 'ur1', userId: 'u1' }], 1] as [Record<string, any>[], number]);
 
             const hit = await driver.read('userRole?filter[userId]=u1');
+
             expect(hit?.tags).toEqual(['userRole:userId=u1', 'userRole:ur1']);
         });
 
@@ -659,6 +666,7 @@ describe('src/query/module.ts', () => {
             }, async () => [{ name: 'admin' }]);
 
             const hit = await driver.read('roles');
+
             expect(hit?.tags).toEqual(['role', 'role:admin']);
         });
     });

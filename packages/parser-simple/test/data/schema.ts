@@ -95,6 +95,7 @@ const eventSchema = defineSchema<Event>({
 });
 
 const registry = new SchemaRegistry();
+
 registry.add(userSchema);
 registry.add(itemSchema);
 registry.add(realmSchema);

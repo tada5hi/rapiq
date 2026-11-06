@@ -44,8 +44,10 @@ export class Fields implements IFields {
         const output : IField[] = [];
 
         const seen = new Map<string, IField>();
+
         for (const item of [...this.value, ...other.value]) {
             const survivor = seen.get(item.name);
+
             if (survivor) {
                 if (
                     typeof item.condition !== 'undefined' &&
@@ -140,12 +142,15 @@ export class Fields implements IFields {
     ) {
         for (const explicate of explicates) {
             let index = options.default.findIndex((item) => item === explicate);
+
             if (index !== -1) {
                 input.push(explicate);
+
                 continue;
             }
 
             index = options.allowed.findIndex((item) => item === explicate);
+
             if (index !== -1) {
                 input.push(explicate);
             }
@@ -159,12 +164,15 @@ export class Fields implements IFields {
     ) {
         for (const include of includes) {
             let index = options.default.findIndex((item) => item === include);
+
             if (index !== -1) {
                 input.push(include);
+
                 continue;
             }
 
             index = options.allowed.findIndex((item) => item === include);
+
             if (index !== -1) {
                 input.push(include);
             }
@@ -177,6 +185,7 @@ export class Fields implements IFields {
     ) : string[] {
         for (const exclude of excludes) {
             const index = input.findIndex((item) => item === exclude);
+
             if (index === -1) {
                 continue;
             }

@@ -6,4 +6,5 @@
  */
 
 export * from './error';
+export type { SortParseError } from './types';
 export * from './types';

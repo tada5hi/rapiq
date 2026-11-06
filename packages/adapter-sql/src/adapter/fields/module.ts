@@ -1,3 +1,4 @@
+import type { FieldsContainerOptions } from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -7,11 +8,6 @@
 
 import type { RelationsAdapter } from '../relations';
 import { FieldsBaseAdapter } from './base';
-
-export type FieldsContainerOptions = {
-    rootAlias?: string,
-    escapeField?: (input: string) => string
-};
 
 export class FieldsAdapter extends FieldsBaseAdapter {
     protected options : FieldsContainerOptions;

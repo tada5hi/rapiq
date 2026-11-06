@@ -151,6 +151,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         // entity join (`leftJoin(Entity, alias, condition)`) carries no
         // relation metadata and cannot be classified.
         const aggregated = !!query.aggregates && query.aggregates.value.length > 0;
+
         if (aggregated && (this.relations.joinsToMany() || this.hasToManyJoin())) {
             throw AdapterError.featureUnsupported('aggregates:fan-out');
         }
@@ -161,9 +162,11 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         const exists = this.buildExistsFilter(query, options);
 
         const visitor = new QueryVisitor(this, { caseSensitive: options.caseSensitive });
+
         if (!exists) {
             query.filters.accept(visitor.filters);
         }
+
         query.pagination.accept(visitor.pagination);
 
         // joins run before the select list and the GROUP BY are
@@ -178,11 +181,13 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         }
 
         this.queryBuilder.select([]);
+
         for (const select of clauses.selects) {
             this.queryBuilder.addSelect(select.expression, select.key);
         }
 
         this.queryBuilder.groupBy();
+
         for (const expression of clauses.groupBy) {
             this.queryBuilder.addGroupBy(expression);
         }
@@ -210,6 +215,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
         // typeorm resolves a key equal to a select alias and escapes it.
         this.queryBuilder.orderBy();
+
         for (const sort of clauses.orderBy) {
             this.queryBuilder.addOrderBy(sort.key, sort.direction);
         }
@@ -238,6 +244,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
      */
     protected buildExistsFilter(query: IQuery, options: ExecuteOptions) : SelectQueryBuilder<any> | undefined {
         const { expressionMap } = this.queryBuilder;
+
         if (!expressionMap.mainAlias || !expressionMap.mainAlias.hasMetadata) {
             return undefined;
         }
@@ -255,6 +262,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
 
         const relations = new RelationsAdapter(queryBuilder, this.options.relations);
         const filters = new FiltersAdapter(queryBuilder, relations);
+
         query.filters.accept(new FiltersVisitor(filters, { caseSensitive: options.caseSensitive }));
 
         if (!relations.joinsToMany()) {
@@ -271,6 +279,7 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
         // after the joins, so a hook calling where() cannot drop it.
         for (const column of metadata.primaryColumns) {
             const name = queryBuilder.escape(column.databaseName);
+
             queryBuilder.andWhere(`${queryBuilder.escape(subAlias)}.${name} = ${queryBuilder.escape(alias)}.${name}`);
         }
 

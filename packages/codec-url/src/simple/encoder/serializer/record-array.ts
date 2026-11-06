@@ -36,6 +36,7 @@ export class RecordArraySerializer<
 
     serialize(): string | null {
         const keys = Object.keys(this.value);
+
         if (keys.length === 0) {
             return null;
         }

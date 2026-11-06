@@ -44,6 +44,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Relations {
         const ledger : RelationLedger = [];
+
         return this.withTrace({ parameter: Parameter.RELATIONS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
@@ -62,6 +63,7 @@ export class SimpleRelationsParser extends BaseParser<
         options: RelationsParseOptions<RECORD> = {},
     ) : Promise<IRelations> {
         const ledger : RelationLedger = [];
+
         return this.withTraceAsync({ parameter: Parameter.RELATIONS }, async (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
@@ -119,8 +121,8 @@ export class SimpleRelationsParser extends BaseParser<
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : {
-        output: Relations, 
-        scope: RelationsScope<RECORD>, 
+        output: Relations,
+        scope: RelationsScope<RECORD>,
     } {
         const scope = ResolutionScope.for(this.registry, Parameter.RELATIONS, options.schema, {
             throwOnFailure: options.throwOnFailure,
@@ -130,8 +132,8 @@ export class SimpleRelationsParser extends BaseParser<
         });
 
         return {
-            output: this.parseWithScope(input, scope), 
-            scope, 
+            output: this.parseWithScope(input, scope),
+            scope,
         };
     }
 
@@ -177,6 +179,7 @@ export class SimpleRelationsParser extends BaseParser<
                 // mapping alias may expand to a dotted path) — into the scope's
                 // ledger, exactly like a literal dotted key.
                 const resolved = scope.resolveKey(key.name);
+
                 if (!resolved.success) {
                     continue;
                 }
@@ -186,8 +189,10 @@ export class SimpleRelationsParser extends BaseParser<
         }
 
         const keys = Object.keys(relationsData);
+
         for (const key of keys) {
             const child = scope.descend(key);
+
             if (!(child instanceof ResolutionScope)) {
                 continue;
             }
@@ -219,6 +224,7 @@ export class SimpleRelationsParser extends BaseParser<
             Array.isArray(input)
         ) {
             let temp: unknown[];
+
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
@@ -244,8 +250,10 @@ export class SimpleRelationsParser extends BaseParser<
 
         if (isObject(input)) {
             const keys = Object.keys(input);
+
             for (const key of keys) {
                 const value = input[key];
+
                 if (typeof value === 'string') {
                     output.push(`${key}.${value}`);
 
@@ -289,6 +297,7 @@ export class SimpleRelationsParser extends BaseParser<
 
                 if (parts.length > 0) {
                     const value = parts.join('.');
+
                     if (!output.includes(value)) {
                         output.push(value);
                     }

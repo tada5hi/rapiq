@@ -10,4 +10,5 @@ export * from './errors';
 export * from './module';
 export * from './query';
 export * from './tag';
+export type { ScopedTagValue } from './types';
 export * from './types';

@@ -7,9 +7,9 @@
 
 import type { ICondition, ObjectLiteral, Schema } from '@rapiq/core';
 import {
-    ErrorCode, 
-    SchemaError, 
-    isFilter, 
+    ErrorCode,
+    SchemaError,
+    isFilter,
     isFilters,
 } from '@rapiq/core';
 import { DataSource, EntityMetadata } from 'typeorm';
@@ -54,6 +54,7 @@ export function assertSchemaMatchesEntity<
     dataSource?: DataSource,
 ) : void {
     let metadata : EntityMetadata;
+
     if (target instanceof EntityMetadata) {
         metadata = target;
     } else {
@@ -78,6 +79,7 @@ export function assertSchemaMatchesEntity<
 
     const headOf = (key: string) => {
         const index = key.indexOf('.');
+
         return index === -1 ? key : key.substring(0, index);
     };
 
@@ -90,6 +92,7 @@ export function assertSchemaMatchesEntity<
         // must be headed by a relation — the remainder belongs
         // to the related entity's own schema.
         const head = headOf(key);
+
         if (head !== key && relations.has(head)) {
             return;
         }
@@ -108,6 +111,7 @@ export function assertSchemaMatchesEntity<
             for (const child of condition.value) {
                 checkCondition(child);
             }
+
             return;
         }
 
@@ -120,6 +124,7 @@ export function assertSchemaMatchesEntity<
     checkColumnKeys(schema.fields.allowed);
 
     checkColumnKeys(schema.filters.allowed);
+
     if (schema.filters.default) {
         checkCondition(schema.filters.default);
     }

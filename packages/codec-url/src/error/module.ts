@@ -40,6 +40,7 @@ export function formatErrors(
         };
 
         const parameter = extractIssueParameter(issue);
+
         if (parameter) {
             error.source = { parameter: PARAMETER_WIRE_NAMES[parameter] ?? parameter };
         }

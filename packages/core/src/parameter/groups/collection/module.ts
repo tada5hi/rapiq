@@ -36,9 +36,11 @@ export class Groups implements IGroups {
             return this;
         }
 
+        const matchesValue = this.value.length === other.value.length &&
+            this.value.every((item, index) => isCallEqual(item, other.value[index]!));
+
         if (
-            this.value.length === other.value.length &&
-            this.value.every((item, index) => isCallEqual(item, other.value[index]!))
+            matchesValue
         ) {
             return this;
         }

@@ -23,6 +23,7 @@ type Row = {
 
 const buildRegistry = (throwOnFailure?: boolean) => {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Row>({
         name: 'row',
         throwOnFailure,

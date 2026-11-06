@@ -40,11 +40,13 @@ describe('src/errors/*.ts', () => {
 
     it('should raise a column grouped twice as a build and an adapter error', () => {
         const build = BuildError.groupColumnDuplicate('createdAt');
+
         expect(build).toBeInstanceOf(BuildError);
         expect(build.code).toBe(ErrorCode.KEY_AMBIGUOUS);
         expect(build.message).toBe(ErrorMessage.groupColumnDuplicate('createdAt'));
 
         const adapter = AdapterError.groupColumnDuplicate('createdAt');
+
         expect(adapter).toBeInstanceOf(AdapterError);
         expect(adapter.code).toBe(ErrorCode.KEY_AMBIGUOUS);
         expect(adapter.message).toBe(ErrorMessage.groupColumnDuplicate('createdAt'));

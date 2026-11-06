@@ -2,7 +2,7 @@
 
 ## Setup
 
-- **Runner**: Vitest 4 (native TS via Vite/esbuild, no transform config needed)
+- **Runner**: Vitest 5 (native TS via Vite/esbuild, no transform config needed)
 - **Test location**: `packages/<pkg>/test/unit/**/*.spec.ts`
 - **Config**: `packages/<pkg>/test/vitest.config.ts` (one per package; `globals: true`, v8 coverage)
 - **Fixtures**: `packages/<pkg>/test/data/` (shared schemas, record types)

@@ -213,6 +213,7 @@ describe('fields condition', () => {
             const codec = createURLCodec(registry);
 
             const encoded = codec.encode(query, { schema });
+
             expect(decodeURIComponent(encoded!)).toEqual(
                 'codec=url-expression&fields=id,email',
             );
@@ -220,7 +221,9 @@ describe('fields condition', () => {
             const decoded = codec.decode(encoded!, { schema });
 
             expect(conditionOf(decoded!.fields, 'id')).toBeUndefined();
+
             const condition = conditionOf(decoded!.fields, 'email');
+
             expect(isFilter(condition!)).toBeTruthy();
         });
     });

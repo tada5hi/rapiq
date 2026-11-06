@@ -1,3 +1,4 @@
+import type { SortsContainerOptions } from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -7,16 +8,6 @@
 
 import type { RelationsAdapter } from '../relations';
 import { SortsBaseAdapter } from './base';
-
-export type SortsContainerOptions = {
-    rootAlias?: string,
-    escapeField?: (input: string) => string
-};
-
-/**
- * @deprecated use {@link SortsContainerOptions}. Removed in 3.0.
- */
-export type SortContainerOptions = SortsContainerOptions;
 
 export class SortsAdapter extends SortsBaseAdapter {
     protected options : SortsContainerOptions;
@@ -52,7 +43,5 @@ export class SortsAdapter extends SortsBaseAdapter {
  */
 export const SortAdapter = SortsAdapter;
 
-/**
- * @deprecated use {@link SortsAdapter}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type SortAdapter = SortsAdapter;

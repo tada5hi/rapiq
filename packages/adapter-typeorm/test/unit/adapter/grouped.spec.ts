@@ -133,6 +133,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         }));
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('"activity"."createdAt") AS "createdAt"');
         expect(sql).toContain('ORDER BY "createdAt" ASC');
         expect(sql).not.toContain('ORDER BY "activity"');
@@ -304,6 +305,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         const { queryBuilder, adapter } = setup({ onJoin });
 
         queryBuilder.leftJoin('activity.tags', 'tag');
+
         const sql = queryBuilder.getSql();
 
         expect(() => adapter.executeGrouped(defineQuery({
@@ -420,6 +422,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         const drawn = Number(/rapiq_(\d+)_/.exec(adapter.filters.paramPlaceholder(1))![1]);
 
         const taken : Record<string, string> = {};
+
         for (let i = 1; i <= 50; i++) {
             taken[`rapiq_${drawn + i}_0`] = 'caller';
         }
@@ -430,6 +433,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
     it('should never draw a parameter namespace a caller parameter uses', () => {
         const { queryBuilder, adapter } = setup();
         const taken = takeNextNamespaces(adapter);
+
         queryBuilder.where('1 = 1').setParameters(taken);
 
         adapter.executeGrouped(defineQuery({
@@ -444,6 +448,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
     it('should never let the subquery draw a parameter namespace a caller parameter uses', () => {
         const { queryBuilder, adapter } = setup();
         const taken = takeNextNamespaces(adapter);
+
         queryBuilder.where('1 = 1').setParameters(taken);
 
         // clear: false keeps the namespace drawn before the caller's
@@ -462,6 +467,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
 
         new Filter(FilterFieldOperator.EQUAL, 'tags.name', 'a')
             .accept(new FiltersVisitor(adapter.filters));
+
         const sql = queryBuilder.getSql();
 
         expect(() => adapter.executeGrouped(defineQuery({

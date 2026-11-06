@@ -56,6 +56,7 @@ function buildRegistry(
     throwOnFailure = false,
 ) : SchemaRegistry {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Record<string, any>, Actor>({
         name: 'user',
         throwOnFailure,
@@ -94,6 +95,7 @@ function filterFields(input: IFilters | undefined) : string[] {
             }
         }
     };
+
     if (input) {
         walk(input);
     }
@@ -175,9 +177,9 @@ describe('relations.validate for traversed relation paths (#815)', () => {
 
             const query = parser.parse(
                 {
-                    filters: { 'items.id': '1' }, 
-                    fields: { items: ['id'] }, 
-                    sort: ['items.id'], 
+                    filters: { 'items.id': '1' },
+                    fields: { items: ['id'] },
+                    sort: ['items.id'],
                 },
                 { schema: 'user', context: actor },
             );
@@ -204,6 +206,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             );
 
             const itemsCalls = validate.mock.calls.filter(([name]) => name === 'items');
+
             expect(itemsCalls).toHaveLength(1);
         });
 
@@ -229,9 +232,9 @@ describe('relations.validate for traversed relation paths (#815)', () => {
 
             const query = parser.parse(
                 {
-                    relations: ['realm', 'items'], 
-                    filters: { 'items.id': '1' }, 
-                    fields: { items: ['id'] }, 
+                    relations: ['realm', 'items'],
+                    filters: { 'items.id': '1' },
+                    fields: { items: ['id'] },
                 },
                 { schema: 'user', context: actor },
             );
@@ -259,6 +262,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             const parser = new SimpleParser(buildRegistry(() => false, true));
 
             expect.assertions(3);
+
             try {
                 parser.parse({ filters: { 'items.id': '1' } }, { schema: 'user', context: actor });
             } catch (e) {
@@ -272,7 +276,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
     describe('query parser: throwOnFailure call-time override (A1)', () => {
         it('drops a rejected traversed relation when neither the schema nor the call opts into throwing', () => {
             // schema-level throwOnFailure defaults to false here.
-            const parser = new SimpleParser(buildRegistry(() => false, false));
+            const parser = new SimpleParser(buildRegistry(() => false));
 
             const query = parser.parse(
                 { filters: { 'items.id': '1' } },
@@ -283,16 +287,17 @@ describe('relations.validate for traversed relation paths (#815)', () => {
         });
 
         it('throws RelationsParseError when the parse-option override opts in, even though the schema does not', () => {
-            const parser = new SimpleParser(buildRegistry(() => false, false));
+            const parser = new SimpleParser(buildRegistry(() => false));
 
             expect.assertions(3);
+
             try {
                 parser.parse(
                     { filters: { 'items.id': '1' } },
                     {
-                        schema: 'user', 
-                        context: actor, 
-                        throwOnFailure: true, 
+                        schema: 'user',
+                        context: actor,
+                        throwOnFailure: true,
                     },
                 );
             } catch (e) {
@@ -364,6 +369,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             relationsValidate: (name: string) => boolean,
         ) : SchemaRegistry {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<Record<string, any>, Actor>({
                 name: 'user',
                 filters: {
@@ -391,6 +397,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             const parser = new SimpleParser(buildScopedRegistry(preservedResidual, () => true));
 
             const query = parser.parse(input, { schema: 'user', context: actor });
+
             expect(filterFields(query.filters)).toEqual(['name', 'realm.id', 'realm.name']);
         });
 
@@ -401,6 +408,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             ));
 
             expect.assertions(2);
+
             try {
                 parser.parse(input, { schema: 'user', context: actor });
             } catch (e) {
@@ -441,6 +449,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
 
             function buildLocalRegistry(residual: (filter: IFilter) => ICondition) : SchemaRegistry {
                 const registry = new SchemaRegistry();
+
                 registry.add(defineSchema<Record<string, any>, Actor>({
                     name: 'user',
                     filters: { allowed: ['id', 'name'], validate: residual },
@@ -495,6 +504,7 @@ describe('relations.validate for traversed relation paths (#815)', () => {
             ));
 
             const query = parser.parse(input, { schema: 'user', context: actor });
+
             expect(filterFields(query.filters)).toEqual(['name']);
         });
     });

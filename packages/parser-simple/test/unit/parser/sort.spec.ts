@@ -43,72 +43,84 @@ describe('src/sort/index.ts', () => {
     it('should parse sort data', async () => {
         // sort asc
         const transformed = parser.parse('id', { schema: defineSortSchema({ allowed: ['id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.ASC });
     });
 
     it('should parse with desc prefix (-)', async () => {
         // sort desc
         const transformed = parser.parse('-id', { schema: defineSortSchema({ allowed: ['id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
     });
 
     it('should not parse with invalid field name', async () => {
         // invalid field names
         const transformed = parser.parse('-!id');
+
         expect(interpreter.interpret(transformed)).toEqual({});
     });
 
     it('should ignore invalid field name', async () => {
         // ignore field name pattern, if permitted by allowed key
         const transformed = parser.parse(['-!id'], { schema: defineSortSchema({ allowed: ['!id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ '!id': SortDirection.DESC });
     });
 
     it('should parse with empty allowed', async () => {
         // empty allowed
         const transformed = parser.parse('-id', { schema: defineSortSchema({ allowed: [] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({});
     });
 
     it('should parse with undefined allowed', async () => {
         // undefined allowed
         const transformed = parser.parse('-id', { schema: defineSortSchema({ allowed: undefined }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
     });
 
     it('should parse with only default', async () => {
         // only default
         const transformed = parser.parse('name', { schema: defineSortSchema({ default: { name: 'DESC' } }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ name: SortDirection.ASC });
     });
 
     it('should parse with only default and desc', async () => {
         // only default with no match
         const transformed = parser.parse('-id', { schema: defineSortSchema({ default: { name: 'DESC' } }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ name: SortDirection.DESC });
     });
 
     it('should not parse with wrong allowed', async () => {
         // wrong allowed
         const transformed = parser.parse('-id', { schema: defineSortSchema({ allowed: ['a'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({});
     });
 
     it('should parse array input', async () => {
         // array data
         const transformed = parser.parse(['-id'], { schema: defineSortSchema({ allowed: ['id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
     });
 
     it('should parse object input', async () => {
         // object data
         const transformed = parser.parse({ id: 'ASC' }, { schema: defineSortSchema({ allowed: ['id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.ASC });
     });
 
     it('should not parse invalid input data', async () => {
         // wrong input data data
         const transformed = parser.parse({ id: 'Right' }, { schema: defineSortSchema({ allowed: ['id'] }) });
+
         expect(interpreter.interpret(transformed)).toEqual({});
     });
 
@@ -120,6 +132,7 @@ describe('src/sort/index.ts', () => {
                 mapping: { alias: 'id' },
             }),
         });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.DESC });
     });
 
@@ -132,6 +145,7 @@ describe('src/sort/index.ts', () => {
                 mapping: { realmName: 'realm.name' },
             }),
         });
+
         expect(interpreter.interpret(transformed)).toEqual({ 'realm.name': SortDirection.DESC });
     });
 
@@ -146,6 +160,7 @@ describe('src/sort/index.ts', () => {
         });
 
         let transformed = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.ASC });
 
         transformed = parser.parse(undefined, { schema });
@@ -162,6 +177,7 @@ describe('src/sort/index.ts', () => {
         const schema = defineSortSchema<User>({ allowed: ['name', 'id'] });
 
         const transformed = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(transformed)).toEqual({ id: SortDirection.ASC });
     });
 
@@ -170,6 +186,7 @@ describe('src/sort/index.ts', () => {
 
         // allowed keys survive, disallowed keys drop individually
         let transformed = parser.parse(['name', 'email'], { schema });
+
         expect(interpreter.interpret(transformed)).toStrictEqual({ name: SortDirection.ASC });
 
         // nothing allowed requested: nothing survives
@@ -184,6 +201,7 @@ describe('src/sort/index.ts', () => {
         });
 
         const transformed = parser.parse(['email', 'id'], { schema });
+
         expect(interpreter.interpret(transformed)).toStrictEqual({ id: SortDirection.ASC });
     });
 
@@ -194,6 +212,7 @@ describe('src/sort/index.ts', () => {
                 new Relation('realm'),
             ]),
         });
+
         expect(interpreter.interpret(transformed)).toEqual({
             id: SortDirection.ASC,
             'realm.id': SortDirection.ASC,
@@ -229,6 +248,7 @@ describe('src/sort/index.ts', () => {
         const schema = defineSortSchema({ throwOnFailure: true });
 
         const error = SortParseError.keyInvalid('1foo');
+
         expectRejected(() => parser.parse({ '1foo': 'desc' }, { schema }), error);
     });
 

@@ -191,6 +191,7 @@ function evaluateOperator(
         }
 
         const result = compare(value, operand);
+
         if (typeof result === 'undefined') {
             return null;
         }
@@ -213,6 +214,7 @@ function evaluateOperator(
         }
 
         const pair = text(value, operand as string, insensitive);
+
         if (!pair) {
             return null;
         }
@@ -258,6 +260,7 @@ function evaluateRelation(value: unknown, filter: Record<string, any>) : Verdict
 
             if (operand === null) {
                 results.push(key === 'is' ? !present : present);
+
                 continue;
             }
 
@@ -280,6 +283,7 @@ function evaluateRelation(value: unknown, filter: Record<string, any>) : Verdict
             );
 
             results.push(key === 'some' ? exists : !exists);
+
             continue;
         }
 
@@ -287,6 +291,7 @@ function evaluateRelation(value: unknown, filter: Record<string, any>) : Verdict
             results.push(items.every(
                 (item) => not(evaluateWhere(operand, item)) !== true,
             ));
+
             continue;
         }
 
@@ -305,7 +310,9 @@ function evaluateField(value: unknown, filter: unknown) : Verdict {
         return evaluateOperator('equals', filter, value, false);
     }
 
-    if (Object.keys(filter).some((key) => RELATION_OPERATORS.includes(key))) {
+    const matchesItems = Object.keys(filter).some((key) => RELATION_OPERATORS.includes(key));
+
+    if (matchesItems) {
         return evaluateRelation(value, filter);
     }
 
@@ -318,16 +325,19 @@ export function evaluateWhere(where: Record<string, any>, row: Record<string, an
     for (const [key, value] of Object.entries(where)) {
         if (key === 'AND') {
             results.push(and(toArray(value).map((item) => evaluateWhere(item, row))));
+
             continue;
         }
 
         if (key === 'OR') {
             results.push(or((value as any[]).map((item) => evaluateWhere(item, row))));
+
             continue;
         }
 
         if (key === 'NOT') {
             results.push(and(toArray(value).map((item) => not(evaluateWhere(item, row)))));
+
             continue;
         }
 

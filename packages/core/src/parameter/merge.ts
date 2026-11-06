@@ -27,6 +27,7 @@ import type { IQuery } from './types';
  */
 export function mergeQueries(...input: IQuery[]) : Query {
     const [first, ...rest] = input;
+
     if (!first) {
         return new Query();
     }
@@ -55,6 +56,7 @@ export function mergeQueries(...input: IQuery[]) : Query {
     // Each side may be sound on its own while the union is not: a group
     // and an aggregate of one key would write the same row key.
     const keys = new Set<string>();
+
     for (const item of [...groups.value, ...aggregates.value]) {
         if (keys.has(item.key)) {
             throw MergeError.outputKeyDuplicate(item.key);

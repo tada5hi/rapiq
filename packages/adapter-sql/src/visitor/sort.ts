@@ -1,3 +1,4 @@
+import type { SortsInterpreterOptions } from './types';
 /*
  * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
@@ -12,14 +13,7 @@ import type {
     Sorts,
 } from '@rapiq/core';
 import type { ISortsAdapter } from '../adapter';
-import type { VisitorOptions } from './types';
 
-export type SortsInterpreterOptions = VisitorOptions;
-
-/**
- * @deprecated use {@link SortsInterpreterOptions}. Removed in 3.0.
- */
-export type SortInterpreterOptions = SortsInterpreterOptions;
 
 export class SortsVisitor implements ISortsVisitor<ISortsAdapter>,
 ISortVisitor<ISortsAdapter> {

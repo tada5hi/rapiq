@@ -33,6 +33,7 @@ import { datamodel } from '../data/datamodel';
  */
 function createFakeClient(provider = 'postgresql') {
     const models : Record<string, any> = {};
+
     for (const model of datamodel.models) {
         models[model.name] = { fields: model.fields };
     }
@@ -83,11 +84,11 @@ describe('src/metadata/normalize.ts', () => {
                 models: {
                     User: {
                         fields: [{
-                            name: 'id', 
-                            kind: 'scalar', 
-                            type: 'Int', 
-                        }], 
-                    }, 
+                            name: 'id',
+                            kind: 'scalar',
+                            type: 'Int',
+                        }],
+                    },
                 },
             },
         };
@@ -113,9 +114,9 @@ describe('src/metadata/normalize.ts', () => {
             models: [{
                 name: 'User',
                 fields: [{
-                    name: 'id', 
-                    kind: 'scalar', 
-                    type: 'Int', 
+                    name: 'id',
+                    kind: 'scalar',
+                    type: 'Int',
                 }],
             }],
         };
@@ -204,7 +205,7 @@ describe('src/adapter/module.ts (client options)', () => {
     });
 
     it('should let explicit overrides win over derived values', () => {
-        const client = createFakeClient('postgresql');
+        const client = createFakeClient();
 
         const { args } = new PrismaAdapter({
             model: client.user,

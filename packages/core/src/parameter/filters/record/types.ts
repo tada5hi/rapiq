@@ -6,7 +6,7 @@
  */
 
 import type { FilterFieldOperator } from '../../../schema';
-import type { ICondition } from '../condition';
+import type { ICondition } from '../types';
 
 /**
  * The leaf-condition visitor. Operator semantics live in the plan

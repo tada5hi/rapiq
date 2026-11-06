@@ -16,6 +16,7 @@ export function applyMapping(
     }
 
     const keys = Object.keys(map);
+
     if (keys.length === 0) {
         return name;
     }
@@ -23,8 +24,10 @@ export function applyMapping(
     let parts = name.split('.');
 
     const output = [];
+
     while (parts.length > 0) {
         const value = parts.shift();
+
         if (typeof value === 'undefined') {
             break;
         }
@@ -36,14 +39,18 @@ export function applyMapping(
 
             const rest : string[] = [];
             const copy = [...parts];
+
             while (copy.length > 0) {
                 const key = [value, ...copy].join('.');
+
                 if (hasOwnProperty(map, key)) {
                     output.push(map[key]);
                     found = true;
+
                     break;
                 } else {
                     const last = copy.pop();
+
                     if (last) {
                         rest.unshift(last);
                     }

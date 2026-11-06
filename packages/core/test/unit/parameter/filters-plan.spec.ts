@@ -32,12 +32,13 @@ describe('src/parameter/filters/plan/constants.ts', () => {
 
     it('should only point complements at positive operators', () => {
         const table = FILTER_OPERATOR_SEMANTICS as Record<
-            string, 
+            string,
             { complementOf?: string }
         >;
 
         for (const entry of Object.values(table)) {
             const target = entry.complementOf;
+
             if (target) {
                 expect(table[target]).toBeDefined();
                 expect(table[target].complementOf).toBeUndefined();
@@ -47,11 +48,11 @@ describe('src/parameter/filters/plan/constants.ts', () => {
 
     it('should classify families consistently', () => {
         const table = FILTER_OPERATOR_SEMANTICS as Record<
-            string, 
+            string,
             {
-                family: string, 
-                anchor?: unknown, 
-                compare?: unknown 
+                family: string,
+                anchor?: unknown,
+                compare?: unknown
             }
         >;
 
@@ -93,16 +94,16 @@ describe('src/parameter/filters/plan/module.ts', () => {
 
         it('should lower null equality to a null check', () => {
             expect(planCondition(new Filter('eq', 'age', null))).toEqual({
-                kind: 'null-check', 
-                field: 'age', 
-                negated: false, 
+                kind: 'null-check',
+                field: 'age',
+                negated: false,
                 elementwise: true,
             });
 
             expect(planCondition(new Filter('ne', 'age', null))).toEqual({
-                kind: 'null-check', 
-                field: 'age', 
-                negated: true, 
+                kind: 'null-check',
+                field: 'age',
+                negated: true,
                 elementwise: true,
             });
 
@@ -111,9 +112,9 @@ describe('src/parameter/filters/plan/module.ts', () => {
 
         it('should mark ne as negated', () => {
             expect(planCondition(new Filter('ne', 'name', 'John'))).toMatchObject({
-                kind: 'compare', 
-                op: 'eq', 
-                negated: true, 
+                kind: 'compare',
+                op: 'eq',
+                negated: true,
                 caseFold: true,
             });
         });
@@ -145,16 +146,16 @@ describe('src/parameter/filters/plan/module.ts', () => {
 
         it('should lower an all-null list to a null check', () => {
             expect(planCondition(new Filter('in', 'age', [null]))).toEqual({
-                kind: 'null-check', 
-                field: 'age', 
-                negated: false, 
+                kind: 'null-check',
+                field: 'age',
+                negated: false,
                 elementwise: true,
             });
 
             expect(planCondition(new Filter('nin', 'age', [null, undefined]))).toEqual({
-                kind: 'null-check', 
-                field: 'age', 
-                negated: true, 
+                kind: 'null-check',
+                field: 'age',
+                negated: true,
                 elementwise: true,
             });
         });
@@ -236,9 +237,9 @@ describe('src/parameter/filters/plan/module.ts', () => {
                 kind: 'match',
                 field: 'name',
                 pattern: {
-                    mode: 'regex', 
-                    source: '^jo', 
-                    flags: 'i', 
+                    mode: 'regex',
+                    source: '^jo',
+                    flags: 'i',
                 },
                 regexSource: '^jo',
                 ignoreCase: true,
@@ -249,9 +250,9 @@ describe('src/parameter/filters/plan/module.ts', () => {
         it('should pass string patterns through unvalidated', () => {
             expect(planCondition(new Filter('regex', 'name', '[[:alpha:]]+'))).toMatchObject({
                 pattern: {
-                    mode: 'regex', 
-                    source: '[[:alpha:]]+', 
-                    flags: '', 
+                    mode: 'regex',
+                    source: '[[:alpha:]]+',
+                    flags: '',
                 },
                 ignoreCase: false,
             });
@@ -266,9 +267,9 @@ describe('src/parameter/filters/plan/module.ts', () => {
     describe('existence, arithmetic, cardinality', () => {
         it('should lower exists by truthiness', () => {
             expect(planCondition(new Filter('exists', 'age', true))).toEqual({
-                kind: 'null-check', 
-                field: 'age', 
-                negated: true, 
+                kind: 'null-check',
+                field: 'age',
+                negated: true,
                 elementwise: false,
             });
 
@@ -277,9 +278,9 @@ describe('src/parameter/filters/plan/module.ts', () => {
 
         it('should validate mod values centrally', () => {
             expect(planCondition(new Filter('mod', 'age', [2, 0]))).toEqual({
-                kind: 'mod', 
-                field: 'age', 
-                divisor: 2, 
+                kind: 'mod',
+                field: 'age',
+                divisor: 2,
                 remainder: 0,
             });
 
@@ -290,14 +291,14 @@ describe('src/parameter/filters/plan/module.ts', () => {
 
         it('should keep the identity of an invalid size condition', () => {
             expect(planCondition(new Filter('size', 'items', 3))).toEqual({
-                kind: 'size', 
-                field: 'items', 
+                kind: 'size',
+                field: 'items',
                 count: 3,
             });
 
             expect(planCondition(new Filter('size', 'items', -1))).toEqual({
-                kind: 'size', 
-                field: 'items', 
+                kind: 'size',
+                field: 'items',
                 count: null,
             });
         });

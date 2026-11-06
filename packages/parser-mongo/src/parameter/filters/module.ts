@@ -41,14 +41,13 @@ import {
     pruneFiltersByRelations,
     toIssuePath,
 } from '@rapiq/core';
-import type { MongoComparisonOperator, MongoCompoundOperator } from './constants';
+import type { MongoComparisonOperator, MongoCompoundOperator, MongoFiltersParserInput  } from './types';
 import {
     MONGO_COMPARISON_OPERATORS,
     MONGO_COMPOUND_OPERATORS,
     MONGO_FIELD_OPERATORS,
     MONGO_UNSUPPORTED_OPERATORS,
 } from './constants';
-import type { MongoFiltersParserInput } from './types';
 
 type FiltersScope = ResolutionScope<`${Parameter.FILTERS}`>;
 
@@ -97,10 +96,11 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : IFilters {
         const ledger : RelationLedger = [];
+
         return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const {
-                scope, 
-                parsed, 
+                scope,
+                parsed,
             } = this.prepare(input, options, ledger, issueCollector);
             const output = !parsed ?
                 this.buildDefaultOutput(scope) :
@@ -125,10 +125,11 @@ export class MongoFiltersParser extends BaseParser<
         options: FiltersParseOptions<RECORD> = {},
     ) : Promise<IFilters> {
         const ledger : RelationLedger = [];
+
         return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const {
-                scope, 
-                parsed, 
+                scope,
+                parsed,
             } = this.prepare(input, options, ledger, issueCollector);
             const output = !parsed ?
                 this.buildDefaultOutput(scope) :
@@ -227,9 +228,9 @@ export class MongoFiltersParser extends BaseParser<
         // absent input is not a failure — schema defaults still apply.
         if (typeof input === 'undefined' || input === null) {
             return {
-                scope, 
-                parsed: null, 
-                issueCollector, 
+                scope,
+                parsed: null,
+                issueCollector,
             };
         }
 
@@ -240,11 +241,12 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         const conditions = this.parseDocument(input, scope, false, 0);
+
         if (conditions.length === 0) {
             return {
-                scope, 
-                parsed: null, 
-                issueCollector, 
+                scope,
+                parsed: null,
+                issueCollector,
             };
         }
 
@@ -257,9 +259,9 @@ export class MongoFiltersParser extends BaseParser<
             new Filters(FilterCompoundOperator.AND, conditions);
 
         return {
-            scope, 
-            parsed, 
-            issueCollector, 
+            scope,
+            parsed,
+            issueCollector,
         };
     }
 
@@ -288,9 +290,11 @@ export class MongoFiltersParser extends BaseParser<
         const output : ICondition[] = [];
 
         const keys = Object.keys(input);
+
         for (const key of keys) {
             if (isMongoCompoundOperator(key)) {
                 const compound = this.parseCompound(key, input[key], scope, negated, depth);
+
                 if (compound) {
                     output.push(compound);
                 }
@@ -345,6 +349,7 @@ export class MongoFiltersParser extends BaseParser<
         const childNegated = key === '$nor' ? !negated : negated;
 
         let operator : `${FilterCompoundOperator}`;
+
         if (key === '$or') {
             operator = negated ?
                 FilterCompoundOperator.AND :
@@ -357,6 +362,7 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         const children : ICondition[] = [];
+
         for (const element of input) {
             if (
                 !isPlainObject(element) ||
@@ -371,6 +377,7 @@ export class MongoFiltersParser extends BaseParser<
 
             // children dropped by the schema policy are skipped.
             const condition = this.combineDocument(conditions, childNegated);
+
             if (condition) {
                 children.push(condition);
             }
@@ -481,6 +488,7 @@ export class MongoFiltersParser extends BaseParser<
             // nested plain objects expand to dotted key paths
             // (deviation from mongo's exact-embedded-document match).
             const output : ICondition[] = [];
+
             for (const child of keys) {
                 output.push(...this.parseFieldEntry(
                     `${key}.${child}`,
@@ -540,6 +548,7 @@ export class MongoFiltersParser extends BaseParser<
         value: unknown,
     ) : ICondition[] {
         const resolved = this.resolveField(key, scope);
+
         if (!resolved) {
             return [];
         }
@@ -557,6 +566,7 @@ export class MongoFiltersParser extends BaseParser<
         scope: FiltersScope,
     ) : FieldResolution | undefined {
         const resolved = scope.resolveKey(key);
+
         if (!resolved.success) {
             return undefined;
         }
@@ -588,6 +598,7 @@ export class MongoFiltersParser extends BaseParser<
         // field resolution second — follows the schema policy;
         // a dropped field drops the whole entry/subtree.
         const resolved = this.resolveField(key, scope);
+
         if (!resolved) {
             return [];
         }
@@ -681,6 +692,7 @@ export class MongoFiltersParser extends BaseParser<
                     }
 
                     const value = input[operator];
+
                     if (
                         !Array.isArray(value) ||
                         value.length !== 2 ||
@@ -701,6 +713,7 @@ export class MongoFiltersParser extends BaseParser<
                     }
 
                     const value = input[operator];
+
                     if (
                         typeof value !== 'number' ||
                         !Number.isSafeInteger(value) ||
@@ -792,6 +805,7 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         const value = input.$regex;
+
         if (value instanceof RegExp) {
             // mongo rejects $options beside a RegExp-valued $regex.
             if (typeof input.$options !== 'undefined') {
@@ -808,6 +822,7 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         let flags = '';
+
         if (typeof input.$options !== 'undefined') {
             if (typeof input.$options !== 'string') {
                 throw FiltersParseError.keyValueInvalid(key);
@@ -848,6 +863,7 @@ export class MongoFiltersParser extends BaseParser<
         const output : ICondition[] = [];
 
         const keys = Object.keys(input);
+
         for (const operator of keys) {
             if (isMongoComparisonOperator(operator)) {
                 const [base, flipped] = MONGO_COMPARISON_OPERATORS[operator];
@@ -904,6 +920,7 @@ export class MongoFiltersParser extends BaseParser<
                 }
                 case '$elemMatch': {
                     const condition = this.buildElemMatch(input[operator], resolved, depth);
+
                     if (condition) {
                         output.push(condition);
                     }
@@ -935,6 +952,7 @@ export class MongoFiltersParser extends BaseParser<
                     // OR-combined locally — the enclosing document
                     // combines with AND.
                     const condition = this.combineDocument(conditions, !negated);
+
                     if (condition) {
                         output.push(condition);
                     }
@@ -969,7 +987,10 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         const keys = Object.keys(input);
-        if (keys.some((key) => MONGO_FIELD_OPERATORS.includes(key))) {
+
+        const matchesKeys = keys.some((key) => MONGO_FIELD_OPERATORS.includes(key));
+
+        if (matchesKeys) {
             // grammar of the interior is validated like any other
             // operator object (unknown operators, plain keys and
             // misplaced compounds throw).
@@ -998,6 +1019,7 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         let child : FiltersScope | undefined;
+
         if (resolved.name === ITSELF) {
             // the element itself is never schema-resolvable.
             child = this.buildUnboundScope(resolved.scope);
@@ -1007,6 +1029,7 @@ export class MongoFiltersParser extends BaseParser<
             // back as a bare verdict; every other failure was recorded (or
             // thrown) by the descent itself and drops the entry.
             const verdict = resolved.scope.descend(resolved.name, { optional: true });
+
             if (verdict instanceof ResolutionScope) {
                 // the target relation's obligation was recorded when
                 // resolveField resolved it; here we only need the child
@@ -1027,6 +1050,7 @@ export class MongoFiltersParser extends BaseParser<
 
         // an interior with no conditions drops the whole entry.
         const condition = this.combineDocument(conditions, false);
+
         if (!condition) {
             return undefined;
         }

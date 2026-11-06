@@ -1,3 +1,4 @@
+import type { Selection, SelectionNode } from './types';
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -13,42 +14,6 @@ import {
     isFilters,
 } from '@rapiq/core';
 import type { IMetadata } from '../metadata';
-
-type SelectionNode = {
-    /**
-     * Scalar field names picked at this level.
-     */
-    picks : Set<string>,
-
-    children : Map<string, SelectionNode>,
-
-    /**
-     * Gate-operand columns (`Field.condition` reads, rapiq#830) forced
-     * into the selection at this level. Selected like picks, but never
-     * counted for the include-narrowing veto (#847): behind a whole
-     * relation the hydration covers them anyway.
-     */
-    operands : Set<string>,
-
-    /**
-     * Explicitly requested through `relations`: hydrated as a whole
-     * record unless direct `<relation>.<field>` picks exist — those
-     * narrow it to the fieldset (#847), matching the
-     * `@rapiq/adapter-memory` projection contract.
-     */
-    whole : boolean,
-
-    /**
-     * A pick exists somewhere in this subtree, so the level is
-     * projected sparsely (`columns`) instead of wholly.
-     */
-    refined : boolean,
-};
-
-export type Selection = {
-    columns?: Record<string, boolean>,
-    with?: Record<string, any>,
-};
 
 function createNode() : SelectionNode {
     return {
@@ -84,6 +49,7 @@ function descend(node: SelectionNode, segments: string[]) : SelectionNode {
 
     for (const segment of segments) {
         let child = current.children.get(segment);
+
         if (!child) {
             child = createNode();
             current.children.set(segment, child);
@@ -184,8 +150,10 @@ export function buildSelection(
         root.refined = true;
 
         let current = root;
+
         for (const segment of segments) {
             let child = current.children.get(segment);
+
             if (!child) {
                 child = createNode();
                 current.children.set(segment, child);
@@ -214,9 +182,11 @@ export function buildSelection(
         // from: a gate on `items.secret` has operands relative to the
         // item record.
         const prefix = field.name.split('.');
+
         prefix.pop();
 
         const operands : string[] = [];
+
         collectConditionFields(field.condition, operands);
 
         for (const operand of operands) {
@@ -235,12 +205,14 @@ export function buildSelection(
             // Widening-only, so the #847 narrowing veto is untouched.
             if (metadata && metadata.isRelation(segments.join('.')) === true) {
                 descend(root, segments).whole = true;
+
                 continue;
             }
 
             const last = segments.pop() as string;
 
             const node = descend(root, segments);
+
             if (!node.picks.has(last)) {
                 node.operands.add(last);
             }

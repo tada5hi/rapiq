@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-promise-try -- Keep compatibility with the published Node.js runtime requirement. */
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -22,9 +23,9 @@ import { MongoFiltersParser, MongoParser } from '../../src';
 
 type Item = { id: string, title: string };
 type Row = {
-    id: string, 
-    name: string, 
-    items: Item[] 
+    id: string,
+    name: string,
+    items: Item[]
 };
 
 const buildRegistry = (throwOnFailure?: boolean) => {
@@ -71,6 +72,7 @@ describe('src/parameter/filters: issue traces', () => {
             } catch (error) {
                 const parsed = error as FiltersParseError;
                 const [allowIssue, grammarIssue] = parsed.issues;
+
                 expect(allowIssue?.path).toEqual(['secret']);
                 expect(grammarIssue).toMatchObject({
                     code: ErrorCode.KEY_VALUE_INVALID,
@@ -95,7 +97,9 @@ describe('src/parameter/filters: issue traces', () => {
                 expect.fail('expected the nested structural rejection');
             } catch (error) {
                 expect(error).toBeInstanceOf(FiltersParseError);
+
                 const parsed = error as FiltersParseError;
+
                 expect(parsed.code).toBe(ErrorCode.INPUT_REJECTED);
                 expect(parsed.message).toBe(ErrorMessage.inputRejected(1));
                 expect(parsed.issues).toHaveLength(1);
@@ -114,10 +118,13 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new ExposedMongoFiltersParser(registry);
         const root = ResolutionScope.for(registry, Parameter.FILTERS, 'row');
         const scope = root.descend('items');
+
         expect(scope).toBeInstanceOf(ResolutionScope);
+
         if (!(scope instanceof ResolutionScope)) {
             expect.fail('expected the item filter scope');
         }
+
         const offending = { $size: -1 };
 
         try {
@@ -125,7 +132,9 @@ describe('src/parameter/filters: issue traces', () => {
             expect.fail('expected the nested structural rejection');
         } catch (error) {
             expect(error).toBeInstanceOf(FiltersParseError);
+
             const parsed = error as FiltersParseError;
+
             expect(parsed.code).toBe(ErrorCode.KEY_VALUE_INVALID);
             expect(parsed.message).toBe(ErrorMessage.keyValueInvalid('profile.id'));
             expect(parsed.cause).toBeInstanceOf(FiltersParseError);
@@ -154,6 +163,7 @@ describe('src/parameter/filters: issue traces', () => {
             })],
         });
         const value = {};
+
         Object.defineProperty(value, '$eq', {
             enumerable: true,
             get: () => {
@@ -174,6 +184,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should report absolute validator paths inside elemMatch synchronously and asynchronously', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'row',
             filters: {
@@ -182,6 +193,7 @@ describe('src/parameter/filters: issue traces', () => {
                 validate: (leaf) => (leaf.field === 'id' ? undefined : leaf),
             },
         }));
+
         const parser = new MongoParser(registry);
 
         for (const run of [
@@ -193,6 +205,7 @@ describe('src/parameter/filters: issue traces', () => {
                 expect.fail('expected the validator rejection');
             } catch (error) {
                 const parsed = error as FiltersParseError;
+
                 expect(parsed.issues[0]?.path).toEqual(['items', 'id']);
                 expect(extractIssueParameter(parsed.issues[0]!)).toBe(Parameter.FILTERS);
             }
@@ -201,6 +214,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should not add an ITSELF segment to a Mongo elemMatch validator path', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'row',
             filters: {
@@ -209,6 +223,7 @@ describe('src/parameter/filters: issue traces', () => {
                 validate: (leaf) => (leaf.field === ITSELF ? undefined : leaf),
             },
         }));
+
         const parser = new MongoParser(registry);
 
         for (const run of [
@@ -235,12 +250,14 @@ describe('src/parameter/filters: issue traces', () => {
     it('should propagate non-parse field-entry errors unchanged', async () => {
         const failure = new Error('Field value failed.');
         const value = {};
+
         Object.defineProperty(value, '$eq', {
             enumerable: true,
             get: () => {
                 throw failure;
             },
         });
+
         const parser = new MongoParser(buildRegistry());
 
         for (const run of [
@@ -260,6 +277,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new MongoParser(buildRegistry(true));
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ filters: { secret: 'x' } }, { schema: 'row' });
         } catch (e) {
@@ -279,6 +297,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new MongoParser(buildRegistry(true));
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ filters: { $or: [{ secret: 'x' }, { other: 'y' }] } }, { schema: 'row' });
         } catch (e) {
@@ -295,6 +314,7 @@ describe('src/parameter/filters: issue traces', () => {
         // grammar failures are policy-independent and abort the parameter;
         // the parse records one issue and raises it.
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ filters: { id: { $nope: 1 } } }, { schema: 'row' });
         } catch (e) {
@@ -309,6 +329,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new MongoParser(buildRegistry());
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parseFilters('not-a-document', { schema: 'row' });
         } catch (e) {
@@ -324,6 +345,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should leave a legal elemMatch on a non-relation field alone', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'row',
             throwOnFailure: true,
@@ -342,6 +364,7 @@ describe('src/parameter/filters: issue traces', () => {
 
     it('should report an elemMatch interior key the related schema rejects', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<Row>({
             name: 'row',
             filters: { allowed: ['id', 'items'] },
@@ -355,6 +378,7 @@ describe('src/parameter/filters: issue traces', () => {
         const parser = new MongoParser(registry);
 
         let error : FiltersParseError | undefined;
+
         try {
             parser.parse({ filters: { items: { $elemMatch: { secret: '1' } } } }, { schema: 'row', throwOnFailure: true });
         } catch (e) {

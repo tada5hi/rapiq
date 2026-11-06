@@ -65,8 +65,11 @@ describe('src/errors/base.ts (serialization)', () => {
 
     it('should redact circular issue values without mutating the live issue', () => {
         const expected : Record<string, unknown> = { type: 'string' };
+
         expected.self = expected;
+
         const received : Record<string, unknown> = { secret: 'token' };
+
         received.self = received;
 
         const leaf = buildIssue({
@@ -76,7 +79,9 @@ describe('src/errors/base.ts (serialization)', () => {
             message: ErrorMessage.keyValueInvalid('id'),
             received,
         });
+
         leaf.expected = expected;
+
         const group = defineIssueGroup({
             path: ['items'],
             message: 'Nested validation failed.',
@@ -85,6 +90,7 @@ describe('src/errors/base.ts (serialization)', () => {
         const error = ParseError.inputRejected([group]);
 
         const serialized = JSON.parse(JSON.stringify(error));
+
         expect(serialized.issues[0].issues[0]).not.toHaveProperty('expected');
         expect(serialized.issues[0].issues[0]).not.toHaveProperty('received');
         expect(error.issues[0]).toBe(group);
@@ -96,6 +102,7 @@ describe('src/errors/base.ts (serialization)', () => {
         expect(JSON.parse(JSON.stringify(new BaseError('failed')))).not.toHaveProperty('cause');
 
         const error = new BaseError({ message: 'failed', cause: new Error('origin') });
+
         expect(JSON.parse(JSON.stringify(error)).cause).toMatchObject({ message: 'origin' });
     });
 

@@ -44,7 +44,5 @@ export class SortsAdapter extends SortsBaseAdapter {
  */
 export const SortAdapter = SortsAdapter;
 
-/**
- * @deprecated use {@link SortsAdapter}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type SortAdapter = SortsAdapter;

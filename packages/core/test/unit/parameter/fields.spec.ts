@@ -29,6 +29,7 @@ describe('src/parameter/fields/*.ts', () => {
             ]);
 
             const output = fields.execute({ default: [], allowed: [] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -39,6 +40,7 @@ describe('src/parameter/fields/*.ts', () => {
             ]);
 
             const output = fields.execute({ default: [], allowed: [] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -49,6 +51,7 @@ describe('src/parameter/fields/*.ts', () => {
             ]);
 
             const output = fields.execute({ default: [], allowed: [] });
+
             expect(names(output)).toEqual(['id']);
         });
 
@@ -59,6 +62,7 @@ describe('src/parameter/fields/*.ts', () => {
             ]);
 
             const output = fields.execute({ default: [], allowed: [] });
+
             expect(names(output)).toEqual(['id']);
         });
     });
@@ -68,6 +72,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('id')]);
 
             const output = fields.execute({ default: [], allowed: ['id', 'name', 'email'] });
+
             expect(names(output)).toEqual(['id']);
         });
 
@@ -75,6 +80,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([]);
 
             const output = fields.execute({ default: ['id', 'name'], allowed: ['email'] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -82,6 +88,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('secret')]);
 
             const output = fields.execute({ default: [], allowed: ['id', 'name'] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -89,6 +96,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('email', FieldOperator.INCLUDE)]);
 
             const output = fields.execute({ default: ['id', 'name'], allowed: ['email'] });
+
             expect(names(output)).toEqual(['id', 'name', 'email']);
         });
 
@@ -96,6 +104,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('secret', FieldOperator.INCLUDE)]);
 
             const output = fields.execute({ default: ['id', 'name'], allowed: ['email'] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -103,6 +112,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('email', FieldOperator.EXCLUDE)]);
 
             const output = fields.execute({ default: ['id', 'name', 'email'], allowed: [] });
+
             expect(names(output)).toEqual(['id', 'name']);
         });
 
@@ -110,6 +120,7 @@ describe('src/parameter/fields/*.ts', () => {
             const fields = new Fields([new Field('id')]);
 
             const output = fields.execute({ default: ['name', 'email'], allowed: ['id'] });
+
             expect(names(output)).toEqual(['id']);
         });
     });

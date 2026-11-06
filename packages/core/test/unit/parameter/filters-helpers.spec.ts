@@ -60,10 +60,12 @@ describe('src/parameter/filters/helpers/*.ts', () => {
 
     it('should build in / nin conditions with null as a legal element', () => {
         const input = inArray('realm.id', [1, null]);
+
         expect(input.operator).toBe(FilterFieldOperator.IN);
         expect(input.value).toEqual([1, null]);
 
         const notIn = nin('realm.id', [1, null]);
+
         expect(notIn.operator).toBe(FilterFieldOperator.NOT_IN);
         expect(notIn.value).toEqual([1, null]);
     });
@@ -111,11 +113,13 @@ describe('src/parameter/filters/helpers/*.ts', () => {
         const right = gte('age', 18);
 
         const conjunction = and(left, right);
+
         expect(conjunction).toBeInstanceOf(Filters);
         expect(conjunction.operator).toBe(FilterCompoundOperator.AND);
         expect(conjunction.value).toEqual([left, right]);
 
         const disjunction = or(left, right);
+
         expect(disjunction.operator).toBe(FilterCompoundOperator.OR);
         expect(disjunction.value).toEqual([left, right]);
     });
@@ -124,12 +128,14 @@ describe('src/parameter/filters/helpers/*.ts', () => {
         const interior = eq('name', 'John');
 
         const negation = not(interior);
+
         expect(negation).toBeInstanceOf(Filters);
         expect(negation.operator).toBe(FilterCompoundOperator.NOT);
         expect(negation.value).toEqual([interior]);
 
         // multiple conditions negate their conjunction.
         const multi = not(interior, gte('age', 18));
+
         expect(multi.value).toHaveLength(2);
     });
 
@@ -148,9 +154,11 @@ describe('src/parameter/filters/helpers/*.ts', () => {
         // compile-time check: nested key paths are accepted with a generic,
         // plain strings without one.
         const typed = eq<User>('realm.name', 'master');
+
         expect(typed.field).toBe('realm.name');
 
         const untyped = eq('anything.goes', 1);
+
         expect(untyped.field).toBe('anything.goes');
     });
 });

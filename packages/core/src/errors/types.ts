@@ -66,3 +66,13 @@ export type SerializedError = {
     cause?: unknown,
     '@instanceof': string[],
 };
+
+export type AdapterErrorOptions = BaseErrorOptions & {
+    /**
+     * The capability tag {@link AdapterError.featureUnsupported} refuses
+     * (e.g. `regexp`, `filters:mod`, `filters:regex`), structured
+     * alongside `code` so a consumer can build a capability matrix
+     * without parsing the message. `undefined` for every other factory.
+     */
+    feature?: string,
+};

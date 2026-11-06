@@ -28,6 +28,7 @@ describe('regex', () => {
         const visitor = new FiltersVisitor(adapter);
 
         const condition = new Filter('regex', 'email', /@/);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -79,6 +80,7 @@ describe('regex', () => {
         const visitor = new FiltersVisitor(adapter);
 
         const condition = new Filter('regex', 'email', /@/);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -108,6 +110,7 @@ describe('regex', () => {
         const visitor = new FiltersVisitor(adapter);
 
         const condition = new Filter('regex', 'email', /@/);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -146,27 +149,29 @@ describe('regex', () => {
     it('renders anchored operators as LIKE on MSSQL', () => {
         const buildAdapter = () => {
             const adapter = new FiltersAdapter(new RelationsAdapter(), mssql);
+
             return { adapter, visitor: new FiltersVisitor(adapter) };
         };
 
         let { adapter, visitor } = buildAdapter();
+
         new Filter('startsWith', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'!\'', 
+            '[name] like ? escape \'!\'',
             ['foo%'],
         ]);
 
         ({ adapter, visitor } = buildAdapter());
         new Filter('endsWith', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'!\'', 
+            '[name] like ? escape \'!\'',
             ['%foo'],
         ]);
 
         ({ adapter, visitor } = buildAdapter());
         new Filter('contains', 'name', 'foo').accept(visitor);
         expect(adapter.getQueryAndParameters()).toEqual([
-            '[name] like ? escape \'!\'', 
+            '[name] like ? escape \'!\'',
             ['%foo%'],
         ]);
 
@@ -185,6 +190,7 @@ describe('regex', () => {
         new Filter('contains', 'name', '100%_[a]').accept(visitor);
 
         const [, params] = adapter.getQueryAndParameters();
+
         expect(params).toStrictEqual(['%100!%!_![a]%']);
     });
 
@@ -228,6 +234,7 @@ describe('regex', () => {
             new Filter(operator, 'name', 'foo').accept(visitor);
 
             const [sql, params] = adapter.getQueryAndParameters();
+
             expect(sql, operator).toEqual(negated ?
                 '(lower("name") not like lower($1) escape \'!\' or "name" is null)' :
                 'lower("name") like lower($1) escape \'!\'');
@@ -256,6 +263,7 @@ describe('regex', () => {
         new Filter('contains', 'name', 'wow!%').accept(new FiltersVisitor(adapter));
 
         const [, params] = adapter.getQueryAndParameters();
+
         expect(params).toStrictEqual(['%wow!!!%%']);
     });
 
@@ -265,6 +273,7 @@ describe('regex', () => {
         // character followed by anything but %, _ or itself (ORA-01424).
         const render = (dialect: DialectOptions) : unknown[] => {
             const adapter = new FiltersAdapter(new RelationsAdapter(), dialect);
+
             new Filter('contains', 'name', '[draft]').accept(new FiltersVisitor(adapter));
 
             const [, params] = adapter.getQueryAndParameters();
@@ -286,6 +295,7 @@ describe('regex', () => {
             new Filter('contains', 'name', 'foo').accept(visitor);
 
             const [sql] = adapter.getQueryAndParameters();
+
             expect(sql).toEqual('`name` like ? escape \'!\'');
         }
     });

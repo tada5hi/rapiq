@@ -6,4 +6,45 @@
  */
 
 export * from './module';
-export * from './parameter';
+export {
+    FILTER_WIRE_NEGATION,
+    FILTER_WIRE_SPEC,
+    FilterWireDecodeFailure,
+    SimpleAggregatesParser,
+    SimpleFieldsParser,
+    SimpleFiltersParser,
+    SimpleGroupsParser,
+    SimplePaginationParser,
+    SimpleRelationsParser,
+    SimpleSortParser,
+    SimpleSortsParser,
+    decodeFilterWireValue,
+    encodeFilterWireValue,
+    parseCallTerms,
+    parseFilterScalar,
+    serializeCallTerm,
+} from './parameter';
+export type {
+    FieldsBuildInput,
+    FieldsBuildNestedKeyInput,
+    FieldsBuildRecordInput,
+    FieldsBuildSimpleKeyInput,
+    FieldsBuildTupleInput,
+    FilterWireCondition,
+    FilterWireDecodeResult,
+    FilterWireEncodeInput,
+    FilterWireMarkerSpec,
+    FilterWireSpelling,
+    FilterWireValueInput,
+    FilterWireValueMode,
+    NegatableWireOperator,
+    PaginationBuildInput,
+    RelationsBuildInput,
+    SimpleFieldsParseOptions,
+    SimpleFiltersParserInput,
+    SimpleFiltersParserInputValue,
+    SortBuildInput,
+    SortBuildRecordInput,
+    SortsBuildInput,
+    SortsBuildRecordInput,
+} from './parameter';

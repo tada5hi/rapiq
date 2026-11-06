@@ -28,10 +28,12 @@ describe('src/pagination', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
+
         userRepository = dataSource.getRepository(User);
         aston.role = admin;
         aston.realm = master;
@@ -44,6 +46,7 @@ describe('src/pagination', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ pagination }));
 
         return queryBuilder;
@@ -53,6 +56,7 @@ describe('src/pagination', () => {
         const query = createQueryBuilder(new Pagination(1));
 
         const users = await query.getMany();
+
         expect(users.length).toEqual(1);
     });
 

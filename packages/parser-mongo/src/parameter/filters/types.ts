@@ -16,6 +16,9 @@ import type {
     TypeFromNestedKeyPath,
 } from '@rapiq/core';
 
+
+import type { MONGO_COMPARISON_OPERATORS, MONGO_COMPOUND_OPERATORS  } from './constants';
+
 export type MongoFiltersParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = FiltersParseOptions<RECORD>;
@@ -95,3 +98,7 @@ export type MongoFiltersParserInput<
         $or?: MongoFiltersParserInput<T, PrevIndex[DEPTH]>[],
         $nor?: MongoFiltersParserInput<T, PrevIndex[DEPTH]>[],
     };
+
+export type MongoCompoundOperator = typeof MONGO_COMPOUND_OPERATORS[number];
+
+export type MongoComparisonOperator = keyof typeof MONGO_COMPARISON_OPERATORS;

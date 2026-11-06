@@ -41,28 +41,35 @@ class RecordingCacheDriver implements ICacheDriver {
 
     clock() {
         this.assertAvailable('clock');
+
         return this.inner.clock();
     }
 
     read<T>(key: string) {
         this.assertAvailable('read');
+
         return this.inner.read<T>(key);
     }
 
     async write<T>(key: string, entry: CacheEntry<T>, ttl: number) {
         this.assertAvailable('write');
+
         const accepted = await this.inner.write(key, entry, ttl);
+
         this.writes.push(accepted);
+
         return accepted;
     }
 
     invalidate(tags: string[]) {
         this.assertAvailable('invalidate');
+
         return this.inner.invalidate(tags);
     }
 
     drop(keys: string[]) {
         this.assertAvailable('drop');
+
         return this.inner.drop(keys);
     }
 }
@@ -89,6 +96,7 @@ describe('src/module.ts', () => {
         let reads = 0;
         const read = async () => {
             reads++;
+
             return { id: 1, name: 'admin' };
         };
         const tags = (value: { id: number }) => ['role', `role:${value.id}`];
@@ -104,10 +112,12 @@ describe('src/module.ts', () => {
         let reads = 0;
         const read = async () => {
             reads++;
+
             if (reads === 1) {
                 // the writer commits and bumps while the reader still holds
                 // the snapshot it read before the commit.
                 await cache.invalidate(['role:1']);
+
                 return { id: 1, name: 'old' };
             }
 
@@ -127,6 +137,7 @@ describe('src/module.ts', () => {
         let reads = 0;
         const read = async () => {
             reads++;
+
             return { id: 1, name: reads === 1 ? 'old' : 'new' };
         };
         const tags = () => ['role:1'];
@@ -146,6 +157,7 @@ describe('src/module.ts', () => {
         let reads = 0;
         const value = await cache.remember('k', async () => {
             reads++;
+
             return 'from the database';
         }, { tags: () => ['role'] });
 
@@ -170,6 +182,7 @@ describe('src/module.ts', () => {
 
     it('should swallow a driver failure silently when no onError is given', async () => {
         driver.failOn.add('read');
+
         const silent = new TaggedCache({ driver });
 
         expect(await silent.remember('k', async () => 'v', { tags: () => [] })).toEqual('v');
@@ -192,6 +205,7 @@ describe('src/module.ts', () => {
         let reads = 0;
         const read = async () => {
             reads++;
+
             return reads;
         };
 
@@ -213,6 +227,7 @@ describe('src/module.ts', () => {
         // after the database work was done.
         expect(await cache.remember('k', async () => {
             reads++;
+
             return 'v';
         }, options)).toEqual('v');
 
@@ -223,6 +238,7 @@ describe('src/module.ts', () => {
 
         await cache.remember('k', async () => {
             reads++;
+
             return 'v';
         }, options);
         expect(reads).toEqual(2);
@@ -230,6 +246,7 @@ describe('src/module.ts', () => {
 
     it.each([NaN, Infinity, 0, -1, 0.5])('should refuse a default ttl of %s at construction', (ttl) => {
         let error : unknown;
+
         try {
             new TaggedCache({ driver, ttl }).remember('k', async () => 'v', { tags: () => [] });
         } catch (e) {
@@ -246,6 +263,7 @@ describe('src/module.ts', () => {
 
         await expect(cache.remember('k', async () => {
             reads++;
+
             return 'v';
         }, { tags: () => ['role'], ttl })).rejects.toThrow(/entry ttl/);
 

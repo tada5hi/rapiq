@@ -7,6 +7,7 @@
 
 export * from './grouped';
 export * from './module';
+export type { QueryVisitorOptions } from './types';
 export * from './parameter';
 export * from './query';
 export * from './types';

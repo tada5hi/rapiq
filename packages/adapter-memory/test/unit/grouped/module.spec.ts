@@ -55,9 +55,11 @@ describe('src/grouped/module.ts', () => {
 
         it('should refuse an unresolved call', () => {
             const group = new Group({ name: 'period', params: ['day'] });
+
             expect(() => compileGroupedQuery(grouped([group], []))).toThrowError(unsupported('groups:unresolved'));
 
             const aggregate = new Aggregate({ name: 'total', params: ['amount'] });
+
             expect(() => compileGroupedQuery(grouped([], [aggregate]))).toThrowError(unsupported('aggregates:unresolved'));
         });
 
@@ -71,6 +73,7 @@ describe('src/grouped/module.ts', () => {
                     args: [],
                 },
             });
+
             expect(() => compileGroupedQuery(grouped([group], []))).toThrowError(unsupported('groups:week'));
 
             const aggregate = new Aggregate({
@@ -82,6 +85,7 @@ describe('src/grouped/module.ts', () => {
                     args: [],
                 },
             });
+
             expect(() => compileGroupedQuery(grouped([], [aggregate]))).toThrowError(unsupported('aggregates:avg'));
         });
 
@@ -142,6 +146,7 @@ describe('src/grouped/module.ts', () => {
                 .toEqual([{ v: 1, count: 2 }, { v: '1', count: 1 }]);
 
             const instant = Date.UTC(2026, 8, 22);
+
             expect(applyGroupedQuery(grouped([column('d')], [count()]), [{ d: new Date(instant) }, { d: new Date(instant) }]).data)
                 .toEqual([{ d: new Date(instant), count: 2 }]);
         });

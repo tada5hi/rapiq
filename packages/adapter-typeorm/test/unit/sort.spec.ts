@@ -28,10 +28,12 @@ describe('src/sort', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
+
         userRepository = dataSource.getRepository(User);
         aston.role = admin;
         aston.realm = master;
@@ -44,6 +46,7 @@ describe('src/sort', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ sorts: sort }));
 
         return queryBuilder;
@@ -55,6 +58,7 @@ describe('src/sort', () => {
         ]));
 
         const [queryOneFirst] = await queryOne.getMany();
+
         expect(queryOneFirst).toBeDefined();
 
         const queryTwo = createQueryBuilder(new Sorts([
@@ -62,6 +66,7 @@ describe('src/sort', () => {
         ]));
 
         const [queryTwoFirst] = await queryTwo.getMany();
+
         expect(queryTwoFirst).toBeDefined();
 
         expect(queryOneFirst).not.toEqual(queryTwoFirst);

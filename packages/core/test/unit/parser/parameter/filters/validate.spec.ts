@@ -141,6 +141,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         const schema = defineFiltersSchema({
             validate: (filter) => {
                 seen.push(filter.field);
+
                 if (filter.field === 'name') {
                     return new Filter(
                         filter.operator,
@@ -189,6 +190,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ),
         ]) {
             const collector = new IssueCollector();
+
             await run(collector);
             expect(collector.issues[0]?.path).toEqual(['items', 'id']);
             expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.FILTERS);
@@ -209,6 +211,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         // no collector: the site throws where it is, carrying the position a
         // catching driver could not reconstruct
         expect.assertions(2);
+
         try {
             applyFiltersSchemaValidation(input, schema);
         } catch (e) {
@@ -249,6 +252,7 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ),
         ]) {
             const collector = new IssueCollector();
+
             await run(collector);
             expect(collector.issues[0]?.path).toEqual(['items']);
         }
@@ -284,12 +288,15 @@ describe('src/parser/parameter/filters/validate.ts', () => {
             ),
         ]) {
             const prefix : string[] = ['query'];
+
             Object.freeze(prefix);
+
             const collector = new IssueCollector();
             const options : FiltersValidationOptions = {
                 issueCollector: collector,
                 path: prefix,
             };
+
             Object.freeze(options);
 
             await run(options);
@@ -449,12 +456,14 @@ describe('src/parser/parameter/filters/validate.ts', () => {
 
         const output = applyFiltersSchemaValidation(input, schema)!;
         const [leaf] = output.value as IFilter[];
+
         expect(output.preserved).toBe(true);
         expect(leaf!.preserved).toBe(true);
         expect(leaf!.value).toBe('ADMIN');
 
         const outputAsync = (await applyFiltersSchemaValidationAsync(input, schema))!;
         const [asyncLeaf] = outputAsync.value as IFilter[];
+
         expect(outputAsync.preserved).toBe(true);
         expect(asyncLeaf!.preserved).toBe(true);
         expect(asyncLeaf!.value).toBe('ADMIN');
@@ -473,10 +482,12 @@ describe('src/parser/parameter/filters/validate.ts', () => {
         });
 
         const output = applyFiltersSchemaValidation(input, schema) as IFilter;
+
         expect(output.preserved).toBe(true);
         expect((output.value as IFilter).value).toBe('ADMIN');
 
         const outputAsync = await applyFiltersSchemaValidationAsync(input, schema) as IFilter;
+
         expect(outputAsync.preserved).toBe(true);
         expect((outputAsync.value as IFilter).value).toBe('ADMIN');
     });

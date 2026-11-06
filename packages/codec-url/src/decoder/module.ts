@@ -56,6 +56,7 @@ function normalizeFieldsWireInput(input: unknown) : unknown {
     }
 
     const { [URL_FIELDS_ROOT]: root, ...groups } = input;
+
     if (!isPropertySet(groups, DEFAULT_ID)) {
         return { [DEFAULT_ID]: root, ...groups };
     }
@@ -94,6 +95,7 @@ export abstract class BaseURLDecoder {
         options: ParseQueryOptions = {},
     ) : IQuery | null {
         const mapped = this.prepare(input);
+
         if (!mapped) {
             return null;
         }
@@ -106,6 +108,7 @@ export abstract class BaseURLDecoder {
         options: ParseQueryOptions = {},
     ) : Promise<IQuery | null> {
         const mapped = this.prepare(input);
+
         if (!mapped) {
             return null;
         }
@@ -118,6 +121,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : IFields | null {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -137,6 +141,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : Promise<IFields | null> {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -156,6 +161,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : IFilters | null {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -175,6 +181,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : Promise<IFilters | null> {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -191,6 +198,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : IPagination | null {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -207,6 +215,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : Promise<IPagination | null> {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -223,6 +232,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : IRelations | null {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -239,6 +249,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : Promise<IRelations | null> {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -255,6 +266,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : ISorts | null {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -271,6 +283,7 @@ export abstract class BaseURLDecoder {
         options: ParseParameterOptions = {},
     ) : Promise<ISorts | null> {
         const output = parseQueryString(input);
+
         if (!isObject(output)) {
             return null;
         }
@@ -298,6 +311,7 @@ export abstract class BaseURLDecoder {
 
     protected prepare(input: string | ObjectLiteral) : ObjectLiteral | null {
         const parsed = typeof input === 'string' ? parseQueryString(input) : input;
+
         if (!isObject(parsed)) {
             return null;
         }

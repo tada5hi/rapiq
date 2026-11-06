@@ -240,6 +240,7 @@ export abstract class FiltersBaseAdapter<
             (path) => this.relations.buildAlias(path),
             (path) => this.relations.isRelationPath(path),
         );
+
         if (output.relation) {
             this.relations.add(output.relation);
         }

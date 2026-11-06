@@ -31,6 +31,7 @@ function buildRegistry(
     ) => boolean | undefined,
 ) : SchemaRegistry {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Record<string, any>, Actor>({
         name: 'user',
         filters: { allowed: ['id', 'name', 'items'] },
@@ -61,6 +62,7 @@ function filterFields(input: IFilters | undefined) : string[] {
             }
         }
     };
+
     if (input) {
         walk(input);
     }

@@ -8,5 +8,11 @@
 export * from './constants';
 export * from './define';
 export * from './deprecated';
+export type {
+    SortSchema,
+    SortOptions,
+    SortOptionDefault,
+    SortSchemaDescription,
+} from './types';
 export * from './schema';
 export * from './types';

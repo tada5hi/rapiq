@@ -37,11 +37,13 @@ describe('src/filters', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
         const userRepository = dataSource.getRepository(User);
+
         aston.role = admin;
         aston.realm = master;
 
@@ -57,6 +59,7 @@ describe('src/filters', () => {
             new Filters(FilterCompoundOperator.AND, [condition]);
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ filters }));
 
         return queryBuilder;
@@ -178,6 +181,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Caleb');
     });
 
@@ -194,6 +198,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Aston');
     });
 
@@ -223,6 +228,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Caleb');
     });
 
@@ -241,6 +247,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Aston');
     });
 
@@ -257,6 +264,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Aston');
     });
 
@@ -299,6 +307,7 @@ describe('src/filters', () => {
         expect(data.length).toEqual(1);
 
         const [user] = data;
+
         expect(user.first_name).toEqual('Caleb');
     });
 
@@ -400,6 +409,7 @@ describe('src/filters', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(
             new Query({
                 filters: new Filters(FilterCompoundOperator.AND, [
@@ -419,6 +429,7 @@ describe('src/filters', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(
             new Query({
                 filters: new Filters(FilterCompoundOperator.AND, [
@@ -495,6 +506,7 @@ describe('src/filters', () => {
 
         const roleRepository = dataSource.getRepository(Role);
         const admin = await roleRepository.findOneByOrFail({ name: 'admin' });
+
         admin.detail = detail;
         await roleRepository.save(admin);
 

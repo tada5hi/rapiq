@@ -109,9 +109,11 @@ describe('engine: date columns', () => {
 
     const run = (condition: Condition) => {
         const client = new Database(':memory:');
+
         client.exec('create table events (id integer primary key, name text not null, created_at integer)');
 
         const insert = client.prepare('insert into events values (?, ?, ?)');
+
         insert.run(1, 'early', Date.parse(EARLY) / 1000);
         insert.run(2, 'late', Date.parse(INSTANT) / 1000);
 

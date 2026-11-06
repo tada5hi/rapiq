@@ -6,14 +6,15 @@
  */
 
 import { AdapterError, ErrorCode } from '@rapiq/core';
-import type { DatamodelInput, ModelInput } from './normalize';
-import { normalizeDatamodel, resolveModelName } from './normalize';
 import type {
     Datamodel,
     DatamodelField,
+    DatamodelInput,
     DatamodelModel,
     IMetadata,
+    ModelInput,
 } from './types';
+import { normalizeDatamodel, resolveModelName } from './normalize';
 
 const RELATION_KIND = 'object';
 
@@ -55,6 +56,7 @@ export class Metadata implements IMetadata {
 
     isRelation(path: string) : boolean | undefined {
         const field = this.resolve(path);
+
         if (!field) {
             return undefined;
         }
@@ -64,6 +66,7 @@ export class Metadata implements IMetadata {
 
     isToMany(path: string) : boolean | undefined {
         const field = this.resolve(path);
+
         if (!field || field.kind !== RELATION_KIND) {
             return undefined;
         }
@@ -73,6 +76,7 @@ export class Metadata implements IMetadata {
 
     isString(path: string) : boolean | undefined {
         const field = this.resolve(path);
+
         if (!field || field.kind === RELATION_KIND) {
             return undefined;
         }
@@ -82,6 +86,7 @@ export class Metadata implements IMetadata {
 
     isDate(path: string) : boolean | undefined {
         const field = this.resolve(path);
+
         if (!field || field.kind === RELATION_KIND) {
             return undefined;
         }
@@ -91,6 +96,7 @@ export class Metadata implements IMetadata {
 
     isNullable(path: string) : boolean | undefined {
         const field = this.resolve(path);
+
         if (!field || typeof field.isRequired !== 'boolean') {
             // a pruned datamodel (edge/wasm builds) drops the flag:
             // unknown, never assumed.
@@ -119,6 +125,7 @@ export class Metadata implements IMetadata {
             }
 
             field = model.fields.find((item) => item.name === segments[i]);
+
             if (!field) {
                 return undefined;
             }

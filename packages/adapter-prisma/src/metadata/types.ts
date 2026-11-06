@@ -1,16 +1,3 @@
-/*
- * Copyright (c) 2026.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
- */
-
-/**
- * Structural subset of a prisma DMMF field. Declared locally so this
- * package never imports from `@prisma/client`: `Prisma.dmmf.datamodel`
- * is assignable to {@link Datamodel} as-is, and a hand-written literal
- * works just as well.
- */
 export type DatamodelField = {
     name: string,
 
@@ -96,3 +83,28 @@ export interface IMetadata {
      */
     isNullable(path: string): boolean | undefined;
 }
+
+/**
+ * Anything a datamodel can be read from:
+ *
+ * - `Prisma.dmmf.datamodel` (models as an array), or any hand-written
+ *   object of the same shape,
+ * - `client.$datamodel` / `client._runtimeDataModel` (models as a
+ *   record keyed by name),
+ * - a `PrismaClient` instance, which carries the latter.
+ *
+ * The client paths prefer the public `$datamodel` reflection surface
+ * (proposed in prisma/prisma#19392, implemented by prisma/prisma#29792)
+ * and fall back to `_runtimeDataModel`, a private but long-stable
+ * client internal verified against real generated clients by the
+ * engine-backed test suite. The datamodel shapes are the
+ * private-API-free path.
+ */
+export type DatamodelInput = Datamodel | object;
+
+/**
+ * A model delegate (`prisma.user`), or a plain model name (`'User'`).
+ * The delegate resolves through its public field references, with the
+ * runtime `$name` marker as the primary source.
+ */
+export type ModelInput = string | { fields: object };

@@ -110,6 +110,7 @@ describe('src/adapter/module.ts', () => {
         }));
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('WHERE "user"."id" = 1 AND');
         expect(sql).toContain('"user"."age" = 18');
     });
@@ -144,6 +145,7 @@ describe('src/adapter/module.ts', () => {
         }));
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('WHERE "user"."id" = 1 AND');
         expect(sql).toContain('"user"."age" = 18');
     });
@@ -169,6 +171,7 @@ describe('src/adapter/module.ts', () => {
         }));
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('"user"."age" = 18');
         expect(sql).toContain('"user"."age" = 25');
     });

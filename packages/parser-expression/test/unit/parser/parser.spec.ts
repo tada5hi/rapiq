@@ -23,6 +23,7 @@ import { ExpressionParser } from '../../../src';
 
 describe('src/parser', () => {
     let parser : ExpressionParser;
+
     beforeAll(() => {
         parser = new ExpressionParser(registry);
     });

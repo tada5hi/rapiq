@@ -150,6 +150,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
         });
 
         const fragments = adapter.executeGrouped(query);
+
         expect(fragments.relations).toEqual(['realm']);
         expect(fragments.where).toEqual('lower("r5_realm"."name") = lower($1)');
     });
@@ -164,6 +165,7 @@ describe('src/adapter/module.ts (executeGrouped)', () => {
 
     it('should bucket a zoned column through a temporalKind assigned on the instance', () => {
         const adapter = new Adapter({ ...pg, rootAlias: 'event' });
+
         adapter.filters.temporalKind = (field) => (field === 'createdAt' ? 'instant' : 'datetime');
 
         const fragments = adapter.executeGrouped(new Query({ groups: new Groups([bucketGroup('day')]) }));

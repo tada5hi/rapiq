@@ -1,3 +1,4 @@
+import type { AdapterErrorOptions } from './types';
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -9,17 +10,7 @@ import { isObject } from '../utils';
 import { BaseError } from './base';
 import { ErrorCode } from './code';
 import { ErrorMessage } from './messages';
-import type { BaseErrorOptions } from './types';
 
-export type AdapterErrorOptions = BaseErrorOptions & {
-    /**
-     * The capability tag {@link AdapterError.featureUnsupported} refuses
-     * (e.g. `regexp`, `filters:mod`, `filters:regex`), structured
-     * alongside `code` so a consumer can build a capability matrix
-     * without parsing the message. `undefined` for every other factory.
-     */
-    feature?: string,
-};
 
 export class AdapterError extends BaseError {
     public readonly feature : string | undefined;

@@ -53,6 +53,7 @@ describe('src/schema/resolver obligation recording', () => {
 
     it('records a relation targeted directly by a filter (array operator target)', () => {
         const scoped = new SchemaRegistry();
+
         scoped.add(defineSchema({
             name: 'user',
             filters: { allowed: ['id', 'items'] },

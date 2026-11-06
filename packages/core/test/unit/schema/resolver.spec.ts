@@ -70,11 +70,14 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('name');
 
             expect(resolved.success).toBeTruthy();
-            if (resolved.success) {
-                expect(resolved.name).toEqual('name');
-                expect(resolved.path).toEqual([]);
-                expect(resolved.scope).toBe(scope);
+
+            if (!resolved.success) {
+                return;
             }
+
+            expect(resolved.name).toEqual('name');
+            expect(resolved.path).toEqual([]);
+            expect(resolved.scope).toBe(scope);
         });
 
         it('should apply mapping aliases before validation', () => {
@@ -86,6 +89,7 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('aliasId');
 
             expect(resolved.success).toBeTruthy();
+
             if (resolved.success) {
                 expect(resolved.name).toEqual('id');
             }
@@ -122,11 +126,14 @@ describe('src/schema/resolver/*.ts', () => {
             const resolved = scope.resolveKey('items.id');
 
             expect(resolved.success).toBeTruthy();
-            if (resolved.success) {
-                expect(resolved.name).toEqual('id');
-                expect(resolved.path).toEqual(['items']);
-                expect(resolved.scope.schema.name).toEqual('item');
+
+            if (!resolved.success) {
+                return;
             }
+
+            expect(resolved.name).toEqual('id');
+            expect(resolved.path).toEqual(['items']);
+            expect(resolved.scope.schema.name).toEqual('item');
         });
 
         it('should validate the leaf against the target schema', () => {
@@ -214,7 +221,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, 'user', { throwOnFailure: true });
 
             const child = scope.descend('items');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 expect(() => child.resolveKey('bar')).toThrow(FiltersParseError);
             }
@@ -231,24 +240,32 @@ describe('src/schema/resolver/*.ts', () => {
             });
 
             const child = scope.descend('items');
+
             expect(child).toBeInstanceOf(ResolutionScope);
-            if (child instanceof ResolutionScope) {
-                expect(child.segment).toEqual('items');
-                expect(child.schema.name).toEqual('item');
-                expect(child.relations).toBeDefined();
-                expect(child.relations!.value.map((el) => el.name)).toEqual(['realm']);
+
+            if (!(child instanceof ResolutionScope)) {
+                return;
             }
+
+            expect(child.segment).toEqual('items');
+            expect(child.schema.name).toEqual('item');
+            expect(child.relations).toBeDefined();
+            expect(child.relations!.value.map((el) => el.name)).toEqual(['realm']);
         });
 
         it('should apply mapping aliases to relation segments', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, 'user');
 
             const child = scope.descend('abc');
+
             expect(child).toBeInstanceOf(ResolutionScope);
-            if (child instanceof ResolutionScope) {
-                expect(child.segment).toEqual('items');
-                expect(child.schema.name).toEqual('item');
+
+            if (!(child instanceof ResolutionScope)) {
+                return;
             }
+
+            expect(child.segment).toEqual('items');
+            expect(child.schema.name).toEqual('item');
         });
 
         it('should honor schemaMapping of an unregistered schema instance', () => {
@@ -259,7 +276,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
 
             const child = scope.descend('stuff');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 expect(child.schema.name).toEqual('item');
             }
@@ -282,7 +301,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(local, Parameter.RELATIONS, schema);
 
             const child = scope.descend('foo');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 expect(child.schema.allowed).toBeUndefined();
             }
@@ -309,11 +330,15 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(local, Parameter.FIELDS);
 
             const child = scope.descend('realm');
+
             expect(child).toBeInstanceOf(ResolutionScope);
-            if (child instanceof ResolutionScope) {
-                expect(child.schema.allowedIsUndefined).toBeTruthy();
-                expect(child.resolveKey('name').success).toBeTruthy();
+
+            if (!(child instanceof ResolutionScope)) {
+                return;
             }
+
+            expect(child.schema.allowedIsUndefined).toBeTruthy();
+            expect(child.resolveKey('name').success).toBeTruthy();
         });
 
         it('should resolve traversal from a named bare sub-schema via the registry', () => {
@@ -321,7 +346,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
 
             const child = scope.descend('items');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 // resolved through the user schema's schemaMapping
                 expect(child.schema.name).toEqual('item');
@@ -340,12 +367,16 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FILTERS, schema);
 
             const resolved = scope.resolveKey('realmName');
+
             expect(resolved.success).toBeTruthy();
-            if (resolved.success) {
-                expect(resolved.name).toEqual('name');
-                expect(resolved.path).toEqual(['realm']);
-                expect(resolved.scope.schema.name).toEqual('realm');
+
+            if (!resolved.success) {
+                return;
             }
+
+            expect(resolved.name).toEqual('name');
+            expect(resolved.path).toEqual(['realm']);
+            expect(resolved.scope.schema.name).toEqual('realm');
         });
 
         it('should walk every segment of a dotted mapping target in descend', () => {
@@ -359,15 +390,20 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, schema);
 
             const child = scope.descend('abc');
+
             expect(child).toBeInstanceOf(ResolutionScope);
-            if (child instanceof ResolutionScope) {
-                expect(child.segment).toEqual('items.realm');
-                expect(child.schema.name).toEqual('realm');
+
+            if (!(child instanceof ResolutionScope)) {
+                return;
             }
+
+            expect(child.segment).toEqual('items.realm');
+            expect(child.schema.name).toEqual('realm');
         });
 
         it('should bound cyclic mapping expansion instead of recursing forever', () => {
             const local = new SchemaRegistry();
+
             local.add(defineSchema({
                 name: 'user',
                 filters: {
@@ -376,10 +412,13 @@ describe('src/schema/resolver/*.ts', () => {
                 },
                 schemaMapping: { parent: 'user' },
             }));
+
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'user');
 
             const resolved = scope.resolveKey('p');
+
             expect(resolved.success).toBeFalsy();
+
             if (!resolved.success) {
                 expect(resolved.code).toEqual(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE);
             }
@@ -389,12 +428,16 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, 'user');
 
             const resolved = scope.resolveKey('items.realm');
+
             expect(resolved.success).toBeTruthy();
-            if (resolved.success) {
-                expect(resolved.name).toEqual('realm');
-                expect(resolved.path).toEqual(['items']);
-                expect(resolved.scope.schema.name).toEqual('item');
+
+            if (!resolved.success) {
+                return;
             }
+
+            expect(resolved.name).toEqual('realm');
+            expect(resolved.path).toEqual(['items']);
+            expect(resolved.scope.schema.name).toEqual('item');
         });
     });
 
@@ -441,7 +484,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.FIELDS, schema);
 
             const resolved = scope.resolveKey('name');
+
             expect(resolved.success).toBeFalsy();
+
             if (!resolved.success) {
                 expect(resolved.code).toEqual(KeyResolutionErrorCode.KEY_NOT_PERMITTED);
             }
@@ -466,12 +511,15 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(registry, Parameter.RELATIONS, schema);
 
             const resolved = scope.resolveKey('realm');
+
             expect(resolved.success).toBeFalsy();
+
             if (!resolved.success) {
                 expect(resolved.code).toEqual(KeyResolutionErrorCode.KEY_NOT_PERMITTED);
             }
 
             const child = scope.descend('realm');
+
             expect(child).toEqual({
                 success: false,
                 code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
@@ -498,7 +546,9 @@ describe('src/schema/resolver/*.ts', () => {
             const scope = ResolutionScope.for(local, Parameter.FILTERS, undefined, { strict: true });
 
             const child = scope.descend('realm');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 expect(child.resolveKey('name').success).toBeFalsy();
             }
@@ -531,6 +581,7 @@ describe('src/schema/resolver/*.ts', () => {
     describe('failure policy (inheritance & overrides)', () => {
         it('should apply the child schema failure policy when no override is set', () => {
             const local = new SchemaRegistry();
+
             local.add(defineSchema({
                 name: 'parent',
                 filters: { allowed: ['id'] },
@@ -543,10 +594,13 @@ describe('src/schema/resolver/*.ts', () => {
             }));
 
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'parent');
+
             expect(scope.resolveKey('bar').success).toBeFalsy();
 
             const child = scope.descend('kid');
+
             expect(child).toBeInstanceOf(ResolutionScope);
+
             if (child instanceof ResolutionScope) {
                 expect(() => child.resolveKey('bar')).toThrow(FiltersParseError);
             }

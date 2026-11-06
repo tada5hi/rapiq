@@ -30,6 +30,7 @@ export function defineSorts(input: SortsBuildInput<ObjectLiteral> | ISorts) : IS
     }
 
     const output : ISort[] = [];
+
     buildSorts(output, input);
 
     return new Sorts(output);
@@ -43,6 +44,7 @@ function buildSorts(
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
             const name = part.trim();
+
             if (!name) {
                 continue;
             }
@@ -79,8 +81,10 @@ function buildSorts(
 
     if (isObject(input)) {
         const keys = Object.keys(input);
+
         for (const key of keys) {
             const value = input[key];
+
             if (typeof value === 'undefined') {
                 continue;
             }
@@ -89,6 +93,7 @@ function buildSorts(
 
             if (typeof value === 'string') {
                 const lowered = value.toLowerCase();
+
                 if (lowered !== 'asc' && lowered !== 'desc') {
                     throw BuildError.keyInvalid(key);
                 }

@@ -1,3 +1,4 @@
+import type { PaginationVisitorOptions } from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -7,9 +8,7 @@
 
 import type { IPaginationVisitor, Pagination } from '@rapiq/core';
 import type { IPaginationAdapter } from '../adapter';
-import type { VisitorOptions } from './types';
 
-export type PaginationVisitorOptions = VisitorOptions;
 
 export class PaginationVisitor implements IPaginationVisitor<IPaginationAdapter> {
     protected adapter: IPaginationAdapter;

@@ -46,6 +46,7 @@ export class FiltersVisitor implements IFiltersVisitor<Predicate>, IFilterVisito
      */
     compile(expr: ICondition) : Predicate {
         const plan = planCondition(expr, { caseSensitive: this.options.caseSensitive });
+
         if (!plan) {
             return () => true;
         }

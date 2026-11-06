@@ -52,6 +52,7 @@ export function resolveProviderOptions(
 
     if (typeof input === 'string') {
         const options = resolveProvider(input);
+
         if (options) {
             return options;
         }

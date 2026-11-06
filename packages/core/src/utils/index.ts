@@ -9,6 +9,7 @@ export * from './mapping';
 export * from './date';
 export * from './input';
 export * from './key';
+export type { KeyDetails } from './types';
 export * from './relation';
 export * from './object';
 export * from './visitor';

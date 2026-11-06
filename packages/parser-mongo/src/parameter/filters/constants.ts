@@ -16,8 +16,6 @@ export const MONGO_COMPOUND_OPERATORS = [
     '$nor',
 ] as const;
 
-export type MongoCompoundOperator = typeof MONGO_COMPOUND_OPERATORS[number];
-
 /**
  * Field-level operators with a direct AST mapping, keyed by their
  * `$`-prefixed wire name: [operator, negated counterpart]. Negation
@@ -39,8 +37,6 @@ export const MONGO_COMPARISON_OPERATORS = {
     $contains: [FilterFieldOperator.CONTAINS, FilterFieldOperator.NOT_CONTAINS],
     $notContains: [FilterFieldOperator.NOT_CONTAINS, FilterFieldOperator.CONTAINS],
 } as const;
-
-export type MongoComparisonOperator = keyof typeof MONGO_COMPARISON_OPERATORS;
 
 /**
  * The complete field-level operator vocabulary — a key of this list at

@@ -9,7 +9,7 @@ import { AdapterError } from '../../../errors';
 import { isObject } from '../../../utils';
 import type { IFilters } from '../collection';
 import { isFilters } from '../collection';
-import type { ICondition } from '../condition';
+import type { ICondition } from '../types';
 import { ITSELF } from '../constants';
 import type { IFilter } from '../record';
 import { isFilter } from '../record';
@@ -169,10 +169,12 @@ class ConditionLowering {
         switch (input.operator) {
             case 'and': {
                 operator = 'and';
+
                 break;
             }
             case 'or': {
                 operator = 'or';
+
                 break;
             }
             // group negation is the exact complement of the group
@@ -181,11 +183,13 @@ class ConditionLowering {
             case 'nor': {
                 operator = 'or';
                 negated = true;
+
                 break;
             }
             case 'not': {
                 operator = 'and';
                 negated = true;
+
                 break;
             }
             default: {
@@ -194,14 +198,17 @@ class ConditionLowering {
         }
 
         const children : ConditionPlan[] = [];
+
         for (let i = 0; i < input.value.length; i++) {
             const child = input.value[i];
+
             if (!child) {
                 continue;
             }
 
             if (isFilter(child) || isFilters(child)) {
                 const plan = this.lower(child);
+
                 if (plan) {
                     children.push(plan);
                 }
@@ -227,6 +234,7 @@ class ConditionLowering {
         // plan, identical rendering); only interiors without a
         // negatable leaf form stay wrapped in a negated compound.
         const [firstChild] = children;
+
         if (negated && children.length === 1 && firstChild) {
             return this.negatePlan(firstChild);
         }
@@ -286,6 +294,7 @@ class ConditionLowering {
         const semantics = FILTER_OPERATOR_SEMANTICS[
             input.operator as keyof typeof FILTER_OPERATOR_SEMANTICS
         ];
+
         if (!semantics) {
             throw AdapterError.operatorUnsupported(input.operator);
         }
@@ -308,9 +317,9 @@ class ConditionLowering {
             case 'equality': {
                 if (value === null) {
                     return {
-                        kind: 'null-check', 
-                        field: input.field, 
-                        negated, 
+                        kind: 'null-check',
+                        field: input.field,
+                        negated,
                         elementwise: true,
                     };
                 }
@@ -347,6 +356,7 @@ class ConditionLowering {
 
                 let mode : 'starts' | 'ends' | 'contains';
                 let flag : number;
+
                 if (anchor.start) {
                     mode = 'starts';
                     flag = FilterRegexFlag.STARTS_WITH;
@@ -372,9 +382,9 @@ class ConditionLowering {
             }
             case 'existence': {
                 return {
-                    kind: 'null-check', 
-                    field: input.field, 
-                    negated: !!value, 
+                    kind: 'null-check',
+                    field: input.field,
+                    negated: !!value,
                     elementwise: false,
                 };
             }
@@ -418,9 +428,9 @@ class ConditionLowering {
 
         if (values.length === 0) {
             return {
-                kind: 'null-check', 
-                field, 
-                negated, 
+                kind: 'null-check',
+                field,
+                negated,
                 elementwise: true,
             };
         }
@@ -445,9 +455,9 @@ class ConditionLowering {
                 kind: 'match',
                 field,
                 pattern: {
-                    mode: 'regex', 
-                    source: value.source, 
-                    flags, 
+                    mode: 'regex',
+                    source: value.source,
+                    flags,
                 },
                 regexSource: value.source,
                 ignoreCase: value.ignoreCase,
@@ -462,9 +472,9 @@ class ConditionLowering {
                 kind: 'match',
                 field,
                 pattern: {
-                    mode: 'regex', 
-                    source: value, 
-                    flags: '', 
+                    mode: 'regex',
+                    source: value,
+                    flags: '',
                 },
                 regexSource: value,
                 ignoreCase: false,
@@ -491,15 +501,16 @@ class ConditionLowering {
         }
 
         return {
-            kind: 'mod', 
-            field, 
-            divisor: value[0], 
+            kind: 'mod',
+            field,
+            divisor: value[0],
             remainder: value[1],
         };
     }
 
     protected lowerElemMatch(input: IFilter) : ConditionPlan | null {
         const interior = input.value;
+
         if (
             !isFilter(interior) &&
             !isFilters(interior as ICondition)
@@ -523,14 +534,15 @@ class ConditionLowering {
 
         try {
             const condition = this.lower(interior as ICondition);
+
             if (!condition) {
                 return null;
             }
 
             return {
-                kind: 'elem-match', 
-                field: input.field, 
-                condition, 
+                kind: 'elem-match',
+                field: input.field,
+                condition,
             };
         } finally {
             this.fieldPrefix = oldPrefix;

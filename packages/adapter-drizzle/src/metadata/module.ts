@@ -49,6 +49,7 @@ export class Metadata implements IMetadata {
 
     isRelation(path: string) : boolean | undefined {
         const resolved = this.resolve(path);
+
         if (!resolved) {
             return undefined;
         }
@@ -58,6 +59,7 @@ export class Metadata implements IMetadata {
 
     isToMany(path: string) : boolean | undefined {
         const resolved = this.resolve(path);
+
         if (!resolved || resolved.kind !== 'relation') {
             return undefined;
         }
@@ -67,6 +69,7 @@ export class Metadata implements IMetadata {
 
     isString(path: string) : boolean | undefined {
         const resolved = this.resolve(path);
+
         if (!resolved || resolved.kind !== 'column') {
             return undefined;
         }
@@ -80,6 +83,7 @@ export class Metadata implements IMetadata {
 
     isDate(path: string) : boolean | undefined {
         const resolved = this.resolve(path);
+
         if (!resolved || resolved.kind !== 'column') {
             return undefined;
         }
@@ -93,6 +97,7 @@ export class Metadata implements IMetadata {
 
     isNullable(path: string) : boolean | undefined {
         const resolved = this.resolve(path);
+
         if (!resolved || resolved.kind !== 'column') {
             return undefined;
         }
@@ -134,6 +139,7 @@ export class Metadata implements IMetadata {
                 const column = table.columns && Object.hasOwn(table.columns, segment) ?
                     table.columns[segment] :
                     undefined;
+
                 if (typeof column === 'undefined') {
                     return undefined;
                 }

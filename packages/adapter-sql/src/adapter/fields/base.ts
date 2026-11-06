@@ -70,6 +70,7 @@ export abstract class FieldsBaseAdapter<
 
         for (let i = 0; i < this.value.length; i++) {
             const element = this.value[i] as { name: string, operator?: `${FieldOperator}` };
+
             if (element.operator === FieldOperator.EXCLUDE) {
                 continue;
             }
@@ -89,6 +90,7 @@ export abstract class FieldsBaseAdapter<
             (path) => this.relations.buildAlias(path),
             (path) => this.relations.isRelationPath(path),
         );
+
         if (output.relation) {
             this.relations.add(output.relation, { projected: options.projected });
         }

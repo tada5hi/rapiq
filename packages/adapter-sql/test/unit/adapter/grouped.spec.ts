@@ -149,10 +149,12 @@ describe('src/adapter/grouped/module.ts', () => {
 
     it('should refuse unresolved terms', () => {
         const groups = new Query({ groups: new Groups([new Group({ name: 'period', params: ['day'] })]) });
+
         expect(() => buildGroupedClauses(groups, pgFilters(), pg.bucket))
             .toThrow('The feature groups:unresolved is not supported by the dialect.');
 
         const aggregates = new Query({ aggregates: new Aggregates([new Aggregate({ name: 'total', params: ['amount'] })]) });
+
         expect(() => buildGroupedClauses(aggregates, pgFilters(), pg.bucket))
             .toThrow('The feature aggregates:unresolved is not supported by the dialect.');
     });
@@ -169,6 +171,7 @@ describe('src/adapter/grouped/module.ts', () => {
                 },
             })]),
         });
+
         expect(() => buildGroupedClauses(groups, pgFilters(), pg.bucket))
             .toThrow('The feature groups:week is not supported by the dialect.');
 
@@ -183,6 +186,7 @@ describe('src/adapter/grouped/module.ts', () => {
                 },
             })]),
         });
+
         expect(() => buildGroupedClauses(aggregates, pgFilters(), pg.bucket))
             .toThrow('The feature aggregates:avg is not supported by the dialect.');
     });

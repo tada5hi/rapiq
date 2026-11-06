@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { 
-    ISort, 
-    ISortVisitor, 
-    ISorts, 
-    ISortsVisitor, 
+import type {
+    ISort,
+    ISortVisitor,
+    ISorts,
+    ISortsVisitor,
 } from '@rapiq/core';
 import { SortDirection } from '@rapiq/core';
 import { compareValues, resolvePath } from '../../helpers';
@@ -25,6 +25,7 @@ export class SortsVisitor<T = Record<string, any>> implements ISortsVisitor<Comp
         return (a, b) => {
             for (const comparator of comparators) {
                 const result = comparator(a, b);
+
                 if (result !== 0) {
                     return result;
                 }
@@ -56,6 +57,7 @@ export class SortsVisitor<T = Record<string, any>> implements ISortsVisitor<Comp
             }
 
             const result = compareValues(left, right);
+
             if (result === undefined || result === 0) {
                 return 0;
             }

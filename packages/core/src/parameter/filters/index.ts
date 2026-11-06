@@ -7,6 +7,7 @@
 
 export * from './collection';
 export * from './condition';
+export type { ICondition, ConditionOptions } from './types';
 export * from './constants';
 export * from './helpers';
 export * from './plan';

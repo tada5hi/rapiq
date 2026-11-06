@@ -33,7 +33,9 @@ export class VirtualClockRedisCacheDriver extends RedisCacheDriver {
         const accepted = await super.write(key, entry, ttl);
 
         // a malformed tag refuses the write before the script runs.
-        if (entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+        const matchesTags = entry.tags.some((tag) => !isCacheTagWellFormed(tag));
+
+        if (matchesTags) {
             return accepted;
         }
 
@@ -61,6 +63,7 @@ export class VirtualClockRedisCacheDriver extends RedisCacheDriver {
         this.now += ms;
 
         const lapsed : string[] = [];
+
         for (const [key, expiresAt] of this.expiries) {
             if (expiresAt <= this.now) {
                 lapsed.push(key);
@@ -72,6 +75,7 @@ export class VirtualClockRedisCacheDriver extends RedisCacheDriver {
         }
 
         await this.client.del(...lapsed);
+
         for (const key of lapsed) {
             this.expiries.delete(key);
         }
