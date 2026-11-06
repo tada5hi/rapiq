@@ -1,3 +1,5 @@
 @AGENTS.md
-
-Read the detailed guides linked from AGENTS.md when working on their topics.
+@.agents/structure.md
+@.agents/architecture.md
+@.agents/testing.md
+@.agents/conventions.md
