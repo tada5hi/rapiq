@@ -48,7 +48,7 @@ Note: the root `README.md` documents v2; v1 lives on the `v1` branch.
 
 Keep the guides factual and focused on contracts a future change could silently break.
 
-- Update an existing line when an invariant or cross-cutting rule changes. Put defect stories and verification details in the PR, and user-facing changes in the documentation site or release notes.
+- Keep existing commands, paths and factual descriptions current. Add guide content only for an invariant or cross-cutting rule. Put defect stories and verification details in the PR, and user-facing changes in the documentation site or release notes.
 - Keep subsystem detail in `.agents/topics/` and link it from the relevant guide; do not import topic files into `CLAUDE.md`.
 - Describe current behavior and cite issues or PRs, rather than local plan files or a running history of completed work.
 - `npm run lint` enforces the shared config's agent-doc size, import-budget and history checks. Preserve the critical contracts when splitting a guide.
