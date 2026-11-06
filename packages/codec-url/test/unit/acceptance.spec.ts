@@ -52,6 +52,7 @@ type User = {
  */
 describe('gateway controller (hub archetype)', () => {
     const schemaRegistry = new SchemaRegistry();
+
     schemaRegistry.add(defineSchema<Log>({
         name: 'log',
         filters: {

@@ -1,3 +1,4 @@
+import type { ICondition } from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -8,22 +9,6 @@
 import { isObject } from '../../utils';
 
 export const CONDITION_MARKER: unique symbol = Symbol.for('@rapiq/core/condition');
-
-export interface ICondition<
-    T = unknown,
-> {
-    readonly [CONDITION_MARKER]: true;
-
-    /**
-     * Relation-pruning protection marker. A preserved group stays atomic
-     * during normalization and pruning applies its contract to the subtree.
-     */
-    readonly preserved?: boolean;
-
-    readonly operator: string;
-
-    readonly value: T;
-}
 
 /**
  * Identify a live condition by its non-serializable marker. Visitor dispatch
@@ -38,28 +23,14 @@ export function isCondition(input: unknown) : input is ICondition {
     // `[CONDITION_MARKER]: false` object out, which the interface now
     // rejects at compile time too.
     const marker : unknown = (input as { [CONDITION_MARKER]?: unknown })[CONDITION_MARKER];
-    if (marker !== true) {
-        return false;
-    }
 
-    if (typeof input.operator !== 'string') {
-        return false;
-    }
-
-    if (!('value' in input)) {
+    if ((marker !== true) || (typeof input.operator !== 'string') || !('value' in input)) {
         return false;
     }
 
     return typeof input.preserved === 'undefined' ||
         typeof input.preserved === 'boolean';
 }
-
-/**
- * Construction options shared only by the built-in filter nodes.
- */
-export type ConditionOptions = {
-    preserved?: boolean,
-};
 
 /**
  * Optional implementation base for conditions; structural implementations

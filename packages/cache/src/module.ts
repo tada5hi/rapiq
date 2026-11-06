@@ -20,6 +20,7 @@ export class TaggedCache implements ITaggedCache {
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
+
         if (!isCacheTtlValid(this.ttl)) {
             throw CacheError.ttlInvalid(this.ttl);
         }
@@ -33,6 +34,7 @@ export class TaggedCache implements ITaggedCache {
         options: RememberOptions<T>,
     ) : Promise<T> {
         const ttl = options.ttl ?? this.ttl;
+
         if (!isCacheTtlValid(ttl)) {
             throw CacheError.ttlInvalid(ttl);
         }
@@ -41,6 +43,7 @@ export class TaggedCache implements ITaggedCache {
 
         try {
             const hit = await this.driver.read<T>(key);
+
             if (hit) {
                 return hit.value;
             }
@@ -51,6 +54,7 @@ export class TaggedCache implements ITaggedCache {
             clock = await this.driver.clock();
         } catch (e) {
             this.onError(e);
+
             return read();
         }
 

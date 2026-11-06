@@ -7,5 +7,14 @@
 
 export * from './adapter';
 export * from './dialect';
-export * from './helpers';
+export {
+    LIKE_ESCAPE_CHARACTER,
+    ParamPlaceholderIndexer,
+    buildRelationAlias,
+    escapeLikePattern,
+    parseField,
+    splitFirst,
+    splitLast,
+} from './helpers';
+export type { IsRelationPathFn, RelationAliasFn } from './helpers';
 export * from './visitor';

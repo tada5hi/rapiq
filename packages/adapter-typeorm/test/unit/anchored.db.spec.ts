@@ -93,9 +93,11 @@ describe('anchored operators', () => {
 
     it('should match numeric operands and their complements like memory (#942)', async () => {
         const records = await dataSource.getRepository(User).find();
+
         for (const condition of [contains('age', '1'), startsWith('age', '6'), endsWith('age', '0'), contains('realm_id', '1')]) {
             for (const filter of [condition, not(condition)]) {
                 const expected = records.filter(compileFilters(filter)).map((record) => record.first_name).sort();
+
                 expect(await run(filter)).toEqual(expected);
                 expect(await run(filter, { caseSensitive: true })).toEqual(expected);
             }

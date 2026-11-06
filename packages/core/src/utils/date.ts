@@ -20,6 +20,7 @@ const ISO_8601 = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d
 
 function parseISO(input: string) : Date | undefined {
     const match = ISO_8601.exec(input);
+
     if (!match) {
         return undefined;
     }
@@ -59,6 +60,7 @@ function parseISO(input: string) : Date | undefined {
     }
 
     const offset = match[8];
+
     if (!offset || offset === 'Z' || offset === 'z') {
         // A zone-less value means UTC, the same rule this library
         // reads a zone-less column with. `new Date()` would read it in

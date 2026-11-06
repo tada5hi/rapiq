@@ -7,10 +7,10 @@
 
 import { AdapterError, ErrorCode, Filter } from '@rapiq/core';
 import {
-    FiltersAdapter, 
-    type FiltersContainerOptions, 
-    FiltersVisitor, 
-    RelationsAdapter, 
+    FiltersAdapter,
+    type FiltersContainerOptions,
+    FiltersVisitor,
+    RelationsAdapter,
     pg,
 } from '../../../src';
 
@@ -22,6 +22,7 @@ describe('primitive operators', () => {
 
     beforeEach(() => {
         const relationsAdapter = new RelationsAdapter();
+
         adapter = new FiltersAdapter(
             relationsAdapter,
             options,
@@ -32,6 +33,7 @@ describe('primitive operators', () => {
 
     it('generates a case-folded `=` condition for "eq" on strings', () => {
         const condition = new Filter('eq', 'name', 'test');
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -42,6 +44,7 @@ describe('primitive operators', () => {
 
     it('generates a plain `=` condition for "eq" on non-strings', () => {
         const condition = new Filter('eq', 'age', 18);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -52,17 +55,20 @@ describe('primitive operators', () => {
 
     it('generates a null-inclusive case-folded `<>` condition for "ne"', () => {
         const condition = new Filter('ne', 'name', 'test');
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
         const field = options.escapeField(condition.field);
+
         expect(sql).toEqual(`(lower(${field}) <> lower($1) or ${field} is null)`);
         expect(params).toStrictEqual([condition.value]);
     });
 
     it('generates query with `<` operator for "lt"', () => {
         const condition = new Filter('lt', 'age', 10);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -73,6 +79,7 @@ describe('primitive operators', () => {
 
     it('generates query with `<=` operator for "lte"', () => {
         const condition = new Filter('lte', 'age', 10);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -83,6 +90,7 @@ describe('primitive operators', () => {
 
     it('generates query with `>` operator for "gt"', () => {
         const condition = new Filter('gt', 'age', 10);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -93,6 +101,7 @@ describe('primitive operators', () => {
 
     it('generates query with `>=` operator for "gte"', () => {
         const condition = new Filter('gte', 'age', 10);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -103,6 +112,7 @@ describe('primitive operators', () => {
 
     it('generates call to `MOD` function for "mod"', () => {
         const condition = new Filter('mod', 'qty', [4, 0]);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();

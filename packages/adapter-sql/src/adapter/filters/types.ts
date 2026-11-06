@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { TemporalKind } from '../../dialect';
+import type { DialectOptions, TemporalKind  } from '../../dialect';
 import type { ISubAdapter } from '../types';
+
 
 export interface IFiltersAdapter extends ISubAdapter {
     conditions: string[];
@@ -72,3 +73,7 @@ export interface IFiltersAdapter extends ISubAdapter {
 
     getQueryAndParameters(): [string, unknown[]];
 }
+
+export type FiltersContainerOptions = {
+    rootAlias?: string,
+} & DialectOptions;

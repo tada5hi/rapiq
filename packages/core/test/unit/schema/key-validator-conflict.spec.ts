@@ -75,14 +75,17 @@ describe('src/schema/base.ts', () => {
 
         it('should report the hook pair through the schema accessors', () => {
             const perKey = defineFieldsSchema({ validate: hooks.validate });
+
             expect(perKey.hasValidator()).toBe(true);
             expect(perKey.hasManyValidator()).toBe(false);
 
             const batched = defineFieldsSchema({ validateMany: hooks.validateMany });
+
             expect(batched.hasValidator()).toBe(true);
             expect(batched.hasManyValidator()).toBe(true);
 
             const none = defineFieldsSchema({ allowed: ['id'] });
+
             expect(none.hasValidator()).toBe(false);
             expect(none.hasManyValidator()).toBe(false);
         });

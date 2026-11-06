@@ -122,6 +122,7 @@ describe('src/schema/parameter/groups/*.ts', () => {
         });
 
         const output = schema.describe();
+
         output.allowed!.push('mutated');
         output.functions!.bucket!.params[0]!.values.push('mutated');
 
@@ -163,6 +164,7 @@ describe('src/schema/parameter/groups/*.ts', () => {
     it('should not share the declared columns with the caller', () => {
         const allowed = ['status'];
         const schema = defineGroupsSchema({ allowed });
+
         allowed.push('scope');
 
         expect(schema.allowed).toEqual(['status']);

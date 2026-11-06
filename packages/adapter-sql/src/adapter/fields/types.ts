@@ -21,3 +21,10 @@ export type FieldAddOptions = {
 export interface IFieldsAdapter extends ISubAdapter {
     add(input: string, operator?: `${FieldOperator}`, options?: FieldAddOptions): void;
 }
+
+
+
+export type FieldsContainerOptions = {
+    rootAlias?: string,
+    escapeField?: (input: string) => string
+};

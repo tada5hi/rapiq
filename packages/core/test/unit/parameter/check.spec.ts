@@ -203,6 +203,7 @@ describe('src/parameter/**/check.ts', () => {
     describe('isParameterNode', () => {
         it('should recognize every AST node', () => {
             const keys = Object.keys(nodes) as NodeKey[];
+
             for (const key of keys) {
                 expect(isParameterNode(nodes[key])).toBe(true);
             }

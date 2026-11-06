@@ -1,3 +1,11 @@
+import type {
+    ApplyOutput,
+    Comparator,
+    Predicate,
+    Projector,
+    QueryVisitorOptions,
+    Slicer,
+} from './types';
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -24,24 +32,6 @@ import {
     createFieldConditionRedactor,
 } from './parameter';
 import { CompiledQuery } from './query';
-import type {
-    ApplyOutput,
-    Comparator,
-    Predicate,
-    Projector,
-    Slicer,
-} from './types';
-
-export type QueryVisitorOptions = {
-    /**
-     * Field keys whose equality (eq/ne/in/nin) and anchored
-     * (startsWith/endsWith/contains) comparisons stay
-     * case-sensitive instead of the case-insensitive default;
-     * `true` opts every field out. Typically forwarded from a
-     * schema's `filters.caseSensitive` list.
-     */
-    caseSensitive?: string[] | boolean,
-};
 
 export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<CompiledQuery<T>> {
     protected options : QueryVisitorOptions;
@@ -62,6 +52,7 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         const hasConditions = expr.fields.value.some(
             (field) => !!field.condition,
         );
+
         if (hasPicks || hasConditions) {
             projector = expr.fields.accept(new FieldsVisitor<T>({
                 relations,
@@ -70,6 +61,7 @@ export class QueryVisitor<T = Record<string, any>> implements IQueryVisitor<Comp
         }
 
         let comparator : Comparator<T> | undefined;
+
         if (expr.sorts.value.length > 0) {
             comparator = expr.sorts.accept(new SortsVisitor<T>());
         }
@@ -175,6 +167,7 @@ export function applyFieldConditions<T = Record<string, any>>(
     options: FiltersVisitorOptions = {},
 ) : T[] {
     const redactor = createFieldConditionRedactor<T>(input.value, options);
+
     if (!redactor) {
         return [...data];
     }

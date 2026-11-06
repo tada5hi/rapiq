@@ -16,7 +16,5 @@ export class SortsParseError extends ParseError {
  */
 export const SortParseError = SortsParseError;
 
-/**
- * @deprecated use {@link SortsParseError}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type alias.
 export type SortParseError = SortsParseError;

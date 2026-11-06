@@ -40,6 +40,7 @@ describe('src/adapter/filters (uuid columns)', () => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ filters: new Filters(FilterCompoundOperator.AND, [condition]) }));
 
         return queryBuilder;
@@ -68,11 +69,13 @@ describe('src/adapter/filters (uuid columns)', () => {
     it('should refuse a non-uuid operand before the query runs', () => {
         expect(() => createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', 'nope')))
             .toThrowError(invalid);
+
         // lengths, braces and hyphens postgres itself rejects (22P02)
         for (const operand of [`${ID}0`, `{${ID}`, `-${ID}`, ID.replace('-', '--')]) {
             expect(() => createQueryBuilder(new Filter(FilterFieldOperator.EQUAL, 'external_id', operand)))
                 .toThrowError(invalid);
         }
+
         expect(() => createQueryBuilder(new Filter(FilterFieldOperator.NOT_EQUAL, 'external_id', 42)))
             .toThrowError(invalid);
     });

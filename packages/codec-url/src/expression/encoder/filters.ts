@@ -151,6 +151,7 @@ function serializeCondition(node: ICondition, insideElemMatch: boolean) : string
         }
         case FilterFieldOperator.ELEM_MATCH: {
             const interior = node.value as ICondition;
+
             if (!isFilter(interior) && !isFilters(interior)) {
                 throw AdapterError.featureUnsupported('filters:elemMatch:value');
             }
@@ -221,6 +222,7 @@ function serializeValue(input: unknown) : string {
         const roundTrips = typeof decoded === 'string' ?
             decoded === input :
             decoded !== null && `${decoded}` === input;
+
         if (!roundTrips) {
             throw AdapterError.featureUnsupported('filters:value:text');
         }

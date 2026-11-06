@@ -154,6 +154,7 @@ describe('src/utils/encode.ts', () => {
 
         it('should throw what the server would raise for a unit outside the open slot', () => {
             let error : ParseError | undefined;
+
             try {
                 aware.encode(defineQuery({ groups: [{ name: 'period', params: ['month'] }] }), { schema: 'order' });
             } catch (e) {

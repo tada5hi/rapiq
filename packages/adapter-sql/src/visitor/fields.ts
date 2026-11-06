@@ -1,3 +1,4 @@
+import type { FieldsInterpreterOptions } from './types';
 /*
  * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
@@ -19,9 +20,7 @@ import {
     isFilters,
 } from '@rapiq/core';
 import type { IFieldsAdapter } from '../adapter';
-import type { VisitorOptions } from './types';
 
-export type FieldsInterpreterOptions = VisitorOptions;
 
 /**
  * Collect the leaf fields a condition tree reads. An elemMatch leaf
@@ -89,11 +88,13 @@ IFieldVisitor<IFieldsAdapter> {
         const gated = expr.value.filter(
             (item) => !!item.condition && item.operator !== FieldOperator.EXCLUDE,
         );
+
         if (gated.length === 0) {
             return;
         }
 
         const selected = new Set<string>();
+
         for (const item of expr.value) {
             if (item.operator !== FieldOperator.EXCLUDE) {
                 selected.add(item.name);
@@ -105,9 +106,11 @@ IFieldVisitor<IFieldsAdapter> {
             // from: a gate on `items.secret` has operands relative to the
             // item record, so operand `kind` becomes column `items.kind`.
             const prefix = item.name.split('.');
+
             prefix.pop();
 
             const operands : string[] = [];
+
             collectConditionFields(item.condition as ICondition, operands);
 
             for (const operand of operands) {
@@ -118,6 +121,7 @@ IFieldVisitor<IFieldsAdapter> {
                 }
 
                 const column = [...prefix, operand].join('.');
+
                 if (selected.has(column)) {
                     continue;
                 }

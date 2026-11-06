@@ -54,22 +54,26 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.EQUAL, 'age', 18);
 
         const [sqliteSql, sqliteParams] = apply(sqlite, condition);
+
         expect(sqliteSql).toEqual('"user"."age" = :0');
         expect(sqliteParams).toEqual([18]);
 
         const [mysqlSql, mysqlParams] = apply(mysql, condition);
+
         expect(mysqlSql).toEqual('`user`.`age` = :0');
         expect(mysqlParams).toEqual([18]);
     });
 
     it('should keep quote characters inside filter identifiers (#941)', () => {
         const condition = new Filter('eq', 'name") is not null or true or ("name', 'zz');
+
         for (const source of [sqlite, pg]) {
             expect(apply(source, condition)).toEqual([
                 'lower("user"."name"") is not null or true or (""name") = lower(:0)',
                 ['zz'],
             ]);
         }
+
         expect(apply(mysql, new Filter('eq', 'a`b', 'zz')))
             .toEqual(['`user`.`a``b` = :0', ['zz']]);
     });
@@ -77,7 +81,9 @@ describe('src/adapter/filters.ts', () => {
     it('should preserve native citext matching without a text cast', () => {
         const column = pg.getMetadata(User).findColumnWithPropertyPath('first_name')!;
         const previous = column.type;
+
         column.type = 'citext';
+
         try {
             expect(apply(pg, new Filter('contains', 'first_name', 'aston')))
                 .toEqual(['"user"."first_name" like :0 escape \'!\'', ['%aston%']]);
@@ -99,6 +105,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.REGEX, 'first_name', /^Aston/);
 
         const [sql, params] = apply(mysql, condition);
+
         expect(sql).toEqual('`user`.`first_name` regexp :0 = 1');
         expect(params).toEqual(['^Aston']);
     });
@@ -113,6 +120,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'first_name', 'Aston');
 
         const [sql, params] = apply(sqlite, condition);
+
         // unfolded: sqlite's like is already case-insensitive
         expect(sql).toEqual('"user"."first_name" like :0 escape \'!\'');
         expect(params).toEqual(['Aston%']);
@@ -122,6 +130,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'first_name', 'Aston');
 
         const [sql, params] = apply(mysql, condition);
+
         // a prefix like is index-usable where `regexp` is not;
         // unfolded because mysql's default collation is already ci
         expect(sql).toEqual('`user`.`first_name` like :0 escape \'!\'');
@@ -133,6 +142,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.STARTS_WITH, 'realm_id', '1');
 
         const [sql, params] = apply(pg, condition);
+
         expect(sql).toEqual('"user"."realm_id"::text like :0 escape \'!\'');
         expect(params).toEqual(['1%']);
     });
@@ -141,6 +151,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.CONTAINS, 'first_name', 'Aston');
 
         const [sql, params] = apply(pg, condition);
+
         expect(sql).toEqual('lower("user"."first_name") like lower(:0) escape \'!\'');
         expect(params).toEqual(['%Aston%']);
     });
@@ -149,6 +160,7 @@ describe('src/adapter/filters.ts', () => {
         const condition = new Filter(FilterFieldOperator.IN, 'realm_id', [1, null]);
 
         const [sql, params] = apply(mysql, condition);
+
         expect(sql).toEqual('(`user`.`realm_id` in(:0) or `user`.`realm_id` is null)');
         expect(params).toEqual([1]);
     });

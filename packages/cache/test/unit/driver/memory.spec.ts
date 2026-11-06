@@ -62,20 +62,22 @@ describe('src/driver/memory.ts', () => {
         // 20 entries still alive when the 40 tags lapse: a budget shared with
         // the entry scan spends itself on them and never reaches the tags.
         vi.advanceTimersByTime(5_000);
+
         for (let i = 0; i < 20; i++) {
             await driver.write(`k${i}`, {
-                clock: await driver.clock(), 
-                tags: ['live'], 
-                value: i, 
+                clock: await driver.clock(),
+                tags: ['live'],
+                value: i,
             }, 10_000);
         }
+
         expect(driver.tagSize).toEqual(41);
 
         vi.advanceTimersByTime(5_000);
         await driver.write('k0', {
-            clock: await driver.clock(), 
-            tags: ['live'], 
-            value: 0, 
+            clock: await driver.clock(),
+            tags: ['live'],
+            value: 0,
         }, 10_000);
 
         // every lapsed tag goes, not a budget of them: only `live` remains.
@@ -92,8 +94,10 @@ describe('src/driver/memory.ts', () => {
         // 50 ids nobody reads again, one miss per second.
         const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
         let id = 0;
+
         for (let i = 0; i < 500; i++) {
             const tags = ['event'];
+
             for (let j = 0; j < 50; j++) {
                 tags.push(`event:${id++}`);
             }
@@ -118,6 +122,7 @@ describe('src/driver/memory.ts', () => {
 
         // an insert-heavy table bumps fresh record tags and is never read.
         const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
+
         for (let i = 0; i < 1_000; i++) {
             await driver.invalidate(['event', `event:${i}`, `event:actor=${i}`]);
             vi.advanceTimersByTime(100);
@@ -134,13 +139,15 @@ describe('src/driver/memory.ts', () => {
 
         const driver = new ChaosMemoryCacheDriver({ maxTtl: 10_000 });
         const clock = await driver.clock();
+
         for (let i = 0; i < 40; i++) {
             await driver.write(`k${i}`, {
-                clock, 
-                tags: ['role'], 
-                value: i, 
+                clock,
+                tags: ['role'],
+                value: i,
             }, 1_000);
         }
+
         expect(driver.size).toEqual(40);
 
         vi.advanceTimersByTime(1_000);
@@ -148,26 +155,26 @@ describe('src/driver/memory.ts', () => {
         // the prune is bounded, so one write removes at most 16 entries;
         // three more take the rest.
         await driver.write('fresh', {
-            clock, 
-            tags: ['role'], 
-            value: 'v', 
+            clock,
+            tags: ['role'],
+            value: 'v',
         }, 1_000);
         expect(driver.size).toBeLessThanOrEqual(40 - 16 + 1);
 
         await driver.write('fresh', {
-            clock, 
-            tags: ['role'], 
-            value: 'v', 
+            clock,
+            tags: ['role'],
+            value: 'v',
         }, 1_000);
         await driver.write('fresh', {
-            clock, 
-            tags: ['role'], 
-            value: 'v', 
+            clock,
+            tags: ['role'],
+            value: 'v',
         }, 1_000);
         await driver.write('fresh', {
-            clock, 
-            tags: ['role'], 
-            value: 'v', 
+            clock,
+            tags: ['role'],
+            value: 'v',
         }, 1_000);
         expect(driver.size).toEqual(1);
 

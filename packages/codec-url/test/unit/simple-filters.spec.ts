@@ -6,9 +6,9 @@
  */
 
 import {
-    Filter, 
-    FilterCompoundOperator, 
-    FilterFieldOperator, 
+    Filter,
+    FilterCompoundOperator,
+    FilterFieldOperator,
     Filters,
 } from '@rapiq/core';
 import { SimpleURLDecoder, SimpleURLEncoder } from '../../src/simple';
@@ -54,6 +54,7 @@ describe('filters', () => {
         const filter = new Filter(operator, field, value);
 
         const encoded = encoder.encodeFilter(filter);
+
         expect(decodeURIComponent(encoded!)).toEqual(`filter[${field}]=${expected}`);
 
         const decoded = decoder.decodeFilters(encoded!);

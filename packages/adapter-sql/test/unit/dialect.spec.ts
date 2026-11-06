@@ -55,8 +55,10 @@ describe('identifier escaping (#941)', () => {
         [mssql, 'a]b', '[a]]b]'],
     ] as const)('should keep the whole input inside one identifier: %s', (dialect, input, quoted) => {
         expect(dialect.escapeField(input)).toBe(quoted);
+
         for (const operator of ['eq', 'contains'] as const) {
             const adapter = new Adapter(dialect);
+
             adapter.execute(new Query({ filters: new Filter(operator, input, 'zz') }));
             expect(adapter.filters.getQuery()).toContain(quoted);
             expect(adapter.filters.params).toEqual([operator === 'eq' ? 'zz' : '%zz%']);

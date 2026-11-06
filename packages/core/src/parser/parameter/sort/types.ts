@@ -11,6 +11,9 @@ import type {
     ObjectLiteral,
 } from '../../../types';
 
+
+
+
 export type SortsParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = {
@@ -27,3 +30,6 @@ export type SortsParseOptions<
 export type SortParseOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = SortsParseOptions<RECORD>;
+
+// eslint-disable-next-line @tada5hi/no-reexport-shims -- Preserve the merged public value and type alias.
+export type { SortParseError } from './error';

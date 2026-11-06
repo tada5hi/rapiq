@@ -144,6 +144,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         }
 
         const pending = event.queryRunner.data[CACHE_INVALIDATION_PENDING_KEY];
+
         if (!(pending instanceof Set)) {
             return;
         }
@@ -176,10 +177,12 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
 
         if (!queryRunner.isTransactionActive) {
             await this.invalidate(Array.from(new Set(tags)));
+
             return;
         }
 
         let pending = queryRunner.data[CACHE_INVALIDATION_PENDING_KEY];
+
         if (!(pending instanceof Set)) {
             pending = new Set<string>();
             queryRunner.data[CACHE_INVALIDATION_PENDING_KEY] = pending;
@@ -212,24 +215,29 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         insert = false,
     ) : string[] {
         const name = this.resolveSchemaName(metadata);
+
         if (typeof name === 'undefined') {
             return [];
         }
 
         const tags : string[] = [buildCollectionTag(name)];
+
         if (typeof row === 'undefined' || row === null) {
             return tags;
         }
 
         const id = this.readId(metadata, row);
+
         if (typeof id !== 'undefined') {
             tags.push(buildRecordTag(name, id));
         }
 
         const schema = this.resolveSchema(name);
+
         if (schema) {
             for (const column of leadingColumns(schema)) {
                 let value = this.readColumn(metadata, row, column);
+
                 if (typeof value === 'undefined' && insert) {
                     // an insert that omits a nullable column without a
                     // default writes NULL, and the payload does not say so.
@@ -237,6 +245,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 }
 
                 value = canonicalizeDateColumn(metadata, column, value);
+
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
                     tags.push(buildScopedTag(name, column, value));
                 }
@@ -252,18 +261,22 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      */
     protected buildNullScopeTags(metadata: EntityMetadata) : string[] {
         const name = this.resolveSchemaName(metadata);
+
         if (typeof name === 'undefined') {
             return [];
         }
 
         const schema = this.resolveSchema(name);
+
         if (!schema) {
             return [];
         }
 
         const tags : string[] = [];
+
         for (const column of leadingColumns(schema)) {
             const joinColumn = findJoinColumn(metadata, column);
+
             if (joinColumn && joinColumn.column.isNullable) {
                 tags.push(buildScopedTag(name, column, null));
             }
@@ -280,16 +293,19 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      */
     protected readColumn(metadata: EntityMetadata, row: ObjectLiteral, property: string) : unknown {
         const value = row[property];
+
         if (typeof value !== 'undefined') {
             return value;
         }
 
         const joinColumn = findJoinColumn(metadata, property);
+
         if (!joinColumn) {
             return undefined;
         }
 
         const related = row[joinColumn.relation.propertyName];
+
         if (related === null) {
             return null;
         }
@@ -314,6 +330,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
             return metadata.ensureEntityIdMap(id);
         } catch (e) {
             this.onError(e);
+
             return undefined;
         }
     }
@@ -338,11 +355,13 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
 
         for (const columns of [metadata.ownerColumns, metadata.inverseColumns]) {
             const target = columns[0]?.referencedColumn?.entityMetadata;
+
             if (!target) {
                 continue;
             }
 
             const name = this.resolveSchemaName(target);
+
             if (typeof name === 'undefined') {
                 continue;
             }
@@ -354,6 +373,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
             }
 
             const reference : ObjectLiteral = {};
+
             for (const column of columns) {
                 if (column.referencedColumn) {
                     reference[column.referencedColumn.propertyName] = row[column.propertyName];
@@ -361,6 +381,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
             }
 
             const id = this.readId(target, reference);
+
             if (typeof id !== 'undefined') {
                 tags.push(buildRecordTag(name, id));
             }
@@ -397,6 +418,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 }
 
                 const value = row[column.parent];
+
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
                     tags.add(buildScopedTag(dependency.schema, column.child, value));
                 }
@@ -418,6 +440,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      */
     protected resolveCascades(metadatas: EntityMetadata[], metadata: EntityMetadata) : CascadeDependency[] {
         let dependencies = this.cascades.get(metadata);
+
         if (dependencies) {
             return dependencies;
         }
@@ -436,6 +459,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                     }
 
                     const schema = this.resolveSchemaName(relation.entityMetadata);
+
                     if (typeof schema !== 'undefined') {
                         output.push({
                             schema,
@@ -466,6 +490,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
     protected resolveCascadeColumns(schema: string, relation: RelationMetadata) : CascadeColumn[] {
         const leading = new Set<string>();
         const target = this.resolveSchema(schema);
+
         if (target) {
             for (const column of leadingColumns(target)) {
                 leading.add(column);
@@ -473,6 +498,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         }
 
         const columns : CascadeColumn[] = [];
+
         for (const joinColumn of relation.joinColumns) {
             if (
                 joinColumn.referencedColumn &&
@@ -494,13 +520,16 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      */
     protected readId(metadata: EntityMetadata, row: ObjectLiteral) : string | undefined {
         const idMap = metadata.getEntityIdMap(row);
+
         if (typeof idMap === 'undefined') {
             return undefined;
         }
 
         const values : string[] = [];
+
         for (const column of metadata.primaryColumns) {
             const value = column.getEntityValue(idMap);
+
             if (typeof value === 'undefined' || value === null) {
                 return undefined;
             }
@@ -517,6 +546,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      */
     protected resolveSchema(name: string) : Schema | undefined {
         const schema = this.registry.get(name);
+
         if (typeof schema === 'undefined') {
             this.onError(CacheError.schemaUnresolvable(name));
         }
@@ -570,6 +600,7 @@ function findColumn(metadata: EntityMetadata, property: string) {
  */
 function readInsertDefault(metadata: EntityMetadata, property: string) : null | undefined {
     const column = findColumn(metadata, property);
+
     if (
         column &&
         column.isNullable &&
@@ -594,17 +625,20 @@ function canonicalizeDateColumn(metadata: EntityMetadata, property: string, valu
     }
 
     const column = findColumn(metadata, property);
+
     if (!column) {
         return value;
     }
 
     const isDate = column.type === Date ||
         (typeof column.type === 'string' && /^(date|datetime|timestamp)/i.test(column.type));
+
     if (!isDate) {
         return value;
     }
 
     const time = Date.parse(value);
+
     return Number.isNaN(time) ? value : new Date(time);
 }
 

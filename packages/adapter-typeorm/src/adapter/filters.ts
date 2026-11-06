@@ -25,22 +25,22 @@ import type { RelationsAdapter } from './relations';
  * it only discards the citext index.
  */
 const CASE_FOLDABLE_COLUMN_TYPES = new Set<string>([
-    'varchar', 
-    'character varying', 
-    'varying character', 
+    'varchar',
+    'character varying',
+    'varying character',
     'char varying',
-    'nvarchar', 
+    'nvarchar',
     'national varchar',
-    'char', 
-    'nchar', 
-    'national char', 
-    'character', 
+    'char',
+    'nchar',
+    'national char',
+    'character',
     'native character',
-    'text', 
-    'tinytext', 
-    'mediumtext', 
-    'longtext', 
-    'ntext', 
+    'text',
+    'tinytext',
+    'mediumtext',
+    'longtext',
+    'ntext',
     'string',
     // typeorm stores these as text and hydrates them itself, so a
     // filter on one compares against the stored string
@@ -186,10 +186,13 @@ function nextParamNamespace(queryBuilder: SelectQueryBuilder<any>) : string {
     const keys = Object.keys(queryBuilder.expressionMap.parameters);
 
     let namespace : string;
+    let hasConflictingParameter: boolean;
+
     do {
         PARAM_NAMESPACE_SEQ += 1;
         namespace = `rapiq_${PARAM_NAMESPACE_SEQ}_`;
-    } while (keys.some((key) => key.startsWith(namespace)));
+        hasConflictingParameter = keys.some((key) => key.startsWith(namespace));
+    } while (hasConflictingParameter);
 
     return namespace;
 }
@@ -205,16 +208,19 @@ function findColumnByPropertyPath(metadata: EntityMetadata, path: string) {
 
     for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
+
         if (!segment) {
             return undefined;
         }
 
         const column = current.findColumnWithPropertyPath(segments.slice(i).join('.'));
+
         if (column) {
             return column;
         }
 
         const relation = current.findRelationWithPropertyPath(segment);
+
         if (!relation) {
             return undefined;
         }
@@ -282,11 +288,13 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
     override castText(input: string, field?: string) : string {
         const { mainAlias } = this.queryBuilder.expressionMap;
+
         // citext is not case-foldable because its native LIKE already folds.
         // Casting it to text would silently make matching case-sensitive.
         if (field && mainAlias?.hasMetadata && findColumnByPropertyPath(mainAlias.metadata, field)?.type === 'citext') {
             return input;
         }
+
         return this.dialect.castText?.(input) ?? super.castText(input);
     }
 
@@ -317,6 +325,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
      */
     protected resolveColumn(path: string) {
         const { mainAlias } = this.queryBuilder.expressionMap;
+
         if (!mainAlias || !mainAlias.hasMetadata) {
             return undefined;
         }
@@ -326,6 +335,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
 
     override isCaseFoldable(field: string) : boolean {
         const column = this.resolveColumn(field);
+
         if (!column) {
             return super.isCaseFoldable(field);
         }
@@ -343,6 +353,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
      */
     override temporalKind(field: string) : TemporalKind | undefined {
         const column = this.resolveColumn(field);
+
         if (!column) {
             return super.temporalKind(field);
         }
@@ -360,6 +371,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
      */
     override isNumeric(field: string) : boolean {
         const column = this.resolveColumn(field);
+
         if (!column) {
             return super.isNumeric(field);
         }
@@ -387,6 +399,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         const column = this.resolveColumn(field);
+
         if (!column) {
             return value;
         }
@@ -397,6 +410,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
             // nothing: refuse it here so every dialect answers with the
             // same client error.
             const uuid = toCanonicalUuid(value);
+
             if (!uuid) {
                 throw AdapterError.keyValueInvalid(field);
             }
@@ -405,11 +419,13 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
         }
 
         const format = resolveDateColumnFormat(column.type);
+
         if (!format) {
             return value;
         }
 
         const date = toDate(value);
+
         if (!date) {
             // a malformed date would otherwise reach the driver, which
             // answers a bad client value with a server error.
@@ -448,6 +464,7 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
      */
     override resolveFieldName(name: string, relationPath?: string) : string {
         const column = this.resolveColumn(relationPath ? `${relationPath}.${name}` : name);
+
         if (!column) {
             return super.resolveFieldName(name, relationPath);
         }
@@ -469,16 +486,19 @@ export class FiltersAdapter extends FiltersBaseAdapter<RelationsAdapter> {
     override execute() {
         const [sql, params] = this.getQueryAndParameters();
 
-        if (sql) {
-            const parameters : Record<string, unknown> = {};
-            for (const [i, param] of params.entries()) {
-                parameters[`${this.paramNamespace}${i}`] = param;
-            }
-
-            // The builder may already carry an application-owned predicate
-            // (for example a tenant or authorization scope). Rapiq filters
-            // narrow that query; they must never replace its baseline WHERE.
-            this.queryBuilder.andWhere(sql, parameters);
+        if (!(sql)) {
+            return;
         }
+
+        const parameters : Record<string, unknown> = {};
+
+        for (const [i, param] of params.entries()) {
+            parameters[`${this.paramNamespace}${i}`] = param;
+        }
+
+        // The builder may already carry an application-owned predicate
+        // (for example a tenant or authorization scope). Rapiq filters
+        // narrow that query; they must never replace its baseline WHERE.
+        this.queryBuilder.andWhere(sql, parameters);
     }
 }

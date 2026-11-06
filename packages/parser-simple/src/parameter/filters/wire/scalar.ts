@@ -20,6 +20,7 @@ import type { Scalar } from '@rapiq/core';
  */
 export function parseFilterScalar(input: string) : Scalar {
     const trimmed = input.trim();
+
     if (trimmed.length === 0) {
         return trimmed;
     }
@@ -39,6 +40,7 @@ export function parseFilterScalar(input: string) : Scalar {
     }
 
     const num = Number(trimmed);
+
     if (!Number.isNaN(num)) {
         return num;
     }

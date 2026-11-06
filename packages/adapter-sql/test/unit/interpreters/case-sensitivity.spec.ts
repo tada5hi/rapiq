@@ -23,6 +23,7 @@ const createAdapter = (options: FiltersContainerOptions) => new FiltersAdapter(
 describe('equality case sensitivity', () => {
     it('folds string equality through lower() by default', () => {
         const adapter = createAdapter({ ...pg });
+
         new Filter('eq', 'name', 'John').accept(new FiltersVisitor(adapter));
 
         expect(adapter.getQueryAndParameters()).toEqual([
@@ -34,6 +35,7 @@ describe('equality case sensitivity', () => {
     it('keeps fields listed in caseSensitive exact', () => {
         const adapter = createAdapter({ ...pg });
         const visitor = new FiltersVisitor(adapter, { caseSensitive: ['id'] });
+
         new Filter('eq', 'id', 'aBc').accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
@@ -45,6 +47,7 @@ describe('equality case sensitivity', () => {
     it('keeps every field exact for the blanket caseSensitive opt-out', () => {
         const adapter = createAdapter({ ...pg });
         const visitor = new FiltersVisitor(adapter, { caseSensitive: true });
+
         new Filter('eq', 'name', 'John').accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
@@ -56,6 +59,7 @@ describe('equality case sensitivity', () => {
     it('keeps caseSensitive in-lists exact', () => {
         const adapter = createAdapter({ ...pg });
         const visitor = new FiltersVisitor(adapter, { caseSensitive: ['id'] });
+
         new Filter('in', 'id', ['a', 'b']).accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([
@@ -66,6 +70,7 @@ describe('equality case sensitivity', () => {
 
     it('folds only the string members of a mixed in-list', () => {
         const adapter = createAdapter({ ...pg });
+
         new Filter('in', 'code', ['a', 1]).accept(new FiltersVisitor(adapter));
 
         expect(adapter.getQueryAndParameters()).toEqual([
@@ -76,6 +81,7 @@ describe('equality case sensitivity', () => {
 
     it('emits plain comparisons when the dialect caseFold is identity (mysql)', () => {
         const adapter = createAdapter({ ...mysql });
+
         new Filter('eq', 'name', 'John').accept(new FiltersVisitor(adapter));
 
         expect(adapter.getQueryAndParameters()).toEqual([

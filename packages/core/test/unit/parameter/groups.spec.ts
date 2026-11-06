@@ -63,6 +63,7 @@ describe('src/parameter/groups/**', () => {
         const params = ['createdAt', 'day'];
         const group = new Group({ name: 'bucket', params });
         const aggregate = new Aggregate({ name: 'sum', params });
+
         params.push('hour');
 
         expect(group.params).toEqual(['createdAt', 'day']);

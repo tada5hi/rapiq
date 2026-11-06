@@ -16,7 +16,5 @@ export class MongoSortsParser extends SimpleSortsParser {
  */
 export const MongoSortParser = MongoSortsParser;
 
-/**
- * @deprecated use {@link MongoSortsParser}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type MongoSortParser = MongoSortsParser;

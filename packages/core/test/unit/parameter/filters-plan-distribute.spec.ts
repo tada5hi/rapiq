@@ -24,6 +24,7 @@ import {
 
 function distributed(condition: Condition) : ConditionPlan {
     const plan = planCondition(condition);
+
     expect(plan).not.toBeNull();
 
     return distributeNegation(plan as ConditionPlan);
@@ -69,15 +70,15 @@ describe('src/parameter/filters/plan/distribute.ts', () => {
             negated: false,
             children: [
                 {
-                    kind: 'compare', 
-                    op: 'eq', 
-                    field: 'a', 
+                    kind: 'compare',
+                    op: 'eq',
+                    field: 'a',
                     negated: true,
                 },
                 {
-                    kind: 'compare', 
-                    op: 'eq', 
-                    field: 'b', 
+                    kind: 'compare',
+                    op: 'eq',
+                    field: 'b',
                     negated: true,
                 },
             ],
@@ -105,15 +106,15 @@ describe('src/parameter/filters/plan/distribute.ts', () => {
             operator: 'or',
             children: [
                 {
-                    kind: 'compare', 
-                    op: 'gte', 
-                    value: 18, 
+                    kind: 'compare',
+                    op: 'gte',
+                    value: 18,
                     negated: false,
                 },
                 {
-                    kind: 'null-check', 
-                    field: 'age', 
-                    negated: false, 
+                    kind: 'null-check',
+                    field: 'age',
+                    negated: false,
                 },
             ],
         });

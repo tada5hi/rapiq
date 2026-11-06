@@ -7,10 +7,10 @@
 
 import type { DataSource } from 'typeorm';
 import {
-    Field, 
-    Fields, 
-    Query, 
-    Relation, 
+    Field,
+    Fields,
+    Query,
+    Relation,
     Relations,
 } from '@rapiq/core';
 import { TypeormAdapter } from '../../src';
@@ -45,11 +45,13 @@ describe('issue #831', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
         const userRepository = dataSource.getRepository(User);
+
         aston.role = admin;
         aston.realm = master;
         await userRepository.save(aston);
@@ -64,6 +66,7 @@ describe('issue #831', () => {
         // with a per-column select, so the duplicate cannot arise structurally;
         // this keeps pinning the end-to-end contract against a live engine.
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
+
         queryBuilder.groupBy('user.id');
 
         new TypeormAdapter({
@@ -101,6 +104,7 @@ describe('issue #831', () => {
 
         const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray().map((m) => m[1]);
         const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+
         expect(duplicates).toEqual([]);
     });
 });

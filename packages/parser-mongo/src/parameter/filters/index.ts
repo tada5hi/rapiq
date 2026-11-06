@@ -6,5 +6,6 @@
  */
 
 export * from './constants';
+export type { MongoCompoundOperator, MongoComparisonOperator } from './types';
 export * from './module';
 export * from './types';

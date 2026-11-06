@@ -9,3 +9,4 @@ export * from './parameter';
 export * from './module';
 export * from './types';
 export * from './utils';
+export type { ParameterNode } from './types';

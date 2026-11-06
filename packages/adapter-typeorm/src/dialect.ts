@@ -18,6 +18,7 @@ export function resolveQueryDialect(
     query: SelectQueryBuilder<any>,
 ) : DialectOptions {
     const dialect = resolveDialect(query.connection.options.type);
+
     if (dialect) {
         return dialect;
     }

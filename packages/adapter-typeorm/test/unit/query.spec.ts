@@ -38,6 +38,7 @@ describe('src/query', () => {
 
     it('should apply a full parsed query', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'realm',
             fields: { allowed: ['id', 'name'] },
@@ -64,14 +65,18 @@ describe('src/query', () => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
+
         adapter.execute(query);
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('JOIN');
         expect(sql).toContain('ORDER BY');
 
         const entities = await queryBuilder.getMany();
+
         expect(entities.length).toBeGreaterThan(0);
+
         for (const entity of entities) {
             expect(entity.age).toBeGreaterThanOrEqual(18);
         }
@@ -79,6 +84,7 @@ describe('src/query', () => {
 
     it('should apply an authup-style repository query', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             filters: { allowed: ['id', 'realm_id'] },
@@ -97,6 +103,7 @@ describe('src/query', () => {
         }, { schema: 'user' });
 
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
+
         queryBuilder.groupBy('user.id');
 
         const adapter = new TypeormAdapter({
@@ -110,14 +117,17 @@ describe('src/query', () => {
         });
 
         const { pagination } = adapter.execute(query);
+
         expect(pagination.limit).toEqual(10);
 
         const sql = queryBuilder.getSql();
+
         expect(sql).toContain('LEFT JOIN');
         expect(sql).toContain('GROUP BY');
 
         // aston (realm master) + caleb (no realm) both match
         const entities = await queryBuilder.getMany();
+
         expect(entities.length).toEqual(2);
     });
 });

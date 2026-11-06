@@ -31,6 +31,7 @@ import { URLCodec } from './module';
  */
 function isExpressionShaped(payload: ObjectLiteral) : boolean {
     const filters = payload[URLParameter.FILTERS];
+
     if (typeof filters === 'string') {
         return filters !== '';
     }

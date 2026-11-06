@@ -39,6 +39,7 @@ export function buildModelSchemaName(input: DatamodelModel | string) : string {
 
 function resolveModel(datamodel: Datamodel, name: string) : DatamodelModel {
     const model = datamodel.models.find((item) => item.name === name);
+
     if (!model) {
         throw new AdapterError({
             message: `The model "${name}" is not part of the datamodel.`,
@@ -96,6 +97,7 @@ function buildSchemaOptions(
 
     const relationKeys : string[] = [];
     const schemaMapping : Record<string, string> = {};
+
     for (const field of model.fields) {
         if (field.kind !== RELATION_KIND) {
             continue;
@@ -109,6 +111,7 @@ function buildSchemaOptions(
     const resolveAllowed = (allowed: unknown) => {
         if (allowed === 'inherit') {
             columnKeys = columnKeys || deriveColumnKeys(model);
+
             return columnKeys;
         }
 
@@ -183,8 +186,10 @@ export function defineSchemaRegistryWithDatamodel(
     const schemasOptions = options.schemas || {};
 
     const names = new Set<string>();
+
     for (const model of datamodel.models) {
         const name = buildModelSchemaName(model);
+
         if (names.has(name)) {
             throw new SchemaError({
                 message: `The derived schema name "${name}" is not unique across the datamodel.`,

@@ -117,8 +117,10 @@ describe('src/parameter/call', () => {
 
         function fastest(input: string) : number {
             let min = Infinity;
+
             for (let i = 0; i < 3; i++) {
                 const start = performance.now();
+
                 errorOf(input);
                 min = Math.min(min, performance.now() - start);
             }
@@ -132,6 +134,7 @@ describe('src/parameter/call', () => {
             ['blank runs around arguments', `f(${' '.repeat(LENGTH)}x ${' '.repeat(LENGTH)}y)`],
         ])('should reject %s in linear time', (_label, input) => {
             const error = errorOf(input);
+
             expect(error).toBeInstanceOf(ParseError);
             expect(error?.code).toBe(ErrorCode.SYNTAX_INVALID);
 

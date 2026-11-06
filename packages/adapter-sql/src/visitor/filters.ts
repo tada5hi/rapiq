@@ -70,6 +70,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
 
     protected run(expr: ICondition) : IFiltersAdapter {
         const plan = planCondition(expr, { caseSensitive: this.options.caseSensitive });
+
         if (!plan) {
             return this.adapter;
         }
@@ -139,15 +140,20 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         const nullCondition = `${field} is ${plan.negated ? 'not ' : ''}null`;
 
         let inCondition : string;
-        if (
-            plan.caseFold &&
+
+        const matchesValues = plan.caseFold &&
             this.isCaseFoldableField(plan.field) &&
-            values.some((value) => typeof value === 'string')
+            values.some((value) => typeof value === 'string');
+
+        if (
+            matchesValues
         ) {
             const placeholders = values.map((value) => {
                 const placeholder = this.adapter.buildParamPlaceholder();
+
                 return typeof value === 'string' ? this.adapter.caseFold(placeholder) : placeholder;
             });
+
             inCondition = `${this.adapter.caseFold(field)} ${plan.negated ? 'not ' : ''}in(${placeholders.join(', ')})`;
         } else {
             inCondition = `${field} ${plan.negated ? 'not ' : ''}in(${this.adapter.buildParamsPlaceholders(values).join(', ')})`;
@@ -182,6 +188,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
             );
 
             let pattern : string;
+
             if (plan.pattern.mode === 'starts') {
                 pattern = `${escaped}%`;
             } else if (plan.pattern.mode === 'ends') {
@@ -254,6 +261,7 @@ export class FiltersVisitor implements IFiltersVisitor<IFiltersAdapter>,
         const operandPlaceholder = fold ? caseFoldLike(placeholder) : placeholder;
 
         const condition = `${operand} ${negated ? 'not ' : ''}like ${operandPlaceholder} escape '${LIKE_ESCAPE_CHARACTER}'`;
+
         if (negated) {
             return this.whereComplement(fieldBuilt, condition, pattern);
         }

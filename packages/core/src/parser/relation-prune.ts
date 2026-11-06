@@ -165,11 +165,13 @@ export function pruneFiltersByRelations(
     const refuse = !issueCollector?.failed;
 
     const pruned = pruneCondition(filters, rejected, '', false, refuse);
+
     if (pruned && isFilters(pruned)) {
         return pruned;
     }
 
     let conditions : ICondition[];
+
     if (pruned) {
         conditions = [pruned];
     } else {
@@ -255,6 +257,7 @@ function pruneCondition(
             isCondition(node.value)
         ) {
             const interior = pruneCondition(node.value, rejected, field, preserved2, refuse);
+
             if (!interior) {
                 return undefined;
             }
@@ -272,8 +275,10 @@ function pruneCondition(
     }
 
     const conditions : ICondition[] = [];
+
     for (const child of node.value) {
         const child2 = pruneCondition(child, rejected, prefix, preserved2, refuse);
+
         if (child2) {
             conditions.push(child2);
         }
@@ -311,6 +316,7 @@ function isConditionPreserved(node: ICondition) : boolean {
 
 export function buildSortsDefaults(schema: SortsSchema) : Sorts {
     const output = new Sorts();
+
     if (!schema.default) {
         return output;
     }
@@ -318,6 +324,7 @@ export function buildSortsDefaults(schema: SortsSchema) : Sorts {
     for (const [key, direction] of Object.entries(schema.default)) {
         const details = parseKey(key);
         const name = details.path ? `${details.path}.${details.name}` : details.name;
+
         output.value.push(new Sort(name, direction));
     }
 

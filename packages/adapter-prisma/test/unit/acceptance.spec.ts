@@ -7,11 +7,11 @@
 
 import { createURLCodec } from '@rapiq/codec-url';
 import type { Schema } from '@rapiq/core';
-import { 
-    Query, 
-    SchemaRegistry, 
-    defineSchema, 
-    eq, 
+import {
+    Query,
+    SchemaRegistry,
+    defineSchema,
+    eq,
 } from '@rapiq/core';
 import type { Args } from '../../src';
 import { PrismaAdapter, defineSchemaRegistryWithDatamodel } from '../../src';
@@ -41,14 +41,14 @@ const records : User[] = [
         address: null,
         realm_id: 1,
         realm: {
-            id: 1, 
-            name: 'master', 
-            description: null, 
+            id: 1,
+            name: 'master',
+            description: null,
         },
         items: [{
-            id: 1, 
-            title: 'book', 
-            color: 'red', 
+            id: 1,
+            title: 'book',
+            color: 'red',
         }],
     },
 ];
@@ -74,6 +74,7 @@ function createUserRepository(schema?: Schema<User>) {
     return {
         findMany(input: string | Record<string, any>, base?: Args) {
             const query = codec.decode(input, { schema: 'user' });
+
             expect(query).toBeDefined();
 
             return adapter.execute(query!, { base });
@@ -121,10 +122,10 @@ describe('acceptance: derived registry to prisma arguments', () => {
             first_name: true,
             realm: {
                 select: {
-                    id: true, 
-                    name: true, 
-                    description: true, 
-                }, 
+                    id: true,
+                    name: true,
+                    description: true,
+                },
             },
         });
         expect(args.orderBy).toEqual([{ age: 'desc' }]);
@@ -165,10 +166,10 @@ describe('acceptance: request query to prisma arguments', () => {
             email: true,
             realm: {
                 select: {
-                    id: true, 
-                    name: true, 
-                    description: true, 
-                }, 
+                    id: true,
+                    name: true,
+                    description: true,
+                },
             },
         });
 
@@ -197,6 +198,7 @@ describe('acceptance: request query to prisma arguments', () => {
 
     it('should enforce server-injected scoping regardless of client input', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<User>({
             name: 'user',
             filters: { allowed: ['first_name'] },
@@ -219,10 +221,12 @@ describe('acceptance: request query to prisma arguments', () => {
         };
 
         const bare = applyScoped('');
+
         expect(selectRows(bare.where, records).map((record) => record.id)).toEqual([2]);
 
         // the client filter matches caleb, who is outside the scope
         const filtered = applyScoped('filter[first_name]=Caleb');
+
         expect(selectRows(filtered.where, records)).toHaveLength(0);
     });
 

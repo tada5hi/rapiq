@@ -9,6 +9,7 @@ export * from './fields';
 export * from './filters';
 export * from './grouped';
 export * from './module';
+export type { AdapterOptions } from './types';
 export * from './pagination';
 export * from './relations';
 export * from './sort';

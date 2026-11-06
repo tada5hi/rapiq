@@ -106,9 +106,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ): Query {
         const output : QueryContext = {};
         const {
-            data, 
-            parameterOptions, 
-            trace, 
+            data,
+            parameterOptions,
+            trace,
         } = this.prepareQueryContext(input, options);
         const issueCollector = trace.collector;
 
@@ -123,6 +123,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
             const relations = this.parseOne(issueCollector, Parameter.RELATIONS, new Relations(), () => this.relationsParser
                 .parseParameter(relationsInput, parameterOptions, ledger, issueCollector));
+
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
@@ -138,6 +139,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             typeof groupsParser !== 'undefined',
             issueCollector,
         );
+
         if (groupsParser && typeof groupsInput !== 'undefined') {
             output.groups = this.parseOne(issueCollector, Parameter.GROUPS, new Groups(), () => groupsParser
                 .parseParameter(groupsInput, parameterOptions, ledger, issueCollector));
@@ -150,6 +152,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             typeof aggregatesParser !== 'undefined',
             issueCollector,
         );
+
         if (aggregatesParser && typeof aggregatesInput !== 'undefined') {
             output.aggregates = this.parseOne(issueCollector, Parameter.AGGREGATES, new Aggregates(), () => aggregatesParser
                 .parseParameter(aggregatesInput, parameterOptions, ledger, issueCollector));
@@ -174,6 +177,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
             const empty = new Filters(FilterCompoundOperator.AND, []);
+
             output.filters = this.parseOne(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameter(
                     this.readParameter(data, Parameter.FILTERS),
@@ -196,6 +200,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = this.parseOne(issueCollector, Parameter.SORTS, new Sorts(), () => {
                 const sortsInput = this.readParameter(data, Parameter.SORTS);
+
                 if (grouped) {
                     return this.sortParser.parseParameter(
                         sortsInput,
@@ -214,6 +219,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         // an empty trace.
         this.recordFailure(trace, () => {
             const rejected = this.applyRelationValidations(ledger, options, issueCollector);
+
             this.pruneByRelations(output, rejected, options, issueCollector);
             this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
@@ -232,9 +238,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     ) : Promise<Query> {
         const output : QueryContext = {};
         const {
-            data, 
-            parameterOptions, 
-            trace, 
+            data,
+            parameterOptions,
+            trace,
         } = this.prepareQueryContext(input, options);
         const issueCollector = trace.collector;
 
@@ -245,6 +251,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
             const relations = await this.parseOneAsync(issueCollector, Parameter.RELATIONS, new Relations(), () => this
                 .relationsParser.parseParameterAsync(relationsInput, parameterOptions, ledger, issueCollector));
+
             output.relations = relations;
             this.gateRelations(parameterOptions, relationsInput, relations);
         }
@@ -258,6 +265,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             typeof groupsParser !== 'undefined',
             issueCollector,
         );
+
         if (groupsParser && typeof groupsInput !== 'undefined') {
             output.groups = await this.parseOneAsync(issueCollector, Parameter.GROUPS, new Groups(), () => groupsParser
                 .parseParameterAsync(groupsInput, parameterOptions, ledger, issueCollector));
@@ -270,6 +278,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             typeof aggregatesParser !== 'undefined',
             issueCollector,
         );
+
         if (aggregatesParser && typeof aggregatesInput !== 'undefined') {
             output.aggregates = await this.parseOneAsync(
                 issueCollector,
@@ -299,6 +308,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         if (!this.skipParameter(options, Parameter.FILTERS)) {
             const empty = new Filters(FilterCompoundOperator.AND, []);
+
             output.filters = await this.parseOneAsync(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameterAsync(
                     this.readParameter(data, Parameter.FILTERS),
@@ -325,6 +335,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (!this.skipParameter(options, Parameter.SORTS)) {
             output.sorts = await this.parseOneAsync(issueCollector, Parameter.SORTS, new Sorts(), () => {
                 const sortsInput = this.readParameter(data, Parameter.SORTS);
+
                 if (grouped) {
                     return this.sortParser.parseParameterAsync(
                         sortsInput,
@@ -340,6 +351,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         await this.recordFailureAsync(trace, async () => {
             const rejected = await this.applyRelationValidationsAsync(ledger, options, issueCollector);
+
             this.pruneByRelations(output, rejected, options, issueCollector);
             this.rejectGroupedRelations(output, options, issueCollector);
             this.applyIndexPolicies(output, options, issueCollector);
@@ -429,6 +441,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         // to raise, and a rejection nobody raises is a rejection that became
         // a silent drop.
         const parameterOptions : ParseParameterOptions<RECORD> = {};
+
         if (options.schema) {
             parameterOptions.schema = options.schema;
         }
@@ -446,9 +459,9 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         return {
-            data, 
-            parameterOptions, 
-            trace, 
+            data,
+            parameterOptions,
+            trace,
         };
     }
 
@@ -600,6 +613,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         }
 
         const input = this.readParameter(data, parameter);
+
         if (typeof input === 'undefined' || supported) {
             return input;
         }
@@ -692,6 +706,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
 
         if (!throwOnFailure) {
             output.relations = new Relations(output.relations.value.filter((relation) => traversed(relation.name)));
+
             return;
         }
 
@@ -991,6 +1006,7 @@ function collectFilterPaths(node: ICondition, prefix = '') : string[] {
     }
 
     const path = prefix ? `${prefix}.${node.field}` : node.field;
+
     if (node.operator === FilterFieldOperator.ELEM_MATCH && isCondition(node.value)) {
         return [path, ...collectFilterPaths(node.value, path)];
     }

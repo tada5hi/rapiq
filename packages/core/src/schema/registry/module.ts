@@ -48,6 +48,7 @@ export class SchemaRegistry<CONTEXT = any> {
         T extends ObjectLiteral = ObjectLiteral,
     >(name: string | Schema<T, CONTEXT>): Schema<T, CONTEXT> {
         const schema = this.get(name);
+
         if (typeof schema === 'undefined') {
             throw SchemaError.notResolvable(name as string);
         }
@@ -70,6 +71,7 @@ export class SchemaRegistry<CONTEXT = any> {
 
     resolve(...input: (undefined | Schema | string)[]) : Schema | undefined {
         const normalized : (Schema | string)[] = [];
+
         for (const current of input) {
             if (typeof current === 'string') {
                 normalized.push(...current.split('.'));
@@ -79,8 +81,10 @@ export class SchemaRegistry<CONTEXT = any> {
         }
 
         let current : Schema | undefined;
+
         while (normalized.length > 0) {
             const next = normalized.shift();
+
             if (next) {
                 if (next instanceof Schema) {
                     current = next;

@@ -58,6 +58,7 @@ export function findGroupColumnDuplicate(groups: readonly IGroup[]) : string | u
 
     for (const group of groups) {
         const column = group.lowering?.field;
+
         if (typeof column === 'undefined') {
             continue;
         }
@@ -90,11 +91,13 @@ export function assertGroupedQuery(query: IQuery) : void {
     }
 
     const column = findGroupColumnDuplicate(query.groups?.value ?? []);
+
     if (typeof column !== 'undefined') {
         throw AdapterError.groupColumnDuplicate(column);
     }
 
     const keys = new Set<string>();
+
     for (const item of [...(query.groups?.value ?? []), ...(query.aggregates?.value ?? [])]) {
         if (keys.has(item.key)) {
             throw AdapterError.outputKeyDuplicate(item.key);
@@ -123,7 +126,9 @@ export function resolveGroupedSorts(query: IQuery) : ISort[] {
         ...(query.aggregates?.value ?? []).map((aggregate) => aggregate.key),
     ]);
 
-    if (query.sorts.value.some((sort) => !keys.has(sort.name))) {
+    const matchesValue = query.sorts.value.some((sort) => !keys.has(sort.name));
+
+    if (matchesValue) {
         throw AdapterError.featureUnsupported('sorts:grouped');
     }
 

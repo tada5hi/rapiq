@@ -48,6 +48,7 @@ function filterFields(input: IFilters) : string[] {
             }
         }
     };
+
     walk(input);
 
     return output;
@@ -68,6 +69,7 @@ describe('src/parser/relation-prune.ts', () => {
     describe('pruneFieldsByRelations', () => {
         it('returns the input unchanged when nothing is rejected', () => {
             const fields = new Fields([new Field('id')]);
+
             expect(pruneFieldsByRelations(fields, [])).toBe(fields);
         });
 
@@ -79,6 +81,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneFieldsByRelations(fields, ['user']);
+
             expect(output.value.map((f) => f.name)).toEqual(['id', 'realm.name']);
         });
     });
@@ -91,6 +94,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneSortsByRelations(sorts, ['user']);
+
             expect(output.value.map((s) => s.name)).toEqual(['id']);
         });
 
@@ -99,11 +103,13 @@ describe('src/parser/relation-prune.ts', () => {
             const schema = defineSortSchema({ default: { name: 'DESC' } });
 
             const output = pruneSortsByRelations(sorts, ['user'], schema);
+
             expect(output.value.map((s) => s.name)).toEqual(['name']);
         });
 
         it('leaves an emptied sort empty without a schema', () => {
             const sorts = new Sorts([new Sort('user.name', SortDirection.DESC)]);
+
             expect(pruneSortsByRelations(sorts, ['user']).value).toEqual([]);
         });
 
@@ -112,6 +118,7 @@ describe('src/parser/relation-prune.ts', () => {
             const schema = defineSortSchema({ default: { 'realm.name': 'ASC' } });
 
             const output = pruneSortsByRelations(sorts, ['user'], schema);
+
             expect(output.value.map((s) => s.name)).toEqual(['realm.name']);
         });
     });
@@ -125,6 +132,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneRelationsByRelations(relations, ['user']);
+
             expect(output.value.map((r) => r.name)).toEqual(['realm']);
         });
     });
@@ -134,6 +142,7 @@ describe('src/parser/relation-prune.ts', () => {
 
         it('returns the input unchanged when nothing is rejected', () => {
             const filters = new Filters(FilterCompoundOperator.AND, [eq('id')]);
+
             expect(pruneFiltersByRelations(filters, [])).toBe(filters);
         });
 
@@ -153,6 +162,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneFiltersByRelations(filters, ['user']);
+
             expect(filterFields(output)).toEqual(['id']);
         });
 
@@ -191,6 +201,7 @@ describe('src/parser/relation-prune.ts', () => {
             // drops, the surviving interior keeps the elemMatch on items.
             const output = pruneFiltersByRelations(filters, ['items.owner']);
             const [elem] = output.value as [Filter];
+
             expect(elem.operator).toBe(FilterFieldOperator.ELEM_MATCH);
             expect(filterFields(elem.value as IFilters)).toEqual(['id']);
         });
@@ -354,6 +365,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneFiltersByRelations(filters, ['user']);
+
             expect(filterFields(output)).toEqual(['realm_id', 'id']);
             expect(output.value[0].preserved).toBe(true);
         });
@@ -372,6 +384,7 @@ describe('src/parser/relation-prune.ts', () => {
             ]);
 
             const output = pruneFiltersByRelations(filters, ['user']);
+
             expect(output.value[0].preserved).toBe(true);
             expect(output.value[1].preserved).toBe(true);
         });
@@ -416,6 +429,7 @@ describe('src/parser/relation-prune.ts', () => {
 
         const failed = () => {
             const collector = new IssueCollector();
+
             collector.add({
                 code: ErrorCode.KEY_VALIDATE_REJECTED,
                 path: ['user'],

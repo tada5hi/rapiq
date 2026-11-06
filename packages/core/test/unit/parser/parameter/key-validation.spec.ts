@@ -125,6 +125,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const schema = defineFieldsSchema({ validate: () => false });
 
             expect.assertions(3);
+
             try {
                 applyKeySchemaValidation(
                     [entry(schema, 'secret', 'items.secret')],
@@ -142,6 +143,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const schema = defineFieldsSchema({ validate: () => false });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation(
                     [entry(schema, 'secret', 'items.secret')],
@@ -290,6 +292,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const schema = defineFieldsSchema({ validate: () => eq('id', 1) });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation(
                     [entry(schema, 'secret')],
@@ -538,6 +541,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const perKey = defineFieldsSchema({ validate: () => false });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation(
                     [
@@ -585,6 +589,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const schema = defineFieldsSchema({ validate: async () => true });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation([entry(schema, 'id')], undefined, fieldsOptions());
             } catch (e) {
@@ -601,6 +606,7 @@ describe('src/parser/parameter/validate.ts', () => {
             });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation([entry(schema, 'id')], undefined, fieldsOptions());
             } catch (e) {
@@ -613,6 +619,7 @@ describe('src/parser/parameter/validate.ts', () => {
             const schema = defineFieldsSchema({ validateMany: () => ({ then: (resolve: (value: any) => void) => resolve({ id: true }) } as any) });
 
             expect.assertions(1);
+
             try {
                 applyKeySchemaValidation([entry(schema, 'id')], undefined, fieldsOptions());
             } catch (e) {

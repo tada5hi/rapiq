@@ -6,7 +6,7 @@
  */
 
 import { FilterCompoundOperator } from '../../schema';
-import type { ICondition } from './condition';
+import type { ICondition } from './types';
 import { Filters, isFilters } from './collection';
 import type { IFilters } from './collection';
 import { Filter, isFilter } from './record';

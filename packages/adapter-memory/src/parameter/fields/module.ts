@@ -32,6 +32,7 @@ function descend(node: KeepNode, segments: string[]) : KeepNode {
         const segment = segment_ as string;
 
         let child = current.children.get(segment);
+
         if (!child) {
             child = createKeepNode();
             current.children.set(segment, child);
@@ -82,6 +83,7 @@ function project(node: KeepNode, input: unknown) : unknown {
             }
 
             const value = project(child, input[segment]);
+
             if (typeof value !== 'undefined') {
                 output[segment] = value;
             } else {
@@ -100,6 +102,7 @@ function project(node: KeepNode, input: unknown) : unknown {
         }
 
         const value = project(child, input[segment]);
+
         if (typeof value !== 'undefined') {
             output[segment] = value;
         }
@@ -152,11 +155,13 @@ export class FieldsVisitor<T = Record<string, any>> implements IFieldsVisitor<Pr
         // (#847). Every traversed prefix of an included path is itself
         // included, so each prefix node widens under the same veto.
         const relations = this.options.relations || [];
+
         for (const relation of relations) {
             const segments = (relation as string).split('.');
 
             for (let i = 1; i <= segments.length; i++) {
                 const node = descend(root, segments.slice(0, i));
+
                 if (node.picks.size === 0) {
                     node.keepAll = true;
                 }

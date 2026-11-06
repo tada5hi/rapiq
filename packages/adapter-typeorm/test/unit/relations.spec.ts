@@ -33,10 +33,12 @@ describe('src/relations', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = other;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
+
         userRepository = dataSource.getRepository(User);
         aston.role = admin;
         aston.realm = master;
@@ -49,6 +51,7 @@ describe('src/relations', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder, relations: { joinAndSelect: true } });
+
         adapter.execute(new Query({ relations }));
 
         return queryBuilder;

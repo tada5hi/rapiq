@@ -15,6 +15,7 @@ const BUCKET_FORMAT = 'YYYY-MM-DD"T"HH24":"MI":"SS".000Z"';
 export const pg : DialectOptions = {
     regexp: (field, placeholder, ignoreCase) => {
         const operator = ignoreCase ? '~*' : '~';
+
         return `${field} ${operator} ${placeholder}`;
     },
     escapeField: (field: string) => `"${field.replaceAll('"', '""')}"`,
@@ -26,6 +27,7 @@ export const pg : DialectOptions = {
     // a timestamp so every unit yields a timestamp to format.
     bucket: (field, unit, kind) => {
         let input = field;
+
         if (kind === 'instant') {
             input = `${field} at time zone 'UTC'`;
         } else if (kind === 'date') {

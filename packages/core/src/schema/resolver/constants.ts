@@ -12,4 +12,5 @@ export const KeyResolutionErrorCode = {
     SCHEMA_UNRESOLVABLE: 'schemaUnresolvable',
 } as const;
 
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public contract.
 export type KeyResolutionErrorCode = typeof KeyResolutionErrorCode[keyof typeof KeyResolutionErrorCode];

@@ -6,7 +6,9 @@
  */
 
 export * from './field';
+export type { Field, IsRelationPathFn } from './types';
 export * from './like';
 export * from './name-split';
 export * from './param-placeholder-indexer';
 export * from './relation-alias';
+export type { RelationAliasFn } from './types';

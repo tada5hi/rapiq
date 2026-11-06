@@ -1,3 +1,9 @@
+import type {
+    CallValidatableSchema,
+    KeyValidatableSchema,
+    KeyValidationOptions,
+    PendingKeyValidation,
+} from './types';
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -13,101 +19,12 @@ import {
     SchemaError,
     buildIssue,
 } from '../../errors';
-import type { IssueInput, ParseError } from '../../errors';
-import type { ICondition } from '../../parameter';
+import type { IssueInput } from '../../errors';
+
 import { isCondition } from '../../parameter';
-import type { IIssueCollector } from '../issue';
-import type {
-    KeyValidationVerdict,
-    KeyValidationVerdictRecord,
-} from '../../schema';
+
+import type { KeyValidationVerdict, KeyValidationVerdictRecord } from '../../schema';
 import type { MaybeAsync } from '../../types';
-
-/**
- * The slice of a parameter schema the key-validation pass consumes —
- * implemented by RelationsSchema, FieldsSchema and SortsSchema. The
- * batched members are optional, so an external implementation without
- * them stays source compatible and is simply driven per key.
- */
-export type KeyValidatableSchema = {
-    readonly name?: string,
-    /**
-     * The parameter this schema governs. Declared once by the schema
-     * (the sub-schema classes set it in their constructors); the
-     * driver derives the condition rules from it per entry, so mixed
-     * obligation pools (a relation ledger fed by every parameter) need
-     * no caller-side annotation.
-     */
-    readonly parameter: `${Parameter}`,
-    hasValidator() : boolean,
-    hasManyValidator?() : boolean,
-    /**
-     * The caller supplies only the dotted relation path of the position
-     * being validated (`''` at the query root); the schema completes the
-     * {@link KeyValidationScope} its hook receives from what it already
-     * knows about itself. The path is REQUIRED on this driver contract:
-     * an omitted path would silently claim the root position, which
-     * fails open for an allow-at-root hook. (The schema classes default
-     * it for direct human calls; a defaulted method still satisfies the
-     * required signature.)
-     */
-    validate(
-        name: string,
-        context: any,
-        path: string,
-    ) : MaybeAsync<KeyValidationVerdict>,
-    validateMany?(
-        names: string[],
-        context: any,
-        path: string,
-    ) : MaybeAsync<KeyValidationVerdictRecord>,
-};
-
-/**
- * A client-requested key whose governing schema may carry a validate
- * hook. Parsers record one entry per resolved key during resolution
- * and evaluate them once the parameter is assembled, so the sync and
- * async entry points share a single resolution pass.
- */
-export type PendingKeyValidation = {
-    /**
-     * The hook argument — the canonical key relative to the schema
-     * that governs it (the target schema for dotted input).
-     */
-    key: string,
-    /**
-     * Final dotted output name; parsers prefix it with the relation
-     * segment while their recursion unwinds. Used for pruning.
-     */
-    path: string,
-    schema: KeyValidatableSchema,
-    /**
-     * The failure policy of the scope that resolved this key, recorded
-     * at push time so a child schema's own `throwOnFailure` governs its
-     * rejections even inside a pooled pending list. Falls back to the
-     * pass-wide {@link KeyValidationOptions.throwOnFailure} when absent
-     * (the relation ledger, whose policy is the root relations schema's
-     * by contract).
-     */
-    throwOnFailure?: boolean,
-};
-
-export type KeyValidationOptions = {
-    throwOnFailure: boolean,
-    errors: typeof ParseError,
-    /**
-     * Trace of the enclosing parse. A rejection records an issue there and
-     * lets the parse continue on the drop path; the owning call raises it.
-     */
-    issueCollector?: IIssueCollector,
-    /**
-     * Sink for the conditions of condition-gated keys, keyed by output
-     * path. Supplied by callers that can carry a condition onward (the
-     * fields parsers, onto the `Field` node). Absent means a condition
-     * verdict has nowhere to go and counts as a rejection.
-     */
-    conditions?: Map<string, ICondition>,
-};
 
 /**
  * Evaluate the recorded validate-hook obligations. Returns the output
@@ -203,15 +120,6 @@ export async function applyKeySchemaValidationAsync(
 }
 
 /**
- * The slice of a groups or aggregates schema the call validation pass
- * consumes.
- */
-export type CallValidatableSchema<NODE> = {
-    hasValidator() : boolean,
-    validate(node: NODE, context: any) : MaybeAsync<KeyValidationVerdict>,
-};
-
-/**
  * Run a groups or aggregates validate hook once per resolved node, in
  * order. Returns the accepted nodes and hands each rejected one to
  * `reject`: these parameters have no drop path, so the caller records it.
@@ -245,6 +153,7 @@ export async function applyCallSchemaValidationAsync<NODE>(
     }
 
     const output : NODE[] = [];
+
     for (const node of nodes) {
         if (settleCall(await schema.validate(node, context), node, reject)) {
             output.push(node);
@@ -298,6 +207,7 @@ class BatchCache {
     ) : KeyValidationVerdictRecord {
         const path = scopePathOf(entry);
         const cached = this.read(entry.schema, path);
+
         if (cached) {
             return cached;
         }
@@ -322,6 +232,7 @@ class BatchCache {
     ) : Promise<KeyValidationVerdictRecord> {
         const path = scopePathOf(entry);
         const cached = this.read(entry.schema, path);
+
         if (cached) {
             return cached;
         }
@@ -348,6 +259,7 @@ class BatchCache {
         record: KeyValidationVerdictRecord,
     ) : KeyValidationVerdictRecord {
         let paths = this.records.get(schema);
+
         if (!paths) {
             paths = new Map();
             this.records.set(schema, paths);
@@ -367,7 +279,9 @@ class BatchCache {
  */
 function scopePathOf(entry: PendingKeyValidation) : string {
     const offset = entry.path.length - entry.key.length - 1;
-    if (offset < 0) {
+
+    if ((offset < 0) || (entry.path.charAt(offset) !== '.' ||
+        entry.path.slice(offset + 1) !== entry.key)) {
         return '';
     }
 
@@ -377,12 +291,7 @@ function scopePathOf(entry: PendingKeyValidation) : string {
     // hook as an authorization input and partitions the batches, so a recorder
     // that breaks the invariant must fall back to the root rather than invent
     // a relation path that does not exist.
-    if (
-        entry.path.charAt(offset) !== '.' ||
-        entry.path.slice(offset + 1) !== entry.key
-    ) {
-        return '';
-    }
+
 
     return entry.path.slice(0, offset);
 }
@@ -474,6 +383,7 @@ function reject(
     options: KeyValidationOptions,
 ) : void {
     const throwOnFailure = entry.throwOnFailure ?? options.throwOnFailure;
+
     if (!throwOnFailure) {
         return;
     }
@@ -499,12 +409,14 @@ function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {
 
     return pending.filter((entry) => {
         let paths = seen.get(entry.schema);
+
         if (!paths) {
             paths = new Set();
             seen.set(entry.schema, paths);
         }
 
         const id = `${entry.key} ${entry.path}`;
+
         if (paths.has(id)) {
             return false;
         }
@@ -523,6 +435,7 @@ function dedupe(pending: PendingKeyValidation[]) : PendingKeyValidation[] {
 function refuseAsync<T>(input: MaybeAsync<T>) : T {
     if (isPromiseLike(input)) {
         void Promise.resolve(input).catch(() => undefined);
+
         throw SchemaError.validatorAsyncRequiresAsyncParser();
     }
 

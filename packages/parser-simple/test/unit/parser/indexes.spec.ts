@@ -40,6 +40,7 @@ const buildRegistry = (extra: {
     validateFailure?: Error,
 } = {}) => {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Row>({
         name: 'row',
         throwOnFailure: extra.throwOnFailure,
@@ -192,7 +193,9 @@ describe('indexed schemas', () => {
                     expect.fail('expected a ParseError');
                 } catch (e) {
                     expect(e).toBeInstanceOf(ParseError);
+
                     const error = e as ParseError;
+
                     expect(error.issues
                         .filter((issue) => issue.code === ErrorCode.KEY_COMBINATION_NOT_INDEXED)
                         .map((issue) => extractIssueParameter(issue)))

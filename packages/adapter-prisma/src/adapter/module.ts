@@ -203,6 +203,7 @@ export class PrismaAdapter<
         guardSortRelationPaths(query.sorts, this.metadata);
 
         const orderBy = buildOrderBy(query.sorts);
+
         if (orderBy.length > 0) {
             produced.orderBy = orderBy;
         }

@@ -102,6 +102,7 @@ export class URLCodec {
         options: ParseQueryOptions = {},
     ) : IQuery | null {
         const prepared = this.prepareDecode(input);
+
         if (!prepared) {
             return null;
         }
@@ -114,6 +115,7 @@ export class URLCodec {
         options: ParseQueryOptions = {},
     ) : Promise<IQuery | null> {
         const prepared = this.prepareDecode(input);
+
         if (!prepared) {
             return null;
         }
@@ -128,6 +130,7 @@ export class URLCodec {
         payload: ObjectLiteral,
     } | null {
         const parsed = typeof input === 'string' ? parseQueryString(input) : input;
+
         if (!isObject(parsed)) {
             return null;
         }
@@ -135,6 +138,7 @@ export class URLCodec {
         let name : string | undefined;
 
         const value = parsed[CODEC_PARAMETER];
+
         if (
             typeof value !== 'undefined' &&
             value !== ''
@@ -178,11 +182,13 @@ export class URLCodec {
 
     protected resolve(name?: string) : URLCodecDefinition {
         const key = name ?? this.defaultName;
+
         if (typeof key === 'undefined') {
             throw CodecError.notResolvable();
         }
 
         const codec = this.items.get(key);
+
         if (typeof codec === 'undefined') {
             throw CodecError.notResolvable(key);
         }

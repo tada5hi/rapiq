@@ -37,44 +37,44 @@ export const FILTER_WIRE_NEGATION = '!' as const;
  */
 export const FILTER_WIRE_SPEC = {
     contains: {
-        prefix: '~', 
-        suffix: '~', 
-        value: 'raw', 
+        prefix: '~',
+        suffix: '~',
+        value: 'raw',
     },
     endsWith: {
-        prefix: '~', 
-        suffix: '', 
-        value: 'raw', 
+        prefix: '~',
+        suffix: '',
+        value: 'raw',
     },
     startsWith: {
-        prefix: '', 
-        suffix: '~', 
-        value: 'raw', 
+        prefix: '',
+        suffix: '~',
+        value: 'raw',
     },
     lte: {
-        prefix: '<=', 
-        suffix: '', 
-        value: 'coerced', 
+        prefix: '<=',
+        suffix: '',
+        value: 'coerced',
     },
     lt: {
-        prefix: '<', 
-        suffix: '', 
-        value: 'coerced', 
+        prefix: '<',
+        suffix: '',
+        value: 'coerced',
     },
     gte: {
-        prefix: '>=', 
-        suffix: '', 
-        value: 'coerced', 
+        prefix: '>=',
+        suffix: '',
+        value: 'coerced',
     },
     gt: {
-        prefix: '>', 
-        suffix: '', 
-        value: 'coerced', 
+        prefix: '>',
+        suffix: '',
+        value: 'coerced',
     },
     eq: {
-        prefix: '', 
-        suffix: '', 
-        value: 'coerced', 
+        prefix: '',
+        suffix: '',
+        value: 'coerced',
     },
 } as const satisfies Partial<Record<`${FilterFieldOperator}`, FilterWireMarkerSpec>>;
 
@@ -90,4 +90,5 @@ export const FilterWireDecodeFailure = {
     VALUE_EMPTY: 'valueEmpty',
 } as const;
 
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public contract.
 export type FilterWireDecodeFailure =    typeof FilterWireDecodeFailure[keyof typeof FilterWireDecodeFailure];

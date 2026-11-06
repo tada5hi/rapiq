@@ -9,9 +9,9 @@ import { SchemaRegistry, defineSchema } from '@rapiq/core';
 import { SimpleParser } from '@rapiq/parser-simple';
 import type { DataSource } from 'typeorm';
 import {
-    Column, 
-    Entity, 
-    ManyToOne, 
+    Column,
+    Entity,
+    ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
 import {
@@ -47,6 +47,7 @@ describe('src/schema/*.ts', () => {
         dataSource = await createUnconnectedDataSource();
 
         const options = createDataSourceOptions();
+
         articleDataSource = await createUnconnectedDataSource({
             ...options,
             entities: [Article, Realm],
@@ -60,6 +61,7 @@ describe('src/schema/*.ts', () => {
         expect(buildEntitySchemaName(dataSource.getMetadata(RoleDetail))).toEqual('roleDetail');
 
         const schema = defineSchemaWithEntity(RoleDetail, dataSource);
+
         expect(schema.name).toEqual('roleDetail');
     });
 
@@ -144,9 +146,11 @@ describe('src/schema/*.ts', () => {
         const registry = defineSchemaRegistryWithDataSource(dataSource, { schemas: { user: { filters: { allowed: 'inherit' } } } });
 
         const schema = registry.getOrFail('user');
+
         expect(schema.filters.allowed).toContain('email');
 
         const roleSchema = registry.getOrFail('role');
+
         expect(roleSchema.filters.allowedIsUndefined).toBeTruthy();
     });
 
@@ -158,6 +162,7 @@ describe('src/schema/*.ts', () => {
         });
 
         const schema = registry.getOrFail('user');
+
         expect(schema.filters.allowed).toContain('email');
     });
 
@@ -167,6 +172,7 @@ describe('src/schema/*.ts', () => {
             name: 'realm',
             filters: { allowed: ['id'] },
         });
+
         registry.add(realmSchema);
 
         const output = defineSchemaRegistryWithDataSource(dataSource, { registry });
@@ -181,6 +187,7 @@ describe('src/schema/*.ts', () => {
 
     it('should fail on schema options for an already registered schema', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({ name: 'realm' }));
 
         expect(() => defineSchemaRegistryWithDataSource(dataSource, {

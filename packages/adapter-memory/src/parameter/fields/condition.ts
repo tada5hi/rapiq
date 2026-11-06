@@ -34,6 +34,7 @@ function descend(node: GateNode, segments: string[]) : GateNode {
         const segment = segment_ as string;
 
         let child = current.children.get(segment);
+
         if (!child) {
             child = createGateNode();
             current.children.set(segment, child);
@@ -56,6 +57,7 @@ function redact(node: GateNode, input: unknown) : unknown {
 
         const output = input.map((element) => {
             const value = redact(node, element);
+
             if (value !== element) {
                 changed = true;
             }
@@ -103,6 +105,7 @@ function redact(node: GateNode, input: unknown) : unknown {
         }
 
         const value = redact(child, input[segment]);
+
         if (value !== input[segment]) {
             detach()[segment] = value;
         }

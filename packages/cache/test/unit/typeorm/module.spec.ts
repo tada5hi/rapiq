@@ -63,9 +63,9 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the collection, record and scoped tags of an inserted row', async () => {
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
 
         expect(calls).toEqual([
@@ -75,14 +75,16 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump old and new value of a scoped column on update', async () => {
         const repository = dataSource.getRepository(RoleEntity);
+
         await repository.save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         calls = [];
 
         const role = await repository.findOneByOrFail({ id: 'r1' });
+
         role.realmId = 'y';
         await repository.save(role);
 
@@ -97,19 +99,20 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the removed row and the collections cascading from it', async () => {
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         await dataSource.getRepository(UserRoleEntity).save({
-            id: 'ur1', 
-            userId: 'u1', 
-            roleId: 'r1', 
+            id: 'ur1',
+            userId: 'u1',
+            roleId: 'r1',
         });
         calls = [];
 
         const repository = dataSource.getRepository(RoleEntity);
         const role = await repository.findOneByOrFail({ id: 'r1' });
+
         await repository.remove(role);
 
         expect(calls).toHaveLength(1);
@@ -125,6 +128,7 @@ describe('src/typeorm/module.ts', () => {
     it('should bump the role collection when a realm is removed', async () => {
         const repository = dataSource.getRepository(RealmEntity);
         const realm = await repository.findOneByOrFail({ id: 'x' });
+
         await repository.remove(realm);
 
         expect(calls).toHaveLength(1);
@@ -138,6 +142,7 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the null scope of a SET NULL child when its parent is removed', async () => {
         const realm = await dataSource.getRepository(RealmEntity).findOneByOrFail({ id: 'x' });
+
         await dataSource.getRepository(RealmEntity).remove(realm);
 
         expect(calls).toHaveLength(1);
@@ -162,6 +167,7 @@ describe('src/typeorm/module.ts', () => {
         calls = [];
 
         const repository = dataSource.getRepository(RealmEntity);
+
         await repository.remove(await repository.findOneByOrFail({ id: 'x' }));
 
         // realm -> role CASCADE -> userRole CASCADE: only the realm hook
@@ -180,6 +186,7 @@ describe('src/typeorm/module.ts', () => {
 
         const articles = dataSource.getRepository(ArticleEntity);
         const article = await articles.findOneOrFail({ where: { id: 'a1' }, relations: { tags: true } });
+
         article.tags.push(await dataSource.getRepository(TagEntity).findOneByOrFail({ id: 't1' }));
         await articles.save(article);
 
@@ -194,7 +201,9 @@ describe('src/typeorm/module.ts', () => {
         expect(calls[0]).toEqual(expect.arrayContaining(['article', 'article:a1', 'tag', 'tag:t1']));
 
         calls = [];
+
         const relation = dataSource.createQueryBuilder().relation(ArticleEntity, 'tags').of('a1');
+
         await relation.add('t1');
 
         expect(calls).toEqual([['article', 'article:a1', 'tag', 'tag:t1']]);
@@ -208,14 +217,16 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the row tags on a soft remove and on a recover', async () => {
         const repository = dataSource.getRepository(RoleEntity);
+
         await repository.save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         calls = [];
 
         const role = await repository.findOneByOrFail({ id: 'r1' });
+
         await repository.softRemove(role);
 
         expect(await repository.findOneBy({ id: 'r1' })).toBeNull();
@@ -242,10 +253,11 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the collection tag alone for a criteria soft delete and restore', async () => {
         const repository = dataSource.getRepository(RoleEntity);
+
         await repository.save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         calls = [];
 
@@ -259,9 +271,9 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the collection tag alone for a pk-less update', async () => {
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         calls = [];
 
@@ -272,9 +284,9 @@ describe('src/typeorm/module.ts', () => {
 
     it('should bump the collection and the cascading collections for a criteria delete', async () => {
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
         calls = [];
 
@@ -299,6 +311,7 @@ describe('src/typeorm/module.ts', () => {
         // `orphanedRowAction: 'delete'`: the hook hands the key alone.
         const realms = dataSource.getRepository(RealmEntity);
         const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+
         realm.roles = [];
         await realms.save(realm);
 
@@ -325,6 +338,7 @@ describe('src/typeorm/module.ts', () => {
 
         const realms = dataSource.getRepository(RealmEntity);
         const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+
         realm.roles = [];
         await realms.save(realm);
 
@@ -341,6 +355,7 @@ describe('src/typeorm/module.ts', () => {
         // its key alone, which the event does not carry.
         const realms = dataSource.getRepository(RealmEntity);
         const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { notes: true } });
+
         realm.notes = [];
         await realms.save(realm);
 
@@ -429,16 +444,16 @@ describe('src/typeorm/module.ts', () => {
     it('should invalidate once after the outermost commit only', async () => {
         await dataSource.transaction(async (manager) => {
             await manager.save(RoleEntity, {
-                id: 'r1', 
-                name: 'admin', 
-                realmId: 'x', 
+                id: 'r1',
+                name: 'admin',
+                realmId: 'x',
             });
 
             await manager.transaction(async (inner) => {
                 await inner.save(UserRoleEntity, {
-                    id: 'ur1', 
-                    userId: 'u1', 
-                    roleId: 'r1', 
+                    id: 'ur1',
+                    userId: 'u1',
+                    roleId: 'r1',
                 });
             });
 
@@ -459,10 +474,11 @@ describe('src/typeorm/module.ts', () => {
     it('should bump nothing after a rollback', async () => {
         await expect(dataSource.transaction(async (manager) => {
             await manager.save(RoleEntity, {
-                id: 'r1', 
-                name: 'admin', 
-                realmId: 'x', 
+                id: 'r1',
+                name: 'admin',
+                realmId: 'x',
             });
+
             throw new Error('abort');
         })).rejects.toThrow('abort');
 
@@ -476,6 +492,7 @@ describe('src/typeorm/module.ts', () => {
                 name: 'admin',
                 realmId: 'x',
             });
+
             throw new Error('abort');
         })).rejects.toThrow('abort');
 
@@ -489,12 +506,17 @@ describe('src/typeorm/module.ts', () => {
 
     it('should ignore an untracked table', async () => {
         const subscriber = new CacheInvalidationSubscriber({
-            cache: { invalidate: async (tags) => { calls.push(tags); } },
+            cache: {
+                invalidate: async (tags) => {
+                    calls.push(tags);
+                },
+            },
             registry,
             resolveSchemaName: () => undefined,
         });
 
         const other = await createDataSource([subscriber]);
+
         try {
             await other.getRepository(RealmEntity).save({ id: 'z', name: 'other' });
         } finally {
@@ -508,15 +530,16 @@ describe('src/typeorm/module.ts', () => {
         failInvalidate = true;
 
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
 
         expect(errors).toHaveLength(1);
         expect((errors[0] as Error).message).toEqual('store unavailable');
 
         const role = await dataSource.getRepository(RoleEntity).findOneBy({ id: 'r1' });
+
         expect(role).not.toBeNull();
     });
 });

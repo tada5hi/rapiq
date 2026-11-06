@@ -7,10 +7,10 @@
 
 import { Filter, Filters } from '@rapiq/core';
 import {
-    FiltersAdapter, 
-    type FiltersContainerOptions, 
-    FiltersVisitor, 
-    RelationsAdapter, 
+    FiltersAdapter,
+    type FiltersContainerOptions,
+    FiltersVisitor,
+    RelationsAdapter,
     pg,
 } from '../../../src';
 
@@ -22,6 +22,7 @@ describe('in (within, nin)', () => {
 
     beforeEach(() => {
         const relationsAdapter = new RelationsAdapter();
+
         adapter = new FiltersAdapter(
             relationsAdapter,
             options,
@@ -32,6 +33,7 @@ describe('in (within, nin)', () => {
 
     it('generates a separate placeholder for every element in the array', () => {
         const condition = new Filter('in', 'age', [1, 2]);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -45,6 +47,7 @@ describe('in (within, nin)', () => {
             new Filter('eq', 'name', 'John'),
             new Filter('in', 'age', [1, 2]),
         ]);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -55,11 +58,13 @@ describe('in (within, nin)', () => {
 
     it('generates a null-inclusive `not in` condition for "nin"', () => {
         const condition = new Filter('nin', 'age', [1, 2]);
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
 
         const field = options.escapeField(condition.field);
+
         expect(sql).toEqual(`(${field} not in($1, $2) or ${field} is null)`);
         expect(params).toStrictEqual(condition.value);
     });
@@ -82,6 +87,7 @@ describe('in (within, nin)', () => {
             new Filter('in', 'age', []),
             new Filter('eq', 'active', true),
         ]);
+
         condition.accept(visitor);
 
         expect(adapter.getQueryAndParameters()).toEqual([

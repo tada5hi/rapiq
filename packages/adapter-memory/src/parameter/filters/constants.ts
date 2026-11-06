@@ -12,7 +12,7 @@
  * on one field bind independent elements; the NUL byte keeps
  * discriminated segments out of the real property namespace.
  */
-export const BINDING_SCOPE_SEPARATOR = '\u0000';
+export const BINDING_SCOPE_SEPARATOR = '\0';
 
 /**
  * Context-key suffix flagging whether the value bound to a path is a
@@ -20,4 +20,4 @@ export const BINDING_SCOPE_SEPARATOR = '\u0000';
  * NULL row of a missing/empty source). ITSELF leaves only match real
  * elements - mongo's $elemMatch never matches non-arrays.
  */
-export const BINDING_ELEMENT_FLAG = '\u0000*';
+export const BINDING_ELEMENT_FLAG = '\0*';

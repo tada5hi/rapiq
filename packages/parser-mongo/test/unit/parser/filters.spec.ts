@@ -30,6 +30,7 @@ describe('filters/mongo-parser', () => {
 
     const parseFlat = (input: unknown, options: FiltersParseOptions = {}) => {
         const output = parser.parse(input, options);
+
         if (output.value.length === 1) {
             return output.value[0];
         }
@@ -584,6 +585,7 @@ describe('filters/mongo-parser', () => {
 
         it('should throw on deeply nested compounds instead of overflowing the stack', () => {
             let input : Record<string, any> = { name: 'admin' };
+
             for (let i = 0; i < 40; i++) {
                 input = { $and: [input] };
             }
@@ -593,6 +595,7 @@ describe('filters/mongo-parser', () => {
 
         it('should throw on deeply nested objects instead of overflowing the stack', () => {
             let input : Record<string, any> = { name: 'admin' };
+
             for (let i = 0; i < 40; i++) {
                 input = { a: input };
             }
@@ -602,6 +605,7 @@ describe('filters/mongo-parser', () => {
 
         it('should parse nesting below the depth cap', () => {
             let input : Record<string, any> = { name: 'admin' };
+
             for (let i = 0; i < 10; i++) {
                 input = { $and: [input] };
             }
@@ -704,6 +708,7 @@ describe('filters/mongo-parser', () => {
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyNotPermitted('name');
+
             expectRejected(() => constrained.parse({ 'items.name': 'foo' }, {
                 schema: 'user',
                 throwOnFailure: true,
@@ -715,9 +720,11 @@ describe('filters/mongo-parser', () => {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
             });
+
             expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyPathNotPermitted('items');
+
             expectRejected(() => constrained.parse({ 'items.id': 1 }, {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
@@ -728,6 +735,7 @@ describe('filters/mongo-parser', () => {
                 schema: 'user',
                 relations: new Relations([new Relation('items')]),
             });
+
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
                 new Filter(FilterFieldOperator.EQUAL, 'items.id', 1),
             ]));
@@ -817,12 +825,14 @@ describe('filters/mongo-parser', () => {
                 allowed: [],
                 default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
             });
+
             expect(parser.parse({ name: 'x' }, { schema: dropping }).value)
                 .toEqual([new Filter(FilterFieldOperator.EQUAL, 'id', 1)]);
         });
 
         it('should reject input under a throwing empty allow-list', () => {
             const throwing = defineFiltersSchema({ allowed: [], throwOnFailure: true });
+
             expectParseError(
                 () => parser.parse({ name: 'x' }, { schema: throwing }),
                 ErrorCode.KEY_NOT_ALLOWED,
@@ -834,6 +844,7 @@ describe('filters/mongo-parser', () => {
                 allowed: [],
                 default: new Filter(FilterFieldOperator.EQUAL, 'id', 1),
             });
+
             expectParseError(
                 () => parser.parse({ id: { $size: -1 } }, { schema: dropping }),
                 ErrorCode.KEY_VALUE_INVALID,
@@ -956,6 +967,7 @@ describe('filters/mongo-parser', () => {
 
         beforeAll(() => {
             const elemRegistry = new SchemaRegistry();
+
             elemRegistry.add(defineSchema({
                 name: 'user',
                 filters: { allowed: ['id', 'name', 'items', 'meta'] },
@@ -1002,6 +1014,7 @@ describe('filters/mongo-parser', () => {
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyNotPermitted('name');
+
             expectRejected(() => constrained.parse({ items: { $elemMatch: { name: 'x' } } }, { schema: 'user', throwOnFailure: true }), error);
         });
 
@@ -1164,9 +1177,11 @@ describe('filters/mongo-parser', () => {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
             });
+
             expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             const error = FiltersParseError.keyPathNotPermitted('items');
+
             expectRejected(() => constrained.parse({ items: { $elemMatch: { id: 1 } } }, {
                 schema: 'user',
                 relations: new Relations([new Relation('realm')]),
@@ -1177,6 +1192,7 @@ describe('filters/mongo-parser', () => {
                 schema: 'user',
                 relations: new Relations([new Relation('items')]),
             });
+
             expect(output).toEqual(new Filters(FilterCompoundOperator.AND, [
                 new Filter(
                     FilterFieldOperator.ELEM_MATCH,
@@ -1295,6 +1311,7 @@ describe('filters/mongo-parser', () => {
             const schema = defineFiltersSchema({ allowed: ['id'] });
 
             const dropped = parser.parse({ tags: { $all: ['a'] } }, { schema });
+
             expect(dropped).toEqual(new Filters(FilterCompoundOperator.AND, []));
 
             expectParseError(

@@ -1,3 +1,10 @@
+import type {
+    AdapterOptions,
+    ExecuteOptions,
+    GroupedSqlFragments,
+    IRootAdapter,
+    SqlFragments,
+} from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -8,31 +15,14 @@
 import type { IQuery } from '@rapiq/core';
 import { AdapterError, isGroupedQuery } from '@rapiq/core';
 import { QueryVisitor } from '../visitor';
-import type { DialectOptions } from '../dialect';
-import type { RelationAliasFn } from '../helpers';
-import type {
-    ExecuteOptions,
-    GroupedSqlFragments,
-    IRootAdapter,
-    SqlFragments,
-} from './types';
+
+
 import { FieldsAdapter } from './fields';
 import { FiltersAdapter } from './filters';
 import { buildGroupedClauses } from './grouped';
 import { PaginationAdapter } from './pagination';
 import { RelationsAdapter } from './relations';
 import { SortsAdapter } from './sort';
-
-export type AdapterOptions = DialectOptions & {
-    rootAlias?: string,
-
-    /**
-     * Derive the join alias for a relation path
-     * (default: length-prefixed segments, e.g. `role.realm` ->
-     * `r4_role_5_realm`).
-     */
-    relationAlias?: RelationAliasFn,
-};
 
 export class Adapter implements IRootAdapter<SqlFragments> {
     public readonly relations : RelationsAdapter;
@@ -151,6 +141,7 @@ export class Adapter implements IRootAdapter<SqlFragments> {
         const clauses = buildGroupedClauses(query, this.filters, this.options.bucket);
 
         const visitor = new QueryVisitor(this, { caseSensitive: options.caseSensitive });
+
         query.filters.accept(visitor.filters);
         query.pagination.accept(visitor.pagination);
 

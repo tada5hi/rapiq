@@ -39,6 +39,7 @@ export function assertSchemaMatchesModel<
     const model = resolveModelName(modelInput);
 
     const target = normalizeDatamodel(input).models.find((item) => item.name === model);
+
     if (!target) {
         throw new AdapterError({
             message: `The model "${model}" is not part of the datamodel.`,
@@ -48,6 +49,7 @@ export function assertSchemaMatchesModel<
 
     const columns = new Set<string>();
     const relations = new Set<string>();
+
     for (const field of target.fields) {
         if (field.kind === RELATION_KIND) {
             relations.add(field.name);
@@ -60,6 +62,7 @@ export function assertSchemaMatchesModel<
 
     const headOf = (key: string) => {
         const index = key.indexOf('.');
+
         return index === -1 ? key : key.substring(0, index);
     };
 
@@ -71,6 +74,7 @@ export function assertSchemaMatchesModel<
         // dotted keys must be headed by a relation; the remainder
         // belongs to the related model's own schema.
         const head = headOf(key);
+
         if (head !== key && relations.has(head)) {
             return;
         }
@@ -89,6 +93,7 @@ export function assertSchemaMatchesModel<
             for (const child of condition.value) {
                 checkCondition(child);
             }
+
             return;
         }
 
@@ -101,6 +106,7 @@ export function assertSchemaMatchesModel<
     checkColumnKeys(schema.fields.allowed);
 
     checkColumnKeys(schema.filters.allowed);
+
     if (schema.filters.default) {
         checkCondition(schema.filters.default);
     }

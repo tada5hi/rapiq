@@ -80,6 +80,7 @@ export class QueryVisitor implements IQueryVisitor<QuerySerializer>,
 
     constructor() {
         const serializer = new QuerySerializer();
+
         this.serializer = serializer;
 
         this.fields = new FieldsVisitor(serializer.fields);

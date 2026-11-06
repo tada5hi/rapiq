@@ -43,12 +43,14 @@ describe('src/pagination/index.ts', () => {
 
     it('should parse with no schema & invalid value', async () => {
         const output = await parser.parse(undefined);
+
         expect(interpreter.interpret(output)).toEqual({});
     });
 
     it('should parse pagination', async () => {
         const schema = defineSchema({ pagination: { maxLimit: 50 } });
         let output = await parser.parse(undefined, { schema });
+
         expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
 
         output = await parser.parse({ limit: 100 }, { schema });
@@ -70,6 +72,7 @@ describe('src/pagination/index.ts', () => {
         });
 
         const error = PaginationParseError.limitExceeded(50);
+
         expect(error.code).toBe(ErrorCode.LIMIT_EXCEEDED);
 
         expectRejected(() => parser.parse({ limit: 100 }, { schema }), error);
@@ -85,6 +88,7 @@ describe('src/pagination/index.ts', () => {
 
         // no client limit exceeded anything — default to maxLimit instead
         const output = parser.parse({}, { schema });
+
         expect(interpreter.interpret(output)).toEqual({ offset: 0, limit: 50 });
     });
 
@@ -92,6 +96,7 @@ describe('src/pagination/index.ts', () => {
         const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.inputInvalid();
+
         expectRejected(() => parser.parse(false, { schema }), error);
     });
 
@@ -99,6 +104,7 @@ describe('src/pagination/index.ts', () => {
         const schema = defineSchema({ pagination: { throwOnFailure: true } });
 
         const error = PaginationParseError.keyValueInvalid('limit');
+
         expectRejected(() => parser.parse({ limit: false }, { schema }), error);
     });
 

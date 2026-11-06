@@ -96,6 +96,7 @@ describe('decoder', () => {
 
     it('should validate against a schema', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             filters: { allowed: ['id'] },

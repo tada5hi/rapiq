@@ -46,6 +46,7 @@ export function resolveProviderOptions(
 ) : ProviderOptions {
     if (typeof input === 'string') {
         const options = resolveProvider(input);
+
         if (options) {
             return options;
         }

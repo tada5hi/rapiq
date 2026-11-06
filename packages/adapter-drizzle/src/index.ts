@@ -5,6 +5,23 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-export * from './adapter';
+export {
+    DrizzleAdapter,
+    WhereRenderer,
+    buildDrizzleConfig,
+    buildOrderBy,
+    buildSelection,
+    collectRelationPaths,
+    mergeConfig,
+} from './adapter';
+export type {
+    DrizzleAdapterOptions,
+    DrizzleAdapterOutput,
+    ExecuteOptions,
+    FiltersAdapterOptions,
+    FindManyConfig,
+    Selection,
+    Where,
+} from './adapter';
 export * from './metadata';
 export * from './provider';

@@ -27,6 +27,7 @@ export class Sorts implements ISorts {
         const output : ISort[] = [];
 
         const seen = new Set<string>();
+
         for (const item of [...this.value, ...other.value]) {
             if (seen.has(item.name)) {
                 continue;

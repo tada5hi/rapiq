@@ -43,6 +43,7 @@ describe('elemMatch', () => {
             'projects',
             new Filter('eq', 'active', true),
         );
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -61,6 +62,7 @@ describe('elemMatch', () => {
                 new Filter('eq', 'id', 7),
             ),
         );
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();
@@ -100,6 +102,7 @@ describe('elemMatch', () => {
                 new Filter('lt', 'count', 10),
             ]),
         );
+
         condition.accept(visitor);
 
         const [sql, params] = adapter.getQueryAndParameters();

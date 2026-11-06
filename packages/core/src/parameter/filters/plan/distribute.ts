@@ -86,6 +86,7 @@ function distribute(plan: ConditionPlan, negated: boolean) : ConditionPlan {
             }
 
             let { operator } = plan;
+
             if (effective) {
                 operator = plan.operator === 'and' ? 'or' : 'and';
             }
@@ -149,6 +150,7 @@ function distributeCompare(plan: ComparePlan, negated: boolean) : ConditionPlan 
     }
 
     const complement = ORDERING_COMPLEMENTS[plan.op];
+
     if (!complement) {
         throw AdapterError.operatorUnsupported(plan.op);
     }

@@ -1,3 +1,4 @@
+import type { FiltersContainerOptions } from './types';
 /*
  * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
@@ -6,13 +7,9 @@
  */
 
 import { AdapterError } from '@rapiq/core';
-import type { DialectOptions } from '../../dialect';
+
 import type { RelationsAdapter } from '../relations';
 import { FiltersBaseAdapter } from './base';
-
-export type FiltersContainerOptions = {
-    rootAlias?: string,
-} & DialectOptions;
 
 export class FiltersAdapter extends FiltersBaseAdapter {
     protected options: FiltersContainerOptions;

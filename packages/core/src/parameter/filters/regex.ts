@@ -27,9 +27,11 @@ export function createFilterRegexPattern(
 ) : string {
     // the input is a literal filter value, not a regex:
     // escape metacharacters so it matches verbatim.
+    // eslint-disable-next-line unicorn/prefer-regexp-escape -- Preserve the supported runtime/browser baseline.
     const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     let pattern : string;
+
     if (flag & FilterRegexFlag.NEGATION) {
         if (flag & FilterRegexFlag.STARTS_WITH) {
             pattern = `^(?!${escaped}).*`;

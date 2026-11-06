@@ -66,6 +66,7 @@ export class ExpressionURLEncoder {
      */
     encode(input: IQuery, options: ParseQueryOptions = {}): string | null {
         const encoded = this.encodeParts(input, options.parameters);
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
@@ -78,6 +79,7 @@ export class ExpressionURLEncoder {
         );
 
         const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
+
         if (!decoded) {
             return null;
         }
@@ -90,6 +92,7 @@ export class ExpressionURLEncoder {
         options: ParseQueryOptions = {},
     ) : Promise<string | null> {
         const encoded = this.encodeParts(input, options.parameters);
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
@@ -100,6 +103,7 @@ export class ExpressionURLEncoder {
         );
 
         const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
+
         if (!decoded) {
             return null;
         }
@@ -117,11 +121,13 @@ export class ExpressionURLEncoder {
 
     encodeFilters(input: IFilters, options: ParseParameterOptions = {}) : string | null {
         const encoded = this.serializeFilters(input);
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodeFilters(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -134,11 +140,13 @@ export class ExpressionURLEncoder {
         options: ParseParameterOptions = {},
     ) : Promise<string | null> {
         const encoded = this.serializeFilters(input);
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -208,6 +216,7 @@ export class ExpressionURLEncoder {
 
     protected serializeFilters(input: IFilters) : string | null {
         const expression = serializeFiltersExpression(input);
+
         if (expression === null) {
             return null;
         }

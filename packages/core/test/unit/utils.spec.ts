@@ -23,6 +23,7 @@ describe('src/utils/*.ts', () => {
             a: 'p',
             'b.c': 'a',
         });
+
         expect(data).toEqual('p.a');
 
         data = applyMapping('a.b.c', {
@@ -40,19 +41,19 @@ describe('src/utils/*.ts', () => {
 
     it('should parse keys', () => {
         expect(parseKey('name')).toEqual({
-            name: 'name', 
-            group: undefined, 
-            path: '', 
+            name: 'name',
+            group: undefined,
+            path: '',
         });
         expect(parseKey('items.realm.name')).toEqual({
-            name: 'name', 
-            group: undefined, 
-            path: 'items.realm', 
+            name: 'name',
+            group: undefined,
+            path: 'items.realm',
         });
         expect(parseKey('0:items.name')).toEqual({
-            name: 'name', 
-            group: '0', 
-            path: 'items', 
+            name: 'name',
+            group: '0',
+            path: 'items',
         });
         expect(parseKey('!invalid')).toEqual({ name: '!invalid' });
     });
@@ -61,9 +62,9 @@ describe('src/utils/*.ts', () => {
         expect(stringifyKey({ name: 'name' })).toEqual('name');
         expect(stringifyKey({ name: 'name', path: 'items' })).toEqual('items.name');
         expect(stringifyKey({
-            name: 'name', 
-            path: 'items', 
-            group: '0', 
+            name: 'name',
+            path: 'items',
+            group: '0',
         })).toEqual('0:items.name');
     });
 

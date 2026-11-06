@@ -10,7 +10,7 @@ import type { Relations } from '../parameter';
 import type { Schema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import type { IIssueCollector } from './issue';
-import type { PendingKeyValidation } from './parameter/validate';
+import type { PendingKeyValidation } from './parameter/types';
 
 export type ParseParameterOptions<
     RECORD extends ObjectLiteral = ObjectLiteral,
@@ -189,3 +189,10 @@ export interface IQueryParameterParser<Output = unknown> {
         issueCollector?: IIssueCollector,
     ): Promise<Output>;
 }
+
+
+
+export type TempType = {
+    attributes: Record<string, any>,
+    relations: Record<string, TempType>
+};

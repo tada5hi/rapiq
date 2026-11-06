@@ -125,6 +125,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should record what it is handed', () => {
         const collector = new IssueCollector();
+
         collector.add(violation());
 
         expect(collector.failed).toBeTruthy();
@@ -151,6 +152,7 @@ describe('src/parser/issue/module.ts', () => {
         // two parameters were rejected, so neither of their classes describes
         // the failure: what went wrong is the trace
         const error = ParseError.inputRejected(collector.issues);
+
         expect(error.constructor).toBe(ParseError);
         expect(error.code).toBe(ErrorCode.INPUT_REJECTED);
         expect(error.issues).toHaveLength(2);
@@ -180,6 +182,7 @@ describe('src/parser/issue/module.ts', () => {
         }))]);
 
         const collector = new IssueCollector();
+
         collector.addError(origin, Parameter.FILTERS, ['items']);
 
         // the position the throwing site recorded is one no enclosing site
@@ -195,6 +198,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should normalize the deprecated sort parameter', () => {
         const collector = new IssueCollector();
+
         collector.add(violation({ parameter: Parameter.SORT }));
 
         expect(extractIssueParameter(collector.issues[0]!)).toBe(Parameter.SORTS);
@@ -204,6 +208,7 @@ describe('src/parser/issue/module.ts', () => {
         const collector = new IssueCollector();
 
         collector.add(violation({ path: ['first'] }));
+
         for (let i = 0; i < MAX_ISSUES + 10; i++) {
             collector.add(violation({ path: [`key${i}`] }));
         }
@@ -233,6 +238,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should discard empty group shells', () => {
         const collector = new IssueCollector();
+
         collector.merge([defineIssueGroup({
             path: [],
             message: 'Nothing failed.',
@@ -244,6 +250,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should replace the final capped leaf with a later structural abort', () => {
         const collector = new IssueCollector();
+
         for (let index = 0; index < MAX_ISSUES; index++) {
             collector.add(violation({ path: [`key${index}`] }));
         }
@@ -251,6 +258,7 @@ describe('src/parser/issue/module.ts', () => {
         collector.addError(FiltersParseError.syntaxInvalid('broken'), Parameter.FILTERS);
 
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.path).toEqual(['key0']);
         expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
@@ -258,6 +266,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should retain earlier terminal aborts when a capped trace receives another', () => {
         const collector = new IssueCollector();
+
         for (let index = 0; index < MAX_ISSUES; index++) {
             collector.add(violation({ path: [`key${index}`] }));
         }
@@ -266,6 +275,7 @@ describe('src/parser/issue/module.ts', () => {
         collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
 
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.path).toEqual(['key0']);
         expect(leaves[97]?.path).toEqual(['key97']);
@@ -286,6 +296,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should retain contextual errors that filled the final free slot', () => {
         const collector = new IssueCollector();
+
         for (let index = 0; index < MAX_ISSUES - 1; index++) {
             collector.add(violation({ path: [`key${index}`] }));
         }
@@ -312,6 +323,7 @@ describe('src/parser/issue/module.ts', () => {
         }), Parameter.SORTS);
 
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.path).toEqual(['key0']);
         expect(leaves[97]?.path).toEqual(['key97']);
@@ -326,6 +338,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should retain a prefixed carried group while recording a later contextual error', () => {
         const collector = new IssueCollector();
+
         for (let index = 0; index < MAX_ISSUES - 1; index++) {
             collector.add(violation({ path: [`key${index}`] }));
         }
@@ -357,10 +370,13 @@ describe('src/parser/issue/module.ts', () => {
         }), Parameter.SORTS);
 
         const group = collector.issues[98]!;
+
         expect(group.type).toBe('group');
         expect(group.path).toEqual(['items']);
         expect(flattenIssueItems([group])[0]?.path).toEqual(['items', 'filter-context']);
+
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[97]?.path).toEqual(['key97']);
         expect(leaves.slice(-2).map((issue) => extractIssueParameter(issue))).toEqual([
@@ -371,6 +387,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should replace the final leaf of a capped nested group with a structural abort', () => {
         const collector = new IssueCollector();
+
         collector.merge([defineIssueGroup({
             code: 'validation_failed',
             path: [],
@@ -383,13 +400,16 @@ describe('src/parser/issue/module.ts', () => {
 
         expect(collector.issues[0]?.type).toBe('group');
         expect(flattenIssueItems([collector.issues[0]!])).toHaveLength(MAX_ISSUES - 1);
+
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves.at(-1)?.code).toBe(ErrorCode.SYNTAX_INVALID);
     });
 
     it('should retain priority aborts while evicting a nested ordinary tail', () => {
         const collector = new IssueCollector();
+
         collector.merge([defineIssueGroup({
             code: 'validation_failed',
             path: [],
@@ -415,13 +435,18 @@ describe('src/parser/issue/module.ts', () => {
         collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
 
         const group = collector.issues[0]!;
+
         expect(group.type).toBe('group');
+
         if (group.type === 'group') {
             expect(group.issues).toHaveLength(1);
             expect(group.issues[0]?.type).toBe('group');
         }
+
         expect(flattenIssueItems([group])).toHaveLength(MAX_ISSUES - 2);
+
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.path).toEqual(['key0']);
         expect(leaves[97]?.path).toEqual(['key97']);
@@ -433,6 +458,7 @@ describe('src/parser/issue/module.ts', () => {
 
     it('should replace the newest terminal abort when every retained leaf is terminal', () => {
         const collector = new IssueCollector();
+
         for (let index = 0; index < MAX_ISSUES; index++) {
             collector.addError(FiltersParseError.syntaxInvalid(`filters${index}`), Parameter.FILTERS);
         }
@@ -440,6 +466,7 @@ describe('src/parser/issue/module.ts', () => {
         collector.addError(SortsParseError.syntaxInvalid('sorts'), Parameter.SORTS);
 
         const leaves = flattenIssueItems(collector.issues);
+
         expect(leaves).toHaveLength(MAX_ISSUES);
         expect(leaves[0]?.message).toBe(ErrorMessage.syntaxInvalid('filters0'));
         expect(leaves.at(-1)?.message).toBe(ErrorMessage.syntaxInvalid('sorts'));
@@ -531,6 +558,7 @@ describe('src/errors/check.ts', () => {
         // identity, so the brand stands in for it. A hand-built stand-in
         // proves the guard never reaches for the class.
         const foreign = new Error('The key secret is not permitted.');
+
         markInstanceof(foreign, BASE_ERROR_MARKER);
         markInstanceof(foreign, PARSE_ERROR_MARKER);
 

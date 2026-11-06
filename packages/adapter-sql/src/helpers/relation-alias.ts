@@ -1,12 +1,3 @@
-/*
- * Copyright (c) 2026.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
- */
-
-export type RelationAliasFn = (path: string) => string;
-
 /**
  * The tightest identifier limit among the shipped dialect presets:
  * PostgreSQL truncates identifiers to 63 bytes (silently, with a
@@ -21,6 +12,7 @@ const MAX_ALIAS_LENGTH = 63;
  */
 function hashPath(input: string) : string {
     let hash = 0x811c9dc5;
+
     for (let i = 0; i < input.length; i++) {
         hash ^= input.charCodeAt(i);
         hash = Math.imul(hash, 0x01000193);
@@ -41,6 +33,7 @@ function hashPath(input: string) : string {
 export function buildRelationAlias(path: string) : string {
     const segments = path.split('.');
     const alias = `r${segments.map((segment) => `${segment.length}_${segment}`).join('_')}`;
+
     if (alias.length <= MAX_ALIAS_LENGTH) {
         return alias;
     }

@@ -37,9 +37,9 @@ export const items = sqliteTable('items', {
 });
 
 const schema = {
-    users, 
-    items, 
-    realms, 
+    users,
+    items,
+    realms,
 };
 
 export const relations = defineRelations(schema, (r) => ({
@@ -82,6 +82,7 @@ const DDL = `
  */
 export function createEngine(records: User[]) : EngineDatabase {
     const client = new Database(':memory:');
+
     client.exec(DDL);
 
     const insertRealm = client.prepare('insert or ignore into realms values (?, ?, ?)');

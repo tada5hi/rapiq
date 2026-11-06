@@ -26,16 +26,19 @@ const UNSUPPORTED = new Set(['regex', 'mod', 'size']);
 function collect(condition: ICondition, output: Set<string>) : void {
     if (isFilters(condition)) {
         condition.value.forEach((child) => collect(child as ICondition, output));
+
         return;
     }
 
-    if (isFilter(condition)) {
-        output.add(condition.operator);
+    if (!isFilter(condition)) {
+        return;
+    }
 
-        // the interior is a condition of its own
-        if (condition.operator === 'elemMatch') {
-            collect(condition.value as ICondition, output);
-        }
+    output.add(condition.operator);
+
+    // the interior is a condition of its own
+    if (condition.operator === 'elemMatch') {
+        collect(condition.value as ICondition, output);
     }
 }
 

@@ -60,6 +60,7 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
@@ -72,6 +73,7 @@ export class SimpleURLEncoder {
         );
 
         const decoded = this.decoder.decode(encoded, buildSchemaPassOptions(options, parameters));
+
         if (!decoded) {
             return null;
         }
@@ -90,6 +92,7 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitQuery(input, options.parameters));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
@@ -100,6 +103,7 @@ export class SimpleURLEncoder {
         );
 
         const decoded = await this.decoder.decodeAsync(encoded, buildSchemaPassOptions(options, parameters));
+
         if (!decoded) {
             return null;
         }
@@ -115,11 +119,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFields(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodeFields(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -136,11 +142,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFields(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodeFieldsAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -160,11 +168,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFilters(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodeFilters(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -181,11 +191,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitFilters(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodeFiltersAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -205,11 +217,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitPagination(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodePagination(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -226,11 +240,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitPagination(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodePaginationAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -244,11 +260,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitRelations(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodeRelations(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -265,11 +283,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitRelations(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodeRelationsAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -283,11 +303,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitSorts(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = this.decoder.decodeSorts(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -304,11 +326,13 @@ export class SimpleURLEncoder {
         this.visitor.reset();
 
         const encoded = this.runSerializer(this.visitor.visitSorts(input));
+
         if (encoded === null || !isSchemaAware(options)) {
             return encoded;
         }
 
         const decoded = await this.decoder.decodeSortsAsync(encoded, options);
+
         if (!decoded) {
             return null;
         }
@@ -343,6 +367,7 @@ export class SimpleURLEncoder {
      */
     protected runSerializer<T>(serializer: ISerializer<T>) : T {
         const output = serializer.serialize();
+
         serializer.reset();
 
         return output;

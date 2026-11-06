@@ -112,6 +112,7 @@ export class FiltersSchema<
         if (typeof input === 'undefined') {
             this.allowed = [];
             this.allowedIsUndefined = true;
+
             return;
         }
 
@@ -123,6 +124,7 @@ export class FiltersSchema<
         if (typeof input === 'undefined') {
             this.caseSensitive = [];
             this.caseSensitiveIsUndefined = true;
+
             return;
         }
 
@@ -134,6 +136,7 @@ export class FiltersSchema<
         if (typeof input === 'undefined') {
             this.indexes = [];
             this.indexesIsUndefined = true;
+
             return;
         }
 

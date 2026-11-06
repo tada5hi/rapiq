@@ -14,6 +14,7 @@ export class ParamPlaceholderIndexer {
 
     next() {
         this.index++;
+
         return this.index;
     }
 

@@ -30,6 +30,7 @@ export function defineFields(input: FieldsBuildInput<ObjectLiteral> | IFields) :
     }
 
     const output : IField[] = [];
+
     buildFields(output, input);
 
     return new Fields(output);
@@ -43,6 +44,7 @@ function buildFields(
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
             const name = part.trim();
+
             if (!name) {
                 continue;
             }
@@ -79,6 +81,7 @@ function buildFields(
 
     if (isObject(input)) {
         const keys = Object.keys(input);
+
         for (const key of keys) {
             if (typeof input[key] === 'undefined') {
                 continue;
@@ -102,6 +105,7 @@ function pushField(
     let operator : `${FieldOperator}` | undefined;
 
     const character = name.substring(0, 1);
+
     if (
         character === FieldOperator.INCLUDE ||
         character === FieldOperator.EXCLUDE

@@ -8,3 +8,4 @@
 export * from './error';
 export * from './types';
 export * from './validate';
+export type { FiltersValidationOptions } from './types';

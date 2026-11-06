@@ -79,6 +79,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
         );
 
         let combined : ConditionEval;
+
         if (plan.operator === 'or') {
             combined = (ctx, root) => children.some((child) => child(ctx, root));
         } else {
@@ -119,6 +120,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
         const tests = plan.values.map(
             (value) => this.buildValueEqualTest(value, plan.caseFold),
         );
+
         if (plan.includesNull) {
             tests.push((value) => isValueEqual(value, null));
         }
@@ -132,6 +134,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
 
     match(plan: MatchPlan) : ConditionEval {
         let regex : RegExp;
+
         if (plan.pattern.mode === 'regex') {
             try {
                 regex = new RegExp(plan.pattern.source, plan.pattern.flags);
@@ -144,6 +147,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
 
         const test = anyValue((value) => {
             const text = toText(value);
+
             if (text === undefined) {
                 return false;
             }
@@ -285,6 +289,7 @@ export class FiltersCompiler implements IPlanInterpreter<ConditionEval> {
 
         return anyValue((value) => {
             const result = compareValues(value, condition);
+
             if (result === undefined) {
                 return false;
             }

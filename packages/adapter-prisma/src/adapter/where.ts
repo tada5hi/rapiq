@@ -178,6 +178,7 @@ export class WhereRenderer {
         impossible: boolean,
     } {
         const plan = planCondition(condition, { caseSensitive: options.caseSensitive });
+
         if (!plan) {
             return { impossible: false };
         }
@@ -249,6 +250,7 @@ export class WhereRenderer {
      */
     protected renderAnd(children: ConditionPlan[], ctx: Context) : Result {
         const flattened : ConditionPlan[] = [];
+
         for (const child of children) {
             if (child.kind === 'compound' && !child.negated && child.operator === 'and') {
                 flattened.push(...child.children);
@@ -264,6 +266,7 @@ export class WhereRenderer {
 
         for (const child of flattened) {
             const keys = this.keysOf(child, ctx);
+
             keys.forEach((key) => seen.add(key));
 
             if (keys.size <= 1) {
@@ -324,6 +327,7 @@ export class WhereRenderer {
             const branches = this.branchesOf(child, ctx);
 
             const next : Atom[][] = [];
+
             for (const conjunct of conjuncts) {
                 for (const branch of branches) {
                     next.push([...conjunct, ...branch]);
@@ -352,6 +356,7 @@ export class WhereRenderer {
 
         if (compound.operator === 'or') {
             const output : Atom[][] = [];
+
             for (const child of compound.children) {
                 output.push(...this.branchesOf(child, ctx));
             }
@@ -360,10 +365,12 @@ export class WhereRenderer {
         }
 
         let conjuncts : Atom[][] = [[]];
+
         for (const child of compound.children) {
             const branches = this.branchesOf(child, ctx);
 
             const next : Atom[][] = [];
+
             for (const conjunct of conjuncts) {
                 for (const branch of branches) {
                     next.push([...conjunct, ...branch]);
@@ -387,10 +394,12 @@ export class WhereRenderer {
         for (const atom of atoms) {
             if (!atom.key) {
                 parts.push(this.render(atom.plan, ctx));
+
                 continue;
             }
 
             const group = groups.get(atom.key) ?? [];
+
             group.push(atom.plan);
             groups.set(atom.key, group);
         }
@@ -421,6 +430,7 @@ export class WhereRenderer {
         const matchesNull = plans.every((plan) => this.evalAtNull(plan));
 
         let node : Result;
+
         if (interior === false) {
             node = false;
         } else {
@@ -453,6 +463,7 @@ export class WhereRenderer {
             const name = segments[i] as string;
 
             let branch : Result;
+
             if (current === false) {
                 branch = false;
             } else {
@@ -480,6 +491,7 @@ export class WhereRenderer {
 
         // walk any to-many prefix through the ordinary factoring path
         const key = this.keyOfPath(relative, ctx);
+
         if (key && key !== relative) {
             return this.factor(key, [plan], ctx);
         }
@@ -492,8 +504,8 @@ export class WhereRenderer {
         }
 
         const scoped : Context = {
-            ...ctx, 
-            base: absolute, 
+            ...ctx,
+            base: absolute,
             strip: '',
         };
 
@@ -501,6 +513,7 @@ export class WhereRenderer {
         const matchesNull = this.evalAtNull(plan);
 
         let node : Result;
+
         if (interior === false) {
             node = false;
         } else {
@@ -526,6 +539,7 @@ export class WhereRenderer {
         // opened an independent scope, which widens a conjunction and
         // turns the per-binding complement into a collection-wide one.
         const key = this.keyOfPath(relative, ctx);
+
         if (key) {
             return this.factor(key, [leaf], ctx);
         }
@@ -703,11 +717,13 @@ export class WhereRenderer {
 
         const operator = MATCH_OPERATORS[plan.pattern.mode];
         let { text } = plan.pattern;
+
         if (this.provider.escapeMatch) {
             text = this.provider.escapeMatch(text);
         } else if (LIKE_WILDCARD.test(text) || createFilterRegexPattern(text) !== text) {
             throw AdapterError.featureUnsupported('filters:match-literal');
         }
+
         const mode = this.buildMode(absolute, plan.ignoreCase);
 
         if (plan.negated) {
@@ -848,17 +864,15 @@ export class WhereRenderer {
         caseFold: boolean,
         values?: unknown[],
     ) : Record<string, string> {
-        if (!caseFold || !this.provider.caseInsensitiveMode) {
+        if (!caseFold || !this.provider.caseInsensitiveMode || (this.metadata.isString(absolute) === false)) {
             return {};
         }
 
-        if (this.metadata.isString(absolute) === false) {
-            return {};
-        }
+        const matchesValues = values &&
+            values.some((value) => typeof value === 'string' && LIKE_WILDCARD.test(value));
 
         if (
-            values &&
-            values.some((value) => typeof value === 'string' && LIKE_WILDCARD.test(value))
+            matchesValues
         ) {
             return {};
         }
@@ -886,6 +900,7 @@ export class WhereRenderer {
         }
 
         const date = toDate(value);
+
         if (!date) {
             throw AdapterError.keyValueInvalid(absolute);
         }

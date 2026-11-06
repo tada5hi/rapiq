@@ -64,26 +64,33 @@ export function buildCallNodes<NODE extends { key: string }>(
 
     for (const term of parseCallTerms(input)) {
         const resolution = resolveCallTerm(parameter, term, schema);
+
         if (!resolution.success) {
             record(issueCollector, parameter, term, resolution.code, resolution.message);
+
             continue;
         }
 
         // a row carries one value per column, so a column is grouped once
         // whatever the spelling: createdAt,bucket(createdAt,day) too.
         const column = parameter === Parameter.GROUPS ? resolution.lowering.field : undefined;
+
         if (column && columns.has(column)) {
             record(issueCollector, parameter, term, ErrorCode.KEY_AMBIGUOUS, ErrorMessage.groupColumnDuplicate(column));
+
             continue;
         }
 
         const node = create(term, resolution.lowering);
+
         if (keys.has(node.key)) {
             record(issueCollector, parameter, term, ErrorCode.KEY_AMBIGUOUS, ErrorMessage.outputKeyDuplicate(node.key));
+
             continue;
         }
 
         keys.add(node.key);
+
         if (column) {
             columns.add(column);
         }
