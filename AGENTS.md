@@ -39,6 +39,8 @@ Note: the root `README.md` documents v2; v1 lives on the `v1` branch.
 
 ## Detailed Guides
 
+
+AGENTS.md is the loaded entry point and the guide index. Read the linked guides when working on their topics.
 - **[Project Structure](.agents/structure.md)** — Package inventory, dependency layers, and per-package source layout
 - **[Architecture](.agents/architecture.md)** — Query AST, visitor pattern, schema system, parser dialects, and backend adapters
 - **[Testing](.agents/testing.md)** — vitest setup, per-package configs, and test data conventions
