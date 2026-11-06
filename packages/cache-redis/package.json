@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/cache-redis",
-    "version": "2.4.0",
+    "version": "2.0.0",
     "description": "Redis driver for @rapiq/cache: the tag-versioned entry, tag and clock steps as atomic Lua scripts over ioredis.",
     "type": "module",
     "main": "dist/index.mjs",
@@ -16,12 +16,12 @@
         "dist/"
     ],
     "devDependencies": {
-        "@rapiq/cache": "^2.4.0",
-        "@rapiq/core": "^2.4.0",
+        "@rapiq/cache": "^2.0.0",
+        "@rapiq/core": "^2.0.0",
         "ioredis": "^5.11.1"
     },
     "peerDependencies": {
-        "@rapiq/cache": "^2.4.0",
+        "@rapiq/cache": "^2.0.0",
         "ioredis": "^5.11.1 || ^6.0.0"
     },
     "scripts": {
