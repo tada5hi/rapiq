@@ -18,7 +18,7 @@
     "devDependencies": {
         "@rapiq/cache": "^2.4.0",
         "@rapiq/core": "^2.4.0",
-        "ioredis": "^5.11.1"
+        "ioredis": "^6.0.0"
     },
     "peerDependencies": {
         "@rapiq/cache": "^2.4.0",
