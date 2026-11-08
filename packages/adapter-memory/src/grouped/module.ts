@@ -23,9 +23,8 @@ import {
     toDate,
 } from '@rapiq/core';
 import { resolvePath } from '../helpers';
-import type { QueryVisitorOptions } from '../module';
+import type { ApplyOutput, QueryVisitorOptions  } from '../types';
 import { FiltersVisitor, PaginationVisitor, SortsVisitor } from '../parameter';
-import type { ApplyOutput } from '../types';
 
 type GroupReader = (record: unknown) => unknown;
 
@@ -43,11 +42,13 @@ type GroupBucket = { values: unknown[], records: unknown[] };
  */
 function truncateToBucket(value: unknown, unit: string) : string | null {
     const date = toDate(value);
+
     if (!date) {
         return null;
     }
 
     const output = new Date(date.getTime());
+
     if (unit === BucketUnit.HOUR) {
         output.setUTCMinutes(0, 0, 0);
     } else {
@@ -73,6 +74,7 @@ function toSummand(value: unknown) : number | undefined {
     const numeric = typeof value === 'number' ||
         typeof value === 'bigint' ||
         (typeof value === 'string' && value.trim().length > 0);
+
     if (!numeric) {
         return undefined;
     }
@@ -84,18 +86,21 @@ function toSummand(value: unknown) : number | undefined {
 
 function compileGroup(group: IGroup) : GroupReader {
     const { lowering } = group;
+
     // every group reads a root column: a bare one or a bucket's.
     if (!lowering || typeof lowering.field === 'undefined') {
         throw AdapterError.featureUnsupported('groups:unresolved');
     }
 
     const { fn, field } = lowering;
+
     if (typeof fn === 'undefined') {
         return (record) => resolvePath(record, field);
     }
 
     if (fn === GroupFunction.BUCKET) {
         const [unit] = lowering.args;
+
         // hand-built IR only: the resolver admits nothing outside
         // BucketUnit. Same refusal as adapter-sql, which inlines the unit.
         if (!isBucketUnit(unit)) {
@@ -110,11 +115,13 @@ function compileGroup(group: IGroup) : GroupReader {
 
 function compileAggregate(aggregate: IAggregate) : AggregateReducer {
     const { lowering } = aggregate;
+
     if (!lowering || typeof lowering.fn === 'undefined') {
         throw AdapterError.featureUnsupported('aggregates:unresolved');
     }
 
     const { fn, field } = lowering;
+
     if (fn === AggregateFunction.COUNT) {
         if (typeof field === 'undefined') {
             return (records) => records.length;
@@ -126,8 +133,10 @@ function compileAggregate(aggregate: IAggregate) : AggregateReducer {
     if (fn === AggregateFunction.SUM && typeof field !== 'undefined') {
         return (records) => {
             let output : number | null = null;
+
             for (const record of records) {
                 const value = toSummand(resolvePath(record, field));
+
                 if (typeof value !== 'undefined') {
                     output = (output ?? 0) + value;
                 }
@@ -171,6 +180,7 @@ export function compileGroupedQuery(
 
     return (data) => {
         const buckets = new Map<string, GroupBucket>();
+
         if (groups.length === 0) {
             // without group keys SQL answers one row, even over zero records.
             buckets.set(JSON.stringify([]), { values: [], records: [] });
@@ -188,6 +198,7 @@ export function compileGroupedQuery(
                 typeof value === 'bigint' ? { $bigint: String(value) } : value
             ));
             let bucket = buckets.get(identity);
+
             if (!bucket) {
                 bucket = { values, records: [] };
                 buckets.set(identity, bucket);
@@ -198,9 +209,11 @@ export function compileGroupedQuery(
 
         const rows = Array.from(buckets.values(), (bucket) => {
             const row : ObjectLiteral = {};
+
             groups.forEach((group, index) => {
                 row[group.key] = bucket.values[index];
             });
+
             for (const aggregate of aggregates) {
                 row[aggregate.key] = aggregate.reduce(bucket.records);
             }

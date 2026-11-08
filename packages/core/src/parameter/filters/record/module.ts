@@ -7,7 +7,7 @@
 
 import type { FilterFieldOperator } from '../../../schema';
 import { Condition } from '../condition';
-import type { ConditionOptions } from '../condition';
+import type { ConditionOptions } from '../types';
 import type { IFilter, IFilterVisitor } from './types';
 
 export class Filter<

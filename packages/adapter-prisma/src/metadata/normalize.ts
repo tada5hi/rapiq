@@ -1,3 +1,10 @@
+import type {
+    Datamodel,
+    DatamodelField,
+    DatamodelInput,
+    DatamodelModel,
+    ModelInput,
+} from './types';
 /*
  * Copyright (c) 2026.
  * Author Peter Placzek (tada5hi)
@@ -6,32 +13,6 @@
  */
 
 import { AdapterError, ErrorCode, isObject } from '@rapiq/core';
-import type { Datamodel, DatamodelField, DatamodelModel } from './types';
-
-/**
- * Anything a datamodel can be read from:
- *
- * - `Prisma.dmmf.datamodel` (models as an array), or any hand-written
- *   object of the same shape,
- * - `client.$datamodel` / `client._runtimeDataModel` (models as a
- *   record keyed by name),
- * - a `PrismaClient` instance, which carries the latter.
- *
- * The client paths prefer the public `$datamodel` reflection surface
- * (proposed in prisma/prisma#19392, implemented by prisma/prisma#29792)
- * and fall back to `_runtimeDataModel`, a private but long-stable
- * client internal verified against real generated clients by the
- * engine-backed test suite. The datamodel shapes are the
- * private-API-free path.
- */
-export type DatamodelInput = Datamodel | object;
-
-/**
- * A model delegate (`prisma.user`), or a plain model name (`'User'`).
- * The delegate resolves through its public field references, with the
- * runtime `$name` marker as the primary source.
- */
-export type ModelInput = string | { fields: object };
 
 function isField(input: unknown) : input is DatamodelField {
     return isObject(input) &&
@@ -93,8 +74,11 @@ export function normalizeDatamodel(input: DatamodelInput) : Datamodel {
         // a malformed model (no name, no fields array, junk entries)
         // falls through to the typed throw below instead of surfacing
         // a raw TypeError from the completeness walk
-        if (Array.isArray(source.models) && source.models.every(isModel)) {
+        const matchesModels = Array.isArray(source.models) && source.models.every(isModel);
+
+        if (matchesModels) {
             const models = source.models as DatamodelModel[];
+
             assertComplete(models);
 
             return { models };

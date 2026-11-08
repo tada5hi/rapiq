@@ -17,6 +17,7 @@ import { TypeormAdapter } from '../../src';
 
 const getKeysOfMany = (entities: Record<string, any>[]) => {
     const [entity] = entities;
+
     if (!entity) {
         return [];
     }
@@ -37,10 +38,12 @@ describe('src/fields', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.realm = master;
         await roleRepository.save(admin);
 
         const [, aston] = await createUserSeed(dataSource);
+
         userRepository = dataSource.getRepository(User);
         aston.role = admin;
         aston.realm = master;
@@ -53,6 +56,7 @@ describe('src/fields', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ fields }));
 
         return queryBuilder;

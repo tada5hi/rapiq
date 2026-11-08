@@ -48,15 +48,19 @@ function splitTerms(input: string) : string[] {
 
     let depth = 0;
     let start = 0;
+
     for (let index = 0; index < input.length; index++) {
         const char = input[index];
+
         if (char === '(') {
             depth++;
+
             if (depth > 1) {
                 throw ParseError.syntaxInvalid('a call term nests parentheses');
             }
         } else if (char === ')') {
             depth--;
+
             if (depth < 0) {
                 throw ParseError.syntaxInvalid('a call term has unbalanced parentheses');
             }
@@ -78,17 +82,22 @@ function splitTerms(input: string) : string[] {
 function parseTerm(input: string) : CallTerm {
     const match = TERM_PATTERN.exec(input);
     const name = match?.[1];
+
     if (typeof name === 'undefined') {
         throw ParseError.syntaxInvalid('a call term is empty or malformed');
     }
 
     const list = trimBlank(match?.[2] ?? '');
+
     if (list === '') {
         return { name, params: [] };
     }
 
     const params = list.split(',').map((param) => trimBlank(param));
-    if (params.some((param) => !ARGUMENT_PATTERN.test(param))) {
+
+    const matchesParams = params.some((param) => !ARGUMENT_PATTERN.test(param));
+
+    if (matchesParams) {
         throw ParseError.syntaxInvalid('a call argument is empty or malformed');
     }
 
@@ -109,6 +118,7 @@ export function parseCallTerms(input: unknown) : CallTerm[] {
     const lists = Array.isArray(input) ? input : [input];
 
     const output : CallTerm[] = [];
+
     for (const list of lists) {
         if (typeof list !== 'string') {
             throw ParseError.inputInvalid();

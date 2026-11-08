@@ -13,6 +13,7 @@ import type { BaseErrorOptions, IBaseError, SerializedError } from './types';
 
 function serializeIssue(input: Issue) : Issue {
     const output = { ...input };
+
     if (output.type === 'group') {
         output.issues = output.issues.map(serializeIssue);
     } else {

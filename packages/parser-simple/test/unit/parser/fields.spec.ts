@@ -60,12 +60,14 @@ describe('src/fields/index.ts', () => {
         });
 
         const data = parser.parse('+email', { schema });
+
         expect(interpreter.interpret(data)).toEqual(['email']);
     });
 
     it('should parse with invalid input (with default)', async () => {
         const schema = defineSchema({ fields: { default: ['id'] } });
         const data = parser.parse('name', { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
@@ -74,12 +76,14 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined
         const data = parser.parse(undefined, { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
     });
 
     it('should parse with no schema', async () => {
         // no options
         let data = parser.parse(['id']);
+
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // invalid field names
@@ -91,6 +95,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({ fields: { allowed: ['name!'] } });
 
         const data = parser.parse(['name!'], { schema });
+
         expect(interpreter.interpret(data)).toEqual(['name!']);
     });
 
@@ -98,6 +103,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema<ObjectLiteral>({ fields: { allowed: [] } });
 
         let data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual([]);
 
         data = parser.parse('id', { schema });
@@ -108,6 +114,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema<ObjectLiteral>({ fields: { default: [] } });
 
         const data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual([]);
     });
 
@@ -116,6 +123,7 @@ describe('src/fields/index.ts', () => {
         // projection, so an include hydrates whole rather than being
         // narrowed to a child default it never asked for.
         const lockedRegistry = new SchemaRegistry();
+
         lockedRegistry.add(defineSchema<ObjectLiteral>({
             name: 'user',
             fields: { allowed: [], default: [] },
@@ -141,9 +149,9 @@ describe('src/fields/index.ts', () => {
         );
         expectRejected(
             () => lockedParser.parse({ items: ['secret'] }, {
-                schema: 'user', 
-                relations, 
-                throwOnFailure: true, 
+                schema: 'user',
+                relations,
+                throwOnFailure: true,
             }),
             { code: ErrorCode.KEY_NOT_ALLOWED, message: ErrorMessage.keyNotPermitted('secret') },
         );
@@ -157,6 +165,7 @@ describe('src/fields/index.ts', () => {
 
         // fields undefined with default
         let data = parser.parse(undefined, { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         // fields as array
@@ -202,6 +211,7 @@ describe('src/fields/index.ts', () => {
 
         // if only one domain is given, try to parse request field to single domain.
         const data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id']);
     });
 
@@ -213,6 +223,7 @@ describe('src/fields/index.ts', () => {
 
         // if multiple possibilities are available for request field, use allowed
         const data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual([
             'id',
         ]);
@@ -227,6 +238,7 @@ describe('src/fields/index.ts', () => {
         });
 
         let data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id']);
 
         data = parser.parse(['+id'], { schema });
@@ -247,6 +259,7 @@ describe('src/fields/index.ts', () => {
 
         // if multiple possibilities are available for request field, use default
         const data = parser.parse(['id'], { schema });
+
         expect(interpreter.interpret(data)).toEqual([
             'id',
         ]);
@@ -255,6 +268,7 @@ describe('src/fields/index.ts', () => {
     it('should parse with defaults', async () => {
         const schema = defineSchema({ fields: { default: ['id', 'name'] } });
         let data = parser.parse([], { schema });
+
         expect(interpreter.interpret(data)).toEqual(['id', 'name']);
 
         data = parser.parse(['id'], { schema });
@@ -273,6 +287,7 @@ describe('src/fields/index.ts', () => {
         });
 
         let data = parser.parse('+foo', { schema });
+
         expect(interpreter.interpret(data)).toEqual([
             'id',
             'name',
@@ -296,6 +311,7 @@ describe('src/fields/index.ts', () => {
                 new Relation('items.realm'),
             ]),
         });
+
         expect(interpreter.interpret(data)).toEqual([
             'id',
             'name',
@@ -317,6 +333,7 @@ describe('src/fields/index.ts', () => {
                 new Relation('realm'),
             ]),
         });
+
         expect(interpreter.interpret(data)).toEqual([
             'id',
             'name',
@@ -328,6 +345,7 @@ describe('src/fields/index.ts', () => {
 
     it('should throw on invalid input shape', async () => {
         const error = FieldsParseError.inputInvalid();
+
         expectRejected(() => parser.parse(false, { schema: defineSchema({ throwOnFailure: true }) }), error);
     });
 
@@ -389,6 +407,7 @@ describe('src/fields/index.ts', () => {
         });
 
         const names = interpreter.interpret(data);
+
         expect(new Set(names).size).toEqual(names.length);
         expect(names).toContain('items.realm.id');
     });
@@ -399,6 +418,7 @@ describe('src/fields/index.ts', () => {
         // '!' is treated as a relation segment; a bound schema
         // without a resolvable child schema rejects the path.
         const error = FieldsParseError.keyPathInvalid('!');
+
         expectRejected(() => parser.parse(['!.bar'], { schema }), error);
         expect(() => parser.parse(['!.bar'], { schema })).toThrow(ParseError);
     });
@@ -407,6 +427,7 @@ describe('src/fields/index.ts', () => {
         const schema = defineSchema({ throwOnFailure: true });
 
         const error = FieldsParseError.keyInvalid('!bar');
+
         expectRejected(() => parser.parse(['!bar'], { schema }), error);
     });
 });

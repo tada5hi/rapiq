@@ -35,6 +35,7 @@ describe('src/adapter/relations.ts', () => {
         ...relations: string[]
     ) => {
         const nodes = new Relations(relations.map((name) => new Relation(name)));
+
         nodes.accept(new RelationsVisitor(adapter.relations));
     };
 
@@ -83,6 +84,7 @@ describe('src/adapter/relations.ts', () => {
 
     it('should skip pre-existing joins', () => {
         const { queryBuilder, adapter } = setup();
+
         queryBuilder.leftJoinAndSelect('user.realm', 'r5_realm');
 
         visit(adapter, 'realm');
@@ -102,6 +104,7 @@ describe('src/adapter/relations.ts', () => {
         const joins = queryBuilder.expressionMap.joinAttributes.map(
             (join) => [join.entityOrProperty, join.alias.name],
         );
+
         expect(joins).toEqual([
             ['user.role', 'r4_role'],
             ['r4_role.detail', 'r4_role_6_detail'],
@@ -120,6 +123,7 @@ describe('src/adapter/relations.ts', () => {
         const joins = queryBuilder.expressionMap.joinAttributes.map(
             (join) => [join.entityOrProperty, join.alias.name],
         );
+
         expect(joins).toEqual([
             ['user.realm', 'r5_realm'],
             ['user.role', 'r4_role'],
@@ -136,6 +140,7 @@ describe('src/adapter/relations.ts', () => {
         const aliases = queryBuilder.expressionMap.joinAttributes.map(
             (join) => join.alias.name,
         );
+
         expect(aliases).toEqual(['role', 'role__realm']);
     });
 
@@ -176,6 +181,7 @@ describe('src/adapter/relations.ts', () => {
                 calls.push(path);
             },
         });
+
         queryBuilder.leftJoin('user.realm', 'r5_realm');
 
         visit(adapter, 'realm');

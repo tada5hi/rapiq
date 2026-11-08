@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { 
-    ParseError, 
-    RelationsParseError, 
-    defineRelationsSchema, 
-    defineSchema, 
+import {
+    ParseError,
+    RelationsParseError,
+    defineRelationsSchema,
+    defineSchema,
 } from '@rapiq/core';
 import type { Relations } from '@rapiq/core';
 import { expectRejected, registry  } from '../../data';
@@ -36,6 +36,7 @@ describe('src/relations/index.ts', () => {
             throwOnFailure: true,
         });
         let output = parser.parse('profile', { schema });
+
         expect(interpreter.interpret(output)).toEqual(['profile']);
 
         output = parser.parse([], { schema });
@@ -45,6 +46,7 @@ describe('src/relations/index.ts', () => {
     it('should parse with invalid pattern', async () => {
         // invalid path
         const output = parser.parse(['profile!']);
+
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
@@ -53,6 +55,7 @@ describe('src/relations/index.ts', () => {
 
         // ignore path pattern, if permitted by an allowed key
         const output = parser.parse(['profile!'], { schema });
+
         expect(interpreter.interpret(output)).toEqual(['profile!']);
     });
 
@@ -66,12 +69,14 @@ describe('src/relations/index.ts', () => {
 
         // with alias
         const output = parser.parse('pro', { schema });
+
         expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with nested alias', async () => {
         // with nested alias
         const output = parser.parse(['abc.realm'], { schema: 'user' });
+
         expect(interpreter.interpret(output)).toEqual([
             'items',
             'items.realm',
@@ -87,24 +92,28 @@ describe('src/relations/index.ts', () => {
         });
 
         const output = parser.parse(['abc'], { schema });
+
         expect(interpreter.interpret(output)).toEqual(['items.realm']);
     });
 
     it('should parse with array input', async () => {
         // multiple data matching
         const output = parser.parse(['profile', 'abc'], { schema: defineSchema({ relations: { allowed: ['profile'] } }) });
+
         expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
     it('should parse with empty allowed', async () => {
         // no allowed
         const output = parser.parse(['profile'], { schema: defineSchema({ relations: { allowed: [] } }) });
+
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
     it('should parse with undefined allowed', async () => {
         // non array, permit everything
         const output = parser.parse(['profile'], { schema: defineSchema({ relations: { allowed: undefined } }) });
+
         expect(interpreter.interpret(output)).toEqual(['profile']);
     });
 
@@ -113,6 +122,7 @@ describe('src/relations/index.ts', () => {
         const output = parser.parse([
             'items.realm',
         ], { schema: 'user' });
+
         expect(interpreter.interpret(output)).toEqual([
             'items',
             'items.realm',
@@ -122,6 +132,7 @@ describe('src/relations/index.ts', () => {
     it('should pare with null input', async () => {
         // null data
         const output = parser.parse(null);
+
         expect(interpreter.interpret(output)).toEqual([]);
     });
 
@@ -145,6 +156,7 @@ describe('src/relations/index.ts', () => {
         });
 
         const error = RelationsParseError.keyNotPermitted('bar');
+
         expectRejected(() => parser.parse(['foo', 'bar'], { schema }), error);
     });
 
@@ -152,6 +164,7 @@ describe('src/relations/index.ts', () => {
         const schema = defineSchema({ throwOnFailure: true });
 
         const error = RelationsParseError.keyInvalid(',foo');
+
         expectRejected(() => parser.parse([',foo'], { schema }), error);
     });
 
@@ -171,6 +184,7 @@ describe('src/relations/index.ts', () => {
                 allowed: ['realm'],
                 validate: (key: string) => {
                     seen.push(key);
+
                     return false;
                 },
             });
@@ -198,6 +212,7 @@ describe('src/relations/index.ts', () => {
                 allowed: ['realm', 'realm.child'],
                 validate: (key: string) => {
                     seen.push(key);
+
                     return true;
                 },
             });

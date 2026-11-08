@@ -43,6 +43,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : IFields {
         const ledger : RelationLedger = [];
+
         return this.withTrace({ parameter: Parameter.FIELDS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
 
@@ -61,6 +62,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         options: SimpleFieldsParseOptions<RECORD> = {},
     ) : Promise<IFields> {
         const ledger : RelationLedger = [];
+
         return this.withTraceAsync({ parameter: Parameter.FIELDS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
 
@@ -114,8 +116,8 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : {
-        output: IFields, 
-        scope: FieldsScope<RECORD>, 
+        output: IFields,
+        scope: FieldsScope<RECORD>,
     } {
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
@@ -143,8 +145,8 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         ledger: RelationLedger,
         issueCollector: IIssueCollector,
     ) : Promise<{
-        output: IFields, 
-        scope: FieldsScope<RECORD>, 
+        output: IFields,
+        scope: FieldsScope<RECORD>,
     }> {
         const scope = this.scopeFor(options, ledger, issueCollector);
         const pending : PendingKeyValidation[] = [];
@@ -233,6 +235,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             .filter((field) => !rejected.includes(field.name))
             .map((field) => {
                 const condition = conditions.get(field.name);
+
                 if (!condition) {
                     return field;
                 }
@@ -254,6 +257,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
         if (schema.name) {
             const named = normalized[schema.name];
+
             if (named) {
                 normalized[DEFAULT_ID] = named;
                 delete normalized[schema.name];
@@ -261,6 +265,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         }
 
         const data = normalized[DEFAULT_ID] || [];
+
         delete normalized[DEFAULT_ID];
 
         const fields = new Fields();
@@ -270,6 +275,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 let operator: FieldOperator | undefined;
 
                 const character = value.substring(0, 1);
+
                 if (
                     character === FieldOperator.INCLUDE ||
                     character === FieldOperator.EXCLUDE
@@ -280,6 +286,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                 }
 
                 const resolved = scope.resolveKey(value);
+
                 if (!resolved.success) {
                     continue;
                 }
@@ -290,6 +297,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
                     // schema semantics apply (like direct dotted input).
                     const group = resolved.path.join('.');
                     const list = normalized[group] ?? [];
+
                     normalized[group] = list;
                     list.push(`${operator ?? ''}${resolved.name}`);
 
@@ -326,6 +334,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         if (scope.relations) {
             for (const relation of scope.relations.value) {
                 const index = keys.indexOf(relation.name);
+
                 if (index === -1) {
                     keys.push(relation.name);
                     normalized[relation.name] = [];
@@ -336,11 +345,13 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
         // keyed by a client-controlled group: no prototype, so an
         // inherited member can never be mistaken for an existing group
         const grouped : Record<string, Record<string, any>> = Object.create(null);
+
         for (const key of keys) {
             let group : string;
             let relation : string;
 
             const index = key.indexOf('.');
+
             if (index === -1) {
                 group = key;
                 relation = DEFAULT_ID;
@@ -350,6 +361,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             }
 
             const groupRecord = grouped[group] ?? Object.create(null);
+
             grouped[group] = groupRecord;
             groupRecord[relation] = normalized[key];
         }
@@ -358,6 +370,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
 
         for (const key of groupedKeys) {
             const child = scope.descend(key);
+
             if (!(child instanceof ResolutionScope)) {
                 continue;
             }
@@ -422,6 +435,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             Array.isArray(input)
         ) {
             let temp : unknown[];
+
             if (typeof input === 'string') {
                 temp = input.split(',');
             } else {
@@ -429,6 +443,7 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             }
 
             const parts : string[] = [];
+
             for (const element of temp) {
                 if (typeof element !== 'string') {
                     scope.refuse({
@@ -455,15 +470,19 @@ export class SimpleFieldsParser extends BaseParser<SimpleFieldsParseOptions, IFi
             const output : Record<string, string[]> = Object.create(null);
 
             const keys = Object.keys(input);
+
             for (const key of keys) {
                 const temp = this.normalize(input[key], scope, [...path, ...toIssuePath(key)]);
+
                 for (const [tempKey, value] of Object.entries(temp)) {
                     let nextKey : string;
+
                     if (tempKey === DEFAULT_ID) {
                         nextKey = key;
                     } else {
                         nextKey = `${key}.${tempKey}`;
                     }
+
                     output[nextKey] = value;
                 }
             }

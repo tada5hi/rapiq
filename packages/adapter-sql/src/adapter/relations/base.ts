@@ -94,6 +94,7 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
 
         while (last) {
             let relationName: string;
+
             [relationName, last] = splitFirst(last);
 
             path = path ?
@@ -106,6 +107,7 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
             const projected = !last && (options.projected ?? false);
 
             const existing = this.value.find((join) => join.path === path);
+
             if (existing) {
                 // A path already registered by a field/filter/sort traversal
                 // is upgraded to an explicit include when re-added as one;
@@ -113,6 +115,7 @@ export abstract class RelationsBaseAdapter implements IRelationsAdapter {
                 if (include) {
                     existing.include = true;
                 }
+
                 if (projected) {
                     existing.projected = true;
                 }

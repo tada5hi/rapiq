@@ -145,6 +145,7 @@ describe('src/parameter/filters condition contract', () => {
 
         // @ts-expect-error detached data has no condition brand
         const condition: ICondition = detached;
+
         // @ts-expect-error helpers accept live ICondition implementations
         and(detached);
         // @ts-expect-error injection accepts live ICondition implementations

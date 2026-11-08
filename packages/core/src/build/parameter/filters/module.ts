@@ -8,11 +8,11 @@
 import { BuildError } from '../../../errors';
 import type { ICondition, IFilters } from '../../../parameter';
 import {
-    Filter, 
-    Filters, 
-    ITSELF, 
+    Filter,
+    Filters,
+    ITSELF,
     isCondition,
-    isFilter, 
+    isFilter,
     isFilters,
 } from '../../../parameter';
 import { FilterCompoundOperator, FilterFieldOperator } from '../../../schema';
@@ -23,6 +23,7 @@ import type { FiltersBuildInput } from './types';
 import { isNestedRecordValue } from './value';
 
 const OPERATORS : Record<string, string> = {};
+
 for (const operator of Object.values(FilterFieldOperator)) {
     OPERATORS[`$${operator}`] = operator;
 }
@@ -75,6 +76,7 @@ function isDetachedCondition(input: unknown) : boolean {
     }
 
     const keys = Object.keys(input);
+
     if (keys.length === 0) {
         return false;
     }
@@ -115,8 +117,10 @@ function buildConditions(
     const output : ICondition[] = [];
 
     const keys = Object.keys(input);
+
     for (const key of keys) {
         const value = input[key];
+
         if (typeof value === 'undefined') {
             continue;
         }
@@ -125,6 +129,7 @@ function buildConditions(
         // the ITSELF marker addresses the array element inside an
         // elemMatch interior.
         const isItselfMarker = key === ITSELF && insideElemMatch && !prefix;
+
         if (key.startsWith('$') && !isItselfMarker) {
             throw BuildError.keyInvalid(key);
         }
@@ -174,8 +179,10 @@ function buildFieldConditions(
         const keys = Object.keys(value);
 
         const isOperatorInput = keys.some((key) => key.substring(0, 1) === '$');
+
         if (isOperatorInput) {
             const output : ICondition[] = [];
+
             for (const key of keys) {
                 // optional operator keys may be present but undefined
                 // (conditional spreads) — they carry no condition.
@@ -211,15 +218,19 @@ function buildOperatorCondition(
 ) : ICondition {
     if (key === `$${FilterFieldOperator.ELEM_MATCH}`) {
         let condition : ICondition;
+
         if (isCondition(value)) {
             assertConditionFields(value, true);
 
             condition = value;
         } else {
             let conditions : ICondition[];
+
+            const matchesItems = isObject(value) &&
+                Object.keys(value).every((child) => child.startsWith('$') && child !== ITSELF);
+
             if (
-                isObject(value) &&
-                Object.keys(value).every((child) => child.startsWith('$') && child !== ITSELF)
+                matchesItems
             ) {
                 // element-level operator object (mongo's
                 // { $elemMatch: { $gt: 5 } }) — the operators apply
@@ -230,6 +241,7 @@ function buildOperatorCondition(
             }
 
             const [first] = conditions;
+
             condition = first && conditions.length === 1 ?
                 first :
                 new Filters(FilterCompoundOperator.AND, conditions);
@@ -243,6 +255,7 @@ function buildOperatorCondition(
     }
 
     const operator = OPERATORS[key];
+
     if (!operator) {
         throw BuildError.operatorUnsupported(key);
     }

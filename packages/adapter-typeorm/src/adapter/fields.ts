@@ -48,6 +48,7 @@ export class FieldsAdapter extends FieldsBaseAdapter<RelationsAdapter> {
             if (seen.has(column)) {
                 return false;
             }
+
             seen.add(column);
 
             // The join alias is always the FIRST dotted segment: relation aliases
@@ -55,6 +56,7 @@ export class FieldsAdapter extends FieldsBaseAdapter<RelationsAdapter> {
             // embedded path (e.g. `r4_role.profile.firstName`). Splitting on the
             // last dot would miss those and re-project the embedded column (#831).
             const index = column.indexOf('.');
+
             if (index === -1) {
                 return true;
             }

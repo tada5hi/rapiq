@@ -7,4 +7,5 @@
 
 export * from './base';
 export * from './module';
+export type { FiltersContainerOptions } from './types';
 export * from './types';

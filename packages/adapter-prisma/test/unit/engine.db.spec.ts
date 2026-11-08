@@ -57,9 +57,9 @@ describe('engine parity (prisma vs memory)', () => {
             created_at: new Date('2026-08-20T09:00:00.000Z'),
             realm_id: 1,
             realm: {
-                id: 1, 
-                name: 'master', 
-                description: null, 
+                id: 1,
+                name: 'master',
+                description: null,
             },
             items: [{
                 id: 1,
@@ -67,9 +67,9 @@ describe('engine parity (prisma vs memory)', () => {
                 color: 'red',
                 realm_id: 1,
                 realm: {
-                    id: 1, 
-                    name: 'master', 
-                    description: null, 
+                    id: 1,
+                    name: 'master',
+                    description: null,
                 },
             }],
         },
@@ -95,9 +95,9 @@ describe('engine parity (prisma vs memory)', () => {
             created_at: null,
             realm_id: 2,
             realm: {
-                id: 2, 
-                name: 'shire', 
-                description: 'the shire', 
+                id: 2,
+                name: 'shire',
+                description: 'the shire',
             },
             items: [
                 {
@@ -106,9 +106,9 @@ describe('engine parity (prisma vs memory)', () => {
                     color: null,
                     realm_id: 1,
                     realm: {
-                        id: 1, 
-                        name: 'master', 
-                        description: null, 
+                        id: 1,
+                        name: 'master',
+                        description: null,
                     },
                 },
                 {
@@ -144,9 +144,9 @@ describe('engine parity (prisma vs memory)', () => {
                     color: 'red',
                     realm_id: 1,
                     realm: {
-                        id: 1, 
-                        name: 'master', 
-                        description: null, 
+                        id: 1,
+                        name: 'master',
+                        description: null,
                     },
                 },
             ],
@@ -215,6 +215,7 @@ describe('engine parity (prisma vs memory)', () => {
         expect(pagination).toEqual({ limit: undefined, offset: undefined });
 
         const rows = await database.client.user.findMany(args);
+
         expect(rows).toHaveLength(4);
     });
 
@@ -343,17 +344,22 @@ describe('engine parity (prisma vs memory)', () => {
             age: 1,
             address,
         }));
+
         await database.client.user.createMany({ data: added });
+
         try {
             for (const value of ['100%', 'a_b', String.raw`a\b`, 'a\\', '[a-z].*']) {
                 for (const operator of [contains, startsWith, endsWith]) {
                     for (const condition of [operator('address', value), not(operator('address', value))]) {
                         if (database.provider === 'sqlite' && /[%_]/.test(value)) {
                             expect(() => build(condition)).toThrowError(expect.objectContaining({ code: ErrorCode.FEATURE_UNSUPPORTED, feature: 'filters:match-literal' }));
+
                             continue;
                         }
+
                         const expected = [...records, ...added].filter(compileFilters(condition))
                             .map((row) => row.id).sort((a, b) => a - b);
+
                         expect(await engineIds(condition)).toEqual(expected);
                     }
                 }
@@ -371,19 +377,19 @@ describe('engine parity (prisma vs memory)', () => {
         await database.client.user.createMany({
             data: [
                 {
-                    id: 90, 
-                    first_name: 'A_B', 
-                    last_name: 'x', 
-                    email: 'x', 
-                    age: 1, 
+                    id: 90,
+                    first_name: 'A_B',
+                    last_name: 'x',
+                    email: 'x',
+                    age: 1,
                     address: 'a_b',
                 },
                 {
-                    id: 91, 
-                    first_name: 'AxB', 
-                    last_name: 'x', 
-                    email: 'x', 
-                    age: 1, 
+                    id: 91,
+                    first_name: 'AxB',
+                    last_name: 'x',
+                    email: 'x',
+                    age: 1,
                     address: 'axb',
                 },
             ],

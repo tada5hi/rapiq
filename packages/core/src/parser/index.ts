@@ -8,6 +8,7 @@
 export * from './parameter';
 
 export * from './base';
+export type { TempType } from './types';
 export * from './index-policy';
 export * from './issue';
 export * from './query';

@@ -55,9 +55,9 @@ const items = pgTable('items', {
 });
 
 const relations = defineRelations({
-    users, 
-    items, 
-    realms, 
+    users,
+    items,
+    realms,
 }, (r) => ({
     users: {
         realm: r.one.realms({ from: r.users.realm_id, to: r.realms.id }),
@@ -110,6 +110,7 @@ suite('engine: postgres parity and case contract', () => {
         await pool.query('create table items (id integer primary key, title text not null, color text, user_id integer)');
 
         const seen = new Set<number>();
+
         for (const record of rows) {
             if (record.realm && !seen.has(record.realm.id)) {
                 seen.add(record.realm.id);

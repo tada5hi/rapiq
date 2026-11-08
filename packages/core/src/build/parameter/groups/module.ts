@@ -51,6 +51,7 @@ export function defineGroups(input: GroupsBuildInput<ObjectLiteral>) : IGroups {
     });
 
     const column = findGroupColumnDuplicate(output);
+
     if (typeof column !== 'undefined') {
         throw BuildError.groupColumnDuplicate(column);
     }

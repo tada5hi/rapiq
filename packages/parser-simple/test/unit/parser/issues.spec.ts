@@ -166,6 +166,7 @@ describe('src/parser: issue traces', () => {
     describe('aggregation', () => {
         it('should validate every supplied parameter under empty allow-lists', async () => {
             const lockedRegistry = new SchemaRegistry();
+
             lockedRegistry.add(defineSchema({
                 name: 'locked',
                 throwOnFailure: true,
@@ -174,6 +175,7 @@ describe('src/parser: issue traces', () => {
                 relations: { allowed: [] },
                 sort: { allowed: [] },
             }));
+
             const parser = new SimpleParser(lockedRegistry);
             const input = {
                 fields: ['id'],
@@ -186,6 +188,7 @@ describe('src/parser: issue traces', () => {
                 trace(() => parser.parse(input, { schema: 'locked' })),
                 await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
             ];
+
             for (const { issues } of results) {
                 expect(issues
                     .filter((issue) => issue.code === ErrorCode.KEY_NOT_ALLOWED)
@@ -201,6 +204,7 @@ describe('src/parser: issue traces', () => {
 
         it('should validate malformed supplied parameters under empty allow-lists', async () => {
             const lockedRegistry = new SchemaRegistry();
+
             lockedRegistry.add(defineSchema({
                 name: 'locked',
                 throwOnFailure: true,
@@ -209,6 +213,7 @@ describe('src/parser: issue traces', () => {
                 relations: { allowed: [] },
                 sort: { allowed: [] },
             }));
+
             const parser = new SimpleParser(lockedRegistry);
             const input = {
                 fields: [500],
@@ -221,6 +226,7 @@ describe('src/parser: issue traces', () => {
                 trace(() => parser.parse(input, { schema: 'locked' })),
                 await traceAsync(() => parser.parseAsync(input, { schema: 'locked' })),
             ];
+
             for (const { issues } of results) {
                 expect(issues
                     .filter((issue) => issue.code === ErrorCode.INPUT_INVALID)
@@ -297,6 +303,7 @@ describe('src/parser: issue traces', () => {
             const { issues } = trace(() => parser.parse({ filters: { 'items.secret': 'x' } }, { schema: 'user' }));
 
             const issue = findIssue(issues, Parameter.FILTERS);
+
             // the canonical position is complete; `key` is the raw spelling
             // at the position that failed, which is what alias mapping makes
             // worth keeping
@@ -308,6 +315,7 @@ describe('src/parser: issue traces', () => {
             const parser = new SimpleParser(buildRegistry(true));
 
             const fields : string[] = [];
+
             for (let i = 0; i < MAX_ISSUES + 50; i++) {
                 fields.push(`nope${i}`);
             }
@@ -411,6 +419,7 @@ describe('src/parser: issue traces', () => {
             const { issues } = trace(() => parser.parse({ pagination: { offset: 'abc' } }, { schema: 'user' }));
 
             const issue = findIssue(issues, Parameter.PAGINATION, ErrorCode.KEY_VALUE_INVALID);
+
             expect(issue?.path).toEqual(['offset']);
             expect(issue?.received).toBe('abc');
         });
@@ -439,6 +448,7 @@ describe('src/parser: issue traces', () => {
     describe('ordering', () => {
         it('should raise the relation rejection, not the pruning conflict it causes', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 throwOnFailure: true,
@@ -534,6 +544,7 @@ describe('src/parser: issue traces', () => {
     describe('validate hooks', () => {
         it('should report a rejected key', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 throwOnFailure: true,
@@ -548,6 +559,7 @@ describe('src/parser: issue traces', () => {
 
         it('should raise a rejected filter leaf under a throwing schema', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 throwOnFailure: true,
@@ -569,6 +581,7 @@ describe('src/parser: issue traces', () => {
 
         it('should honor a call-time policy override on a rejected filter leaf', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 filters: {
@@ -592,6 +605,7 @@ describe('src/parser: issue traces', () => {
 
         it('should not raise a replaced filter leaf', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 throwOnFailure: true,
@@ -611,13 +625,14 @@ describe('src/parser: issue traces', () => {
     describe('relation gating', () => {
         it('should report what a rejected relation took with it', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 fields: { allowed: ['id'] },
                 relations: {
-                    allowed: ['items'], 
-                    validate: () => false, 
-                    throwOnFailure: true, 
+                    allowed: ['items'],
+                    validate: () => false,
+                    throwOnFailure: true,
                 },
                 schemaMapping: { items: 'item' },
             }));
@@ -639,6 +654,7 @@ describe('src/parser: issue traces', () => {
 
         it('should honor a call-time policy override on a standalone parse', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<User>({
                 name: 'user',
                 filters: { allowed: ['id'] },
@@ -671,6 +687,7 @@ describe('src/parser: issue traces', () => {
                 const { issues } = trace(() => parser.parse(input, { schema: 'user' }));
 
                 const issue = findIssue(issues, Parameter.FILTERS, ErrorCode.KEY_VALUE_INVALID);
+
                 expect(issue?.path).toEqual(['items', 'id']);
                 expect(issue?.message).toBe(ErrorMessage.keyValueInvalid('items.id'));
             }
@@ -689,6 +706,7 @@ describe('src/parser: issue traces', () => {
             filtersValidate?: (leaf: any) => any,
         }) => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<any>({
                 name: 'user',
                 fields: { allowed: ['id'], throwOnFailure: options.fieldsThrowOnFailure },
@@ -698,9 +716,9 @@ describe('src/parser: issue traces', () => {
                     validate: options.filtersValidate,
                 },
                 sorts: {
-                    allowed: ['id', 'name'], 
-                    indexed: true, 
-                    throwOnFailure: true, 
+                    allowed: ['id', 'name'],
+                    indexed: true,
+                    throwOnFailure: true,
                 },
                 relations: {
                     allowed: ['items'],

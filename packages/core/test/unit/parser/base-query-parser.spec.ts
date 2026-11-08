@@ -87,6 +87,7 @@ class StubParameterParser<T> implements IQueryParameterParser<T> {
 
     parseParameter(_input: unknown, _options: unknown, ledger: RelationLedger) : T {
         this.ledgers.push(ledger);
+
         if (this.obligation) {
             ledger.push(this.obligation);
         }
@@ -115,6 +116,7 @@ class FailingParameterParser<T> extends StubParameterParser<T> {
         issueCollector?: IIssueCollector,
     ) : T {
         const output = super.parseParameter(input, options, ledger);
+
         for (let index = 0; index < this.issueCount; index++) {
             issueCollector?.add({
                 code: ErrorCode.KEY_NOT_ALLOWED,
@@ -185,6 +187,7 @@ function buildRegistry(
         throwOnFailure,
         relations: { allowed: ['user', 'realm'], validate },
     });
+
     registry.add(schema);
 
     return { registry, relations: schema.relations };
@@ -252,6 +255,7 @@ function expectSaturatedParameterAborts(input: unknown) {
     expect(input).toBeInstanceOf(ParseError);
 
     const leaves = flattenIssueItems((input as ParseError).issues);
+
     expect(leaves).toHaveLength(MAX_ISSUES);
     expect(leaves[0]?.path).toEqual(['key0']);
     expect(leaves[97]?.path).toEqual(['key97']);
@@ -271,10 +275,10 @@ function expectSaturatedParameterAborts(input: unknown) {
 }
 
 const INPUT = {
-    relations: [], 
-    fields: {}, 
-    filters: {}, 
-    pagination: {}, 
+    relations: [],
+    fields: {},
+    filters: {},
+    pagination: {},
     sort: [],
 };
 
@@ -283,15 +287,16 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
         const validate = vi.fn(() => true);
         const { registry, relations } = buildRegistry(validate);
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         new StubQueryParser(registry, parsers).parse(INPUT, { schema: 'record', context: actor });
 
         // relations, fields and filters each received the SAME ledger instance.
         const ledger = (parsers.relations as StubParameterParser<IRelations>).ledgers[0];
+
         expect((parsers.fields as StubParameterParser<IFields>).ledgers[0]).toBe(ledger);
         expect((parsers.filters as StubParameterParser<IFilters>).ledgers[0]).toBe(ledger);
     });
@@ -300,9 +305,9 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
         const validate = vi.fn((name: string) => name !== 'user');
         const { registry, relations } = buildRegistry(validate);
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         const query = new StubQueryParser(registry, parsers).parse(INPUT, { schema: 'record', context: actor });
@@ -323,9 +328,9 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
         const validate = vi.fn(() => true);
         const { registry, relations } = buildRegistry(validate);
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         const query = new StubQueryParser(registry, parsers).parse(INPUT, { schema: 'record', context: actor });
@@ -337,12 +342,13 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
     it('throws RelationsParseError under the relations schema throwOnFailure', () => {
         const { registry, relations } = buildRegistry(() => false, true);
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         expect.assertions(3);
+
         try {
             new StubQueryParser(registry, parsers).parse(INPUT, { schema: 'record', context: actor });
         } catch (e) {
@@ -356,9 +362,9 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
         const validate = vi.fn(async (name: string) => name !== 'user');
         const { registry, relations } = buildRegistry(validate);
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         const query = await new StubQueryParser(registry, parsers).parseAsync(INPUT, { schema: 'record', context: actor });
@@ -372,9 +378,9 @@ describe('src/parser/query.ts (BaseQueryParser orchestration)', () => {
         const { relations } = buildRegistry(validate);
         const registry = new SchemaRegistry();
         const parsers = buildParsers({
-            key: 'user', 
-            path: 'user', 
-            schema: relations, 
+            key: 'user',
+            path: 'user',
+            schema: relations,
         });
 
         // no schema on the options — the pooled ledger is never evaluated.

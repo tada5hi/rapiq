@@ -73,6 +73,7 @@ class StubParameterParser<T> implements IQueryParameterParser<T> {
 
     parseParameter(input: unknown, options: unknown, ledger: RelationLedger) : T {
         this.calls.push({ input, options });
+
         if (this.obligation) {
             ledger.push(this.obligation);
         }
@@ -361,11 +362,13 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should parse sorts against the output keys of a bound parse', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'record',
                 throwOnFailure: true,
                 sorts: { allowed: ['id'], default: { id: 'DESC' } },
             }));
+
             const parsers = buildParsers();
 
             new StubQueryParser(registry, parsers).parse(
@@ -382,9 +385,11 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
             );
 
             const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
+
             expect(options.schema).toBeInstanceOf(Schema);
 
             const schema = options.schema as Schema;
+
             expect(schema.name).toBeUndefined();
             expect(schema.sorts.allowed).toEqual(['scope', 'count']);
             expect(schema.sorts.defaultIsUndefined).toBe(true);
@@ -400,6 +405,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
             const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
             const schema = options.schema as Schema;
+
             // aggregates are not flagged, so only the group key is an output key.
             expect(schema.sorts.allowed).toEqual(['scope']);
             expect(schema.sorts.throwOnFailure).toBeUndefined();
@@ -408,12 +414,15 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should hand an ungrouped sorts parse the query options unchanged', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({ name: 'record' }));
+
             const parsers = buildParsers();
 
             new StubQueryParser(registry, parsers).parse({ sorts: '-id' }, { schema: 'record' });
 
             const options = parsers.sorts.calls[0]?.options as ParseParameterOptions;
+
             expect(options.schema).toBe('record');
             expect(options.relations).toBeUndefined();
         });
@@ -425,6 +434,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
                 relations: { allowed: ['user'], validate: (name: string) => name !== 'user' },
                 sorts: { default: { id: 'DESC' } },
             });
+
             registry.add(schema);
 
             const parsers = buildParsers({
@@ -443,6 +453,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should not judge output keys by the sorts index policy', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'record',
                 indexes: [['id']],
@@ -459,6 +470,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should read an elemMatch interior relative to its element', () => {
             const parsers = buildParsers();
+
             parsers.relations = new StubParameterParser<IRelations>(new Relations([
                 new Relation('items'),
                 new Relation('items.realm'),
@@ -481,6 +493,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should drop an include no filter traverses under the dropping policy', () => {
             const parsers = buildParsers();
+
             parsers.relations = new StubParameterParser<IRelations>(new Relations([
                 new Relation('realm'),
                 new Relation('user'),
@@ -497,6 +510,7 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
 
         it('should keep every include when the parse skips filters', () => {
             const parsers = buildParsers();
+
             parsers.relations = new StubParameterParser<IRelations>(new Relations([new Relation('realm')]));
 
             const query = new StubQueryParser(new SchemaRegistry(), parsers).parse(
@@ -517,7 +531,9 @@ describe('src/parser/query.ts (groups and aggregates)', () => {
             await parser.parseAsync({ groups: 'scope', sorts: '-count' }, { groups: true });
 
             expect(parsers.fields.calls).toHaveLength(0);
+
             const options = parsers.sorts.calls[1]?.options as ParseParameterOptions;
+
             expect((options.schema as Schema).sorts.allowed).toEqual(['scope']);
         });
     });

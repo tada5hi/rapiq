@@ -104,11 +104,15 @@ describe('src/schema/indexes/module.ts', () => {
 
     it('should report the violating path and keys', () => {
         const result = checkConditionIndexed(and(eq('items.name', 'x')), resolve, 'anchor');
+
         expect(result.ok).toBe(false);
-        if (!result.ok) {
-            expect(result.path).toBe('items');
-            expect(result.keys).toEqual(['items.name']);
+
+        if (result.ok) {
+            return;
         }
+
+        expect(result.path).toBe('items');
+        expect(result.keys).toEqual(['items.name']);
     });
 
     it('should report a mixed-path violation at the root', () => {
@@ -117,10 +121,14 @@ describe('src/schema/indexes/module.ts', () => {
             resolve,
             'anchor',
         );
+
         expect(result.ok).toBe(false);
-        if (!result.ok) {
-            expect(result.path).toBe('');
-            expect(result.keys).toEqual(['flag', 'items.name']);
+
+        if (result.ok) {
+            return;
         }
+
+        expect(result.path).toBe('');
+        expect(result.keys).toEqual(['flag', 'items.name']);
     });
 });

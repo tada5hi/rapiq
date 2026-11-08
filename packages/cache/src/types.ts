@@ -59,3 +59,20 @@ export interface ITaggedCache {
      */
     drop(keys: string[]): Promise<void>;
 }
+
+
+
+/*
+ * Copyright (c) 2026.
+ * Author Peter Placzek (tada5hi)
+ * For the full copyright and license information,
+ * view the LICENSE file that was distributed with this source code.
+ */
+
+/**
+ * A value a scoped tag can carry. Anything else (an object, an array, an
+ * invalid Date, undefined) has no stable spelling both sides derive alike,
+ * so it never produces a scoped tag and the reader falls back to the
+ * collection.
+ */
+export type ScopedTagValue = string | number | boolean | Date | null;

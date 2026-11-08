@@ -21,6 +21,7 @@ type Row = {
 
 const buildRegistry = () => {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Row>({
         name: 'row',
         indexes: [['realm_id', 'created_at']],
@@ -35,10 +36,12 @@ describe('indexed schemas', () => {
         const codec = createURLCodec(buildRegistry());
 
         const anchored = codec.decode("filter=eq(realm_id, 'x')", { schema: 'row' })!;
+
         expect(anchored.filters.value).toHaveLength(1);
         expect(anchored.filters.value).not.toEqual([eq('flag', true)]);
 
         const unanchored = codec.decode("filter=eq(created_at, 'x')", { schema: 'row' })!;
+
         expect(unanchored.filters.value).toEqual([eq('flag', true)]);
     });
 });

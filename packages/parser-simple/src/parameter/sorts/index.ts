@@ -6,4 +6,6 @@
  */
 
 export * from './module';
+export type { SortsScope } from './types';
+export { SimpleSortParser } from './module';
 export * from './types';

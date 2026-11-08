@@ -32,6 +32,7 @@ export class Relations implements IRelations {
         const children: Relations = new Relations();
 
         const prefix = `${root}.`;
+
         for (const relation of this.value) {
             if (relation.name.substring(0, prefix.length) === prefix) {
                 children.value.push(new Relation(relation.name.substring(prefix.length)));
@@ -49,6 +50,7 @@ export class Relations implements IRelations {
         const output : IRelation[] = [];
 
         const seen = new Set<string>();
+
         for (const item of [...this.value, ...other.value]) {
             if (seen.has(item.name)) {
                 continue;

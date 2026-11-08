@@ -32,12 +32,14 @@ function trimIssueToLeafBudget(input: Issue, budget: IssueBudget) : Issue | unde
     }
 
     const issues : Issue[] = [];
+
     for (const child of input.issues) {
         if (budget.remaining === 0) {
             break;
         }
 
         const retained = trimIssueToLeafBudget(child, budget);
+
         if (retained) {
             issues.push(retained);
         }
@@ -52,6 +54,7 @@ function removeLastIssueItem(
 ) : boolean {
     for (let index = issues.length - 1; index >= 0; index--) {
         const issue = issues[index]!;
+
         if (!isIssueGroup(issue)) {
             if (terminalItems?.has(issue)) {
                 continue;
@@ -133,16 +136,20 @@ export class IssueCollector implements IIssueCollector {
      */
     addError(input: IParseError, parameter?: `${Parameter}`, path: string[] = []) : void {
         const issues = input.issues ?? [];
+
         if (issues.length > 0) {
             const before = this.leafCount;
+
             for (const issue of issues) {
                 this.record(prefixIssuePath(issue, path), { terminal: true });
             }
+
             if (this.leafCount > before) {
                 return;
             }
 
             const first = flattenIssueItems([...issues])[0];
+
             if (first && this.record(prefixIssuePath(first, path), {
                 ensure: true,
                 terminal: true,
@@ -186,6 +193,7 @@ export class IssueCollector implements IIssueCollector {
 
         const budget = { remaining: MAX_ISSUES - this.leafCount };
         const retained = trimIssueToLeafBudget(input, budget);
+
         if (!retained) {
             return false;
         }
@@ -194,6 +202,7 @@ export class IssueCollector implements IIssueCollector {
 
         if (options.terminal) {
             const items = flattenIssueItems([retained]);
+
             for (const item of items) {
                 this.terminalItems.add(item);
             }

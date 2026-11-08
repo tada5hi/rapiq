@@ -25,6 +25,7 @@ import { expectRejected } from '../../data';
 
 describe('filters/expr-parser', () => {
     let parser : ExpressionFiltersParser;
+
     beforeAll(() => {
         parser = new ExpressionFiltersParser();
     });
@@ -181,6 +182,7 @@ describe('filters/expr-parser', () => {
     it('should parse fields starting with a keyword prefix', () => {
         // "or", "not", "in", ... must not be split out of identifiers.
         let output = parser.parseExact('eq(order, \'asc\')');
+
         expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'order', 'asc'));
 
         output = parser.parseExact('eq(notes, \'foo\')');
@@ -414,6 +416,7 @@ describe('filters/expr-parser', () => {
 
     describe('parse (schema-constrained)', () => {
         let constrained : ExpressionFiltersParser;
+
         beforeAll(() => {
             constrained = new ExpressionFiltersParser(registry);
         });
@@ -466,6 +469,7 @@ describe('filters/expr-parser', () => {
                 schema: 'user',
                 relations: new Relations([new Relation('items')]),
             });
+
             expect(output).toEqual(new Filter(FilterFieldOperator.EQUAL, 'items.id', 1));
         });
 
@@ -626,6 +630,7 @@ describe('filters/expr-parser', () => {
                 ));
 
                 const error = FiltersParseError.keyNotPermitted('name');
+
                 expectRejected(() => constrained.parseExact('elemMatch(items,eq(name,\'x\'))', { schema: 'user' }), error);
             });
 
@@ -748,6 +753,7 @@ describe('anchored operators keep their pattern verbatim', () => {
 
     const leafOf = (input: string) => {
         const output = parser.parse(input) as Filters;
+
         return (output.value[0] ?? output) as Filter;
     };
 

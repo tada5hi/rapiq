@@ -6,5 +6,8 @@
  */
 
 export * from './base';
+export { SortBaseAdapter } from './base';
 export * from './module';
+export type { SortsContainerOptions, SortContainerOptions } from './types';
+export { SortAdapter } from './module';
 export * from './types';

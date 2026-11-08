@@ -52,6 +52,7 @@ export function stripFieldConditions(input: IFields) : IFields {
  */
 export function stripQueryFieldConditions(input: IQuery) : IQuery {
     const fields = stripFieldConditions(input.fields);
+
     if (fields === input.fields) {
         return input;
     }

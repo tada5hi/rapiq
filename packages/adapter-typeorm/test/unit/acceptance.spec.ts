@@ -7,9 +7,9 @@
 
 import { createURLCodec } from '@rapiq/codec-url';
 import {
-    Query, 
-    SchemaRegistry, 
-    defineSchema, 
+    Query,
+    SchemaRegistry,
+    defineSchema,
     eq,
 } from '@rapiq/core';
 import type { Schema } from '@rapiq/core';
@@ -36,6 +36,7 @@ import { createUserSeed } from '../data/seeder/user';
  */
 function createUserRepository(schema: Schema<User>) {
     const registry = new SchemaRegistry();
+
     registry.add(schema);
 
     const codec = createURLCodec(registry);
@@ -46,6 +47,7 @@ function createUserRepository(schema: Schema<User>) {
             input: string | Record<string, any>,
         ) {
             const query = codec.decode(input, { schema: 'user' });
+
             expect(query).toBeDefined();
 
             const adapter = new TypeormAdapter({
@@ -101,6 +103,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
 
     it('should port the realm-scoped list query with identical sql semantics', async () => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
+
         queryBuilder.groupBy('user.id');
 
         // wire input as sent by the client:
@@ -134,6 +137,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
         // aston (realm master, role admin) + caleb (no realm, no role):
         // the left join keeps caleb, the null-aware filter matches both
         const entities = await queryBuilder.getMany();
+
         expect(entities.length).toEqual(2);
         expect(entities[0].first_name).toEqual('Aston');
         expect(entities[0].email).toEqual('ashton.nel@gmail.com');
@@ -154,12 +158,15 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
         expect(output.pagination).toEqual({ limit: 50, offset: 0 });
 
         const sql = queryBuilder.getSql();
+
         expect(sql).not.toContain('"user"."email"');
         expect(sql).not.toContain('WHERE');
         expect(sql).not.toContain('ORDER BY');
 
         const entities = await queryBuilder.getMany();
+
         expect(entities.length).toEqual(2);
+
         for (const entity of entities) {
             expect(entity.first_name).toBeDefined();
             expect(entity.email).toBeUndefined();
@@ -168,10 +175,12 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
 
     it('should enforce server-injected scoping regardless of client input', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<User>({
             name: 'user',
             filters: { allowed: ['first_name', 'realm_id'] },
         }));
+
         const codec = createURLCodec(registry);
 
         const applyScoped = (input: string) => {
@@ -186,6 +195,7 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
 
             const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
             const adapter = new TypeormAdapter({ queryBuilder });
+
             adapter.execute(scoped);
 
             return queryBuilder;
@@ -193,15 +203,18 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
 
         // no client filters: the injected condition alone scopes the list
         const bare = applyScoped('');
+
         expect(bare.getSql()).toMatch(/"user"\."realm_id" = /);
 
         const scopedEntities = await bare.getMany();
+
         expect(scopedEntities.length).toEqual(1);
         expect(scopedEntities[0].first_name).toEqual('Aston');
 
         // client filter matches caleb, but caleb has no realm:
         // the injected scoping stays in effect alongside client input
         const filtered = applyScoped('filter[first_name]=Caleb');
+
         expect(filtered.getSql()).toMatch(/"user"\."realm_id" = /);
         expect(await filtered.getMany()).toHaveLength(0);
     });
@@ -225,11 +238,13 @@ describe('acceptance: authup-style repository port (M2 gate)', () => {
         expect(output.pagination).toEqual({ limit: 50, offset: 0 });
 
         const sql = queryBuilder.getSql();
+
         expect(sql).not.toContain('JOIN');
         expect(sql).not.toContain('WHERE');
         expect(sql).not.toContain('ORDER BY');
 
         const entities = await queryBuilder.getMany();
+
         expect(entities.length).toEqual(2);
     });
 });

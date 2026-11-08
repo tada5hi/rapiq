@@ -1,3 +1,4 @@
+import type { Field, IsRelationPathFn, RelationAliasFn  } from './types';
 /*
  * Copyright (c) 2025-2025.
  * Author Peter Placzek (tada5hi)
@@ -6,19 +7,7 @@
  */
 
 import { splitLast } from './name-split';
-import type { RelationAliasFn } from './relation-alias';
 import { buildRelationAlias } from './relation-alias';
-
-type Field = {
-    prefix?: string,
-    relation?: string,
-    name: string
-};
-
-/**
- * Whether a dotted field prefix refers to a chain of relations.
- */
-export type IsRelationPathFn = (path: string) => boolean;
 
 export function parseField(
     input: string,
@@ -27,6 +16,7 @@ export function parseField(
     isRelationPath?: IsRelationPathFn,
 ) : Field {
     const [relation, name] = splitLast(input);
+
     if (!name) {
         if (rootAlias) {
             return {
@@ -52,6 +42,7 @@ export function parseField(
     const segments = input.split('.');
 
     let boundary = 0;
+
     while (boundary < segments.length - 1) {
         if (!isRelationPath(segments.slice(0, boundary + 1).join('.'))) {
             break;

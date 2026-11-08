@@ -56,3 +56,7 @@ export type QueryBuildInput<
      */
     aggregates?: AggregatesBuildInput,
 };
+
+
+
+export type ParameterNode = { accept: (visitor: any) => any };

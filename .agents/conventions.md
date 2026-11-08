@@ -8,7 +8,7 @@
 | tsdown 0.22     | Bundle + dts per package (`build:js`); ESM-only `dist/index.mjs` + `dist/index.d.mts`; per-package `tsdown.config.ts` |
 | tsc 6           | Type-check only (`--noEmit`, `build:types`, src-scoped `tsconfig.build.json` per package) |
 | ESLint 10       | Flat config (`eslint.config.mjs`) via `@tada5hi/eslint-config` + `typescript-eslint` |
-| Vitest 4        | Tests (see [testing.md](testing.md))                                 |
+| Vitest 5        | Tests (see [testing.md](testing.md))                                 |
 | husky           | `commit-msg` hook runs commitlint                                   |
 | release-please  | Automated versioning/changelogs (workspaces plugin, updates peer deps) |
 | pkg-pr-new      | Preview package publishing for PRs                                   |

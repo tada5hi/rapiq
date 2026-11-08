@@ -64,8 +64,10 @@ const MAX_DEPTH = MAX_TRAVERSAL_DEPTH;
  * both lower to the identical plan, the twin is the canonical form.
  */
 const COMPLEMENT_TWINS : Record<string, string> = {};
+
 for (const [operator, semantics] of Object.entries(FILTER_OPERATOR_SEMANTICS)) {
     const twin = (semantics as { complementOf?: string }).complementOf;
+
     if (twin) {
         COMPLEMENT_TWINS[operator] = twin;
         COMPLEMENT_TWINS[twin] = operator;
@@ -99,6 +101,7 @@ export class ExpressionFiltersParser extends BaseParser<
 
         return this.withTrace({ parameter: Parameter.FILTERS }, (issueCollector) => {
             const { output, scope } = this.build(input, options, ledger, issueCollector);
+
             if (!scope) {
                 return output;
             }
@@ -124,6 +127,7 @@ export class ExpressionFiltersParser extends BaseParser<
 
         return this.withTraceAsync({ parameter: Parameter.FILTERS }, async (issueCollector) => {
             const { output, scope } = await this.buildAsync(input, options, ledger, issueCollector);
+
             if (!scope) {
                 return output;
             }
@@ -234,6 +238,7 @@ export class ExpressionFiltersParser extends BaseParser<
         issueCollector?: IIssueCollector,
     ) : { result: ICondition, scope?: FiltersScope } {
         const { expr, scope } = this.parseSource(input, options, ledger);
+
         if (!scope) {
             return { result: expr };
         }
@@ -259,6 +264,7 @@ export class ExpressionFiltersParser extends BaseParser<
         issueCollector?: IIssueCollector,
     ) : Promise<{ result: ICondition, scope?: FiltersScope }> {
         const { expr, scope } = this.parseSource(input, options, ledger);
+
         if (!scope) {
             return { result: expr };
         }
@@ -303,6 +309,7 @@ export class ExpressionFiltersParser extends BaseParser<
         // but only when a schema (or the strict override,
         // which rejects undeclared keys) constrains the parse.
         let scope : FiltersScope | undefined;
+
         if (options.schema || options.strict) {
             scope = ResolutionScope.for(this.registry, Parameter.FILTERS, options.schema, {
                 relations: options.relations,
@@ -318,6 +325,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         const expr = this.parseFilterExpression(scope);
+
         if (this.peek().type !== FilterTokenType.EOF) {
             throw FiltersParseError.syntaxInvalid(`Unexpected token: ${this.peek().type}`);
         }
@@ -355,10 +363,13 @@ export class ExpressionFiltersParser extends BaseParser<
 
     private consume(expected?: `${FilterTokenType}`): FilterToken {
         const token = this.peek();
+
         if (expected && token.type !== expected) {
             throw FiltersParseError.syntaxInvalid(`Expected ${expected}, got ${token.type}`);
         }
+
         this.pos++;
+
         return token;
     }
 
@@ -379,14 +390,26 @@ export class ExpressionFiltersParser extends BaseParser<
             }
 
             const value = match[0];
+
             cursor = regex.lastIndex;
-            if (/^\s+$/.test(value)) continue;
+
+            if (/^\s+$/.test(value)) {
+                continue;
+            }
 
             switch (value) {
-                case '(': tokens.push({ type: FilterTokenType.LPAREN }); break;
-                case ')': tokens.push({ type: FilterTokenType.RPAREN }); break;
-                case ',': tokens.push({ type: FilterTokenType.COMMA }); break;
-                case '.': tokens.push({ type: FilterTokenType.DOT }); break;
+                case '(': tokens.push({ type: FilterTokenType.LPAREN });
+
+                    break;
+                case ')': tokens.push({ type: FilterTokenType.RPAREN });
+
+                    break;
+                case ',': tokens.push({ type: FilterTokenType.COMMA });
+
+                    break;
+                case '.': tokens.push({ type: FilterTokenType.DOT });
+
+                    break;
                 default:
                     if (value.startsWith('$')) {
                         if (value !== ITSELF) {
@@ -394,6 +417,7 @@ export class ExpressionFiltersParser extends BaseParser<
                         }
 
                         tokens.push({ type: FilterTokenType.ITSELF });
+
                         break;
                     }
 
@@ -417,6 +441,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         tokens.push({ type: FilterTokenType.EOF });
+
         return tokens;
     }
 
@@ -429,6 +454,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         const token = this.peek();
+
         switch (token.type) {
             case FilterTokenType.NOT:
                 return this.parseNotExpression(scope, depth);
@@ -469,11 +495,14 @@ export class ExpressionFiltersParser extends BaseParser<
     ): Filters | Filter {
         this.consume(FilterTokenType.NOT);
         this.consume(FilterTokenType.LPAREN);
+
         const expr = this.parseFilterExpression(scope, depth + 1);
+
         this.consume(FilterTokenType.RPAREN);
 
         if (isFilter(expr)) {
             const twin = COMPLEMENT_TWINS[expr.operator];
+
             if (twin) {
                 return new Filter(twin as FilterFieldOperator, expr.field, expr.value);
             }
@@ -494,16 +523,20 @@ export class ExpressionFiltersParser extends BaseParser<
         depth: number = 0,
     ): Filters | Filter {
         const op = this.consume().type; // AND / OR
+
         if (op !== FilterTokenType.AND && op !== FilterTokenType.OR) {
             throw FiltersParseError.syntaxInvalid('Expected AND or OR token type.');
         }
 
         this.consume(FilterTokenType.LPAREN);
+
         const expressions: (Filter | Filters)[] = [this.parseFilterExpression(scope, depth + 1)];
+
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
             expressions.push(this.parseFilterExpression(scope, depth + 1));
         }
+
         this.consume(FilterTokenType.RPAREN);
 
         if (op === FilterTokenType.AND) {
@@ -520,10 +553,15 @@ export class ExpressionFiltersParser extends BaseParser<
         scope?: FiltersScope,
     ): Filters | Filter {
         const op = this.consume().type;
+
         this.consume(FilterTokenType.LPAREN);
+
         const left = this.parseExpressionFieldChain(scope);
+
         this.consume(FilterTokenType.COMMA);
+
         const right = this.parseExpressionValue();
+
         this.consume(FilterTokenType.RPAREN);
 
         switch (op) {
@@ -571,10 +609,15 @@ export class ExpressionFiltersParser extends BaseParser<
         scope?: FiltersScope,
     ): Filters | Filter {
         const op = this.consume().type;
+
         this.consume(FilterTokenType.LPAREN);
+
         const field = this.parseExpressionFieldChain(scope);
+
         this.consume(FilterTokenType.COMMA);
+
         const text = this.consume(FilterTokenType.ESCAPED_TEXT).value!;
+
         this.consume(FilterTokenType.RPAREN);
 
         // the anchored operators match a literal substring, so the pattern
@@ -616,6 +659,7 @@ export class ExpressionFiltersParser extends BaseParser<
         scope?: FiltersScope,
     ): Filters | Filter {
         const token = this.peek();
+
         if (token.type === FilterTokenType.NIN) {
             this.consume(FilterTokenType.NIN);
         } else {
@@ -627,11 +671,13 @@ export class ExpressionFiltersParser extends BaseParser<
         const field = this.parseExpressionFieldChain(scope);
 
         const values: unknown[] = [];
+
         while (this.peek().type === FilterTokenType.COMMA) {
             this.consume(FilterTokenType.COMMA);
 
             values.push(this.parseExpressionValue());
         }
+
         this.consume(FilterTokenType.RPAREN);
 
         if (token.type === FilterTokenType.NIN) {
@@ -659,9 +705,13 @@ export class ExpressionFiltersParser extends BaseParser<
     ): Filter {
         this.consume(FilterTokenType.SIZE);
         this.consume(FilterTokenType.LPAREN);
+
         const field = this.parseExpressionFieldChain(scope);
+
         this.consume(FilterTokenType.COMMA);
+
         const value = this.parseExpressionValue();
+
         this.consume(FilterTokenType.RPAREN);
 
         if (
@@ -694,6 +744,7 @@ export class ExpressionFiltersParser extends BaseParser<
         this.elemMatchDepth += 1;
 
         let condition : Filters | Filter;
+
         try {
             condition = this.parseFilterExpression(target.scope, depth + 1);
         } finally {
@@ -727,6 +778,7 @@ export class ExpressionFiltersParser extends BaseParser<
         const token = this.consume(FilterTokenType.FIELD);
 
         const parts = [token.value!];
+
         while (this.peek().type === FilterTokenType.DOT) {
             this.consume(FilterTokenType.DOT);
             parts.push(this.consume(FilterTokenType.FIELD).value!);
@@ -755,8 +807,10 @@ export class ExpressionFiltersParser extends BaseParser<
         const field = [...resolved.path, resolved.name].join('.');
 
         let interior : FiltersScope | undefined;
+
         try {
             const verdict = resolved.scope.descend(resolved.name);
+
             if (verdict instanceof ResolutionScope) {
                 interior = verdict as FiltersScope;
             }
@@ -815,6 +869,7 @@ export class ExpressionFiltersParser extends BaseParser<
         }
 
         const token = this.consume(FilterTokenType.FIELD);
+
         if (token.type !== FilterTokenType.FIELD) {
             throw FiltersParseError.syntaxInvalid(`Unexpected token in field chain: ${token.type}`);
         }
@@ -855,6 +910,7 @@ export class ExpressionFiltersParser extends BaseParser<
     protected normalizeValue(input: unknown) : Scalar {
         if (typeof input === 'string') {
             const trimmed = input.trim();
+
             if (trimmed.length === 0) {
                 return trimmed;
             }

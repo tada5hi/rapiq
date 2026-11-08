@@ -1,3 +1,4 @@
+import type { ParameterNode } from './types';
 /*
  * Copyright (c) 2026.
  *  Author Peter Placzek (tada5hi)
@@ -6,8 +7,6 @@
  */
 
 import { isObject } from '../utils';
-
-export type ParameterNode = { accept: (visitor: any) => any };
 
 /**
  * Every AST parameter node (Fields, Filters, Filter, Pagination, ...)

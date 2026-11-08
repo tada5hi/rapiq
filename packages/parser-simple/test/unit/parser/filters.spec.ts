@@ -26,6 +26,7 @@ describe('src/filter/index.ts', () => {
 
     const parseFlat = (input: unknown, options: FiltersParseOptions = {}) => {
         const output = parser.parse(input, options);
+
         if (output.value.length === 1) {
             return output.value[0];
         }
@@ -54,6 +55,7 @@ describe('src/filter/index.ts', () => {
     it('should parse with allowed (empty)', async () => {
         // filter none
         const output = parseFlat({ id: 1 }, { schema: defineFiltersSchema({ allowed: [] }) });
+
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -197,6 +199,7 @@ describe('src/filter/index.ts', () => {
 
     it('should reject input nested beyond the shared traversal depth', () => {
         let nested : Record<string, any> = { name: 'admin' };
+
         for (let i = 0; i < 40; i++) {
             nested = { child: nested };
         }
@@ -205,6 +208,7 @@ describe('src/filter/index.ts', () => {
 
         // a single dotted key expands to the same depth — same cap.
         const key = Array.from({ length: 40 }, () => 'child').join('.');
+
         expect(() => parser.parse({ [key]: 'x' })).toThrow(ParseError);
     });
 
@@ -268,6 +272,7 @@ describe('src/filter/index.ts', () => {
 
     it('should parse null input', async () => {
         let output = parseFlat({ name: null });
+
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'name', null),
         );
@@ -280,6 +285,7 @@ describe('src/filter/index.ts', () => {
 
     it('should not parse empty object', async () => {
         const output = parseFlat({});
+
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,
@@ -295,6 +301,7 @@ describe('src/filter/index.ts', () => {
                 allowed: [],
             }),
         });
+
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'name', 'admin'),
         );
@@ -312,6 +319,7 @@ describe('src/filter/index.ts', () => {
         });
 
         let output = parseFlat({ id: 1 }, { schema });
+
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'id', 1),
         );
@@ -328,6 +336,7 @@ describe('src/filter/index.ts', () => {
 
         // equal operator
         let output = parseFlat({ id: '1' }, { schema });
+
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'id', 1),
         );
@@ -380,6 +389,7 @@ describe('src/filter/index.ts', () => {
 
         // genuine boolean (parseTyped advertises it for boolean record fields)
         let output = parseFlat({ active: true }, { schema });
+
         expect(output).toEqual(
             new Filter(FilterFieldOperator.EQUAL, 'active', true),
         );
@@ -401,6 +411,7 @@ describe('src/filter/index.ts', () => {
 
         // startsWith
         let output = parseFlat({ name: 'name~' }, { schema });
+
         expect(output).toEqual(
             new Filter(
                 FilterFieldOperator.STARTS_WITH,
@@ -469,6 +480,7 @@ describe('src/filter/index.ts', () => {
             ]),
             throwOnFailure: true,
         });
+
         expect(output).toEqual(
             new Filters(
                 FilterCompoundOperator.AND,

@@ -42,6 +42,7 @@ export function buildCallOptions(
     input: unknown,
 ) : CallNodeOptions {
     let term : CallTerm;
+
     if (typeof input === 'string') {
         term = { name: input, params: [] };
     } else if (isCallBuildInput(input)) {
@@ -51,6 +52,7 @@ export function buildCallOptions(
     }
 
     const resolution = resolveCallTerm(parameter, term);
+
     if (resolution.success) {
         return { ...term, lowering: resolution.lowering };
     }

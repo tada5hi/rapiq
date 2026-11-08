@@ -61,11 +61,14 @@ function normalizeBuiltin(
     slots: CallSlot[],
     declaration: ObjectLiteral,
 ) : CallFunctionNormalized {
-    if (Object.keys(declaration).some((name) => name !== 'allowed')) {
+    const matchesItems = Object.keys(declaration).some((name) => name !== 'allowed');
+
+    if (matchesItems) {
         throw SchemaError.functionInvalid(key, 'a built-in function takes only allowed');
     }
 
     const allowed : unknown = declaration.allowed ?? [];
+
     if (!Array.isArray(allowed)) {
         throw SchemaError.functionInvalid(key, 'allowed is not an array');
     }
@@ -87,19 +90,24 @@ function normalizeNamed(
     const names = Object.keys(primitives);
     const { fn } : { fn?: unknown } = declaration;
     const slots = typeof fn === 'string' && names.includes(fn) ? primitives[fn] : undefined;
+
     if (typeof fn !== 'string' || !slots) {
         throw SchemaError.functionInvalid(key, `fn must be one of ${names.join(', ')}`);
     }
 
     for (const name of Object.keys(declaration)) {
-        if (name !== 'fn' && slots.every((slot) => slot.name !== name)) {
+        const matchesSlots = name !== 'fn' && slots.every((slot) => slot.name !== name);
+
+        if (matchesSlots) {
             throw SchemaError.functionInvalid(key, `the slot ${name} is unknown`);
         }
     }
 
     const output : CallSlotNormalized[] = [];
+
     for (const slot of slots) {
         const value : unknown = declaration[slot.name];
+
         if (typeof value === 'undefined') {
             if (slot.optional) {
                 continue;
@@ -109,6 +117,7 @@ function normalizeNamed(
         }
 
         const values : unknown[] = Array.isArray(value) ? [...value] : [value];
+
         if (values.length === 0) {
             throw SchemaError.functionInvalid(key, `the slot ${slot.name} is empty`);
         }
@@ -148,6 +157,7 @@ export function normalizeCallFunctions(
     columns: string[] = [],
 ) : Record<string, CallFunctionNormalized> {
     const output : Record<string, CallFunctionNormalized> = {};
+
     if (typeof input === 'undefined') {
         return output;
     }
@@ -168,6 +178,7 @@ export function normalizeCallFunctions(
         }
 
         const slots = names.includes(key) ? primitives[key] : undefined;
+
         output[key] = slots ?
             normalizeBuiltin(key, slots, declaration) :
             normalizeNamed(key, primitives, declaration);
@@ -250,16 +261,19 @@ export function resolveCallTerm(
     const identifiers = [term.name, ...term.params];
 
     const dotted = identifiers.find((identifier) => identifier.includes('.'));
+
     if (typeof dotted !== 'undefined') {
         return reject(ErrorCode.KEY_PATH_NOT_ALLOWED, ErrorMessage.keyPathNotPermitted(dotted));
     }
 
     const invalid = identifiers.find((identifier) => !isCallIdentifierValid(identifier));
+
     if (typeof invalid !== 'undefined') {
         return reject(ErrorCode.KEY_INVALID, ErrorMessage.keyInvalid(invalid));
     }
 
     let declaration : CallFunctionNormalized | undefined;
+
     if (schema) {
         declaration = isPropertySet(schema.functions, term.name) ?
             schema.functions[term.name] :
@@ -300,11 +314,13 @@ export function resolveCallTerm(
 
     const open = declaration.slots.filter((slot) => !slot.fixed);
     const required = open.filter((slot) => !slot.optional);
+
     if (term.params.length < required.length || term.params.length > open.length) {
         return reject(ErrorCode.KEY_VALUE_INVALID, ErrorMessage.callArgumentsInvalid(term.name));
     }
 
     const values : Partial<Record<CallSlotName, string>> = {};
+
     for (const slot of declaration.slots) {
         if (slot.fixed) {
             values[slot.name] = slot.values[0];
@@ -313,6 +329,7 @@ export function resolveCallTerm(
 
     for (const [index, slot] of open.entries()) {
         const param = term.params[index];
+
         if (typeof param === 'undefined') {
             break;
         }

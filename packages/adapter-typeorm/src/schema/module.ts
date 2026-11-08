@@ -69,6 +69,7 @@ function buildSchemaOptions(
 
     const relationKeys : string[] = [];
     const schemaMapping : Record<string, string> = {};
+
     for (const relation of metadata.relations) {
         relationKeys.push(relation.propertyName);
         schemaMapping[relation.propertyName] = buildEntitySchemaName(relation.inverseEntityMetadata);
@@ -78,6 +79,7 @@ function buildSchemaOptions(
     const resolveAllowed = (allowed: unknown) => {
         if (allowed === 'inherit') {
             columnKeys = columnKeys || deriveColumnKeys(metadata);
+
             return columnKeys;
         }
 
@@ -161,6 +163,7 @@ export function defineSchemaRegistryWithDataSource(
     const registry = options.registry || new SchemaRegistry();
 
     const schemasOptions = new Map<string, EntitySchemaOptions<any>>();
+
     if (options.schemas instanceof Map) {
         for (const [target, schemaOptions] of options.schemas) {
             schemasOptions.set(
@@ -175,6 +178,7 @@ export function defineSchemaRegistryWithDataSource(
     }
 
     const names = new Set<string>();
+
     for (const metadata of dataSource.entityMetadatas) {
         if (
             metadata.tableType === 'junction' ||
@@ -184,6 +188,7 @@ export function defineSchemaRegistryWithDataSource(
         }
 
         const name = buildEntitySchemaName(metadata);
+
         if (names.has(name)) {
             throw new SchemaError({
                 message: `The derived schema name "${name}" is not unique across the data source entities.`,

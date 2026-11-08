@@ -17,6 +17,7 @@ describe('src/parameter/filters/record/*.ts', () => {
     describe('Filter.accept', () => {
         it('should route every operator to visitFilter', () => {
             const visitor : IFilterVisitor<string> = { visitFilter: (expr: IFilter) => `${expr.operator}` };
+
             Object.values(FilterFieldOperator).forEach((operator) => {
                 expect(new Filter(operator, 'field', 1).accept(visitor)).toBe(operator);
             });
@@ -24,6 +25,7 @@ describe('src/parameter/filters/record/*.ts', () => {
 
         it('should route an unknown operator to visitFilter', () => {
             const visitor : IFilterVisitor<string> = { visitFilter: () => 'fallback' };
+
             expect(new Filter('totally-unknown', 'field', 1).accept(visitor)).toBe('fallback');
         });
     });
@@ -73,6 +75,7 @@ describe('src/parameter/filters/collection/*.ts', () => {
             const outer = new Filters(FilterCompoundOperator.AND, [c, middle]);
 
             const flat = outer.flatten();
+
             expect(flat.value).toEqual([c, b, a]);
         });
 
@@ -95,6 +98,7 @@ describe('src/parameter/filters/collection/*.ts', () => {
             // hoisting would turn not(not(a)) into not(a) — the
             // opposite meaning.
             const flat = outer.flatten();
+
             expect(flat.operator).toBe(FilterCompoundOperator.NOT);
             expect(flat.value).toEqual([inner]);
         });

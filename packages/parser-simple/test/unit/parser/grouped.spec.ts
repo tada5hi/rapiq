@@ -485,6 +485,7 @@ describe('src/module.ts: groups and aggregates', () => {
                     functions: { bucket: { allowed: ['createdAt'] } },
                     validate: (group, context) => {
                         calls.push([group, context]);
+
                         return true;
                     },
                 },
@@ -492,6 +493,7 @@ describe('src/module.ts: groups and aggregates', () => {
                     functions: { count: {} },
                     validate: (aggregate, context) => {
                         calls.push([aggregate, context]);
+
                         return true;
                     },
                 },
@@ -563,6 +565,7 @@ describe('src/module.ts: groups and aggregates', () => {
             });
 
             expect.assertions(1);
+
             try {
                 parser.parse({ groups: 'scope' }, { schema: deferred, ...OPT_IN });
             } catch (e) {
@@ -577,8 +580,11 @@ describe('src/module.ts: groups and aggregates', () => {
                     allowed: ['scope', 'name'],
                     validate: async (group, context) => {
                         // the first hook settles last: a parallel pass would record name first.
-                        await new Promise((resolve) => { setTimeout(resolve, group.name === 'scope' ? 10 : 0); });
+                        await new Promise((resolve) => {
+                            setTimeout(resolve, group.name === 'scope' ? 10 : 0);
+                        });
                         order.push(group.name);
+
                         return context.permissions.includes(group.name);
                     },
                 },
@@ -589,6 +595,7 @@ describe('src/module.ts: groups and aggregates', () => {
                 context: actor,
                 ...OPT_IN,
             });
+
             expect(query.groups.value.map((item) => item.key)).toEqual(['scope']);
 
             order.length = 0;

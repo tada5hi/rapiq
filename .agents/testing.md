@@ -2,7 +2,7 @@
 
 ## Setup
 
-- **Runner**: Vitest 4 (native TS via Vite/esbuild, no transform config needed)
+- **Runner**: Vitest 5 (native TS via Vite/esbuild, no transform config needed)
 - **Test location**: `packages/<pkg>/test/unit/**/*.spec.ts`
 - **Config**: `packages/<pkg>/test/vitest.config.ts` (one per package; `globals: true`, v8 coverage)
 - **Fixtures**: `packages/<pkg>/test/data/` (shared schemas, record types)
@@ -56,7 +56,7 @@ Tests should assert *expected* behavior based on the documented query semantics 
 
 GitHub Actions (`.github/workflows/main.yml`) on pushes/PRs to `develop`, `master`, `next`, `beta`, `alpha`:
 
-1. **install** (Node 22, shared composite action `.github/actions/install`)
+1. **install** (the contributor Node version in AGENTS.md, shared composite action `.github/actions/install`)
 2. **build** (`.github/actions/build`, Nx dependency-ordered)
 3. **test** and **lint** as separate jobs (after build)
 

@@ -59,6 +59,7 @@ describe('src/schema/indexes/*.ts', () => {
         });
 
         const output = schema.describe();
+
         expect(output.indexes).toEqual([['realm_id', 'created_at']]);
         expect(output.filters!.indexed).toBe('cover');
         expect(output.sorts!.indexed).toBe(true);
@@ -68,6 +69,7 @@ describe('src/schema/indexes/*.ts', () => {
         expect(schema.indexes[0]).toEqual(['realm_id', 'created_at']);
 
         const bare = defineSchema<Row>({}).describe();
+
         expect(bare.indexes).toBeNull();
         expect(bare.filters!.indexed).toBe(false);
         expect(bare.sorts!.indexed).toBe(false);

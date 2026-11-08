@@ -8,11 +8,11 @@
 /* eslint-disable max-classes-per-file */
 import type { DataSource } from 'typeorm';
 import {
-    Column, 
-    DataSource as DataSourceCtor, 
-    Entity, 
-    JoinColumn, 
-    ManyToOne, 
+    Column,
+    DataSource as DataSourceCtor,
+    Entity,
+    JoinColumn,
+    ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm';
 import {
@@ -115,6 +115,7 @@ describe('src/adapter/relations (hydration)', () => {
             secret: 'key-under-the-doormat',
             pet_id: (pet as any).id,
         });
+
         await dataSource.getRepository(HParent).save({
             name: 'p',
             data: [{ k: 'b' }],
@@ -128,6 +129,7 @@ describe('src/adapter/relations (hydration)', () => {
 
     const run = (query: Query, relationOpts: any = {}) => {
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({ queryBuilder, relations: relationOpts }).execute(query);
 
         return queryBuilder.getOneOrFail();
@@ -345,6 +347,7 @@ describe('src/adapter/relations (hydration)', () => {
 
     it('should emit a plain leftJoin selecting only the key under hydrationMode: key', () => {
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({ queryBuilder, relations: { hydrationMode: 'key' } })
             .execute(new Query({ relations: new Relations([new Relation('child')]) }));
 
@@ -362,6 +365,7 @@ describe('src/adapter/relations (hydration)', () => {
         // the key the id-only mode would add. The guard must not add it a second
         // time (otherwise the adapter multiplies duplicate SELECT columns).
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({ queryBuilder, relations: { hydrationMode: 'key' } })
             .execute(new Query({
                 fields: new Fields([new Field('id'), new Field('child.id')]),
@@ -377,6 +381,7 @@ describe('src/adapter/relations (hydration)', () => {
         expect(keySelects).toHaveLength(1);
 
         const parent = await queryBuilder.getOneOrFail();
+
         expect(parent.child.id).toBeDefined();
     });
 
@@ -399,6 +404,7 @@ describe('src/adapter/relations (hydration)', () => {
         // full subtree, postgres rejects the joined columns; id-only keeps the
         // relation defined and every selected join column groupable.
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({
             queryBuilder,
             relations: {
@@ -436,6 +442,7 @@ describe('src/adapter/relations (hydration)', () => {
         // duplication cannot arise in the first place: the child projects its
         // defaults, and the schema's field governance applies to includes too.
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<HChild>({ name: 'child', fields: { default: ['id', 'name'] } }));
         registry.add(defineSchema<HParent>({
             name: 'parent',
@@ -450,14 +457,17 @@ describe('src/adapter/relations (hydration)', () => {
         );
 
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({ queryBuilder }).execute(query);
 
         const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray().map((m) => m[1]);
         const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+
         expect(duplicates).toEqual([]);
 
         // the include hydrates narrowed to the child schema's default fieldset
         const parent = await queryBuilder.getOneOrFail();
+
         expect(parent.child).toBeDefined();
         expect(parent.child.name).toEqual('c');
         expect(parent.child.args).toBeUndefined();
@@ -468,6 +478,7 @@ describe('src/adapter/relations (hydration)', () => {
         // purely as an `include` target with no `fields` declaration, consumed
         // without `joinAndSelect` — the relation used to come back undefined.
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema<HChild>({ name: 'child' }));
         registry.add(defineSchema<HParent>({
             name: 'parent',
@@ -481,7 +492,9 @@ describe('src/adapter/relations (hydration)', () => {
         );
 
         const queryBuilder = dataSource.getRepository(HParent).createQueryBuilder('parent');
+
         new TypeormAdapter({ queryBuilder }).execute(query);
+
         const parent = await queryBuilder.getOneOrFail();
 
         expect(parent.child).toBeDefined();

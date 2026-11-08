@@ -149,6 +149,7 @@ describe('fields visibility gates (relation paths)', () => {
         expect(projector(user as any)).toEqual({ id: 1, realm: { id: 5 } });
 
         const passing = { ...user, realm: { ...user.realm, kind: 'public' } };
+
         expect(projector(passing as any)).toEqual({
             id: 1,
             realm: { id: 5, secret: 'realm-secret' },
@@ -199,15 +200,15 @@ describe('applyFieldConditions', () => {
 
         expect(applyFieldConditions(fields, records)).toEqual([
             {
-                id: 1, 
-                name: 'first', 
-                kind: 'public', 
-                secret: 'visible', 
+                id: 1,
+                name: 'first',
+                kind: 'public',
+                secret: 'visible',
             },
             {
-                id: 2, 
-                name: 'second', 
-                kind: 'private', 
+                id: 2,
+                name: 'second',
+                kind: 'private',
             },
         ]);
 
@@ -270,14 +271,14 @@ describe('applyFieldConditions', () => {
                 id: 1,
                 items: [
                     {
-                        id: 10, 
-                        kind: 'public', 
-                        secret: 'a', 
+                        id: 10,
+                        kind: 'public',
+                        secret: 'a',
                     },
                     {
-                        id: 20, 
-                        kind: 'private', 
-                        secret: 'b', 
+                        id: 20,
+                        kind: 'private',
+                        secret: 'b',
                     },
                 ],
             },
@@ -288,9 +289,9 @@ describe('applyFieldConditions', () => {
                 id: 1,
                 items: [
                     {
-                        id: 10, 
-                        kind: 'public', 
-                        secret: 'a', 
+                        id: 10,
+                        kind: 'public',
+                        secret: 'a',
                     },
                     { id: 20, kind: 'private' },
                 ],

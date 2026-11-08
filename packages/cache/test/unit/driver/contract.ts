@@ -37,6 +37,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
         const advance = async (ms: number) => {
             if (hooks.advance) {
                 await hooks.advance(ms);
+
                 return;
             }
 
@@ -74,13 +75,15 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
         it('should round trip an entry', async () => {
             const clock = await driver.clock();
             const accepted = await driver.write('k', entry(clock, ['role', 'role:1'], { id: 1 }), 1_000);
+
             expect(accepted).toBeTruthy();
 
             const hit = await driver.read<{ id: number }>('k');
+
             expect(hit).toEqual({
-                clock, 
-                tags: ['role', 'role:1'], 
-                value: { id: 1 }, 
+                clock,
+                tags: ['role', 'role:1'],
+                value: { id: 1 },
             });
         });
 
@@ -90,6 +93,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should expire an entry after its ttl', async () => {
             const clock = await driver.clock();
+
             await driver.write('k', entry(clock, ['role'], 'v'), 1_000);
 
             await advance(999);
@@ -101,9 +105,11 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should refuse a write when a tag was bumped between clock() and write', async () => {
             const clock = await driver.clock();
+
             await driver.invalidate(['role:1']);
 
             const accepted = await driver.write('k', entry(clock, ['role', 'role:1'], 'stale'), 1_000);
+
             expect(accepted).toBeFalsy();
             expect(await driver.read('k')).toBeNull();
         });
@@ -112,12 +118,14 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
             const clock = await driver.clock();
 
             const accepted = await driver.write('k', entry(clock + 5, ['role'], 'future'), 1_000);
+
             expect(accepted).toBeFalsy();
             expect(await driver.read('k')).toBeNull();
         });
 
         it('should answer null after any carried tag was invalidated', async () => {
             const clock = await driver.clock();
+
             await driver.write('k', entry(clock, ['role', 'realm:1'], 'v'), 10_000);
             expect(await driver.read('k')).not.toBeNull();
 
@@ -127,6 +135,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should keep an entry whose tags were not invalidated', async () => {
             const clock = await driver.clock();
+
             await driver.write('k', entry(clock, ['role'], 'v'), 10_000);
 
             await driver.invalidate(['realm']);
@@ -144,6 +153,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it.skipIf(!hooks.dropTag)('should answer null after a tag key was evicted', async () => {
             const clock = await driver.clock();
+
             await driver.write('k', entry(clock, ['role', 'role:1'], 'v'), 10_000);
 
             await hooks.dropTag!(driver, 'role:1');
@@ -152,7 +162,9 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it.skipIf(!hooks.dropClock)('should answer null after the clock key was lost', async () => {
             await driver.invalidate(['a']);
+
             const clock = await driver.clock();
+
             await driver.write('k', entry(clock, ['role'], 'v'), 10_000);
 
             await hooks.dropClock!(driver);
@@ -161,7 +173,9 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it.skipIf(!hooks.dropClock)('should refuse a fill observed before the clock was lost', async () => {
             await driver.invalidate(['a']);
+
             const clock = await driver.clock();
+
             await hooks.dropClock!(driver);
 
             // an in-process clock restarts below the fill; a shared store
@@ -172,6 +186,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it.skipIf(!hooks.dropTag)('should not revive an entry when a write re-creates its evicted tag', async () => {
             const clock = await driver.clock();
+
             expect(await driver.write('old', entry(clock, ['role', 'role:1'], 'old'), 10_000)).toBeTruthy();
 
             // the row changes and the bump lands, then the bumped tag is
@@ -182,6 +197,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
             // another query carrying the same tag fills: it re-creates the
             // tag at the current clock, not as "never bumped".
             const current = await driver.clock();
+
             expect(await driver.write('other', entry(current, ['role', 'role:1'], 'new'), 10_000)).toBeTruthy();
 
             expect(await driver.read('old')).toBeNull();
@@ -213,6 +229,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it.each([NaN, Infinity, -Infinity, 0, -5, 0.5])('should store an entry with ttl %s for maxTtl', async (ttl) => {
             const clock = await driver.clock();
+
             expect(await driver.write('k', entry(clock, ['role'], 'v'), ttl)).toBeTruthy();
 
             await advance(driver.maxTtl - 1);
@@ -232,6 +249,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
             await driver.invalidate(['a', 'b']);
 
             const clock = await driver.clock();
+
             expect(clock).toEqual(start + 2);
 
             // a was bumped by both, b by the last: both sit at the clock, so
@@ -246,6 +264,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should clamp the ttl to maxTtl', async () => {
             const clock = await driver.clock();
+
             await driver.write('long', entry(clock, ['role'], 'v'), driver.maxTtl * 10);
 
             await advance(driver.maxTtl - 1);
@@ -263,6 +282,7 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should re-arm the tag keys on every write', async () => {
             const clock = await driver.clock();
+
             await driver.write('first', entry(clock, ['role'], 'v'), 1_000);
 
             await advance(driver.maxTtl - 1);
@@ -276,41 +296,46 @@ export function describeCacheDriverContract<D extends ICacheDriver>(
 
         it('should round trip null and an empty array', async () => {
             const clock = await driver.clock();
+
             await driver.write('null', entry(clock, ['role'], null), 10_000);
             await driver.write('empty', entry(clock, ['role'], []), 10_000);
 
             expect(await driver.read('null')).toEqual({
-                clock, 
-                tags: ['role'], 
-                value: null, 
+                clock,
+                tags: ['role'],
+                value: null,
             });
             expect(await driver.read('empty')).toEqual({
-                clock, 
-                tags: ['role'], 
-                value: [], 
+                clock,
+                tags: ['role'],
+                value: [],
             });
         });
 
         it('should hand out a copy the caller cannot mutate the store through', async () => {
             const clock = await driver.clock();
             const value = { id: 1, nested: { name: 'a' } };
+
             await driver.write('k', entry(clock, ['role'], value), 10_000);
             value.nested.name = 'changed after write';
 
             const first = await driver.read<typeof value>('k');
+
             first!.value.nested.name = 'changed after read';
             first!.tags.push('injected');
 
             const second = await driver.read<typeof value>('k');
+
             expect(second).toEqual({
-                clock, 
-                tags: ['role'], 
-                value: { id: 1, nested: { name: 'a' } }, 
+                clock,
+                tags: ['role'],
+                value: { id: 1, nested: { name: 'a' } },
             });
         });
 
         it('should drop entries', async () => {
             const clock = await driver.clock();
+
             await driver.write('a', entry(clock, ['role'], 'a'), 10_000);
             await driver.write('b', entry(clock, ['role'], 'b'), 10_000);
 

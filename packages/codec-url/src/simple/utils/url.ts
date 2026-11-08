@@ -38,6 +38,7 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
     if (isObject(data)) {
         // Loop through the data object
         const keys = Object.keys(data);
+
         if (keys.length === 0) {
             return '';
         }
@@ -71,6 +72,7 @@ export function serializeAsURI(data: unknown, options: Options = {}) : string {
             // has nothing to emit (0 and false must reach the wire).
             if (value !== '') {
                 const destinationKey = buildKey([...prefixParts, key]);
+
                 // Encode each key and value, concatenate them into a string, and push them to the array
                 query.push(`${encodeURIComponent(destinationKey)}=${encodeURIComponent(value)}`);
             }

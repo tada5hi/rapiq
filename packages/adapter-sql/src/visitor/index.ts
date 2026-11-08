@@ -6,9 +6,13 @@
  */
 
 export * from './fields';
+export type { FieldsInterpreterOptions } from './types';
 export * from './filters';
 export * from './module';
 export * from './pagination';
+export type { PaginationVisitorOptions } from './types';
 export * from './relations';
+export type { RelationsInterpreterOptions, RelationInterpreterOptions } from './types';
 export * from './sort';
+export type { SortsInterpreterOptions, SortInterpreterOptions } from './types';
 export * from './types';

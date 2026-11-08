@@ -86,6 +86,7 @@ export function createBoundPredicate(
             ctx.set(`${path}${BINDING_ELEMENT_FLAG}`, Array.isArray(raw) && raw.length > 0);
 
             const candidates = bindingCandidates(raw);
+
             for (const candidate of candidates) {
                 ctx.set(path, candidate);
 

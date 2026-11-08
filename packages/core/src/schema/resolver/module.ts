@@ -15,7 +15,7 @@ import type { IssueInput, ParseError } from '../../errors';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
 import { PARAMETER_ERROR_CLASSES } from '../../parser/issue/constants';
-import type { PendingKeyValidation } from '../../parser/parameter/validate';
+import type { PendingKeyValidation } from '../../parser/parameter/types';
 import type { ObjectLiteral } from '../../types';
 import { applyMapping, isPathAllowed, isPropertyNameValid } from '../../utils';
 import { Schema } from '../module';
@@ -303,6 +303,7 @@ export class ResolutionScope<
         // the record anchor for relation-authorization obligations: the bound
         // schema, or the one the parameter sub-schema names (registered).
         let rootBase = base;
+
         if (!rootBase && parameterSchema.name) {
             rootBase = registry.get(parameterSchema.name);
         }
@@ -338,8 +339,10 @@ export class ResolutionScope<
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
+
         if (separatorIndex === -1) {
             const code = this.checkName(mapped);
+
             if (code) {
                 return this.fail(code, key, mapped, raw);
             }
@@ -363,11 +366,13 @@ export class ResolutionScope<
         const rest = mapped.substring(separatorIndex + 1);
 
         const child = this.descendSegment(segment, key, raw);
+
         if (!(child instanceof ResolutionScope)) {
             return child;
         }
 
         const resolved = child.resolveKey(rest, raw);
+
         if (!resolved.success) {
             return { ...resolved, input: key };
         }
@@ -408,6 +413,7 @@ export class ResolutionScope<
         throwOnFailure?: boolean,
     }) : void {
         const throwOnFailure = input.throwOnFailure ?? this.throwOnFailure;
+
         if (!throwOnFailure) {
             return;
         }
@@ -468,6 +474,7 @@ export class ResolutionScope<
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
+
         if (separatorIndex === -1) {
             return this.descendSegment(mapped, key, key, options.optional);
         }
@@ -475,6 +482,7 @@ export class ResolutionScope<
         const segments = mapped.split('.');
 
         let scope = this.descendSegment(segments[0] as string, key, key, options.optional);
+
         for (const segment of segments.slice(1)) {
             if (!(scope instanceof ResolutionScope)) {
                 return scope;
@@ -503,6 +511,7 @@ export class ResolutionScope<
         }
 
         const code = this.checkSegment(segment);
+
         if (code) {
             return this.fail(code, input, segment, raw);
         }
@@ -510,6 +519,7 @@ export class ResolutionScope<
         const base = this.resolveBase();
 
         let childBase : Schema<RECORD> | undefined;
+
         if (base) {
             childBase = this.registry.get(base.mapSchema(segment));
         } else {
@@ -537,6 +547,7 @@ export class ResolutionScope<
         }
 
         let schema : ParameterSchema<P, RECORD>;
+
         if (childBase) {
             schema = childBase[this.parameter] as ParameterSchema<P, RECORD>;
         } else {
@@ -544,6 +555,7 @@ export class ResolutionScope<
         }
 
         let relations : IRelations | undefined;
+
         if (this.relations) {
             relations = this.relations.extract(segment);
         }
@@ -601,6 +613,7 @@ export class ResolutionScope<
      */
     protected relationObligations(relativeSegments: string[]) : PendingKeyValidation[] {
         const segments = [...this.path, ...relativeSegments];
+
         if (segments.length === 0) {
             return [];
         }
@@ -608,6 +621,7 @@ export class ResolutionScope<
         const output : PendingKeyValidation[] = [];
         let base = this.rootBase;
         const prefix : string[] = [];
+
         for (const segment of segments) {
             if (!base) {
                 break;
@@ -640,6 +654,7 @@ export class ResolutionScope<
      */
     protected relationObligationForTerminal(name: string) : PendingKeyValidation[] {
         const base = this.resolveBase();
+
         if (!base) {
             // a bare relations sub-schema is its own authorization anchor:
             // there is no record schema to reach its hook through, so the
@@ -681,6 +696,7 @@ export class ResolutionScope<
         switch (this.parameter as `${Parameter}`) {
             case Parameter.FIELDS: {
                 const schema = this.schema as FieldsSchema<RECORD>;
+
                 if (schema.allowedIsUndefined && schema.defaultIsUndefined) {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
@@ -697,6 +713,7 @@ export class ResolutionScope<
             }
             case Parameter.FILTERS: {
                 const schema = this.schema as FiltersSchema<RECORD>;
+
                 if (schema.allowedIsUndefined) {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
@@ -714,6 +731,7 @@ export class ResolutionScope<
             case Parameter.SORTS:
             case Parameter.SORT: {
                 const schema = this.schema as SortsSchema<RECORD>;
+
                 if (schema.allowedIsUndefined) {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
@@ -730,6 +748,7 @@ export class ResolutionScope<
             }
             case Parameter.RELATIONS: {
                 const schema = this.schema as RelationsSchema<RECORD>;
+
                 if (typeof schema.allowed === 'undefined') {
                     if (this.strict) {
                         return KeyResolutionErrorCode.KEY_NOT_PERMITTED;
@@ -760,6 +779,7 @@ export class ResolutionScope<
     protected checkSegment(segment: string) : KeyResolutionErrorCode | undefined {
         if (this.parameter === Parameter.RELATIONS) {
             const schema = this.schema as RelationsSchema<RECORD>;
+
             if (typeof schema.allowed === 'undefined') {
                 return this.strict ?
                     KeyResolutionErrorCode.PATH_NOT_PERMITTED :
@@ -857,6 +877,7 @@ export class ResolutionScope<
             code,
             input,
         };
+
         if (typeof segment !== 'undefined') {
             output.segment = segment;
         }

@@ -20,6 +20,7 @@ import type { IssueInput } from './types';
  */
 export function buildIssue(input: IssueInput) : IssueItem {
     const meta : Record<string, unknown> = {};
+
     if (input.parameter) {
         meta.parameter = normalizeParameter(input.parameter) as `${Parameter}`;
     }

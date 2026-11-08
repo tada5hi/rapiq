@@ -43,6 +43,7 @@ function filterFields(input: IFilters) : string[] {
             }
         }
     };
+
     walk(input);
 
     return output;
@@ -157,6 +158,7 @@ describe('src/parameter/fields/module.ts', () => {
         it('should hand the relation path and target schema to the hook', () => {
             const validate = vi.fn(() => true);
             const scopedRegistry = new SchemaRegistry();
+
             scopedRegistry.add(defineSchema({
                 name: 'user',
                 fields: { allowed: ['id'] },
@@ -169,6 +171,7 @@ describe('src/parameter/fields/module.ts', () => {
             }));
 
             const scoped = new SimpleFieldsParser(scopedRegistry);
+
             scoped.parse({ items: ['id'] }, {
                 schema: 'user',
                 relations: new Relations([new Relation('items')]),
@@ -194,6 +197,7 @@ describe('src/parameter/fields/module.ts', () => {
 
         it('should keep conditions of surviving fields through relation pruning', () => {
             const gatedRegistry = new SchemaRegistry();
+
             gatedRegistry.add(defineSchema({
                 name: 'user',
                 fields: { allowed: ['id'] },
@@ -288,6 +292,7 @@ describe('src/parameter/fields/module.ts', () => {
     describe('query parser', () => {
         it('should gate the field without narrowing the row set', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'user',
                 fields: {
@@ -310,6 +315,7 @@ describe('src/parameter/fields/module.ts', () => {
 
         it('should not inject a condition into an otherwise empty filters node', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'user',
                 fields: {
@@ -327,6 +333,7 @@ describe('src/parameter/fields/module.ts', () => {
 
         it('should keep the condition when the pooled relation gate prunes fields', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'user',
                 fields: { allowed: ['id'] },
@@ -439,6 +446,7 @@ describe('src/parameter/fields/module.ts (rejection safety)', () => {
 
     it('should honour the child schema throwOnFailure for a validate rejection', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             fields: { default: ['id', 'name'] },

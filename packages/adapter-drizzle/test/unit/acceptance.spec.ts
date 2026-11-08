@@ -24,6 +24,7 @@ function createUserRepository(provider = 'pg') {
     return {
         findMany(input: string | Record<string, any>, base?: FindManyConfig) {
             const query = codec.decode(input, { schema: 'user' });
+
             expect(query).toBeDefined();
 
             return adapter.execute(query!, { base });

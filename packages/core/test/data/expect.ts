@@ -41,6 +41,7 @@ export function expectRejected(
 
     const items = flattenIssueItems([...(error?.issues ?? [])]);
     const matcher : Record<string, unknown> = {};
+
     if (typeof expected.code !== 'undefined') {
         matcher.code = expected.code;
     }

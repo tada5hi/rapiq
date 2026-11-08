@@ -76,6 +76,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(['realm', 'items'], { schema, context: actor });
+
             expect(relationNames(output)).toEqual(['realm']);
         });
 
@@ -84,6 +85,7 @@ describe('schema validate hooks with parse context', () => {
             const schema = defineSchema({ relations: { allowed: ['realm', 'items'], validate } });
 
             const output = parser.parse(['realm', 'items'], { schema, context: actor });
+
             expect(relationNames(output)).toEqual(['realm', 'items']);
             expect(validate).toHaveBeenCalledTimes(2);
             expect(validate).toHaveBeenCalledWith('realm', actor, INLINE_ROOT_SCOPE);
@@ -132,6 +134,7 @@ describe('schema validate hooks with parse context', () => {
 
         it('should drop descendants of a rejected relation', () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'user',
                 relations: {
@@ -161,6 +164,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(['abc'], { schema, context: actor });
+
             expect(relationNames(output)).toEqual([]);
             expect(validate).toHaveBeenCalledWith('items', actor, INLINE_ROOT_SCOPE);
         });
@@ -176,6 +180,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(['abc'], { schema, context: actor });
+
             expect(relationNames(output)).toEqual(['items.realm']);
             expect(validate).toHaveBeenCalledWith('items', actor, INLINE_ROOT_SCOPE);
         });
@@ -198,6 +203,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             expect.assertions(3);
+
             try {
                 parser.parse(['realm'], { schema });
             } catch (e) {
@@ -216,6 +222,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             expect.assertions(1);
+
             try {
                 parser.parse(['realm'], { schema });
             } catch (e) {
@@ -236,6 +243,7 @@ describe('schema validate hooks with parse context', () => {
                 schema,
                 context: actor,
             });
+
             expect(relationNames(output as Relations)).toEqual(['realm']);
         });
     });
@@ -256,6 +264,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(['id', 'email'], { schema, context: actor });
+
             expect(output.value.map((field) => field.name)).toEqual(['id']);
         });
 
@@ -270,6 +279,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(undefined, { schema, context: actor });
+
             expect(output.value.map((field) => field.name)).toEqual(['id']);
             expect(validate).not.toHaveBeenCalled();
         });
@@ -287,6 +297,7 @@ describe('schema validate hooks with parse context', () => {
             // excluding a field the actor may not read is harmless —
             // it never reaches the output, so no check (and no throw).
             const output = parser.parse(['-email'], { schema, context: actor });
+
             expect(output.value.map((field) => field.name)).toEqual(['id']);
             expect(validate).not.toHaveBeenCalled();
         });
@@ -301,6 +312,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             expect.assertions(3);
+
             try {
                 parser.parse(['id'], { schema });
             } catch (e) {
@@ -327,6 +339,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(['-age', 'id'], { schema, context: actor });
+
             expect(sortNames(output)).toEqual(['id']);
         });
 
@@ -340,6 +353,7 @@ describe('schema validate hooks with parse context', () => {
             });
 
             const output = parser.parse(undefined, { schema, context: actor });
+
             expect(sortNames(output)).toEqual(['id']);
             expect(validate).not.toHaveBeenCalled();
         });
@@ -370,6 +384,7 @@ describe('schema validate hooks with parse context', () => {
             );
 
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<Record<string, any>, Actor>({
                 name: 'user',
                 relations: { allowed: ['realm', 'items'], validate },

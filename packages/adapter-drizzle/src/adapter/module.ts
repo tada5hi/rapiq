@@ -92,6 +92,7 @@ export class DrizzleAdapter<
         );
 
         const orderBy = buildOrderBy(query.sorts);
+
         if (Object.keys(orderBy).length > 0) {
             produced.orderBy = orderBy;
         }

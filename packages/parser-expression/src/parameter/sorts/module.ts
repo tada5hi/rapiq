@@ -16,7 +16,5 @@ export class ExpressionSortsParser extends SimpleSortsParser {
  */
 export const ExpressionSortParser = ExpressionSortsParser;
 
-/**
- * @deprecated use {@link ExpressionSortsParser}. Removed in 3.0.
- */
+// eslint-disable-next-line @tada5hi/type-declaration-location -- Preserve the merged public value and type.
 export type ExpressionSortParser = ExpressionSortsParser;

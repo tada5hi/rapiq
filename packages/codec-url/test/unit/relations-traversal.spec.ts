@@ -19,6 +19,7 @@ const actor : Actor = { permissions: ['userRole_read'] };
  */
 function buildRegistry() : SchemaRegistry {
     const registry = new SchemaRegistry();
+
     registry.add(defineSchema<Record<string, any>, Actor>({
         name: 'userRole',
         fields: { allowed: ['id'] },
@@ -51,6 +52,7 @@ function filterFields(input: IFilters | undefined) : string[] {
             }
         }
     };
+
     if (input) {
         walk(input);
     }
@@ -132,6 +134,7 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
     describe('async decode path', () => {
         it('awaits an async hook and prunes the traversed relation', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema<Record<string, any>, Actor>({
                 name: 'userRole',
                 fields: { allowed: ['id'] },

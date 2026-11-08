@@ -29,6 +29,7 @@ export function defineRelations(input: RelationsBuildInput<ObjectLiteral> | IRel
     }
 
     const output : IRelation[] = [];
+
     buildRelations(output, input);
 
     return new Relations(output);
@@ -42,6 +43,7 @@ function buildRelations(
     if (typeof input === 'string') {
         for (const part of input.split(',')) {
             const name = part.trim();
+
             if (!name) {
                 continue;
             }
@@ -66,8 +68,10 @@ function buildRelations(
 
     if (isObject(input)) {
         const keys = Object.keys(input);
+
         for (const key of keys) {
             const value = input[key];
+
             if (typeof value === 'undefined' || value === false) {
                 continue;
             }
@@ -76,6 +80,7 @@ function buildRelations(
 
             if (value === true) {
                 output.push(new Relation(path));
+
                 continue;
             }
 

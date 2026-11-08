@@ -43,8 +43,10 @@ const COMPLEMENT_OF : Partial<
 > = {};
 const semanticKeys = Object.keys(FILTER_OPERATOR_SEMANTICS) as
 (keyof typeof FILTER_OPERATOR_SEMANTICS)[];
+
 for (const key of semanticKeys) {
     const semantics = FILTER_OPERATOR_SEMANTICS[key];
+
     if ('complementOf' in semantics) {
         COMPLEMENT_OF[semantics.complementOf] = key;
     }
@@ -60,11 +62,13 @@ for (const key of semanticKeys) {
 function normalizeFilterValue(input: unknown) : Scalar | Scalar[] {
     if (typeof input === 'string') {
         const trimmed = input.trim();
+
         if (trimmed.length === 0) {
             return trimmed;
         }
 
         const parts = trimmed.split(',');
+
         if (parts.length > 1) {
             return normalizeFilterValue(parts);
         }
@@ -84,6 +88,7 @@ function normalizeFilterValue(input: unknown) : Scalar | Scalar[] {
 
         for (const element of input) {
             const temp = normalizeFilterValue(element);
+
             if (Array.isArray(temp)) {
                 output.push(...temp);
             } else {
@@ -175,6 +180,7 @@ export function decodeFilterWireValue(input: unknown) : FilterWireDecodeResult {
 
         if (typeof first === 'string') {
             const parsed = decodeToken(first);
+
             if (parsed.operator === FilterFieldOperator.NOT_EQUAL) {
                 lifted = {
                     operator: FilterFieldOperator.NOT_IN,
@@ -282,6 +288,7 @@ function resolveEncodeRow(operator: string) : {
     const rows = FILTER_WIRE_SPEC as Record<string, FilterWireMarkerSpec | undefined>;
 
     const direct = rows[operator];
+
     if (direct) {
         return { spec: direct, negated: false };
     }
@@ -289,8 +296,10 @@ function resolveEncodeRow(operator: string) : {
     const semantics = FILTER_OPERATOR_SEMANTICS[
         operator as keyof typeof FILTER_OPERATOR_SEMANTICS
     ] as { complementOf?: `${FilterFieldOperator}` } | undefined;
+
     if (semantics && semantics.complementOf) {
         const positive = rows[semantics.complementOf];
+
         if (positive) {
             return { spec: positive, negated: true };
         }

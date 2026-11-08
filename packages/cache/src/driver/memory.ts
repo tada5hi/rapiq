@@ -54,12 +54,15 @@ export class MemoryCacheDriver implements ICacheDriver {
         const now = Date.now();
 
         const item = this.entries.get(key);
+
         if (!item || item.expiresAt <= now) {
             this.entries.delete(key);
+
             return null;
         }
 
         const { entry } = item;
+
         if (
             typeof this.clockValue === 'undefined' ||
             this.clockValue < entry.clock
@@ -69,9 +72,11 @@ export class MemoryCacheDriver implements ICacheDriver {
 
         for (const tag of entry.tags) {
             const version = this.readTag(tag, now);
+
             if (typeof version === 'undefined' || version > entry.clock) {
                 // a tag version only ever grows, so the entry is dead for good.
                 this.entries.delete(key);
+
                 return null;
             }
         }
@@ -80,7 +85,9 @@ export class MemoryCacheDriver implements ICacheDriver {
     }
 
     async write<T>(key: string, entry: CacheEntry<T>, ttl: number) : Promise<boolean> {
-        if (entry.tags.some((tag) => !isCacheTagWellFormed(tag))) {
+        const matchesTags = entry.tags.some((tag) => !isCacheTagWellFormed(tag));
+
+        if (matchesTags) {
             return false;
         }
 
@@ -95,10 +102,12 @@ export class MemoryCacheDriver implements ICacheDriver {
         const clock = this.clockValue;
 
         let refused = clock < entry.clock;
+
         for (const tag of entry.tags) {
             // an absent tag has an unknown history (evicted, or lapsed after
             // a bump), so it is re-created as bumped now, never as 0.
             const version = this.readTag(tag, now) ?? clock;
+
             // re-armed on every write, refused or not: the tag has to outlive
             // every entry that may still carry it.
             this.setTag(tag, version, now);
@@ -126,6 +135,7 @@ export class MemoryCacheDriver implements ICacheDriver {
         this.prune(now);
 
         const clock = (this.clockValue ?? 0) + 1;
+
         this.clockValue = clock;
 
         for (const tag of tags) {
@@ -143,12 +153,14 @@ export class MemoryCacheDriver implements ICacheDriver {
 
     protected readTag(tag: string, now: number) : number | undefined {
         const item = this.tags.get(tag);
+
         if (!item) {
             return undefined;
         }
 
         if (item.expiresAt <= now) {
             this.tags.delete(tag);
+
             return undefined;
         }
 
@@ -169,6 +181,7 @@ export class MemoryCacheDriver implements ICacheDriver {
     protected prune(now: number) {
         // entries carry their own ttl and are in no order: a bounded scan.
         let budget = MEMORY_CACHE_PRUNE_BUDGET;
+
         for (const [key, item] of this.entries) {
             if (budget-- === 0) {
                 break;

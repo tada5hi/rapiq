@@ -1,10 +1,3 @@
-/*
- * Copyright (c) 2025.
- * Author Peter Placzek (tada5hi)
- * For the full copyright and license information,
- * view the LICENSE file that was distributed with this source code.
- */
-
 export type VisitorOptions = {
     /**
      * Field keys whose equality (eq/ne/in/nin) and anchored
@@ -18,3 +11,21 @@ export type VisitorOptions = {
 
     [key: string]: any;
 };
+
+export type FieldsInterpreterOptions = VisitorOptions;
+
+export type PaginationVisitorOptions = VisitorOptions;
+
+export type RelationsInterpreterOptions = VisitorOptions;
+
+/**
+ * @deprecated use {@link RelationsInterpreterOptions}. Removed in 3.0.
+ */
+export type RelationInterpreterOptions = RelationsInterpreterOptions;
+
+export type SortsInterpreterOptions = VisitorOptions;
+
+/**
+ * @deprecated use {@link SortsInterpreterOptions}. Removed in 3.0.
+ */
+export type SortInterpreterOptions = SortsInterpreterOptions;

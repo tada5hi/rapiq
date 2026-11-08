@@ -8,7 +8,7 @@
 import type { Parameter } from '../../constants';
 import type { IRelations } from '../../parameter';
 import type { IIssueCollector } from '../../parser/issue';
-import type { PendingKeyValidation } from '../../parser/parameter/validate';
+import type { PendingKeyValidation } from '../../parser/parameter/types';
 import type { ObjectLiteral } from '../../types';
 import type {
     AggregatesSchema,

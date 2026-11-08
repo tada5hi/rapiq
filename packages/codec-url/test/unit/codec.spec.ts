@@ -132,12 +132,14 @@ describe('URLCodec', () => {
         const seen : unknown[] = [];
 
         const external = new URLCodec();
+
         external.register({
             name: 'mine',
             encoder: { encode: () => null },
             decoder: {
                 decode: (input) => {
                     seen.push(input);
+
                     return null;
                 },
             },
@@ -165,6 +167,7 @@ describe('URLCodec', () => {
 
     describe('parameter masking', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             filters: { allowed: ['id', 'name'] },
@@ -231,6 +234,7 @@ describe('URLCodec', () => {
 
     describe('throwOnFailure call-time override (A1)', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             filters: { allowed: ['id', 'name'] },
@@ -270,6 +274,7 @@ describe('URLCodec', () => {
 
     it('should dispatch to an externally registered codec', () => {
         const external = new URLCodec();
+
         external.register({
             name: 'noop',
             encoder: { encode: () => 'x=1' },
@@ -282,6 +287,7 @@ describe('URLCodec', () => {
 
     it('should preserve sync-only external codecs in async dispatch', async () => {
         const external = new URLCodec();
+
         external.register({
             name: 'noop',
             encoder: { encode: () => 'x=1' },
@@ -317,12 +323,14 @@ describe('URLCodec', () => {
         const seen : unknown[] = [];
 
         const external = new URLCodec();
+
         external.register({
             name: 'noop',
             encoder: { encode: () => null },
             decoder: {
                 decode: (input) => {
                     seen.push(input);
+
                     return null;
                 },
             },

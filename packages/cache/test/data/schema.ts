@@ -89,6 +89,7 @@ const noteSchema = defineSchema<Note>({
 });
 
 const registry = new SchemaRegistry();
+
 registry.add(realmSchema);
 registry.add(roleSchema);
 registry.add(userRoleSchema);

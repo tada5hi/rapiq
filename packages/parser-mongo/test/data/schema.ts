@@ -64,6 +64,7 @@ const realmSchema = defineSchema<Realm>({
 });
 
 const registry = new SchemaRegistry();
+
 registry.add(userSchema);
 registry.add(itemSchema);
 registry.add(realmSchema);

@@ -112,6 +112,7 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         await dataSource.synchronize();
 
         const [master] = await createRealmSeed(dataSource);
+
         masterId = master!.id;
 
         const repository = dataSource.getRepository(Activity);
@@ -533,6 +534,7 @@ describe('src/adapter/module.ts (grouped, engine parity)', () => {
         const queryBuilder = dataSource
             .getRepository(Activity)
             .createQueryBuilder('activity');
+
         new TypeormAdapter({ queryBuilder }).execute(defineQuery({ filters: filters() }));
 
         expect(await queryBuilder.getCount()).toEqual(rows.reduce((total, row) => total + row.count, 0));
@@ -695,6 +697,7 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
         // Berlin puts both instants on 2026-08-21: truncating without
         // converting to UTC first would answer one group of two.
         const runner = dataSource.createQueryRunner();
+
         await runner.connect();
 
         try {
@@ -739,6 +742,7 @@ describe.runIf(process.env.DB_TYPE === 'postgres')('src/adapter/module.ts (group
         });
 
         const runner = dataSource.createQueryRunner();
+
         await runner.connect();
 
         try {

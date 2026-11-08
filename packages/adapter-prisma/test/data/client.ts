@@ -106,6 +106,7 @@ export async function createDatabase(records: User[]) : Promise<TestDatabase> {
     }
 
     const realms = new Map<number, any>();
+
     for (const record of records) {
         if (record.realm) {
             realms.set(record.realm.id, record.realm);

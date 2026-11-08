@@ -80,6 +80,7 @@ describe('encoder (schema-aware)', () => {
         const query = defineQuery({ fields: ['id', 'secret'] });
 
         const encoded = await encoder.encodeFieldsAsync(query.fields, { schema });
+
         expect(decodeURIComponent(encoded!)).toEqual('fields=id');
 
         try {
@@ -96,6 +97,7 @@ describe('encoder (schema-aware)', () => {
         const query = defineQuery({ relations: ['realm', 'items'] });
 
         const encoded = await encoder.encodeRelationsAsync(query.relations, { schema });
+
         expect(decodeURIComponent(encoded!)).toEqual('include=realm');
 
         try {
@@ -112,6 +114,7 @@ describe('encoder (schema-aware)', () => {
         const query = defineQuery({ sort: ['id', 'name'] });
 
         const encoded = await encoder.encodeSortsAsync(query.sorts, { schema });
+
         expect(decodeURIComponent(encoded!)).toEqual('sort=id');
 
         try {

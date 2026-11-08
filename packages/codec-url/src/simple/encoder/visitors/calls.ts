@@ -36,12 +36,14 @@ export function serializeCallTermStrict(term: IGroup | IAggregate, feature: stri
     const parsed = reparseCallTerms(output, feature);
     const [first] = parsed;
 
-    if (
-        parsed.length !== 1 ||
+    const matchesParams = parsed.length !== 1 ||
         typeof first === 'undefined' ||
         first.name !== term.name ||
         first.params.length !== term.params.length ||
-        first.params.some((param, index) => param !== term.params[index])
+        first.params.some((param, index) => param !== term.params[index]);
+
+    if (
+        matchesParams
     ) {
         throw AdapterError.featureUnsupported(feature);
     }

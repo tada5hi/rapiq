@@ -146,6 +146,7 @@ describe('src/adapter/filters.ts', () => {
 
         it.each(['postgresql', 'cockroachdb', 'mysql'])('should escape literal LIKE operands on %s', (provider) => {
             const options = { provider, caseSensitive: true };
+
             for (const [operator, buildCondition] of Object.entries({
                 contains,
                 startsWith,
@@ -165,11 +166,13 @@ describe('src/adapter/filters.ts', () => {
 
         it('should refuse pattern syntax when a custom provider supplies no escaping', () => {
             const options = { provider: { caseInsensitiveMode: true } };
+
             for (const value of ['.*', 'a|b', '^a', '100%', 'a_b', '[ab]', String.raw`a\b`]) {
                 expect(() => build(contains('address', value), options)).toThrowError(
                     expect.objectContaining({ feature: 'filters:match-literal' }),
                 );
             }
+
             expect(build(contains('address', 'plain'), options))
                 .toEqual({ address: { contains: 'plain', mode: 'insensitive' } });
         });
@@ -192,6 +195,7 @@ describe('src/adapter/filters.ts', () => {
                     );
                 }
             }
+
             expect(build(operator('address', String.raw`[a]\end`), { provider: 'sqlite' })).toBeDefined();
         });
 

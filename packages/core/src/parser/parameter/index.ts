@@ -13,3 +13,9 @@ export * from './pagination';
 export * from './relations';
 export * from './sort';
 export * from './validate';
+export type {
+    KeyValidatableSchema,
+    PendingKeyValidation,
+    KeyValidationOptions,
+    CallValidatableSchema,
+} from './types';

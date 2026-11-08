@@ -1,3 +1,4 @@
+import type { KeyDetails } from './types';
 /*
  * Copyright (c) 2022.
  * Author Peter Placzek (tada5hi)
@@ -6,12 +7,6 @@
  */
 
 import { pathToArray } from 'pathtrace';
-
-export type KeyDetails = {
-    name: string,
-    group?: string,
-    path?: string
-};
 
 const KEY_REGEX = /^(?:([0-9]+):)?((?:[a-zA-Z0-9-_]+\.)*)([a-zA-Z0-9-_]+)$/;
 
@@ -60,6 +55,7 @@ export function parseKey(
     input: string,
 ) : KeyDetails {
     const matches = KEY_REGEX.exec(input);
+
     if (!matches) {
         return { name: input };
     }

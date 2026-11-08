@@ -71,7 +71,9 @@ describe('pagination', () => {
         const decoded = decoder.decodePagination('page[__proto__][polluted]=1');
 
         expect(decoded).toEqual(new Pagination());
+
         const probe: Record<string, unknown> = {};
+
         expect(probe.polluted).toBeUndefined();
     });
 

@@ -89,6 +89,7 @@ describe('src/error/*.ts', () => {
 
     it('should render what a decode raised', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             throwOnFailure: true,
@@ -98,6 +99,7 @@ describe('src/error/*.ts', () => {
         const codec = createURLCodec(registry);
 
         let error : ParseError | undefined;
+
         try {
             codec.decode('filter[secret]=x', { schema: 'user' });
         } catch (e) {

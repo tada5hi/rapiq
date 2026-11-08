@@ -110,6 +110,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         // without the forced operand the fetched entities would lack `age`
         // and the post-fetch gate would evaluate against nothing.
         expect(rows).toHaveLength(2);
+
         for (const row of rows) {
             expect(typeof row.age).toBe('number');
         }
@@ -146,6 +147,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         const duplicates = aliases.filter(
             (alias, index) => aliases.indexOf(alias) !== index,
         );
+
         expect(duplicates).toEqual([]);
 
         // the row set itself stays untouched
@@ -172,6 +174,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         const alias = queryBuilder.expressionMap.joinAttributes[0].alias.name;
         const selections = queryBuilder.expressionMap.selects
             .map((select) => select.selection);
+
         expect(selections).toContain(`${alias}.id`);
         expect(selections).toContain(`${alias}.name`);
         expect(selections).not.toContain(alias);
@@ -181,6 +184,7 @@ describe('src/adapter/module.ts (field visibility gates)', () => {
         const duplicates = aliases.filter(
             (alias, index) => aliases.indexOf(alias) !== index,
         );
+
         expect(duplicates).toEqual([]);
 
         expect(await queryBuilder.getMany()).toHaveLength(2);

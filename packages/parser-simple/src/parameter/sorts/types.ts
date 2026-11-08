@@ -6,12 +6,17 @@
  */
 
 import type {
-    KeyWithOptionalPrefix, 
-    NestedKeys, 
-    PrevIndex, 
-    SimpleKeys, 
+    KeyWithOptionalPrefix,
+    NestedKeys,
+    ObjectLiteral,
+    Parameter,
+    PrevIndex,
+    ResolutionScope,
+    SimpleKeys,
     SortDirection,
 } from '@rapiq/core';
+
+
 
 type SortWithOperator<T extends string> = KeyWithOptionalPrefix<T, '-'>;
 export type SortsBuildRecordInput<
@@ -56,3 +61,5 @@ export type SortBuildInput<
     T extends Record<PropertyKey, any>,
     DEPTH extends number = 5,
 > = SortsBuildInput<T, DEPTH>;
+
+export type SortsScope<RECORD extends ObjectLiteral> = ResolutionScope<`${Parameter.SORTS}`, RECORD>;

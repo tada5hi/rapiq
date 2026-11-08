@@ -35,6 +35,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
      */
     override isRelationPath(path: string) : boolean {
         const { mainAlias } = this.queryBuilder.expressionMap;
+
         if (!mainAlias || !mainAlias.hasMetadata) {
             return super.isRelationPath(path);
         }
@@ -44,9 +45,11 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
         while (rest) {
             let segment : string;
+
             [segment, rest] = splitFirst(rest);
 
             const relation = metadata.findRelationWithPropertyPath(segment);
+
             if (!relation) {
                 return false;
             }
@@ -64,6 +67,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
      */
     joinsToMany() : boolean {
         const { mainAlias } = this.queryBuilder.expressionMap;
+
         if (!mainAlias || !mainAlias.hasMetadata) {
             return false;
         }
@@ -74,9 +78,11 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
             while (rest) {
                 let segment : string;
+
                 [segment, rest] = splitFirst(rest);
 
                 const relation = metadata.findRelationWithPropertyPath(segment);
+
                 if (!relation) {
                     break;
                 }
@@ -141,6 +147,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
 
         while (relationFullName) {
             let relationName : string;
+
             [relationName, relationFullName] = splitFirst(relationFullName);
 
             path = path ?
@@ -148,6 +155,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
                 relationName;
 
             const relation = meta.findRelationWithPropertyPath(relationName);
+
             if (!relation) {
                 return false;
             }
@@ -220,6 +228,7 @@ export class RelationsAdapter extends RelationsBaseAdapter {
         }
 
         const entry = this.value.find((join) => join.path === path);
+
         if (entry && entry.projected) {
             return 'key';
         }
@@ -252,24 +261,26 @@ export class RelationsAdapter extends RelationsBaseAdapter {
             this.queryBuilder.leftJoin(property, alias);
         }
 
-        if (mode === 'key') {
-            // Selecting the primary key alone hydrates the relation object
-            // id-only (TypeORM's JoinAttribute.isSelected matches any selected
-            // `<alias>.<column>`), which strict dialects accept under GROUP BY.
-            // Guarded because relations run after fields: a `<relation>.<pk>`
-            // field path (or a full `<alias>` select) already covers the key,
-            // and re-adding it multiplies duplicate SELECT columns.
-            const { selects } = this.queryBuilder.expressionMap;
+        if (!(mode === 'key')) {
+            return;
+        }
 
-            for (const column of target.primaryColumns) {
-                const selection = `${alias}.${column.propertyPath}`;
-                const selected = selects.some(
-                    (select) => select.selection === selection || select.selection === alias,
-                );
+        // Selecting the primary key alone hydrates the relation object
+        // id-only (TypeORM's JoinAttribute.isSelected matches any selected
+        // `<alias>.<column>`), which strict dialects accept under GROUP BY.
+        // Guarded because relations run after fields: a `<relation>.<pk>`
+        // field path (or a full `<alias>` select) already covers the key,
+        // and re-adding it multiplies duplicate SELECT columns.
+        const { selects } = this.queryBuilder.expressionMap;
 
-                if (!selected) {
-                    this.queryBuilder.addSelect(selection);
-                }
+        for (const column of target.primaryColumns) {
+            const selection = `${alias}.${column.propertyPath}`;
+            const selected = selects.some(
+                (select) => select.selection === selection || select.selection === alias,
+            );
+
+            if (!selected) {
+                this.queryBuilder.addSelect(selection);
             }
         }
     }

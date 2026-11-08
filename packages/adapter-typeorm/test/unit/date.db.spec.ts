@@ -78,6 +78,7 @@ describe('src/adapter/filters (date columns)', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ filters: new Filters(FilterCompoundOperator.AND, [condition]) }));
 
         return queryBuilder;
@@ -155,6 +156,7 @@ describe('src/adapter/filters (date columns)', () => {
         // happens to land on the right day and the guard would pass
         // either way.
         const timezone = process.env.TZ;
+
         process.env.TZ = 'America/New_York';
 
         try {

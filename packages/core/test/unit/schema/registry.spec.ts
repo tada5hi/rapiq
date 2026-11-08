@@ -5,11 +5,11 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { 
-    ErrorCode, 
-    SchemaError, 
-    SchemaRegistry, 
-    defineSchema, 
+import {
+    ErrorCode,
+    SchemaError,
+    SchemaRegistry,
+    defineSchema,
 } from '../../../src';
 import { registry } from '../../data/schema';
 
@@ -18,6 +18,7 @@ describe('src/schema/registry/*.ts', () => {
         it('should store and retrieve a schema by name', () => {
             const local = new SchemaRegistry();
             const schema = defineSchema({ name: 'foo' });
+
             local.add(schema);
 
             expect(local.get('foo')).toBe(schema);
@@ -26,6 +27,7 @@ describe('src/schema/registry/*.ts', () => {
 
         it('should throw when adding a schema without a name', () => {
             const local = new SchemaRegistry();
+
             expect(() => local.add(defineSchema({}))).toThrow(SchemaError);
 
             try {
@@ -38,11 +40,13 @@ describe('src/schema/registry/*.ts', () => {
 
         it('should return undefined for an unknown name', () => {
             const local = new SchemaRegistry();
+
             expect(local.get('missing')).toBeUndefined();
         });
 
         it('should throw in getOrFail for an unknown name', () => {
             const local = new SchemaRegistry();
+
             expect(() => local.getOrFail('missing')).toThrow(SchemaError);
 
             try {
@@ -56,11 +60,13 @@ describe('src/schema/registry/*.ts', () => {
         it('should return a passed Schema instance unchanged', () => {
             const local = new SchemaRegistry();
             const schema = defineSchema({ name: 'foo' });
+
             expect(local.get(schema)).toBe(schema);
         });
 
         it('should drop a registered schema', () => {
             const local = new SchemaRegistry();
+
             local.add(defineSchema({ name: 'foo' }));
             local.drop('foo');
             expect(local.get('foo')).toBeUndefined();
@@ -70,6 +76,7 @@ describe('src/schema/registry/*.ts', () => {
     describe('getAll', () => {
         it('should return an empty array for an empty registry', () => {
             const local = new SchemaRegistry();
+
             expect(local.getAll()).toEqual([]);
         });
 
@@ -89,6 +96,7 @@ describe('src/schema/registry/*.ts', () => {
         it('should return the same instances as get', () => {
             const local = new SchemaRegistry();
             const schema = defineSchema({ name: 'foo' });
+
             local.add(schema);
 
             expect(local.getAll()[0]).toBe(local.get('foo'));
@@ -123,6 +131,7 @@ describe('src/schema/registry/*.ts', () => {
         it('should return a snapshot unaffected by later registry mutation', () => {
             const local = new SchemaRegistry();
             const foo = defineSchema({ name: 'foo' });
+
             local.add(foo);
 
             const schemas = local.getAll();
@@ -136,9 +145,11 @@ describe('src/schema/registry/*.ts', () => {
         it('should not write back to the registry when the array is mutated', () => {
             const local = new SchemaRegistry();
             const foo = defineSchema({ name: 'foo' });
+
             local.add(foo);
 
             const schemas = local.getAll();
+
             schemas.push(defineSchema({ name: 'bar' }));
             schemas.reverse();
 

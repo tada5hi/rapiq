@@ -1,3 +1,9 @@
+import type {
+    IParser,
+    ParseTrace,
+    ParseTraceContext,
+    TempType,
+} from './types';
 /*
  * Copyright (c) 2025.
  *  Author Peter Placzek (tada5hi)
@@ -13,20 +19,14 @@ import type { Schema } from '../schema';
 import { SchemaRegistry, defineSchema } from '../schema';
 import type { ObjectLiteral } from '../types';
 import {
-    isObject, 
-    isUnsafeKey, 
-    parseKey, 
+    isObject,
+    isUnsafeKey,
+    parseKey,
     stringifyKey,
 } from '../utils';
 import { IssueCollector } from './issue';
 import { PARAMETER_ERROR_CLASSES } from './issue/constants';
 import type { IIssueCollector } from './issue';
-import type { IParser, ParseTrace, ParseTraceContext } from './types';
-
-export type TempType = {
-    attributes: Record<string, any>,
-    relations: Record<string, TempType>
-};
 
 export abstract class BaseParser<
     OPTIONS extends ObjectLiteral = ObjectLiteral,
@@ -38,6 +38,7 @@ export abstract class BaseParser<
 
     constructor(input?: SchemaRegistry) {
         let registry: SchemaRegistry;
+
         if (input instanceof SchemaRegistry) {
             registry = input;
         } else {
@@ -79,9 +80,9 @@ export abstract class BaseParser<
     ) : ParseTrace {
         if (driver) {
             return {
-                collector: driver, 
-                owned: false, 
-                parameter, 
+                collector: driver,
+                owned: false,
+                parameter,
             };
         }
 
@@ -146,6 +147,7 @@ export abstract class BaseParser<
         const trace = this.beginIssues(context.driver, context.parameter);
 
         const output = this.recordFailure(trace, () => fn(trace.collector));
+
         this.finishIssues(trace);
 
         return output;
@@ -158,6 +160,7 @@ export abstract class BaseParser<
         const trace = this.beginIssues(context.driver, context.parameter);
 
         const output = await this.recordFailureAsync(trace, () => fn(trace.collector));
+
         this.finishIssues(trace);
 
         return output;
@@ -205,6 +208,7 @@ export abstract class BaseParser<
         }
 
         trace.collector.addError(input, trace.parameter);
+
         return this.raise(trace);
     }
 
@@ -214,6 +218,7 @@ export abstract class BaseParser<
         input?: string | Schema<RECORD>,
     ) : Schema<RECORD> {
         let schema : Schema<RECORD> | undefined;
+
         if (input) {
             schema = this.registry.getOrFail(input);
         } else {
@@ -241,6 +246,7 @@ export abstract class BaseParser<
         const depth = prefix ? prefix.split('.').length : 0;
 
         const keys = Object.keys(input);
+
         for (const key of keys) {
             if (depth + key.split('.').length > MAX_TRAVERSAL_DEPTH) {
                 throw ParseError.inputInvalid();
@@ -251,6 +257,7 @@ export abstract class BaseParser<
             }
 
             const path = prefix ? `${prefix}.${key}` : key;
+
             if (isObject(input[key])) {
                 this.expandObject(input[key], output, path);
             } else {
@@ -274,6 +281,7 @@ export abstract class BaseParser<
         depth = 0,
     ) {
         const keys = Object.keys(input);
+
         for (const key of keys) {
             if (depth + key.split('.').length > MAX_TRAVERSAL_DEPTH) {
                 throw ParseError.inputInvalid();
@@ -296,6 +304,7 @@ export abstract class BaseParser<
         };
 
         const keys = Object.keys(input);
+
         for (const key of keys) {
             if (isUnsafeKey(key)) {
                 throw ParseError.inputInvalid();
@@ -326,6 +335,7 @@ export abstract class BaseParser<
                 }
 
                 const sourceKey = keys[index];
+
                 if (sourceKey !== undefined) {
                     output[prefix][key as keyof T] = input[sourceKey] as T[keyof T];
                 }
@@ -372,6 +382,7 @@ export abstract class BaseParser<
             }
 
             const lastIndex = element.lastIndexOf('.');
+
             if (lastIndex === -1) {
                 key = DEFAULT_ID;
                 name = element;
@@ -381,6 +392,7 @@ export abstract class BaseParser<
             }
 
             const list = output[key] ?? [];
+
             output[key] = list;
             list.push(name);
         }
@@ -404,8 +416,10 @@ export abstract class BaseParser<
             const key = parseKey(item);
 
             let prefix : string;
+
             if (key.path) {
                 const dotIndex = key.path.indexOf('.');
+
                 if (dotIndex === -1) {
                     prefix = key.path;
                     key.path = undefined;

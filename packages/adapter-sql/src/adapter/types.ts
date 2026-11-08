@@ -12,6 +12,9 @@ import type { IPaginationAdapter } from './pagination';
 import type { IRelationsAdapter } from './relations';
 import type { ISortsAdapter } from './sort';
 
+import type { DialectOptions } from '../dialect';
+import type { RelationAliasFn } from '../helpers';
+
 /**
  * Options for a single {@link IRootAdapter.execute} call.
  */
@@ -121,4 +124,15 @@ export type GroupedSqlFragments = SqlFragments & {
      * aggregates-only query, which yields one row.
      */
     groupBy: string[],
+};
+
+export type AdapterOptions = DialectOptions & {
+    rootAlias?: string,
+
+    /**
+     * Derive the join alias for a relation path
+     * (default: length-prefixed segments, e.g. `role.realm` ->
+     * `r4_role_5_realm`).
+     */
+    relationAlias?: RelationAliasFn,
 };

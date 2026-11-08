@@ -27,6 +27,7 @@ import { datamodel } from '../data/datamodel';
  */
 function createRecordingClient() {
     const models : Record<string, any> = {};
+
     for (const model of datamodel.models) {
         models[model.name] = { fields: model.fields };
     }
@@ -44,10 +45,12 @@ function createRecordingClient() {
         fields: { id: { modelName: 'User', name: 'id' } },
         findMany: (args: any) => {
             calls.findMany.push(args);
+
             return Promise.resolve([{ id: 1 }]);
         },
         count: (args: any) => {
             calls.count.push(args);
+
             return Promise.resolve(7);
         },
     };
@@ -184,10 +187,10 @@ describe('src/adapter/merge.ts', () => {
             { include: { realm: true } },
         )).toEqual({
             select: {
-                id: true, 
-                first_name: true, 
-                realm: true, 
-            }, 
+                id: true,
+                first_name: true,
+                realm: true,
+            },
         });
     });
 
@@ -199,9 +202,9 @@ describe('src/adapter/merge.ts', () => {
         expect(mergeArgs(
             { take: 5, orderBy: [{ id: 'asc' }] },
             {
-                take: 10, 
-                skip: 2, 
-                orderBy: [{ age: 'desc' }], 
+                take: 10,
+                skip: 2,
+                orderBy: [{ age: 'desc' }],
             },
         )).toEqual({
             take: 10,

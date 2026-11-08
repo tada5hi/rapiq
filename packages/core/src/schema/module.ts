@@ -217,6 +217,7 @@ export class Schema<
 
             if (output.relations.allowed) {
                 const schemas : Record<string, string> = {};
+
                 for (const relation of output.relations.allowed) {
                     schemas[relation] = this.mapSchema(relation);
                 }
@@ -257,10 +258,12 @@ export class Schema<
             this.aggregates.name = this.options.name;
         }
 
-        if (!this.indexesIsUndefined) {
-            this.filters.setIndexes(this.indexes);
-            this.sorts.setIndexes(this.indexes);
+        if (this.indexesIsUndefined) {
+            return;
         }
+
+        this.filters.setIndexes(this.indexes);
+        this.sorts.setIndexes(this.indexes);
     }
 
     private extendSchemaOptions(schema: BaseSchema<any>) {

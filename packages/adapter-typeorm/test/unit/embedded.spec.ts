@@ -42,6 +42,7 @@ describe('src/adapter (embedded columns)', () => {
 
         const [admin] = await createRoleSeed(dataSource);
         const roleRepository = dataSource.getRepository(Role);
+
         admin.profile = new Profile();
         admin.profile.firstName = 'Ada';
         admin.profile.lastName = 'Lovelace';
@@ -49,6 +50,7 @@ describe('src/adapter (embedded columns)', () => {
 
         const [, aston] = await createUserSeed(dataSource);
         const userRepository = dataSource.getRepository(User);
+
         aston.role = admin;
         aston.profile = new Profile();
         aston.profile.firstName = 'Padme';
@@ -68,6 +70,7 @@ describe('src/adapter (embedded columns)', () => {
         const queryBuilder = repository.createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(query);
 
         return queryBuilder;
@@ -155,6 +158,7 @@ describe('src/adapter (embedded columns)', () => {
         expect(data).toHaveLength(2);
 
         const aston = data.find((user) => user.profile?.firstName === 'Padme');
+
         expect(aston).toBeDefined();
         expect(aston!.first_name).toBeUndefined();
     });
@@ -189,11 +193,13 @@ describe('src/adapter (embedded columns)', () => {
 
         const aliases = queryBuilder.getSql().matchAll(/AS\s+"([^"]+)"/g).toArray().map((m) => m[1]);
         const duplicates = aliases.filter((alias, index) => aliases.indexOf(alias) !== index);
+
         expect(duplicates).toEqual([]);
 
         // the included relation hydrates narrowed to the picked embedded column
         const data = await queryBuilder.getMany();
         const aston = data.find((user) => !!user.role);
+
         expect(aston).toBeDefined();
         expect(aston!.role.profile.firstName).toEqual('Ada');
         expect(aston!.role.name).toBeUndefined();

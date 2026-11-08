@@ -138,6 +138,7 @@ describe('src/parameter/merge.ts', () => {
         const right = defineQuery({ filters: compound });
 
         const output = mergeQueries(left, right);
+
         expect(output.filters).toBe(compound);
     });
 
@@ -256,6 +257,7 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         // widen the group to everything.
         const scope = eq('realm.id', 'master');
         const scoped = query.filters.and(scope);
+
         expect(scoped.operator).toBe(FilterCompoundOperator.AND);
         expect(conditions(scoped)).toEqual([['realm.id', 'eq', 'master']]);
         expect(scoped.value).not.toContain(query.filters);
@@ -265,6 +267,7 @@ describe('src/parameter/filters/collection/module.ts combinators', () => {
         const firstAlternative = eq('name', 'a');
         const secondAlternative = eq('name', 'b');
         const alternatives = query.filters.or(firstAlternative, secondAlternative);
+
         expect(alternatives.operator).toBe(FilterCompoundOperator.OR);
         expect(conditions(alternatives)).toEqual([
             ['name', 'eq', 'a'],
@@ -411,6 +414,7 @@ describe('src/parameter/filters/preserve.ts', () => {
         expect(and(eq('b', 2), preservedRoot).flatten().value[1]).toBe(preservedRoot);
 
         const output = other.merge(preservedRoot);
+
         expect(output.value).toHaveLength(2);
         expect(output.value[1]).toBe(preservedRoot);
     });

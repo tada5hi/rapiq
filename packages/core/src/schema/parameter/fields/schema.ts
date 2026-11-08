@@ -68,6 +68,7 @@ export class FieldsSchema<
         if (typeof input === 'undefined') {
             this.default = [];
             this.defaultIsUndefined = true;
+
             return;
         }
 
@@ -79,6 +80,7 @@ export class FieldsSchema<
         if (typeof input === 'undefined') {
             this.allowed = [];
             this.allowedIsUndefined = true;
+
             return;
         }
 
@@ -117,6 +119,7 @@ export class FieldsSchema<
     ): boolean {
         if (!this.allowedIsUndefined) {
             const index = this.allowed.indexOf(name);
+
             if (index !== -1) {
                 return true;
             }
@@ -124,6 +127,7 @@ export class FieldsSchema<
 
         if (!this.defaultIsUndefined) {
             const index = this.default.indexOf(name);
+
             if (index !== -1) {
                 return true;
             }

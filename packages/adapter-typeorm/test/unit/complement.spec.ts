@@ -40,6 +40,7 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
         await dataSource.synchronize();
 
         const repository = dataSource.getRepository(User);
+
         await repository.save([
             {
                 first_name: 'Caleb',
@@ -74,9 +75,11 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
         const queryBuilder = dataSource.getRepository(User).createQueryBuilder('user');
 
         const adapter = new TypeormAdapter({ queryBuilder });
+
         adapter.execute(new Query({ filters: new Filters(FilterCompoundOperator.AND, [condition]) }));
 
         const data = await queryBuilder.getMany();
+
         return data.map((user) => user.id).sort((a, b) => a - b);
     };
 
@@ -113,11 +116,13 @@ describe('cross-adapter complement law (memory vs typeorm)', () => {
 
             // the negation selects exactly the remaining records.
             const allIds = records.map((user) => user.id).sort((a, b) => a - b);
+
             expect([...positiveIds, ...negativeIds].sort((a, b) => a - b)).toEqual(allIds);
 
             // the first-class NOT node is the same complement: not(c)
             // selects exactly the rows c does not — on both backends.
             const symbolicIds = await fetchIds(not(positive));
+
             expect(symbolicIds).toEqual(negativeIds);
             expect(evaluateIds(not(positive))).toEqual(negativeIds);
         });

@@ -1,3 +1,4 @@
+import type { RelationsInterpreterOptions } from './types';
 /*
  * Copyright (c) 2025.
  * Author Peter Placzek (tada5hi)
@@ -6,20 +7,13 @@
  */
 
 import type {
-    IRelationVisitor, 
-    IRelationsVisitor, 
-    Relation, 
+    IRelationVisitor,
+    IRelationsVisitor,
+    Relation,
     Relations,
 } from '@rapiq/core';
 import type { IRelationsAdapter } from '../adapter';
-import type { VisitorOptions } from './types';
 
-export type RelationsInterpreterOptions = VisitorOptions;
-
-/**
- * @deprecated use {@link RelationsInterpreterOptions}. Removed in 3.0.
- */
-export type RelationInterpreterOptions = RelationsInterpreterOptions;
 
 export class RelationsVisitor implements IRelationsVisitor<IRelationsAdapter>,
 IRelationVisitor<IRelationsAdapter> {

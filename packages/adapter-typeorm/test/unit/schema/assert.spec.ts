@@ -7,10 +7,10 @@
 
 import type { SchemaOptions } from '@rapiq/core';
 import {
-    ErrorCode, 
-    SchemaError, 
-    and, 
-    defineSchema, 
+    ErrorCode,
+    SchemaError,
+    and,
+    defineSchema,
     eq,
 } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
@@ -31,6 +31,7 @@ function grabError(fn: () => void) : SchemaEntityMismatchError {
         fn();
     } catch (e) {
         expect(e).toBeInstanceOf(SchemaEntityMismatchError);
+
         return e as SchemaEntityMismatchError;
     }
 
@@ -42,6 +43,7 @@ function grabIndexError(fn: () => void) : SchemaEntityIndexMismatchError {
         fn();
     } catch (e) {
         expect(e).toBeInstanceOf(SchemaEntityIndexMismatchError);
+
         return e as SchemaEntityIndexMismatchError;
     }
 
@@ -86,6 +88,7 @@ describe('src/schema/assert.ts', () => {
                 schema,
                 dataSource.getMetadata(User),
             ));
+
             expect(error.keys).toEqual([key]);
         };
 
@@ -101,6 +104,7 @@ describe('src/schema/assert.ts', () => {
             sort: { allowed: ['realm.name'] },
             filters: { allowed: ['role.detail'] },
         });
+
         expect(() => assertSchemaMatchesEntity(valid, dataSource.getMetadata(User)))
             .not.toThrow();
 
@@ -108,6 +112,7 @@ describe('src/schema/assert.ts', () => {
             name: 'invalid',
             sort: { allowed: ['unknownRelation.name'] },
         });
+
         expect(grabError(() => assertSchemaMatchesEntity(invalid, dataSource.getMetadata(User))).keys)
             .toEqual(['unknownRelation.name']);
     });
@@ -117,6 +122,7 @@ describe('src/schema/assert.ts', () => {
             name: 'embedded-valid',
             fields: { allowed: ['profile.firstName', 'profile.lastName'] },
         });
+
         expect(() => assertSchemaMatchesEntity(valid, dataSource.getMetadata(User)))
             .not.toThrow();
 
@@ -126,6 +132,7 @@ describe('src/schema/assert.ts', () => {
             name: 'embedded-invalid',
             fields: { allowed: ['profile.renamedAway'] },
         });
+
         expect(grabError(() => assertSchemaMatchesEntity(invalid, dataSource.getMetadata(User))).keys)
             .toEqual(['profile.renamedAway']);
     });
@@ -135,6 +142,7 @@ describe('src/schema/assert.ts', () => {
             name: 'relations-valid',
             relations: { allowed: ['realm', 'role.detail'] },
         });
+
         expect(() => assertSchemaMatchesEntity(valid, dataSource.getMetadata(User)))
             .not.toThrow();
 
@@ -143,6 +151,7 @@ describe('src/schema/assert.ts', () => {
             name: 'relation-as-column',
             relations: { allowed: ['email'] },
         });
+
         expect(grabError(() => assertSchemaMatchesEntity(column, dataSource.getMetadata(User))).keys)
             .toEqual(['email']);
 
@@ -151,6 +160,7 @@ describe('src/schema/assert.ts', () => {
             name: 'column-as-relation',
             fields: { allowed: ['realm'] },
         });
+
         expect(grabError(() => assertSchemaMatchesEntity(field, dataSource.getMetadata(User))).keys)
             .toEqual(['realm']);
     });
@@ -279,6 +289,7 @@ describe('src/schema/assert.ts', () => {
             name: 'target-valid',
             filters: { allowed: ['email'] },
         });
+
         expect(() => assertSchemaMatchesEntity(valid, User, dataSource))
             .not.toThrow();
 
@@ -286,6 +297,7 @@ describe('src/schema/assert.ts', () => {
             name: 'target-invalid',
             filters: { allowed: ['renamedAway'] },
         });
+
         expect(grabError(() => assertSchemaMatchesEntity(invalid, User, dataSource)).keys)
             .toEqual(['renamedAway']);
     });

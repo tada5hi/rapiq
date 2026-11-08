@@ -67,9 +67,9 @@ describe('typeorm end to end', () => {
 
         await dataSource.getRepository(RealmEntity).save({ id: 'x', name: 'master' });
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r1', 
-            name: 'admin', 
-            realmId: 'x', 
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
         });
     });
 
@@ -89,23 +89,28 @@ describe('typeorm end to end', () => {
             caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return dataSource.getRepository(RoleEntity).find({ relations: { realm: true } });
         });
 
         const first = await read();
+
         expect(first).toHaveLength(1);
         expect(first[0]?.realm.name).toEqual('master');
 
         const second = await read();
+
         expect(second[0]?.realm.name).toEqual('master');
         expect(reads).toEqual(1);
 
         const realmRepository = dataSource.getRepository(RealmEntity);
         const realm = await realmRepository.findOneByOrFail({ id: 'x' });
+
         realm.name = 'renamed';
         await realmRepository.save(realm);
 
         const third = await read();
+
         expect(third[0]?.realm.name).toEqual('renamed');
         expect(reads).toEqual(2);
     });
@@ -122,6 +127,7 @@ describe('typeorm end to end', () => {
             caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return dataSource.getRepository(RoleEntity).find();
         });
 
@@ -130,9 +136,9 @@ describe('typeorm end to end', () => {
         expect(reads).toEqual(1);
 
         await dataSource.getRepository(RoleEntity).save({
-            id: 'r2', 
-            name: 'user', 
-            realmId: 'x', 
+            id: 'r2',
+            name: 'user',
+            realmId: 'x',
         });
 
         expect(await read()).toHaveLength(2);
@@ -141,9 +147,9 @@ describe('typeorm end to end', () => {
 
     it('should reach a scoped reader through a cascade only on the scoped column', async () => {
         await dataSource.getRepository(UserRoleEntity).save({
-            id: 'ur1', 
-            userId: 'u1', 
-            roleId: 'r1', 
+            id: 'ur1',
+            userId: 'u1',
+            roleId: 'r1',
         });
 
         const repository = dataSource.getRepository(UserRoleEntity);
@@ -157,6 +163,7 @@ describe('typeorm end to end', () => {
             caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads.byRole++;
+
             return repository.findBy({ roleId: 'r1' });
         });
 
@@ -168,6 +175,7 @@ describe('typeorm end to end', () => {
             caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads.byUser++;
+
             return repository.findBy({ userId: 'u1' });
         });
 
@@ -177,6 +185,7 @@ describe('typeorm end to end', () => {
         // the database cascades ur1 away; the subscriber bumps the child
         // collection and the join column scoped to r1, and nothing else.
         const roles = dataSource.getRepository(RoleEntity);
+
         await roles.remove(await roles.findOneByOrFail({ id: 'r1' }));
 
         expect(await byRole()).toHaveLength(0);
@@ -204,12 +213,14 @@ describe('typeorm end to end', () => {
             caseSensitive: USER_ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return dataSource.getRepository(UserRoleEntity).find();
         });
 
         expect(await read()).toHaveLength(1);
 
         const realms = dataSource.getRepository(RealmEntity);
+
         await realms.remove(await realms.findOneByOrFail({ id: 'x' }));
 
         expect(await read()).toHaveLength(0);
@@ -230,6 +241,7 @@ describe('typeorm end to end', () => {
             caseSensitive: ARTICLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return articles.find({ where: { id: 'a1' }, relations: { tags: true } });
         });
 
@@ -256,6 +268,7 @@ describe('typeorm end to end', () => {
             caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return roles.findBy({ id: 'r1' });
         });
 
@@ -263,6 +276,7 @@ describe('typeorm end to end', () => {
 
         const realms = dataSource.getRepository(RealmEntity);
         const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { roles: true } });
+
         realm.roles = [];
         await realms.save(realm);
 
@@ -283,6 +297,7 @@ describe('typeorm end to end', () => {
             caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return roles.findBy({ realmId: 'y' });
         });
 
@@ -300,6 +315,7 @@ describe('typeorm end to end', () => {
 
     it('should serve a fresh null-scoped read after its notes were released', async () => {
         const notes = dataSource.getRepository(NoteEntity);
+
         await notes.save([
             { id: 'n1', realmId: 'x' },
             { id: 'n2', realmId: 'x' },
@@ -314,6 +330,7 @@ describe('typeorm end to end', () => {
             caseSensitive: NOTE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return notes.find({ where: { realmId: IsNull() }, order: { id: 'ASC' } });
         });
 
@@ -322,6 +339,7 @@ describe('typeorm end to end', () => {
         // an orphan nullify through the parent: no key in the event.
         const realms = dataSource.getRepository(RealmEntity);
         const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { notes: true } });
+
         realm.notes = realm.notes.filter((note) => note.id !== 'n1');
         await realms.save(realm);
 
@@ -345,6 +363,7 @@ describe('typeorm end to end', () => {
             caseSensitive: ROLE_CASE_SENSITIVE,
         }, async () => {
             reads++;
+
             return roles.findBy({ id: 'r1' });
         });
 

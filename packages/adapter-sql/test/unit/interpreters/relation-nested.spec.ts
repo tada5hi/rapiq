@@ -7,10 +7,10 @@
 
 import { Filter } from '@rapiq/core';
 import {
-    FiltersAdapter, 
-    type FiltersContainerOptions, 
-    FiltersVisitor, 
-    RelationsAdapter, 
+    FiltersAdapter,
+    type FiltersContainerOptions,
+    FiltersVisitor,
+    RelationsAdapter,
     pg,
 } from '../../../src';
 
@@ -27,6 +27,7 @@ describe('auto join', () => {
 
     beforeEach(() => {
         const relationsAdapter = new RelationsAdapter();
+
         adapter = new FiltersAdapter(
             relationsAdapter,
             options,
@@ -37,6 +38,7 @@ describe('auto join', () => {
 
     it('calls `joinRelation` function passing relation name when using dot notation', () => {
         const condition = new Filter('eq', 'projects.user.name', 'test');
+
         condition.accept(visitor);
     });
 
@@ -44,6 +46,7 @@ describe('auto join', () => {
         spy.on(options, 'escapeField');
 
         const condition = new Filter('eq', 'projects.user.name', 'test');
+
         condition.accept(visitor);
 
         const [sql] = adapter.getQueryAndParameters();

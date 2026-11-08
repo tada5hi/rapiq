@@ -96,18 +96,18 @@ describe('src/build/parameter/filters/*.ts', () => {
 
         expect(leafs(output)).toHaveLength(3);
         expect(leafs(output)[0]).toMatchObject({
-            operator: FilterFieldOperator.GREATER_THAN_EQUAL, 
-            field: 'age', 
+            operator: FilterFieldOperator.GREATER_THAN_EQUAL,
+            field: 'age',
             value: 18,
         });
         expect(leafs(output)[1]).toMatchObject({
-            operator: FilterFieldOperator.LESS_THAN, 
-            field: 'age', 
+            operator: FilterFieldOperator.LESS_THAN,
+            field: 'age',
             value: 65,
         });
         expect(leafs(output)[2]).toMatchObject({
-            operator: FilterFieldOperator.CONTAINS, 
-            field: 'name', 
+            operator: FilterFieldOperator.CONTAINS,
+            field: 'name',
             value: 'oh',
         });
     });
@@ -181,6 +181,7 @@ describe('src/build/parameter/filters/*.ts', () => {
         const fromInput = defineFilters<User>({ items: { $elemMatch: { name: 'chess' } } });
 
         const leaf = leafs(fromInput)[0] as IFilter;
+
         expect(leaf.operator).toBe(FilterFieldOperator.ELEM_MATCH);
         expect(leaf.field).toBe('items');
         expect(leaf.value).toMatchObject({
@@ -191,6 +192,7 @@ describe('src/build/parameter/filters/*.ts', () => {
 
         const condition = eq('name', 'chess');
         const fromHelper = defineFilters<User>({ items: { $elemMatch: condition } });
+
         expect((leafs(fromHelper)[0] as IFilter).value).toBe(condition);
     });
 
@@ -206,6 +208,7 @@ describe('src/build/parameter/filters/*.ts', () => {
         const output = defineFilters({ scores: { $elemMatch: { $gt: 5 } } });
 
         const leaf = leafs(output)[0] as IFilter;
+
         expect(leaf.operator).toBe(FilterFieldOperator.ELEM_MATCH);
         expect(leaf.field).toBe('scores');
         expect(leaf.value).toMatchObject({
@@ -217,6 +220,7 @@ describe('src/build/parameter/filters/*.ts', () => {
         // several element-level operators form an implicit AND interior.
         const range = defineFilters({ scores: { $elemMatch: { $gt: 5, $lt: 10 } } });
         const interior = (leafs(range)[0] as IFilter).value as Filters;
+
         expect(interior.operator).toBe(FilterCompoundOperator.AND);
         expect(interior.value).toHaveLength(2);
         expect(interior.value[0]).toMatchObject({ field: ITSELF, value: 5 });
@@ -227,10 +231,12 @@ describe('src/build/parameter/filters/*.ts', () => {
         const condition = elemMatch('tags', eq(ITSELF, 'a'));
 
         const output = defineFilters(condition);
+
         expect(leafs(output)[0]).toBe(condition);
 
         // explicit ITSELF key in the interior document form.
         const fromInput = defineFilters({ tags: { $elemMatch: { $this: 'a' } } });
+
         expect((leafs(fromInput)[0] as IFilter).value).toMatchObject({
             operator: FilterFieldOperator.EQUAL,
             field: ITSELF,
@@ -262,6 +268,7 @@ describe('src/build/parameter/filters/*.ts', () => {
         const compound = or(gte('age', 18), eq('email', null));
 
         const output = defineFilters<User>(compound);
+
         expect(output).toBe(compound);
     });
 
@@ -269,6 +276,7 @@ describe('src/build/parameter/filters/*.ts', () => {
         const leaf = eq('name', 'John');
 
         const output = defineFilters<User>(leaf);
+
         expect(output).toBeInstanceOf(Filters);
         expect(output.operator).toBe(FilterCompoundOperator.AND);
         expect(output.value).toEqual([leaf]);
@@ -302,8 +310,8 @@ describe('src/build/parameter/filters/*.ts', () => {
 
         expect(leafs(output)).toHaveLength(1);
         expect(leafs(output)[0]).toMatchObject({
-            operator: FilterFieldOperator.LESS_THAN, 
-            field: 'age', 
+            operator: FilterFieldOperator.LESS_THAN,
+            field: 'age',
             value: 65,
         });
     });
@@ -335,42 +343,49 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
 
     it('should desugar the fields record and tuple forms to dot paths', () => {
         const record = defineFields<User>({ realm: ['id', 'name'] });
+
         expect(record.value.map((el) => el.name)).toEqual(['realm.id', 'realm.name']);
 
         const tuple = defineFields<User>([['id'], { realm: ['name'] }]);
+
         expect(tuple.value.map((el) => el.name)).toEqual(['id', 'realm.name']);
     });
 
     it('should select a concrete-typed json column as a whole field (#826)', () => {
         type Row = {
-            id: string, 
-            name: string, 
-            args: { k: string }[] | null 
+            id: string,
+            name: string,
+            args: { k: string }[] | null
         };
 
         // the json column is a single DB column: listing the bare key selects it
         // whole (previously rejected because it is not a SimpleKey / NestedKeys
         // recurses into it as `args.k`).
         const array = defineFields<Row>(['id', 'args']);
+
         expect(array.value.map((el) => el.name)).toEqual(['id', 'args']);
 
         const tuple = defineFields<Row>([['id', 'args'], {}]);
+
         expect(tuple.value.map((el) => el.name)).toEqual(['id', 'args']);
     });
 
     it('should desugar sort strings, arrays and records', () => {
         const single = defineSorts<User>('-age');
+
         expect(single.value.map((el) => [el.name, el.operator])).toEqual([
             ['age', SortDirection.DESC],
         ]);
 
         const array = defineSorts<User>(['name', '-age']);
+
         expect(array.value.map((el) => [el.name, el.operator])).toEqual([
             ['name', SortDirection.ASC],
             ['age', SortDirection.DESC],
         ]);
 
         const record = defineSorts<User>({ age: 'DESC', realm: { name: 'ASC' } });
+
         expect(record.value.map((el) => [el.name, el.operator])).toEqual([
             ['age', SortDirection.DESC],
             ['realm.name', SortDirection.ASC],
@@ -379,9 +394,11 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
 
     it('should desugar relations arrays and records', () => {
         const array = defineRelations<User>(['realm', 'items.user']);
+
         expect(array.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
 
         const record = defineRelations<User>({ realm: true, items: { user: true, realm: false } });
+
         expect(record.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
     });
 
@@ -389,15 +406,18 @@ describe('src/build/parameter/{fields,sorts,relations,pagination}/*.ts', () => {
         // csv strings are an untyped runtime convenience: generic-less
         // calls check against the plain-string overload.
         const sorts = defineSorts('age, -name, ');
+
         expect(sorts.value.map((el) => [el.name, el.operator])).toEqual([
             ['age', SortDirection.ASC],
             ['name', SortDirection.DESC],
         ]);
 
         const relations = defineRelations('realm, items.user');
+
         expect(relations.value.map((el) => el.name)).toEqual(['realm', 'items.user']);
 
         const fields = defineFields('id, -email');
+
         expect(fields.value.map((el) => [el.name, el.operator])).toEqual([
             ['id', undefined],
             ['email', FieldOperator.EXCLUDE],
@@ -490,10 +510,10 @@ describe('src/build/module.ts', () => {
         const pagination = definePagination({ limit: 5 });
 
         const output = defineQuery<User>({
-            fields, 
-            filters, 
-            relations, 
-            sort: sorts, 
+            fields,
+            filters,
+            relations,
+            sort: sorts,
             pagination,
         });
 
@@ -510,6 +530,7 @@ describe('src/build/module.ts', () => {
         ]);
 
         const output = defineQuery<User>({ filters });
+
         expect(output.filters).toBe(filters);
     });
 

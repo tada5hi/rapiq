@@ -37,6 +37,7 @@ export function clampCacheTtl(ttl: number, maxTtl: number) : number {
  */
 export function resolveMaxTtl(input?: number) : number {
     const value = input ?? CACHE_MAX_TTL_DEFAULT;
+
     if (!isCacheTtlValid(value)) {
         throw CacheError.maxTtlInvalid(value);
     }
@@ -53,6 +54,7 @@ const LONE_SURROGATE_REGEX = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uD
  */
 export function isCacheTagWellFormed(tag: string) : boolean {
     const { isWellFormed } = tag as { isWellFormed?: () => boolean };
+
     if (typeof isWellFormed === 'function') {
         return isWellFormed.call(tag);
     }

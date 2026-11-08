@@ -32,6 +32,7 @@ export function createRedisClient() : Redis {
  */
 export function isRedisRequired() : boolean {
     const value = process.env.REDIS_REQUIRED;
+
     return typeof value === 'string' && value !== '' && value !== '0' && value !== 'false';
 }
 
@@ -43,6 +44,7 @@ export function isRedisRequired() : boolean {
  */
 export async function isRedisAvailable() : Promise<boolean> {
     const client = createRedisClient();
+
     // a refused connection is the answer, not an unhandled error event.
     client.on('error', () => {});
 

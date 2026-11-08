@@ -26,6 +26,7 @@ import { SimpleParser } from '../../../src';
 describe('src/parser', () => {
     it('should parse schema by name', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'foo',
             fields: { allowed: ['id'] },
@@ -53,6 +54,7 @@ describe('src/parser', () => {
 
     it('should apply the pagination schema in full-query parsing', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'foo',
             pagination: { maxLimit: 50 },
@@ -87,6 +89,7 @@ describe('src/parser', () => {
 
     describe('schema defaults', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'foo',
             fields: { allowed: ['id', 'name'] },
@@ -141,6 +144,7 @@ describe('src/parser', () => {
 
     describe('parameter masking', () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'foo',
             fields: { allowed: ['id', 'name'] },
@@ -181,6 +185,7 @@ describe('src/parser', () => {
 
             // without a mask, maxLimit and the sort default apply.
             let output = parser.parse({}, { schema: 'foo' });
+
             expect(output.pagination.limit).toEqual(25);
             expect(output.sorts).toEqual(new Sorts([
                 new Sort('id', SortDirection.DESC),
@@ -227,6 +232,7 @@ describe('src/parser', () => {
             // other parameters — exactly as when the client requests
             // no relations at all.
             const relationRegistry = new SchemaRegistry();
+
             relationRegistry.add(defineSchema({
                 name: 'realm',
                 filters: { allowed: ['id'] },
@@ -257,6 +263,7 @@ describe('src/parser', () => {
 
     it('should enforce the relations allow-list in full-query parsing', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'user',
             relations: { allowed: ['realm'] },
@@ -274,6 +281,7 @@ describe('src/parser', () => {
     describe('strict mode', () => {
         it('should drop undeclared parameter input under a strict schema', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'foo',
                 strict: true,
@@ -299,6 +307,7 @@ describe('src/parser', () => {
 
         it('should keep declared allow-lists working under a strict schema', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'foo',
                 strict: true,
@@ -323,6 +332,7 @@ describe('src/parser', () => {
 
         it('should apply schema defaults when strict drops client input', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'foo',
                 strict: true,
@@ -363,6 +373,7 @@ describe('src/parser', () => {
 
         it('should let the parse option override a strict schema', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'foo',
                 strict: true,
@@ -382,6 +393,7 @@ describe('src/parser', () => {
 
         it('should throw under strict when the schema sets throwOnFailure', async () => {
             const registry = new SchemaRegistry();
+
             registry.add(defineSchema({
                 name: 'foo',
                 strict: true,
@@ -396,6 +408,7 @@ describe('src/parser', () => {
 
     it('should keep relations when other parameters are parsed', async () => {
         const registry = new SchemaRegistry();
+
         registry.add(defineSchema({
             name: 'realm',
             fields: { allowed: ['id', 'name'] },
