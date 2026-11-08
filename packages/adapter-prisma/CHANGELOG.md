@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0](https://github.com/tada5hi/rapiq/compare/adapter-prisma-v2.4.0...adapter-prisma-v2.0.0) (2026-10-28)
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/adapter-prisma-v2.4.0...adapter-prisma-v2.0.0) (2026-11-06)
 
 
 ### Miscellaneous Chores

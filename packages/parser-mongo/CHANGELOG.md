@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.4.0...parser-mongo-v2.0.0) (2026-10-28)
+## [2.0.0](https://github.com/tada5hi/rapiq/compare/parser-mongo-v2.4.0...parser-mongo-v2.0.0) (2026-11-06)
 
 
 ### Miscellaneous Chores
