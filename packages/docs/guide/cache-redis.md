@@ -64,15 +64,19 @@ So wait for `ready()` before the first read or write:
 
 ```typescript
 const driver = new RedisCacheDriver({ client });
+const cache = new TaggedCache({ driver });
 
+// the driver the cache reads and invalidates through
 if (!await driver.ready()) {
-    logger.warn('Redis not ready, the cache falls through until it is');
+    throw new Error('Redis is not ready: its entries could not be invalidated.');
 }
 
 app.listen(3000);
 ```
 
-`ready(timeout?)` resolves `true` once the client is ready, and `false` when it is not ready within `timeout` milliseconds (default `1000`) or has ended for good (closed by the application, or out of retries). It never rejects for a connection reason; only a `timeout` that is not a finite number of at least 0 throws a `CacheError`, like any other invalid option. It connects a `lazyConnect` client that has not connected yet, never reconnects a client that ended, and works for a `Redis` and a `Cluster` client alike. A connection error alone does not settle it: a retrying client reconnects after the error and may still become ready within the timeout.
+Do not start serving on `false`. A write committed while the client is still down bumps nothing, and once Redis connects the entries it kept are served again, stale until their ttl. Fail the start as above (or retry it); an application that would rather start without Redis accepts results up to `maxTtl` old after every such window.
+
+`ready(timeout?)` resolves `true` once the client is ready, and `false` when it is not ready within `timeout` milliseconds (default `1000`) or has ended for good (closed by the application, or out of retries). It never rejects for a connection reason; only a `timeout` that is not a finite number between 0 and 2147483647 (the longest timer Node.js schedules) throws a `CacheError`, like any other invalid option. It connects a `lazyConnect` client that has not connected yet, never reconnects a client that ended, and works for a `Redis` and a `Cluster` client alike. A connection error alone does not settle it: a retrying client reconnects after the error and may still become ready within the timeout.
 
 ## Keys
 

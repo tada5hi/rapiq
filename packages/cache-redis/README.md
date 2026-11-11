@@ -75,13 +75,17 @@ With the offline queue off, `ioredis` also rejects every command issued before t
 
 ```typescript
 const driver = new RedisCacheDriver({ client });
+const cache = new TaggedCache({ driver });
 
+// the driver the cache reads and invalidates through
 if (!await driver.ready()) {
-    logger.warn('Redis not ready, the cache falls through until it is');
+    throw new Error('Redis is not ready: its entries could not be invalidated.');
 }
 
 app.listen(3000);
 ```
+
+Do not start serving on `false`. A write committed while the client is still down bumps nothing, and once Redis connects the entries it kept are served again, stale until their ttl. Fail the start as above (or retry it); an application that would rather start without Redis accepts results up to `maxTtl` old after every such window.
 
 Failing fast still costs one `commandTimeout` per call while Redis is black-holed: every cached read and every committing write waits that long. There is no circuit breaker that skips the store after repeated failures; that stays the application's job.
 

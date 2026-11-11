@@ -65,11 +65,11 @@ describe('src/module.ts (ready, no server)', () => {
         }
     });
 
-    it('should refuse a timeout that is not a finite number of at least 0 ms', () => {
+    it('should refuse a timeout outside 0 ms and the longest timer Node.js schedules', () => {
         const client = track(clients, new Redis({ lazyConnect: true }));
         const driver = new RedisCacheDriver({ client });
 
-        for (const timeout of [-1, NaN, Infinity]) {
+        for (const timeout of [-1, NaN, Infinity, 2_147_483_648]) {
             let error : unknown;
 
             try {

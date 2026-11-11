@@ -28,6 +28,6 @@ const cache = new TaggedCache({
 });
 ```
 
-With the offline queue off, a command issued before the first connection is ready rejects, so an invalidation in that window bumps nothing and entries from before a Redis restart stay served until their ttl. Await the driver's `ready()` (true once ready, false after a timeout of 1 s by default; it never rejects) before the first read or write.
+With the offline queue off, a command issued before the first connection is ready rejects, so an invalidation in that window bumps nothing and entries from before a Redis restart stay served until their ttl. Await `ready()` on the driver the cache uses (true once ready, false after a timeout of 1 s by default; it never rejects) before the first read or write, and do not start serving on `false`. See [waiting for the connection](/guide/cache-redis#waiting-for-the-connection).
 
 The options, failing fast, the key layout, the time-seeded clock, the eviction policy, the JSON serialization of values, the refused client setups (a client `keyPrefix`, a cluster prefix without a hash tag) and the cluster setup (a hash-tagged prefix such as `{rapiq}`) are covered in the [Caching with Redis](/guide/cache-redis) guide.

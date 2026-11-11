@@ -15,6 +15,7 @@ import {
 import {
     REDIS_CACHE_PREFIX_DEFAULT,
     REDIS_CACHE_READY_TIMEOUT_DEFAULT,
+    REDIS_CACHE_READY_TIMEOUT_MAX,
     RedisCacheKeySegment,
 } from './constants';
 import { RedisCacheCommand, RedisCacheScript } from './commands';
@@ -63,9 +64,13 @@ export class RedisCacheDriver implements ICacheDriver {
      * it, and one that gives up ends right after it.
      */
     ready(timeout: number = REDIS_CACHE_READY_TIMEOUT_DEFAULT) : Promise<boolean> {
-        if (!Number.isFinite(timeout) || timeout < 0) {
+        if (
+            !Number.isFinite(timeout) ||
+            timeout < 0 ||
+            timeout > REDIS_CACHE_READY_TIMEOUT_MAX
+        ) {
             throw new CacheError({
-                message: `The ready timeout must be a finite number of at least 0 milliseconds, got ${timeout}.`,
+                message: `The ready timeout must be a number between 0 and ${REDIS_CACHE_READY_TIMEOUT_MAX} milliseconds, got ${timeout}.`,
                 code: 'inputInvalid',
             });
         }
