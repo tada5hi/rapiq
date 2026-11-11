@@ -77,6 +77,8 @@ The key is yours and must encode every input that selects the result: the query 
 
 `rows` unwraps a value that is not a row or a list of rows, so its record tags are found: `rows: ([rows]) => rows` for a `findAndCount` tuple, `rows: (value) => value.data` for an envelope. `primaryKey` names the key property (default `id`).
 
+`tags: (value) => string[]` adds tags the derivation cannot see (a policy the read applied outside the query, say), unioned onto the derived ones; a throw there is handled like a throwing derivation. `ttl` is a per-call ttl in milliseconds, as on `remember`.
+
 ## How a read stays correct
 
 Every driver implements a clock read and three atomic steps:
@@ -96,7 +98,15 @@ A driver failure on the read path (`clock`, `read`, `write`) is reported to `onE
 
 ## What is not cached
 
-`isCacheable(query)` is `false` when any `Field` carries a `condition`: that is a per-actor visibility verdict the key cannot carry. `rememberQuery` bypasses the cache for such a query. Any read issued while a transaction is open on the connection it reads through must bypass the cache too: it can see that transaction's own uncommitted writes, which a rollback never bumps away, and under REPEATABLE READ its snapshot also predates the clock. Check `queryRunner.isTransactionActive` and call the read directly; on TypeORM's better-sqlite3 driver, which shares one connection, check the shared runner (`dataSource.createQueryRunner().isTransactionActive`).
+`isCacheable(query)` is `false` when any `Field` carries a `condition`: that is a per-actor visibility verdict the key cannot carry. `rememberQuery` bypasses the cache for such a query. Any read issued while a transaction is open on the connection it reads through must bypass the cache too: it can see that transaction's own uncommitted writes, which a rollback never bumps away, and under REPEATABLE READ its snapshot also predates the clock. Check for an open transaction and call the read directly. On TypeORM, `isTransactionActive(dataSource, manager?)` from `@rapiq/cache/typeorm` is that check: it reads the manager's own query runner and, on a driver sharing one connection (better-sqlite3, sql.js and the other sqlite drivers), the shared runner, so a read outside any transaction still bypasses while another request holds one open:
+
+```typescript
+import { isTransactionActive } from '@rapiq/cache/typeorm';
+
+const roles = isTransactionActive(dataSource, manager) ?
+    await read() :
+    await rememberQuery(cache, input, read);
+```
 
 ## The TypeORM write side
 
@@ -115,9 +125,19 @@ dataSource.subscribers.push(new CacheInvalidationSubscriber({
 }));
 ```
 
-`resolveSchemaName` maps an entity onto its rapiq schema name; `undefined` marks a table the cache does not track. A written row bumps its collection tag, its record tag and a scoped tag for every index-leading column it carries (old and new value on a change, including a foreign key written through a relation object); a soft remove or a recover bumps the row's tags like a remove; an orphan removal with `orphanedRowAction: 'delete'` or `'soft-delete'` reaches the child's row; a removed parent additionally bumps the collections of every entity the database cascades into, transitively, plus a direct child's join column scoped to its key (and to `null` for a SET NULL child); a many-to-many link or unlink bumps the collections of both sides. Inside a transaction the tags collect on the query runner and are bumped once, at the outermost commit; a rolled-back outermost transaction bumps nothing, while a rolled-back savepoint inside a transaction that later commits still bumps its tags (over-invalidation, never stale data). A failed bump is reported to `onError` and never rethrown from a hook. The bump is awaited inside `commitTransaction`, before the pooled connection is released, so a slow cache delays every committing write.
+`resolveSchemaName` maps an entity onto its rapiq schema name; `undefined` marks a table the cache does not track. A name the registry lacks is reported to `onError` on every write; to track a table that has no rapiq schema on purpose, answer `{ name, schema: false }`: its writes bump the collection and record tags (and it is reached as a cascade child through its collection), with no registry lookup and no report. A written row bumps its collection tag, its record tag and a scoped tag for every index-leading column it carries (old and new value on a change, including a foreign key written through a relation object); a soft remove or a recover bumps the row's tags like a remove; an orphan removal with `orphanedRowAction: 'delete'` or `'soft-delete'` reaches the child's row; a removed parent additionally bumps the collections of every entity the database cascades into, transitively, plus a direct child's join column scoped to its key (and to `null` for a SET NULL child); a many-to-many link or unlink bumps the collections of both sides. Inside a transaction the tags collect on the query runner and are bumped once, at the outermost commit; a rolled-back outermost transaction bumps nothing, while a rolled-back savepoint inside a transaction that later commits still bumps its tags (over-invalidation, never stale data). A failed bump is reported to `onError` and never rethrown from a hook. The bump is awaited inside `commitTransaction`, before the pooled connection is released, so a slow cache delays every committing write.
 
-A result scoped by an index-leading filter (`filter[userId]=u1`) carries the scoped tag and its rows' record tags instead of the collection tag, so it is reached by every repository write of a row it holds or of a row carrying that column value, and by a parent removal whose cascade names that column. Scoping applies to the root collection only: every included relation adds its whole collection tag. A scoped result is NOT reached by a pk-less query-builder write to its table (`Repository.update` bumps the collection plus the new scoped values in `values`, never the old ones, and `delete` the collection alone, so even a by-id read stays stale), by a `RelationQueryBuilder.set` / `add` on a many-to-one or one-to-many, by the old scope of an upsert that moves a row, by a one-to-many diff written through the parent without a cascade (the default orphan nullify), by a pk-less delete of a parent (the cascade scoped bump needs the removed row) or by a database-side change that names neither the scoped column nor a loaded row (a cascade on another column or a grandchild); such a result lives until its ttl. A string value scopes only on a column covered by the `caseSensitive` option you pass (exactly what you hand to `adapter.execute`), a date string never scopes, a column the database compares case-insensitively needs canonical filter input, and a decimal column the driver returns as a string must not be scoped on. See the [documentation](https://rapiq.tada5hi.net/guide/cache#what-reaches-a-scoped-reader).
+A result scoped by an index-leading filter (`filter[userId]=u1`) carries the scoped tag and its rows' record tags instead of the collection tag, so it is reached by every repository write of a row it holds or of a row carrying that column value, and by a parent removal whose cascade names that column. Scoping applies to the root collection only: every included relation adds its whole collection tag. A scoped result is NOT reached by a pk-less query-builder write to its table (`Repository.update` bumps the collection plus the new scoped values in `values`, never the old ones, and `delete` the collection alone, so even a by-id read stays stale), by a `RelationQueryBuilder.set` / `add` on a many-to-one or one-to-many, by the old scope of an upsert that moves a row, by a one-to-many diff written through the parent without a cascade (the default orphan nullify), by a pk-less delete of a parent (the cascade scoped bump needs the removed row) or by a database-side change that names neither the scoped column nor a loaded row (a cascade on another column or a grandchild); such a result lives until its ttl. A string value scopes only on a column covered by the `caseSensitive` option you pass (exactly what you hand to `adapter.execute`), a date string never scopes, a column the database compares case-insensitively needs one canonical spelling on both sides, and a decimal column the driver returns as a string must not be scoped on. See the [documentation](https://rapiq.tada5hi.net/guide/cache#what-reaches-a-scoped-reader).
+
+`normalizeScopedValue` gives a scoped value that canonical spelling: a `(schema, column, value) => value` hook applied to every value that scopes on the reading side (after the scoping decision) and to every scoped tag the subscriber bumps. Hand both sides the same function. `normalizeScopedUuid` is a ready-made one: it spells a uuid (either case, braced or hyphen-less) hyphenated and lower-case, the form postgres stores, and passes everything else through.
+
+```typescript
+import { normalizeScopedUuid, rememberQuery } from '@rapiq/cache';
+
+await rememberQuery(cache, { ...input, normalizeScopedValue: normalizeScopedUuid }, read);
+
+new CacheInvalidationSubscriber({ cache, registry, resolveSchemaName, normalizeScopedValue: normalizeScopedUuid });
+```
 
 ## The rapiq family
 

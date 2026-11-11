@@ -34,8 +34,37 @@ A scoped tag rests on one assumption: the database treats two values of the colu
 
 - **Date strings.** A filter value that parses as an ISO-8601 date (`toDate` from `@rapiq/core`) never scopes: the reader holds the string the wire carried while the writer's row holds a `Date` (spelled as its epoch) or the database's storage form. Such a conjunct keeps the collection tag. A `Date` object in the filter scopes, on both sides.
 - **Case sensitivity.** An adapter folds every string `eq` / `in` (compares it case-insensitively) unless it is told otherwise through `adapter.execute(query, { caseSensitive })`, so `filter[name]=Master` matches a row holding `master`, whose write bumps `realm:name=master`. `collectQueryTags` and `rememberQuery` therefore take `caseSensitive?: string[] | boolean` (the type is exported as `QueryCaseSensitive`): pass exactly the value you hand to `adapter.execute`. `true` means every field, a list names root fields. A string filter value scopes only on a column the option covers. Without the option (the default) no string ever scopes, because the adapter folds every string unless the option is forwarded. The schema's `filters.caseSensitive` list has no effect on its own: it matters only once it is forwarded to `execute()`. Numbers, booleans, dates and `null` scope regardless.
-- **Case-insensitive storage.** A column executed case-sensitively can still compare case-insensitively in the database: a `*_ci` collation (the MySQL default), a postgres `citext` column and a postgres `uuid` (whose input is case-insensitive) all match `Master` against a stored `master`, while the tags do not. Canonicalize such a value before it reaches the query (lowercase a uuid, the way the writer stores it); a filter carrying another spelling leaves the result stale until its ttl.
+- **Case-insensitive storage.** A column executed case-sensitively can still compare case-insensitively in the database: a `*_ci` collation (the MySQL default), a postgres `citext` column and a postgres `uuid` (whose input is case-insensitive) all match `Master` against a stored `master`, while the tags do not. The same holds the other way round: a row written with an upper-case uuid bumps `userRole:userId=ABC...` while the cached list is tagged `userRole:userId=abc...`. Give such a column one canonical spelling on both sides with `normalizeScopedValue` (see [canonical scoped values](#canonical-scoped-values)); without it, a spelling the other side does not share leaves the result stale until its ttl.
 - **Numbers stored as strings.** A decimal or numeric column that the driver returns as a string (postgres `numeric` hands back `'5.00'` for a filter value `5`) is spelled differently on the two sides. Do not scope on such a column: keep it from leading a declared index used for scoping, or filter it as a string on a case-sensitive column only when the stored spelling is canonical. MySQL's numeric cast of a varchar (`'01' = 1`) belongs to the same class.
+
+### Canonical scoped values
+
+`normalizeScopedValue?: (schema, column, value) => value` (the type is exported as `ScopedTagValueNormalizer`) spells a scoped value canonically. `collectQueryTags` and `rememberQuery` apply it to every value that scopes, AFTER the scoping decision: it never makes a string scope on a column `caseSensitive` does not cover. `CacheInvalidationSubscriber` applies it to every scoped tag it bumps: a row's old and new values, the `null` scope, and a cascade key (called with the child's schema and column). Hand both sides the same function, or their tags stop meeting.
+
+`normalizeScopedUuid` is a ready-made normalizer: a string spelling a uuid in any form postgres reads (either case, braced, hyphen-less) comes out hyphenated and lower-case, the form postgres stores and TypeORM generates; every other value passes through untouched. Folding several spellings into one tag can only over-invalidate (a text column that keeps `ABC...` and `abc...` apart then shares one tag for both), never leave a result stale.
+
+```typescript
+import { normalizeScopedUuid, rememberQuery } from '@rapiq/cache';
+import { CacheInvalidationSubscriber } from '@rapiq/cache/typeorm';
+
+const roles = await rememberQuery(cache, {
+    key,
+    query,
+    schema: 'userRole',
+    registry,
+    caseSensitive: ['userId'],
+    normalizeScopedValue: normalizeScopedUuid,
+}, read);
+
+dataSource.subscribers.push(new CacheInvalidationSubscriber({
+    cache,
+    registry,
+    resolveSchemaName,
+    normalizeScopedValue: normalizeScopedUuid,
+}));
+```
+
+On the reading side a throw propagates out of `collectQueryTags` (inside `remember` it is reported and the value returned unstored), and an answer that is no scoped tag value throws `CacheError.scopedTagValueInvalid`. A hook on the writing side never fails a write: either case is reported to `onError` and the raw value is bumped instead. That bump does not reach a result tagged with the canonical spelling, which then stays until its ttl like a result behind any other failed bump. Keep the normalizer total over every value a column can hold (`normalizeScopedUuid` never throws), and treat such a report as a bug to fix.
 
 ## Reading through the cache
 
@@ -61,6 +90,8 @@ const roles = await rememberQuery(cache, {
 ```
 
 `rememberQuery` decides whether the query may be shared (`isCacheable`), then hands the read to `TaggedCache.remember` with a tag derivation over the hydrated result.
+
+Two options reach past the derivation. `tags: (value) => string[]` names dependencies the query does not carry (a policy the read applied outside the query, say); they are unioned onto the derived tags, and a throw there is handled like a throwing derivation (see [`remember`](#remember)). It is never called for a query that is not cacheable. `ttl` is a per-call ttl in milliseconds, as on `remember`.
 
 ### The cache key
 
@@ -89,7 +120,7 @@ The entry ttl is the default `ttl` of the `TaggedCache` or a per-call `ttl`, bot
 
 ### Which tags a query yields
 
-`collectQueryTags({ query, schema, registry, value, rows?, primaryKey?, caseSensitive? })` emits, deduplicated and in this order:
+`collectQueryTags({ query, schema, registry, value, rows?, primaryKey?, caseSensitive?, normalizeScopedValue? })` emits, deduplicated and in this order:
 
 1. **The root collection dependency.** The top-level conjuncts of the root filters are inspected (a non-preserved `AND` is flattened; any other root is one non-scoping conjunct). A conjunct that is an `eq` or `in` on an undotted column that LEADS a declared index (`schema.indexes`) with scopable value(s) emits a scoped tag per value (a string only on a column `caseSensitive` covers, see above), so `filter[userId]=u1` on `userRole` yields `userRole:userId=u1` instead of `userRole`. If no conjunct qualified, the collection tag is emitted. Both sides derive "index-leading" from the same schema, which is what lets the writer's scoped bump reach exactly the readers it should. Scoping applies to the root collection only.
 2. **Relation collection dependencies.** Every path in `query.relations`, every dotted path in a filter field, a sort key or a field key, and every relation a filter is applied to itself (`elemMatch`, and any operator whose field names a registered relation, such as `size` or `all`) is walked from the root schema through `schema.mapSchema(segment)` and the registry, emitting the collection tag of every schema on the way. The keys of an `elemMatch` interior resolve against the relation, so `elemMatch(realm, eq(owner.name, ...))` adds `realm` and `user`; an `elemMatch` on a scalar or JSON array adds nothing. An unresolvable segment throws a `CacheError`: a schema the registry lacks is a configuration error, not a miss. The same holds for an `elemMatch` on a relation the schema declares under `relations.allowed` whose target schema is not registered (core accepts it and the adapter joins it, so naming no dependency would serve it stale). Inside `remember` the throw is reported to `onError` and the value is returned unstored.
@@ -111,7 +142,15 @@ collectQueryTags({
 
 `isCacheable(query)` is `false` when any `Field`, at the root or under a relation, carries a `condition`. That is a per-actor visibility verdict a schema hook attached (see [field conditions](/guide/fields)): the projection depends on who asked, which the key cannot carry. `rememberQuery` calls the read directly for such a query.
 
-Any read issued while a transaction is open on the connection it reads through must bypass the cache as well, not only a transaction that has already read. It can see that transaction's own uncommitted writes, which a rollback never bumps away, so the rolled-back row would be served to every caller until the ttl; and under `REPEATABLE READ` its snapshot also predates the clock the cache observed. Check `queryRunner.isTransactionActive` (or your driver's equivalent) and call the read directly. TypeORM's better-sqlite3 driver shares one connection between every request, so there the check is the shared runner (`dataSource.createQueryRunner().isTransactionActive`), not the caller's own: a request outside any transaction still reads another request's uncommitted write.
+Any read issued while a transaction is open on the connection it reads through must bypass the cache as well, not only a transaction that has already read. It can see that transaction's own uncommitted writes, which a rollback never bumps away, so the rolled-back row would be served to every caller until the ttl; and under `REPEATABLE READ` its snapshot also predates the clock the cache observed. Check for an open transaction (`queryRunner.isTransactionActive`, or your driver's equivalent) and call the read directly. TypeORM's sqlite drivers (better-sqlite3, sql.js, capacitor, cordova, expo, nativescript, react-native) share one connection between every request, so there the check is the shared runner, not the caller's own: a request outside any transaction still reads another request's uncommitted write. `isTransactionActive(dataSource, manager?)` from `@rapiq/cache/typeorm` covers both: it reads the manager's query runner (default: `dataSource.manager`) and, on a shared-connection driver, the shared runner. It never allocates a query runner on a pooled driver.
+
+```typescript
+import { isTransactionActive } from '@rapiq/cache/typeorm';
+
+const roles = isTransactionActive(dataSource, manager) ?
+    await read() :
+    await rememberQuery(cache, input, read);
+```
 
 ## Invalidating
 
@@ -147,8 +186,17 @@ The write side lives behind its own entry, `@rapiq/cache/typeorm`, so the root t
 |---|---|
 | `cache` | anything with `invalidate(tags)`, usually the `TaggedCache` |
 | `registry` | the `SchemaRegistry` the reading side uses; the scoped tags come from the same `indexes` |
-| `resolveSchemaName` | `(metadata) => string \| undefined`: the rapiq schema name of an entity, `undefined` for an untracked table |
+| `resolveSchemaName` | `(metadata) => string \| { name, schema: false } \| undefined`: the rapiq schema name of an entity, `undefined` for an untracked table (see below) |
+| `normalizeScopedValue` | the canonical spelling of every scoped tag value it bumps, the same function the reading side gets (see [canonical scoped values](#canonical-scoped-values)) |
 | `onError` | where a failed bump is reported (default: dropped) |
+
+A name `resolveSchemaName` answers must be in the registry, or every write of a row of that table (a row-less `Repository.delete` included) reports `CacheError.schemaUnresolvable` to `onError` (its collection and record tags are still bumped), so a typo in the mapping stays visible. A table that deliberately has no rapiq schema, read through an explicit collection tag say, is answered with `{ name, schema: false }` (the type is exported as `CacheInvalidationSchemaTarget`): its writes bump the collection and record tags, a parent removal cascading into it bumps its collection, and the registry is never asked for it, so it yields no scoped tag and no report.
+
+```typescript
+resolveSchemaName: (metadata) => (metadata.name === 'AuditEntity' ?
+    { name: 'audit', schema: false } :
+    SCHEMA_NAMES[metadata.name]),
+```
 
 ### Which tags a write bumps
 
@@ -244,6 +292,7 @@ The semantics are pinned by one shared contract suite that every driver runs aga
 |---|---|---|
 | `schemaUnresolvable`, `relationUnresolvable` | `schemaUnresolvable` | the root schema, or a relation segment, is not in the registry |
 | `schemaNameUndefined` | `schemaNameInvalid` | a schema without a name (the name is the vocabulary) |
+| `scopedTagValueInvalid` | `inputInvalid` | a `normalizeScopedValue` answer that is no scoped tag value (thrown by the reader, reported by the writer) |
 | `maxTtlInvalid` | `inputInvalid` | a driver `maxTtl` that is not a finite number of at least 1 ms |
 | `ttlInvalid` | `inputInvalid` | an entry ttl that is not a finite number of at least 1 ms |
 | `clientKeyPrefixUnsupported` | `featureUnsupported` | a Redis client with its own `keyPrefix` |

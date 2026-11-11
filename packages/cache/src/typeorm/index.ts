@@ -7,4 +7,5 @@
 
 export * from './constants';
 export * from './module';
+export * from './transaction';
 export * from './types';

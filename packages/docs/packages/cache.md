@@ -17,7 +17,7 @@ The full walkthrough is the [Caching Query Results](/guide/cache) guide.
 | Area | Exports | Guide |
 |---|---|---|
 | **Cache** | `TaggedCache` (`remember`, `invalidate`, `drop`), `ITaggedCache` | [Reading through the cache](/guide/cache#reading-through-the-cache) |
-| **Tags** | `buildCollectionTag`, `buildRecordTag`, `buildScopedTag`, `isScopedTagValue` | [Vocabulary](/guide/cache#vocabulary) |
+| **Tags** | `buildCollectionTag`, `buildRecordTag`, `buildScopedTag`, `isScopedTagValue`, `normalizeScopedUuid`, `ScopedTagValueNormalizer` | [Vocabulary](/guide/cache#vocabulary), [canonical scoped values](/guide/cache#canonical-scoped-values) |
 | **Query tags** | `collectQueryTags`, `isCacheable`, `rememberQuery`, `QueryTagsInput`, `RememberQueryInput`, `QueryCaseSensitive` | [Which tags a query yields](/guide/cache#which-tags-a-query-yields) |
 | **Drivers** | `ICacheDriver`, `CacheEntry`, `MemoryCacheDriver`, `CACHE_MAX_TTL_DEFAULT`, `isCacheTtlValid`, `clampCacheTtl`, `isCacheTagWellFormed` | [The driver contract](/guide/cache#the-driver-contract) |
 | **Errors** | `CacheError`, `isCacheError` | [Errors](/guide/cache#errors) |
@@ -33,6 +33,8 @@ import { CacheInvalidationSubscriber } from '@rapiq/cache/typeorm';
 ```
 
 `typeorm` is an optional peer dependency for the types of that entry alone; the class imports nothing from `typeorm` at runtime. Push the instance onto `dataSource.subscribers` after every `initialize()`. See [The TypeORM write side](/guide/cache#the-typeorm-write-side) and [what reaches a scoped reader](/guide/cache#what-reaches-a-scoped-reader).
+
+The same entry exports `isTransactionActive(dataSource, manager?)`, the check a read must pass before it goes through the cache: a read inside an open transaction calls the database directly. See [what is not cached](/guide/cache#what-is-not-cached).
 
 ## Shared stores
 

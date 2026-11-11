@@ -76,3 +76,11 @@ export interface ITaggedCache {
  * collection.
  */
 export type ScopedTagValue = string | number | boolean | Date | null;
+
+/**
+ * Canonical spelling of a scoped tag value, applied by reader and writer
+ * alike: `collectQueryTags` / `rememberQuery` and the write side must be
+ * handed the same function, or their tags no longer meet. It receives the
+ * schema name, the column and the value, and answers the value to spell.
+ */
+export type ScopedTagValueNormalizer = (schema: string, column: string, value: ScopedTagValue) => ScopedTagValue;

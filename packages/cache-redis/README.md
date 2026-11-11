@@ -71,6 +71,24 @@ const cache = new TaggedCache({
 
 The fail-fast options matter on BOTH the read path (`TaggedCache`, `rememberQuery`) and the write path (the TypeORM subscriber). `TaggedCache` falls through to the database when the driver fails, but a default `ioredis` client queues and retries instead of failing: measured against an unreachable Redis, a cached read fell through only after about 10.5 s, and `repository.save` took about 10.5 s (up to 32.5 s once the backoff grows) while holding its pooled connection, since the subscriber bumps inside `commitTransaction`. Without them, a Redis outage can take the application down.
 
+With the offline queue off, `ioredis` also rejects every command issued before the first connection is ready. A cached read then falls through, which is harmless, but an invalidation rejects and bumps nothing: if Redis kept its data across a restart, entries from before it stay served until their ttl. Wait for `ready()` before the first read or write. It resolves `true` once the client is ready and `false` after `timeout` milliseconds (default `1000`) or when the client ended; it never rejects, and connects a `lazyConnect` client.
+
+```typescript
+const driver = new RedisCacheDriver({ client });
+const cache = new TaggedCache({ driver });
+
+// the driver the cache reads and invalidates through
+if (!await driver.ready()) {
+    throw new Error('Redis is not ready: its entries could not be invalidated.');
+}
+
+app.listen(3000);
+```
+
+Do not start serving on `false`. A write committed while the client is still down bumps nothing, and once Redis connects the entries it kept are served again, stale until their ttl. Fail the start as above (or retry it); an application that would rather start without Redis accepts results up to `maxTtl` old after every such window.
+
+Failing fast still costs one `commandTimeout` per call while Redis is black-holed: every cached read and every committing write waits that long. There is no circuit breaker that skips the store after repeated failures; that stays the application's job.
+
 ## Keys
 
 | Key | Holds |

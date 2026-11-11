@@ -6,6 +6,7 @@
  */
 
 import type { IQuery, Schema, SchemaRegistry } from '@rapiq/core';
+import type { ScopedTagValueNormalizer } from '../types';
 
 /**
  * Which root columns compare case-sensitively: the value handed to the
@@ -43,6 +44,13 @@ export type QueryTagsInput<T = unknown> = {
      * Default: none, so a string never scopes.
      */
     caseSensitive?: QueryCaseSensitive,
+    /**
+     * The canonical spelling of every value that scopes, applied after the
+     * scoping decision (it never makes a value scope). Hand the write side
+     * the same function. A throw propagates; an answer that is no scoped
+     * tag value throws a `CacheError`. Default: the value as filtered.
+     */
+    normalizeScopedValue?: ScopedTagValueNormalizer,
 };
 
 export type RememberQueryInput<T = unknown> = {
@@ -70,4 +78,20 @@ export type RememberQueryInput<T = unknown> = {
      * {@link QueryTagsInput.caseSensitive}.
      */
     caseSensitive?: QueryCaseSensitive,
+    /**
+     * The canonical spelling of every scoped value. See
+     * {@link QueryTagsInput.normalizeScopedValue}.
+     */
+    normalizeScopedValue?: ScopedTagValueNormalizer,
+    /**
+     * Tags the derivation cannot see, unioned onto the derived ones, e.g.
+     * a policy the read applied outside the query. Called with the value
+     * the read returned; a throw is handled like a throwing derivation
+     * (reported to `onError`, the value answered unstored).
+     */
+    tags?: (value: T) => string[],
+    /**
+     * Per-call ttl in milliseconds, as on `remember`.
+     */
+    ttl?: number,
 };

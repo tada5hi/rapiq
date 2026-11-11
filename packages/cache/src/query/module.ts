@@ -31,7 +31,7 @@ import {
     buildScopedTag,
     isScopedTagValue,
 } from '../tag';
-import type { ITaggedCache, ScopedTagValue  } from '../types';
+import type { ITaggedCache, ScopedTagValue, ScopedTagValueNormalizer } from '../types';
 import type { QueryCaseSensitive, QueryTagsInput, RememberQueryInput } from './types';
 
 /**
@@ -64,7 +64,13 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
     const tags = new Set<string>();
 
     // 1. the root collection dependency
-    const scoped = collectScopedTags(schema, name, input.query.filters, input.caseSensitive);
+    const scoped = collectScopedTags(
+        schema,
+        name,
+        input.query.filters,
+        input.caseSensitive,
+        input.normalizeScopedValue,
+    );
 
     if (scoped.length > 0) {
         for (const tag of scoped) {
@@ -147,15 +153,25 @@ export async function rememberQuery<T>(
     }
 
     return cache.remember(input.key, read, {
-        tags: (value) => collectQueryTags({
-            query: input.query,
-            schema: input.schema,
-            registry: input.registry,
-            value,
-            rows: input.rows,
-            primaryKey: input.primaryKey,
-            caseSensitive: input.caseSensitive,
-        }),
+        tags: (value) => {
+            const tags = collectQueryTags({
+                query: input.query,
+                schema: input.schema,
+                registry: input.registry,
+                value,
+                rows: input.rows,
+                primaryKey: input.primaryKey,
+                caseSensitive: input.caseSensitive,
+                normalizeScopedValue: input.normalizeScopedValue,
+            });
+
+            if (!input.tags) {
+                return tags;
+            }
+
+            return Array.from(new Set([...tags, ...input.tags(value)]));
+        },
+        ttl: input.ttl,
     });
 }
 
@@ -256,15 +272,31 @@ function isCaseSensitive(caseSensitive: QueryCaseSensitive | undefined, field: s
  * adapter then folds the comparison, so `U1` matches a row holding `u1`
  * while the writer bumps `u1`. Case sensitivity is the adapter's
  * `execute({ caseSensitive })` option, never the schema's list, since only
- * the option changes the SQL.
+ * the option changes the SQL. A value that scopes is then spelled through
+ * `normalizeScopedValue`, the function the writer spells its rows with.
  */
 function collectScopedTags(
     schema: Schema,
     name: string,
     filters: IFilters,
     caseSensitiveInput: QueryCaseSensitive | undefined,
+    normalize: ScopedTagValueNormalizer | undefined,
 ) : string[] {
     const output : string[] = [];
+
+    const build = (column: string, value: ScopedTagValue) : string => {
+        if (!normalize) {
+            return buildScopedTag(name, column, value);
+        }
+
+        const normalized = normalize(name, column, value);
+
+        if (!isScopedTagValue(normalized)) {
+            throw CacheError.scopedTagValueInvalid(name, column);
+        }
+
+        return buildScopedTag(name, column, normalized);
+    };
 
     for (const conjunct of toConjuncts(filters)) {
         if (!isFilter(conjunct)) {
@@ -281,7 +313,7 @@ function collectScopedTags(
 
         if (conjunct.operator === FilterFieldOperator.EQUAL) {
             if (isScopableValue(conjunct.value, caseSensitive)) {
-                output.push(buildScopedTag(name, details.name, conjunct.value));
+                output.push(build(details.name, conjunct.value));
             }
 
             continue;
@@ -296,7 +328,7 @@ function collectScopedTags(
             matchesValue
         ) {
             for (const value of conjunct.value) {
-                output.push(buildScopedTag(name, details.name, value));
+                output.push(build(details.name, value));
             }
         }
     }

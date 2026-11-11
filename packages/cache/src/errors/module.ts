@@ -96,6 +96,17 @@ export class CacheError extends BaseError {
     }
 
     /**
+     * A `normalizeScopedValue` hook answered something no scoped tag can
+     * carry (see `isScopedTagValue`).
+     */
+    static scopedTagValueInvalid(schema: string, column: string) {
+        return new this({
+            message: `The scoped tag value normalizer answered no scoped tag value for "${schema}.${column}".`,
+            code: ErrorCode.INPUT_INVALID,
+        });
+    }
+
+    /**
      * A schema without a name has no tags: the name is the vocabulary.
      */
     static schemaNameUndefined() {

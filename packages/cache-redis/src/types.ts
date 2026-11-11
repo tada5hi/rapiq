@@ -42,6 +42,11 @@ export type RedisCacheDriverOptions = {
 export type RedisCacheEntryFields = [clock: string, tags: string, value: string];
 
 /**
+ * One pending `ready()` call: settles with whether the client became ready.
+ */
+export type RedisCacheReadyWaiter = (ready: boolean) => void;
+
+/**
  * The client after the scripts were registered through `defineCommand`.
  * Every script takes the number of keys first, then the keys, then the rest.
  */

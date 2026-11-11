@@ -25,8 +25,10 @@ import {
     collectQueryTags,
     isCacheError,
     isCacheable,
+    normalizeScopedUuid,
     rememberQuery,
 } from '../../../src';
+import type { ScopedTagValue } from '../../../src';
 import { registry, userRoleSchema } from '../../data/schema';
 import type { Realm, Role, UserRole } from '../../data/type';
 
@@ -669,5 +671,279 @@ describe('src/query/module.ts', () => {
 
             expect(hit?.tags).toEqual(['role', 'role:admin']);
         });
+
+        it('should union extra tags onto the derived ones, deduplicated', async () => {
+            const driver = new MemoryCacheDriver();
+            const cache = new TaggedCache({ driver });
+            const seen : unknown[] = [];
+            const rows = [{ id: 'r1' }];
+
+            await rememberQuery(cache, {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: (value) => {
+                    seen.push(value);
+
+                    return ['role', 'policy:p1', 'policy:p1'];
+                },
+            }, async () => rows);
+
+            expect(seen).toEqual([rows]);
+
+            const hit = await driver.read('roles');
+
+            expect(hit?.tags).toEqual(['role', 'role:r1', 'policy:p1']);
+        });
+
+        it('should invalidate a read through an extra tag', async () => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let reads = 0;
+            const input = {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: () => ['policy:p1'],
+            };
+            const read = async () => {
+                reads++;
+
+                return [{ id: 'r1' }];
+            };
+
+            await rememberQuery(cache, input, read);
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(1);
+
+            await cache.invalidate(['policy:p1']);
+
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(2);
+        });
+
+        it('should not call the extra tags for a query that is not cacheable', async () => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let calls = 0;
+
+            await rememberQuery(cache, {
+                key: 'roles',
+                query: new Query({ fields: new Fields([new Field('secret', undefined, eq('ownerId', 'u1'))]) }),
+                schema: 'role',
+                registry,
+                tags: () => {
+                    calls++;
+
+                    return [];
+                },
+            }, async () => []);
+
+            expect(calls).toEqual(0);
+        });
+
+        it('should report a throwing extra tags function and answer the value unstored', async () => {
+            const driver = new MemoryCacheDriver();
+            const errors : unknown[] = [];
+            const cache = new TaggedCache({
+                driver,
+                onError: (e) => {
+                    errors.push(e);
+                },
+            });
+            const failure = new Error('no tags');
+            const rows = [{ id: 'r1' }];
+
+            const value = await rememberQuery(cache, {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: () => {
+                    throw failure;
+                },
+            }, async () => rows);
+
+            expect(value).toEqual(rows);
+            expect(errors).toEqual([failure]);
+            expect(await driver.read('roles')).toBeNull();
+        });
+
+        it('should forward a per-call ttl', async () => {
+            vi.useFakeTimers();
+
+            try {
+                const driver = new MemoryCacheDriver();
+                const cache = new TaggedCache({ driver });
+                const input = {
+                    query: defineQuery<Role>({}),
+                    schema: 'role',
+                    registry,
+                };
+
+                await rememberQuery(cache, {
+                    ...input,
+                    key: 'short',
+                    ttl: 1_000,
+                }, async () => []);
+                await rememberQuery(cache, { ...input, key: 'default' }, async () => []);
+
+                vi.advanceTimersByTime(1_000);
+                expect(await driver.read('short')).toBeNull();
+                expect(await driver.read('default')).not.toBeNull();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it.each([NaN, 0, -1])('should refuse a per-call ttl of %s before reading', async (ttl) => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let reads = 0;
+            let error : unknown;
+
+            try {
+                await rememberQuery(cache, {
+                    key: 'roles',
+                    query: defineQuery<Role>({}),
+                    schema: 'role',
+                    registry,
+                    ttl,
+                }, async () => {
+                    reads++;
+
+                    return [];
+                });
+            } catch (e) {
+                error = e;
+            }
+
+            expect(isCacheError(error)).toBeTruthy();
+            expect(reads).toEqual(0);
+        });
+    });
+});
+
+describe('src/query/module.ts (normalizeScopedValue)', () => {
+    const UPPER = 'ABCDEF01-2345-6789-ABCD-EF0123456789';
+    const LOWER = 'abcdef01-2345-6789-abcd-ef0123456789';
+
+    it('should spell an eq value through the normalizer', () => {
+        expect(collectQueryTags({
+            query: defineQuery<UserRole>({ filters: { userId: UPPER } }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: ['userId'],
+            normalizeScopedValue: normalizeScopedUuid,
+            value: [],
+        })).toEqual([`userRole:userId=${LOWER}`]);
+    });
+
+    it('should spell every in value through the normalizer', () => {
+        expect(collectQueryTags({
+            query: defineQuery<UserRole>({ filters: inArray('userId', [UPPER, 'u1']) }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: ['userId'],
+            normalizeScopedValue: normalizeScopedUuid,
+            value: [],
+        })).toEqual([`userRole:userId=${LOWER}`, 'userRole:userId=u1']);
+    });
+
+    it('should keep the spelling without the option', () => {
+        expect(collectQueryTags({
+            query: defineQuery<UserRole>({ filters: { userId: UPPER } }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: ['userId'],
+            value: [],
+        })).toEqual([`userRole:userId=${UPPER}`]);
+    });
+
+    it('should hand the normalizer the schema name, the column and the value', () => {
+        const calls : [string, string, ScopedTagValue][] = [];
+
+        const tags = collectQueryTags({
+            query: defineQuery<UserRole>({ filters: { userId: 'u1', roleId: 'r1' } }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: true,
+            normalizeScopedValue: (schema, column, value) => {
+                calls.push([schema, column, value]);
+
+                return `${value}!`;
+            },
+            value: [],
+        });
+
+        expect(calls).toEqual([
+            ['userRole', 'userId', 'u1'],
+            ['userRole', 'roleId', 'r1'],
+        ]);
+        expect(tags).toEqual(['userRole:userId=u1!', 'userRole:roleId=r1!']);
+    });
+
+    it('should not make a string scope on a column compared case-insensitively', () => {
+        let calls = 0;
+
+        expect(collectQueryTags({
+            query: defineQuery<UserRole>({ filters: { userId: UPPER } }),
+            schema: 'userRole',
+            registry,
+            normalizeScopedValue: (_schema, _column, value) => {
+                calls++;
+
+                return normalizeScopedUuid(_schema, _column, value);
+            },
+            value: [],
+        })).toEqual(['userRole']);
+        expect(calls).toEqual(0);
+    });
+
+    it('should propagate a throwing normalizer', () => {
+        expect(() => collectQueryTags({
+            query: defineQuery<UserRole>({ filters: { userId: 'u1' } }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: true,
+            normalizeScopedValue: () => {
+                throw new Error('boom');
+            },
+            value: [],
+        })).toThrow('boom');
+    });
+
+    it('should refuse a normalizer answering no scoped tag value', () => {
+        let error : unknown;
+
+        try {
+            collectQueryTags({
+                query: defineQuery<UserRole>({ filters: { userId: 'u1' } }),
+                schema: 'userRole',
+                registry,
+                caseSensitive: true,
+                normalizeScopedValue: () => ({}) as ScopedTagValue,
+                value: [],
+            });
+        } catch (e) {
+            error = e;
+        }
+
+        expect(isCacheError(error)).toBe(true);
+    });
+
+    it('should forward the normalizer through rememberQuery', async () => {
+        const driver = new MemoryCacheDriver();
+        const cache = new TaggedCache({ driver });
+
+        await rememberQuery(cache, {
+            key: 'userRole',
+            query: defineQuery<UserRole>({ filters: { userId: UPPER } }),
+            schema: 'userRole',
+            registry,
+            caseSensitive: ['userId'],
+            normalizeScopedValue: normalizeScopedUuid,
+        }, async () => []);
+
+        expect((await driver.read('userRole'))?.tags).toEqual([`userRole:userId=${LOWER}`]);
     });
 });

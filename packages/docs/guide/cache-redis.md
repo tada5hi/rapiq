@@ -54,6 +54,30 @@ So configure the client to fail fast, for BOTH the read path (`TaggedCache`, `re
 
 Without these options, the claim that a cache outage never takes the application down does not hold: an outage turns into a stall of every request that touches the cache.
 
+Failing fast still costs one `commandTimeout` per call while Redis is black-holed (accepting connections but never answering): every cached read and every committing write waits that long. There is no circuit breaker that skips the store after repeated failures; that stays the application's job.
+
+### Waiting for the connection
+
+With `enableOfflineQueue: false`, a command issued before the first connection is ready rejects too, and a `lazyConnect` client rejects its first one the same way. A cached read in that window falls through, which is harmless. An invalidation rejects and bumps nothing, though: a write committed right after boot leaves the entries it changed in place, and when Redis kept its data across a restart, entries from before the restart stay served until their ttl.
+
+So wait for `ready()` before the first read or write:
+
+```typescript
+const driver = new RedisCacheDriver({ client });
+const cache = new TaggedCache({ driver });
+
+// the driver the cache reads and invalidates through
+if (!await driver.ready()) {
+    throw new Error('Redis is not ready: its entries could not be invalidated.');
+}
+
+app.listen(3000);
+```
+
+Do not start serving on `false`. A write committed while the client is still down bumps nothing, and once Redis connects the entries it kept are served again, stale until their ttl. Fail the start as above (or retry it); an application that would rather start without Redis accepts results up to `maxTtl` old after every such window.
+
+`ready(timeout?)` resolves `true` once the client is ready, and `false` when it is not ready within `timeout` milliseconds (default `1000`) or has ended for good (closed by the application, or out of retries). It never rejects for a connection reason; only a `timeout` that is not a finite number between 0 and 2147483647 (the longest timer Node.js schedules) throws a `CacheError`, like any other invalid option. It connects a `lazyConnect` client that has not connected yet, never reconnects a client that ended, and works for a `Redis` and a `Cluster` client alike. A connection error alone does not settle it: a retrying client reconnects after the error and may still become ready within the timeout.
+
 ## Keys
 
 | Key | Holds |
