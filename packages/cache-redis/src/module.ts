@@ -14,6 +14,7 @@ import {
 } from '@rapiq/cache';
 import {
     REDIS_CACHE_PREFIX_DEFAULT,
+    REDIS_CACHE_READY_TIMEOUT_DEFAULT,
     RedisCacheKeySegment,
 } from './constants';
 import { RedisCacheCommand, RedisCacheScript } from './commands';
@@ -21,6 +22,7 @@ import type {
     RedisCacheClient,
     RedisCacheDriverOptions,
     RedisCacheEntryFields,
+    RedisCacheReadyWaiter,
     RedisCacheScriptClient,
 } from './types';
 
@@ -37,12 +39,62 @@ export class RedisCacheDriver implements ICacheDriver {
 
     protected client : RedisCacheScriptClient;
 
+    protected readyWaiters : Set<RedisCacheReadyWaiter> = new Set();
+
     constructor(options: RedisCacheDriverOptions) {
         this.maxTtl = resolveMaxTtl(options.maxTtl);
         this.prefix = options.prefix ?? REDIS_CACHE_PREFIX_DEFAULT;
 
         RedisCacheDriver.assertClient(options.client, this.prefix);
         this.client = RedisCacheDriver.defineCommands(options.client);
+    }
+
+    /**
+     * Waits until the client can run a command: `true` once it is ready,
+     * `false` when it is not ready within `timeout` milliseconds or has ended
+     * for good. Never rejects.
+     *
+     * A client without an offline queue rejects every command issued before
+     * the connection is ready, so an invalidation in that window bumps
+     * nothing; await this once before the first read or write. A `lazyConnect`
+     * client that has not connected yet is connected; a client that has ended
+     * (closed by the application, or out of retries) is not reconnected.
+     * An `error` does not settle the wait: a retrying client reconnects after
+     * it, and one that gives up ends right after it.
+     */
+    ready(timeout: number = REDIS_CACHE_READY_TIMEOUT_DEFAULT) : Promise<boolean> {
+        if (!Number.isFinite(timeout) || timeout < 0) {
+            throw new CacheError({
+                message: `The ready timeout must be a finite number of at least 0 milliseconds, got ${timeout}.`,
+                code: 'inputInvalid',
+            });
+        }
+
+        const { client } = this;
+
+        if (client.status === 'ready') {
+            return Promise.resolve(true);
+        }
+
+        if (client.status === 'end') {
+            return Promise.resolve(false);
+        }
+
+        return new Promise<boolean>((resolve) => {
+            const waiter = (value: boolean) => {
+                clearTimeout(timer);
+                this.removeReadyWaiter(waiter);
+                resolve(value);
+            };
+            const timer = setTimeout(() => waiter(false), timeout);
+
+            this.addReadyWaiter(waiter);
+
+            if (client.status === 'wait') {
+                // the failure reaches the waiter as `end` or the timeout.
+                client.connect().catch(() => {});
+            }
+        });
     }
 
     /**
@@ -128,6 +180,45 @@ export class RedisCacheDriver implements ICacheDriver {
             await this.client.del(...wellFormed.map((key) => this.buildEntryKey(key)));
         }
     }
+
+    // ----------------------------------------------------
+
+    /**
+     * Concurrent `ready()` calls share one `ready` and one `end` listener,
+     * attached for the first waiter and removed with the last, so many
+     * waiters never trip the client's MaxListenersExceededWarning.
+     */
+    protected addReadyWaiter(waiter: RedisCacheReadyWaiter) {
+        this.readyWaiters.add(waiter);
+
+        if (this.readyWaiters.size > 1) {
+            return;
+        }
+
+        this.client.on('ready', this.onClientReady);
+        this.client.on('end', this.onClientEnd);
+    }
+
+    protected removeReadyWaiter(waiter: RedisCacheReadyWaiter) {
+        this.readyWaiters.delete(waiter);
+
+        if (this.readyWaiters.size > 0) {
+            return;
+        }
+
+        this.client.off('ready', this.onClientReady);
+        this.client.off('end', this.onClientEnd);
+    }
+
+    protected settleReadyWaiters(value: boolean) {
+        for (const waiter of [...this.readyWaiters]) {
+            waiter(value);
+        }
+    }
+
+    protected onClientReady = () => this.settleReadyWaiters(true);
+
+    protected onClientEnd = () => this.settleReadyWaiters(false);
 
     // ----------------------------------------------------
 

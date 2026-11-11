@@ -54,6 +54,26 @@ So configure the client to fail fast, for BOTH the read path (`TaggedCache`, `re
 
 Without these options, the claim that a cache outage never takes the application down does not hold: an outage turns into a stall of every request that touches the cache.
 
+Failing fast still costs one `commandTimeout` per call while Redis is black-holed (accepting connections but never answering): every cached read and every committing write waits that long. There is no circuit breaker that skips the store after repeated failures; that stays the application's job.
+
+### Waiting for the connection
+
+With `enableOfflineQueue: false`, a command issued before the first connection is ready rejects too, and a `lazyConnect` client rejects its first one the same way. A cached read in that window falls through, which is harmless. An invalidation rejects and bumps nothing, though: a write committed right after boot leaves the entries it changed in place, and when Redis kept its data across a restart, entries from before the restart stay served until their ttl.
+
+So wait for `ready()` before the first read or write:
+
+```typescript
+const driver = new RedisCacheDriver({ client });
+
+if (!await driver.ready()) {
+    logger.warn('Redis not ready, the cache falls through until it is');
+}
+
+app.listen(3000);
+```
+
+`ready(timeout?)` resolves `true` once the client is ready, and `false` when it is not ready within `timeout` milliseconds (default `1000`) or has ended for good (closed by the application, or out of retries). It never rejects for a connection reason; only a `timeout` that is not a finite number of at least 0 throws a `CacheError`, like any other invalid option. It connects a `lazyConnect` client that has not connected yet, never reconnects a client that ended, and works for a `Redis` and a `Cluster` client alike. A connection error alone does not settle it: a retrying client reconnects after the error and may still become ready within the timeout.
+
 ## Keys
 
 | Key | Holds |

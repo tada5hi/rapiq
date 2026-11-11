@@ -8,6 +8,12 @@
 export const REDIS_CACHE_PREFIX_DEFAULT = 'rapiq';
 
 /**
+ * How long `RedisCacheDriver.ready()` waits for the client by default, in
+ * milliseconds.
+ */
+export const REDIS_CACHE_READY_TIMEOUT_DEFAULT = 1_000;
+
+/**
  * The segment after the prefix that tells the three key families apart:
  * `<prefix>:e:<key>`, `<prefix>:t:<tag>`, `<prefix>:c`.
  */
