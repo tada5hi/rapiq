@@ -29,7 +29,7 @@
         "pg": "^8.23.1",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^1.1.2",
-        "unplugin-swc": "^1.6.0"
+        "unplugin-swc": "^2.0.0"
     },
     "peerDependencies": {
         "@rapiq/core": "^2.4.0",
