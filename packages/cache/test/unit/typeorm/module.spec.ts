@@ -634,6 +634,25 @@ describe('src/typeorm/module.ts (a table without a schema)', () => {
         expect((errors[0] as Error).message).toContain('"audit"');
     });
 
+    it('should report a plain name the registry lacks on a row-less delete', async () => {
+        await setup('audit');
+
+        await dataSource.getRepository(AuditEntity).delete({ realmId: 'x' });
+
+        expect(calls).toEqual([['audit']]);
+        expect(errors).toHaveLength(1);
+        expect(isCacheError(errors[0])).toBe(true);
+    });
+
+    it('should not report a row-less delete of a table tracked by name alone', async () => {
+        await setup({ name: 'audit', schema: false });
+
+        await dataSource.getRepository(AuditEntity).delete({ realmId: 'x' });
+
+        expect(calls).toEqual([['audit']]);
+        expect(errors).toEqual([]);
+    });
+
     it('should bump the collection of a CASCADE child without a report', async () => {
         await setup({ name: 'audit', schema: false });
 

@@ -41,7 +41,9 @@ export type CacheInvalidationSubscriberOptions = {
      * latter with the child's schema and column). Hand the reading side
      * (`rememberQuery`, `collectQueryTags`) the same function. A throw, or
      * an answer that is no scoped tag value, is reported to `onError` and
-     * the raw value is bumped instead. Default: the value as written.
+     * the raw value is bumped instead, which does not reach a reader tagged
+     * with the canonical spelling (it stays until its ttl): keep the
+     * function total. Default: the value as written.
      */
     normalizeScopedValue?: ScopedTagValueNormalizer,
     /**

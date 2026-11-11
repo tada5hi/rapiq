@@ -226,6 +226,10 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         const { name } = target;
         const tags : string[] = [buildCollectionTag(name)];
 
+        // resolved before the row guard, so a name the registry lacks is
+        // reported by a row-less write (`Repository.delete`) too.
+        const schema = this.resolveTargetSchema(target);
+
         if (typeof row === 'undefined' || row === null) {
             return tags;
         }
@@ -235,8 +239,6 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         if (typeof id !== 'undefined') {
             tags.push(buildRecordTag(name, id));
         }
-
-        const schema = this.resolveTargetSchema(target);
 
         if (schema) {
             for (const column of leadingColumns(schema)) {
@@ -523,7 +525,10 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      * Every scoped tag the subscriber bumps, spelled through
      * `normalizeScopedValue`. A hook never fails a write: a throwing
      * normalizer, or one answering no scoped tag value, is reported and
-     * the raw value is bumped (a possibly useless bump beats none).
+     * the raw value is bumped. That bump does NOT reach a reader whose tag
+     * carries the canonical spelling: such a result stays until its ttl,
+     * like one behind any other failed bump, so the normalizer must be
+     * total over every value a column can hold.
      */
     protected buildNormalizedScopedTag(schema: string, column: string, value: ScopedTagValue) : string {
         if (!this.normalizeScopedValue) {
