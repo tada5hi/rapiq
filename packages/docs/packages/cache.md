@@ -1,5 +1,9 @@
 # @rapiq/cache
 
+::: warning Experimental
+`@rapiq/cache` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+:::
+
 A tag-invalidated result cache for rapiq queries. A cached result depends on every row it holds and on the membership of the sets it selected from, so a stored value carries **tags** (a collection, a scope, a record), every tag has a **version** on one logical clock, and a write bumps the tags it owns. A read whose entry carries a bumped tag is a miss.
 
 ```sh

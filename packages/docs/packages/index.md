@@ -16,8 +16,8 @@ rapiq is a family of small packages around one shared data structure: the [`Quer
 | [@rapiq/adapter-prisma](/packages/adapter-prisma) | Serializes a `Query` into a Prisma argument object |
 | [@rapiq/adapter-drizzle](/packages/adapter-drizzle) | Serializes a `Query` into a Drizzle relational query config |
 | [@rapiq/adapter-memory](/packages/adapter-memory) | Evaluates a `Query` against in-memory objects & arrays |
-| [@rapiq/cache](/packages/cache) | Tag-invalidated result cache: tag versions over one logical clock, a memory driver, the driver contract |
-| [@rapiq/cache-redis](/packages/cache-redis) | Redis driver for `@rapiq/cache` (atomic Lua steps over `ioredis`) |
+| [@rapiq/cache](/packages/cache) | Tag-invalidated result cache: tag versions over one logical clock, a memory driver, the driver contract (experimental, `0.x`) |
+| [@rapiq/cache-redis](/packages/cache-redis) | Redis driver for `@rapiq/cache` (atomic Lua steps over `ioredis`; experimental, `0.x`) |
 
 ## Which packages do I need?
 

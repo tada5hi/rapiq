@@ -1,5 +1,9 @@
 # Caching with Redis
 
+::: warning Experimental
+`@rapiq/cache-redis` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+:::
+
 `@rapiq/cache-redis` implements the `ICacheDriver` contract of [`@rapiq/cache`](/guide/cache) on top of Redis, so several application processes share one tag-invalidated result cache with the guarantees the memory driver gives one process.
 
 ```sh

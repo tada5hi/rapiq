@@ -1,5 +1,9 @@
 # @rapiq/cache-redis
 
+::: warning Experimental
+`@rapiq/cache-redis` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+:::
+
 The Redis driver for [@rapiq/cache](/packages/cache): the clock read and the write, read and invalidate steps of the `ICacheDriver` contract as atomic Lua scripts over `ioredis`, so several application processes share one tag-invalidated result cache with the guarantees the memory driver gives one process.
 
 ```sh

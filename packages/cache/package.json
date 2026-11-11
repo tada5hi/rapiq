@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/cache",
-    "version": "2.4.0",
+    "version": "0.1.0",
     "description": "Tag-invalidated result cache for rapiq queries: tag versions over one logical clock, a zero-dependency memory driver and a driver contract for shared stores.",
     "type": "module",
     "main": "dist/index.mjs",

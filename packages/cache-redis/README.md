@@ -28,6 +28,9 @@
 
 ---
 
+> [!WARNING]
+> **Experimental.** `@rapiq/cache-redis` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+
 Part of [**rapiq**](https://github.com/tada5hi/rapiq). Typed REST queries: *build, transport, validate, execute.*
 This package implements the `ICacheDriver` contract of [`@rapiq/cache`](https://github.com/tada5hi/rapiq/tree/master/packages/cache) on top of Redis, so several application processes share one tag-invalidated result cache.
 

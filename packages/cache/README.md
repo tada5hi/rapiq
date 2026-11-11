@@ -28,6 +28,9 @@
 
 ---
 
+> [!WARNING]
+> **Experimental.** `@rapiq/cache` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+
 Part of [**rapiq**](https://github.com/tada5hi/rapiq). Typed REST queries: *build, transport, validate, execute.*
 A cached query result cannot be keyed on one value: it depends on every row it holds and on the membership of the sets it selected from. So a stored value carries **tags**, every tag has a **version** on one logical clock, and a write bumps the tags it owns. A read compares versions and answers a miss the moment any dependency moved.
 

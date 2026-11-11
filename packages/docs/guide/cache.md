@@ -1,5 +1,9 @@
 # Caching Query Results
 
+::: warning Experimental
+`@rapiq/cache` is versioned separately on a `0.x` line: its API may change in any `0.x` minor release, independently of the `2.x` packages. Pin an exact version or a `~` range if you depend on it.
+:::
+
 `@rapiq/cache` stores the result of a [`Query`](/guide/query-ast) and invalidates it by **tags**: names for every collection, scope and record the result depends on, each carrying a version on one logical clock. A write bumps the tags it owns; a read whose entry carries a bumped tag is a miss.
 
 ```sh
