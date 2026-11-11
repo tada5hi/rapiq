@@ -70,4 +70,15 @@ export type RememberQueryInput<T = unknown> = {
      * {@link QueryTagsInput.caseSensitive}.
      */
     caseSensitive?: QueryCaseSensitive,
+    /**
+     * Tags the derivation cannot see, unioned onto the derived ones, e.g.
+     * a policy the read applied outside the query. Called with the value
+     * the read returned; a throw is handled like a throwing derivation
+     * (reported to `onError`, the value answered unstored).
+     */
+    tags?: (value: T) => string[],
+    /**
+     * Per-call ttl in milliseconds, as on `remember`.
+     */
+    ttl?: number,
 };

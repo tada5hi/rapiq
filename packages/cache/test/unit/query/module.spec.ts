@@ -669,5 +669,154 @@ describe('src/query/module.ts', () => {
 
             expect(hit?.tags).toEqual(['role', 'role:admin']);
         });
+
+        it('should union extra tags onto the derived ones, deduplicated', async () => {
+            const driver = new MemoryCacheDriver();
+            const cache = new TaggedCache({ driver });
+            const seen : unknown[] = [];
+            const rows = [{ id: 'r1' }];
+
+            await rememberQuery(cache, {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: (value) => {
+                    seen.push(value);
+
+                    return ['role', 'policy:p1', 'policy:p1'];
+                },
+            }, async () => rows);
+
+            expect(seen).toEqual([rows]);
+
+            const hit = await driver.read('roles');
+
+            expect(hit?.tags).toEqual(['role', 'role:r1', 'policy:p1']);
+        });
+
+        it('should invalidate a read through an extra tag', async () => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let reads = 0;
+            const input = {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: () => ['policy:p1'],
+            };
+            const read = async () => {
+                reads++;
+
+                return [{ id: 'r1' }];
+            };
+
+            await rememberQuery(cache, input, read);
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(1);
+
+            await cache.invalidate(['policy:p1']);
+
+            await rememberQuery(cache, input, read);
+            expect(reads).toEqual(2);
+        });
+
+        it('should not call the extra tags for a query that is not cacheable', async () => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let calls = 0;
+
+            await rememberQuery(cache, {
+                key: 'roles',
+                query: new Query({ fields: new Fields([new Field('secret', undefined, eq('ownerId', 'u1'))]) }),
+                schema: 'role',
+                registry,
+                tags: () => {
+                    calls++;
+
+                    return [];
+                },
+            }, async () => []);
+
+            expect(calls).toEqual(0);
+        });
+
+        it('should report a throwing extra tags function and answer the value unstored', async () => {
+            const driver = new MemoryCacheDriver();
+            const errors : unknown[] = [];
+            const cache = new TaggedCache({
+                driver,
+                onError: (e) => {
+                    errors.push(e);
+                },
+            });
+            const failure = new Error('no tags');
+            const rows = [{ id: 'r1' }];
+
+            const value = await rememberQuery(cache, {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+                tags: () => {
+                    throw failure;
+                },
+            }, async () => rows);
+
+            expect(value).toEqual(rows);
+            expect(errors).toEqual([failure]);
+            expect(await driver.read('roles')).toBeNull();
+        });
+
+        it('should forward a per-call ttl', async () => {
+            vi.useFakeTimers();
+
+            try {
+                const driver = new MemoryCacheDriver();
+                const cache = new TaggedCache({ driver });
+                const input = {
+                    query: defineQuery<Role>({}),
+                    schema: 'role',
+                    registry,
+                };
+
+                await rememberQuery(cache, {
+                    ...input,
+                    key: 'short',
+                    ttl: 1_000,
+                }, async () => []);
+                await rememberQuery(cache, { ...input, key: 'default' }, async () => []);
+
+                vi.advanceTimersByTime(1_000);
+                expect(await driver.read('short')).toBeNull();
+                expect(await driver.read('default')).not.toBeNull();
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it.each([NaN, 0, -1])('should refuse a per-call ttl of %s before reading', async (ttl) => {
+            const cache = new TaggedCache({ driver: new MemoryCacheDriver() });
+            let reads = 0;
+            let error : unknown;
+
+            try {
+                await rememberQuery(cache, {
+                    key: 'roles',
+                    query: defineQuery<Role>({}),
+                    schema: 'role',
+                    registry,
+                    ttl,
+                }, async () => {
+                    reads++;
+
+                    return [];
+                });
+            } catch (e) {
+                error = e;
+            }
+
+            expect(isCacheError(error)).toBeTruthy();
+            expect(reads).toEqual(0);
+        });
     });
 });

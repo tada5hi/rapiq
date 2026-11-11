@@ -147,15 +147,24 @@ export async function rememberQuery<T>(
     }
 
     return cache.remember(input.key, read, {
-        tags: (value) => collectQueryTags({
-            query: input.query,
-            schema: input.schema,
-            registry: input.registry,
-            value,
-            rows: input.rows,
-            primaryKey: input.primaryKey,
-            caseSensitive: input.caseSensitive,
-        }),
+        tags: (value) => {
+            const tags = collectQueryTags({
+                query: input.query,
+                schema: input.schema,
+                registry: input.registry,
+                value,
+                rows: input.rows,
+                primaryKey: input.primaryKey,
+                caseSensitive: input.caseSensitive,
+            });
+
+            if (!input.tags) {
+                return tags;
+            }
+
+            return Array.from(new Set([...tags, ...input.tags(value)]));
+        },
+        ttl: input.ttl,
     });
 }
 
