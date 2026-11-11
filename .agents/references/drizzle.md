@@ -4,12 +4,12 @@ Target of `@rapiq/adapter-drizzle` (plan 026). The adapter serializes the rapiq 
 relational-queries v2 (RQBv2) `findMany` config object. RQBv2 ships with drizzle-orm v1
 (`1.0.0-rc.x`; npm `latest` is still the 0.45 line with the callback-based RQBv1).
 
-## Version landscape (checked 2026-08-02)
+## Version landscape (checked 2026-11-11)
 
 | dist-tag | version | relational API |
 |---|---|---|
-| `latest` | 0.45.2 | RQBv1: `where: (table, { eq }) => ...` callback, table-bound operator functions |
-| `rc` | 1.0.0-rc.4 (2026-06-27) | RQBv2: object-based `where`, `defineRelations` |
+| `latest` | 0.45.4 | RQBv1: `where: (table, { eq }) => ...` callback, table-bound operator functions |
+| `rc` | 1.0.0-rc.5 (2026-10-21) | RQBv2: object-based `where`, `defineRelations` |
 | `beta` | 1.0.0-beta.22 | superseded by the rc line |
 
 ## RQBv2 findMany config (the adapter's output shape)
