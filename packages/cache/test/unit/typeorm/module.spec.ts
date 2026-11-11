@@ -5,10 +5,13 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import type { DataSource } from 'typeorm';
+import type { DataSource, EntityMetadata } from 'typeorm';
+import { isCacheError } from '../../../src';
+import type { CacheInvalidationSchemaTarget } from '../../../src/typeorm';
 import { CacheInvalidationSubscriber } from '../../../src/typeorm';
 import {
     ArticleEntity,
+    AuditEntity,
     NoteEntity,
     RealmEntity,
     RoleEntity,
@@ -541,5 +544,166 @@ describe('src/typeorm/module.ts', () => {
         const role = await dataSource.getRepository(RoleEntity).findOneBy({ id: 'r1' });
 
         expect(role).not.toBeNull();
+    });
+});
+
+describe('src/typeorm/module.ts (a table without a schema)', () => {
+    let dataSource : DataSource;
+
+    let calls : string[][];
+
+    let errors : unknown[];
+
+    const setup = async (
+        audit: string | CacheInvalidationSchemaTarget,
+        resolve: (metadata: EntityMetadata) => string | CacheInvalidationSchemaTarget | undefined = resolveSchemaName,
+    ) => {
+        dataSource = await createDataSource([
+            new CacheInvalidationSubscriber({
+                cache: {
+                    invalidate: async (tags) => {
+                        calls.push(tags);
+                    },
+                },
+                registry,
+                resolveSchemaName: (metadata) => (metadata.name === AuditEntity.name ? audit : resolve(metadata)),
+                onError: (e) => {
+                    errors.push(e);
+                },
+            }),
+        ]);
+
+        await dataSource.getRepository(RealmEntity).insert({ id: 'x', name: 'master' });
+        await dataSource.getRepository(RoleEntity).insert({
+            id: 'r1', 
+            name: 'admin', 
+            realmId: 'x', 
+        });
+        calls = [];
+    };
+
+    beforeEach(() => {
+        calls = [];
+        errors = [];
+    });
+
+    afterEach(async () => {
+        await dataSource.destroy();
+    });
+
+    it('should bump the collection and record tags of a written row without a report', async () => {
+        await setup({ name: 'audit', schema: false });
+
+        const audits = dataSource.getRepository(AuditEntity);
+
+        await audits.save({
+            id: 'a1', 
+            realmId: 'x', 
+            roleId: 'r1', 
+        });
+        expect(calls).toEqual([['audit', 'audit:a1']]);
+
+        calls = [];
+
+        const audit = await audits.findOneByOrFail({ id: 'a1' });
+
+        audit.roleId = null;
+        await audits.save(audit);
+        expect(calls).toEqual([['audit', 'audit:a1']]);
+
+        calls = [];
+        await audits.remove(audit);
+        expect(calls).toEqual([['audit', 'audit:a1']]);
+
+        expect(errors).toEqual([]);
+    });
+
+    it('should still report a plain name the registry lacks', async () => {
+        await setup('audit');
+
+        await dataSource.getRepository(AuditEntity).save({
+            id: 'a1', 
+            realmId: 'x', 
+            roleId: null, 
+        });
+
+        expect(calls).toEqual([['audit', 'audit:a1']]);
+        expect(errors).toHaveLength(1);
+        expect(isCacheError(errors[0])).toBe(true);
+        expect((errors[0] as Error).message).toContain('"audit"');
+    });
+
+    it('should bump the collection of a CASCADE child without a report', async () => {
+        await setup({ name: 'audit', schema: false });
+
+        await dataSource.getRepository(AuditEntity).save({
+            id: 'a1', 
+            realmId: 'x', 
+            roleId: null, 
+        });
+        calls = [];
+
+        const realms = dataSource.getRepository(RealmEntity);
+
+        await realms.remove(await realms.findOneByOrFail({ id: 'x' }));
+
+        expect(await dataSource.getRepository(AuditEntity).count()).toEqual(0);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('audit');
+        expect(calls[0]!.filter((tag) => tag.startsWith('audit:'))).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
+    it('should bump the collection of a SET NULL child without a report', async () => {
+        await setup({ name: 'audit', schema: false });
+
+        await dataSource.getRepository(AuditEntity).save({
+            id: 'a1', 
+            realmId: 'x', 
+            roleId: 'r1', 
+        });
+        calls = [];
+
+        const roles = dataSource.getRepository(RoleEntity);
+
+        await roles.remove(await roles.findOneByOrFail({ id: 'r1' }));
+
+        expect((await dataSource.getRepository(AuditEntity).findOneByOrFail({ id: 'a1' })).roleId).toBeNull();
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('audit');
+        expect(calls[0]!.filter((tag) => tag.startsWith('audit:'))).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
+    it('should report a plain name the registry lacks on a cascade', async () => {
+        await setup('audit');
+
+        const roles = dataSource.getRepository(RoleEntity);
+
+        await roles.remove(await roles.findOneByOrFail({ id: 'r1' }));
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('audit');
+        expect(errors).toHaveLength(1);
+        expect(isCacheError(errors[0])).toBe(true);
+    });
+
+    it('should bump both sides of a many-to-many link to a table without a schema', async () => {
+        await setup({ name: 'audit', schema: false }, (metadata) => {
+            if (metadata.name === ArticleEntity.name) {
+                return { name: 'article', schema: false };
+            }
+
+            return resolveSchemaName(metadata);
+        });
+
+        await dataSource.getRepository(TagEntity).save({ id: 't1', name: 'news' });
+        await dataSource.getRepository(ArticleEntity).save({ id: 'a1', title: 'hello' });
+        calls = [];
+
+        await dataSource.createQueryBuilder().relation(ArticleEntity, 'tags').of('a1').add('t1');
+
+        expect(calls).toEqual([['article', 'article:a1', 'tag', 'tag:t1']]);
+        expect(errors).toEqual([]);
     });
 });

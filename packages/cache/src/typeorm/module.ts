@@ -52,7 +52,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
 
     protected registry : SchemaRegistry;
 
-    protected resolveSchemaName : (metadata: EntityMetadata) => string | undefined;
+    protected resolveSchemaName : CacheInvalidationSubscriberOptions['resolveSchemaName'];
 
     protected onError : (error: unknown) => void;
 
@@ -214,12 +214,13 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         row: ObjectLiteral | undefined,
         insert = false,
     ) : string[] {
-        const name = this.resolveSchemaName(metadata);
+        const target = this.resolveSchemaTarget(metadata);
 
-        if (typeof name === 'undefined') {
+        if (typeof target === 'undefined') {
             return [];
         }
 
+        const { name } = target;
         const tags : string[] = [buildCollectionTag(name)];
 
         if (typeof row === 'undefined' || row === null) {
@@ -232,7 +233,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
             tags.push(buildRecordTag(name, id));
         }
 
-        const schema = this.resolveSchema(name);
+        const schema = this.resolveTargetSchema(target);
 
         if (schema) {
             for (const column of leadingColumns(schema)) {
@@ -260,13 +261,14 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
      * where a row goes that its parent released.
      */
     protected buildNullScopeTags(metadata: EntityMetadata) : string[] {
-        const name = this.resolveSchemaName(metadata);
+        const target = this.resolveSchemaTarget(metadata);
 
-        if (typeof name === 'undefined') {
+        if (typeof target === 'undefined') {
             return [];
         }
 
-        const schema = this.resolveSchema(name);
+        const { name } = target;
+        const schema = this.resolveTargetSchema(target);
 
         if (!schema) {
             return [];
@@ -360,7 +362,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 continue;
             }
 
-            const name = this.resolveSchemaName(target);
+            const name = this.resolveSchemaTarget(target)?.name;
 
             if (typeof name === 'undefined') {
                 continue;
@@ -458,13 +460,13 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                         continue;
                     }
 
-                    const schema = this.resolveSchemaName(relation.entityMetadata);
+                    const target = this.resolveSchemaTarget(relation.entityMetadata);
 
-                    if (typeof schema !== 'undefined') {
+                    if (typeof target !== 'undefined') {
                         output.push({
-                            schema,
+                            schema: target.name,
                             setNull: relation.onDelete === 'SET NULL',
-                            columns: direct ? this.resolveCascadeColumns(schema, relation) : [],
+                            columns: direct ? this.resolveCascadeColumns(target, relation) : [],
                         });
                     }
 
@@ -487,12 +489,12 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         return dependencies;
     }
 
-    protected resolveCascadeColumns(schema: string, relation: RelationMetadata) : CascadeColumn[] {
+    protected resolveCascadeColumns(target: SchemaTarget, relation: RelationMetadata) : CascadeColumn[] {
         const leading = new Set<string>();
-        const target = this.resolveSchema(schema);
+        const schema = this.resolveTargetSchema(target);
 
-        if (target) {
-            for (const column of leadingColumns(target)) {
+        if (schema) {
+            for (const column of leadingColumns(schema)) {
                 leading.add(column);
             }
         }
@@ -541,6 +543,37 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
     }
 
     /**
+     * What `resolveSchemaName` answers for an entity, in one shape: the
+     * name its tags are spelled with, and whether the registry holds a
+     * schema for it (`{ name, schema: false }` says it does not).
+     */
+    protected resolveSchemaTarget(metadata: EntityMetadata) : SchemaTarget | undefined {
+        const output = this.resolveSchemaName(metadata);
+
+        if (typeof output === 'undefined') {
+            return undefined;
+        }
+
+        if (typeof output === 'string') {
+            return { name: output, registered: true };
+        }
+
+        return { name: output.name, registered: output.schema !== false };
+    }
+
+    /**
+     * The schema of a tracked table, or `undefined` for one tracked by name
+     * alone, which is never looked up and never reported.
+     */
+    protected resolveTargetSchema(target: SchemaTarget) : Schema | undefined {
+        if (!target.registered) {
+            return undefined;
+        }
+
+        return this.resolveSchema(target.name);
+    }
+
+    /**
      * A schema the registry lacks is reported rather than thrown: the
      * reading side throws for it already, and a hook must not fail a write.
      */
@@ -554,6 +587,18 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         return schema;
     }
 }
+
+type SchemaTarget = {
+    /**
+     * The schema name the entity's tags are spelled with.
+     */
+    name: string,
+    /**
+     * Whether the registry is asked for the schema (scoped tags, and the
+     * `schemaUnresolvable` report when it lacks it).
+     */
+    registered: boolean,
+};
 
 type CascadeColumn = {
     /**

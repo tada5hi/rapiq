@@ -157,8 +157,16 @@ The write side lives behind its own entry, `@rapiq/cache/typeorm`, so the root t
 |---|---|
 | `cache` | anything with `invalidate(tags)`, usually the `TaggedCache` |
 | `registry` | the `SchemaRegistry` the reading side uses; the scoped tags come from the same `indexes` |
-| `resolveSchemaName` | `(metadata) => string \| undefined`: the rapiq schema name of an entity, `undefined` for an untracked table |
+| `resolveSchemaName` | `(metadata) => string \| { name, schema: false } \| undefined`: the rapiq schema name of an entity, `undefined` for an untracked table (see below) |
 | `onError` | where a failed bump is reported (default: dropped) |
+
+A name `resolveSchemaName` answers must be in the registry, or every write to that table reports `CacheError.schemaUnresolvable` to `onError` (its collection and record tags are still bumped), so a typo in the mapping stays visible. A table that deliberately has no rapiq schema, read through an explicit collection tag say, is answered with `{ name, schema: false }` (the type is exported as `CacheInvalidationSchemaTarget`): its writes bump the collection and record tags, a parent removal cascading into it bumps its collection, and the registry is never asked for it, so it yields no scoped tag and no report.
+
+```typescript
+resolveSchemaName: (metadata) => (metadata.name === 'AuditEntity' ?
+    { name: 'audit', schema: false } :
+    SCHEMA_NAMES[metadata.name]),
+```
 
 ### Which tags a write bumps
 

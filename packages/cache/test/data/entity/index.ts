@@ -7,6 +7,7 @@
 
 import type { EntityMetadata } from 'typeorm';
 import { ArticleEntity } from './article';
+import { AuditEntity } from './audit';
 import { NoteEntity } from './note';
 import { RealmEntity } from './realm';
 import { RoleEntity } from './role';
@@ -20,6 +21,7 @@ export const entities = [
     ArticleEntity,
     TagEntity,
     NoteEntity,
+    AuditEntity,
 ];
 
 const SCHEMA_NAMES : Record<string, string> = {
@@ -41,6 +43,7 @@ export function resolveSchemaName(metadata: EntityMetadata) : string | undefined
 
 export {
     ArticleEntity,
+    AuditEntity,
     NoteEntity,
     RealmEntity,
     RoleEntity,
