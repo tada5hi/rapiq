@@ -8,9 +8,11 @@
 import { defineQuery } from '@rapiq/core';
 import type { DataSource } from 'typeorm';
 import { IsNull } from 'typeorm';
+import type { ScopedTagValueNormalizer } from '../../../src';
 import {
     MemoryCacheDriver,
     TaggedCache,
+    normalizeScopedUuid,
     rememberQuery,
 } from '../../../src';
 import { CacheInvalidationSubscriber } from '../../../src/typeorm';
@@ -374,5 +376,83 @@ describe('typeorm end to end', () => {
         // `update` bumps `role` alone; the read carries `role:id=r1`.
         expect((await read())[0]?.name).toEqual('admin');
         expect(reads).toEqual(1);
+    });
+});
+
+describe('typeorm end to end (scoped value spelling)', () => {
+    const UPPER = 'ABCDEF01-2345-6789-ABCD-EF0123456789';
+    const LOWER = 'abcdef01-2345-6789-abcd-ef0123456789';
+
+    /**
+     * A scoped list read, an insert spelling the scoped uuid upper-case,
+     * and the length the next read answers. The read compares through
+     * LOWER(), standing in for postgres' uuid type, which matches every
+     * spelling of a uuid (and stores it lower-cased).
+     */
+    const run = async (normalizeScopedValue?: ScopedTagValueNormalizer) => {
+        const cache = new TaggedCache({
+            driver: new MemoryCacheDriver(),
+            onError: (e) => {
+                throw e;
+            },
+        });
+
+        const dataSource = await createDataSource([
+            new CacheInvalidationSubscriber({
+                cache,
+                registry,
+                resolveSchemaName,
+                normalizeScopedValue,
+                onError: (e) => {
+                    throw e;
+                },
+            }),
+        ]);
+
+        try {
+            await dataSource.getRepository(RealmEntity).save({ id: 'x', name: 'master' });
+            await dataSource.getRepository(RoleEntity).save({
+                id: 'r1',
+                name: 'admin',
+                realmId: 'x',
+            });
+
+            const repository = dataSource.getRepository(UserRoleEntity);
+            let reads = 0;
+            const read = () => rememberQuery(cache, {
+                key: `userRole?filter[userId]=${LOWER}`,
+                query: defineQuery<UserRole>({ filters: { userId: LOWER } }),
+                schema: 'userRole',
+                registry,
+                caseSensitive: USER_ROLE_CASE_SENSITIVE,
+                normalizeScopedValue,
+            }, async () => {
+                reads++;
+
+                return repository.createQueryBuilder('userRole')
+                    .where('LOWER(userRole.userId) = :userId', { userId: LOWER })
+                    .getMany();
+            });
+
+            expect(await read()).toHaveLength(0);
+
+            await repository.insert({
+                id: 'ur1',
+                userId: UPPER,
+                roleId: 'r1',
+            });
+
+            return { length: (await read()).length, reads };
+        } finally {
+            await dataSource.destroy();
+        }
+    };
+
+    it('should serve the inserted row when reader and writer share the normalizer', async () => {
+        expect(await run(normalizeScopedUuid)).toEqual({ length: 1, reads: 2 });
+    });
+
+    it('should serve the list stale without it (the reproduction)', async () => {
+        expect(await run()).toEqual({ length: 0, reads: 1 });
     });
 });

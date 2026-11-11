@@ -27,7 +27,7 @@ import {
     buildScopedTag,
     isScopedTagValue,
 } from '../tag';
-import type { ITaggedCache } from '../types';
+import type { ITaggedCache, ScopedTagValue, ScopedTagValueNormalizer } from '../types';
 import { CACHE_INVALIDATION_PENDING_KEY } from './constants';
 import type { CacheInvalidationSubscriberOptions } from './types';
 
@@ -54,6 +54,8 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
 
     protected resolveSchemaName : CacheInvalidationSubscriberOptions['resolveSchemaName'];
 
+    protected normalizeScopedValue : ScopedTagValueNormalizer | undefined;
+
     protected onError : (error: unknown) => void;
 
     /**
@@ -66,6 +68,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         this.cache = options.cache;
         this.registry = options.registry;
         this.resolveSchemaName = options.resolveSchemaName;
+        this.normalizeScopedValue = options.normalizeScopedValue;
         this.onError = options.onError ?? (() => {});
         this.cascades = new WeakMap();
     }
@@ -248,7 +251,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 value = canonicalizeDateColumn(metadata, column, value);
 
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
-                    tags.push(buildScopedTag(name, column, value));
+                    tags.push(this.buildNormalizedScopedTag(name, column, value));
                 }
             }
         }
@@ -280,7 +283,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
             const joinColumn = findJoinColumn(metadata, column);
 
             if (joinColumn && joinColumn.column.isNullable) {
-                tags.push(buildScopedTag(name, column, null));
+                tags.push(this.buildNormalizedScopedTag(name, column, null));
             }
         }
 
@@ -412,7 +415,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 // SET NULL moves the child rows INTO the null scope, a value
                 // that needs no key: a criteria delete reaches it too.
                 if (dependency.setNull) {
-                    tags.add(buildScopedTag(dependency.schema, column.child, null));
+                    tags.add(this.buildNormalizedScopedTag(dependency.schema, column.child, null));
                 }
 
                 if (typeof row === 'undefined' || row === null) {
@@ -422,7 +425,7 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
                 const value = row[column.parent];
 
                 if (typeof value !== 'undefined' && isScopedTagValue(value)) {
-                    tags.add(buildScopedTag(dependency.schema, column.child, value));
+                    tags.add(this.buildNormalizedScopedTag(dependency.schema, column.child, value));
                 }
             }
         }
@@ -514,6 +517,36 @@ export class CacheInvalidationSubscriber implements EntitySubscriberInterface {
         }
 
         return columns;
+    }
+
+    /**
+     * Every scoped tag the subscriber bumps, spelled through
+     * `normalizeScopedValue`. A hook never fails a write: a throwing
+     * normalizer, or one answering no scoped tag value, is reported and
+     * the raw value is bumped (a possibly useless bump beats none).
+     */
+    protected buildNormalizedScopedTag(schema: string, column: string, value: ScopedTagValue) : string {
+        if (!this.normalizeScopedValue) {
+            return buildScopedTag(schema, column, value);
+        }
+
+        let normalized : unknown;
+
+        try {
+            normalized = this.normalizeScopedValue(schema, column, value);
+        } catch (e) {
+            this.onError(e);
+
+            return buildScopedTag(schema, column, value);
+        }
+
+        if (!isScopedTagValue(normalized)) {
+            this.onError(CacheError.scopedTagValueInvalid(schema, column));
+
+            return buildScopedTag(schema, column, value);
+        }
+
+        return buildScopedTag(schema, column, normalized);
     }
 
     /**

@@ -7,7 +7,7 @@
 
 import type { SchemaRegistry } from '@rapiq/core';
 import type { EntityMetadata } from 'typeorm';
-import type { ITaggedCache } from '../types';
+import type { ITaggedCache, ScopedTagValueNormalizer } from '../types';
 
 /**
  * A table the cache tracks by name alone, without a rapiq schema: a write
@@ -35,6 +35,15 @@ export type CacheInvalidationSubscriberOptions = {
      * is not consulted.
      */
     resolveSchemaName: (metadata: EntityMetadata) => string | CacheInvalidationSchemaTarget | undefined,
+    /**
+     * The canonical spelling of every scoped tag value the subscriber
+     * bumps (row values old and new, the `null` scope, cascade keys, the
+     * latter with the child's schema and column). Hand the reading side
+     * (`rememberQuery`, `collectQueryTags`) the same function. A throw, or
+     * an answer that is no scoped tag value, is reported to `onError` and
+     * the raw value is bumped instead. Default: the value as written.
+     */
+    normalizeScopedValue?: ScopedTagValueNormalizer,
     /**
      * Where a failed bump is reported. Default: dropped. A hook never
      * rethrows, since a failure there would fail the request after its

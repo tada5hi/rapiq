@@ -10,6 +10,7 @@ import {
     buildRecordTag,
     buildScopedTag,
     isScopedTagValue,
+    normalizeScopedUuid,
 } from '../../src';
 
 describe('src/tag.ts', () => {
@@ -53,5 +54,38 @@ describe('src/tag.ts', () => {
         expect(isScopedTagValue({})).toBeFalsy();
         expect(isScopedTagValue([1])).toBeFalsy();
         expect(isScopedTagValue(new Date(NaN))).toBeFalsy();
+    });
+});
+
+describe('normalizeScopedUuid', () => {
+    const CANONICAL = 'abcdef01-2345-6789-abcd-ef0123456789';
+
+    it('should lower-case a hyphenated uuid', () => {
+        expect(normalizeScopedUuid('userRole', 'userId', 'ABCDEF01-2345-6789-ABCD-EF0123456789')).toEqual(CANONICAL);
+        expect(normalizeScopedUuid('userRole', 'userId', CANONICAL)).toEqual(CANONICAL);
+    });
+
+    it('should hyphenate the other spellings postgres reads', () => {
+        expect(normalizeScopedUuid('userRole', 'userId', '{ABCDEF01-2345-6789-ABCD-EF0123456789}')).toEqual(CANONICAL);
+        expect(normalizeScopedUuid('userRole', 'userId', 'ABCDEF0123456789ABCDEF0123456789')).toEqual(CANONICAL);
+        expect(normalizeScopedUuid('userRole', 'userId', 'abcd-ef01-2345-6789-abcd-ef01-2345-6789')).toEqual(CANONICAL);
+    });
+
+    it('should pass everything else through untouched', () => {
+        const date = new Date(0);
+
+        for (const value of [
+            'Master',
+            'u1',
+            'ABCDEF01-2345-6789-ABCD-EF012345678',
+            'ABCDEF01-2345-6789-ABCD-EF0123456789Z',
+            '{ABCDEF01-2345-6789-ABCD-EF0123456789',
+            7,
+            true,
+            null,
+            date,
+        ]) {
+            expect(normalizeScopedUuid('userRole', 'userId', value)).toBe(value);
+        }
     });
 });

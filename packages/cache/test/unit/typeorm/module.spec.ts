@@ -6,7 +6,8 @@
  */
 
 import type { DataSource, EntityMetadata } from 'typeorm';
-import { isCacheError } from '../../../src';
+import type { ScopedTagValue, ScopedTagValueNormalizer } from '../../../src';
+import { isCacheError, normalizeScopedUuid } from '../../../src';
 import type { CacheInvalidationSchemaTarget } from '../../../src/typeorm';
 import { CacheInvalidationSubscriber } from '../../../src/typeorm';
 import {
@@ -705,5 +706,188 @@ describe('src/typeorm/module.ts (a table without a schema)', () => {
 
         expect(calls).toEqual([['article', 'article:a1', 'tag', 'tag:t1']]);
         expect(errors).toEqual([]);
+    });
+});
+
+describe('src/typeorm/module.ts (normalizeScopedValue)', () => {
+    const UPPER = 'ABCDEF01-2345-6789-ABCD-EF0123456789';
+    const LOWER = 'abcdef01-2345-6789-abcd-ef0123456789';
+    const OTHER_UPPER = '11111111-2222-3333-4444-AAAAAAAAAAAA';
+    const OTHER_LOWER = '11111111-2222-3333-4444-aaaaaaaaaaaa';
+
+    let dataSource : DataSource;
+
+    let calls : string[][];
+
+    let errors : unknown[];
+
+    const setup = async (normalizeScopedValue: ScopedTagValueNormalizer) => {
+        dataSource = await createDataSource([
+            new CacheInvalidationSubscriber({
+                cache: {
+                    invalidate: async (tags) => {
+                        calls.push(tags);
+                    },
+                },
+                registry,
+                resolveSchemaName,
+                normalizeScopedValue,
+                onError: (e) => {
+                    errors.push(e);
+                },
+            }),
+        ]);
+
+        await dataSource.getRepository(RealmEntity).insert({ id: 'x', name: 'master' });
+        await dataSource.getRepository(RoleEntity).insert({
+            id: 'r1',
+            name: 'admin',
+            realmId: 'x',
+        });
+        calls = [];
+        errors = [];
+    };
+
+    beforeEach(() => {
+        calls = [];
+        errors = [];
+    });
+
+    afterEach(async () => {
+        await dataSource.destroy();
+    });
+
+    it('should bump the canonical scoped tag of an inserted row', async () => {
+        await setup(normalizeScopedUuid);
+
+        await dataSource.getRepository(UserRoleEntity).insert({
+            id: 'ur1',
+            userId: UPPER,
+            roleId: 'r1',
+        });
+
+        expect(calls).toEqual([
+            ['userRole', 'userRole:ur1', `userRole:userId=${LOWER}`, 'userRole:roleId=r1'],
+        ]);
+        expect(errors).toEqual([]);
+    });
+
+    it('should bump the canonical old and new value on update', async () => {
+        await setup(normalizeScopedUuid);
+
+        const repository = dataSource.getRepository(UserRoleEntity);
+
+        await repository.save({
+            id: 'ur1',
+            userId: UPPER,
+            roleId: 'r1',
+        });
+        calls = [];
+
+        const row = await repository.findOneByOrFail({ id: 'ur1' });
+
+        row.userId = OTHER_UPPER;
+        await repository.save(row);
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toEqual(expect.arrayContaining([
+            `userRole:userId=${LOWER}`,
+            `userRole:userId=${OTHER_LOWER}`,
+        ]));
+        expect(calls[0]!.filter((tag) => tag.includes(UPPER) || tag.includes(OTHER_UPPER))).toEqual([]);
+    });
+
+    it('should bump the canonical cascade tag of a removed parent', async () => {
+        await setup(normalizeScopedUuid);
+
+        const roles = dataSource.getRepository(RoleEntity);
+
+        await roles.insert({
+            id: UPPER,
+            name: 'owner',
+            realmId: 'x',
+        });
+        calls = [];
+
+        await roles.remove(await roles.findOneByOrFail({ id: UPPER }));
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toEqual(expect.arrayContaining([
+            `role:${UPPER}`,
+            `role:id=${LOWER}`,
+            `userRole:roleId=${LOWER}`,
+        ]));
+        expect(calls[0]).not.toContain(`userRole:roleId=${UPPER}`);
+    });
+
+    it('should hand the normalizer the child schema and column of a cascade', async () => {
+        const seen : [string, string, ScopedTagValue][] = [];
+
+        await setup((schema, column, value) => {
+            seen.push([schema, column, value]);
+
+            return value;
+        });
+
+        const realms = dataSource.getRepository(RealmEntity);
+
+        await realms.remove(await realms.findOneByOrFail({ id: 'x' }));
+
+        expect(seen).toEqual(expect.arrayContaining([
+            ['realm', 'id', 'x'],
+            ['role', 'realmId', 'x'],
+            ['note', 'realmId', 'x'],
+            ['note', 'realmId', null],
+        ]));
+    });
+
+    it('should spell the null scope of a released orphan through the normalizer', async () => {
+        await setup((_schema, _column, value) => (value === null ? 'none' : value));
+
+        await dataSource.getRepository(NoteEntity).save({ id: 'n1', realmId: 'x' });
+        calls = [];
+
+        const realms = dataSource.getRepository(RealmEntity);
+        const realm = await realms.findOneOrFail({ where: { id: 'x' }, relations: { notes: true } });
+
+        realm.notes = [];
+        await realms.save(realm);
+
+        expect(calls).toEqual([['note', 'note:realmId=none']]);
+    });
+
+    it('should report a throwing normalizer and bump the raw value', async () => {
+        await setup(() => {
+            throw new Error('boom');
+        });
+
+        await dataSource.getRepository(UserRoleEntity).insert({
+            id: 'ur1',
+            userId: UPPER,
+            roleId: 'r1',
+        });
+
+        expect(calls).toEqual([
+            ['userRole', 'userRole:ur1', `userRole:userId=${UPPER}`, 'userRole:roleId=r1'],
+        ]);
+        expect(errors).toHaveLength(2);
+        expect((errors[0] as Error).message).toEqual('boom');
+        expect(await dataSource.getRepository(UserRoleEntity).count()).toEqual(1);
+    });
+
+    it('should report a normalizer answering no scoped tag value and bump the raw value', async () => {
+        await setup(() => ({}) as ScopedTagValue);
+
+        await dataSource.getRepository(UserRoleEntity).insert({
+            id: 'ur1',
+            userId: UPPER,
+            roleId: 'r1',
+        });
+
+        expect(calls).toEqual([
+            ['userRole', 'userRole:ur1', `userRole:userId=${UPPER}`, 'userRole:roleId=r1'],
+        ]);
+        expect(errors).toHaveLength(2);
+        expect(isCacheError(errors[0])).toBe(true);
     });
 });

@@ -17,7 +17,7 @@ The full walkthrough is the [Caching Query Results](/guide/cache) guide.
 | Area | Exports | Guide |
 |---|---|---|
 | **Cache** | `TaggedCache` (`remember`, `invalidate`, `drop`), `ITaggedCache` | [Reading through the cache](/guide/cache#reading-through-the-cache) |
-| **Tags** | `buildCollectionTag`, `buildRecordTag`, `buildScopedTag`, `isScopedTagValue` | [Vocabulary](/guide/cache#vocabulary) |
+| **Tags** | `buildCollectionTag`, `buildRecordTag`, `buildScopedTag`, `isScopedTagValue`, `normalizeScopedUuid`, `ScopedTagValueNormalizer` | [Vocabulary](/guide/cache#vocabulary), [canonical scoped values](/guide/cache#canonical-scoped-values) |
 | **Query tags** | `collectQueryTags`, `isCacheable`, `rememberQuery`, `QueryTagsInput`, `RememberQueryInput`, `QueryCaseSensitive` | [Which tags a query yields](/guide/cache#which-tags-a-query-yields) |
 | **Drivers** | `ICacheDriver`, `CacheEntry`, `MemoryCacheDriver`, `CACHE_MAX_TTL_DEFAULT`, `isCacheTtlValid`, `clampCacheTtl`, `isCacheTagWellFormed` | [The driver contract](/guide/cache#the-driver-contract) |
 | **Errors** | `CacheError`, `isCacheError` | [Errors](/guide/cache#errors) |
