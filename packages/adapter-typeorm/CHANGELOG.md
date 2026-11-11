@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.4.1](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.4.0...adapter-typeorm-v2.4.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **deps:** bump the minorandpatch group across 1 directory with 6 updates ([#981](https://github.com/tada5hi/rapiq/issues/981)) ([42f8543](https://github.com/tada5hi/rapiq/commit/42f85434fd01eea32669db598a1bb6ae498b9bf5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.4.0 to ^2.4.1
+    * @rapiq/parser-simple bumped from ^2.4.0 to ^2.4.1
+    * @rapiq/adapter-sql bumped from ^2.4.0 to ^2.4.1
+  * peerDependencies
+    * @rapiq/core bumped from ^2.4.0 to ^2.4.1
+    * @rapiq/adapter-memory bumped from ^2.4.0 to ^2.4.1
+    * @rapiq/adapter-sql bumped from ^2.4.0 to ^2.4.1
+
 ## [2.4.0](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.3.0...adapter-typeorm-v2.4.0) (2026-09-23)
 
 
