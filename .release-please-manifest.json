@@ -9,6 +9,6 @@
     "packages/adapter-prisma": "2.4.1",
     "packages/adapter-drizzle": "2.4.1",
     "packages/adapter-memory": "2.4.1",
-    "packages/cache": "0.1.0",
-    "packages/cache-redis": "0.1.0"
+    "packages/cache": "0.1.1",
+    "packages/cache-redis": "0.1.1"
 }

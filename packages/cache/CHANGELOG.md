@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/tada5hi/rapiq/compare/cache-v0.1.0...cache-v0.1.1) (2026-11-11)
+
+
+### Features
+
+* **cache:** adoption follow-ups for rememberQuery, the typeorm entry and the redis driver ([#991](https://github.com/tada5hi/rapiq/issues/991)) ([1234394](https://github.com/tada5hi/rapiq/commit/123439486b4d11c8c25918b384270dc6d26517e5))
+
 ## 0.1.0 (2026-11-11)
 
 
