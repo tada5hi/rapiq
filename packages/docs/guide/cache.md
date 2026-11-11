@@ -62,6 +62,8 @@ const roles = await rememberQuery(cache, {
 
 `rememberQuery` decides whether the query may be shared (`isCacheable`), then hands the read to `TaggedCache.remember` with a tag derivation over the hydrated result.
 
+Two options reach past the derivation. `tags: (value) => string[]` names dependencies the query does not carry (a policy the read applied outside the query, say); they are unioned onto the derived tags, and a throw there is handled like a throwing derivation (see [`remember`](#remember)). It is never called for a query that is not cacheable. `ttl` is a per-call ttl in milliseconds, as on `remember`.
+
 ### The cache key
 
 The KEY is yours, and this package does not encode queries itself. It must encode every input that selects the result: the query as EXECUTED (encode it after the server appended its own conditions, not the query the client sent), the `fields` parameter (a key built from the filters alone serves the wrong projection), and every input that lives outside the query, above all a path parameter. `GET /roles/:id?include=realm` carries its id in the path, so a key made of the encoded query alone is shared by every id and serves the first id's row to every later request. The same holds for a route realm (`/realms/:realmId/...`):
@@ -111,7 +113,15 @@ collectQueryTags({
 
 `isCacheable(query)` is `false` when any `Field`, at the root or under a relation, carries a `condition`. That is a per-actor visibility verdict a schema hook attached (see [field conditions](/guide/fields)): the projection depends on who asked, which the key cannot carry. `rememberQuery` calls the read directly for such a query.
 
-Any read issued while a transaction is open on the connection it reads through must bypass the cache as well, not only a transaction that has already read. It can see that transaction's own uncommitted writes, which a rollback never bumps away, so the rolled-back row would be served to every caller until the ttl; and under `REPEATABLE READ` its snapshot also predates the clock the cache observed. Check `queryRunner.isTransactionActive` (or your driver's equivalent) and call the read directly. TypeORM's better-sqlite3 driver shares one connection between every request, so there the check is the shared runner (`dataSource.createQueryRunner().isTransactionActive`), not the caller's own: a request outside any transaction still reads another request's uncommitted write.
+Any read issued while a transaction is open on the connection it reads through must bypass the cache as well, not only a transaction that has already read. It can see that transaction's own uncommitted writes, which a rollback never bumps away, so the rolled-back row would be served to every caller until the ttl; and under `REPEATABLE READ` its snapshot also predates the clock the cache observed. Check for an open transaction (`queryRunner.isTransactionActive`, or your driver's equivalent) and call the read directly. TypeORM's sqlite drivers (better-sqlite3, sql.js, capacitor, cordova, expo, nativescript, react-native) share one connection between every request, so there the check is the shared runner, not the caller's own: a request outside any transaction still reads another request's uncommitted write. `isTransactionActive(dataSource, manager?)` from `@rapiq/cache/typeorm` covers both: it reads the manager's query runner (default: `dataSource.manager`) and, on a shared-connection driver, the shared runner. It never allocates a query runner on a pooled driver.
+
+```typescript
+import { isTransactionActive } from '@rapiq/cache/typeorm';
+
+const roles = isTransactionActive(dataSource, manager) ?
+    await read() :
+    await rememberQuery(cache, input, read);
+```
 
 ## Invalidating
 

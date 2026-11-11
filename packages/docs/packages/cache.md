@@ -34,6 +34,8 @@ import { CacheInvalidationSubscriber } from '@rapiq/cache/typeorm';
 
 `typeorm` is an optional peer dependency for the types of that entry alone; the class imports nothing from `typeorm` at runtime. Push the instance onto `dataSource.subscribers` after every `initialize()`. See [The TypeORM write side](/guide/cache#the-typeorm-write-side) and [what reaches a scoped reader](/guide/cache#what-reaches-a-scoped-reader).
 
+The same entry exports `isTransactionActive(dataSource, manager?)`, the check a read must pass before it goes through the cache: a read inside an open transaction calls the database directly. See [what is not cached](/guide/cache#what-is-not-cached).
+
 ## Shared stores
 
 The memory driver serves one process. For a store shared between processes use [@rapiq/cache-redis](/packages/cache-redis), which implements the same `ICacheDriver` contract and runs the same contract suite.

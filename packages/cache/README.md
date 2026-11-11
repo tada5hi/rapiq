@@ -77,6 +77,8 @@ The key is yours and must encode every input that selects the result: the query 
 
 `rows` unwraps a value that is not a row or a list of rows, so its record tags are found: `rows: ([rows]) => rows` for a `findAndCount` tuple, `rows: (value) => value.data` for an envelope. `primaryKey` names the key property (default `id`).
 
+`tags: (value) => string[]` adds tags the derivation cannot see (a policy the read applied outside the query, say), unioned onto the derived ones; a throw there is handled like a throwing derivation. `ttl` is a per-call ttl in milliseconds, as on `remember`.
+
 ## How a read stays correct
 
 Every driver implements a clock read and three atomic steps:
@@ -96,7 +98,15 @@ A driver failure on the read path (`clock`, `read`, `write`) is reported to `onE
 
 ## What is not cached
 
-`isCacheable(query)` is `false` when any `Field` carries a `condition`: that is a per-actor visibility verdict the key cannot carry. `rememberQuery` bypasses the cache for such a query. Any read issued while a transaction is open on the connection it reads through must bypass the cache too: it can see that transaction's own uncommitted writes, which a rollback never bumps away, and under REPEATABLE READ its snapshot also predates the clock. Check `queryRunner.isTransactionActive` and call the read directly; on TypeORM's better-sqlite3 driver, which shares one connection, check the shared runner (`dataSource.createQueryRunner().isTransactionActive`).
+`isCacheable(query)` is `false` when any `Field` carries a `condition`: that is a per-actor visibility verdict the key cannot carry. `rememberQuery` bypasses the cache for such a query. Any read issued while a transaction is open on the connection it reads through must bypass the cache too: it can see that transaction's own uncommitted writes, which a rollback never bumps away, and under REPEATABLE READ its snapshot also predates the clock. Check for an open transaction and call the read directly. On TypeORM, `isTransactionActive(dataSource, manager?)` from `@rapiq/cache/typeorm` is that check: it reads the manager's own query runner and, on a driver sharing one connection (better-sqlite3, sql.js and the other sqlite drivers), the shared runner, so a read outside any transaction still bypasses while another request holds one open:
+
+```typescript
+import { isTransactionActive } from '@rapiq/cache/typeorm';
+
+const roles = isTransactionActive(dataSource, manager) ?
+    await read() :
+    await rememberQuery(cache, input, read);
+```
 
 ## The TypeORM write side
 
