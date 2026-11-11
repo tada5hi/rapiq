@@ -1,6 +1,6 @@
 {
     "name": "@rapiq/adapter-typeorm",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "description": "Apply a rapiq query directly to a TypeORM SelectQueryBuilder (filters, relations, fields, sort & pagination).",
     "type": "module",
     "main": "dist/index.mjs",
@@ -19,9 +19,9 @@
         "change-case": "^5.4.4"
     },
     "devDependencies": {
-        "@rapiq/core": "^2.4.0",
-        "@rapiq/parser-simple": "^2.4.0",
-        "@rapiq/adapter-sql": "^2.4.0",
+        "@rapiq/core": "^2.4.1",
+        "@rapiq/parser-simple": "^2.4.1",
+        "@rapiq/adapter-sql": "^2.4.1",
         "@swc/core": "^1.16.21",
         "ansis": "^4.5.0",
         "better-sqlite3": "^12.6.0",
@@ -32,9 +32,9 @@
         "unplugin-swc": "^2.0.0"
     },
     "peerDependencies": {
-        "@rapiq/core": "^2.4.0",
-        "@rapiq/adapter-memory": "^2.4.0",
-        "@rapiq/adapter-sql": "^2.4.0",
+        "@rapiq/core": "^2.4.1",
+        "@rapiq/adapter-memory": "^2.4.1",
+        "@rapiq/adapter-sql": "^2.4.1",
         "typeorm": "^1.1.2"
     },
     "scripts": {
