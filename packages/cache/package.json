@@ -25,7 +25,7 @@
     "devDependencies": {
         "@rapiq/core": "^2.4.1",
         "@swc/core": "^1.16.21",
-        "better-sqlite3": "^12.6.0",
+        "better-sqlite3": "^13.0.3",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^1.1.2",
         "unplugin-swc": "^2.0.0"
