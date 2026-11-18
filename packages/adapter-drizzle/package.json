@@ -19,7 +19,7 @@
         "@rapiq/core": "^2.4.1",
         "@types/better-sqlite3": "^7.6.11",
         "@types/pg": "^8.23.1",
-        "better-sqlite3": "^13.0.3",
+        "better-sqlite3": "^13.2.0",
         "drizzle-orm": "1.0.0-rc.5",
         "pg": "^8.23.1"
     },
