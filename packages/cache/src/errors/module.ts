@@ -6,24 +6,83 @@
  */
 
 import { markInstanceof } from '@ebec/core';
-import type { BaseErrorOptions } from '@rapiq/core';
+import type { SerializedError } from '@rapiq/core';
 import { BaseError, ErrorCode, isObject } from '@rapiq/core';
 import { CACHE_ERROR_MARKER } from './check';
+import type { CacheErrorOptions } from './types';
 
 /**
- * A configuration failure of the cache layer. Never a miss: a miss is
- * `null` from a driver, an outage is reported to `onError`; what throws
- * here is something the deployment has to fix.
+ * A failure of the cache layer. Never a miss: a miss is `null` from a
+ * driver. Most of what throws here is configuration the deployment has to
+ * fix; a lost invalidation (`invalidationFailed`, `invalidationsOverflowed`)
+ * names the tags it concerned in `tags`.
  */
 export class CacheError extends BaseError {
-    constructor(message?: string | BaseErrorOptions) {
+    /**
+     * The tags a failed or dropped invalidation concerned; empty otherwise.
+     */
+    readonly tags : string[];
+
+    constructor(message?: string | CacheErrorOptions) {
         if (isObject(message)) {
             message.message = message.message || 'A cache error has occurred.';
         }
 
         super(message || 'A cache error has occurred.');
 
+        this.tags = isObject(message) && message.tags ? [...message.tags] : [];
+
         markInstanceof(this, CACHE_ERROR_MARKER);
+    }
+
+    /**
+     * The base's wire form, plus `tags` when the error names any: a logged
+     * lost invalidation keeps the tags it concerned.
+     */
+    override toJSON() : SerializedError & { tags?: string[] } {
+        const output : SerializedError & { tags?: string[] } = super.toJSON();
+
+        if (this.tags.length > 0) {
+            output.tags = [...this.tags];
+        }
+
+        return output;
+    }
+
+    /**
+     * A driver refused to bump the tags. The `TaggedCache` keeps them
+     * pending and replays them; `cause` is the driver failure.
+     */
+    static invalidationFailed(tags: string[], cause: unknown) {
+        return new this({
+            message: `The invalidation of ${tags.length} tag(s) failed.`,
+            code: ErrorCode.NONE,
+            tags,
+            cause,
+        });
+    }
+
+    /**
+     * The pending set is full: these tags of a failed invalidation are not
+     * kept, so their bump is lost. The cache trusts no hit for `maxTtl`
+     * after it, the longest such a stale entry can live.
+     */
+    static invalidationsOverflowed(tags: string[]) {
+        return new this({
+            message: `The pending invalidations are at their limit: ${tags.length} tag(s) were not kept.`,
+            code: ErrorCode.LIMIT_EXCEEDED,
+            tags,
+        });
+    }
+
+    /**
+     * A pending invalidation cap that is not an integer of at least 1.
+     */
+    static maxPendingInvalidationsInvalid(value: number) {
+        return new this({
+            message: `The maxPendingInvalidations must be an integer of at least 1, got ${value}.`,
+            code: ErrorCode.INPUT_INVALID,
+        });
     }
 
     /**

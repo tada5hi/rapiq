@@ -28,7 +28,7 @@ import {
     normalizeScopedUuid,
     rememberQuery,
 } from '../../../src';
-import type { ScopedTagValue } from '../../../src';
+import type { ITaggedCache, ScopedTagValue } from '../../../src';
 import { registry, userRoleSchema } from '../../data/schema';
 import type { Realm, Role, UserRole } from '../../data/type';
 
@@ -589,6 +589,31 @@ describe('src/query/module.ts', () => {
 
             expect(await rememberQuery(cache, input, read)).toEqual(rows);
             expect(reads).toEqual(2);
+        });
+
+        it('should accept anything that can remember', async () => {
+            // a double typed against `remember` alone: rememberQuery needs
+            // nothing else of the cache.
+            const calls : string[][] = [];
+            const cache : Pick<ITaggedCache, 'remember'> = {
+                async remember(key, read, options) {
+                    const value = await read();
+
+                    calls.push([key, ...options.tags(value)]);
+
+                    return value;
+                },
+            };
+
+            const rows = [{ id: 'r1', name: 'admin' }];
+
+            expect(await rememberQuery(cache, {
+                key: 'roles',
+                query: defineQuery<Role>({}),
+                schema: 'role',
+                registry,
+            }, async () => rows)).toEqual(rows);
+            expect(calls).toEqual([['roles', 'role', 'role:r1']]);
         });
 
         it('should bypass the cache for a query that is not cacheable', async () => {
