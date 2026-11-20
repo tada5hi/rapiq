@@ -91,6 +91,27 @@ defineQuery<User>({
 });
 ```
 
+## Requiring an equal value
+
+A sub-resource listing such as `GET /post-tags` often demands `filter[postId]=<slug>`, authorizes the parent first, and then swaps the slug for the resolved id. `@rapiq/core` exports two helpers for that:
+
+```typescript
+import { findRequiredEqualValue, replaceRequiredEqualValue } from '@rapiq/core';
+
+const slug = findRequiredEqualValue(query.filters, 'postId');   // 'my-post' | undefined
+if (slug === undefined) {
+    throw new Error('filter[postId] is required');
+}
+
+const post = await findPost(slug);
+const filters = replaceRequiredEqualValue(query.filters, 'postId', slug, post.id);
+```
+
+- `findRequiredEqualValue(condition, field)` returns the value of the first `eq` leaf on `field` reached through the root or `and` groups. An `or`, a `not` or a custom condition requires nothing and is not entered. The value can be of any type.
+- `replaceRequiredEqualValue(condition, field, from, to)` returns the tree with those leaves whose value strictly equals `from` set to `to`. Guarding by `from` means `eq(postId, a) AND eq(postId, b)` cannot widen into a match. `preserved` is kept, untouched nodes are shared by reference, and the input itself is returned when nothing changed.
+
+`eq` is case-insensitive by default (see [Case sensitivity](#case-sensitivity)), so for strings "every match equals the value" holds up to case.
+
 ## OR & compound trees
 
 The simple object/wire dialect only expresses flat **and** sets. For `or`, `not` and nested groups:
