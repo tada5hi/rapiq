@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.5.0](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.4.1...adapter-sql-v2.5.0) (2026-11-20)
+
+
+### Miscellaneous Chores
+
+* **adapter-sql:** Synchronize rapiq versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+    * @rapiq/adapter-memory bumped from ^2.4.1 to ^2.5.0
+
 ## [2.4.1](https://github.com/tada5hi/rapiq/compare/adapter-sql-v2.4.0...adapter-sql-v2.4.1) (2026-11-11)
 
 

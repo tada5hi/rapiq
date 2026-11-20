@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/tada5hi/rapiq/compare/cache-redis-v0.1.1...cache-redis-v0.1.2) (2026-11-20)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/cache bumped from ^0.1.1 to ^0.1.2
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+  * peerDependencies
+    * @rapiq/cache bumped from ^0.1.1 to ^0.1.2
+
 ## [0.1.1](https://github.com/tada5hi/rapiq/compare/cache-redis-v0.1.0...cache-redis-v0.1.1) (2026-11-11)
 
 

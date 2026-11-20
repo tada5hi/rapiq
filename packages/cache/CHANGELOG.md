@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2](https://github.com/tada5hi/rapiq/compare/cache-v0.1.1...cache-v0.1.2) (2026-11-20)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+
 ## [0.1.1](https://github.com/tada5hi/rapiq/compare/cache-v0.1.0...cache-v0.1.1) (2026-11-11)
 
 
