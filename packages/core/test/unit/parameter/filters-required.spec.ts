@@ -20,7 +20,7 @@ import {
     replaceRequiredEqualValue,
     startsWith,
 } from '../../../src';
-import type { ICondition } from '../../../src';
+import type { ICondition, IFilters } from '../../../src';
 
 describe('src/parameter/filters/required.ts', () => {
     describe('findRequiredEqualValue', () => {
@@ -49,6 +49,10 @@ describe('src/parameter/filters/required.ts', () => {
 
         it('should return the first on conflict', () => {
             expect(findRequiredEqualValue(and(eq('postId', 'a'), eq('postId', 'b')), 'postId')).toBe('a');
+        });
+
+        it('should stop at the first leaf even when its value is undefined', () => {
+            expect(findRequiredEqualValue(and(eq('postId', undefined), eq('postId', 'a')), 'postId')).toBeUndefined();
         });
 
         it('should return non-string values', () => {
@@ -107,7 +111,7 @@ describe('src/parameter/filters/required.ts', () => {
             expect(replaceRequiredEqualValue(leaf, 'postId', 'a', 'x')).toBe(leaf);
         });
 
-        it('should not widen: only leaves equal to from are replaced', () => {
+        it('should only replace leaves equal to from and leave other values as they are', () => {
             const tree = and(eq('postId', 'a'), eq('postId', 'b'));
 
             expect(findRequiredEqualValue(tree, 'postId')).toBe('a');
@@ -116,6 +120,19 @@ describe('src/parameter/filters/required.ts', () => {
 
             expect(out.value[0]).toMatchObject({ value: 'x' });
             expect(out.value[1]).toBe(tree.value[1]);
+        });
+
+        it('should not keep the input value type in the result', () => {
+            const leaf = new Filter<'eq', string>('eq', 'postId', 'slug');
+            const group = new Filters<Filter<'eq', string>>('and', [leaf]);
+
+            const outLeaf = replaceRequiredEqualValue(leaf, 'postId', 'slug', 123);
+            const outGroup = replaceRequiredEqualValue(group, 'postId', 'slug', 123);
+
+            expectTypeOf(outLeaf.value).toBeUnknown();
+            expectTypeOf(outGroup).toEqualTypeOf<IFilters>();
+            expect(outLeaf.value).toBe(123);
+            expect(outGroup.value[0]).toMatchObject({ value: 123 });
         });
 
         it('should treat or / not / custom as opaque and return them by reference', () => {

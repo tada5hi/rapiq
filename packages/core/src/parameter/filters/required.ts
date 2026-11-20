@@ -6,65 +6,87 @@
  */
 
 import { FilterCompoundOperator, FilterFieldOperator } from '../../schema';
+import type { IFilters } from './collection';
 import { Filters, isFilters } from './collection';
+import type { IFilter } from './record';
 import { Filter, isFilter } from './record';
 import type { ICondition } from './types';
+
+type RequiredEqualMatch = { found: false } | { found: true, value: unknown };
+
+function matchRequiredEqual(condition: ICondition, field: string) : RequiredEqualMatch {
+    if (isFilter(condition)) {
+        if (condition.field === field && condition.operator === FilterFieldOperator.EQUAL) {
+            return { found: true, value: condition.value };
+        }
+
+        return { found: false };
+    }
+
+    if (isFilters(condition, FilterCompoundOperator.AND)) {
+        for (const child of condition.value) {
+            const match = matchRequiredEqual(child, field);
+
+            if (match.found) {
+                return match;
+            }
+        }
+    }
+
+    return { found: false };
+}
 
 /**
  * The value `condition` requires `field` to equal: the value of the first `eq`
  * leaf on `field` reached through the root or AND groups only. An OR, a NOT or
  * a custom condition requires nothing of the field and is not entered.
- * Returns `undefined` when there is no such leaf.
+ * Returns `undefined` when there is no such leaf (and for a first leaf whose
+ * value is `undefined` itself; the traversal stops there either way).
  *
  * `eq` is case-insensitive by default, so for strings "every match equals the
  * value" holds up to case.
  */
-export function findRequiredEqualValue(condition: ICondition, field: string) : unknown | undefined {
-    if (isFilter(condition)) {
-        if (condition.field === field && condition.operator === FilterFieldOperator.EQUAL) {
-            return condition.value;
-        }
+export function findRequiredEqualValue(condition: ICondition, field: string) : unknown {
+    const match = matchRequiredEqual(condition, field);
 
-        return undefined;
-    }
-
-    if (isFilters(condition, FilterCompoundOperator.AND)) {
-        for (const child of condition.value) {
-            const value = findRequiredEqualValue(child, field);
-
-            if (value !== undefined) {
-                return value;
-            }
-        }
-    }
-
-    return undefined;
+    return match.found ? match.value : undefined;
 }
 
 /**
  * `condition` with every `eq` leaf on `field` (reached through the root or AND
- * groups only) whose value strictly equals `from` set to `to`. Guarding by
- * `from` keeps `eq a AND eq b` from widening into a match: only the leaf the
- * caller resolved is rewritten.
+ * groups only) whose value strictly equals `from` set to `to`. Leaves holding
+ * any other value are left as they are: only the leaf the caller resolved is
+ * rewritten.
  *
  * Nodes that did not change are carried over by reference, and the input
  * itself is returned when nothing below it changed. A rewritten leaf or
  * rebuilt AND group keeps its `preserved` flag. OR, NOT and custom conditions
  * are opaque and returned as they are.
+ *
+ * The result keeps the node kind (a group for a group, a leaf for a leaf) but
+ * not the input's value types: `to` may be of another type than `from`.
  */
-export function replaceRequiredEqualValue<T extends ICondition>(
-    condition: T,
+export function replaceRequiredEqualValue(condition: IFilters, field: string, from: unknown, to: unknown) : IFilters;
+export function replaceRequiredEqualValue(
+    condition: IFilter<string, unknown>,
     field: string,
     from: unknown,
     to: unknown,
-) : T {
+) : IFilter<string, unknown>;
+export function replaceRequiredEqualValue(condition: ICondition, field: string, from: unknown, to: unknown) : ICondition;
+export function replaceRequiredEqualValue(
+    condition: ICondition,
+    field: string,
+    from: unknown,
+    to: unknown,
+) : ICondition {
     if (isFilter(condition)) {
         if (
             condition.field === field &&
             condition.operator === FilterFieldOperator.EQUAL &&
             condition.value === from
         ) {
-            return new Filter(condition.operator, field, to, { preserved: condition.preserved }) as ICondition as T;
+            return new Filter(condition.operator, field, to, { preserved: condition.preserved });
         }
 
         return condition;
@@ -90,7 +112,7 @@ export function replaceRequiredEqualValue<T extends ICondition>(
             condition.operator,
             children,
             { preserved: condition.preserved },
-        ) as ICondition as T;
+        );
     }
 
     return condition;

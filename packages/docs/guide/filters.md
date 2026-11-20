@@ -108,7 +108,7 @@ const filters = replaceRequiredEqualValue(query.filters, 'postId', slug, post.id
 ```
 
 - `findRequiredEqualValue(condition, field)` returns the value of the first `eq` leaf on `field` reached through the root or `and` groups. An `or`, a `not` or a custom condition requires nothing and is not entered. The value can be of any type.
-- `replaceRequiredEqualValue(condition, field, from, to)` returns the tree with those leaves whose value strictly equals `from` set to `to`. Guarding by `from` means `eq(postId, a) AND eq(postId, b)` cannot widen into a match. `preserved` is kept, untouched nodes are shared by reference, and the input itself is returned when nothing changed.
+- `replaceRequiredEqualValue(condition, field, from, to)` returns the tree (same node kind, value types widened) with those leaves whose value strictly equals `from` set to `to`. A leaf holding any other value is kept as it is, so in `eq(postId, a) AND eq(postId, b)` only the `a` leaf is rewritten; the result can still match when `to` equals `b`. `preserved` is kept, untouched nodes are shared by reference, and the input itself is returned when nothing changed.
 
 `eq` is case-insensitive by default (see [Case sensitivity](#case-sensitivity)), so for strings "every match equals the value" holds up to case.
 
