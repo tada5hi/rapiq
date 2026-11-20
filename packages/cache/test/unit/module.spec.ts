@@ -360,6 +360,14 @@ describe('src/module.ts (lost invalidation)', () => {
         };
     };
 
+    /**
+     * Move the wall clock past any backoff window without firing a timer
+     * (fake timers keep their remaining delay across a system time jump).
+     */
+    const leaveBackoffWindow = () => {
+        vi.setSystemTime(Date.now() + 5_000);
+    };
+
     beforeEach(() => {
         vi.useFakeTimers();
 
@@ -400,18 +408,17 @@ describe('src/module.ts (lost invalidation)', () => {
     it('should drop a pending tag after maxTtl', async () => {
         const role = counter();
 
-        // the entry outlives the deadline only when it is written later
-        // than the failure: fail first, then fill.
         driver.failOn.add('invalidate');
         await expect(cache.invalidate(['role'])).rejects.toThrow();
 
         await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
-        await cache.remember('k', role.read, { tags: () => ['role'] });
-        expect(role.count).toEqual(1);
+        expect(cache.pendingInvalidations).toEqual(['role']);
 
         await vi.advanceTimersByTimeAsync(driver.maxTtl / 2 + 1);
         expect(cache.pendingInvalidations).toEqual([]);
 
+        // past the deadline a fill is stored and served again.
+        expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(1);
         expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(1);
         expect(role.count).toEqual(1);
     });
@@ -466,6 +473,74 @@ describe('src/module.ts (lost invalidation)', () => {
         await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
         expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(3);
         expect(user.count).toEqual(3);
+    });
+
+    it('should not store a fill carrying a pending tag', async () => {
+        const role = counter();
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        // the fill may have read before the failed write committed: it is
+        // answered, never stored, and nothing is reported.
+        expect(await cache.remember('k', role.read, { tags: () => ['role', 'user'] })).toEqual(1);
+        expect(await cache.remember('k', role.read, { tags: () => ['role', 'user'] })).toEqual(2);
+        expect(driver.writes).toEqual([]);
+        expect(await driver.read('k')).toBeNull();
+        expect(errors.filter((e) => !isCacheError(e) || (e as CacheError).tags.length === 0)).toEqual([]);
+
+        driver.failOn.delete('invalidate');
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(cache.pendingInvalidations).toEqual([]);
+
+        expect(await cache.remember('k', role.read, { tags: () => ['role', 'user'] })).toEqual(3);
+        expect(driver.writes).toEqual([true]);
+        expect(await cache.remember('k', role.read, { tags: () => ['role', 'user'] })).toEqual(3);
+    });
+
+    it('should not replay opportunistically within the backoff window', async () => {
+        const user = counter();
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        // read keeps working, invalidate keeps failing.
+        for (let i = 0; i < 5; i++) {
+            await cache.remember('u', user.read, { tags: () => ['user'] });
+        }
+
+        await vi.advanceTimersByTimeAsync(50);
+
+        for (let i = 0; i < 5; i++) {
+            await cache.remember('u', user.read, { tags: () => ['user'] });
+        }
+
+        await vi.advanceTimersByTimeAsync(0);
+        expect(driver.invalidations).toHaveLength(1);
+        expect(errors).toHaveLength(0);
+
+        // the timer attempt at 100 ms fails and opens a 200 ms window.
+        await vi.advanceTimersByTimeAsync(50);
+        expect(driver.invalidations).toHaveLength(2);
+        expect(errors).toHaveLength(1);
+
+        for (let i = 0; i < 5; i++) {
+            await cache.remember('u', user.read, { tags: () => ['user'] });
+        }
+
+        await vi.advanceTimersByTimeAsync(199);
+
+        for (let i = 0; i < 5; i++) {
+            await cache.remember('u', user.read, { tags: () => ['user'] });
+        }
+
+        await vi.advanceTimersByTimeAsync(0);
+        expect(driver.invalidations).toHaveLength(2);
+        expect(errors).toHaveLength(1);
+
+        // past the window, a successful driver call may try again.
+        await vi.advanceTimersByTimeAsync(1);
+        expect(driver.invalidations).toHaveLength(3);
     });
 
     it('should keep replaying the stored tags after an overflow', async () => {
@@ -559,6 +634,7 @@ describe('src/module.ts (lost invalidation)', () => {
         await expect(cache.invalidate(['role'])).rejects.toThrow();
 
         driver.failOn.delete('invalidate');
+        leaveBackoffWindow();
         await cache.remember('x', async () => 'v', { tags: () => ['user'] });
         await vi.advanceTimersByTimeAsync(0);
 
@@ -571,6 +647,7 @@ describe('src/module.ts (lost invalidation)', () => {
         await expect(cache.invalidate(['role'])).rejects.toThrow();
 
         driver.failOn.delete('invalidate');
+        leaveBackoffWindow();
         await cache.drop(['x']);
         await vi.advanceTimersByTimeAsync(0);
 
@@ -641,6 +718,7 @@ describe('src/module.ts (lost invalidation)', () => {
 
         driver.gate = promise;
         driver.failOn.delete('invalidate');
+        leaveBackoffWindow();
 
         await cache.drop(['x']);
         await cache.drop(['y']);
@@ -672,6 +750,7 @@ describe('src/module.ts (lost invalidation)', () => {
         // timer path
         await vi.advanceTimersByTimeAsync(100);
         // opportunistic path
+        leaveBackoffWindow();
         await cache.drop(['x']);
         await vi.advanceTimersByTimeAsync(0);
 
@@ -717,8 +796,9 @@ describe('src/module.ts (lost invalidation)', () => {
         expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(2);
         expect(vi.getTimerCount()).toEqual(0);
 
-        // the opportunistic replay still runs.
+        // the opportunistic replay still runs, once out of the backoff window.
         driver.failOn.delete('invalidate');
+        leaveBackoffWindow();
         await cache.drop(['x']);
         await vi.advanceTimersByTimeAsync(0);
         expect(cache.pendingInvalidations).toEqual([]);

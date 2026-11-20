@@ -49,6 +49,12 @@ export class TaggedCache implements ITaggedCache {
 
     protected disposed = false;
 
+    /**
+     * Until when a replay after a successful driver call is skipped: the
+     * backoff of the last failed attempt. 0 once a bump lands.
+     */
+    protected nextAttemptAt = 0;
+
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
@@ -94,7 +100,7 @@ export class TaggedCache implements ITaggedCache {
             this.replayOpportunistically();
 
             // a hit carrying a pending tag may predate the lost bump: it is
-            // a miss, and the fill below overwrites it.
+            // a miss, answered by the read below.
             if (hit && this.isTrusted(hit)) {
                 return hit.value;
             }
@@ -116,6 +122,12 @@ export class TaggedCache implements ITaggedCache {
             // dependencies must not store, but the read already succeeded,
             // so the value is answered uncached rather than thrown away.
             const tags = options.tags(value);
+
+            // the read may have begun before the write whose bump failed
+            // committed: answered, never stored, until the tag settles.
+            if (this.hasPendingTag(tags)) {
+                return value;
+            }
 
             await this.driver.write(key, {
                 clock,
@@ -191,6 +203,7 @@ export class TaggedCache implements ITaggedCache {
 
         if (snapshot.size === 0) {
             this.delay = REPLAY_DELAY_MIN;
+            this.nextAttemptAt = 0;
 
             return;
         }
@@ -200,7 +213,7 @@ export class TaggedCache implements ITaggedCache {
         try {
             await this.driver.invalidate(tags);
         } catch (e) {
-            this.schedule();
+            this.backOff();
 
             this.report(CacheError.invalidationFailed(tags, e));
 
@@ -211,7 +224,10 @@ export class TaggedCache implements ITaggedCache {
     }
 
     protected replayOpportunistically() : void {
-        if (this.pending.size === 0) {
+        if (
+            this.pending.size === 0 ||
+            Date.now() < this.nextAttemptAt
+        ) {
             return;
         }
 
@@ -233,10 +249,29 @@ export class TaggedCache implements ITaggedCache {
             }
         }
 
+        this.nextAttemptAt = 0;
+
         if (this.pending.size === 0) {
             this.delay = REPLAY_DELAY_MIN;
 
             this.clearTimer();
+
+            return;
+        }
+
+        this.schedule();
+    }
+
+    /**
+     * After a failed attempt: skip opportunistic replays for the delay the
+     * next timer uses, and arm that timer. Without a timer (disposed) the
+     * delay still doubles, so the window grows like the timer would.
+     */
+    protected backOff() : void {
+        this.nextAttemptAt = Date.now() + this.delay;
+
+        if (this.disposed) {
+            this.delay = Math.min(this.delay * 2, REPLAY_DELAY_MAX);
 
             return;
         }
@@ -327,7 +362,7 @@ export class TaggedCache implements ITaggedCache {
             this.pending.set(tag, { deadline, generation: this.generation });
         }
 
-        this.schedule();
+        this.backOff();
 
         if (dropped.length === 0) {
             return;
@@ -343,25 +378,33 @@ export class TaggedCache implements ITaggedCache {
      * its tags is pending.
      */
     protected isTrusted(entry: CacheEntry) : boolean {
-        const now = Date.now();
-
-        if (now < this.overflowUntil) {
+        if (Date.now() < this.overflowUntil) {
             return false;
         }
 
-        for (const tag of entry.tags) {
+        return !this.hasPendingTag(entry.tags);
+    }
+
+    /**
+     * Whether any of the tags is pending and short of its deadline; an
+     * expired one met on the way is forgotten.
+     */
+    protected hasPendingTag(tags: string[]) : boolean {
+        const now = Date.now();
+
+        for (const tag of tags) {
             const pending = this.pending.get(tag);
 
             if (pending) {
                 if (pending.deadline > now) {
-                    return false;
+                    return true;
                 }
 
                 this.pending.delete(tag);
             }
         }
 
-        return true;
+        return false;
     }
 
     /**

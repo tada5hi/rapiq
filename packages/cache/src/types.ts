@@ -69,7 +69,8 @@ export interface ITaggedCache {
     /**
      * The tags of failed invalidations not yet replayed and not yet past
      * their deadline (`maxTtl` after the last failure). A hit carrying one
-     * of them is treated as a miss.
+     * of them is treated as a miss, and a value whose tags include one is
+     * returned unstored.
      */
     readonly pendingInvalidations: readonly string[];
 
