@@ -6,6 +6,7 @@
  */
 
 import { markInstanceof } from '@ebec/core';
+import type { SerializedError } from '@rapiq/core';
 import { BaseError, ErrorCode, isObject } from '@rapiq/core';
 import { CACHE_ERROR_MARKER } from './check';
 import type { CacheErrorOptions } from './types';
@@ -35,6 +36,20 @@ export class CacheError extends BaseError {
     }
 
     /**
+     * The base's wire form, plus `tags` when the error names any: a logged
+     * lost invalidation keeps the tags it concerned.
+     */
+    override toJSON() : SerializedError & { tags?: string[] } {
+        const output : SerializedError & { tags?: string[] } = super.toJSON();
+
+        if (this.tags.length > 0) {
+            output.tags = [...this.tags];
+        }
+
+        return output;
+    }
+
+    /**
      * A driver refused to bump the tags. The `TaggedCache` keeps them
      * pending and replays them; `cause` is the driver failure.
      */
@@ -61,11 +76,11 @@ export class CacheError extends BaseError {
     }
 
     /**
-     * A pending invalidation cap that is not a finite number of at least 1.
+     * A pending invalidation cap that is not an integer of at least 1.
      */
     static maxPendingInvalidationsInvalid(value: number) {
         return new this({
-            message: `The maxPendingInvalidations must be a finite number of at least 1, got ${value}.`,
+            message: `The maxPendingInvalidations must be an integer of at least 1, got ${value}.`,
             code: ErrorCode.INPUT_INVALID,
         });
     }

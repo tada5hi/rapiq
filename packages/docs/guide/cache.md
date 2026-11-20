@@ -164,11 +164,11 @@ The write side derives the same names: the collection tag always (a rename can m
 
 ### A lost invalidation
 
-A failed bump (a Redis blip, a store still booting) does not just vanish. The `TaggedCache` keeps every tag of a failed `invalidate` pending until `maxTtl` after the failure, the longest an entry written before it can live; a tag that fails again gets a fresh deadline.
+A failed bump (a Redis blip, a store still booting) does not just vanish. The `TaggedCache` keeps every tag of a failed `invalidate` pending until `maxTtl` plus 5 s after the failure: `maxTtl` is the longest an entry written before the failure can live, and the 5 s margin covers a write that was still in flight when the failure was recorded. A tag that fails again gets a fresh deadline.
 
 - **Bypass.** While a tag is pending, a hit carrying it is treated as a miss and the read runs. A fill whose tags include a pending tag is answered but not stored (and not reported): its read may have begun before the write whose bump failed committed, so it can hold the very rows the lost bump was meant to retire. Entries written before the failure lapse by the deadline, so the bypass covers exactly the window it has to.
 - **Replay.** The pending tags are bumped together in one driver call: on a timer (first after 100 ms, doubling up to 5 s, reset once the set empties; the timer does not keep a Node process alive) and, without being awaited, after any successful driver call (`read` inside `remember`, `drop`) unless the backoff of the last failed attempt (or failed `invalidate`) is still running, so a store that reads but refuses bumps is not hammered by every request. A later `invalidate` carries them along too. A tag leaves the set only when a bump carrying it lands, or when its deadline passes; a tag that fails again while a replay holding it is in flight stays pending. One replay runs at a time, and a failed one is reported to `onError` as `CacheError.invalidationFailed`.
-- **Bound.** The set holds at most `maxPendingInvalidations` tags (default 1000). Tags beyond it are not kept: they are reported to `onError` as `CacheError.invalidationsOverflowed` (the dropped tags in `tags`), and the process trusts no hit at all until `maxTtl` after the last overflow. The tags already kept keep replaying.
+- **Bound.** The set holds at most `maxPendingInvalidations` tags (an integer, default 1000). Tags beyond it are not kept: they are reported to `onError` as `CacheError.invalidationsOverflowed` (the dropped tags in `tags`), and until `maxTtl` plus 5 s after the last overflow the process trusts no hit at all and stores no fill: every `remember` reads through and answers unstored, since the process no longer knows which tags were lost. The tags already kept keep replaying.
 
 ```typescript
 cache.pendingInvalidations; // readonly string[]: the live pending tags
@@ -303,7 +303,7 @@ The semantics are pinned by one shared contract suite that every driver runs aga
 
 ## Errors
 
-`CacheError` extends `@rapiq/core`'s `BaseError` and carries its codes. It is raised for configuration failures and for a lost invalidation, never for a miss or a read-path outage; recognise it with `isCacheError`, which survives a second copy of the package and a JSON round trip.
+`CacheError` extends `@rapiq/core`'s `BaseError` and carries its codes. It is raised for configuration failures and for a lost invalidation, never for a miss or a read-path outage; recognise it with `isCacheError`, which survives a second copy of the package and a JSON round trip. An error naming tags (`invalidationFailed`, `invalidationsOverflowed`) keeps them in `tags` in its JSON form too.
 
 | Factory | Code | Raised when |
 |---|---|---|
@@ -314,6 +314,6 @@ The semantics are pinned by one shared contract suite that every driver runs aga
 | `ttlInvalid` | `inputInvalid` | an entry ttl that is not a finite number of at least 1 ms |
 | `clientKeyPrefixUnsupported` | `featureUnsupported` | a Redis client with its own `keyPrefix` |
 | `prefixHashTagMissing` | `inputInvalid` | a Redis `Cluster` client whose driver prefix carries no hash tag |
-| `maxPendingInvalidationsInvalid` | `inputInvalid` | a `maxPendingInvalidations` that is not a finite number of at least 1 |
+| `maxPendingInvalidationsInvalid` | `inputInvalid` | a `maxPendingInvalidations` that is not an integer of at least 1 |
 | `invalidationFailed` | `none` | a driver refused a bump (`tags`, `cause`); rejected from `invalidate`, reported for a failed replay |
 | `invalidationsOverflowed` | `limitExceeded` | tags of a failed bump the full pending set could not keep (`tags`) |

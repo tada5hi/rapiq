@@ -7,6 +7,7 @@
 
 import { ErrorCode } from '@rapiq/core';
 import type { CacheEntry, ICacheDriver } from '../../src';
+import { REPLAY_DELAY_MAX } from '../../src/constants';
 import {
     CacheError,
     MemoryCacheDriver,
@@ -411,10 +412,11 @@ describe('src/module.ts (lost invalidation)', () => {
         driver.failOn.add('invalidate');
         await expect(cache.invalidate(['role'])).rejects.toThrow();
 
-        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
+        // the deadline is maxTtl plus the margin for a write in flight.
+        await vi.advanceTimersByTimeAsync(driver.maxTtl + REPLAY_DELAY_MAX - 1);
         expect(cache.pendingInvalidations).toEqual(['role']);
 
-        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2 + 1);
+        await vi.advanceTimersByTimeAsync(1);
         expect(cache.pendingInvalidations).toEqual([]);
 
         // past the deadline a fill is stored and served again.
@@ -432,7 +434,7 @@ describe('src/module.ts (lost invalidation)', () => {
         expect(cache.pendingInvalidations).toEqual(['role']);
 
         // past the first deadline, short of the refreshed one.
-        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2 + 1);
+        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2 + REPLAY_DELAY_MAX + 1);
         expect(cache.pendingInvalidations).toEqual(['role']);
 
         await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
@@ -465,14 +467,15 @@ describe('src/module.ts (lost invalidation)', () => {
 
         expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(2);
 
-        // still inside the window: read through again, refreshing the entry.
-        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
+        // the window is maxTtl plus the in-flight margin, from the overflow.
+        await vi.advanceTimersByTimeAsync(driver.maxTtl + REPLAY_DELAY_MAX - 1);
         expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(3);
 
-        // the window is maxTtl, measured from the overflow: past it, the hit counts.
-        await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
-        expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(3);
-        expect(user.count).toEqual(3);
+        // past it, a fill is stored and its hit counts again.
+        await vi.advanceTimersByTimeAsync(1);
+        expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(4);
+        expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(4);
+        expect(user.count).toEqual(4);
     });
 
     it('should not store a fill carrying a pending tag', async () => {
@@ -541,6 +544,23 @@ describe('src/module.ts (lost invalidation)', () => {
         // past the window, a successful driver call may try again.
         await vi.advanceTimersByTimeAsync(1);
         expect(driver.invalidations).toHaveLength(3);
+    });
+
+    it('should not store a fill during the overflow window', async () => {
+        cache.dispose();
+        cache = new TaggedCache({ driver, maxPendingInvalidations: 1 });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['first', 'second'])).rejects.toThrow();
+
+        // 'second' was dropped: a fill tagged with it (or with anything)
+        // may hold what its lost bump was meant to retire.
+        const user = counter();
+
+        expect(await cache.remember('u', user.read, { tags: () => ['second'] })).toEqual(1);
+        expect(await cache.remember('u', user.read, { tags: () => ['second'] })).toEqual(2);
+        expect(driver.writes).toEqual([]);
+        expect(await driver.read('u')).toBeNull();
     });
 
     it('should keep replaying the stored tags after an overflow', async () => {
@@ -804,7 +824,20 @@ describe('src/module.ts (lost invalidation)', () => {
         expect(cache.pendingInvalidations).toEqual([]);
     });
 
-    it.each([NaN, Infinity, 0, -1])('should refuse a maxPendingInvalidations of %s', (value) => {
+    it('should keep the tags through a JSON round trip', () => {
+        const failed = CacheError.invalidationFailed(['role', 'role:1'], new Error('down'));
+        const json = JSON.parse(JSON.stringify(failed));
+
+        expect(json.tags).toEqual(['role', 'role:1']);
+        expect(isCacheError(json)).toBeTruthy();
+
+        const plain = JSON.parse(JSON.stringify(CacheError.ttlInvalid(0)));
+
+        expect(plain.tags).toBeUndefined();
+        expect(isCacheError(plain)).toBeTruthy();
+    });
+
+    it.each([NaN, Infinity, 0, -1, 1.5])('should refuse a maxPendingInvalidations of %s', (value) => {
         const create = () => new TaggedCache({ driver, maxPendingInvalidations: value });
 
         let error : unknown;

@@ -12,8 +12,9 @@ import { CacheError } from './errors';
 import type { ITaggedCache, RememberOptions, TaggedCacheOptions } from './types';
 
 /**
- * A tag of a failed invalidation: until `deadline` (the longest an entry
- * written before the failure can live) a hit carrying it is not trusted.
+ * A tag of a failed invalidation: until `deadline` (`maxTtl` plus
+ * `REPLAY_DELAY_MAX` after the failure, the longest an entry written before
+ * it can live) a hit carrying it is not trusted.
  * `generation` changes on every failure recording the tag again, so a
  * replay that sent an older generation does not settle it.
  */
@@ -36,8 +37,9 @@ export class TaggedCache implements ITaggedCache {
     protected generation = 0;
 
     /**
-     * Until when no hit is trusted, since a tag of a failed invalidation
-     * could not be kept: `maxTtl` after the last overflow.
+     * Until when no hit is trusted and no fill stored, since a tag of a
+     * failed invalidation could not be kept: the deadline that tag would
+     * have had, counted from the last overflow.
      */
     protected overflowUntil = 0;
 
@@ -66,7 +68,7 @@ export class TaggedCache implements ITaggedCache {
         this.maxPendingInvalidations = options.maxPendingInvalidations ?? PENDING_INVALIDATIONS_MAX;
 
         if (
-            !Number.isFinite(this.maxPendingInvalidations) ||
+            !Number.isSafeInteger(this.maxPendingInvalidations) ||
             this.maxPendingInvalidations < 1
         ) {
             throw CacheError.maxPendingInvalidationsInvalid(this.maxPendingInvalidations);
@@ -124,8 +126,9 @@ export class TaggedCache implements ITaggedCache {
             const tags = options.tags(value);
 
             // the read may have begun before the write whose bump failed
-            // committed: answered, never stored, until the tag settles.
-            if (this.hasPendingTag(tags)) {
+            // (or was dropped) committed: answered, never stored, until the
+            // tag settles or the overflow window closes.
+            if (!this.isStorable(tags)) {
                 return value;
             }
 
@@ -344,7 +347,9 @@ export class TaggedCache implements ITaggedCache {
         this.prunePending();
 
         const now = Date.now();
-        const deadline = now + this.driver.maxTtl;
+        // a write issued before the failure was recorded can still land
+        // just after it: its entry outlives a bare maxTtl by that round trip.
+        const deadline = now + this.driver.maxTtl + REPLAY_DELAY_MAX;
         const dropped : string[] = [];
 
         for (const tag of new Set(tags)) {
@@ -368,7 +373,7 @@ export class TaggedCache implements ITaggedCache {
             return;
         }
 
-        this.overflowUntil = now + this.driver.maxTtl;
+        this.overflowUntil = deadline;
 
         this.report(CacheError.invalidationsOverflowed(dropped));
     }
@@ -378,11 +383,19 @@ export class TaggedCache implements ITaggedCache {
      * its tags is pending.
      */
     protected isTrusted(entry: CacheEntry) : boolean {
+        return this.isStorable(entry.tags);
+    }
+
+    /**
+     * Whether a value carrying the tags may be served or stored: no
+     * overflow window is open and none of the tags is pending.
+     */
+    protected isStorable(tags: string[]) : boolean {
         if (Date.now() < this.overflowUntil) {
             return false;
         }
 
-        return !this.hasPendingTag(entry.tags);
+        return !this.hasPendingTag(tags);
     }
 
     /**

@@ -27,8 +27,9 @@ export type TaggedCacheOptions = {
      * How many tags of failed invalidations are kept pending at most.
      * Default: 1000. Past it, further tags are not kept (their bump is
      * lost, reported to `onError` as `CacheError.invalidationsOverflowed`)
-     * and no hit is trusted until `maxTtl` after the last overflow. Anything
-     * but a finite number of at least 1 throws a `CacheError` here.
+     * and no hit is trusted and no fill stored until `maxTtl` plus 5 s after
+     * the last overflow. Anything but an integer of at least 1 throws a
+     * `CacheError` here.
      */
     maxPendingInvalidations?: number,
 };
@@ -68,7 +69,7 @@ export interface ITaggedCache {
 
     /**
      * The tags of failed invalidations not yet replayed and not yet past
-     * their deadline (`maxTtl` after the last failure). A hit carrying one
+     * their deadline (`maxTtl` plus 5 s after the last failure). A hit carrying one
      * of them is treated as a miss, and a value whose tags include one is
      * returned unstored.
      */

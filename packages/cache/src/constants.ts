@@ -12,7 +12,8 @@ export const PENDING_INVALIDATIONS_MAX = 1000;
 
 /**
  * The first replay delay in milliseconds, doubled after every failed
- * replay up to `REPLAY_DELAY_MAX`.
+ * replay up to `REPLAY_DELAY_MAX`. The maximum doubles as the margin a
+ * pending tag (and the overflow window) gets on top of `maxTtl`.
  */
 export const REPLAY_DELAY_MIN = 100;
 

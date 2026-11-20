@@ -144,7 +144,7 @@ export function collectQueryTags<T = unknown>(input: QueryTagsInput<T>) : string
  * source otherwise.
  */
 export async function rememberQuery<T>(
-    cache: ITaggedCache,
+    cache: Pick<ITaggedCache, 'remember'>,
     input: RememberQueryInput<T>,
     read: () => Promise<T>,
 ) : Promise<T> {
