@@ -160,7 +160,24 @@ await cache.invalidate(['role', 'role:7', 'role:realmId=x']);
 
 The write side derives the same names: the collection tag always (a rename can move a row into a name-keyed result), the record tag from the row's id, and a scoped tag for every index-leading column present on the row (both the old and the new value when it changed). Bump AFTER the transaction committed: a bump inside it is only a hint, since a reader can still read the pre-commit rows and store them with a clock the bump predates.
 
-`invalidate` rethrows a driver failure, because a lost bump is a correctness problem the caller decides about. `drop(keys)` removes entries by key and rethrows likewise.
+`invalidate` rejects on a driver failure with `CacheError.invalidationFailed`, carrying the tags in `tags` and the driver failure as `cause`, because a lost bump is a correctness problem the caller decides about. `drop(keys)` removes entries by key and rethrows the driver failure.
+
+### A lost invalidation
+
+A failed bump (a Redis blip, a store still booting) does not just vanish. The `TaggedCache` keeps every tag of a failed `invalidate` pending until `maxTtl` after the failure, the longest an entry written before it can live; a tag that fails again gets a fresh deadline.
+
+- **Bypass.** While a tag is pending, a hit carrying it is treated as a miss: the read runs, and its fill is stored as usual.
+- **Replay.** The pending tags are bumped together in one driver call: on a timer (first after 100 ms, doubling up to 5 s, reset once the set empties; the timer does not keep a Node process alive) and, without being awaited, after any successful driver call (`read` inside `remember`, `drop`). A later `invalidate` carries them along too. A tag leaves the set only when a bump carrying it lands, or when its deadline passes; a tag that fails again while a replay holding it is in flight stays pending. One replay runs at a time, and a failed one is reported to `onError` as `CacheError.invalidationFailed`.
+- **Bound.** The set holds at most `maxPendingInvalidations` tags (default 1000). Tags beyond it are not kept: they are reported to `onError` as `CacheError.invalidationsOverflowed` (the dropped tags in `tags`), and the process trusts no hit at all until `maxTtl` after the last overflow. The tags already kept keep replaying.
+
+```typescript
+cache.pendingInvalidations; // readonly string[]: the live pending tags
+cache.dispose();            // stops the replay timer for good
+```
+
+After `dispose()` no timer is scheduled again; a failure is still recorded, its hits still bypassed, and the replay after a successful driver call still runs.
+
+The floor: the pending set lives in one process. Every other process serves an entry behind the lost bump until its ttl, and so does this one when it exits before the replay lands.
 
 ## The TypeORM write side
 
@@ -246,7 +263,7 @@ A rolled-back outermost transaction bumps nothing, including on better-sqlite3's
 
 The subscriber awaits `cache.invalidate` inside `afterTransactionCommit`, which TypeORM runs inside `commitTransaction`, before the query runner (a pooled connection on postgres and mysql) is released. A slow or unreachable cache therefore delays every committing write and holds its database connection for the whole stall. With a default `ioredis` client against an unreachable Redis, `repository.save` took about 10.5 s (up to 32.5 s once the reconnect backoff grows), and a cached read fell through to the database only after about 10.5 s; with a 10-connection pool, ten concurrent writes exhaust it. Configure the Redis client to fail fast on both the read and the write path (see [the Redis guide](/guide/cache-redis#failing-fast)).
 
-A failed bump is reported to `onError` and never rethrown from a hook, since a hook failure would fail the request after its write committed.
+A failed bump is reported to `onError` and never rethrown from a hook, since a hook failure would fail the request after its write committed. With a `TaggedCache` the error is `CacheError.invalidationFailed`, naming the tags in `tags`, and the tags stay pending for replay (see [a lost invalidation](#a-lost-invalidation)).
 
 ## The driver contract
 
@@ -286,7 +303,7 @@ The semantics are pinned by one shared contract suite that every driver runs aga
 
 ## Errors
 
-`CacheError` extends `@rapiq/core`'s `BaseError` and carries its codes. It is raised for configuration failures only, never for a miss or an outage; recognise it with `isCacheError`, which survives a second copy of the package and a JSON round trip.
+`CacheError` extends `@rapiq/core`'s `BaseError` and carries its codes. It is raised for configuration failures and for a lost invalidation, never for a miss or a read-path outage; recognise it with `isCacheError`, which survives a second copy of the package and a JSON round trip.
 
 | Factory | Code | Raised when |
 |---|---|---|
@@ -297,3 +314,6 @@ The semantics are pinned by one shared contract suite that every driver runs aga
 | `ttlInvalid` | `inputInvalid` | an entry ttl that is not a finite number of at least 1 ms |
 | `clientKeyPrefixUnsupported` | `featureUnsupported` | a Redis client with its own `keyPrefix` |
 | `prefixHashTagMissing` | `inputInvalid` | a Redis `Cluster` client whose driver prefix carries no hash tag |
+| `maxPendingInvalidationsInvalid` | `inputInvalid` | a `maxPendingInvalidations` that is not a finite number of at least 1 |
+| `invalidationFailed` | `none` | a driver refused a bump (`tags`, `cause`); rejected from `invalidate`, reported for a failed replay |
+| `invalidationsOverflowed` | `limitExceeded` | tags of a failed bump the full pending set could not keep (`tags`) |

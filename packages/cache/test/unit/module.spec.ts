@@ -25,8 +25,8 @@ class RecordingCacheDriver implements ICacheDriver {
 
     failOn : Set<'clock' | 'read' | 'write' | 'invalidate' | 'drop'> = new Set();
 
-    constructor() {
-        this.inner = new MemoryCacheDriver({ maxTtl: 10_000 });
+    constructor(maxTtl = 10_000) {
+        this.inner = new MemoryCacheDriver({ maxTtl });
     }
 
     get maxTtl() {
@@ -61,7 +61,27 @@ class RecordingCacheDriver implements ICacheDriver {
         return accepted;
     }
 
-    invalidate(tags: string[]) {
+    /**
+     * Every attempted invalidate, in order, whether it succeeded or not.
+     */
+    invalidations : string[][] = [];
+
+    /**
+     * Held by the next invalidate before it decides, then released.
+     */
+    gate : Promise<void> | undefined;
+
+    async invalidate(tags: string[]) {
+        this.invalidations.push([...tags]);
+
+        if (this.gate) {
+            const { gate } = this;
+
+            this.gate = undefined;
+
+            await gate;
+        }
+
         this.assertAvailable('invalidate');
 
         return this.inner.invalidate(tags);
@@ -204,6 +224,8 @@ describe('src/module.ts', () => {
         expect(((error as Error).cause as Error).message).toEqual('invalidate unavailable');
         expect(errors).toHaveLength(0);
         expect(cache.pendingInvalidations).toEqual(['role', 'role:1']);
+
+        cache.dispose();
     });
 
     it('should rethrow a failed drop', async () => {
@@ -352,6 +374,8 @@ describe('src/module.ts (lost invalidation)', () => {
     });
 
     afterEach(() => {
+        cache.dispose();
+
         vi.useRealTimers();
     });
 
@@ -409,6 +433,7 @@ describe('src/module.ts (lost invalidation)', () => {
     });
 
     it('should stop recording past the cap and distrust every hit until maxTtl after the overflow', async () => {
+        cache.dispose();
         cache = new TaggedCache({
             driver,
             maxPendingInvalidations: 2,
@@ -441,6 +466,262 @@ describe('src/module.ts (lost invalidation)', () => {
         await vi.advanceTimersByTimeAsync(driver.maxTtl / 2);
         expect(await cache.remember('u', user.read, { tags: () => ['user'] })).toEqual(3);
         expect(user.count).toEqual(3);
+    });
+
+    it('should keep replaying the stored tags after an overflow', async () => {
+        cache.dispose();
+        cache = new TaggedCache({ driver, maxPendingInvalidations: 1 });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['first', 'second'])).rejects.toThrow();
+        expect(cache.pendingInvalidations).toEqual(['first']);
+
+        driver.failOn.delete('invalidate');
+        await vi.advanceTimersByTimeAsync(100);
+
+        expect(driver.invalidations.at(-1)).toEqual(['first']);
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should replay on a timer with backoff until it succeeds', async () => {
+        const role = counter();
+
+        await cache.remember('k', role.read, { tags: () => ['role'] });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+        expect(driver.invalidations).toHaveLength(1);
+
+        await vi.advanceTimersByTimeAsync(99);
+        expect(driver.invalidations).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(driver.invalidations).toHaveLength(2);
+
+        await vi.advanceTimersByTimeAsync(199);
+        expect(driver.invalidations).toHaveLength(2);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(driver.invalidations).toHaveLength(3);
+
+        const failures = errors.filter((e) => isCacheError(e));
+
+        expect(failures).toHaveLength(2);
+        expect((failures[0] as CacheError).tags).toEqual(['role']);
+        expect(((failures[0] as Error).cause as Error).message).toEqual('invalidate unavailable');
+
+        driver.failOn.delete('invalidate');
+        await vi.advanceTimersByTimeAsync(400);
+        expect(driver.invalidations).toHaveLength(4);
+        expect(driver.invalidations[3]).toEqual(['role']);
+        expect(cache.pendingInvalidations).toEqual([]);
+        expect(vi.getTimerCount()).toEqual(0);
+
+        // the bump landed: the entry written before the failure is stale
+        // for the driver itself, not only for this process.
+        expect(await driver.read('k')).toBeNull();
+
+        expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(2);
+        expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(2);
+        expect(role.count).toEqual(2);
+    });
+
+    it('should cap the backoff and reset it once the set empties', async () => {
+        // a deadline beyond the capped attempt.
+        cache.dispose();
+        driver = new RecordingCacheDriver(60_000);
+        cache = new TaggedCache({ driver });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        // 100 + 200 + 400 + 800 + 1600 + 3200 = 6300, then 5000 steps.
+        await vi.advanceTimersByTimeAsync(6300);
+        expect(driver.invalidations).toHaveLength(7);
+        await vi.advanceTimersByTimeAsync(4999);
+        expect(driver.invalidations).toHaveLength(7);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(driver.invalidations).toHaveLength(8);
+
+        driver.failOn.delete('invalidate');
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(cache.pendingInvalidations).toEqual([]);
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['user'])).rejects.toThrow();
+
+        const before = driver.invalidations.length;
+
+        await vi.advanceTimersByTimeAsync(100);
+        expect(driver.invalidations).toHaveLength(before + 1);
+    });
+
+    it('should replay opportunistically after a successful driver call', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        driver.failOn.delete('invalidate');
+        await cache.remember('x', async () => 'v', { tags: () => ['user'] });
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(driver.invalidations).toEqual([['role'], ['role']]);
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should replay opportunistically after a drop', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        driver.failOn.delete('invalidate');
+        await cache.drop(['x']);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should carry pending tags on the next invalidate', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+
+        driver.failOn.delete('invalidate');
+        await cache.invalidate(['b']);
+
+        expect(driver.invalidations).toEqual([['a'], ['b', 'a']]);
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should keep its own and the older pending tags when the next invalidate fails', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+
+        let error : unknown;
+
+        try {
+            await cache.invalidate(['b']);
+        } catch (e) {
+            error = e;
+        }
+
+        expect((error as CacheError).tags).toEqual(['b']);
+        expect(driver.invalidations).toEqual([['a'], ['b', 'a']]);
+        expect(cache.pendingInvalidations).toEqual(['a', 'b']);
+    });
+
+    it('should keep a tag re-failed during an in-flight replay', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+
+        // the replay is held after it was sent and will succeed.
+        const { promise, resolve: release } = Promise.withResolvers<void>();
+
+        driver.gate = promise;
+        driver.failOn.delete('invalidate');
+
+        await vi.advanceTimersByTimeAsync(100);
+        expect(driver.invalidations).toEqual([['a'], ['a']]);
+
+        // a later write's bump of the same tag fails while it is held: the
+        // held bump may have landed before that write committed.
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+        driver.failOn.delete('invalidate');
+
+        release();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(cache.pendingInvalidations).toEqual(['a']);
+
+        await vi.advanceTimersByTimeAsync(5000);
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should share one replay between concurrent triggers', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+
+        const { promise, resolve: release } = Promise.withResolvers<void>();
+
+        driver.gate = promise;
+        driver.failOn.delete('invalidate');
+
+        await cache.drop(['x']);
+        await cache.drop(['y']);
+        await vi.advanceTimersByTimeAsync(100);
+
+        expect(driver.invalidations).toEqual([['a'], ['a']]);
+
+        release();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(cache.pendingInvalidations).toEqual([]);
+    });
+
+    it('should report a failed replay to onError and never reject unhandled', async () => {
+        const reported : unknown[] = [];
+
+        cache.dispose();
+        cache = new TaggedCache({
+            driver,
+            onError: (e) => {
+                reported.push(e);
+
+                throw new Error('the hook failed too');
+            },
+        });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        // timer path
+        await vi.advanceTimersByTimeAsync(100);
+        // opportunistic path
+        await cache.drop(['x']);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(reported).toHaveLength(2);
+
+        for (const error of reported) {
+            expect(isCacheError(error)).toBeTruthy();
+            expect((error as CacheError).tags).toEqual(['role']);
+        }
+    });
+
+    it('should stop replaying once every tag passed its deadline', async () => {
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+
+        await vi.advanceTimersByTimeAsync(driver.maxTtl + 10_000);
+
+        expect(cache.pendingInvalidations).toEqual([]);
+        expect(vi.getTimerCount()).toEqual(0);
+
+        const attempts = driver.invalidations.length;
+
+        await vi.advanceTimersByTimeAsync(60_000);
+        expect(driver.invalidations).toHaveLength(attempts);
+    });
+
+    it('should stop the timer on dispose', async () => {
+        const role = counter();
+
+        await cache.remember('k', role.read, { tags: () => ['role'] });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['role'])).rejects.toThrow();
+        expect(vi.getTimerCount()).toEqual(1);
+
+        cache.dispose();
+        expect(vi.getTimerCount()).toEqual(0);
+
+        // failures still record and still bypass, but never schedule.
+        await expect(cache.invalidate(['user'])).rejects.toThrow();
+        expect(vi.getTimerCount()).toEqual(0);
+        expect(cache.pendingInvalidations).toEqual(['role', 'user']);
+        expect(await cache.remember('k', role.read, { tags: () => ['role'] })).toEqual(2);
+        expect(vi.getTimerCount()).toEqual(0);
+
+        // the opportunistic replay still runs.
+        driver.failOn.delete('invalidate');
+        await cache.drop(['x']);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(cache.pendingInvalidations).toEqual([]);
     });
 
     it.each([NaN, Infinity, 0, -1])('should refuse a maxPendingInvalidations of %s', (value) => {

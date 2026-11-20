@@ -123,7 +123,8 @@ packages/cache/src/
 ├── errors/               # CacheError (extends core BaseError, own instanceof brand) + isCacheError
 ├── query/                # isCacheable (no Field.condition), collectQueryTags (root scope, relation collections, record tags), rememberQuery
 ├── typeorm/              # CacheInvalidationSubscriber (subpath `@rapiq/cache/typeorm`): row tags per insert/update/remove/soft remove/recover, cascade children, bump at the outermost commit (typeorm types only)
-└── module.ts             # TaggedCache: remember (clock before read, fall through on driver failure), invalidate, drop
+├── constants.ts          # pending-invalidation cap default, replay backoff bounds (internal)
+└── module.ts             # TaggedCache: remember (clock before read, fall through on driver failure, bypass hits carrying a pending tag), invalidate (a failed one stays pending and replays), drop, dispose
 
 packages/cache-redis/src/
 ├── constants.ts          # default prefix, key segments (e/t/c), entry hash fields, the defineCommand names

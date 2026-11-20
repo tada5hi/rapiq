@@ -5,6 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
+import { PENDING_INVALIDATIONS_MAX, REPLAY_DELAY_MAX, REPLAY_DELAY_MIN } from './constants';
 import type { CacheEntry, ICacheDriver } from './driver';
 import { isCacheTtlValid } from './driver';
 import { CacheError } from './errors';
@@ -40,6 +41,14 @@ export class TaggedCache implements ITaggedCache {
      */
     protected overflowUntil = 0;
 
+    protected replaying : Promise<void> | undefined;
+
+    protected timer : ReturnType<typeof setTimeout> | undefined;
+
+    protected delay = REPLAY_DELAY_MIN;
+
+    protected disposed = false;
+
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
@@ -48,7 +57,7 @@ export class TaggedCache implements ITaggedCache {
             throw CacheError.ttlInvalid(this.ttl);
         }
 
-        this.maxPendingInvalidations = options.maxPendingInvalidations ?? 1000;
+        this.maxPendingInvalidations = options.maxPendingInvalidations ?? PENDING_INVALIDATIONS_MAX;
 
         if (
             !Number.isFinite(this.maxPendingInvalidations) ||
@@ -81,6 +90,8 @@ export class TaggedCache implements ITaggedCache {
 
         try {
             const hit = await this.driver.read<T>(key);
+
+            this.replayOpportunistically();
 
             // a hit carrying a pending tag may predate the lost bump: it is
             // a miss, and the fill below overwrites it.
@@ -119,17 +130,173 @@ export class TaggedCache implements ITaggedCache {
     }
 
     async invalidate(tags: string[]) : Promise<void> {
+        // the pending tags ride along: one bump settles them too.
+        const snapshot = this.snapshotPending();
+        const own = new Set(tags);
+        const sent = [...tags];
+
+        for (const tag of snapshot.keys()) {
+            if (!own.has(tag)) {
+                sent.push(tag);
+            }
+        }
+
         try {
-            await this.driver.invalidate(tags);
+            await this.driver.invalidate(sent);
         } catch (e) {
             this.recordFailedInvalidation(tags);
 
             throw CacheError.invalidationFailed(tags, e);
         }
+
+        this.settle(snapshot);
     }
 
     async drop(keys: string[]) : Promise<void> {
         await this.driver.drop(keys);
+
+        this.replayOpportunistically();
+    }
+
+    /**
+     * Stop the replay timer; no timer is scheduled again. Failed
+     * invalidations are still recorded, still turn the hits carrying them
+     * into misses, and still replay after a successful driver call.
+     */
+    dispose() : void {
+        this.disposed = true;
+
+        this.clearTimer();
+    }
+
+    /**
+     * Bump every live pending tag in one driver call. One replay runs at a
+     * time: a caller arriving meanwhile shares it. Never rejects through a
+     * driver failure: that is reported to `onError` and the next attempt
+     * scheduled.
+     */
+    protected replay() : Promise<void> {
+        if (!this.replaying) {
+            this.replaying = this.replayPending()
+                .finally(() => {
+                    this.replaying = undefined;
+                });
+        }
+
+        return this.replaying;
+    }
+
+    protected async replayPending() : Promise<void> {
+        const snapshot = this.snapshotPending();
+
+        if (snapshot.size === 0) {
+            this.delay = REPLAY_DELAY_MIN;
+
+            return;
+        }
+
+        const tags = Array.from(snapshot.keys());
+
+        try {
+            await this.driver.invalidate(tags);
+        } catch (e) {
+            this.schedule();
+
+            this.report(CacheError.invalidationFailed(tags, e));
+
+            return;
+        }
+
+        this.settle(snapshot);
+    }
+
+    protected replayOpportunistically() : void {
+        if (this.pending.size === 0) {
+            return;
+        }
+
+        this.replay().catch(() => {
+            // replay reports its own failures; nothing may reject unhandled.
+        });
+    }
+
+    /**
+     * After a bump carrying `snapshot` landed: drop each tag still at the
+     * generation that was sent. A tag recorded again meanwhile stays, since
+     * the bump may have landed before the write that failed to bump it
+     * committed.
+     */
+    protected settle(snapshot: Map<string, number>) : void {
+        for (const [tag, generation] of snapshot) {
+            if (this.pending.get(tag)?.generation === generation) {
+                this.pending.delete(tag);
+            }
+        }
+
+        if (this.pending.size === 0) {
+            this.delay = REPLAY_DELAY_MIN;
+
+            this.clearTimer();
+
+            return;
+        }
+
+        this.schedule();
+    }
+
+    /**
+     * The generation of every live pending tag.
+     */
+    protected snapshotPending() : Map<string, number> {
+        this.prunePending();
+
+        const snapshot = new Map<string, number>();
+
+        for (const [tag, pending] of this.pending) {
+            snapshot.set(tag, pending.generation);
+        }
+
+        return snapshot;
+    }
+
+    /**
+     * Arm the replay timer unless one is armed, the set is empty or the
+     * cache is disposed; every arming doubles the next delay up to
+     * `REPLAY_DELAY_MAX`. The timer does not keep the process alive.
+     */
+    protected schedule() : void {
+        if (
+            this.disposed ||
+            this.timer ||
+            this.pending.size === 0
+        ) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            this.timer = undefined;
+
+            this.replay().catch(() => {
+                // replay reports its own failures; nothing may reject unhandled.
+            });
+        }, this.delay);
+
+        this.delay = Math.min(this.delay * 2, REPLAY_DELAY_MAX);
+
+        // a Node timer handle; a number in a browser.
+        (timer as unknown as { unref?: () => void }).unref?.();
+
+        this.timer = timer;
+    }
+
+    protected clearTimer() : void {
+        if (!this.timer) {
+            return;
+        }
+
+        clearTimeout(this.timer);
+
+        this.timer = undefined;
     }
 
     /**
@@ -159,6 +326,8 @@ export class TaggedCache implements ITaggedCache {
 
             this.pending.set(tag, { deadline, generation: this.generation });
         }
+
+        this.schedule();
 
         if (dropped.length === 0) {
             return;

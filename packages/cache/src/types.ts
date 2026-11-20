@@ -18,6 +18,9 @@ export type TaggedCacheOptions = {
      * Where a driver failure on the read path (`clock`, `read`, `write`)
      * and a throwing `tags` derivation are reported. Default: dropped. The call falls through to the read
      * either way; a cache outage must not take the application down.
+     * A failed replay of pending invalidations and tags the full pending
+     * set could not keep are reported here too (a `CacheError` naming them
+     * in `tags`); a throw from this hook on those paths is swallowed.
      */
     onError?: (error: unknown) => void,
     /**
@@ -74,6 +77,13 @@ export interface ITaggedCache {
      * Remove entries by key. Rethrows a driver failure.
      */
     drop(keys: string[]): Promise<void>;
+
+    /**
+     * Stop replaying pending invalidations on a timer. Failed invalidations
+     * are still recorded and bypassed, and still replay after a successful
+     * driver call.
+     */
+    dispose(): void;
 }
 
 

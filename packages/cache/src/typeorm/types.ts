@@ -49,7 +49,10 @@ export type CacheInvalidationSubscriberOptions = {
     /**
      * Where a failed bump is reported. Default: dropped. A hook never
      * rethrows, since a failure there would fail the request after its
-     * write committed.
+     * write committed. From a `TaggedCache` the error is
+     * `CacheError.invalidationFailed`: the tags it could not bump are in
+     * `tags` (they stay pending there for replay), the driver failure is
+     * its `cause`.
      */
     onError?: (error: unknown) => void,
 };
