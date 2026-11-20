@@ -57,6 +57,20 @@ export class TaggedCache implements ITaggedCache {
      */
     protected nextAttemptAt = 0;
 
+    /**
+     * Failed invalidations recorded so far (overflowing ones included). A
+     * fill during which it moved is never stored, whatever happened to the
+     * tags since: its read may have seen the rows the lost bump retires.
+     */
+    protected failures = 0;
+
+    /**
+     * Bumps that settled at least one pending tag. A hit whose read spans
+     * one is not trusted: the entry may have been read before the bump
+     * landed, and the tag is no longer pending to say so.
+     */
+    protected settles = 0;
+
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
@@ -94,6 +108,9 @@ export class TaggedCache implements ITaggedCache {
             throw CacheError.ttlInvalid(ttl);
         }
 
+        const failuresAtStart = this.failures;
+        const settlesAtStart = this.settles;
+
         let clock : number;
 
         try {
@@ -101,9 +118,15 @@ export class TaggedCache implements ITaggedCache {
 
             this.replayOpportunistically();
 
-            // a hit carrying a pending tag may predate the lost bump: it is
-            // a miss, answered by the read below.
-            if (hit && this.isTrusted(hit)) {
+            // a hit carrying a pending tag may predate the lost bump, and so
+            // may one read across a failure or a settle: a miss, answered
+            // by the read below.
+            if (
+                hit &&
+                this.isTrusted(hit) &&
+                this.failures === failuresAtStart &&
+                this.settles === settlesAtStart
+            ) {
                 return hit.value;
             }
 
@@ -127,8 +150,12 @@ export class TaggedCache implements ITaggedCache {
 
             // the read may have begun before the write whose bump failed
             // (or was dropped) committed: answered, never stored, until the
-            // tag settles or the overflow window closes.
-            if (!this.isStorable(tags)) {
+            // tag settles or the overflow window closes. A failure recorded
+            // while this fill ran rules it out for good, even once expired.
+            if (
+                !this.isStorable(tags) ||
+                this.failures !== failuresAtStart
+            ) {
                 return value;
             }
 
@@ -246,10 +273,18 @@ export class TaggedCache implements ITaggedCache {
      * committed.
      */
     protected settle(snapshot: Map<string, number>) : void {
+        let settled = false;
+
         for (const [tag, generation] of snapshot) {
             if (this.pending.get(tag)?.generation === generation) {
                 this.pending.delete(tag);
+
+                settled = true;
             }
+        }
+
+        if (settled) {
+            this.settles++;
         }
 
         this.nextAttemptAt = 0;
@@ -344,6 +379,8 @@ export class TaggedCache implements ITaggedCache {
      * to `onError` and open the overflow window.
      */
     protected recordFailedInvalidation(tags: string[]) : void {
+        this.failures++;
+
         this.prunePending();
 
         const now = Date.now();

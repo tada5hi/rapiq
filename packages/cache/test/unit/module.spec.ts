@@ -46,10 +46,26 @@ class RecordingCacheDriver implements ICacheDriver {
         return this.inner.clock();
     }
 
-    read<T>(key: string) {
+    /**
+     * Held by the next read after it captured its entry, then released:
+     * a response delayed on the wire.
+     */
+    readGate : Promise<void> | undefined;
+
+    async read<T>(key: string) {
         this.assertAvailable('read');
 
-        return this.inner.read<T>(key);
+        const entry = await this.inner.read<T>(key);
+
+        if (this.readGate) {
+            const gate = this.readGate;
+
+            this.readGate = undefined;
+
+            await gate;
+        }
+
+        return entry;
     }
 
     async write<T>(key: string, entry: CacheEntry<T>, ttl: number) {
@@ -561,6 +577,60 @@ describe('src/module.ts (lost invalidation)', () => {
         expect(await cache.remember('u', user.read, { tags: () => ['second'] })).toEqual(2);
         expect(driver.writes).toEqual([]);
         expect(await driver.read('u')).toBeNull();
+    });
+
+    it('should not trust a hit whose read spans a replay', async () => {
+        const role = counter();
+
+        await cache.remember('k', role.read, { tags: () => ['a'] });
+
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+        driver.failOn.delete('invalidate');
+
+        // the read captures the stale entry, its response is delayed.
+        const { promise, resolve: release } = Promise.withResolvers<void>();
+
+        driver.readGate = promise;
+
+        const pending = cache.remember('k', role.read, { tags: () => ['a'] });
+
+        // meanwhile the replay lands and settles `a`.
+        await vi.advanceTimersByTimeAsync(100);
+        expect(cache.pendingInvalidations).toEqual([]);
+
+        release();
+
+        expect(await pending).toEqual(2);
+        expect(role.count).toEqual(2);
+    });
+
+    it('should not store a fill whose read spans a failed invalidation past its deadline', async () => {
+        const { promise, resolve: release } = Promise.withResolvers<string>();
+        let reads = 0;
+
+        // the source read captures pre-commit rows and is slow.
+        const pending = cache.remember('k', () => {
+            reads++;
+
+            return promise;
+        }, { tags: () => ['a'] });
+
+        await vi.advanceTimersByTimeAsync(0);
+        expect(reads).toEqual(1);
+
+        // the write commits, its bump fails and keeps failing.
+        driver.failOn.add('invalidate');
+        await expect(cache.invalidate(['a'])).rejects.toThrow();
+
+        await vi.advanceTimersByTimeAsync(driver.maxTtl + REPLAY_DELAY_MAX + 1);
+        expect(cache.pendingInvalidations).toEqual([]);
+
+        release('stale');
+
+        expect(await pending).toEqual('stale');
+        expect(driver.writes).toEqual([]);
+        expect(await driver.read('k')).toBeNull();
     });
 
     it('should keep replaying the stored tags after an overflow', async () => {
