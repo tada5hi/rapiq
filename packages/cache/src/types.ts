@@ -20,6 +20,14 @@ export type TaggedCacheOptions = {
      * either way; a cache outage must not take the application down.
      */
     onError?: (error: unknown) => void,
+    /**
+     * How many tags of failed invalidations are kept pending at most.
+     * Default: 1000. Past it, further tags are not kept (their bump is
+     * lost, reported to `onError` as `CacheError.invalidationsOverflowed`)
+     * and no hit is trusted until `maxTtl` after the last overflow. Anything
+     * but a finite number of at least 1 throws a `CacheError` here.
+     */
+    maxPendingInvalidations?: number,
 };
 
 export type RememberOptions<T> = {
@@ -49,10 +57,18 @@ export interface ITaggedCache {
 
     /**
      * Bump the tags; every entry carrying one of them reads as a miss from
-     * now on. Rethrows a driver failure: a lost bump is a correctness
-     * problem the caller decides about.
+     * now on. Rejects on a driver failure with `CacheError.invalidationFailed`
+     * (the tags in `tags`, the driver failure as `cause`); the tags stay
+     * pending in this process (see `pendingInvalidations`).
      */
     invalidate(tags: string[]): Promise<void>;
+
+    /**
+     * The tags of failed invalidations not yet replayed and not yet past
+     * their deadline (`maxTtl` after the last failure). A hit carrying one
+     * of them is treated as a miss.
+     */
+    readonly pendingInvalidations: readonly string[];
 
     /**
      * Remove entries by key. Rethrows a driver failure.
