@@ -372,6 +372,34 @@ describe('src/query/module.ts', () => {
             expect(isCacheError(error)).toBe(true);
         });
 
+        it('should refuse an elemMatch on a relation declared by filters.relations or schemaMapping alone', () => {
+            const local = new SchemaRegistry();
+
+            local.add(defineSchema({
+                name: 'post',
+                relations: { allowed: [] },
+                filters: { relations: ['comments'] },
+                schemaMapping: { author: 'writer' },
+            }));
+
+            for (const name of ['comments', 'author']) {
+                let error : unknown;
+
+                try {
+                    collectQueryTags({
+                        query: defineQuery({ filters: elemMatch(name, eq('body', 'x')) }),
+                        schema: 'post',
+                        registry: local,
+                        value: [],
+                    });
+                } catch (e) {
+                    error = e;
+                }
+
+                expect(isCacheError(error)).toBe(true);
+            }
+        });
+
         it('should add the relation collection tag for an elemMatch on a to-one relation', () => {
             const relationRegistry = buildRelationRegistry();
 

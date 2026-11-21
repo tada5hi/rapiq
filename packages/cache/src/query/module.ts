@@ -450,9 +450,16 @@ function assertNoUnregisteredRelation(registry: SchemaRegistry, root: Schema, ke
         }
     }
 
+    // declared a relation the same ways core's relation gate recognizes one
+    // (#1001): listed in relations.allowed or filters.relations, or mapped.
     const { allowed } = current.relations;
+    const filterRelations = current.filters.relations;
 
-    if (Array.isArray(allowed) && (allowed as string[]).includes(last)) {
+    if (
+        (Array.isArray(allowed) && (allowed as string[]).includes(last)) ||
+        (Array.isArray(filterRelations) && filterRelations.includes(last)) ||
+        current.hasSchemaMapping(last)
+    ) {
         throw CacheError.relationUnresolvable(resolveSchemaName(current), last);
     }
 }
