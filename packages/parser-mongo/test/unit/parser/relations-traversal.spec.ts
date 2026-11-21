@@ -264,4 +264,82 @@ describe('mongo relation-array operators honour the relation gate (#1001)', () =
             expect(filterFields(query.filters)).toEqual(['author']);
         }
     });
+
+    it('never keeps $not around an array operator on a relation the schema does not allow', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        // a negated array operator has no complement twin: the grammar
+        // rejects it before any key resolution, under either policy, so
+        // the relation can not be reached through $not.
+        for (const operator of [{ $size: 2 }, { $all: ['x'] }, { $elemMatch: { userId: 'x' } }]) {
+            const input = { filters: { author: { $not: operator } } };
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.OPERATOR_UNSUPPORTED },
+                );
+            }
+        }
+    });
+});
+
+/**
+ * `secrets` and `drafts` are declared relations of post through
+ * `schemaMapping`, but neither target schema is registered; only `drafts`
+ * is allowed. `notes` is an undeclared, unregistered JSON column (#1001).
+ */
+function buildUnregisteredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['tags', 'drafts'] },
+        schemaMapping: { secrets: 'secretUnreg', drafts: 'draftUnreg' },
+    }));
+    registry.add(defineSchema({ name: 'tags' }));
+
+    return registry;
+}
+
+describe('mongo array operators on an unregistered declared relation (#1001)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 0 } },
+        { label: '$elemMatch', value: { $elemMatch: { name: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`drops or rejects ${label} on a schemaMapping relation outside the allowed list`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+            const input = { filters: { secrets: value } };
+
+            expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        });
+
+        it(`keeps ${label} on an allowed schemaMapping relation`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+
+            const query = parser.parse(
+                { filters: { drafts: value } },
+                { schema: 'post', throwOnFailure: true },
+            );
+
+            expect(filterFields(query.filters)).toEqual(['drafts']);
+        });
+
+        it(`keeps ${label} on an undeclared JSON column`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+
+            const query = parser.parse(
+                { filters: { notes: value } },
+                { schema: 'post', throwOnFailure: true },
+            );
+
+            expect(filterFields(query.filters)).toEqual(['notes']);
+        });
+    }
 });
