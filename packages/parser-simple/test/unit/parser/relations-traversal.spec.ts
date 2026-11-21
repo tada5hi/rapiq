@@ -625,9 +625,9 @@ describe('relation traversal gate (#1001)', () => {
 
         const kept = await parser.parseAsync(
             {
-                filters: { 'postTags.tagId': 'x' }, 
-                sorts: 'postTags.tagId', 
-                relations: ['cover'], 
+                filters: { 'postTags.tagId': 'x' },
+                sorts: 'postTags.tagId',
+                relations: ['cover'],
             },
             { schema: 'post' },
         );
@@ -697,9 +697,9 @@ describe('relation traversal gate (#1001)', () => {
         expect(filterFields(parser.parse(input, { schema: 'post', strict: true }).filters)).toEqual([]);
         expectRejected(
             () => parser.parse(input, {
-                schema: 'post', 
-                strict: true, 
-                throwOnFailure: true, 
+                schema: 'post',
+                strict: true,
+                throwOnFailure: true,
             }),
             PATH_REJECTED,
         );
@@ -738,22 +738,37 @@ describe('relation traversal gate (#1001)', () => {
     it('rejects a grouped sort through even an allowed relation', () => {
         const parser = new SimpleParser(buildGateRegistry());
         const options = {
-            schema: 'post', 
-            groups: true, 
-            aggregates: true, 
+            schema: 'post',
+            groups: true,
+            aggregates: true,
         };
 
         expect(sortNames(parser.parse({ groups: 'id', sorts: 'postTags.tagId' }, options))).toEqual([]);
         expectRejected(
             () => parser.parse(
                 {
-                    groups: 'id', 
-                    sorts: 'postTags.tagId', 
-                    relations: ['postTags'], 
+                    groups: 'id',
+                    sorts: 'postTags.tagId',
+                    relations: ['postTags'],
                 },
                 { ...options, throwOnFailure: true },
             ),
             PATH_REJECTED,
         );
+    });
+
+    it('never gates a scalar leaf whose name matches a registered schema', () => {
+        // post has a scalar role column; a role schema is registered too,
+        // but role is no relation post allows.
+        const registry = buildGateRegistry({ filters: { allowed: ['id', 'role'] } });
+
+        registry.add(defineSchema({ name: 'role', filters: { allowed: ['id'] } }));
+
+        const parser = new SimpleParser(registry);
+        const input = { filters: { role: 'admin' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual(['role']);
+        expect(filterFields(parser.parse(input, { schema: 'post', throwOnFailure: true }).filters))
+            .toEqual(['role']);
     });
 });

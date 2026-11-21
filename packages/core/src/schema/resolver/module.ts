@@ -347,20 +347,6 @@ export class ResolutionScope<
                 return this.fail(code, key, mapped, raw);
             }
 
-            // a filter leaf that is itself a relation (an array operator's
-            // target) joins it like a dotted path does, so the same
-            // relation policy gates it.
-            if (
-                this.parameter === Parameter.FILTERS &&
-                this.isRelationLeaf(mapped)
-            ) {
-                const policyCode = this.checkRelationPolicy(mapped);
-
-                if (policyCode) {
-                    return this.fail(policyCode, key, mapped, raw);
-                }
-            }
-
             // resolution reached the leaf: record the authorization obligations
             // for the relations it traversed (this scope's absolute path) plus a
             // leaf that is itself a relation (an array operator's target). This
@@ -844,6 +830,32 @@ export class ResolutionScope<
         return isPathAllowed(segment, list) ?
             undefined :
             KeyResolutionErrorCode.PATH_NOT_PERMITTED;
+    }
+
+    /**
+     * Gate a resolved leaf `name` that an array operator (`size`,
+     * `elemMatch`, `all`) targets directly. When the leaf is a relation of
+     * this scope's record, the operator joins it like a dotted path does, so
+     * the same {@link checkRelationPolicy} applies. Only the dialect parser
+     * knows the operator, so it calls this for array-operator targets alone:
+     * a scalar comparison on a column whose name happens to match a
+     * registered schema is never gated here.
+     *
+     * Returns `undefined` when permitted, otherwise the failure, recorded or
+     * thrown under this scope's failure policy like any resolution failure.
+     */
+    checkRelationTarget(name: string, input: string = name) : KeyResolutionFailure | undefined {
+        if (!this.isRelationLeaf(name)) {
+            return undefined;
+        }
+
+        const code = this.checkRelationPolicy(name);
+
+        if (!code) {
+            return undefined;
+        }
+
+        return this.fail(code, input, name);
     }
 
     /**

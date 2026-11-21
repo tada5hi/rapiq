@@ -43,6 +43,7 @@ import {
 } from '@rapiq/core';
 import type { MongoComparisonOperator, MongoCompoundOperator, MongoFiltersParserInput  } from './types';
 import {
+    MONGO_ARRAY_OPERATORS,
     MONGO_COMPARISON_OPERATORS,
     MONGO_COMPOUND_OPERATORS,
     MONGO_FIELD_OPERATORS,
@@ -603,7 +604,33 @@ export class MongoFiltersParser extends BaseParser<
             return [];
         }
 
+        // an array operator may target a relation directly; only then is the
+        // leaf gated by the relation policy (#1001), so a scalar comparison
+        // on a column sharing a registered schema's name is never gated.
+        if (
+            this.hasArrayOperator(input) &&
+            resolved.scope.checkRelationTarget(resolved.name, key)
+        ) {
+            return [];
+        }
+
         return this.buildOperatorObject(input, resolved, negated, depth, regex);
+    }
+
+    /**
+     * Whether a (validated) operator object applies an array operator
+     * (`$size`, `$all`, `$elemMatch`) to its field, `$not` included.
+     */
+    protected hasArrayOperator(input: Record<string, any>) : boolean {
+        return Object.keys(input).some((operator) => {
+            if (MONGO_ARRAY_OPERATORS.includes(operator)) {
+                return true;
+            }
+
+            return operator === '$not' &&
+                isObject(input[operator]) &&
+                this.hasArrayOperator(input[operator]);
+        });
     }
 
     /**

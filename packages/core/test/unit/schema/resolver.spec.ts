@@ -269,18 +269,31 @@ describe('src/schema/resolver/*.ts', () => {
             expect(() => scope.descend('author', { optional: true })).toThrow(FiltersParseError);
         });
 
-        it('should gate a terminal relation leaf by the same list', () => {
+        it('should never gate a plain leaf whose name matches a registered schema', () => {
+            const local = buildGateRegistry({ filters: { allowed: ['author'] } });
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post', { throwOnFailure: true });
+
+            // a scalar comparison: the resolver does not see the operator
+            expect(scope.resolveKey('author').success).toBeTruthy();
+        });
+
+        it('should gate an array-operator relation target by the same list', () => {
             const local = buildGateRegistry({ filters: {} });
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post');
 
-            expect(scope.resolveKey('author')).toEqual({
+            expect(scope.checkRelationTarget('author')).toEqual({
                 success: false,
                 code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
                 input: 'author',
                 segment: 'author',
             });
-            expect(scope.resolveKey('tags').success).toBeTruthy();
-            expect(scope.resolveKey('labels').success).toBeTruthy();
+            expect(scope.checkRelationTarget('tags')).toBeUndefined();
+            // not a relation (e.g. a JSON array column): nothing to gate
+            expect(scope.checkRelationTarget('labels')).toBeUndefined();
+
+            const throwing = ResolutionScope.for(local, Parameter.FILTERS, 'post', { throwOnFailure: true });
+
+            expect(() => throwing.checkRelationTarget('author')).toThrow(FiltersParseError);
         });
     });
 

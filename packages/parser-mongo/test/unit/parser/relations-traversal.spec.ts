@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
+import { expectRejected } from '../../data';
 import { MongoFiltersParser, MongoParser } from '../../../src';
 
 type Actor = { permissions: string[] };
@@ -201,6 +202,66 @@ describe('mongo filters honour relations.validate for traversed paths (#815)', (
                 expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
                 expect(filterFields(output)).toEqual([]);
             });
+        }
+    });
+});
+
+/**
+ * post allows the relation postTags only; author is a registered schema and
+ * a filterable key of post, but no relation post allows (#1001).
+ */
+function buildGateRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        filters: { allowed: ['id', 'postTags', 'author'] },
+        relations: { allowed: ['postTags'] },
+    }));
+    registry.add(defineSchema({ name: 'postTags', filters: { allowed: ['tagId'] } }));
+    registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+    return registry;
+}
+
+describe('mongo relation-array operators honour the relation gate (#1001)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 2 } },
+        { label: '$all', value: { $all: ['x'] } },
+        { label: '$elemMatch', value: { $elemMatch: { userId: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`drops or rejects ${label} on a relation the schema does not allow`, () => {
+            const parser = new MongoParser(buildGateRegistry());
+            const input = { filters: { author: value } };
+
+            expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        });
+    }
+
+    it('keeps $size on an allowed relation', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        const query = parser.parse(
+            { filters: { postTags: { $size: 2 } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(filterFields(query.filters)).toEqual(['postTags']);
+    });
+
+    it('never gates a scalar comparison on a key matching a registered schema', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        for (const filters of [{ author: 'x' }, { author: { $ne: 'x' } }, { author: { $gt: 'x' } }]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(filterFields(query.filters)).toEqual(['author']);
         }
     });
 });

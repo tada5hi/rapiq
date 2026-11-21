@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
+import { expectRejected } from '../../data';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
 
 type Actor = { permissions: string[] };
@@ -165,6 +166,72 @@ describe('expression filters honour relations.validate for traversed paths (#815
                 expect(validate).toHaveBeenCalledWith('items', actor, USER_ROOT_SCOPE);
                 expect(filterFields(output)).toEqual([]);
             });
+        }
+    });
+});
+
+/**
+ * post allows the relation postTags only; author is a registered schema and
+ * a filterable key of post, but no relation post allows (#1001).
+ */
+function buildGateRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        filters: { allowed: ['id', 'postTags', 'author'] },
+        relations: { allowed: ['postTags'] },
+    }));
+    registry.add(defineSchema({ name: 'postTags', filters: { allowed: ['tagId'] } }));
+    registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+    return registry;
+}
+
+describe('expression relation-array operators honour the relation gate (#1001)', () => {
+    const rejected = [
+        "size(author, '2')",
+        "elemMatch(author, eq(userId, 'x'))",
+    ];
+
+    for (const expression of rejected) {
+        it(`rejects ${expression} on a relation the schema does not allow`, () => {
+            const parser = new ExpressionParser(buildGateRegistry());
+            const input = { filters: expression };
+
+            // an expression cannot be partially reinterpreted: key
+            // violations reject under either failure policy.
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+                );
+            }
+        });
+    }
+
+    const kept = [
+        "size(postTags, '2')",
+        "elemMatch(postTags, eq(tagId, 'x'))",
+    ];
+
+    for (const expression of kept) {
+        it(`keeps ${expression} on an allowed relation`, () => {
+            const parser = new ExpressionParser(buildGateRegistry());
+
+            const query = parser.parse({ filters: expression }, { schema: 'post', throwOnFailure: true });
+
+            expect(filterFields(query.filters)).toEqual(['postTags']);
+        });
+    }
+
+    it('never gates a scalar comparison on a key matching a registered schema', () => {
+        const parser = new ExpressionParser(buildGateRegistry());
+
+        for (const filters of ["eq(author, 'x')", "lt(author, 'x')", "gt(author, 'x')"]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(filterFields(query.filters)).toEqual(['author']);
         }
     });
 });

@@ -706,7 +706,8 @@ export class ExpressionFiltersParser extends BaseParser<
         this.consume(FilterTokenType.SIZE);
         this.consume(FilterTokenType.LPAREN);
 
-        const field = this.parseExpressionFieldChain(scope);
+        // size() may target a relation array directly: gate it (#1001).
+        const field = this.parseExpressionFieldChain(scope, true);
 
         this.consume(FilterTokenType.COMMA);
 
@@ -853,8 +854,15 @@ export class ExpressionFiltersParser extends BaseParser<
         return this.normalizeValue(token.value ?? 'null');
     }
 
+    /**
+     * `relationTarget` marks the field of an array operator (`size`): a leaf
+     * that is itself a relation is then gated by the relation policy too.
+     * A scalar comparison never asks, so a column sharing a registered
+     * schema's name is not mistaken for a relation.
+     */
     private parseExpressionFieldChain(
         scope?: FiltersScope,
+        relationTarget: boolean = false,
     ): string {
         if (this.peek().type === FilterTokenType.ITSELF) {
             this.consume(FilterTokenType.ITSELF);
@@ -897,6 +905,15 @@ export class ExpressionFiltersParser extends BaseParser<
             /* istanbul ignore next -- the scope always throws */
             if (!resolved.success) {
                 throw FiltersParseError.keyInvalid(resolved.input);
+            }
+
+            if (relationTarget) {
+                const failure = resolved.scope.checkRelationTarget(resolved.name, parts.join('.'));
+
+                /* istanbul ignore next -- the scope always throws */
+                if (failure) {
+                    throw FiltersParseError.keyInvalid(failure.input);
+                }
             }
 
             return [...resolved.path, resolved.name].join('.');
