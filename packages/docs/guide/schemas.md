@@ -61,9 +61,9 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | Parameter | Options |
 |---|---|
 | `fields` | `allowed`, `default`, `mapping` (alias to field), `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
+| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `relations` (relations a filter key may traverse; defaults to `relations.allowed`), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `sorts` | `allowed`, `default`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
+| `sorts` | `allowed`, `default`, `relations` (relations a sort key may traverse; defaults to `relations.allowed`), `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
 | `groups` | `allowed` (bare columns), `functions` (built-in `bucket` or [named functions](/guide/grouping#named-functions)), `validate` ([per-term hook](/guide/grouping#validate-hooks)); fail-closed, see [Declaring what may be grouped](/guide/grouping#declaring) |
 | `aggregates` | `functions` (built-in `count` / `sum` or named functions), `validate` (per-term hook); fail-closed |
@@ -366,13 +366,13 @@ userSchema.describe();
 //     strict: false,
 //     indexes: null,
 //     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
-//     filters: { allowed: ['id', 'name', 'age'], caseSensitive: null, indexed: false },
+//     filters: { allowed: ['id', 'name', 'age'], relations: null, caseSensitive: null, indexed: false },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
 //         schemas: { realm: 'realm', items: 'item' },
 //     },
-//     sorts: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, indexed: false },
+//     sorts: { allowed: ['id', 'name', 'age'], default: { id: 'DESC' }, relations: null, indexed: false },
 //     groups: { allowed: null, functions: null },
 //     aggregates: { functions: null },
 // }

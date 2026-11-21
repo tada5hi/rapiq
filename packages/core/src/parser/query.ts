@@ -181,7 +181,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.filters = this.parseOne(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameter(
                     this.readParameter(data, Parameter.FILTERS),
-                    parameterOptions,
+                    this.withoutIncludes(parameterOptions),
                     ledger,
                     issueCollector,
                 ));
@@ -210,7 +210,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     );
                 }
 
-                return this.sortParser.parseParameter(sortsInput, parameterOptions, ledger, issueCollector);
+                return this.sortParser.parseParameter(
+                    sortsInput,
+                    this.withoutIncludes(parameterOptions),
+                    ledger,
+                    issueCollector,
+                );
             });
         }
 
@@ -312,7 +317,7 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
             output.filters = await this.parseOneAsync(issueCollector, Parameter.FILTERS, empty, () => this.filtersParser
                 .parseParameterAsync(
                     this.readParameter(data, Parameter.FILTERS),
-                    parameterOptions,
+                    this.withoutIncludes(parameterOptions),
                     ledger,
                     issueCollector,
                 ));
@@ -345,7 +350,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
                     );
                 }
 
-                return this.sortParser.parseParameterAsync(sortsInput, parameterOptions, ledger, issueCollector);
+                return this.sortParser.parseParameterAsync(
+                    sortsInput,
+                    this.withoutIncludes(parameterOptions),
+                    ledger,
+                    issueCollector,
+                );
             });
         }
 
@@ -466,8 +476,12 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
     }
 
     /**
-     * Relation paths of the other parameters are only gated by the
-     * relations parameter when the client actually supplied one.
+     * When the client supplied an include, it additionally gates the
+     * relation paths of fields (a field projected through a relation the
+     * query does not hydrate means nothing). Filters and sorts are not
+     * gated by it: they receive {@link withoutIncludes}, and their relation
+     * paths are gated by the schema alone (`filters.relations` /
+     * `sorts.relations`, falling back to `relations.allowed`), see #1001.
      */
     protected gateRelations<
         RECORD extends ObjectLiteral = ObjectLiteral,
@@ -479,6 +493,22 @@ export abstract class BaseQueryParser extends BaseParser<ParseQueryOptions, Quer
         if (typeof relationsInput !== 'undefined') {
             parameterOptions.relations = relations;
         }
+    }
+
+    /**
+     * The parameter options a filters or sorts parse runs under: the shared
+     * ones minus the decoded includes. A filter or sort through a relation
+     * joins it without hydrating it, so whether the client included the
+     * relation has no bearing on it.
+     */
+    protected withoutIncludes<
+        RECORD extends ObjectLiteral = ObjectLiteral,
+    >(
+        parameterOptions: ParseParameterOptions<RECORD>,
+    ) : ParseParameterOptions<RECORD> {
+        const { relations: _relations, ...output } = parameterOptions;
+
+        return output;
     }
 
     /**

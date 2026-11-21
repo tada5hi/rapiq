@@ -48,6 +48,16 @@ export class BaseSchema<OPTIONS extends BaseSchemaOptions = BaseSchemaOptions> {
 
     // ---------------------------------------------------------
 
+    /**
+     * Whether `schemaMapping` declares an entry for `input`, including an
+     * identity entry (`author: 'author'`) that {@link mapSchema} cannot
+     * tell apart from an absent one.
+     */
+    hasSchemaMapping(input: string) : boolean {
+        return !!this.options.schemaMapping &&
+            Object.hasOwn(this.options.schemaMapping, input);
+    }
+
     mapSchema(input: string) {
         if (this.options.schemaMapping) {
             return this.options.schemaMapping[input] || input;

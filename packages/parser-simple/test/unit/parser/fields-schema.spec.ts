@@ -67,29 +67,39 @@ describe('parser/fields/schema', () => {
 
     it('should parse with valid sub sub schema field', async () => {
         const output = parser.parse(
-            'user.name,item.realm.name',
+            'user.name,items.realm.name',
             { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([
             'name',
-            'item.id',
-            'item.realm.name',
+            'items.id',
+            'items.realm.name',
         ]);
     });
 
     it('should parse with invalid sub sub schema field', async () => {
         const output = parser.parse(
-            'user.name,item.realm.foo',
+            'user.name,items.realm.foo',
             { schema: 'user' },
         );
 
         expect(interpreter.interpret(output)).toEqual([
             'name',
-            'item.id',
-            'item.realm.id',
-            'item.realm.name',
-            'item.realm.description',
+            'items.id',
+            'items.realm.id',
+            'items.realm.name',
+            'items.realm.description',
         ]);
+    });
+
+    it('should not reach a registered schema by name when relations.allowed lacks it', async () => {
+        // `item` is the schema name, `items` the relation user allows.
+        const output = parser.parse(
+            'user.name,item.realm.name',
+            { schema: 'user' },
+        );
+
+        expect(interpreter.interpret(output)).toEqual(['name']);
     });
 });

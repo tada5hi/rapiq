@@ -55,6 +55,17 @@ export const MONGO_FIELD_OPERATORS : readonly string[] = [
 ];
 
 /**
+ * Field-level operators that address an array, which may be a relation
+ * the operator targets directly (and joins): such a target is gated by
+ * the relation policy, a scalar comparison never is.
+ */
+export const MONGO_ARRAY_OPERATORS : readonly string[] = [
+    '$size',
+    '$elemMatch',
+    '$all',
+];
+
+/**
  * Known mongo operators without an AST counterpart — they throw a typed
  * operatorUnsupported error instead of the generic unknown-operator error.
  */

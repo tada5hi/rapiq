@@ -18,7 +18,6 @@ import type {
 import {
     BaseParser,
     DEFAULT_ID,
-    ErrorCode,
     FILTER_OPERATOR_SEMANTICS,
     Filter,
     FilterCompoundOperator,
@@ -38,7 +37,6 @@ import {
     buildFiltersDefaults,
     isFilter,
     isFilters,
-    isParseError,
     pruneFiltersByRelations,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -706,7 +704,8 @@ export class ExpressionFiltersParser extends BaseParser<
         this.consume(FilterTokenType.SIZE);
         this.consume(FilterTokenType.LPAREN);
 
-        const field = this.parseExpressionFieldChain(scope);
+        // size() may target a relation array directly: gate it (#1001).
+        const field = this.parseExpressionFieldChain(scope, true);
 
         this.consume(FilterTokenType.COMMA);
 
@@ -808,23 +807,15 @@ export class ExpressionFiltersParser extends BaseParser<
 
         let interior : FiltersScope | undefined;
 
-        try {
-            const verdict = resolved.scope.descend(resolved.name);
+        // elemMatch on a non-relation field is legal: a missing related
+        // schema comes back as a bare verdict and falls back to the unbound
+        // scope. Every other failure (e.g. relations gating, including a
+        // declared relation whose schema is not registered) is thrown by
+        // the descent itself, the scope is always throwing.
+        const verdict = resolved.scope.descend(resolved.name, { optional: true });
 
-            if (verdict instanceof ResolutionScope) {
-                interior = verdict as FiltersScope;
-            }
-        } catch (e) {
-            // elemMatch on a non-relation field is legal — a missing
-            // related schema (thrown as keyPathInvalid, the scope is
-            // always throwing) falls back to the unbound scope; every
-            // other failure (e.g. relations gating) propagates.
-            if (
-                !isParseError(e) ||
-                e.code !== ErrorCode.KEY_PATH_INVALID
-            ) {
-                throw e;
-            }
+        if (verdict instanceof ResolutionScope) {
+            interior = verdict as FiltersScope;
         }
 
         return {
@@ -853,8 +844,15 @@ export class ExpressionFiltersParser extends BaseParser<
         return this.normalizeValue(token.value ?? 'null');
     }
 
+    /**
+     * `relationTarget` marks the field of an array operator (`size`): a leaf
+     * that is itself a relation is then gated by the relation policy too.
+     * A scalar comparison never asks, so a column sharing a registered
+     * schema's name is not mistaken for a relation.
+     */
     private parseExpressionFieldChain(
         scope?: FiltersScope,
+        relationTarget: boolean = false,
     ): string {
         if (this.peek().type === FilterTokenType.ITSELF) {
             this.consume(FilterTokenType.ITSELF);
@@ -892,7 +890,8 @@ export class ExpressionFiltersParser extends BaseParser<
                 parts.shift();
             }
 
-            const resolved = scope.resolveKey(parts.join('.'));
+            const key = parts.join('.');
+            const resolved = scope.resolveKey(key, key, { relationTarget });
 
             /* istanbul ignore next -- the scope always throws */
             if (!resolved.success) {

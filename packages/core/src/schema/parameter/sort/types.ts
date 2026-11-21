@@ -7,6 +7,7 @@
 
 import type {
     SimpleKeys,
+    SimpleResourceKeys,
 } from '../../../types';
 import type { SortDirection } from './constants';
 import type { KeyValidatableSchemaOptions, KeyValidator, KeyValidatorMany } from '../../types';
@@ -48,6 +49,14 @@ export type SortsOptions<
      * Mutually exclusive with `validate`.
      */
     validateMany?: KeyValidatorMany<CONTEXT>,
+    /**
+     * Relations a sort key may traverse (e.g. `author` for
+     * `author.id`), checked per hop against the schema governing that
+     * hop. Defaults to `relations.allowed` of the same schema and may
+     * differ from it. Undeclared on both: every relation is permitted
+     * unless the schema is strict.
+     */
+    relations?: SimpleResourceKeys<T>[],
 };
 
 /**
@@ -60,6 +69,7 @@ export type SortsSchemaDescription = {
     allowed: string[] | null,
     default: Record<string, `${SortDirection}`> | null,
     indexed: boolean,
+    relations: string[] | null,
 };
 
 /**

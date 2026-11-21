@@ -6,7 +6,7 @@ Order the collection by one or more keys, ascending or descending.
 |---|---|
 | URL key | `sort` |
 | AST nodes | `Sorts` / `Sort { name, operator: 'ASC' \| 'DESC' }` |
-| Schema options | `allowed`, `default`, `mapping`, `validate` / `validateMany` |
+| Schema options | `allowed`, `default`, `mapping`, `relations`, `validate` / `validateMany` |
 
 ## On the wire
 
@@ -51,7 +51,7 @@ Keys are checked against the record type.
 
 ## Relation fields
 
-`relation.field` keys (or nested records) sort by a related record's field. The relation must be requested and allowed, and the field validates against the related schema via [`schemaMapping`](/guide/schemas#the-registry-relations).
+`relation.field` keys (or nested records) sort by a related record's field. The relation must be listed in the schema's `sorts.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations). A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list the relation is permitted, unless the schema is [strict](/guide/schemas#strict-mode). The field validates against the related schema via [`schemaMapping`](/guide/schemas#the-registry-relations).
 
 ## Schema options
 
@@ -70,6 +70,7 @@ defineSchema<User>({
 | `allowed` | Sortable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Sort order applied when the client sends nothing valid. |
 | `mapping` | Alias → field translation applied before validation. |
+| `relations` | Relations a sort key may traverse (`relation.field` keys). Defaults to `relations.allowed`; see [Relation fields](#relation-fields). |
 | `validate` / `validateMany` | Per-request [key hooks](/guide/schemas#validate-hooks-parse-context): accept or reject a sort key per actor. |
 | `indexed` | Requested keys must form a leftmost prefix of one declared schema [index](/guide/schemas#indexes), in order; directions are ignored and keys must share one relation path. Replaces the removed nested-list form of `allowed`. |
 

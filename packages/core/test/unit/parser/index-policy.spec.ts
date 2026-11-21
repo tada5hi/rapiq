@@ -79,6 +79,25 @@ describe('src/parser/index-policy.ts', () => {
         expect(applyFiltersIndexPolicy(output, registry, 'row')).toBe(output);
     });
 
+    it('should read a relation path\'s indexes even where no client may traverse it (#1001)', () => {
+        const registry = new SchemaRegistry();
+
+        registry.add(defineSchema<Row>({
+            name: 'row',
+            indexes: [['email']],
+            filters: { indexed: true },
+            // no client may filter through `items`; a server-authored
+            // residual still may, and must anchor on its index
+            relations: { allowed: [] },
+            schemaMapping: { items: 'item' },
+        }));
+        registry.add(defineSchema<Item>({ name: 'item', indexes: [['user_id']] }));
+
+        const output = new Filters(FilterCompoundOperator.AND, [eq('items.user_id', 'me')]);
+
+        expect(applyFiltersIndexPolicy(output, registry, 'row', { throwOnFailure: true })).toBe(output);
+    });
+
     it('should drop a violating tree to the schema default', () => {
         const registry = buildRegistry();
         const output = new Filters(FilterCompoundOperator.AND, [eq('created_at', 'x')]);

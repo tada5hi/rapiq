@@ -6,7 +6,7 @@ Narrow the collection by conditions on fields: from a simple equality to arbitra
 |---|---|
 | URL key | `filter` |
 | AST nodes | `Filters` (compound `and`/`or`) / `Filter { operator, field, value }` |
-| Schema options | `allowed`, `default`, `mapping`, `validate` |
+| Schema options | `allowed`, `default`, `mapping`, `relations`, `validate` |
 
 ## Operators
 
@@ -146,7 +146,7 @@ same verdict `@rapiq/adapter-memory` produces.
 
 ## Nested fields
 
-`relation.field` keys filter on related records. The relation must be permitted and requested via [relations](/guide/relations), and the field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
+`relation.field` keys filter on related records. The relation must be listed in the schema's `filters.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations), and an include of another relation does not drop the filter. A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list every name the registry resolves (directly or through `schemaMapping`) is permitted, unless the schema is [strict](/guide/schemas#strict-mode); declare `relations.allowed` (or `filters.relations`) to restrict traversal. A name the registry cannot resolve is a `keyPathInvalid` parse error. Array operators that target a relation directly (`$size`, `$all`, `$elemMatch` in mongo; `size()`, `elemMatch()` in the expression dialect) are checked against the same list. Their target counts as a relation when the registry resolves it or the schema declares it in `schemaMapping`, `relations.allowed` or `filters.relations`; a JSON array column that shares a registered schema's name therefore needs to be listed in `filters.relations` to stay filterable with these operators. The field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
 
 ## Null semantics
 
@@ -282,6 +282,7 @@ defineSchema<User>({
 | `allowed` | Filterable field names. Omit to allow all; `[]` blocks the parameter. |
 | `default` | Condition applied when the client sends no filters. |
 | `mapping` | Alias → field translation applied before validation. |
+| `relations` | Relations a filter may traverse (`relation.field` keys and array operators on a relation). Defaults to `relations.allowed`; see [Nested fields](#nested-fields). |
 | `validate` | Sync or async per-filter hook: inspect a parsed `Filter`, replace it with any condition, or reject it. Receives the [parse context](/guide/schemas#validate-hooks-parse-context) as its second argument. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 | `indexed` | Check the parsed tree against the schema `indexes` declaration: `'anchor'` (or `true`) requires one index-leading conjunct per AND group, `'cover'` full prefix coverage. See [Indexes](/guide/schemas#indexes). |

@@ -5,8 +5,9 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
+import { expectRejected } from '../../data';
 import { MongoFiltersParser, MongoParser } from '../../../src';
 
 type Actor = { permissions: string[] };
@@ -203,4 +204,173 @@ describe('mongo filters honour relations.validate for traversed paths (#815)', (
             });
         }
     });
+});
+
+/**
+ * post allows the relation postTags only; author is a registered schema and
+ * a filterable key of post, but no relation post allows (#1001).
+ */
+function buildGateRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        filters: { allowed: ['id', 'postTags', 'author'] },
+        relations: { allowed: ['postTags'] },
+    }));
+    registry.add(defineSchema({ name: 'postTags', filters: { allowed: ['tagId'] } }));
+    registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+    return registry;
+}
+
+describe('mongo relation-array operators honour the relation gate (#1001)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 2 } },
+        { label: '$all', value: { $all: ['x'] } },
+        { label: '$elemMatch', value: { $elemMatch: { userId: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`drops or rejects ${label} on a relation the schema does not allow`, () => {
+            const parser = new MongoParser(buildGateRegistry());
+            const input = { filters: { author: value } };
+
+            expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        });
+    }
+
+    it('never asks the relations hook about a target the gate rejects', () => {
+        const seen : string[] = [];
+        const registry = new SchemaRegistry();
+
+        registry.add(defineSchema({
+            name: 'post',
+            filters: { allowed: ['id', 'author'] },
+            relations: {
+                allowed: ['postTags'],
+                validate: (name: string) => {
+                    seen.push(name);
+
+                    return true;
+                },
+            },
+        }));
+        registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+        const parser = new MongoParser(registry);
+        let issues : unknown[] = [];
+
+        try {
+            parser.parse({ filters: { author: { $size: 1 } } }, { schema: 'post', throwOnFailure: true });
+        } catch (e) {
+            issues = (e as { issues: unknown[] }).issues;
+        }
+
+        expect(seen).toEqual([]);
+        expect(issues).toHaveLength(1);
+    });
+
+    it('keeps $size on an allowed relation', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        const query = parser.parse(
+            { filters: { postTags: { $size: 2 } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(filterFields(query.filters)).toEqual(['postTags']);
+    });
+
+    it('never gates a scalar comparison on a key matching a registered schema', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        for (const filters of [{ author: 'x' }, { author: { $ne: 'x' } }, { author: { $gt: 'x' } }]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(filterFields(query.filters)).toEqual(['author']);
+        }
+    });
+
+    it('never keeps $not around an array operator on a relation the schema does not allow', () => {
+        const parser = new MongoParser(buildGateRegistry());
+
+        // a negated array operator has no complement twin: the grammar
+        // rejects it before any key resolution, under either policy, so
+        // the relation can not be reached through $not.
+        for (const operator of [{ $size: 2 }, { $all: ['x'] }, { $elemMatch: { userId: 'x' } }]) {
+            const input = { filters: { author: { $not: operator } } };
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.OPERATOR_UNSUPPORTED },
+                );
+            }
+        }
+    });
+});
+
+/**
+ * `secrets` and `drafts` are declared relations of post through
+ * `schemaMapping`, but neither target schema is registered; only `drafts`
+ * is allowed. `notes` is an undeclared, unregistered JSON column (#1001).
+ */
+function buildUnregisteredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['tags', 'drafts'] },
+        schemaMapping: { secrets: 'secretUnreg', drafts: 'draftUnreg' },
+    }));
+    registry.add(defineSchema({ name: 'tags' }));
+
+    return registry;
+}
+
+describe('mongo array operators on an unregistered declared relation (#1001)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 0 } },
+        { label: '$elemMatch', value: { $elemMatch: { name: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`drops or rejects ${label} on a schemaMapping relation outside the allowed list`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+            const input = { filters: { secrets: value } };
+
+            expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        });
+
+        it(`keeps ${label} on an allowed schemaMapping relation`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+
+            const query = parser.parse(
+                { filters: { drafts: value } },
+                { schema: 'post', throwOnFailure: true },
+            );
+
+            expect(filterFields(query.filters)).toEqual(['drafts']);
+        });
+
+        it(`keeps ${label} on an undeclared JSON column`, () => {
+            const parser = new MongoParser(buildUnregisteredRegistry());
+
+            const query = parser.parse(
+                { filters: { notes: value } },
+                { schema: 'post', throwOnFailure: true },
+            );
+
+            expect(filterFields(query.filters)).toEqual(['notes']);
+        });
+    }
 });

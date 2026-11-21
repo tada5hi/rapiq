@@ -334,8 +334,17 @@ export class ResolutionScope<
      *
      * Throws the parameter's ParseError subclass instead of returning `{ success: false }`
      * when the effective failure policy is set.
+     *
+     * `relationTarget` marks the key as an array operator's target
+     * (`size`, `elemMatch`, `all`): a leaf that is a relation is then gated
+     * by {@link checkRelationTarget} before any authorization obligation is
+     * recorded, so a rejected relation never reaches the relations hook.
      */
-    resolveKey(key: string, raw: string = key) : KeyResolution<P, RECORD> {
+    resolveKey(
+        key: string,
+        raw: string = key,
+        options: { relationTarget?: boolean } = {},
+    ) : KeyResolution<P, RECORD> {
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
@@ -345,6 +354,14 @@ export class ResolutionScope<
 
             if (code) {
                 return this.fail(code, key, mapped, raw);
+            }
+
+            if (options.relationTarget) {
+                const failure = this.checkRelationTarget(mapped, key);
+
+                if (failure) {
+                    return failure;
+                }
             }
 
             // resolution reached the leaf: record the authorization obligations
@@ -371,7 +388,7 @@ export class ResolutionScope<
             return child;
         }
 
-        const resolved = child.resolveKey(rest, raw);
+        const resolved = child.resolveKey(rest, raw, options);
 
         if (!resolved.success) {
             return { ...resolved, input: key };
@@ -466,29 +483,36 @@ export class ResolutionScope<
      * the elements of whatever it names, so "no schema for this key" is an
      * answer, not a violation, and is returned as a bare verdict without
      * being thrown or recorded. Every other failure stays a failure.
+     *
+     * `gated: false` skips the schema relation policy
+     * ({@link checkRelationPolicy}) for an internal lookup over a tree the
+     * server already accepted, e.g. reading the indexes or sort defaults
+     * of the schema governing a resolved path: a server-authored residual
+     * may legitimately traverse a relation no client may name (#1001).
      */
     descend(
         key: string,
-        options: { optional?: boolean } = {},
+        options: { optional?: boolean, gated?: boolean } = {},
     ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         const mapped = applyMapping(key, this.mapping);
+        const gated = options.gated ?? true;
 
         const separatorIndex = mapped.indexOf('.');
 
         if (separatorIndex === -1) {
-            return this.descendSegment(mapped, key, key, options.optional);
+            return this.descendSegment(mapped, key, key, options.optional, gated);
         }
 
         const segments = mapped.split('.');
 
-        let scope = this.descendSegment(segments[0] as string, key, key, options.optional);
+        let scope = this.descendSegment(segments[0] as string, key, key, options.optional, gated);
 
         for (const segment of segments.slice(1)) {
             if (!(scope instanceof ResolutionScope)) {
                 return scope;
             }
 
-            scope = scope.descendSegment(segment, key, key, options.optional);
+            scope = scope.descendSegment(segment, key, key, options.optional, gated);
         }
 
         if (!(scope instanceof ResolutionScope)) {
@@ -505,6 +529,7 @@ export class ResolutionScope<
         input: string,
         raw: string = input,
         optional?: boolean,
+        gated: boolean = true,
     ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         if (this.depth >= MAX_DEPTH) {
             return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
@@ -523,6 +548,11 @@ export class ResolutionScope<
         if (base) {
             childBase = this.registry.get(base.mapSchema(segment));
         } else {
+            // Intentional: a standalone filters/sorts schema with no base
+            // schema has no record identity, so there is no relations list
+            // to gate against. It descends by registry name, and the hop is
+            // permitted unless the scope is strict or the schema's own
+            // `relations` option excludes it (checkRelationPolicy).
             childBase = this.registry.get(segment);
         }
 
@@ -535,6 +565,18 @@ export class ResolutionScope<
             // Unbound scopes (no schema identity) impose no traversal constraints,
             // so both descend into an unbound child scope instead of failing.
             if (optional) {
+                // a relation the base schema declares (e.g. via
+                // schemaMapping) is still a relation when its target is not
+                // registered: an array operator's interior must not
+                // reach it outside the permitted list (#1001).
+                if (gated && this.isDeclaredRelation(segment)) {
+                    const declaredCode = this.checkRelationPolicy(segment);
+
+                    if (declaredCode) {
+                        return this.fail(declaredCode, input, segment, raw);
+                    }
+                }
+
                 return {
                     success: false,
                     code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
@@ -544,6 +586,15 @@ export class ResolutionScope<
             }
 
             return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
+        }
+
+        // after the lookup, so a segment that is no relation at all keeps
+        // answering SCHEMA_UNRESOLVABLE (and an optional descent still gets
+        // its bare verdict) instead of reading as a forbidden relation.
+        const policyCode = gated ? this.checkRelationPolicy(segment) : undefined;
+
+        if (policyCode) {
+            return this.fail(policyCode, input, segment, raw);
         }
 
         let schema : ParameterSchema<P, RECORD>;
@@ -774,7 +825,144 @@ export class ResolutionScope<
     }
 
     /**
-     * Permission verdict for entering a relation segment.
+     * Schema-policy verdict for traversing the relation `segment` (#1001),
+     * read from the schema governing this hop:
+     *
+     * - filters / sorts: their own `relations` list, falling back to
+     *   `relations.allowed`;
+     * - fields: `relations.allowed`;
+     * - relations, groups, aggregates: governed elsewhere (no verdict).
+     *
+     * An undeclared list permits the segment unless the scope is strict.
+     * An unbound scope describes no record and imposes nothing. The decoded
+     * includes are not consulted here: {@link checkSegment} applies an
+     * explicitly passed `relations` option on top.
+     */
+    protected checkRelationPolicy(segment: string) : KeyResolutionErrorCode | undefined {
+        if (this.isUnbound()) {
+            return undefined;
+        }
+
+        let list : string[] | undefined;
+
+        switch (this.parameter as `${Parameter}`) {
+            case Parameter.FILTERS:
+            case Parameter.SORTS:
+            case Parameter.SORT: {
+                const schema = this.schema as FiltersSchema<RECORD> | SortsSchema<RECORD>;
+
+                list = schema.relations ?? this.resolveBase()?.relations.allowed;
+
+                break;
+            }
+            case Parameter.FIELDS:
+                list = this.resolveBase()?.relations.allowed;
+
+                break;
+            default:
+                return undefined;
+        }
+
+        if (typeof list === 'undefined') {
+            return this.strict ?
+                KeyResolutionErrorCode.PATH_NOT_PERMITTED :
+                undefined;
+        }
+
+        return isPathAllowed(segment, list) ?
+            undefined :
+            KeyResolutionErrorCode.PATH_NOT_PERMITTED;
+    }
+
+    /**
+     * Gate a resolved leaf `name` that an array operator (`size`,
+     * `elemMatch`, `all`) targets directly. When the leaf is a relation of
+     * this scope's record, the operator joins it like a dotted path does, so
+     * the same {@link checkRelationPolicy} applies. Only the dialect parser
+     * knows the operator, so it calls this for array-operator targets alone:
+     * a scalar comparison on a column whose name happens to match a
+     * registered schema is never gated here.
+     *
+     * Returns `undefined` when permitted, otherwise the failure, recorded or
+     * thrown under this scope's failure policy like any resolution failure.
+     */
+    checkRelationTarget(name: string, input: string = name) : KeyResolutionFailure | undefined {
+        if (!this.isRelationLeaf(name)) {
+            return undefined;
+        }
+
+        // the explicit `relations` option narrows a relation target exactly
+        // as it narrows a dotted hop into the same relation.
+        const code = this.checkSegment(name) ?? this.checkRelationPolicy(name);
+
+        if (!code) {
+            return undefined;
+        }
+
+        return this.fail(code, input, name);
+    }
+
+    /**
+     * Whether the leaf `name` is itself a relation of this scope's record
+     * (an array operator's target, e.g. `$size` on a relation array). Same
+     * registry lookup as {@link relationObligationForTerminal}.
+     */
+    protected isRelationLeaf(name: string) : boolean {
+        const base = this.resolveBase();
+
+        if (!base) {
+            return false;
+        }
+
+        return !!this.registry.get(base.mapSchema(name)) ||
+            this.isDeclaredRelation(name);
+    }
+
+    /**
+     * Whether the governing base schema declares `name` a relation without
+     * the registry having to resolve it: a `schemaMapping` entry, or a
+     * listing in `relations.allowed` or in this parameter's own `relations`
+     * option. A relation whose target schema is not registered is still a
+     * relation, so an array operator on it is gated like any other (#1001).
+     * A name declared nowhere and resolvable nowhere is not a relation
+     * (e.g. a JSON array column).
+     */
+    protected isDeclaredRelation(name: string) : boolean {
+        const base = this.resolveBase();
+
+        if (!base) {
+            return false;
+        }
+
+        if (base.hasSchemaMapping(name)) {
+            return true;
+        }
+
+        if (
+            base.relations.allowed &&
+            base.relations.allowed.includes(name as never)
+        ) {
+            return true;
+        }
+
+        if (
+            this.parameter === Parameter.FILTERS ||
+            this.parameter === Parameter.SORTS ||
+            this.parameter === Parameter.SORT
+        ) {
+            const { relations } = this.schema as FiltersSchema<RECORD> | SortsSchema<RECORD>;
+
+            return !!relations && relations.includes(name as never);
+        }
+
+        return false;
+    }
+
+    /**
+     * Permission verdict for entering a relation segment: the relations
+     * parameter's own allow-list, or, for every other parameter, the
+     * explicitly passed `relations` option (undefined: no narrowing). The
+     * schema policy follows in {@link checkRelationPolicy}.
      */
     protected checkSegment(segment: string) : KeyResolutionErrorCode | undefined {
         if (this.parameter === Parameter.RELATIONS) {

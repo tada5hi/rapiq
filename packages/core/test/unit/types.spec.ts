@@ -68,6 +68,31 @@ describe('src/types.ts', () => {
         });
     });
 
+    describe('filters.relations', () => {
+        it('should admit JSON array columns next to relations (#1001)', () => {
+            type Row = {
+                id: number,
+                labels: string[],
+                data: Record<string, any>[],
+                tags: { id: number }[],
+                name: string,
+            };
+
+            const schema = defineSchema<Row>({
+                name: 'row',
+                filters: { relations: ['labels', 'data', 'tags'] },
+            });
+
+            defineSchema<Row>({
+                name: 'row',
+                // @ts-expect-error a scalar column is neither a relation nor an array column
+                filters: { relations: ['name'] },
+            });
+
+            expect(schema.filters.relations).toEqual(['labels', 'data', 'tags']);
+        });
+    });
+
     describe('FieldKeys', () => {
         it('should admit a concrete-typed json column that SimpleKeys rejects (#824)', () => {
             type Row = {
