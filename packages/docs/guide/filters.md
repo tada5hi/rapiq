@@ -146,7 +146,7 @@ same verdict `@rapiq/adapter-memory` produces.
 
 ## Nested fields
 
-`relation.field` keys filter on related records. The relation must be listed in the schema's `filters.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations), and an include of another relation does not drop the filter. A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list the relation is permitted, unless the schema is [strict](/guide/schemas#strict-mode). The field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
+`relation.field` keys filter on related records. The relation must be listed in the schema's `filters.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations), and an include of another relation does not drop the filter. A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list the relation is permitted, unless the schema is [strict](/guide/schemas#strict-mode). An unknown relation is a `keyPathInvalid` parse error. Array operators that target a relation directly (`$size`, `$all`, `$elemMatch` in mongo; `size()`, `elemMatch()` in the expression dialect) are checked against the same list. The field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
 
 ## Null semantics
 
