@@ -67,6 +67,14 @@ export class FiltersSchema<
         return this.options.mapping;
     }
 
+    /**
+     * Relations a filter key may traverse; `undefined` falls back to
+     * `relations.allowed` of the owning schema.
+     */
+    get relations() : string[] | undefined {
+        return this.options.relations;
+    }
+
     // ---------------------------------------------------------
 
     hasDefaults() {
@@ -84,6 +92,7 @@ export class FiltersSchema<
             allowed: this.allowedIsUndefined ? null : [...this.allowed],
             caseSensitive: this.caseSensitiveIsUndefined ? null : [...this.caseSensitive],
             indexed: this.indexed,
+            relations: this.relations ? [...this.relations] : null,
         };
     }
 

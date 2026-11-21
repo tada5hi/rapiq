@@ -347,6 +347,20 @@ export class ResolutionScope<
                 return this.fail(code, key, mapped, raw);
             }
 
+            // a filter leaf that is itself a relation (an array operator's
+            // target) joins it like a dotted path does, so the same
+            // relation policy gates it.
+            if (
+                this.parameter === Parameter.FILTERS &&
+                this.isRelationLeaf(mapped)
+            ) {
+                const policyCode = this.checkRelationPolicy(mapped);
+
+                if (policyCode) {
+                    return this.fail(policyCode, key, mapped, raw);
+                }
+            }
+
             // resolution reached the leaf: record the authorization obligations
             // for the relations it traversed (this scope's absolute path) plus a
             // leaf that is itself a relation (an array operator's target). This
@@ -544,6 +558,15 @@ export class ResolutionScope<
             }
 
             return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
+        }
+
+        // after the lookup, so a segment that is no relation at all keeps
+        // answering SCHEMA_UNRESOLVABLE (and an optional descent still gets
+        // its bare verdict) instead of reading as a forbidden relation.
+        const policyCode = this.checkRelationPolicy(segment);
+
+        if (policyCode) {
+            return this.fail(policyCode, input, segment, raw);
         }
 
         let schema : ParameterSchema<P, RECORD>;
@@ -774,7 +797,71 @@ export class ResolutionScope<
     }
 
     /**
-     * Permission verdict for entering a relation segment.
+     * Schema-policy verdict for traversing the relation `segment` (#1001),
+     * read from the schema governing this hop:
+     *
+     * - filters / sorts: their own `relations` list, falling back to
+     *   `relations.allowed`;
+     * - fields: `relations.allowed`;
+     * - relations, groups, aggregates: governed elsewhere (no verdict).
+     *
+     * An undeclared list permits the segment unless the scope is strict.
+     * An unbound scope describes no record and imposes nothing. The decoded
+     * includes are not consulted here: {@link checkSegment} applies an
+     * explicitly passed `relations` option on top.
+     */
+    protected checkRelationPolicy(segment: string) : KeyResolutionErrorCode | undefined {
+        if (this.isUnbound()) {
+            return undefined;
+        }
+
+        let list : string[] | undefined;
+
+        switch (this.parameter as `${Parameter}`) {
+            case Parameter.FILTERS:
+            case Parameter.SORTS:
+            case Parameter.SORT: {
+                const schema = this.schema as FiltersSchema<RECORD> | SortsSchema<RECORD>;
+
+                list = schema.relations ?? this.resolveBase()?.relations.allowed;
+
+                break;
+            }
+            case Parameter.FIELDS:
+                list = this.resolveBase()?.relations.allowed;
+
+                break;
+            default:
+                return undefined;
+        }
+
+        if (typeof list === 'undefined') {
+            return this.strict ?
+                KeyResolutionErrorCode.PATH_NOT_PERMITTED :
+                undefined;
+        }
+
+        return isPathAllowed(segment, list) ?
+            undefined :
+            KeyResolutionErrorCode.PATH_NOT_PERMITTED;
+    }
+
+    /**
+     * Whether the leaf `name` is itself a relation of this scope's record
+     * (an array operator's target, e.g. `$size` on a relation array). Same
+     * registry lookup as {@link relationObligationForTerminal}.
+     */
+    protected isRelationLeaf(name: string) : boolean {
+        const base = this.resolveBase();
+
+        return !!base && !!this.registry.get(base.mapSchema(name));
+    }
+
+    /**
+     * Permission verdict for entering a relation segment: the relations
+     * parameter's own allow-list, or, for every other parameter, the
+     * explicitly passed `relations` option (undefined: no narrowing). The
+     * schema policy follows in {@link checkRelationPolicy}.
      */
     protected checkSegment(segment: string) : KeyResolutionErrorCode | undefined {
         if (this.parameter === Parameter.RELATIONS) {

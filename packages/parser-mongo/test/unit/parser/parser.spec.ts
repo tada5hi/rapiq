@@ -77,12 +77,13 @@ describe('src/parser', () => {
         ]));
     });
 
-    it('should gate filter relation paths by the relations parameter', () => {
+    it('should gate filter relation paths by the schema, not by the relations parameter', () => {
         const output = parser.parse({
             relations: ['realm'],
             filters: {
                 'items.id': 1,
                 'realm.id': 5,
+                'item.id': 7,
             },
         }, { schema: 'user' });
 
@@ -90,8 +91,10 @@ describe('src/parser', () => {
             new Relation('realm'),
         ]));
 
-        // items is not included -> its filter path is dropped.
+        // items is allowed but not included -> its filter path is kept;
+        // item is a registered schema, not a relation user allows -> dropped.
         expect(output.filters).toEqual(new Filters(FilterCompoundOperator.AND, [
+            new Filter(FilterFieldOperator.EQUAL, 'items.id', 1),
             new Filter(FilterFieldOperator.EQUAL, 'realm.id', 5),
         ]));
     });

@@ -41,6 +41,7 @@ describe('src/schema/**/describe', () => {
                 allowed: ['id', 'name'],
                 caseSensitive: null,
                 indexed: false,
+                relations: null,
             },
             pagination: { maxLimit: 50 },
             relations: {
@@ -54,6 +55,7 @@ describe('src/schema/**/describe', () => {
                 allowed: ['id', 'name'],
                 default: { name: 'DESC' },
                 indexed: false,
+                relations: null,
             },
             groups: { allowed: null, functions: null },
             aggregates: { functions: null },
@@ -72,6 +74,7 @@ describe('src/schema/**/describe', () => {
                 allowed: null,
                 caseSensitive: null,
                 indexed: false,
+                relations: null,
             },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
@@ -79,6 +82,7 @@ describe('src/schema/**/describe', () => {
                 allowed: null,
                 default: null,
                 indexed: false,
+                relations: null,
             },
             groups: { allowed: null, functions: null },
             aggregates: { functions: null },
@@ -100,7 +104,23 @@ describe('src/schema/**/describe', () => {
             allowed: null,
             caseSensitive: [],
             indexed: false,
+            relations: null,
         });
+    });
+
+    it('should serialize the declared filters and sorts relation lists', () => {
+        const schema = defineSchema<User>({
+            filters: { relations: ['realm'] },
+            sort: { relations: [] },
+        });
+
+        const output = schema.describe();
+
+        expect(output.filters?.relations).toEqual(['realm']);
+        expect(output.sorts?.relations).toEqual([]);
+
+        output.filters!.relations!.push('mutated');
+        expect(schema.filters.relations).toEqual(['realm']);
     });
 
     it('should restrict the description to the selected parameters', () => {
@@ -132,6 +152,7 @@ describe('src/schema/**/describe', () => {
             allowed: ['id', 'name'],
             caseSensitive: ['name'],
             indexed: false,
+            relations: null,
         });
     });
 
@@ -152,6 +173,7 @@ describe('src/schema/**/describe', () => {
             allowed: ['name'],
             default: { name: 'DESC' },
             indexed: false,
+            relations: null,
         });
     });
 
@@ -164,6 +186,7 @@ describe('src/schema/**/describe', () => {
             allowed: ['realm.id', 'id'],
             default: null,
             indexed: false,
+            relations: null,
         });
 
         (output.sorts!.allowed as string[]).push('mutated');

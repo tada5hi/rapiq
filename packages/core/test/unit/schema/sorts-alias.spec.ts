@@ -61,6 +61,7 @@ describe('src/schema/module.ts', () => {
             allowed: ['id'],
             default: null,
             indexed: false,
+            relations: null,
         });
         expect(output.sort).toBeUndefined();
     });

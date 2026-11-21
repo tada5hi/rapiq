@@ -10,6 +10,7 @@ import type {
     MaybeAsync,
     ObjectLiteral,
     SimpleKeys,
+    SimpleResourceKeys,
 } from '../../../types';
 import type { IndexedMode } from '../../indexes';
 import type { BaseSchemaOptions } from '../../types';
@@ -57,6 +58,15 @@ export type FiltersOptions<
      * conjunct per AND group, `'cover'` full prefix coverage.
      */
     indexed?: boolean | IndexedMode,
+    /**
+     * Relations a filter key may traverse (e.g. `author` for
+     * `author.id`), checked per hop against the schema governing that
+     * hop. Defaults to `relations.allowed` of the same schema and may
+     * differ from it: a relation can be filterable without being
+     * includable, and the reverse. Undeclared on both: every relation
+     * is permitted unless the schema is strict.
+     */
+    relations?: SimpleResourceKeys<T>[],
 };
 
 /**
@@ -72,4 +82,5 @@ export type FiltersSchemaDescription = {
     allowed: string[] | null,
     caseSensitive: string[] | null,
     indexed: IndexedMode | false,
+    relations: string[] | null,
 };

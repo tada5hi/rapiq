@@ -59,6 +59,14 @@ export class SortsSchema<
         return this.options.mapping;
     }
 
+    /**
+     * Relations a sort key may traverse; `undefined` falls back to
+     * `relations.allowed` of the owning schema.
+     */
+    get relations() : string[] | undefined {
+        return this.options.relations;
+    }
+
     // ---------------------------------------------------------
 
     /**
@@ -72,6 +80,7 @@ export class SortsSchema<
             allowed: this.allowedIsUndefined ? null : [...this.allowed],
             default: this.defaultIsUndefined ? null : { ...this.default },
             indexed: this.indexed,
+            relations: this.relations ? [...this.relations] : null,
         };
     }
 

@@ -22,6 +22,7 @@ import type {
     IQuery,
     KeyValidationScope,
 } from '@rapiq/core';
+import { expectRejected } from '../../data';
 import {
     SimpleFieldsParser,
     SimpleFiltersParser,
@@ -538,5 +539,221 @@ describe('relations.validate for traversed relation paths (#815)', () => {
                 expect(filterFields(output)).toEqual([]);
             });
         }
+    });
+});
+
+/**
+ * post allows the relations postTags and cover; author and user are
+ * registered but are not relations post allows. author allows no relation,
+ * so its org stays out of reach. A relation segment of a filter, sort or
+ * field is gated by the schema governing it, never by the decoded includes
+ * (#1001).
+ */
+function buildGateRegistry(post: Record<string, any> = {}) : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        fields: { allowed: ['id'] },
+        filters: { allowed: ['id'] },
+        sorts: { allowed: ['id'] },
+        relations: { allowed: ['postTags', 'cover'] },
+        groups: { allowed: ['id'] },
+        ...post,
+    }));
+    registry.add(defineSchema({
+        name: 'postTags',
+        fields: { allowed: ['tagId'] },
+        filters: { allowed: ['tagId'] },
+        sorts: { allowed: ['tagId'] },
+    }));
+    registry.add(defineSchema({
+        name: 'cover',
+        filters: { allowed: ['id'] },
+    }));
+    registry.add(defineSchema({
+        name: 'author',
+        fields: { allowed: ['userId'] },
+        filters: { allowed: ['userId'] },
+        sorts: { allowed: ['userId'] },
+        relations: { allowed: [] },
+    }));
+    registry.add(defineSchema({
+        name: 'org',
+        filters: { allowed: ['name'] },
+    }));
+    registry.add(defineSchema({
+        name: 'user',
+        filters: { allowed: ['userId'] },
+    }));
+
+    return registry;
+}
+
+const PATH_REJECTED = { code: ErrorCode.KEY_PATH_NOT_ALLOWED };
+
+describe('relation traversal gate (#1001)', () => {
+    it('keeps a filter through an allowed relation that is not included', () => {
+        const parser = new SimpleParser(buildGateRegistry());
+        const input = { filters: { 'postTags.tagId': 'x' }, relations: ['cover'] };
+
+        const query = parser.parse(input, { schema: 'post' });
+
+        expect(filterFields(query.filters)).toEqual(['postTags.tagId']);
+        expect(relationNames(query)).toEqual(['cover']);
+        expect(() => parser.parse(input, { schema: 'post', throwOnFailure: true })).not.toThrow();
+    });
+
+    it('drops or rejects a filter through a relation the schema does not allow', () => {
+        const parser = new SimpleParser(buildGateRegistry());
+        const input = { filters: { 'author.userId': 'x' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+    });
+
+    it('drops or rejects a sort through a relation the schema does not allow', () => {
+        const parser = new SimpleParser(buildGateRegistry());
+        const input = { sorts: 'author.userId' };
+
+        expect(sortNames(parser.parse(input, { schema: 'post' }))).toEqual([]);
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+    });
+
+    it('gates the async parse the same way', async () => {
+        const parser = new SimpleParser(buildGateRegistry());
+
+        const kept = await parser.parseAsync(
+            {
+                filters: { 'postTags.tagId': 'x' }, 
+                sorts: 'postTags.tagId', 
+                relations: ['cover'], 
+            },
+            { schema: 'post' },
+        );
+
+        expect(filterFields(kept.filters)).toEqual(['postTags.tagId']);
+        expect(sortNames(kept)).toEqual(['postTags.tagId']);
+
+        const dropped = await parser.parseAsync(
+            { filters: { 'author.userId': 'x' }, sorts: 'author.userId' },
+            { schema: 'post' },
+        );
+
+        expect(filterFields(dropped.filters)).toEqual([]);
+        expect(sortNames(dropped)).toEqual([]);
+
+        await expect(parser.parseAsync(
+            { filters: { 'author.userId': 'x' } },
+            { schema: 'post', throwOnFailure: true },
+        )).rejects.toBeInstanceOf(ParseError);
+    });
+
+    it('lets filters.relations and sorts.relations differ from relations.allowed', () => {
+        const parser = new SimpleParser(buildGateRegistry({
+            relations: { allowed: ['cover'] },
+            filters: { allowed: ['id'], relations: ['author'] },
+            sorts: { allowed: ['id'], relations: ['author'] },
+        }));
+
+        const query = parser.parse(
+            { filters: { 'author.userId': 'x' }, sorts: 'author.userId' },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(filterFields(query.filters)).toEqual(['author.userId']);
+        expect(sortNames(query)).toEqual(['author.userId']);
+
+        // the include itself is still governed by relations.allowed
+        expect(relationNames(parser.parse({ relations: ['author'] }, { schema: 'post' }))).toEqual([]);
+        expectRejected(() => parser.parse({ relations: ['author'] }, { schema: 'post', throwOnFailure: true }));
+    });
+
+    it('rejects every relation under an empty filters.relations', () => {
+        const parser = new SimpleParser(buildGateRegistry({ filters: { allowed: ['id'], relations: [] } }));
+        const input = { filters: { 'postTags.tagId': 'x' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+    });
+
+    it('gates every hop by the schema governing it', () => {
+        const parser = new SimpleParser(buildGateRegistry({ relations: { allowed: ['author'] } }));
+        const input = { filters: { 'author.org.name': 'x' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+
+        // the first hop alone is allowed
+        expect(filterFields(parser.parse({ filters: { 'author.userId': 'x' } }, { schema: 'post' }).filters))
+            .toEqual(['author.userId']);
+    });
+
+    it('permits an undeclared relation allow-list unless strict', () => {
+        const parser = new SimpleParser(buildGateRegistry({ relations: {} }));
+        const input = { filters: { 'author.userId': 'x' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual(['author.userId']);
+        expect(filterFields(parser.parse(input, { schema: 'post', strict: true }).filters)).toEqual([]);
+        expectRejected(
+            () => parser.parse(input, {
+                schema: 'post', 
+                strict: true, 
+                throwOnFailure: true, 
+            }),
+            PATH_REJECTED,
+        );
+    });
+
+    it('gates a field relation by relations.allowed without an include', () => {
+        const parser = new SimpleParser(buildGateRegistry());
+        const input = { fields: { author: ['userId'] } };
+
+        expect(fieldNames(parser.parse(input, { schema: 'post' }))).not.toContain('author.userId');
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+    });
+
+    it('gates a mapping alias by its canonical relation path', () => {
+        const parser = new SimpleParser(buildGateRegistry({ filters: { allowed: ['id'], mapping: { writer: 'author.userId' } } }));
+        const input = { filters: { writer: 'x' } };
+
+        expect(filterFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(() => parser.parse(input, { schema: 'post', throwOnFailure: true }), PATH_REJECTED);
+    });
+
+    it('gates by the relation name when schemaMapping names another schema', () => {
+        const parser = new SimpleParser(buildGateRegistry({
+            relations: { allowed: ['owner'] },
+            schemaMapping: { owner: 'user' },
+        }));
+
+        const query = parser.parse(
+            { filters: { 'owner.userId': 'x' } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(filterFields(query.filters)).toEqual(['owner.userId']);
+    });
+
+    it('rejects a grouped sort through even an allowed relation', () => {
+        const parser = new SimpleParser(buildGateRegistry());
+        const options = {
+            schema: 'post', 
+            groups: true, 
+            aggregates: true, 
+        };
+
+        expect(sortNames(parser.parse({ groups: 'id', sorts: 'postTags.tagId' }, options))).toEqual([]);
+        expectRejected(
+            () => parser.parse(
+                {
+                    groups: 'id', 
+                    sorts: 'postTags.tagId', 
+                    relations: ['postTags'], 
+                },
+                { ...options, throwOnFailure: true },
+            ),
+            PATH_REJECTED,
+        );
     });
 });

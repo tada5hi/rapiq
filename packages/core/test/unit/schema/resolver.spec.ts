@@ -179,6 +179,111 @@ describe('src/schema/resolver/*.ts', () => {
         });
     });
 
+    describe('relation traversal gate (#1001)', () => {
+        function buildGateRegistry(post: Record<string, any> = {}) : SchemaRegistry {
+            const local = new SchemaRegistry();
+
+            local.add(defineSchema({
+                name: 'post',
+                fields: { allowed: ['id'] },
+                filters: { allowed: ['id', 'labels'] },
+                sorts: { allowed: ['id'] },
+                relations: { allowed: ['tags', 'cover'] },
+                ...post,
+            }));
+            local.add(defineSchema({
+                name: 'tags',
+                fields: { allowed: ['id'] },
+                filters: { allowed: ['id'] },
+                sorts: { allowed: ['id'] },
+            }));
+            local.add(defineSchema({ name: 'cover', filters: { allowed: ['id'] } }));
+            local.add(defineSchema({
+                name: 'author',
+                fields: { allowed: ['id'] },
+                filters: { allowed: ['id'] },
+                sorts: { allowed: ['id'] },
+            }));
+
+            return local;
+        }
+
+        const NOT_PERMITTED = {
+            success: false,
+            code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+            input: 'author.id',
+            segment: 'author',
+        };
+
+        it('should reject a registered relation the schema does not allow, without includes', () => {
+            const local = buildGateRegistry();
+
+            expect(ResolutionScope.for(local, Parameter.FILTERS, 'post').resolveKey('author.id')).toEqual(NOT_PERMITTED);
+            expect(ResolutionScope.for(local, Parameter.SORTS, 'post').resolveKey('author.id')).toEqual(NOT_PERMITTED);
+            expect(ResolutionScope.for(local, Parameter.FIELDS, 'post').resolveKey('author.id')).toEqual(NOT_PERMITTED);
+            expect(ResolutionScope.for(local, Parameter.FILTERS, 'post').resolveKey('tags.id').success).toBeTruthy();
+        });
+
+        it('should prefer filters.relations and sorts.relations over relations.allowed', () => {
+            const local = buildGateRegistry({
+                filters: { allowed: ['id'], relations: ['author'] },
+                sorts: { allowed: ['id'], relations: [] },
+            });
+
+            const filters = ResolutionScope.for(local, Parameter.FILTERS, 'post');
+
+            expect(filters.resolveKey('author.id').success).toBeTruthy();
+            expect(filters.resolveKey('tags.id')).toMatchObject({ code: KeyResolutionErrorCode.PATH_NOT_PERMITTED });
+            expect(ResolutionScope.for(local, Parameter.SORTS, 'post').resolveKey('tags.id'))
+                .toMatchObject({ code: KeyResolutionErrorCode.PATH_NOT_PERMITTED });
+            // fields have no own list: relations.allowed governs them
+            expect(ResolutionScope.for(local, Parameter.FIELDS, 'post').resolveKey('author.id')).toEqual(NOT_PERMITTED);
+        });
+
+        it('should keep narrowing by an explicit relations option', () => {
+            const scope = ResolutionScope.for(buildGateRegistry(), Parameter.FILTERS, 'post', { relations: new Relations([new Relation('cover')]) });
+
+            expect(scope.resolveKey('tags.id')).toMatchObject({ code: KeyResolutionErrorCode.PATH_NOT_PERMITTED });
+            expect(scope.resolveKey('cover.id').success).toBeTruthy();
+        });
+
+        it('should permit an undeclared relation list unless strict', () => {
+            const local = buildGateRegistry({ relations: {} });
+
+            expect(ResolutionScope.for(local, Parameter.FILTERS, 'post').resolveKey('author.id').success).toBeTruthy();
+            expect(ResolutionScope.for(local, Parameter.FILTERS, 'post', { strict: true }).resolveKey('author.id'))
+                .toEqual(NOT_PERMITTED);
+        });
+
+        it('should answer an optional descent into a non-relation with a bare verdict', () => {
+            const scope = ResolutionScope.for(buildGateRegistry(), Parameter.FILTERS, 'post', { throwOnFailure: true });
+
+            // an array operator on a JSON array column: no schema is an answer
+            expect(scope.descend('labels', { optional: true })).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+                input: 'labels',
+                segment: 'labels',
+            });
+            // a registered relation the schema does not allow is a violation
+            expect(() => scope.descend('author', { optional: true })).toThrow(FiltersParseError);
+        });
+
+        it('should gate a terminal relation leaf by the same list', () => {
+            const local = buildGateRegistry({ filters: {} });
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post');
+
+            expect(scope.resolveKey('author')).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+                input: 'author',
+                segment: 'author',
+            });
+            expect(scope.resolveKey('tags').success).toBeTruthy();
+            expect(scope.resolveKey('labels').success).toBeTruthy();
+        });
+    });
+
     describe('failure policy', () => {
         it('should throw when the schema sets throwOnFailure', () => {
             const schema = defineFiltersSchema({
