@@ -244,6 +244,37 @@ describe('mongo relation-array operators honour the relation gate (#1001)', () =
         });
     }
 
+    it('never asks the relations hook about a target the gate rejects', () => {
+        const seen : string[] = [];
+        const registry = new SchemaRegistry();
+
+        registry.add(defineSchema({
+            name: 'post',
+            filters: { allowed: ['id', 'author'] },
+            relations: {
+                allowed: ['postTags'],
+                validate: (name: string) => {
+                    seen.push(name);
+
+                    return true;
+                },
+            },
+        }));
+        registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+        const parser = new MongoParser(registry);
+        let issues : unknown[] = [];
+
+        try {
+            parser.parse({ filters: { author: { $size: 1 } } }, { schema: 'post', throwOnFailure: true });
+        } catch (e) {
+            issues = (e as { issues: unknown[] }).issues;
+        }
+
+        expect(seen).toEqual([]);
+        expect(issues).toHaveLength(1);
+    });
+
     it('keeps $size on an allowed relation', () => {
         const parser = new MongoParser(buildGateRegistry());
 

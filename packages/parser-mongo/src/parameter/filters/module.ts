@@ -565,8 +565,9 @@ export class MongoFiltersParser extends BaseParser<
     protected resolveField(
         key: string,
         scope: FiltersScope,
+        relationTarget: boolean = false,
     ) : FieldResolution | undefined {
-        const resolved = scope.resolveKey(key);
+        const resolved = scope.resolveKey(key, key, { relationTarget });
 
         if (!resolved.success) {
             return undefined;
@@ -597,20 +598,13 @@ export class MongoFiltersParser extends BaseParser<
         const regex = this.validateOperatorObject(key, input, negated);
 
         // field resolution second — follows the schema policy;
-        // a dropped field drops the whole entry/subtree.
-        const resolved = this.resolveField(key, scope);
+        // a dropped field drops the whole entry/subtree. An array operator
+        // may target a relation directly; only then is the leaf gated by the
+        // relation policy (#1001), so a scalar comparison on a column sharing
+        // a registered schema's name is never gated.
+        const resolved = this.resolveField(key, scope, this.hasArrayOperator(input));
 
         if (!resolved) {
-            return [];
-        }
-
-        // an array operator may target a relation directly; only then is the
-        // leaf gated by the relation policy (#1001), so a scalar comparison
-        // on a column sharing a registered schema's name is never gated.
-        if (
-            this.hasArrayOperator(input) &&
-            resolved.scope.checkRelationTarget(resolved.name, key)
-        ) {
             return [];
         }
 

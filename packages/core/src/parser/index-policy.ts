@@ -77,7 +77,7 @@ function indexesResolverFor(scope: ResolutionScope<any, any>) : IndexesResolver 
         let target = scope;
 
         if (path !== '') {
-            const child = scope.descend(path);
+            const child = scope.descend(path, { gated: false });
 
             if (!(child instanceof ResolutionScope)) {
                 cache.set(path, null);
@@ -209,7 +209,7 @@ function collectClientSortKeys(
             defaults = null;
 
             if (path !== '') {
-                const child = scope.descend(path);
+                const child = scope.descend(path, { gated: false });
 
                 if (child instanceof ResolutionScope) {
                     const childSchema = child.schema as SortsSchema;

@@ -890,20 +890,12 @@ export class ExpressionFiltersParser extends BaseParser<
                 parts.shift();
             }
 
-            const resolved = scope.resolveKey(parts.join('.'));
+            const key = parts.join('.');
+            const resolved = scope.resolveKey(key, key, { relationTarget });
 
             /* istanbul ignore next -- the scope always throws */
             if (!resolved.success) {
                 throw FiltersParseError.keyInvalid(resolved.input);
-            }
-
-            if (relationTarget) {
-                const failure = resolved.scope.checkRelationTarget(resolved.name, parts.join('.'));
-
-                /* istanbul ignore next -- the scope always throws */
-                if (failure) {
-                    throw FiltersParseError.keyInvalid(failure.input);
-                }
             }
 
             return [...resolved.path, resolved.name].join('.');

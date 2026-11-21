@@ -334,8 +334,17 @@ export class ResolutionScope<
      *
      * Throws the parameter's ParseError subclass instead of returning `{ success: false }`
      * when the effective failure policy is set.
+     *
+     * `relationTarget` marks the key as an array operator's target
+     * (`size`, `elemMatch`, `all`): a leaf that is a relation is then gated
+     * by {@link checkRelationTarget} before any authorization obligation is
+     * recorded, so a rejected relation never reaches the relations hook.
      */
-    resolveKey(key: string, raw: string = key) : KeyResolution<P, RECORD> {
+    resolveKey(
+        key: string,
+        raw: string = key,
+        options: { relationTarget?: boolean } = {},
+    ) : KeyResolution<P, RECORD> {
         const mapped = applyMapping(key, this.mapping);
 
         const separatorIndex = mapped.indexOf('.');
@@ -345,6 +354,14 @@ export class ResolutionScope<
 
             if (code) {
                 return this.fail(code, key, mapped, raw);
+            }
+
+            if (options.relationTarget) {
+                const failure = this.checkRelationTarget(mapped, key);
+
+                if (failure) {
+                    return failure;
+                }
             }
 
             // resolution reached the leaf: record the authorization obligations
@@ -371,7 +388,7 @@ export class ResolutionScope<
             return child;
         }
 
-        const resolved = child.resolveKey(rest, raw);
+        const resolved = child.resolveKey(rest, raw, options);
 
         if (!resolved.success) {
             return { ...resolved, input: key };
@@ -466,29 +483,36 @@ export class ResolutionScope<
      * the elements of whatever it names, so "no schema for this key" is an
      * answer, not a violation, and is returned as a bare verdict without
      * being thrown or recorded. Every other failure stays a failure.
+     *
+     * `gated: false` skips the schema relation policy
+     * ({@link checkRelationPolicy}) for an internal lookup over a tree the
+     * server already accepted, e.g. reading the indexes or sort defaults
+     * of the schema governing a resolved path: a server-authored residual
+     * may legitimately traverse a relation no client may name (#1001).
      */
     descend(
         key: string,
-        options: { optional?: boolean } = {},
+        options: { optional?: boolean, gated?: boolean } = {},
     ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         const mapped = applyMapping(key, this.mapping);
+        const gated = options.gated ?? true;
 
         const separatorIndex = mapped.indexOf('.');
 
         if (separatorIndex === -1) {
-            return this.descendSegment(mapped, key, key, options.optional);
+            return this.descendSegment(mapped, key, key, options.optional, gated);
         }
 
         const segments = mapped.split('.');
 
-        let scope = this.descendSegment(segments[0] as string, key, key, options.optional);
+        let scope = this.descendSegment(segments[0] as string, key, key, options.optional, gated);
 
         for (const segment of segments.slice(1)) {
             if (!(scope instanceof ResolutionScope)) {
                 return scope;
             }
 
-            scope = scope.descendSegment(segment, key, key, options.optional);
+            scope = scope.descendSegment(segment, key, key, options.optional, gated);
         }
 
         if (!(scope instanceof ResolutionScope)) {
@@ -505,6 +529,7 @@ export class ResolutionScope<
         input: string,
         raw: string = input,
         optional?: boolean,
+        gated: boolean = true,
     ) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         if (this.depth >= MAX_DEPTH) {
             return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, input, segment, raw);
@@ -544,7 +569,7 @@ export class ResolutionScope<
                 // schemaMapping) is still a relation when its target is not
                 // registered: an array operator's interior must not
                 // reach it outside the permitted list (#1001).
-                if (this.isDeclaredRelation(segment)) {
+                if (gated && this.isDeclaredRelation(segment)) {
                     const declaredCode = this.checkRelationPolicy(segment);
 
                     if (declaredCode) {
@@ -566,7 +591,7 @@ export class ResolutionScope<
         // after the lookup, so a segment that is no relation at all keeps
         // answering SCHEMA_UNRESOLVABLE (and an optional descent still gets
         // its bare verdict) instead of reading as a forbidden relation.
-        const policyCode = this.checkRelationPolicy(segment);
+        const policyCode = gated ? this.checkRelationPolicy(segment) : undefined;
 
         if (policyCode) {
             return this.fail(policyCode, input, segment, raw);
