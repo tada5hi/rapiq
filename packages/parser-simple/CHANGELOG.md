@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.0](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.4.1...parser-simple-v2.5.0) (2026-11-21)
+
+
+### Features
+
+* **core:** gate relation filters and sorts by the schema's allowed relations ([#1003](https://github.com/tada5hi/rapiq/issues/1003)) ([2d10824](https://github.com/tada5hi/rapiq/commit/2d108244150ee119d5bb04f33d70ccd2cf6ea653))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+
 ## [2.4.1](https://github.com/tada5hi/rapiq/compare/parser-simple-v2.4.0...parser-simple-v2.4.1) (2026-11-11)
 
 
