@@ -866,7 +866,9 @@ export class ResolutionScope<
             return undefined;
         }
 
-        const code = this.checkRelationPolicy(name);
+        // the explicit `relations` option narrows a relation target exactly
+        // as it narrows a dotted hop into the same relation.
+        const code = this.checkSegment(name) ?? this.checkRelationPolicy(name);
 
         if (!code) {
             return undefined;
@@ -907,7 +909,7 @@ export class ResolutionScope<
             return false;
         }
 
-        if (base.mapSchema(name) !== name) {
+        if (base.hasSchemaMapping(name)) {
             return true;
         }
 

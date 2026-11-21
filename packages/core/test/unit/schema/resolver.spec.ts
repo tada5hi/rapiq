@@ -295,6 +295,43 @@ describe('src/schema/resolver/*.ts', () => {
 
             expect(() => throwing.checkRelationTarget('author')).toThrow(FiltersParseError);
         });
+
+        it('should treat an identity schemaMapping entry as a relation declaration', () => {
+            const local = new SchemaRegistry();
+
+            local.add(defineSchema({
+                name: 'post',
+                filters: {},
+                relations: { allowed: [] },
+                // `writer` is not registered: only the mapping declares it
+                schemaMapping: { writer: 'writer' },
+            }));
+
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post');
+
+            expect(scope.checkRelationTarget('writer')).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+                input: 'writer',
+                segment: 'writer',
+            });
+            // declared nowhere: a JSON array column, nothing to gate
+            expect(scope.checkRelationTarget('notes')).toBeUndefined();
+        });
+
+        it('should apply an explicit relations option to an array-operator target', () => {
+            const local = buildGateRegistry({ filters: {} });
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post', { relations: new Relations([new Relation('cover')]) });
+
+            // allowed by the schema, but narrowed away by the explicit option
+            expect(scope.checkRelationTarget('tags')).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+                input: 'tags',
+                segment: 'tags',
+            });
+            expect(scope.checkRelationTarget('cover')).toBeUndefined();
+        });
     });
 
     describe('failure policy', () => {

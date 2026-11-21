@@ -104,6 +104,23 @@ export type NestedKeys<
                 `${Key}`
     }[keyof T & string];
 
+/**
+ * The keys of `T` holding an array of leaf values (scalars, dates or
+ * index-signature bags): JSON array columns, which an array operator
+ * (`size`, `elemMatch`, `all`) can target without a relation.
+ */
+export type SimpleArrayLeafKeys<
+    T extends Record<PropertyKey, any>,
+> = {
+    [Key in keyof T & string]: NonNullable<T[Key]> extends Array<infer ELEMENT> ?
+        (
+            NonNullable<ELEMENT> extends IsLeafKeyValue<NonNullable<ELEMENT>> ?
+                Key :
+                never
+        ) :
+        never
+}[keyof T & string];
+
 export type SimpleResourceKeys<
     T extends Record<PropertyKey, any>,
 > = {

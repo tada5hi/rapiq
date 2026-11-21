@@ -9,6 +9,7 @@ import type { ICondition, IFilter } from '../../../parameter';
 import type {
     MaybeAsync,
     ObjectLiteral,
+    SimpleArrayLeafKeys,
     SimpleKeys,
     SimpleResourceKeys,
 } from '../../../types';
@@ -64,9 +65,11 @@ export type FiltersOptions<
      * hop. Defaults to `relations.allowed` of the same schema and may
      * differ from it: a relation can be filterable without being
      * includable, and the reverse. Undeclared on both: every relation
-     * is permitted unless the schema is strict.
+     * is permitted unless the schema is strict. A JSON array column
+     * named like a registered schema is listed here to keep taking
+     * array operators (`size`, `elemMatch`, `all`).
      */
-    relations?: SimpleResourceKeys<T>[],
+    relations?: (SimpleResourceKeys<T> | SimpleArrayLeafKeys<T>)[],
 };
 
 /**
