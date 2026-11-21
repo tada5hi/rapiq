@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.0](https://github.com/tada5hi/rapiq/compare/cache-v0.1.1...cache-v0.2.0) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cache:** recover from a failed invalidation ([#999](https://github.com/tada5hi/rapiq/issues/999))
+
+### Features
+
+* **cache:** recover from a failed invalidation ([#999](https://github.com/tada5hi/rapiq/issues/999)) ([7ce1f08](https://github.com/tada5hi/rapiq/commit/7ce1f08afe521b4b698b7ade7f43ff64c5e53f18))
+* **core:** gate relation filters and sorts by the schema's allowed relations ([#1003](https://github.com/tada5hi/rapiq/issues/1003)) ([2d10824](https://github.com/tada5hi/rapiq/commit/2d108244150ee119d5bb04f33d70ccd2cf6ea653))
+
+
+### Bug Fixes
+
+* **cache:** route remember failures through the guarded error report ([#1004](https://github.com/tada5hi/rapiq/issues/1004)) ([bb45864](https://github.com/tada5hi/rapiq/commit/bb458642cf252065426ef048a467e607ce65cadd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+  * peerDependencies
+    * @rapiq/core bumped from ^2.4.1 to ^2.5.0
+
 ## [0.1.1](https://github.com/tada5hi/rapiq/compare/cache-v0.1.0...cache-v0.1.1) (2026-11-11)
 
 

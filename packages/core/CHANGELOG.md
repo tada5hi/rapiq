@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.0](https://github.com/tada5hi/rapiq/compare/core-v2.4.1...core-v2.5.0) (2026-11-21)
+
+
+### Features
+
+* **core:** add helpers to read and replace a required equal value ([#998](https://github.com/tada5hi/rapiq/issues/998)) ([230589e](https://github.com/tada5hi/rapiq/commit/230589e9a79d53ff037f31c994ef6eec28cb735f))
+* **core:** gate relation filters and sorts by the schema's allowed relations ([#1003](https://github.com/tada5hi/rapiq/issues/1003)) ([2d10824](https://github.com/tada5hi/rapiq/commit/2d108244150ee119d5bb04f33d70ccd2cf6ea653))
+
 ## [2.4.1](https://github.com/tada5hi/rapiq/compare/core-v2.4.0...core-v2.4.1) (2026-11-11)
 
 
