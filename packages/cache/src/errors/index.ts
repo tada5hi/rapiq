@@ -7,3 +7,4 @@
 
 export * from './check';
 export * from './module';
+export * from './types';

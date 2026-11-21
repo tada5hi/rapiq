@@ -18,8 +18,20 @@ export type TaggedCacheOptions = {
      * Where a driver failure on the read path (`clock`, `read`, `write`)
      * and a throwing `tags` derivation are reported. Default: dropped. The call falls through to the read
      * either way; a cache outage must not take the application down.
+     * A failed replay of pending invalidations and tags the full pending
+     * set could not keep are reported here too (a `CacheError` naming them
+     * in `tags`); a throw from this hook on those paths is swallowed.
      */
     onError?: (error: unknown) => void,
+    /**
+     * How many tags of failed invalidations are kept pending at most.
+     * Default: 1000. Past it, further tags are not kept (their bump is
+     * lost, reported to `onError` as `CacheError.invalidationsOverflowed`)
+     * and no hit is trusted and no fill stored until `maxTtl` plus 5 s after
+     * the last overflow. Anything but an integer of at least 1 throws a
+     * `CacheError` here.
+     */
+    maxPendingInvalidations?: number,
 };
 
 export type RememberOptions<T> = {
@@ -49,15 +61,34 @@ export interface ITaggedCache {
 
     /**
      * Bump the tags; every entry carrying one of them reads as a miss from
-     * now on. Rethrows a driver failure: a lost bump is a correctness
-     * problem the caller decides about.
+     * now on. Rejects on a driver failure with `CacheError.invalidationFailed`
+     * (the tags in `tags`, the driver failure as `cause`). The tags stay
+     * pending in this process (see `pendingInvalidations`) as far as the
+     * pending set has room; tags beyond `maxPendingInvalidations` are not
+     * kept and are reported to `onError` as
+     * `CacheError.invalidationsOverflowed`.
      */
     invalidate(tags: string[]): Promise<void>;
+
+    /**
+     * The tags of failed invalidations not yet replayed and not yet past
+     * their deadline (`maxTtl` plus 5 s after the last failure). A hit carrying one
+     * of them is treated as a miss, and a value whose tags include one is
+     * returned unstored.
+     */
+    readonly pendingInvalidations: readonly string[];
 
     /**
      * Remove entries by key. Rethrows a driver failure.
      */
     drop(keys: string[]): Promise<void>;
+
+    /**
+     * Stop replaying pending invalidations on a timer. Failed invalidations
+     * are still recorded and bypassed, and still replay after a successful
+     * driver call.
+     */
+    dispose(): void;
 }
 
 
