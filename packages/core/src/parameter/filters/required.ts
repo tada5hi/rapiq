@@ -53,15 +53,19 @@ export function findRequiredEqualValue(condition: ICondition, field: string) : u
 }
 
 /**
- * `condition` with every `eq` leaf on `field` (reached through the root or AND
- * groups only) whose value strictly equals `from` set to `to`. Leaves holding
- * any other value are left as they are: only the leaf the caller resolved is
+ * `condition` with every `eq` leaf on `field` whose value strictly equals
+ * `from` set to `to`, wherever it sits: under AND, OR and NOT groups alike.
+ * `from` and `to` name the same thing (a slug and the id it resolved to), so
+ * a leaf comparing against `from` inside an OR or a NOT means `to` as well;
+ * left alone, it would compare the stored id against the slug and never
+ * match. Leaves holding any other value are left as they are: only the value
+ * the caller resolved is rewritten. Other operators (`ne`, `in`, ...) are not
  * rewritten.
  *
  * Nodes that did not change are carried over by reference, and the input
  * itself is returned when nothing below it changed. A rewritten leaf or
- * rebuilt AND group keeps its `preserved` flag. OR, NOT and custom conditions
- * are opaque and returned as they are.
+ * rebuilt group keeps its operator and its `preserved` flag. A custom
+ * condition is opaque and returned as it is.
  *
  * The result keeps the node kind (a group for a group, a leaf for a leaf) but
  * not the input's value types: `to` may be of another type than `from`.
@@ -92,7 +96,7 @@ export function replaceRequiredEqualValue(
         return condition;
     }
 
-    if (isFilters(condition, FilterCompoundOperator.AND)) {
+    if (isFilters(condition)) {
         let changed = false;
         const children = condition.value.map((child) => {
             const next = replaceRequiredEqualValue(child, field, from, to);
