@@ -59,7 +59,7 @@ defineFields<User>(['id', 'name']);   // standalone fragment
 
 ## Fields of related records
 
-Fields of a relation use the relation name as key (or a `relation.field` path) and validate against the **related** schema, resolved through [`schemaMapping`](/guide/schemas#the-registry-relations). The relation itself must be allowed and requested via [relations](/guide/relations).
+Fields of a relation use the relation name as key (or a `relation.field` path) and validate against the **related** schema, resolved through [`schemaMapping`](/guide/schemas#the-registry-relations). The relation itself must be in `relations.allowed` and requested via [relations](/guide/relations).
 
 ```typescript
 {
