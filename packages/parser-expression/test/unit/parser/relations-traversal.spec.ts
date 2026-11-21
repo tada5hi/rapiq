@@ -235,3 +235,55 @@ describe('expression relation-array operators honour the relation gate (#1001)',
         }
     });
 });
+
+/**
+ * `secrets` and `drafts` are declared relations of post through
+ * `schemaMapping`, but neither target schema is registered; only `drafts`
+ * is allowed. `notes` is an undeclared, unregistered JSON column (#1001).
+ */
+function buildUnregisteredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['tags', 'drafts'] },
+        schemaMapping: { secrets: 'secretUnreg', drafts: 'draftUnreg' },
+    }));
+    registry.add(defineSchema({ name: 'tags' }));
+
+    return registry;
+}
+
+describe('expression array operators on an unregistered declared relation (#1001)', () => {
+    const operators = [
+        (field: string) => `size(${field}, '0')`,
+        (field: string) => `elemMatch(${field}, eq(name, 'x'))`,
+    ];
+
+    for (const build of operators) {
+        it(`rejects ${build('secrets')} on a schemaMapping relation outside the allowed list`, () => {
+            const parser = new ExpressionParser(buildUnregisteredRegistry());
+            const input = { filters: build('secrets') };
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+                );
+            }
+        });
+
+        for (const field of ['drafts', 'notes']) {
+            it(`keeps ${build(field)}`, () => {
+                const parser = new ExpressionParser(buildUnregisteredRegistry());
+
+                const query = parser.parse(
+                    { filters: build(field) },
+                    { schema: 'post', throwOnFailure: true },
+                );
+
+                expect(filterFields(query.filters)).toEqual([field]);
+            });
+        }
+    }
+});

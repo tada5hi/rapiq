@@ -18,7 +18,6 @@ import type {
 import {
     BaseParser,
     DEFAULT_ID,
-    ErrorCode,
     FILTER_OPERATOR_SEMANTICS,
     Filter,
     FilterCompoundOperator,
@@ -38,7 +37,6 @@ import {
     buildFiltersDefaults,
     isFilter,
     isFilters,
-    isParseError,
     pruneFiltersByRelations,
 } from '@rapiq/core';
 import { parseFilterScalar } from '@rapiq/parser-simple';
@@ -809,23 +807,15 @@ export class ExpressionFiltersParser extends BaseParser<
 
         let interior : FiltersScope | undefined;
 
-        try {
-            const verdict = resolved.scope.descend(resolved.name);
+        // elemMatch on a non-relation field is legal: a missing related
+        // schema comes back as a bare verdict and falls back to the unbound
+        // scope. Every other failure (e.g. relations gating, including a
+        // declared relation whose schema is not registered) is thrown by
+        // the descent itself, the scope is always throwing.
+        const verdict = resolved.scope.descend(resolved.name, { optional: true });
 
-            if (verdict instanceof ResolutionScope) {
-                interior = verdict as FiltersScope;
-            }
-        } catch (e) {
-            // elemMatch on a non-relation field is legal — a missing
-            // related schema (thrown as keyPathInvalid, the scope is
-            // always throwing) falls back to the unbound scope; every
-            // other failure (e.g. relations gating) propagates.
-            if (
-                !isParseError(e) ||
-                e.code !== ErrorCode.KEY_PATH_INVALID
-            ) {
-                throw e;
-            }
+        if (verdict instanceof ResolutionScope) {
+            interior = verdict as FiltersScope;
         }
 
         return {

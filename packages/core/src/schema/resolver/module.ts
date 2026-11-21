@@ -523,6 +523,11 @@ export class ResolutionScope<
         if (base) {
             childBase = this.registry.get(base.mapSchema(segment));
         } else {
+            // Intentional: a standalone filters/sorts schema with no base
+            // schema has no record identity, so there is no relations list
+            // to gate against. It descends by registry name, and the hop is
+            // permitted unless the scope is strict or the schema's own
+            // `relations` option excludes it (checkRelationPolicy).
             childBase = this.registry.get(segment);
         }
 
@@ -535,6 +540,18 @@ export class ResolutionScope<
             // Unbound scopes (no schema identity) impose no traversal constraints,
             // so both descend into an unbound child scope instead of failing.
             if (optional) {
+                // a relation the base schema declares (e.g. via
+                // schemaMapping) is still a relation when its target is not
+                // registered: an array operator's interior must not
+                // reach it outside the permitted list (#1001).
+                if (this.isDeclaredRelation(segment)) {
+                    const declaredCode = this.checkRelationPolicy(segment);
+
+                    if (declaredCode) {
+                        return this.fail(declaredCode, input, segment, raw);
+                    }
+                }
+
                 return {
                     success: false,
                     code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
@@ -866,7 +883,52 @@ export class ResolutionScope<
     protected isRelationLeaf(name: string) : boolean {
         const base = this.resolveBase();
 
-        return !!base && !!this.registry.get(base.mapSchema(name));
+        if (!base) {
+            return false;
+        }
+
+        return !!this.registry.get(base.mapSchema(name)) ||
+            this.isDeclaredRelation(name);
+    }
+
+    /**
+     * Whether the governing base schema declares `name` a relation without
+     * the registry having to resolve it: a `schemaMapping` entry, or a
+     * listing in `relations.allowed` or in this parameter's own `relations`
+     * option. A relation whose target schema is not registered is still a
+     * relation, so an array operator on it is gated like any other (#1001).
+     * A name declared nowhere and resolvable nowhere is not a relation
+     * (e.g. a JSON array column).
+     */
+    protected isDeclaredRelation(name: string) : boolean {
+        const base = this.resolveBase();
+
+        if (!base) {
+            return false;
+        }
+
+        if (base.mapSchema(name) !== name) {
+            return true;
+        }
+
+        if (
+            base.relations.allowed &&
+            base.relations.allowed.includes(name as never)
+        ) {
+            return true;
+        }
+
+        if (
+            this.parameter === Parameter.FILTERS ||
+            this.parameter === Parameter.SORTS ||
+            this.parameter === Parameter.SORT
+        ) {
+            const { relations } = this.schema as FiltersSchema<RECORD> | SortsSchema<RECORD>;
+
+            return !!relations && relations.includes(name as never);
+        }
+
+        return false;
     }
 
     /**
