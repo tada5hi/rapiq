@@ -5,7 +5,7 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { SchemaRegistry, defineSchema } from '@rapiq/core';
+import { ParseError, SchemaRegistry, defineSchema } from '@rapiq/core';
 import type { IFilters } from '@rapiq/core';
 import { createURLCodec } from '../../src';
 
@@ -128,6 +128,72 @@ describe('decode() honours relations.validate for auto-joined paths (#815)', () 
             )!;
 
             expect(filterFields(query.filters)).toEqual(['user.name']);
+        });
+    });
+
+    describe('schema gate independent of the include (#1001)', () => {
+        function buildGatedRegistry() : SchemaRegistry {
+            const registry = new SchemaRegistry();
+
+            registry.add(defineSchema<Record<string, any>>({
+                name: 'post',
+                fields: { allowed: ['id'] },
+                filters: { allowed: ['id', 'postTags.tagId'], relations: ['postTags'] },
+                relations: { allowed: ['cover', 'postTags'] },
+                schemaMapping: {
+                    cover: 'cover', 
+                    postTags: 'postTag', 
+                    author: 'user', 
+                },
+            }));
+            registry.add(defineSchema({ name: 'postTag', filters: { allowed: ['tagId'] } }));
+            registry.add(defineSchema({ name: 'cover', filters: { allowed: ['id'] } }));
+            registry.add(defineSchema({ name: 'user', filters: { allowed: ['userId'] } }));
+
+            return registry;
+        }
+
+        it('drops filter[author.userId] when author is not an allowed relation', () => {
+            const codec = createURLCodec(buildGatedRegistry());
+
+            const query = codec.decode(
+                { filter: { 'author.userId': 'x' } },
+                { schema: 'post' },
+            )!;
+
+            expect(filterFields(query.filters)).toEqual([]);
+        });
+
+        it('rejects the expression form of an ungated relation', () => {
+            const codec = createURLCodec(buildGatedRegistry());
+
+            expect(() => codec.decode(
+                { filter: "eq(author.userId, 'x')" },
+                { schema: 'post' },
+            )).toThrow(ParseError);
+        });
+
+        it('keeps filter[postTags.tagId] while a different relation is included', () => {
+            const codec = createURLCodec(buildGatedRegistry());
+
+            const query = codec.decode(
+                { filter: { 'postTags.tagId': 'x' }, include: 'cover' },
+                { schema: 'post' },
+            )!;
+
+            expect(filterFields(query.filters)).toEqual(['postTags.tagId']);
+            expect(query.relations.value.map((relation) => relation.name)).toEqual(['cover']);
+        });
+
+        it('keeps the filter without any include', () => {
+            const codec = createURLCodec(buildGatedRegistry());
+
+            const query = codec.decode(
+                { filter: { 'postTags.tagId': 'x' } },
+                { schema: 'post' },
+            )!;
+
+            expect(filterFields(query.filters)).toEqual(['postTags.tagId']);
         });
     });
 
