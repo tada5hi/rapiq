@@ -177,7 +177,7 @@ cache.dispose();            // stops the replay timer for good
 
 After `dispose()` no timer is scheduled again; a failure is still recorded, its hits still bypassed, and the replay after a successful driver call still runs.
 
-The floor: the pending set lives in one process. Every other process serves an entry behind the lost bump until its ttl, and so does this one when it exits before the replay lands.
+The floor: the pending set lives in one `TaggedCache` instance. Give the `CacheInvalidationSubscriber` (or whatever calls `invalidate`) the same instance your reads go through: a second instance over the same driver, even in the same process, knows nothing of the first one's pending tags and serves an entry behind the lost bump right away. Every other process serves such an entry until its ttl, and so does this one when it exits before the replay lands.
 
 ## The TypeORM write side
 

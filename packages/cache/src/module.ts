@@ -150,7 +150,7 @@ export class TaggedCache implements ITaggedCache {
 
             this.replayOpportunistically();
         } catch (e) {
-            this.onError(e);
+            this.report(e);
 
             return read();
         }
@@ -182,7 +182,7 @@ export class TaggedCache implements ITaggedCache {
 
             this.replayOpportunistically();
         } catch (e) {
-            this.onError(e);
+            this.report(e);
         }
 
         return value;
@@ -494,10 +494,11 @@ export class TaggedCache implements ITaggedCache {
     }
 
     /**
-     * `onError` for a failure nobody awaits: a throwing hook must not
-     * replace the failure it was told about, nor reject a timer, and an
-     * async hook that rejects must not reject unhandled. The hook is not
-     * awaited.
+     * `onError` for a failure the cache absorbs (a fall-through in
+     * `remember`, a replay, an overflow): a throwing hook must not replace
+     * the failure it was told about, discard a value already read, nor
+     * reject a timer, and an async hook that rejects must not reject
+     * unhandled. The hook is not awaited.
      */
     protected report(error: unknown) : void {
         try {

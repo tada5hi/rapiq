@@ -991,6 +991,45 @@ describe('src/module.ts (lost invalidation)', () => {
         expect(reported).toEqual(1);
     });
 
+    it('should swallow a rejecting async onError hook on the remember path', async () => {
+        let reported = 0;
+
+        cache.dispose();
+        cache = new TaggedCache({
+            driver,
+            onError: (async () => {
+                reported++;
+
+                throw new Error('the async hook failed too');
+            }) as (error: unknown) => void,
+        });
+
+        driver.failOn.add('read');
+
+        await expect(cache.remember('k', async () => 1, { tags: () => ['role'] }))
+            .resolves.toEqual(1);
+
+        // a rejection left unhandled fails the run.
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(reported).toEqual(1);
+    });
+
+    it('should answer the read value when a sync onError hook throws on a failed write', async () => {
+        cache.dispose();
+        cache = new TaggedCache({
+            driver,
+            onError: () => {
+                throw new Error('the hook failed too');
+            },
+        });
+
+        driver.failOn.add('write');
+
+        await expect(cache.remember('k', async () => 1, { tags: () => ['role'] }))
+            .resolves.toEqual(1);
+    });
+
     it('should stop replaying once every tag passed its deadline', async () => {
         driver.failOn.add('invalidate');
         await expect(cache.invalidate(['role'])).rejects.toThrow();
