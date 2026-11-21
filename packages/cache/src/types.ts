@@ -20,7 +20,9 @@ export type TaggedCacheOptions = {
      * either way; a cache outage must not take the application down.
      * A failed replay of pending invalidations and tags the full pending
      * set could not keep are reported here too (a `CacheError` naming them
-     * in `tags`); a throw from this hook on those paths is swallowed.
+     * in `tags`). A throw from this hook, or a rejection of an async one,
+     * is swallowed on every path: it never replaces the value `remember`
+     * already read.
      */
     onError?: (error: unknown) => void,
     /**
