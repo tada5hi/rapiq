@@ -8,6 +8,7 @@
 import {
     CONDITION_MARKER,
     Filter,
+    FilterCompoundOperator,
     Filters,
     and,
     eq,
@@ -102,7 +103,7 @@ describe('src/parameter/filters/required.ts', () => {
         });
 
         it('should return the same object when nothing changes', () => {
-            const tree = and(eq('postId', 'b'), and(eq('y', 1)), or(eq('postId', 'a')));
+            const tree = and(eq('postId', 'b'), and(eq('y', 1)), or(eq('postId', 'c')), not(ne('postId', 'a')));
 
             expect(replaceRequiredEqualValue(tree, 'postId', 'a', 'x')).toBe(tree);
 
@@ -135,20 +136,55 @@ describe('src/parameter/filters/required.ts', () => {
             expect(outGroup.value[0]).toMatchObject({ value: 123 });
         });
 
-        it('should treat or / not / custom as opaque and return them by reference', () => {
-            const o = or(eq('postId', 'a'));
+        it('should replace inside or / not groups and keep their operator', () => {
+            const sibling = eq('featured', true);
+            const o = or(eq('postId', 'a'), sibling);
             const n = not(eq('postId', 'a'));
+
+            const nextOr = replaceRequiredEqualValue(o, 'postId', 'a', 'x');
+
+            expect(nextOr).not.toBe(o);
+            expect(nextOr.operator).toEqual(FilterCompoundOperator.OR);
+            expect((nextOr.value[0] as Filter).value).toEqual('x');
+            expect(nextOr.value[1]).toBe(sibling);
+
+            const nextNot = replaceRequiredEqualValue(n, 'postId', 'a', 'x');
+
+            expect(nextNot.operator).toEqual(FilterCompoundOperator.NOT);
+            expect((nextNot.value[0] as Filter).value).toEqual('x');
+        });
+
+        it('should rewrite the resolved value in an or branch next to the required leaf', () => {
+            const tree = and(
+                eq('postId', 'slug'),
+                or(eq('postId', 'slug'), eq('featured', true)),
+            );
+
+            const next = replaceRequiredEqualValue(tree, 'postId', 'slug', 42);
+
+            expect(findRequiredEqualValue(next, 'postId')).toEqual(42);
+
+            const branch = next.value[1] as Filters;
+
+            expect((branch.value[0] as Filter).value).toEqual(42);
+        });
+
+        it('should keep preserved on a rebuilt or group', () => {
+            const tree = preserve(or(eq('postId', 'a'), eq('featured', true)));
+
+            expect(replaceRequiredEqualValue(tree, 'postId', 'a', 'x').preserved).toBe(true);
+        });
+
+        it('should treat a custom condition as opaque and return it by reference', () => {
             const custom: ICondition = {
                 [CONDITION_MARKER]: true,
                 operator: 'custom',
                 value: [eq('postId', 'a')],
             };
 
-            expect(replaceRequiredEqualValue(o, 'postId', 'a', 'x')).toBe(o);
-            expect(replaceRequiredEqualValue(n, 'postId', 'a', 'x')).toBe(n);
             expect(replaceRequiredEqualValue(custom, 'postId', 'a', 'x')).toBe(custom);
 
-            const tree = and(o, n);
+            const tree = and(custom, or(eq('postId', 'b')));
 
             expect(replaceRequiredEqualValue(tree, 'postId', 'a', 'x')).toBe(tree);
         });
