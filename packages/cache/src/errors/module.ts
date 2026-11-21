@@ -64,8 +64,10 @@ export class CacheError extends BaseError {
 
     /**
      * The pending set is full: these tags of a failed invalidation are not
-     * kept, so their bump is lost. The cache trusts no hit for `maxTtl`
-     * after it, the longest such a stale entry can live.
+     * kept, so their bump is lost. The cache trusts no hit and stores no
+     * fill until `maxTtl` plus 5 s after the latest overflow (the longest
+     * such a stale entry can live, plus the margin for a write in flight);
+     * normal reads resume after that window.
      */
     static invalidationsOverflowed(tags: string[]) {
         return new this({

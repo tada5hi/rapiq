@@ -71,6 +71,13 @@ export class TaggedCache implements ITaggedCache {
      */
     protected settles = 0;
 
+    /**
+     * Pending tags forgotten at their deadline. A hit whose read spans one
+     * is not trusted: the read may have captured the entry while the tag
+     * still distrusted it.
+     */
+    protected expiries = 0;
+
     constructor(options: TaggedCacheOptions) {
         this.driver = options.driver;
         this.ttl = options.ttl ?? options.driver.maxTtl;
@@ -108,8 +115,10 @@ export class TaggedCache implements ITaggedCache {
             throw CacheError.ttlInvalid(ttl);
         }
 
+        const startedAt = Date.now();
         const failuresAtStart = this.failures;
         const settlesAtStart = this.settles;
+        const expiriesAtStart = this.expiries;
 
         let clock : number;
 
@@ -119,13 +128,17 @@ export class TaggedCache implements ITaggedCache {
             this.replayOpportunistically();
 
             // a hit carrying a pending tag may predate the lost bump, and so
-            // may one read across a failure or a settle: a miss, answered
-            // by the read below.
+            // may one read across a failure, a settle, the expiry of a
+            // pending tag or the end of an overflow window: a miss,
+            // answered by the read below. `isTrusted` runs first, since it
+            // may forget an expired tag itself.
             if (
                 hit &&
                 this.isTrusted(hit) &&
+                startedAt >= this.overflowUntil &&
                 this.failures === failuresAtStart &&
-                this.settles === settlesAtStart
+                this.settles === settlesAtStart &&
+                this.expiries === expiriesAtStart
             ) {
                 return hit.value;
             }
@@ -134,6 +147,8 @@ export class TaggedCache implements ITaggedCache {
             // makes the store refuse the entry, one landing after it moves
             // the tags past it.
             clock = await this.driver.clock();
+
+            this.replayOpportunistically();
         } catch (e) {
             this.onError(e);
 
@@ -164,6 +179,8 @@ export class TaggedCache implements ITaggedCache {
                 tags,
                 value,
             }, ttl);
+
+            this.replayOpportunistically();
         } catch (e) {
             this.onError(e);
         }
@@ -172,10 +189,13 @@ export class TaggedCache implements ITaggedCache {
     }
 
     async invalidate(tags: string[]) : Promise<void> {
+        // copied once: a caller mutating its array meanwhile must not change
+        // what is recorded and reported on failure.
+        const requested = [...tags];
         // the pending tags ride along: one bump settles them too.
         const snapshot = this.snapshotPending();
-        const own = new Set(tags);
-        const sent = [...tags];
+        const own = new Set(requested);
+        const sent = [...requested];
 
         for (const tag of snapshot.keys()) {
             if (!own.has(tag)) {
@@ -186,9 +206,9 @@ export class TaggedCache implements ITaggedCache {
         try {
             await this.driver.invalidate(sent);
         } catch (e) {
-            this.recordFailedInvalidation(tags);
+            this.recordFailedInvalidation(requested);
 
-            throw CacheError.invalidationFailed(tags, e);
+            throw CacheError.invalidationFailed(requested, e);
         }
 
         this.settle(snapshot);
@@ -270,7 +290,8 @@ export class TaggedCache implements ITaggedCache {
      * After a bump carrying `snapshot` landed: drop each tag still at the
      * generation that was sent. A tag recorded again meanwhile stays, since
      * the bump may have landed before the write that failed to bump it
-     * committed.
+     * committed. Every tag left was recorded by a failure after the
+     * snapshot, whose backoff stands.
      */
     protected settle(snapshot: Map<string, number>) : void {
         let settled = false;
@@ -287,10 +308,9 @@ export class TaggedCache implements ITaggedCache {
             this.settles++;
         }
 
-        this.nextAttemptAt = 0;
-
         if (this.pending.size === 0) {
             this.delay = REPLAY_DELAY_MIN;
+            this.nextAttemptAt = 0;
 
             this.clearTimer();
 
@@ -451,6 +471,7 @@ export class TaggedCache implements ITaggedCache {
                 }
 
                 this.pending.delete(tag);
+                this.expiries++;
             }
         }
 
@@ -467,17 +488,29 @@ export class TaggedCache implements ITaggedCache {
         for (const [tag, pending] of this.pending) {
             if (pending.deadline <= now) {
                 this.pending.delete(tag);
+                this.expiries++;
             }
         }
     }
 
     /**
      * `onError` for a failure nobody awaits: a throwing hook must not
-     * replace the failure it was told about, nor reject a timer.
+     * replace the failure it was told about, nor reject a timer, and an
+     * async hook that rejects must not reject unhandled. The hook is not
+     * awaited.
      */
     protected report(error: unknown) : void {
         try {
-            this.onError(error);
+            const result : unknown = this.onError(error);
+
+            if (
+                result &&
+                typeof (result as PromiseLike<unknown>).then === 'function'
+            ) {
+                (result as PromiseLike<unknown>).then(undefined, () => {
+                    // the hook's own failure has nowhere else to go.
+                });
+            }
         } catch {
             // the hook's own failure has nowhere else to go.
         }

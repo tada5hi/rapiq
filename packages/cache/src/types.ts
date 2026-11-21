@@ -62,8 +62,11 @@ export interface ITaggedCache {
     /**
      * Bump the tags; every entry carrying one of them reads as a miss from
      * now on. Rejects on a driver failure with `CacheError.invalidationFailed`
-     * (the tags in `tags`, the driver failure as `cause`); the tags stay
-     * pending in this process (see `pendingInvalidations`).
+     * (the tags in `tags`, the driver failure as `cause`). The tags stay
+     * pending in this process (see `pendingInvalidations`) as far as the
+     * pending set has room; tags beyond `maxPendingInvalidations` are not
+     * kept and are reported to `onError` as
+     * `CacheError.invalidationsOverflowed`.
      */
     invalidate(tags: string[]): Promise<void>;
 
