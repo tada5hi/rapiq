@@ -450,6 +450,11 @@ function assertNoUnregisteredRelation(registry: SchemaRegistry, root: Schema, ke
         }
     }
 
+    // a declared array column is never a relation (#1005).
+    if (isArrayColumn(current, last)) {
+        return;
+    }
+
     // declared a relation the same ways core's relation gate recognizes one
     // (#1001): listed in relations.allowed or filters.relations, or mapped.
     const { allowed } = current.relations;
@@ -466,12 +471,19 @@ function assertNoUnregisteredRelation(registry: SchemaRegistry, root: Schema, ke
 
 /**
  * Whether every segment of a key maps onto a registered schema. Never
- * throws: a key ending on a column is simply no relation.
+ * throws: a key ending on a column is simply no relation, and neither is
+ * a column the governing schema lists in `filters.arrays`, even when a
+ * registered schema shares its name: core resolves the interior of an
+ * array operator on it as opaque element paths (#1005).
  */
 function isRelationPath(registry: SchemaRegistry, root: Schema, key: string) : boolean {
     let current = root;
 
     for (const segment of toIssuePath(key)) {
+        if (isArrayColumn(current, segment)) {
+            return false;
+        }
+
         const next = registry.get(current.mapSchema(segment));
 
         if (typeof next === 'undefined') {
@@ -482,6 +494,12 @@ function isRelationPath(registry: SchemaRegistry, root: Schema, key: string) : b
     }
 
     return true;
+}
+
+function isArrayColumn(schema: Schema, name: string) : boolean {
+    const { arrays } = schema.filters;
+
+    return !!arrays && arrays.includes(name);
 }
 
 function toRows(value: unknown) : Record<string, any>[] {
