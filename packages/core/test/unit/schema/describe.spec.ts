@@ -42,6 +42,7 @@ describe('src/schema/**/describe', () => {
                 caseSensitive: null,
                 indexed: false,
                 relations: null,
+                arrays: null,
             },
             pagination: { maxLimit: 50 },
             relations: {
@@ -75,6 +76,7 @@ describe('src/schema/**/describe', () => {
                 caseSensitive: null,
                 indexed: false,
                 relations: null,
+                arrays: null,
             },
             pagination: { maxLimit: null },
             relations: { allowed: null, schemas: null },
@@ -105,6 +107,7 @@ describe('src/schema/**/describe', () => {
             caseSensitive: [],
             indexed: false,
             relations: null,
+            arrays: null,
         });
     });
 
@@ -153,6 +156,7 @@ describe('src/schema/**/describe', () => {
             caseSensitive: ['name'],
             indexed: false,
             relations: null,
+            arrays: null,
         });
     });
 

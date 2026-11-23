@@ -66,10 +66,21 @@ export type FiltersOptions<
      * differ from it: a relation can be filterable without being
      * includable, and the reverse. Undeclared on both: every relation
      * is permitted unless the schema is strict. A JSON array column
-     * named like a registered schema is listed here to keep taking
-     * array operators (`size`, `elemMatch`, `all`).
+     * named like a registered schema belongs in {@link arrays}; listing
+     * it here keeps working.
      */
     relations?: (SimpleResourceKeys<T> | SimpleArrayLeafKeys<T>)[],
+    /**
+     * JSON array columns an array operator (`size`, `elemMatch`, `all`)
+     * may target. A target that is neither a relation nor listed here is
+     * refused (`keyNotAllowed`). Undeclared: every non-relation target is
+     * permitted unless the schema is strict; `[]` refuses them all. A
+     * listed name is an array column, never a relation, even when a
+     * registered schema shares its name. The interior of an array
+     * operator on such a column is an element scope: dotted keys are
+     * opaque element sub-paths and never reach a relation.
+     */
+    arrays?: SimpleArrayLeafKeys<T>[],
 };
 
 /**
@@ -86,4 +97,5 @@ export type FiltersSchemaDescription = {
     caseSensitive: string[] | null,
     indexed: IndexedMode | false,
     relations: string[] | null,
+    arrays: string[] | null,
 };

@@ -75,6 +75,14 @@ export class FiltersSchema<
         return this.options.relations;
     }
 
+    /**
+     * JSON array columns an array operator may target; `undefined` when
+     * undeclared (every non-relation target is permitted unless strict).
+     */
+    get arrays() : string[] | undefined {
+        return this.options.arrays;
+    }
+
     // ---------------------------------------------------------
 
     hasDefaults() {
@@ -93,6 +101,7 @@ export class FiltersSchema<
             caseSensitive: this.caseSensitiveIsUndefined ? null : [...this.caseSensitive],
             indexed: this.indexed,
             relations: this.relations ? [...this.relations] : null,
+            arrays: this.arrays ? [...this.arrays] : null,
         };
     }
 

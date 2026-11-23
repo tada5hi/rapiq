@@ -61,7 +61,7 @@ Every sub-schema also accepts its own `throwOnFailure` and `strict`.
 | Parameter | Options |
 |---|---|
 | `fields` | `allowed`, `default`, `mapping` (alias to field), `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
-| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `relations` (relations a filter key may traverse; defaults to `relations.allowed`), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
+| `filters` | `allowed`, `default` (a default condition), `mapping`, `validate` (per-filter validation hook), `relations` (relations a filter key may traverse; defaults to `relations.allowed`), `arrays` ([JSON array columns](/guide/filters#array-columns) an array operator may target), `caseSensitive` ([exact-equality opt-out](/guide/filters#case-sensitivity)), `indexed` ([index enforcement](#indexes)) |
 | `relations` | `allowed`, `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)) |
 | `sorts` | `allowed`, `default`, `relations` (relations a sort key may traverse; defaults to `relations.allowed`), `mapping`, `validate` / `validateMany` ([per-key hooks](#validate-hooks-parse-context)), `indexed` ([index enforcement](#indexes)) |
 | `pagination` | `maxLimit` |
@@ -103,7 +103,7 @@ Per parameter, "declared" means:
 | Parameter | Client input accepted when |
 |---|---|
 | `fields` | `allowed` or `default` is set (validated against both lists) |
-| `filters` | `allowed` is set (a `default` condition alone still applies, but clients cannot filter) |
+| `filters` | `allowed` is set (a `default` condition alone still applies, but clients cannot filter); an array operator on a non-relation field additionally needs that field in [`arrays`](/guide/filters#array-columns) |
 | `sorts` | `allowed` or `default` is set (the allow-list derives from the default's keys) |
 | `relations` | `allowed` is set |
 | `pagination` | always; `maxLimit` remains the only constraint |
@@ -366,7 +366,7 @@ userSchema.describe();
 //     strict: false,
 //     indexes: null,
 //     fields: { default: ['id', 'name'], allowed: ['id', 'name', 'email', 'age'] },
-//     filters: { allowed: ['id', 'name', 'age'], relations: null, caseSensitive: null, indexed: false },
+//     filters: { allowed: ['id', 'name', 'age'], relations: null, arrays: null, caseSensitive: null, indexed: false },
 //     pagination: { maxLimit: 50 },
 //     relations: {
 //         allowed: ['realm', 'items'],
