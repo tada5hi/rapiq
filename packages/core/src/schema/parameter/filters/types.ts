@@ -7,6 +7,7 @@
 
 import type { ICondition, IFilter } from '../../../parameter';
 import type {
+    ArrayKeys,
     MaybeAsync,
     ObjectLiteral,
     SimpleArrayLeafKeys,
@@ -80,7 +81,7 @@ export type FiltersOptions<
      * operator on such a column is an element scope: dotted keys are
      * opaque element sub-paths and never reach a relation.
      */
-    arrays?: SimpleArrayLeafKeys<T>[],
+    arrays?: ArrayKeys<T>[],
 };
 
 /**

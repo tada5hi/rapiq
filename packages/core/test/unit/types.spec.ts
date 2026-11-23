@@ -8,6 +8,7 @@
 import { expectTypeOf } from 'vitest';
 import { defineSchema } from '../../src';
 import type {
+    ArrayKeys,
     FieldKeys,
     NestedKeys,
     NestedResourceKeys,
@@ -24,6 +25,35 @@ import type {
 } from '../data/type';
 
 describe('src/types.ts', () => {
+    describe('ArrayKeys', () => {
+        type Doc = {
+            id: string,
+            title: string | null,
+            tags: string[],
+            labels: { kind: string, meta: { code: number } }[] | null,
+            matrix: number[][],
+        };
+
+        it('should admit arrays of scalars, objects and arrays', () => {
+            const keys: ArrayKeys<Doc>[] = ['tags', 'labels', 'matrix'];
+
+            // @ts-expect-error a scalar column is no array
+            const invalid: ArrayKeys<Doc>[] = ['title'];
+
+            expect(keys).toBeDefined();
+            expect(invalid).toBeDefined();
+        });
+
+        it('should type the filters arrays option', () => {
+            const schema = defineSchema<Doc>({ filters: { arrays: ['labels', 'tags'] } });
+
+            // @ts-expect-error a scalar column is no array column
+            defineSchema<Doc>({ filters: { arrays: ['id'] } });
+
+            expect(schema.filters.arrays).toEqual(['labels', 'tags']);
+        });
+    });
+
     describe('SimpleKeys', () => {
         it('should keep existing non-nullable behavior', () => {
             const keys: SimpleKeys<User>[] = ['id', 'name', 'email', 'age'];
