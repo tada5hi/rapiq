@@ -88,13 +88,37 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
             this.clear();
         }
 
-        query.accept(new QueryVisitor(this, { caseSensitive: options.caseSensitive }));
+        // a filter tree across a to-many relation constrains the root
+        // rows only (rapiq#810): rendered as a correlated EXISTS, its
+        // joins never reach the bound builder, so an included relation
+        // keeps all of its rows and no root row repeats under paging.
+        // The query's filters go to the subquery or to this adapter,
+        // never both: state accumulated here under `clear: false` still
+        // applies to the bound builder below.
+        const exists = this.buildExistsFilter(query, options);
+
+        const visitor = new QueryVisitor(this, { caseSensitive: options.caseSensitive });
+
+        if (exists) {
+            // QueryVisitor.visitQuery without the filters.
+            query.relations.accept(visitor.relations);
+            query.fields.accept(visitor.fields);
+            query.pagination.accept(visitor.pagination);
+            query.sorts.accept(visitor.sorts);
+        } else {
+            query.accept(visitor);
+        }
 
         // ordering is load-bearing: fields.execute() calls queryBuilder.select()
         // (which resets the select list), while relations.execute() *appends*
-        // join-and-selected relation columns — so fields must run first.
+        // join-and-selected relation columns, so fields must run first.
         this.fields.execute();
         this.filters.execute();
+
+        if (exists) {
+            this.queryBuilder.andWhereExists(exists);
+        }
+
         this.pagination.execute();
         this.sorts.execute();
         this.relations.execute();
@@ -234,9 +258,11 @@ export class TypeormAdapter implements IRootAdapter<TypeormAdapterOutput> {
      * its join rows satisfies the whole tree, so such a tree is rendered
      * into a builder of its own over the root entity, correlated with the
      * bound builder on every primary key column, for `andWhereExists`:
-     * no join row reaches the grouping. One rule for every grouped query,
-     * aggregates or not: the answer is the same, and groups alone no
-     * longer join rows only to collapse them again. The joins the filters
+     * no join row reaches the grouping, the hydrated includes or the
+     * pagination. One rule for record reads and every grouped query,
+     * aggregates or not: an included relation keeps all of its rows
+     * (rapiq#1006), and groups alone no longer join rows only to
+     * collapse them again. The joins the filters
      * need and the onJoin hooks (a tenant or authorization condition on a
      * joined relation, say) apply inside it, with the same relations
      * options. Undefined for a tree without to-many traversal: a to-one

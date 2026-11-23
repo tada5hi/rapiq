@@ -86,6 +86,18 @@ Pick one:
 `include` remains the right tool when you are **not** grouping the root: the full subtree hydrates without conflict.
 :::
 
+## Filters across to-many relations
+
+A filter on a dotted path constrains the **parent** rows only. When a filter tree traverses a `OneToMany` / `ManyToMany` relation, the adapter renders the whole tree as one correlated `EXISTS` over the root entity (alias `<alias>_exists`, correlated on every primary key column) instead of joining the relation on your builder:
+
+```text
+GET /posts?filter[postTags.tagId]=7&include=postTags
+```
+
+returns the posts that have tag `7`, and each post's `postTags` holds **all** of its tags, not only the matching one. Without the include, no join reaches the builder at all, so a post with two matching tags is still one row and pagination counts posts. A root row matches when one related row satisfies the whole tree, which keeps `not(...)` and `or(...)` across the relation in line with [`@rapiq/adapter-memory`](/packages/adapter-memory).
+
+The joins the filter needs run inside the subquery with the same `relations` options; the `onJoin` hook receives the subquery's builder, so a tenant or authorization condition it adds applies there too, and `withDeleted()` carries over. A filter that traverses only to-one relations stays a plain join on your builder. Includes, sorts and fields still join their relations on the builder as before.
+
 ## Dialect detection
 
 The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; the [dialect preset](/packages/adapter-sql#dialects) supplies the rest. The `contains` / `startsWith` / `endsWith` operators render as `LIKE ... ESCAPE '!'` on every connection type; the preset's `regexp` callback serves the `regex` operator alone, so on regex-less dialects (SQLite, SQL Server) that one operator throws a typed `AdapterError`. When the connection type has no matching preset, the postgres preset is the documented last-resort default.
