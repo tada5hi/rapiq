@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.5.1](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.5.0...parser-expression-v2.5.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **core:** gate array operator interiors and targets through the schema policy ([#1007](https://github.com/tada5hi/rapiq/issues/1007)) ([14b1284](https://github.com/tada5hi/rapiq/commit/14b128410d141f3af50b73a6ce07612c66c315ae)), closes [#1005](https://github.com/tada5hi/rapiq/issues/1005)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/parser-simple bumped from ^2.5.0 to ^2.5.1
+  * peerDependencies
+    * @rapiq/core bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/parser-simple bumped from ^2.5.0 to ^2.5.1
+
 ## [2.5.0](https://github.com/tada5hi/rapiq/compare/parser-expression-v2.4.1...parser-expression-v2.5.0) (2026-11-21)
 
 
