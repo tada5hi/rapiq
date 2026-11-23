@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.5.1](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.5.0...adapter-typeorm-v2.5.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **adapter-typeorm:** render to-many filters as EXISTS so includes stay complete ([#1008](https://github.com/tada5hi/rapiq/issues/1008)) ([d51b0ba](https://github.com/tada5hi/rapiq/commit/d51b0ba4d59667dc9db46e661f7bb84d2dcbb572))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @rapiq/core bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/parser-simple bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/adapter-sql bumped from ^2.5.0 to ^2.5.1
+  * peerDependencies
+    * @rapiq/core bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/adapter-memory bumped from ^2.5.0 to ^2.5.1
+    * @rapiq/adapter-sql bumped from ^2.5.0 to ^2.5.1
+
 ## [2.5.0](https://github.com/tada5hi/rapiq/compare/adapter-typeorm-v2.4.1...adapter-typeorm-v2.5.0) (2026-11-21)
 
 
