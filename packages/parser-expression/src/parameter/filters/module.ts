@@ -766,13 +766,13 @@ export class ExpressionFiltersParser extends BaseParser<
     ): { field: string, scope?: FiltersScope } {
         if (this.peek().type === FilterTokenType.ITSELF) {
             // an elemMatch on the element itself (arrays of arrays);
-            // the chain parser enforces the interior-only contract.
+            // the chain parser enforces the interior-only contract. The
+            // element is the one the enclosing interior binds, so its scope
+            // is kept: a bound relation interior stays gated per hop, an
+            // element scope stays one (#1005).
             const field = this.parseExpressionFieldChain(scope);
 
-            return {
-                field,
-                scope: scope ? ResolutionScope.forElement(scope) as FiltersScope : undefined,
-            };
+            return { field, scope };
         }
 
         const token = this.consume(FilterTokenType.FIELD);

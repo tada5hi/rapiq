@@ -463,3 +463,67 @@ describe('expression array operator interiors and targets (#1005)', () => {
         expect(validate).not.toHaveBeenCalled();
     });
 });
+
+/**
+ * post declares the relation author, whose schema is not registered;
+ * company is registered (#1005 review).
+ */
+function buildDeclaredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['author'] },
+        filters: { allowed: ['id', 'author'] },
+    }));
+    registry.add(defineSchema({ name: 'company', filters: { allowed: ['name'] } }));
+
+    return registry;
+}
+
+describe('expression ITSELF and unregistered relation interiors (#1005)', () => {
+    it('keeps a bound relation interior for an ITSELF target, gating every hop', () => {
+        const parser = new ExpressionParser(buildArrayRegistry());
+        const input = { filters: "elemMatch(postTags, elemMatch($this, eq(post.secret, 'x')))" };
+
+        for (const throwOnFailure of [false, true]) {
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        }
+
+        expect(treeFields(parser.parse(
+            { filters: "elemMatch(postTags, elemMatch($this, eq(tagId, 'x')))" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', '$this', 'tagId']);
+    });
+
+    it('keeps a single-segment key inside a declared but unregistered relation', () => {
+        const parser = new ExpressionParser(buildDeclaredRegistry());
+
+        expect(treeFields(parser.parse(
+            { filters: "elemMatch(author, eq(name, 'x'))" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['author', 'name']);
+    });
+
+    const dotted = [
+        "elemMatch(author, eq(company.secret, 'x'))",
+        "elemMatch(author, elemMatch(sub, eq(company.name, 'x')))",
+        "elemMatch(author, elemMatch($this, eq(company.name, 'x')))",
+    ];
+
+    for (const filters of dotted) {
+        it(`rejects ${filters}: a dotted key behind an unregistered relation`, () => {
+            const parser = new ExpressionParser(buildDeclaredRegistry());
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse({ filters }, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.KEY_PATH_INVALID },
+                );
+            }
+        });
+    }
+});

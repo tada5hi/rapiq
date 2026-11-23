@@ -998,6 +998,29 @@ export class MongoFiltersParser extends BaseParser<
      * the current policy (e.g. a JSON array column), whose dotted keys
      * never reach a relation (#1005).
      */
+    /**
+     * The interior scope of an $elemMatch on `resolved`. The element ITSELF
+     * keeps the scope it is in: a bound relation interior stays gated per
+     * hop, an element scope stays one (#1005). A relation target binds the
+     * interior to its schema (its obligation was recorded when resolveField
+     * resolved it); every other target yields an element scope. A refused
+     * relation was recorded (or thrown) by the descent itself and drops the
+     * entry (`undefined`).
+     */
+    protected resolveElemMatchInterior(resolved: FieldResolution) : FiltersScope | undefined {
+        if (resolved.name === ITSELF) {
+            return resolved.scope;
+        }
+
+        const child = resolved.scope.descendElement(resolved.name);
+
+        if (!(child instanceof ResolutionScope)) {
+            return undefined;
+        }
+
+        return child as FiltersScope;
+    }
+
     protected buildElemMatch(
         input: Record<string, any>,
         resolved: FieldResolution,
@@ -1017,12 +1040,20 @@ export class MongoFiltersParser extends BaseParser<
             // misplaced compounds throw).
             const regex = this.validateOperatorObject(resolved.field, input, false);
 
+            // the element ITSELF lives in the interior of the target: a
+            // nested document-form $elemMatch on it resolves there.
+            const interior = this.resolveElemMatchInterior(resolved);
+
+            if (!interior) {
+                return undefined;
+            }
+
             const conditions = this.buildOperatorObject(
                 input,
                 {
                     field: ITSELF,
                     name: ITSELF,
-                    scope: ResolutionScope.forElement(resolved.scope) as FiltersScope,
+                    scope: interior,
                 },
                 false,
                 depth + 1,
@@ -1039,21 +1070,13 @@ export class MongoFiltersParser extends BaseParser<
             return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
         }
 
-        // the element itself (ITSELF) is never a relation, and an element
-        // scope descends into another element scope. A relation target binds
-        // the interior to its schema (its obligation was recorded when
-        // resolveField resolved it); every other target yields an element
-        // scope. A refused relation was recorded (or thrown) by the descent
-        // itself and drops the entry.
-        const child = resolved.name === ITSELF ?
-            ResolutionScope.forElement(resolved.scope) :
-            resolved.scope.descendElement(resolved.name);
+        const child = this.resolveElemMatchInterior(resolved);
 
-        if (!(child instanceof ResolutionScope)) {
+        if (!child) {
             return undefined;
         }
 
-        const conditions = this.parseDocument(input, child as FiltersScope, false, depth + 1);
+        const conditions = this.parseDocument(input, child, false, depth + 1);
 
         // an interior with no conditions drops the whole entry.
         const condition = this.combineDocument(conditions, false);

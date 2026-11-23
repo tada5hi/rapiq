@@ -567,3 +567,65 @@ describe('mongo array operator interiors and targets (#1005)', () => {
         expect(validate).not.toHaveBeenCalled();
     });
 });
+
+/**
+ * post declares the relation author, whose schema is not registered;
+ * company is registered (#1005 review).
+ */
+function buildDeclaredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['author'] },
+        filters: { allowed: ['id', 'author'] },
+    }));
+    registry.add(defineSchema({ name: 'company', filters: { allowed: ['name'] } }));
+
+    return registry;
+}
+
+describe('mongo ITSELF and unregistered relation interiors (#1005)', () => {
+    it('keeps a bound relation interior for the element form, gating every hop', () => {
+        const parser = new MongoParser(buildArrayRegistry());
+        const input = { filters: { postTags: { $elemMatch: { $elemMatch: { 'post.secret': 'x' } } } } };
+
+        expect(treeFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(
+            () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+            { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+        );
+
+        expect(treeFields(parser.parse(
+            { filters: { postTags: { $elemMatch: { $elemMatch: { tagId: 'x' } } } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', '$this', 'tagId']);
+    });
+
+    it('keeps a single-segment key inside a declared but unregistered relation', () => {
+        const parser = new MongoParser(buildDeclaredRegistry());
+
+        expect(treeFields(parser.parse(
+            { filters: { author: { $elemMatch: { name: 'x' } } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['author', 'name']);
+    });
+
+    const dotted : Array<Record<string, unknown>> = [
+        { author: { $elemMatch: { 'company.secret': 'x' } } },
+        { author: { $elemMatch: { sub: { $elemMatch: { 'company.name': 'x' } } } } },
+        { author: { $elemMatch: { $elemMatch: { 'company.name': 'x' } } } },
+    ];
+
+    for (const filters of dotted) {
+        it(`drops or rejects ${JSON.stringify(filters)}: a dotted key behind an unregistered relation`, () => {
+            const parser = new MongoParser(buildDeclaredRegistry());
+
+            expect(treeFields(parser.parse({ filters }, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse({ filters }, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_INVALID },
+            );
+        });
+    }
+});
