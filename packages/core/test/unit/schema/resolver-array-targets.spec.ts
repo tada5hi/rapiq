@@ -198,6 +198,31 @@ describe('src/schema/resolver/module.ts (array operator targets, #1005)', () => 
             expect(() => thrown.resolveKey('author.userId')).toThrow(FiltersParseError);
         });
 
+        it('should refuse an array-operator target inside a declared but unregistered relation', () => {
+            const local = buildRegistry({}, { relations: { allowed: ['postTags', 'comments'] } });
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post');
+            const interior = scope.descendElement('comments') as ResolutionScope<'filters'>;
+
+            expect(interior.resolveKey('author', 'author', { relationTarget: true })).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+                input: 'author',
+                segment: 'author',
+            });
+            // a plain comparison on the same column stays a column
+            expect(interior.resolveKey('author').success).toBeTruthy();
+
+            const throwing = ResolutionScope.for(local, Parameter.FILTERS, 'post', { throwOnFailure: true });
+            const thrown = throwing.descendElement('comments') as ResolutionScope<'filters'>;
+
+            expect(() => thrown.resolveKey('author', 'author', { relationTarget: true })).toThrow(FiltersParseError);
+
+            // an array column interior keeps accepting array-operator targets
+            const array = scope.descendElement('tags') as ResolutionScope<'filters'>;
+
+            expect(array.resolveKey('sub', 'sub', { relationTarget: true }).success).toBeTruthy();
+        });
+
         it('should refuse every key inside a declared but unregistered relation under strict mode', () => {
             const local = buildRegistry({}, { relations: { allowed: ['postTags', 'comments'] } });
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post', { strict: true });

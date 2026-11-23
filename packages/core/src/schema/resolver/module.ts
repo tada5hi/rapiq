@@ -403,7 +403,7 @@ export class ResolutionScope<
         options: { relationTarget?: boolean } = {},
     ) : KeyResolution<P, RECORD> {
         if (this.element) {
-            return this.resolveElementKey(key, raw);
+            return this.resolveElementKey(key, raw, options);
         }
 
         const mapped = applyMapping(key, this.mapping);
@@ -672,11 +672,21 @@ export class ResolutionScope<
      * unbound scope applies, and a dotted key is refused with
      * `schemaUnresolvable`, the verdict the same path gets at the top
      * level: the related schema is not registered, so no hop from it can
-     * be gated.
+     * be gated. For the same reason an array-operator target
+     * (`relationTarget`) is refused there too: the related row's fields
+     * are unknown, so the target may be a relation the backend would join.
      */
-    protected resolveElementKey(key: string, raw: string) : KeyResolution<P, RECORD> {
+    protected resolveElementKey(
+        key: string,
+        raw: string,
+        options: { relationTarget?: boolean } = {},
+    ) : KeyResolution<P, RECORD> {
         if (this.element === 'relation') {
             const separatorIndex = key.indexOf('.');
+
+            if (options.relationTarget && separatorIndex === -1) {
+                return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, key, key, raw);
+            }
 
             if (separatorIndex !== -1) {
                 return this.fail(

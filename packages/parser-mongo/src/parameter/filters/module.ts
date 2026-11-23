@@ -989,16 +989,6 @@ export class MongoFiltersParser extends BaseParser<
     }
 
     /**
-     * Build an $elemMatch condition. A field-operator interior
-     * (`{ $gt: 5 }`) is the element-level form — the operators apply to
-     * the array element itself, referenced by the ITSELF marker. Any
-     * other value re-enters document context, fields relative to the
-     * array element. The document-form interior scope is the related
-     * schema for a relation target, otherwise an element scope inheriting
-     * the current policy (e.g. a JSON array column), whose dotted keys
-     * never reach a relation (#1005).
-     */
-    /**
      * The interior scope of an $elemMatch on `resolved`. The element ITSELF
      * keeps the scope it is in: a bound relation interior stays gated per
      * hop, an element scope stays one (#1005). A relation target binds the
@@ -1021,6 +1011,16 @@ export class MongoFiltersParser extends BaseParser<
         return child as FiltersScope;
     }
 
+    /**
+     * Build an $elemMatch condition. A field-operator interior
+     * (`{ $gt: 5 }`) is the element-level form: the operators apply to
+     * the array element itself, referenced by the ITSELF marker. Any
+     * other value re-enters document context, fields relative to the
+     * array element. The document-form interior scope is the related
+     * schema for a relation target, otherwise an element scope inheriting
+     * the current policy (e.g. a JSON array column), which never
+     * reaches a relation around the schema policy (#1005).
+     */
     protected buildElemMatch(
         input: Record<string, any>,
         resolved: FieldResolution,

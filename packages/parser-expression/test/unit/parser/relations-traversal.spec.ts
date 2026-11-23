@@ -512,10 +512,13 @@ describe('expression ITSELF and unregistered relation interiors (#1005)', () => 
         "elemMatch(author, eq(company.secret, 'x'))",
         "elemMatch(author, elemMatch(sub, eq(company.name, 'x')))",
         "elemMatch(author, elemMatch($this, eq(company.name, 'x')))",
+        // an array-operator target inside the row: it may be a relation
+        "elemMatch(author, elemMatch(company, eq(secret, 'x')))",
+        "elemMatch(author, size(company, '1'))",
     ];
 
     for (const filters of dotted) {
-        it(`rejects ${filters}: a dotted key behind an unregistered relation`, () => {
+        it(`rejects ${filters}: a join behind an unregistered relation`, () => {
             const parser = new ExpressionParser(buildDeclaredRegistry());
 
             for (const throwOnFailure of [false, true]) {

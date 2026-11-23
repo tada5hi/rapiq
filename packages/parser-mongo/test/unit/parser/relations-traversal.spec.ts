@@ -615,10 +615,14 @@ describe('mongo ITSELF and unregistered relation interiors (#1005)', () => {
         { author: { $elemMatch: { 'company.secret': 'x' } } },
         { author: { $elemMatch: { sub: { $elemMatch: { 'company.name': 'x' } } } } },
         { author: { $elemMatch: { $elemMatch: { 'company.name': 'x' } } } },
+        // an array-operator target inside the row: it may be a relation
+        { author: { $elemMatch: { company: { $elemMatch: { secret: 'x' } } } } },
+        { author: { $elemMatch: { company: { $size: 1 } } } },
+        { author: { $elemMatch: { company: { $all: ['x'] } } } },
     ];
 
     for (const filters of dotted) {
-        it(`drops or rejects ${JSON.stringify(filters)}: a dotted key behind an unregistered relation`, () => {
+        it(`drops or rejects ${JSON.stringify(filters)}: a join behind an unregistered relation`, () => {
             const parser = new MongoParser(buildDeclaredRegistry());
 
             expect(treeFields(parser.parse({ filters }, { schema: 'post' }).filters)).toEqual([]);
