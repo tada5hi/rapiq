@@ -167,7 +167,13 @@ const postSchema = defineSchema<Post>({
 - **Undeclared:** every non-relation target is permitted, unless the schema is [strict](/guide/schemas#strict-mode).
 - **Collisions:** a listed name is always an array column, never a relation, even when a registered schema or `schemaMapping` entry shares its name. A JSON column named like a registered schema therefore belongs in `arrays` (listing it in `filters.relations` keeps working).
 
-The interior of an array operator on a non-relation target (a JSON array column, or a declared relation whose schema is not registered) is an **element scope**: a dotted key inside it, e.g. `elemMatch(labels, eq(meta.kind, 'x'))`, is an opaque path into the array element, checked for identifier validity only. It never resolves a registered schema or a relation, so an interior cannot reach a relation around the schema's `filters.relations`. `ITSELF` stays the only special reference there. The interior of an array operator on a relation is bound to the related schema, and every hop inside it is checked against that schema's policy. Without any schema (a schemaless parse) a target still descends into a registered schema by name.
+Where an array operator's interior resolves depends on its target:
+
+- **A registered relation:** the interior is bound to the related schema, and every hop inside it is checked against that schema's policy, exactly like a dotted path.
+- **A JSON array column** (listed in `arrays`, or any non-relation column while `arrays` is undeclared): the interior is an **element scope**. A dotted key inside it, e.g. `elemMatch(labels, eq(meta.kind, 'x'))`, is an opaque path into the array element, checked for identifier validity only; it is never resolved against a registered schema or relation, so an interior cannot reach a relation around the schema's `filters.relations`.
+- **A declared relation whose schema is not registered** (in `relations.allowed`, `filters.relations` or `schemaMapping`): a single-segment key inside the interior addresses a column of the related row; a dotted key would join on from it, so it is a `keyPathInvalid` violation, the same verdict the dotted path gets at the top level.
+
+A nested interior keeps these rules: an `ITSELF` target (`elemMatch($this, …)`, or mongo's `{ $elemMatch: { $elemMatch: … } }`) stays in the scope it is in, and an element interior never regains dotted access to relations. Without any schema (a schemaless parse) a target still descends into a registered schema by name.
 
 ## Null semantics
 

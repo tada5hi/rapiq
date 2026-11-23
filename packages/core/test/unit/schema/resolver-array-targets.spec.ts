@@ -166,15 +166,46 @@ describe('src/schema/resolver/module.ts (array operator targets, #1005)', () => 
             });
         });
 
-        it('should isolate the interior of a declared but unregistered relation', () => {
+        it('should keep single-segment keys but refuse dotted ones inside a declared but unregistered relation', () => {
             const local = buildRegistry({}, { relations: { allowed: ['postTags', 'comments'] } });
             const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post');
             const interior = scope.descendElement('comments') as ResolutionScope<'filters'>;
 
-            expect(interior.resolveKey('author.userId')).toMatchObject({
+            expect(interior.resolveKey('body')).toMatchObject({
                 success: true,
                 path: [],
-                name: 'author.userId',
+                name: 'body',
+            });
+            expect(interior.resolveKey('author.userId')).toEqual({
+                success: false,
+                code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+                input: 'author.userId',
+                segment: 'author',
+            });
+
+            // a nested interior never regains dotted access
+            const nested = interior.descendElement('replies') as ResolutionScope<'filters'>;
+
+            expect(nested.resolveKey('text').success).toBeTruthy();
+            expect(nested.resolveKey('author.userId')).toMatchObject({
+                success: false,
+                code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+            });
+
+            const throwing = ResolutionScope.for(local, Parameter.FILTERS, 'post', { throwOnFailure: true });
+            const thrown = throwing.descendElement('comments') as ResolutionScope<'filters'>;
+
+            expect(() => thrown.resolveKey('author.userId')).toThrow(FiltersParseError);
+        });
+
+        it('should refuse every key inside a declared but unregistered relation under strict mode', () => {
+            const local = buildRegistry({}, { relations: { allowed: ['postTags', 'comments'] } });
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, 'post', { strict: true });
+            const interior = scope.descendElement('comments') as ResolutionScope<'filters'>;
+
+            expect(interior.resolveKey('body')).toMatchObject({
+                success: false,
+                code: KeyResolutionErrorCode.KEY_NOT_PERMITTED,
             });
         });
 

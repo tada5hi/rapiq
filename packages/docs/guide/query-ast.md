@@ -108,7 +108,7 @@ scope.resolveKey('secret');
 // { ok: false, code: 'keyNotPermitted', input: 'secret', segment: 'secret' }
 ```
 
-`resolveKey()` resolves a local, aliased or dotted key and reports the outcome as a discriminated union (or throws the parameter's error class when `throwOnFailure` applies). `descend('items')` enters a relation segment and returns a child scope bound to the related schema. Scopes created without any schema input are *unbound* and impose no constraints. `descendElement('tags')` returns the scope for an array operator's interior: the related schema for a relation, otherwise an element scope that resolves every valid key as an opaque path into the array element (see [Array columns](/guide/filters#array-columns)).
+`resolveKey()` resolves a local, aliased or dotted key and reports the outcome as a discriminated union (or throws the parameter's error class when `throwOnFailure` applies). `descend('items')` enters a relation segment and returns a child scope bound to the related schema. Scopes created without any schema input are *unbound* and impose no constraints. `descendElement('tags')` returns the scope for an array operator's interior: the related schema for a relation, otherwise an element scope that never consults the registry (see [Array columns](/guide/filters#array-columns)).
 
 Custom parsers extend `BaseParser<OPTIONS, OUTPUT>` from core; the shipped parsers ([simple](/packages/parser-simple), [expression](/packages/parser-expression), [mongo](/packages/parser-mongo)) are reference implementations, each composing one sub-parser per parameter.
 

@@ -79,6 +79,18 @@ export type KeyResolution<
     RECORD extends ObjectLiteral = ObjectLiteral,
 > = KeyResolutionSuccess<P, RECORD> | KeyResolutionFailure;
 
+/**
+ * What an element scope (the interior of an array operator on a target
+ * that is no registered relation) admits:
+ *
+ * - `array`: a JSON array column; every valid (dotted) key is an opaque
+ *   path into the element.
+ * - `relation`: a declared relation whose schema is not registered; a
+ *   single-segment key is a column of the related row, a dotted key would
+ *   join on from it and is refused (`schemaUnresolvable`).
+ */
+export type ElementScopeMode = 'array' | 'relation';
+
 export type ResolutionScopeContext = {
     /**
      * Parsed relations governing which relation segments may be entered.

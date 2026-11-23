@@ -36,6 +36,7 @@ import {
 import type { SchemaRegistry } from '../registry';
 import { KeyResolutionErrorCode } from './constants';
 import type {
+    ElementScopeMode,
     KeyResolution,
     KeyResolutionFailure,
     ParameterSchema,
@@ -113,7 +114,7 @@ type ResolutionScopeOptions<
     throwOnFailure?: boolean,
     resolutionThrowOnFailure?: boolean,
     strict?: boolean,
-    element?: boolean,
+    element?: ElementScopeMode,
 };
 
 /**
@@ -205,13 +206,15 @@ export class ResolutionScope<
     protected strictContext: boolean | undefined;
 
     /**
-     * Whether this scope addresses the elements of a non-relation array
-     * (the interior of `size`, `elemMatch` or `all` on a JSON array
-     * column). An element scope describes no record: a dotted key is an
-     * opaque element sub-path, checked for identifier validity alone, and
-     * neither a registry schema nor a relation is ever consulted (#1005).
+     * Set when this scope addresses the elements of an array operator's
+     * target that is no registered relation (#1005). An element scope
+     * describes no record and never consults the registry: under `array`
+     * (a JSON array column) a dotted key is an opaque element sub-path,
+     * checked for identifier validity alone; under `relation` (a declared
+     * relation whose schema is not registered) only single-segment keys
+     * resolve, since a dotted one would join on from the related row.
      */
-    protected element: boolean;
+    protected element: ElementScopeMode | undefined;
 
     // ---------------------------------------------------------
 
@@ -232,7 +235,7 @@ export class ResolutionScope<
         this.throwOnFailureContext = options.throwOnFailure;
         this.resolutionThrowOnFailureContext = options.resolutionThrowOnFailure;
         this.strictContext = options.strict;
-        this.element = options.element ?? false;
+        this.element = options.element;
     }
 
     // ---------------------------------------------------------
@@ -345,7 +348,9 @@ export class ResolutionScope<
      * policy of `current`: the interior of an array operator addressing
      * the element itself (`ITSELF`, arrays of arrays), which is never a
      * relation. `segment` names the array the element scope was entered
-     * through, extending the issue path of a failure inside it.
+     * through, extending the issue path of a failure inside it. `mode`
+     * defaults to the mode of `current` when it is an element scope itself
+     * (a nested interior never widens), otherwise to `array`.
      */
     static forElement<
         P extends `${Parameter}`,
@@ -353,13 +358,14 @@ export class ResolutionScope<
     >(
         current: ResolutionScope<P, RECORD>,
         segment?: string,
+        mode?: ElementScopeMode,
     ) : ResolutionScope<P, RECORD> {
         return new ResolutionScope<P, RECORD>({
             registry: current.registry,
             parameter: current.parameter,
             schema: buildEmptyParameterSchema<P, RECORD>(current.parameter),
             bound: false,
-            element: true,
+            element: current.element ?? mode ?? 'array',
             segment,
             path: typeof segment === 'undefined' ?
                 current.path :
@@ -588,12 +594,13 @@ export class ResolutionScope<
      *
      * A relation whose target schema is registered binds the interior to
      * that schema, gated per hop exactly like a dotted path ({@link descend}).
-     * Every other target (a JSON array column, a name listed in the filters
-     * `arrays` option, a declared relation whose schema is not registered, or
-     * any interior of an element scope) yields an element scope, so a dotted
-     * interior key can never reach a relation around the schema policy
-     * (#1005). A relation refused by the policy comes back as the failure,
-     * recorded or thrown under this scope's failure policy.
+     * Every other target yields an element scope, so an interior key can
+     * never reach a relation around the schema policy (#1005): an `array`
+     * one for a JSON array column (listed in the filters `arrays` option or
+     * undeclared), a `relation` one, admitting no dotted key, for a declared
+     * relation whose schema is not registered. The interior of an element
+     * scope keeps its mode. A relation refused by the policy comes back as
+     * the failure, recorded or thrown under this scope's failure policy.
      */
     descendElement(name: string) : ResolutionScope<P, RECORD> | KeyResolutionFailure {
         if (this.element || this.isArrayColumn(name)) {
@@ -612,7 +619,11 @@ export class ResolutionScope<
 
         // no schema for this target: an answer, not a violation.
         if (verdict.code === KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
-            return ResolutionScope.forElement(this, name);
+            return ResolutionScope.forElement(
+                this,
+                name,
+                this.isDeclaredRelation(name) ? 'relation' : 'array',
+            );
         }
 
         return verdict;
@@ -654,11 +665,42 @@ export class ResolutionScope<
     }
 
     /**
-     * Resolve a key inside an element scope: the whole (dotted) key is one
-     * opaque element sub-path. Only identifier validity is checked; nothing
-     * is recorded as a relation obligation.
+     * Resolve a key inside an element scope; nothing is recorded as a
+     * relation obligation. Under `array` the whole (dotted) key is one
+     * opaque element sub-path and only identifier validity is checked.
+     * Under `relation` a single-segment key passes the same name check an
+     * unbound scope applies, and a dotted key is refused with
+     * `schemaUnresolvable`, the verdict the same path gets at the top
+     * level: the related schema is not registered, so no hop from it can
+     * be gated.
      */
     protected resolveElementKey(key: string, raw: string) : KeyResolution<P, RECORD> {
+        if (this.element === 'relation') {
+            const separatorIndex = key.indexOf('.');
+
+            if (separatorIndex !== -1) {
+                return this.fail(
+                    KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+                    key,
+                    key.substring(0, separatorIndex),
+                    raw,
+                );
+            }
+
+            const code = this.checkName(key);
+
+            if (code) {
+                return this.fail(code, key, key, raw);
+            }
+
+            return {
+                success: true,
+                name: key,
+                path: [],
+                scope: this,
+            };
+        }
+
         const segments = toIssuePath(key);
         const invalid = segments.some((segment) => !isPropertyNameValid(segment));
 
