@@ -14,7 +14,7 @@ import {
     not,
     or,
 } from '@rapiq/core';
-import { FiltersVisitor } from '@rapiq/adapter-sql';
+import { FiltersVisitor, buildRelationAlias } from '@rapiq/adapter-sql';
 import { applyQuery } from '@rapiq/adapter-memory';
 import type { DataSource, SelectQueryBuilder } from 'typeorm';
 import { TypeormAdapter } from '../../src';
@@ -230,5 +230,49 @@ describe('src/adapter/module.ts (to-many filters as EXISTS, rapiq#1006)', () => 
 
         expect(queryBuilder.getQuery()).not.toMatch(/EXISTS/);
         expect(names(await queryBuilder.getMany())).toEqual(['first', 'third']);
+    });
+
+    // behaviour change of execute() (rapiq#1006): a join the caller put on
+    // the builder under the adapter's alias used to be reused, so its ON
+    // condition scoped the filter. The EXISTS subquery joins on its own,
+    // as grouped reads already do; a relation scope belongs in onJoin.
+    it('should not scope a to-many filter by a join already on the builder', async () => {
+        const alias = buildRelationAlias('tags');
+        const queryBuilder = build()
+            .leftJoinAndSelect('activity.tags', alias, `${alias}.name <> :hidden`, { hidden: 'a' });
+
+        const rows = await apply(defineQuery<ObjectLiteral>({
+            filters: eq('tags.name', 'a'),
+            sorts: ['id'],
+        }), queryBuilder).getMany();
+
+        expect(names(rows)).toEqual(['first', 'second']);
+        expect(rows[0]!.tags.map((tag) => tag.name)).toEqual(['b']);
+    });
+
+    it('should scope a to-many filter through the onJoin hook', async () => {
+        const run = async (scoped: boolean) => {
+            const queryBuilder = build();
+            const adapter = new TypeormAdapter({
+                queryBuilder,
+                relations: {
+                    onJoin: (path, alias, joined) => {
+                        if (scoped && path === 'tags') {
+                            joined.andWhere(`${alias}.name <> :hidden`, { hidden: 'a' });
+                        }
+                    },
+                },
+            });
+
+            adapter.execute(defineQuery<ObjectLiteral>({
+                filters: eq('tags.name', 'a'),
+                sorts: ['id'],
+            }));
+
+            return names(await queryBuilder.getMany());
+        };
+
+        expect(await run(false)).toEqual(['first', 'second']);
+        expect(await run(true)).toEqual([]);
     });
 });
