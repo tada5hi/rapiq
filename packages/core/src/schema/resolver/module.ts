@@ -43,6 +43,7 @@ import type {
     ResolutionScopeContext,
 } from './types';
 import type { Issue } from '@ebec/core';
+import { arrayToPath } from 'pathtrace';
 
 const PARAMETER_SCHEMA_CLASSES = {
     [Parameter.FIELDS]: FieldsSchema,
@@ -607,6 +608,17 @@ export class ResolutionScope<
             return ResolutionScope.forElement(this, name);
         }
 
+        if (this.depth >= MAX_DEPTH) {
+            // the descent would answer schemaUnresolvable before the
+            // relation policy is consulted: a relation is refused here
+            // rather than read as an element scope that skips the policy.
+            if (this.isRelationLeaf(name)) {
+                return this.fail(KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE, name, name);
+            }
+
+            return ResolutionScope.forElement(this, name);
+        }
+
         const verdict = this.descend(name, { optional: true });
 
         if (verdict instanceof ResolutionScope) {
@@ -711,8 +723,11 @@ export class ResolutionScope<
             };
         }
 
+        // escape-aware split; the round trip catches the empty segments
+        // (`a..b`, `a.`, `.a`) the split drops.
         const segments = toIssuePath(key);
-        const invalid = segments.some((segment) => !isPropertyNameValid(segment));
+        const invalid = segments.some((segment) => !isPropertyNameValid(segment)) ||
+            arrayToPath(segments) !== key;
 
         if (segments.length === 0 || invalid) {
             return this.fail(KeyResolutionErrorCode.KEY_INVALID, key, undefined, raw);
@@ -1133,10 +1148,22 @@ export class ResolutionScope<
      * registry lookup as {@link relationObligationForTerminal}.
      */
     protected isRelationLeaf(name: string) : boolean {
+        if (this.isArrayColumn(name)) {
+            return false;
+        }
+
         const base = this.resolveBase();
 
-        if (!base || this.isArrayColumn(name)) {
-            return false;
+        if (!base) {
+            // a standalone sub-schema has no record identity and descends
+            // by registry name ({@link descendSegment}), so it classifies a
+            // relation the same way. An unbound scope imposes nothing.
+            if (this.isUnbound()) {
+                return false;
+            }
+
+            return !!this.registry.get(name) ||
+                this.isDeclaredRelation(name);
         }
 
         return !!this.registry.get(base.mapSchema(name)) ||
@@ -1150,24 +1177,27 @@ export class ResolutionScope<
      * option. A relation whose target schema is not registered is still a
      * relation, so an array operator on it is gated like any other (#1001).
      * A name declared nowhere and resolvable nowhere is not a relation
-     * (e.g. a JSON array column).
+     * (e.g. a JSON array column). A standalone sub-schema has no base, so
+     * only its own `relations` option declares one.
      */
     protected isDeclaredRelation(name: string) : boolean {
-        const base = this.resolveBase();
-
-        if (!base || this.isArrayColumn(name)) {
+        if (this.isArrayColumn(name)) {
             return false;
         }
 
-        if (base.hasSchemaMapping(name)) {
-            return true;
-        }
+        const base = this.resolveBase();
 
-        if (
-            base.relations.allowed &&
-            base.relations.allowed.includes(name as never)
-        ) {
-            return true;
+        if (base) {
+            if (base.hasSchemaMapping(name)) {
+                return true;
+            }
+
+            if (
+                base.relations.allowed &&
+                base.relations.allowed.includes(name as never)
+            ) {
+                return true;
+            }
         }
 
         if (

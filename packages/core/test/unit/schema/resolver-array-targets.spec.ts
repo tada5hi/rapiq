@@ -9,9 +9,11 @@ import type { PendingKeyValidation } from '../../../src';
 import {
     FiltersParseError,
     KeyResolutionErrorCode,
+    MAX_TRAVERSAL_DEPTH,
     Parameter,
     ResolutionScope,
     SchemaRegistry,
+    defineFiltersSchema,
     defineSchema,
 } from '../../../src';
 
@@ -261,6 +263,80 @@ describe('src/schema/resolver/module.ts (array operator targets, #1005)', () => 
                 success: false,
                 code: KeyResolutionErrorCode.KEY_NOT_PERMITTED,
             });
+        });
+    });
+
+    describe('PR #1007 review', () => {
+        it('should classify a standalone schema relation target by registry name, like its descent', () => {
+            const local = buildRegistry();
+            const scope = ResolutionScope.for(local, Parameter.FILTERS, defineFiltersSchema({
+                allowed: ['postTags', 'id'],
+                relations: ['postTags'],
+                arrays: [],
+            }));
+
+            expect(scope.checkArrayTarget('postTags')).toBeUndefined();
+            expect(scope.resolveKey('postTags', 'postTags', { relationTarget: true }).success).toBeTruthy();
+            // a non-relation target is still refused by the empty list
+            expect(scope.checkArrayTarget('id')).toEqual(KEY_NOT_PERMITTED('id'));
+
+            // the relation target stays governed by `relations`
+            const narrowed = ResolutionScope.for(local, Parameter.FILTERS, defineFiltersSchema({
+                allowed: ['postTags'],
+                relations: [],
+                arrays: [],
+            }));
+
+            expect(narrowed.resolveKey('postTags', 'postTags', { relationTarget: true })).toMatchObject({
+                success: false,
+                code: KeyResolutionErrorCode.PATH_NOT_PERMITTED,
+            });
+        });
+
+        it('should refuse a registered relation at the depth limit instead of opening an element scope', () => {
+            const local = new SchemaRegistry();
+
+            local.add(defineSchema({
+                name: 'node',
+                filters: { allowed: ['children', 'labels', 'name'] },
+                relations: { allowed: ['children'] },
+                schemaMapping: { children: 'node' },
+            }));
+
+            let scope = ResolutionScope.for(local, Parameter.FILTERS, 'node') as ResolutionScope<'filters'>;
+
+            for (let i = 0; i < MAX_TRAVERSAL_DEPTH; i++) {
+                scope = scope.descendElement('children') as ResolutionScope<'filters'>;
+
+                expect(scope).toBeInstanceOf(ResolutionScope);
+                // bound: an element scope would accept any key
+                expect(scope.resolveKey('unknown').success).toBeFalsy();
+            }
+
+            expect(scope.descendElement('children')).toMatchObject({
+                success: false,
+                code: KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE,
+            });
+
+            // a target no schema describes still gets its element scope
+            const element = scope.descendElement('labels') as ResolutionScope<'filters'>;
+
+            expect(element).toBeInstanceOf(ResolutionScope);
+            expect(element.resolveKey('a.b').success).toBeTruthy();
+        });
+
+        it('should refuse an empty dotted segment inside an array element scope', () => {
+            const scope = ResolutionScope.for(buildRegistry(), Parameter.FILTERS, 'post');
+            const interior = scope.descendElement('tags') as ResolutionScope<'filters'>;
+
+            for (const key of ['a..b', 'a.', '.a', '.']) {
+                expect(interior.resolveKey(key)).toMatchObject({
+                    success: false,
+                    code: KeyResolutionErrorCode.KEY_INVALID,
+                });
+            }
+
+            expect(interior.resolveKey('a.b.c').success).toBeTruthy();
         });
     });
 

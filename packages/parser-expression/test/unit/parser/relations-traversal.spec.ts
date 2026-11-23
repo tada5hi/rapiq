@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    ErrorCode,
+    SchemaRegistry,
+    defineFiltersSchema,
+    defineSchema,
+} from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
 import { expectRejected } from '../../data';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
@@ -527,6 +532,25 @@ describe('expression ITSELF and unregistered relation interiors (#1005)', () => 
                     { code: ErrorCode.KEY_PATH_INVALID },
                 );
             }
+        });
+    }
+});
+
+describe('expression array operators on a standalone filters schema (PR #1007 review)', () => {
+    for (const filters of ["size(postTags, '1')", "elemMatch(postTags, eq(tagId, 'x'))"]) {
+        it(`keeps ${filters} on a registered relation an explicit arrays list omits`, () => {
+            const parser = new ExpressionFiltersParser(buildArrayRegistry());
+
+            const output = parser.parse(filters, {
+                schema: defineFiltersSchema({
+                    allowed: ['postTags'], 
+                    relations: ['postTags'], 
+                    arrays: [], 
+                }),
+                throwOnFailure: true,
+            });
+
+            expect(treeFields(output)[0]).toEqual('postTags');
         });
     }
 });

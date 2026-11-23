@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    ErrorCode,
+    SchemaRegistry,
+    defineFiltersSchema,
+    defineSchema,
+} from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
 import { expectRejected } from '../../data';
 import { MongoFiltersParser, MongoParser } from '../../../src';
@@ -632,4 +637,40 @@ describe('mongo ITSELF and unregistered relation interiors (#1005)', () => {
             );
         });
     }
+});
+
+describe('mongo array operators on a standalone filters schema (PR #1007 review)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 1 } },
+        { label: '$all', value: { $all: ['x'] } },
+        { label: '$elemMatch', value: { $elemMatch: { tagId: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`keeps ${label} on a registered relation an explicit arrays list omits`, () => {
+            const parser = new MongoFiltersParser(buildArrayRegistry());
+
+            const output = parser.parse({ postTags: value }, {
+                schema: defineFiltersSchema({
+                    allowed: ['postTags'], 
+                    relations: ['postTags'], 
+                    arrays: [], 
+                }),
+                throwOnFailure: true,
+            });
+
+            expect(treeFields(output)[0]).toEqual('postTags');
+        });
+    }
+
+    it('drops or rejects an empty dotted segment inside an element interior', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: ['tags'] }));
+        const input = { filters: { tags: { $elemMatch: { 'a..b': 1 } } } };
+
+        expect(treeFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(
+            () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+            { code: ErrorCode.KEY_INVALID },
+        );
+    });
 });
