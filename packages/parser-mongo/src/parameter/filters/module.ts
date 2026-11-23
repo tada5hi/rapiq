@@ -23,7 +23,6 @@ import {
     Filters,
     FiltersParseError,
     ITSELF,
-    KeyResolutionErrorCode,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
     RelationsParseError,
@@ -995,8 +994,9 @@ export class MongoFiltersParser extends BaseParser<
      * the array element itself, referenced by the ITSELF marker. Any
      * other value re-enters document context, fields relative to the
      * array element. The document-form interior scope is the related
-     * schema when resolvable, otherwise an unbound scope inheriting the
-     * current policy (e.g. a JSON array column).
+     * schema for a relation target, otherwise an element scope inheriting
+     * the current policy (e.g. a JSON array column), whose dotted keys
+     * never reach a relation (#1005).
      */
     protected buildElemMatch(
         input: Record<string, any>,
@@ -1022,7 +1022,7 @@ export class MongoFiltersParser extends BaseParser<
                 {
                     field: ITSELF,
                     name: ITSELF,
-                    scope: this.buildUnboundScope(resolved.scope),
+                    scope: ResolutionScope.forElement(resolved.scope) as FiltersScope,
                 },
                 false,
                 depth + 1,
@@ -1039,35 +1039,21 @@ export class MongoFiltersParser extends BaseParser<
             return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
         }
 
-        let child : FiltersScope | undefined;
+        // the element itself (ITSELF) is never a relation, and an element
+        // scope descends into another element scope. A relation target binds
+        // the interior to its schema (its obligation was recorded when
+        // resolveField resolved it); every other target yields an element
+        // scope. A refused relation was recorded (or thrown) by the descent
+        // itself and drops the entry.
+        const child = resolved.name === ITSELF ?
+            ResolutionScope.forElement(resolved.scope) :
+            resolved.scope.descendElement(resolved.name);
 
-        if (resolved.name === ITSELF) {
-            // the element itself is never schema-resolvable.
-            child = this.buildUnboundScope(resolved.scope);
-        } else {
-            // $elemMatch on a non-relation field is legal, so a missing
-            // related schema is an answer rather than a violation and comes
-            // back as a bare verdict; every other failure was recorded (or
-            // thrown) by the descent itself and drops the entry.
-            const verdict = resolved.scope.descend(resolved.name, { optional: true });
-
-            if (verdict instanceof ResolutionScope) {
-                // the target relation's obligation was recorded when
-                // resolveField resolved it; here we only need the child
-                // scope for the interior conditions.
-                child = verdict;
-            } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
-                // relations gating (pathNotPermitted) is a schema-policy
-                // failure for the entry: drop it.
-                return undefined;
-            }
+        if (!(child instanceof ResolutionScope)) {
+            return undefined;
         }
 
-        if (!child) {
-            child = this.buildUnboundScope(resolved.scope);
-        }
-
-        const conditions = this.parseDocument(input, child, false, depth + 1);
+        const conditions = this.parseDocument(input, child as FiltersScope, false, depth + 1);
 
         // an interior with no conditions drops the whole entry.
         const condition = this.combineDocument(conditions, false);
@@ -1077,14 +1063,6 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
-    }
-
-    protected buildUnboundScope(current: FiltersScope) : FiltersScope {
-        return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
-            throwOnFailure: current.throwOnFailure,
-            strict: current.strict,
-            issueCollector: current.issueCollector,
-        }) as FiltersScope;
     }
 }
 
