@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    ErrorCode,
+    SchemaRegistry,
+    defineFiltersSchema,
+    defineSchema,
+} from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
 import { expectRejected } from '../../data';
 import { ExpressionFiltersParser, ExpressionParser } from '../../../src';
@@ -285,5 +290,267 @@ describe('expression array operators on an unregistered declared relation (#1001
                 expect(filterFields(query.filters)).toEqual([field]);
             });
         }
+    }
+});
+
+/**
+ * The schema of #1005: post may traverse postTags only, author is a
+ * registered schema post does not allow, `tags` is a JSON array column.
+ */
+function buildArrayRegistry(
+    filters: Record<string, any> = {},
+    post: Record<string, any> = {},
+    validate?: (name: string) => boolean,
+) : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['cover'], ...(validate ? { validate } : {}) },
+        filters: {
+            allowed: ['id', 'slug', 'tags', 'postTags'],
+            relations: ['postTags'],
+            ...filters,
+        },
+        ...post,
+    }));
+    registry.add(defineSchema({
+        name: 'postTags',
+        filters: { allowed: ['tagId'], relations: [] },
+        schemaMapping: { post: 'post' },
+    }));
+    registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+    registry.add(defineSchema({ name: 'cover' }));
+
+    return registry;
+}
+
+/**
+ * Every field of a parsed tree, elemMatch interiors included.
+ */
+function treeFields(input: unknown) : string[] {
+    const output : string[] = [];
+    const walk = (node: any) => {
+        if (typeof node?.field === 'string') {
+            output.push(node.field);
+
+            if (node.operator === 'elemMatch') {
+                walk(node.value);
+            }
+
+            return;
+        }
+
+        if (Array.isArray(node?.value)) {
+            for (const child of node.value) {
+                walk(child);
+            }
+        }
+    };
+
+    walk(input);
+
+    return output;
+}
+
+describe('expression array operator interiors and targets (#1005)', () => {
+    it('resolves the interior of a non-relation target as an element path', () => {
+        const validate = vi.fn(() => true);
+        const parser = new ExpressionParser(buildArrayRegistry({}, {}, validate));
+
+        const query = parser.parse(
+            { filters: "elemMatch(id, eq(author.userId, 'x'))" },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['id', 'author.userId']);
+        // not a relation traversal: the relations hook never sees author
+        expect(validate).not.toHaveBeenCalled();
+    });
+
+    it('never reaches a relation from an element interior', () => {
+        const parser = new ExpressionParser(buildArrayRegistry());
+
+        const query = parser.parse(
+            { filters: "elemMatch(slug, eq(postTags.post.status, 'draft'))" },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['slug', 'postTags.post.status']);
+    });
+
+    const refused = [
+        "elemMatch(id, eq(author.userId, 'x'))",
+        "size(id, '1')",
+        "elemMatch(slug, eq(postTags.post.status, 'draft'))",
+    ];
+
+    for (const expression of refused) {
+        it(`rejects ${expression} when arrays is declared empty`, () => {
+            const parser = new ExpressionParser(buildArrayRegistry({ arrays: [] }));
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse({ filters: expression }, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.KEY_NOT_ALLOWED },
+                );
+            }
+        });
+
+        it(`rejects ${expression} under a strict schema without arrays`, () => {
+            const parser = new ExpressionParser(buildArrayRegistry({}, { strict: true }));
+
+            expectRejected(
+                () => parser.parse({ filters: expression }, { schema: 'post' }),
+                { code: ErrorCode.KEY_NOT_ALLOWED },
+            );
+        });
+    }
+
+    it('keeps array operators on a declared array column', () => {
+        const parser = new ExpressionParser(buildArrayRegistry({ arrays: ['tags'] }, { strict: true }));
+
+        for (const filters of ["size(tags, '1')", "elemMatch(tags, eq(meta.kind, 'x'))"]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(treeFields(query.filters)[0]).toEqual('tags');
+        }
+    });
+
+    it('keeps binding a relation target to its schema', () => {
+        const parser = new ExpressionParser(buildArrayRegistry({ arrays: [] }));
+
+        expect(treeFields(parser.parse(
+            { filters: "elemMatch(postTags, eq(tagId, 'x'))" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', 'tagId']);
+        expect(treeFields(parser.parse(
+            { filters: "size(postTags, '1')" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags']);
+
+        // the postTags schema permits no relation: its hop is gated
+        expectRejected(
+            () => parser.parse(
+                { filters: "elemMatch(postTags, eq(post.status, 'draft'))" },
+                { schema: 'post', throwOnFailure: true },
+            ),
+            { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+        );
+    });
+
+    it('keeps nested interiors element scopes at every depth', () => {
+        const parser = new ExpressionParser(buildArrayRegistry({ arrays: ['tags'] }));
+
+        for (const [filters, inner] of [
+            ["elemMatch(tags, elemMatch(sub, eq(author.userId, 'x')))", 'sub'],
+            ["elemMatch(tags, elemMatch($this, eq(author.userId, 'x')))", '$this'],
+        ]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(treeFields(query.filters)).toEqual(['tags', inner, 'author.userId']);
+        }
+    });
+
+    it('treats a listed array column as no relation even when a schema shares its name', () => {
+        const validate = vi.fn(() => true);
+        const parser = new ExpressionParser(buildArrayRegistry({
+            allowed: ['id', 'author'],
+            arrays: ['author'],
+        }, {}, validate));
+
+        const query = parser.parse(
+            { filters: "elemMatch(author, eq(anything.deep, 'x'))" },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['author', 'anything.deep']);
+        expect(validate).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * post declares the relation author, whose schema is not registered;
+ * company is registered (#1005 review).
+ */
+function buildDeclaredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['author'] },
+        filters: { allowed: ['id', 'author'] },
+    }));
+    registry.add(defineSchema({ name: 'company', filters: { allowed: ['name'] } }));
+
+    return registry;
+}
+
+describe('expression ITSELF and unregistered relation interiors (#1005)', () => {
+    it('keeps a bound relation interior for an ITSELF target, gating every hop', () => {
+        const parser = new ExpressionParser(buildArrayRegistry());
+        const input = { filters: "elemMatch(postTags, elemMatch($this, eq(post.secret, 'x')))" };
+
+        for (const throwOnFailure of [false, true]) {
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure }),
+                { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+            );
+        }
+
+        expect(treeFields(parser.parse(
+            { filters: "elemMatch(postTags, elemMatch($this, eq(tagId, 'x')))" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', '$this', 'tagId']);
+    });
+
+    it('keeps a single-segment key inside a declared but unregistered relation', () => {
+        const parser = new ExpressionParser(buildDeclaredRegistry());
+
+        expect(treeFields(parser.parse(
+            { filters: "elemMatch(author, eq(name, 'x'))" },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['author', 'name']);
+    });
+
+    const dotted = [
+        "elemMatch(author, eq(company.secret, 'x'))",
+        "elemMatch(author, elemMatch(sub, eq(company.name, 'x')))",
+        "elemMatch(author, elemMatch($this, eq(company.name, 'x')))",
+        // an array-operator target inside the row: it may be a relation
+        "elemMatch(author, elemMatch(company, eq(secret, 'x')))",
+        "elemMatch(author, size(company, '1'))",
+    ];
+
+    for (const filters of dotted) {
+        it(`rejects ${filters}: a join behind an unregistered relation`, () => {
+            const parser = new ExpressionParser(buildDeclaredRegistry());
+
+            for (const throwOnFailure of [false, true]) {
+                expectRejected(
+                    () => parser.parse({ filters }, { schema: 'post', throwOnFailure }),
+                    { code: ErrorCode.KEY_PATH_INVALID },
+                );
+            }
+        });
+    }
+});
+
+describe('expression array operators on a standalone filters schema (PR #1007 review)', () => {
+    for (const filters of ["size(postTags, '1')", "elemMatch(postTags, eq(tagId, 'x'))"]) {
+        it(`keeps ${filters} on a registered relation an explicit arrays list omits`, () => {
+            const parser = new ExpressionFiltersParser(buildArrayRegistry());
+
+            const output = parser.parse(filters, {
+                schema: defineFiltersSchema({
+                    allowed: ['postTags'], 
+                    relations: ['postTags'], 
+                    arrays: [], 
+                }),
+                throwOnFailure: true,
+            });
+
+            expect(treeFields(output)[0]).toEqual('postTags');
+        });
     }
 });

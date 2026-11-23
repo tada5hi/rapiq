@@ -121,6 +121,21 @@ export type SimpleArrayLeafKeys<
         never
 }[keyof T & string];
 
+/**
+ * The keys of `T` holding an array of any element type: scalars, objects
+ * or nested arrays. Used to declare JSON array columns (`filters.arrays`),
+ * whose array-operator interiors address the elements by opaque paths. A
+ * to-many relation is structurally identical at the type level and is
+ * admitted too; list only column-backed keys there.
+ */
+export type ArrayKeys<
+    T extends Record<PropertyKey, any>,
+> = {
+    [Key in keyof T & string]: NonNullable<T[Key]> extends ReadonlyArray<any> ?
+        Key :
+        never
+}[keyof T & string];
+
 export type SimpleResourceKeys<
     T extends Record<PropertyKey, any>,
 > = {

@@ -757,21 +757,22 @@ export class ExpressionFiltersParser extends BaseParser<
 
     /**
      * The field an elemMatch binds plus the interior resolution scope:
-     * the related schema when resolvable, otherwise an unbound scope
-     * inheriting the current policy (e.g. a JSON array column).
+     * the related schema for a relation target, otherwise an element
+     * scope inheriting the current policy (e.g. a JSON array column),
+     * whose dotted keys never reach a relation (#1005).
      */
     private parseElemMatchTarget(
         scope?: FiltersScope,
     ): { field: string, scope?: FiltersScope } {
         if (this.peek().type === FilterTokenType.ITSELF) {
             // an elemMatch on the element itself (arrays of arrays);
-            // the chain parser enforces the interior-only contract.
+            // the chain parser enforces the interior-only contract. The
+            // element is the one the enclosing interior binds, so its scope
+            // is kept: a bound relation interior stays gated per hop, an
+            // element scope stays one (#1005).
             const field = this.parseExpressionFieldChain(scope);
 
-            return {
-                field,
-                scope: scope ? this.buildUnboundScope(scope) : undefined,
-            };
+            return { field, scope };
         }
 
         const token = this.consume(FilterTokenType.FIELD);
@@ -796,7 +797,10 @@ export class ExpressionFiltersParser extends BaseParser<
             parts.shift();
         }
 
-        const resolved = scope.resolveKey(parts.join('.'));
+        // an array-operator target: a relation is gated by the relation
+        // policy, any other field by the schema's `arrays` declaration.
+        const key = parts.join('.');
+        const resolved = scope.resolveKey(key, key, { relationTarget: true });
 
         /* istanbul ignore next -- the scope always throws */
         if (!resolved.success) {
@@ -805,30 +809,20 @@ export class ExpressionFiltersParser extends BaseParser<
 
         const field = [...resolved.path, resolved.name].join('.');
 
-        let interior : FiltersScope | undefined;
+        // a relation target binds the interior to its schema (gated per
+        // hop); every other target yields an element scope. A refused
+        // relation is thrown by the descent itself, the scope always throws.
+        const interior = resolved.scope.descendElement(resolved.name);
 
-        // elemMatch on a non-relation field is legal: a missing related
-        // schema comes back as a bare verdict and falls back to the unbound
-        // scope. Every other failure (e.g. relations gating, including a
-        // declared relation whose schema is not registered) is thrown by
-        // the descent itself, the scope is always throwing.
-        const verdict = resolved.scope.descend(resolved.name, { optional: true });
-
-        if (verdict instanceof ResolutionScope) {
-            interior = verdict as FiltersScope;
+        /* istanbul ignore next -- the scope always throws */
+        if (!(interior instanceof ResolutionScope)) {
+            throw FiltersParseError.keyInvalid(interior.input);
         }
 
         return {
             field,
-            scope: interior ?? this.buildUnboundScope(scope),
+            scope: interior as FiltersScope,
         };
-    }
-
-    private buildUnboundScope(current: FiltersScope) : FiltersScope {
-        return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
-            throwOnFailure: true,
-            strict: current.strict,
-        }) as FiltersScope;
     }
 
     private parseExpressionValue(): Scalar {

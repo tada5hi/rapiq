@@ -33,7 +33,7 @@ scope.resolveKey('items.title'); // KeyResolution: { ok, name, path, scope } | {
 scope.descend('items');          // child ResolutionScope bound to the related schema, or a failure verdict
 ```
 
-Parameter quirks (fields `execute()`, filter value parsing) stay in the parsers, reached via the `scope.schema` escape hatch. Scopes created without any schema input are *unbound* and impose no traversal constraints (required for schemaless codec round-trips).
+Parameter quirks (fields `execute()`, filter value parsing) stay in the parsers, reached via the `scope.schema` escape hatch. Scopes created without any schema input are *unbound* and impose no traversal constraints (required for schemaless codec round-trips). The interior of an array operator (`size`/`elemMatch`/`all`) comes from `descendElement()`: a registered relation binds the related schema, every other target an *element* scope that never consults the registry (#1005): `array` mode (JSON column) takes dotted keys as opaque element sub-paths, `relation` mode (declared relation, schema unregistered) refuses dotted keys and array-operator targets with `schemaUnresolvable`, and a nested interior keeps its mode. An `ITSELF` target keeps the enclosing interior scope (never `forElement()` on a bound scope); dialects must not build their own unbound interior scope. Array-operator targets resolve with `{ relationTarget: true }`, which gates a relation by `checkRelationTarget()` and any other field by `checkArrayTarget()` (`filters.arrays`).
 
 ### Parsers (dialects of input)
 

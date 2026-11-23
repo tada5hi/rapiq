@@ -6,7 +6,7 @@ Narrow the collection by conditions on fields: from a simple equality to arbitra
 |---|---|
 | URL key | `filter` |
 | AST nodes | `Filters` (compound `and`/`or`) / `Filter { operator, field, value }` |
-| Schema options | `allowed`, `default`, `mapping`, `relations`, `validate` |
+| Schema options | `allowed`, `arrays`, `default`, `mapping`, `relations`, `validate` |
 
 ## Operators
 
@@ -146,7 +146,34 @@ same verdict `@rapiq/adapter-memory` produces.
 
 ## Nested fields
 
-`relation.field` keys filter on related records. The relation must be listed in the schema's `filters.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations), and an include of another relation does not drop the filter. A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list every name the registry resolves (directly or through `schemaMapping`) is permitted, unless the schema is [strict](/guide/schemas#strict-mode); declare `relations.allowed` (or `filters.relations`) to restrict traversal. A name the registry cannot resolve is a `keyPathInvalid` parse error. Array operators that target a relation directly (`$size`, `$all`, `$elemMatch` in mongo; `size()`, `elemMatch()` in the expression dialect) are checked against the same list. Their target counts as a relation when the registry resolves it or the schema declares it in `schemaMapping`, `relations.allowed` or `filters.relations`; a JSON array column that shares a registered schema's name therefore needs to be listed in `filters.relations` to stay filterable with these operators. The field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
+`relation.field` keys filter on related records. The relation must be listed in the schema's `filters.relations` (which defaults to `relations.allowed`); it does not have to be requested via [relations](/guide/relations), and an include of another relation does not drop the filter. A relation outside the list is a `keyPathNotAllowed` violation (dropped, or thrown under `throwOnFailure`). Without any list every name the registry resolves (directly or through `schemaMapping`) is permitted, unless the schema is [strict](/guide/schemas#strict-mode); declare `relations.allowed` (or `filters.relations`) to restrict traversal. A name the registry cannot resolve is a `keyPathInvalid` parse error. Array operators that target a relation directly (`$size`, `$all`, `$elemMatch` in mongo; `size()`, `elemMatch()` in the expression dialect) are checked against the same list. Their target counts as a relation when the registry resolves it or the schema declares it in `schemaMapping`, `relations.allowed` or `filters.relations`, unless it is listed in `filters.arrays` (see [Array columns](#array-columns)). The field validates against the related schema through [`schemaMapping`](/guide/schemas#the-registry-relations).
+
+### Array columns
+
+An array operator (`size`, `elemMatch`, `all`) on a field that is not a relation targets a JSON array column. `filters.arrays` declares those columns:
+
+```typescript
+const postSchema = defineSchema<Post>({
+    name: 'post',
+    filters: {
+        allowed: ['id', 'slug', 'labels'],
+        relations: ['postTags'],
+        arrays: ['labels'],
+    },
+});
+```
+
+- **Declared:** an array operator may target a relation (checked against `filters.relations`, as above) or a listed column. Any other target, e.g. `elemMatch(id, …)`, is a `keyNotAllowed` violation (dropped, or thrown under `throwOnFailure`; the expression dialect always rejects). `arrays: []` refuses every non-relation target.
+- **Undeclared:** every non-relation target is permitted, unless the schema is [strict](/guide/schemas#strict-mode).
+- **Collisions:** a listed name is always an array column, never a relation, even when a registered schema or `schemaMapping` entry shares its name. A JSON column named like a registered schema therefore belongs in `arrays` (listing it in `filters.relations` keeps working).
+
+Where an array operator's interior resolves depends on its target:
+
+- **A registered relation:** the interior is bound to the related schema, and every hop inside it is checked against that schema's policy, exactly like a dotted path.
+- **A JSON array column** (listed in `arrays`, or any non-relation column while `arrays` is undeclared): the interior is an **element scope**. A dotted key inside it, e.g. `elemMatch(labels, eq(meta.kind, 'x'))`, is an opaque path into the array element, checked for identifier validity only; it is never resolved against a registered schema or relation, so an interior cannot reach a relation around the schema's `filters.relations`.
+- **A declared relation whose schema is not registered** (in `relations.allowed`, `filters.relations` or `schemaMapping`): a single-segment key inside the interior addresses a column of the related row; a dotted key would join on from it, so it is a `keyPathInvalid` violation, the same verdict the dotted path gets at the top level. A nested array operator on a column of that row (`elemMatch(author, size(company, '1'))`) is a `keyPathInvalid` violation too: the row's columns are unknown, so its target may be a relation the backend would join.
+
+A nested interior keeps these rules: an `ITSELF` target (`elemMatch($this, …)`, or mongo's `{ $elemMatch: { $elemMatch: … } }`) stays in the scope it is in, and an element interior never regains dotted access to relations. Without any schema (a schemaless parse) a target still descends into a registered schema by name.
 
 ## Null semantics
 
@@ -283,6 +310,7 @@ defineSchema<User>({
 | `default` | Condition applied when the client sends no filters. |
 | `mapping` | Alias → field translation applied before validation. |
 | `relations` | Relations a filter may traverse (`relation.field` keys and array operators on a relation). Defaults to `relations.allowed`; see [Nested fields](#nested-fields). |
+| `arrays` | JSON array columns an array operator (`size`, `elemMatch`, `all`) may target. Undeclared: every non-relation target is permitted unless strict; `[]` refuses them all. See [Array columns](#array-columns). |
 | `validate` | Sync or async per-filter hook: inspect a parsed `Filter`, replace it with any condition, or reject it. Receives the [parse context](/guide/schemas#validate-hooks-parse-context) as its second argument. |
 | `caseSensitive` | Fields whose equality comparisons stay exact instead of the [case-insensitive default](#case-sensitivity). |
 | `indexed` | Check the parsed tree against the schema `indexes` declaration: `'anchor'` (or `true`) requires one index-leading conjunct per AND group, `'cover'` full prefix coverage. See [Indexes](/guide/schemas#indexes). |

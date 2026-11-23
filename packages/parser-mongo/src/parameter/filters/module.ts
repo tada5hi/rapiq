@@ -23,7 +23,6 @@ import {
     Filters,
     FiltersParseError,
     ITSELF,
-    KeyResolutionErrorCode,
     MAX_TRAVERSAL_DEPTH,
     Parameter,
     RelationsParseError,
@@ -990,13 +989,37 @@ export class MongoFiltersParser extends BaseParser<
     }
 
     /**
+     * The interior scope of an $elemMatch on `resolved`. The element ITSELF
+     * keeps the scope it is in: a bound relation interior stays gated per
+     * hop, an element scope stays one (#1005). A relation target binds the
+     * interior to its schema (its obligation was recorded when resolveField
+     * resolved it); every other target yields an element scope. A refused
+     * relation was recorded (or thrown) by the descent itself and drops the
+     * entry (`undefined`).
+     */
+    protected resolveElemMatchInterior(resolved: FieldResolution) : FiltersScope | undefined {
+        if (resolved.name === ITSELF) {
+            return resolved.scope;
+        }
+
+        const child = resolved.scope.descendElement(resolved.name);
+
+        if (!(child instanceof ResolutionScope)) {
+            return undefined;
+        }
+
+        return child as FiltersScope;
+    }
+
+    /**
      * Build an $elemMatch condition. A field-operator interior
-     * (`{ $gt: 5 }`) is the element-level form — the operators apply to
+     * (`{ $gt: 5 }`) is the element-level form: the operators apply to
      * the array element itself, referenced by the ITSELF marker. Any
      * other value re-enters document context, fields relative to the
      * array element. The document-form interior scope is the related
-     * schema when resolvable, otherwise an unbound scope inheriting the
-     * current policy (e.g. a JSON array column).
+     * schema for a relation target, otherwise an element scope inheriting
+     * the current policy (e.g. a JSON array column), which never
+     * reaches a relation around the schema policy (#1005).
      */
     protected buildElemMatch(
         input: Record<string, any>,
@@ -1017,12 +1040,20 @@ export class MongoFiltersParser extends BaseParser<
             // misplaced compounds throw).
             const regex = this.validateOperatorObject(resolved.field, input, false);
 
+            // the element ITSELF lives in the interior of the target: a
+            // nested document-form $elemMatch on it resolves there.
+            const interior = this.resolveElemMatchInterior(resolved);
+
+            if (!interior) {
+                return undefined;
+            }
+
             const conditions = this.buildOperatorObject(
                 input,
                 {
                     field: ITSELF,
                     name: ITSELF,
-                    scope: this.buildUnboundScope(resolved.scope),
+                    scope: interior,
                 },
                 false,
                 depth + 1,
@@ -1039,32 +1070,10 @@ export class MongoFiltersParser extends BaseParser<
             return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
         }
 
-        let child : FiltersScope | undefined;
-
-        if (resolved.name === ITSELF) {
-            // the element itself is never schema-resolvable.
-            child = this.buildUnboundScope(resolved.scope);
-        } else {
-            // $elemMatch on a non-relation field is legal, so a missing
-            // related schema is an answer rather than a violation and comes
-            // back as a bare verdict; every other failure was recorded (or
-            // thrown) by the descent itself and drops the entry.
-            const verdict = resolved.scope.descend(resolved.name, { optional: true });
-
-            if (verdict instanceof ResolutionScope) {
-                // the target relation's obligation was recorded when
-                // resolveField resolved it; here we only need the child
-                // scope for the interior conditions.
-                child = verdict;
-            } else if (verdict.code !== KeyResolutionErrorCode.SCHEMA_UNRESOLVABLE) {
-                // relations gating (pathNotPermitted) is a schema-policy
-                // failure for the entry: drop it.
-                return undefined;
-            }
-        }
+        const child = this.resolveElemMatchInterior(resolved);
 
         if (!child) {
-            child = this.buildUnboundScope(resolved.scope);
+            return undefined;
         }
 
         const conditions = this.parseDocument(input, child, false, depth + 1);
@@ -1077,14 +1086,6 @@ export class MongoFiltersParser extends BaseParser<
         }
 
         return new Filter(FilterFieldOperator.ELEM_MATCH, resolved.field, condition);
-    }
-
-    protected buildUnboundScope(current: FiltersScope) : FiltersScope {
-        return ResolutionScope.for(this.registry, Parameter.FILTERS, undefined, {
-            throwOnFailure: current.throwOnFailure,
-            strict: current.strict,
-            issueCollector: current.issueCollector,
-        }) as FiltersScope;
     }
 }
 

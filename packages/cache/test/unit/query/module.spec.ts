@@ -440,6 +440,31 @@ describe('src/query/module.ts', () => {
             })).toEqual(['role', 'realm', 'user']);
         });
 
+        it('should treat a filters.arrays column as no relation, even when a schema shares its name (#1005)', () => {
+            const local = new SchemaRegistry();
+
+            local.add(defineSchema({
+                name: 'post',
+                filters: { allowed: ['id', 'author', 'labels'], arrays: ['author', 'labels'] },
+                relations: { allowed: [] },
+            }));
+            local.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+
+            // the interior is an element scope: its dotted keys are element
+            // sub-paths and join nothing.
+            for (const filters of [
+                elemMatch('author', eq('anything.deep', 'x')),
+                elemMatch('labels', eq('author.userId', 'x')),
+            ]) {
+                expect(collectQueryTags({
+                    query: defineQuery({ filters }),
+                    schema: 'post',
+                    registry: local,
+                    value: [],
+                })).toEqual(['post']);
+            }
+        });
+
         it('should add no relation tag and not throw for an elemMatch on a scalar or JSON array', () => {
             const relationRegistry = buildRelationRegistry();
 

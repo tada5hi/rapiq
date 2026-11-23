@@ -5,7 +5,12 @@
  * view the LICENSE file that was distributed with this source code.
  */
 
-import { ErrorCode, SchemaRegistry, defineSchema } from '@rapiq/core';
+import {
+    ErrorCode,
+    SchemaRegistry,
+    defineFiltersSchema,
+    defineSchema,
+} from '@rapiq/core';
 import type { IFilters, KeyValidationScope } from '@rapiq/core';
 import { expectRejected } from '../../data';
 import { MongoFiltersParser, MongoParser } from '../../../src';
@@ -373,4 +378,299 @@ describe('mongo array operators on an unregistered declared relation (#1001)', (
             expect(filterFields(query.filters)).toEqual(['notes']);
         });
     }
+});
+
+/**
+ * The schema of #1005: post may traverse postTags only, author is a
+ * registered schema post does not allow, `tags` is a JSON array column.
+ */
+function buildArrayRegistry(
+    filters: Record<string, any> = {},
+    post: Record<string, any> = {},
+    validate?: (name: string) => boolean,
+) : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['cover'], ...(validate ? { validate } : {}) },
+        filters: {
+            allowed: ['id', 'slug', 'tags', 'postTags'],
+            relations: ['postTags'],
+            ...filters,
+        },
+        ...post,
+    }));
+    registry.add(defineSchema({
+        name: 'postTags',
+        filters: { allowed: ['tagId'], relations: [] },
+        schemaMapping: { post: 'post' },
+    }));
+    registry.add(defineSchema({ name: 'author', filters: { allowed: ['userId'] } }));
+    registry.add(defineSchema({ name: 'cover' }));
+
+    return registry;
+}
+
+/**
+ * Every field of a parsed tree, elemMatch interiors included.
+ */
+function treeFields(input: unknown) : string[] {
+    const output : string[] = [];
+    const walk = (node: any) => {
+        if (typeof node?.field === 'string') {
+            output.push(node.field);
+
+            if (node.operator === 'elemMatch') {
+                walk(node.value);
+            }
+
+            return;
+        }
+
+        if (Array.isArray(node?.value)) {
+            for (const child of node.value) {
+                walk(child);
+            }
+        }
+    };
+
+    walk(input);
+
+    return output;
+}
+
+describe('mongo array operator interiors and targets (#1005)', () => {
+    it('resolves the interior of a non-relation target as an element path', () => {
+        const validate = vi.fn(() => true);
+        const parser = new MongoParser(buildArrayRegistry({}, {}, validate));
+
+        const query = parser.parse(
+            { filters: { id: { $elemMatch: { 'author.userId': 'x' } } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['id', 'author.userId']);
+        expect(validate).not.toHaveBeenCalled();
+    });
+
+    it('never reaches a relation from an element interior', () => {
+        const parser = new MongoParser(buildArrayRegistry());
+
+        const query = parser.parse(
+            { filters: { slug: { $elemMatch: { 'postTags.post.status': 'draft' } } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['slug', 'postTags.post.status']);
+    });
+
+    const refused : Array<{ label: string, filters: Record<string, unknown> }> = [
+        { label: '$elemMatch', filters: { id: { $elemMatch: { 'author.userId': 'x' } } } },
+        { label: '$size', filters: { id: { $size: 1 } } },
+        { label: '$all', filters: { id: { $all: ['x'] } } },
+        { label: '$elemMatch (relation path interior)', filters: { slug: { $elemMatch: { 'postTags.post.status': 'draft' } } } },
+    ];
+
+    for (const { label, filters } of refused) {
+        it(`drops or rejects ${label} on a field outside an empty arrays list`, () => {
+            const parser = new MongoParser(buildArrayRegistry({ arrays: [] }));
+            const input = { filters };
+
+            expect(treeFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_NOT_ALLOWED },
+            );
+        });
+
+        it(`drops ${label} under a strict schema without arrays`, () => {
+            const parser = new MongoParser(buildArrayRegistry({}, { strict: true }));
+
+            expect(treeFields(parser.parse({ filters }, { schema: 'post' }).filters)).toEqual([]);
+        });
+    }
+
+    it('keeps a sibling entry when an array target is dropped', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: [] }));
+
+        const query = parser.parse(
+            { filters: { id: { $size: 1 }, slug: 'x' } },
+            { schema: 'post' },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['slug']);
+    });
+
+    it('keeps array operators on a declared array column', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: ['tags'] }, { strict: true }));
+
+        for (const filters of [
+            { tags: { $size: 1 } },
+            { tags: { $all: ['x'] } },
+            { tags: { $elemMatch: { 'meta.kind': 'x' } } },
+        ]) {
+            const query = parser.parse({ filters }, { schema: 'post', throwOnFailure: true });
+
+            expect(treeFields(query.filters)[0]).toEqual('tags');
+        }
+    });
+
+    it('keeps binding a relation target to its schema', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: [] }));
+
+        expect(treeFields(parser.parse(
+            { filters: { postTags: { $elemMatch: { tagId: 'x' } } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', 'tagId']);
+        expect(treeFields(parser.parse(
+            { filters: { postTags: { $size: 1 } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags']);
+
+        // the postTags schema permits no relation: its hop is gated
+        expectRejected(
+            () => parser.parse(
+                { filters: { postTags: { $elemMatch: { 'post.status': 'draft' } } } },
+                { schema: 'post', throwOnFailure: true },
+            ),
+            { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+        );
+    });
+
+    it('keeps nested interiors element scopes at every depth', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: ['tags'] }));
+
+        const query = parser.parse(
+            { filters: { tags: { $elemMatch: { sub: { $elemMatch: { 'author.userId': 'x' } } } } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['tags', 'sub', 'author.userId']);
+
+        const itself = parser.parse(
+            { filters: { tags: { $elemMatch: { $gt: 1 } } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(itself.filters)).toEqual(['tags', '$this']);
+    });
+
+    it('treats a listed array column as no relation even when a schema shares its name', () => {
+        const validate = vi.fn(() => true);
+        const parser = new MongoParser(buildArrayRegistry({
+            allowed: ['id', 'author'],
+            arrays: ['author'],
+        }, {}, validate));
+
+        const query = parser.parse(
+            { filters: { author: { $elemMatch: { 'anything.deep': 'x' } } } },
+            { schema: 'post', throwOnFailure: true },
+        );
+
+        expect(treeFields(query.filters)).toEqual(['author', 'anything.deep']);
+        expect(validate).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * post declares the relation author, whose schema is not registered;
+ * company is registered (#1005 review).
+ */
+function buildDeclaredRegistry() : SchemaRegistry {
+    const registry = new SchemaRegistry();
+
+    registry.add(defineSchema({
+        name: 'post',
+        relations: { allowed: ['author'] },
+        filters: { allowed: ['id', 'author'] },
+    }));
+    registry.add(defineSchema({ name: 'company', filters: { allowed: ['name'] } }));
+
+    return registry;
+}
+
+describe('mongo ITSELF and unregistered relation interiors (#1005)', () => {
+    it('keeps a bound relation interior for the element form, gating every hop', () => {
+        const parser = new MongoParser(buildArrayRegistry());
+        const input = { filters: { postTags: { $elemMatch: { $elemMatch: { 'post.secret': 'x' } } } } };
+
+        expect(treeFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(
+            () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+            { code: ErrorCode.KEY_PATH_NOT_ALLOWED },
+        );
+
+        expect(treeFields(parser.parse(
+            { filters: { postTags: { $elemMatch: { $elemMatch: { tagId: 'x' } } } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['postTags', '$this', 'tagId']);
+    });
+
+    it('keeps a single-segment key inside a declared but unregistered relation', () => {
+        const parser = new MongoParser(buildDeclaredRegistry());
+
+        expect(treeFields(parser.parse(
+            { filters: { author: { $elemMatch: { name: 'x' } } } },
+            { schema: 'post', throwOnFailure: true },
+        ).filters)).toEqual(['author', 'name']);
+    });
+
+    const dotted : Array<Record<string, unknown>> = [
+        { author: { $elemMatch: { 'company.secret': 'x' } } },
+        { author: { $elemMatch: { sub: { $elemMatch: { 'company.name': 'x' } } } } },
+        { author: { $elemMatch: { $elemMatch: { 'company.name': 'x' } } } },
+        // an array-operator target inside the row: it may be a relation
+        { author: { $elemMatch: { company: { $elemMatch: { secret: 'x' } } } } },
+        { author: { $elemMatch: { company: { $size: 1 } } } },
+        { author: { $elemMatch: { company: { $all: ['x'] } } } },
+    ];
+
+    for (const filters of dotted) {
+        it(`drops or rejects ${JSON.stringify(filters)}: a join behind an unregistered relation`, () => {
+            const parser = new MongoParser(buildDeclaredRegistry());
+
+            expect(treeFields(parser.parse({ filters }, { schema: 'post' }).filters)).toEqual([]);
+            expectRejected(
+                () => parser.parse({ filters }, { schema: 'post', throwOnFailure: true }),
+                { code: ErrorCode.KEY_PATH_INVALID },
+            );
+        });
+    }
+});
+
+describe('mongo array operators on a standalone filters schema (PR #1007 review)', () => {
+    const operators : Array<{ label: string, value: unknown }> = [
+        { label: '$size', value: { $size: 1 } },
+        { label: '$all', value: { $all: ['x'] } },
+        { label: '$elemMatch', value: { $elemMatch: { tagId: 'x' } } },
+    ];
+
+    for (const { label, value } of operators) {
+        it(`keeps ${label} on a registered relation an explicit arrays list omits`, () => {
+            const parser = new MongoFiltersParser(buildArrayRegistry());
+
+            const output = parser.parse({ postTags: value }, {
+                schema: defineFiltersSchema({
+                    allowed: ['postTags'], 
+                    relations: ['postTags'], 
+                    arrays: [], 
+                }),
+                throwOnFailure: true,
+            });
+
+            expect(treeFields(output)[0]).toEqual('postTags');
+        });
+    }
+
+    it('drops or rejects an empty dotted segment inside an element interior', () => {
+        const parser = new MongoParser(buildArrayRegistry({ arrays: ['tags'] }));
+        const input = { filters: { tags: { $elemMatch: { 'a..b': 1 } } } };
+
+        expect(treeFields(parser.parse(input, { schema: 'post' }).filters)).toEqual([]);
+        expectRejected(
+            () => parser.parse(input, { schema: 'post', throwOnFailure: true }),
+            { code: ErrorCode.KEY_INVALID },
+        );
+    });
 });
