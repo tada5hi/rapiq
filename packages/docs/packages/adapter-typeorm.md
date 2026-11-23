@@ -86,6 +86,22 @@ Pick one:
 `include` remains the right tool when you are **not** grouping the root: the full subtree hydrates without conflict.
 :::
 
+## Filters across to-many relations
+
+A filter on a dotted path constrains the **parent** rows only. When a filter tree traverses a `OneToMany` / `ManyToMany` relation, the adapter renders the whole tree as one correlated `EXISTS` over the root entity (alias `<alias>_exists`, correlated on every primary key column) instead of joining the relation on your builder:
+
+```text
+GET /posts?filter[postTags.tagId]=7&include=postTags
+```
+
+returns the posts that have tag `7`, and each post's `postTags` holds **all** of its tags, not only the matching one. Without the include, no join reaches the builder at all, so a post with two matching tags is still one row and pagination counts posts. A root row matches when one related row satisfies the whole tree. With the default `relations.joinType: 'left'`, this keeps `not(...)` and `or(...)` across the relation in line with [`@rapiq/adapter-memory`](/packages/adapter-memory); with `joinType: 'inner'`, the subquery's inner join drops a root that has no related rows, so a negation or an `or(...)` branch that should keep such a root does not.
+
+The joins the filter needs run inside the subquery with the same `relations` options; the `onJoin` hook receives the subquery's builder, so a tenant or authorization condition it adds applies there too, and `withDeleted()` carries over. A filter that traverses only to-one relations stays a plain join on your builder. Includes, sorts and fields still join their relations on the builder as before.
+
+::: warning Behaviour change for `execute()`
+A join already on your builder is not reused inside the subquery: the subquery builds its own join, as [grouped queries](#grouped-queries) already do. Before, a record read reused a join you added under the adapter's alias (for example `leftJoinAndSelect('post.postTags', alias, '<alias>.hidden = false')`), so that join's `ON` condition also scoped the filter. It no longer does. Set a relation scope, such as a tenant or authorization condition, through the `relations.onJoin` hook, which also runs inside the subquery, not through the `ON` condition of a pre-joined alias.
+:::
+
 ## Dialect detection
 
 The adapter resolves the SQL dialect from the attached query builder's connection type (`postgres`, `mysql`/`mariadb`, `sqlite`/`better-sqlite3`, `mssql`, `oracle`, …). Field escaping is delegated to the query builder itself; the [dialect preset](/packages/adapter-sql#dialects) supplies the rest. The `contains` / `startsWith` / `endsWith` operators render as `LIKE ... ESCAPE '!'` on every connection type; the preset's `regexp` callback serves the `regex` operator alone, so on regex-less dialects (SQLite, SQL Server) that one operator throws a typed `AdapterError`. When the connection type has no matching preset, the postgres preset is the documented last-resort default.
